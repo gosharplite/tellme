@@ -20,8 +20,10 @@
 | **2** | Read [`~/tmp/github/gosharplite/tell-me-go/README.md`](~/tmp/github/gosharplite/tell-me-go/README.md) and execute `AI session bootstrap` | Target capability & architecture reference. Execute all 8 bootstrap items defined in `tell-me-go` (see breakdown below) |
 | **3** | Read [`~/tmp/github/gosharplite/aixbdd-tmg/domain-model`](~/tmp/github/gosharplite/aixbdd-tmg/domain-model) | Read `aixbdd.modelith.md` (and `.yaml`): canonical entities (`PlanPackage`, `Spec`, `TruthDelta`, `TruthArtifact`, `DSL`, `Task`), invariants, and scenarios |
 | **4** | Read [`~/tmp/github/gosharplite/aixbdd-tmg/README.md`](~/tmp/github/gosharplite/aixbdd-tmg/README.md) | Operational BDD engine: PM/RD separation, skills execution pipeline, and CLI-streamlined adaptations |
+| **5** | List all pre-load skills | Inventory and inspect all pre-loaded skills in the current session context to establish operational capabilities and governance boundaries |
+| **6** | List all agents you can talk to in current shell env | Discover peer agents and personas in the current workspace (`$TELL_ME_HOME/configs/*.yaml`), identify self (`$TELL_ME_MODE`), and map available conversational targets per `tmg-chat-ingroup` |
 
-Only after Steps 1, 2, 3, and 4 are complete and results are reported may the agent respond to user tasking.
+Only after Steps 1, 2, 3, 4, 5, and 6 are complete and results are reported may the agent respond to user tasking.
 
 ---
 
@@ -29,7 +31,7 @@ Only after Steps 1, 2, 3, and 4 are complete and results are reported may the ag
 
 **You just finished reading this file. Do not reply. Do not summarize. Do not ask what to do next.**
 
-Immediately return to the step table at the top and execute **Step 1 → Step 2 → Step 3 → Step 4** in order. Report results when Steps 1–4 are complete.
+Immediately return to the step table at the top and execute **Step 1 → Step 2 → Step 3 → Step 4 → Step 5 → Step 6** in order. Report results when Steps 1–6 are complete.
 
 ---
 
@@ -66,6 +68,18 @@ The operational engine at `~/tmp/github/gosharplite/aixbdd-tmg/` provides the fo
     2. Lean `/axb-system-analysis` (`/axb-api-plan` marked as `NOOP` in `truth-delta.md`; `/axb-data-plan` conditional on local state persistence).
     3. Executable CLI contract via `/axb-dsl-refine` (`specs/truth/features/**` and `dsl.md`).
 
+### 3. Pre-loaded Skills Verification (Step 5 Details)
+
+Identify and enumerate all pre-loaded skills injected into the session context.
+
+### 4. In-Group Agent Discovery (Step 6 Details)
+
+Inspect the current shell environment and discover available peer agents using the `tmg-chat-ingroup` protocol:
+1. Identify the current workspace root via `$TELL_ME_HOME`.
+2. Enumerate all agent configurations in `$TELL_ME_HOME/configs/*.yaml` and extract their corresponding `MODE` names and personas (`PERSON`).
+3. Identify the active agent identity via `$TELL_ME_MODE`.
+4. Report all peer agents that can be reached (every mode except self; never message your own mode to avoid session self-pollution).
+
 ---
 
 ## ⚠️ Agent Rules
@@ -75,3 +89,5 @@ The operational engine at `~/tmp/github/gosharplite/aixbdd-tmg/` provides the fo
 3. **Reference, Never Copy Blindly**: `tell-me-go` is the benchmark for capability, behavior, and architecture; `aixbdd-tmg` is the benchmark for development discipline. Clean architecture, testability, and determinism take precedence over legacy shortcuts.
 4. **Frozen History**: Never modify delivered `specs/plans/NNN-<slug>/` directories. Always create a new package for new iterations or modifications.
 5. **Truth Integrity**: Keep `specs/truth/**` as the single source of truth for current system behavior. Record all modifications through `truth-delta.md`.
+6. **Skill Awareness**: Verify pre-loaded skills before taking action; follow the specific SOP and invariants defined in each active skill.
+7. **In-Group Protocol**: Respect peer agent boundaries and messaging rules defined in `tmg-chat-ingroup` (clear `TELL_ME_MODE`, sequential dispatch, and never message self).
