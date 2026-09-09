@@ -21,7 +21,7 @@ This is a long-term journey. Rather than rushing code implementation, `tellme` w
 The development of `tellme` is anchored against two primary reference repositories:
 
 ### 1. `tell-me-go` (Capability & Architecture Reference)
-- **Local Path**: `/home/pos/tmp/github/gosharplite/tell-me-go`
+- **Local Path**: `~/tmp/github/gosharplite/tell-me-go`
 - **Upstream**: [github.com/gosharplite/tell-me-go](https://github.com/gosharplite/tell-me-go)
 - **Role**: The functional benchmark and architecture reference.
   - Multi-provider reasoning support (Google Gemini, OpenAI, DeepSeek, Anthropic Claude, Moonshot Kimi, Z.ai GLM).
@@ -33,7 +33,7 @@ The development of `tellme` is anchored against two primary reference repositori
   - Environment management: Niffler group/persona templates and provider hot-swapping.
 
 ### 2. `aixbdd-tmg` (BDD Execution, Skills & Domain Model Reference)
-- **Local Path**: `/home/pos/tmp/github/gosharplite/aixbdd-tmg`
+- **Local Path**: `~/tmp/github/gosharplite/aixbdd-tmg`
 - **Upstream**: [github.com/gosharplite/aixbdd-tmg](https://github.com/gosharplite/aixbdd-tmg)
 - **Role**: The operational engine and domain model for the BDD workflow.
   - **Canonical Domain Model** (`domain-model/aixbdd.modelith.md`): Defines core entities (`PlanPackage`, `Spec`, `AcceptanceFeature`, `TruthArtifact`, `TruthDelta`, `DSL`, `Task`), truth single-ownership, and step-to-DSL matching invariants.
