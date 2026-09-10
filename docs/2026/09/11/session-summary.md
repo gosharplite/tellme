@@ -7,12 +7,15 @@
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation)
 **Branches**: working `001-cli-bootstrap-and-config` → `dev` → `main`
 **Status at end of day**: Round 001 advanced from `plan.md` through **`/axb-data-plan`** and
-**`/axb-dsl-refine`**, each truth owner gated by an adversarial **grill round** (#3, #4). The data truth
-was **authored then deleted** (grill #3 + user-ratified reversal of clarify Q2); the CLI executable
-contract was authored (4 modules) and corrected (grill #4). Two host-rule residuals were routed upstream.
-**Next: `/axb-tasks`** (`/axb-implement` after that).
+**`/axb-dsl-refine`** (session 7), each truth owner gated by an adversarial **grill round** (#3, #4) —
+the data truth was **authored then deleted** (grill #3 + user-ratified reversal of clarify Q2) and the
+CLI executable contract authored (4 modules) + corrected (grill #4). **Session 8** (closeout) resolved
+both host-rule residuals from upstream (**R1** → [aixbdd-tmg PR #7](https://github.com/gosharplite/aixbdd-tmg/pull/7), **R2** → [PR #8](https://github.com/gosharplite/aixbdd-tmg/pull/8)),
+applied the tellme follow-ups (project-language home `decisions/0001-project-language.md`; **W2/D2
+re-decided → fold**, recorded as **NOOP**), and reconciled `spec.md` / `plan.md` / `research.md` to the
+ratified `data/**` NOOP. **Next: `/axb-tasks`** (`/axb-implement` after that).
 
-> **One session this day (session 7)** — the seventh session of the project (session 6 closed 2026-09-10).
+> **Two sessions this day** — session 7 (the seventh) and session 8 (the eighth; session 6 closed 2026-09-10). Both are captured below (§1–§10 = session 7; §11 = session 8).
 
 ---
 
@@ -142,3 +145,39 @@ Neither gates `/axb-tasks`; tellme ships unchanged on both. The user will drive 
 
 ### PM follow-ups
 - None new this session (spec/acceptance unchanged: PM-1..PM-4 remained closed from session 5).
+
+---
+
+## 11. Session 8 — upstream R1/R2 resolution + tellme follow-ups (closeout)
+
+A coordination + reconciliation session: the two host-rule residuals grill round #4 routed upstream
+were **resolved and merged**, and tellme applied its paired follow-ups.
+
+### Read (upstream, both merged)
+- **[aixbdd-tmg PR #7](https://github.com/gosharplite/aixbdd-tmg/pull/7)** (closes [#5](https://github.com/gosharplite/aixbdd-tmg/issues/5)) — **R1**: Rule 2 states a single **entailment** criterion + a **calibration set**; a repo `decisions/` **ADR mechanism** was added (`0001-atomicity-fold-split-criterion`); `STANDARDS.md` §2 and `axb-spec-by-example` Rule 4 aligned.
+- **[aixbdd-tmg PR #8](https://github.com/gosharplite/aixbdd-tmg/pull/8)** (closes [#6](https://github.com/gosharplite/aixbdd-tmg/issues/6)) — **R2**: `STANDARDS.md` gains a **Project Language** clause (default 繁體中文, project-declared, **named home**); the §4/§5 DSL meta-schema tokens + §5.2 channel labels stay **fixed**.
+- Local skill copies under `$TELL_ME_HOME/docs/skills/` verified **synced** with both.
+
+### tellme follow-ups applied
+1. **R2 — language-declaration home**: created [`decisions/0001-project-language.md`](../../../decisions/0001-project-language.md) (+ `decisions/README.md`) declaring **English** as tellme's artifact language (the named home the clause requires). Fixed DSL meta-schema tokens unchanged → audit stays green.
+2. **R1 — W2/D2 re-decided**: `/axb-dsl-refine` re-decided the workspace-reuse (W2) and config-resolution (D2) atomicity boundary under the entailment criterion → **fold for both** (structurally isomorphic ⇒ identical verdict). No feature/DSL body change → recorded as a **`NOOP`** in `truth-delta.md`. Topology audit re-run → **PASSED**.
+3. **Doc reconcile**: `spec.md` (revision note + Key Entities + Assumptions), `plan.md` (structure tree, Structure Decision, interface-2 planner → NOOP, Scope notes, Wave focus, delegation order), and `research.md` (clarify-Q2 ruling annotated ⟦grill #3⟧ REVERSED) reconciled to the ratified `data/**` NOOP.
+
+### Decisions log
+| # | Decision | Rationale |
+| --- | --- | --- |
+| D1 | **Language home = project ADR** (`decisions/0001-project-language.md`) | the named home per upstream PR #8; tellme has no constitution and a `spec.md` constraint is per-round |
+| D2 | **W2/D2 → fold** (NOOP) | entailment over the contract's domain definitions; identical verdict for isomorphic cases; keeps the CLI contract unchanged |
+
+### Commits (working branch `001-cli-bootstrap-and-config`)
+| Commit | Note |
+| --- | --- |
+| *(session-8 closeout)* | upstream R1/R2 resolution + language home + W2/D2 re-decision + `data/**`-NOOP doc reconcile; `STATUS.md` + this summary |
+
+### Open items (non-blocking)
+- None new. Non-blocking items unchanged (§9 of this log): exact `-d --json` **values**, exit-code numeric values, `NFR-004` wording, unchecked-error coverage (next slice).
+- **Propagation** — session-8 closeout commit: `working → dev → main` **pending user approval**.
+
+### Next steps
+- **`/axb-tasks`** — turn the plan + CLI contract into the executable `tasks.md`.
+- Then **`/axb-implement`** (Phase 3 test alignment → Feature Green/Refactor via `/axb-bdd`).
