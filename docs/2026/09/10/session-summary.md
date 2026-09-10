@@ -269,6 +269,7 @@ Both recorded into `research.md` / `truth-delta.md` / `STATUS.md`.
 | *(day-close)* | system-analysis `plan.md` + revised daily log + `STATUS.md` |
 | *(closeout)* | session-continuity tooling — bootstrap Step 8 + `SESSION-CLOSEOUT.md` + status/summary |
 | *(propagation)* | two-step merge `working → dev → main` (round-001 artifacts + session-continuity tooling) |
+| *(follow-ups)* | bootstrap ↔ closeout cross-link + de-brittled `STATUS.md` branch table |
 
 ---
 
@@ -322,7 +323,10 @@ stateful in **both** directions — the start-of-session read and the end-of-day
    off) with per-step details and 10 closeout rules. Name chosen as the verb-paired counterpart of
    *bootstrap* and consistent with the existing "day-close" vocabulary.
 3. **Closeout executed** — ran the procedure on the working branch: docs-only quality gate (link
-   check + secret scan) passed; `STATUS.md` and this summary updated; branch committed and pushed.
+   check + secret scan) passed; `STATUS.md` and this summary updated; branch committed, pushed, and
+   propagated `working → dev → main`.
+4. **Follow-ups landed** — `SESSION-BOOTSTRAP.md` ↔ `SESSION-CLOSEOUT.md` cross-linked; `STATUS.md`
+   branch model **de-brittled** (no pinned head hashes — read live with `git rev-parse`).
 
 ### Decisions
 
@@ -331,7 +335,7 @@ stateful in **both** directions — the start-of-session read and the end-of-day
 
 ### Open items
 
-- Optional: cross-link `SESSION-BOOTSTRAP.md` ↔ `SESSION-CLOSEOUT.md` in their header blocks.
+- None new — both session-continuity follow-ups landed (cross-link + de-brittled branch table).
 
 ### Next steps
 

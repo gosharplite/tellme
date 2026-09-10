@@ -4,6 +4,7 @@
 > **Folder**: `~/tmp/github/gosharplite/tellme/`
 > **Mission**: Disciplined BDD re-creation of `tell-me-go` driven by `aixbdd-tmg`
 > **Workflow**: AIxBDD (Strict PM/RD separation, single truth, Red-Green-Refactor)
+> **Companion**: end-of-day procedure is [`SESSION-CLOSEOUT.md`](SESSION-CLOSEOUT.md) — this file is its start-of-session mirror.
 
 ---
 
