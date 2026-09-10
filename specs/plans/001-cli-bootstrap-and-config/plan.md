@@ -58,9 +58,20 @@ truth lives in `specs/truth/data/**`.
 > `architect`, griller `griller`, 6/6 questions; verdict **proceed with changes**). Three corrections
 > landed below: (a) the two-wave split **collapses to a single wave** (no information dependency —
 > `/axb-dsl-refine`'s READ contract excludes `specs/truth/data/**`); (b) the interface count is
-> retained at **2** with the **CLI end's unassigned planner recorded as a gap** (not deleted);
+> retained at **2** with the **CLI end's planner recorded as unassigned** (not deleted);
 > (c) the **`-d`-unresolved / default-path scope is marked not-yet-delegable** pending PM acceptance
 > Examples. See *Gating blockers* at the end of this section.
+>
+> **Follow-up — CLI-seat blocker RESOLVED (upstream, 2026-09-10).** The `aixbdd-tmg` truth-model owner
+> closed the CLI-seat gap:
+> [`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1) → PR
+> [#2](https://github.com/gosharplite/aixbdd-tmg/pull/2) added **`InterfaceKind: cli`**
+> (`features/cli/**`) and reworded `wave-covers-interfaces` to *"…either delegated to a planner **in
+> at least one `Wave`** or carried forward to its contract owner **at delivery**."* The CLI end is
+> thus a **contract-owner handoff** to `/axb-dsl-refine` (a forward handoff at delivery — **not** a
+> `Wave` delegation and **not** a planner). The two PM acceptance Examples (correction **c**) have
+> also landed (**PM-1/PM-2**), so **all three gating blockers are now resolved** and the
+> `/axb-dsl-refine` CLI slice is **ungated**.
 
 ### System interface inventory
 
@@ -75,13 +86,14 @@ This requirement yields **2** system interfaces.
    - Requirement evidence: `FR-001`–`FR-015`, `NFR-003`/`NFR-004`; the four acceptance features
      (`starting-with-a-configuration`, `runtime-home-and-session-workspace`,
      `version-and-setup-diagnostic`, `unsupported-cli-usage`).
-   - Planner: **UNASSIGNED — recorded gap** (consolidated blocker). No `axb-system-analysis` planner
-     takes a terminal endpoint: `/axb-api-plan` is `NOOP`, `/axb-ui-plan` is skipped, and
-     `/axb-data-plan` is N/A (this is not entity/field/lifecycle/storage). Its executable contract is
-     produced by the **next pipeline phase `/axb-dsl-refine`** — a phase/truth owner, **not** an
-     api/data/ui planner. Under the invariant's strict wording (`wave-covers-interfaces` — "every
-     interface … delegated to a **planner**"), this interface is therefore **not covered**; see
-     *Gating blockers*.
+   - Planner: **none** — no `axb-system-analysis` planner takes a terminal endpoint: `/axb-api-plan`
+     is `NOOP`, `/axb-ui-plan` is skipped, and `/axb-data-plan` is N/A (this is not
+     entity/field/lifecycle/storage). Instead, its **contract owner** is **`/axb-dsl-refine`**, which
+     produces the executable contract in the next pipeline phase. **Covered** by
+     `wave-covers-interfaces` via its *carried-forward-to-its-contract-owner **at delivery*** branch
+     (a forward handoff — **not** a `Wave` delegation). *Resolved by upstream
+     [`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1) → PR
+     [#2](https://github.com/gosharplite/aixbdd-tmg/pull/2).*
 
 2. `Configuration & workspace persistence interface`
    - Endpoint type: `local-file / state endpoint`
@@ -112,7 +124,9 @@ This requirement yields **2** system interfaces.
   - **CLI end** → produce the **executable CLI contract** — interface Gherkin + DSL for the
     config-resolution order (the 6-step contract, `research.md` Decision 3), workspace initialization,
     `--version`, and the **resolved** `-d` / `-d --json` reporting — driven E2E against the built
-    binary. The unresolved `-d` and default-path behaviour is **gated** (see *Gating blockers*).
+    binary. The CLI end is **carried forward at delivery** to its contract owner `/axb-dsl-refine`;
+    the unresolved `-d` and default-path behaviour is **ungated** (PM acceptance Examples landed —
+    PM-1/PM-2).
 - Scheduling rationale: the two interfaces are **information-independent** — both read the *same*
   upstream sources (`spec.md` `FR-003`/`005`/`007`/`015` and `research.md` Decision 3), and neither
   consumes the other's output (`/axb-dsl-refine`'s READ contract does **not** include
@@ -123,26 +137,27 @@ This requirement yields **2** system interfaces.
 ### Delegation order
 
 1. **`/axb-data-plan`** — Wave 1 (`Configuration & workspace persistence interface`) → minimal
-   `specs/truth/data/**`.
-2. **`/axb-dsl-refine`** *(next phase)* — Wave 1 (`CLI end`) → `specs/truth/features/**` + `dsl.md`.
+   `specs/truth/data/**` (a real planner delegation **inside** the wave).
+2. **`/axb-dsl-refine`** — **contract-owner handoff at delivery** for the `CLI end` (no api/data/ui
+   planner applies; **not** a `Wave` delegation) → `specs/truth/features/cli/**` + `dsl.md`.
 
 > The order above is the **CLI-streamlined pipeline's phase sequence** (`aixbdd-tmg/README.md`:
 > `/axb-system-analysis` + `/axb-data-plan`, then the next phase `/axb-dsl-refine`) — **not** a Rule-2
-> information dependency within the single wave.
+> information dependency within the single wave. The CLI end is covered by `wave-covers-interfaces`
+> via its **"carried forward to its contract owner at delivery"** branch.
 
 Not delegated: `/axb-ui-plan` (skipped — no UI) and `/axb-api-plan` (`NOOP` — single CLI end, no
 OpenAPI surface).
 
 ### Gating blockers (gate `/axb-dsl-refine` — the CLI-end executable contract)
 
-1. **Cross-repo blocker (`aixbdd-tmg` truth-model owner) — no seat for a CLI end.** The typed model
-   has neither a valid `InterfaceKind` value (the enum is `{backend, frontend}`, both web-bound) nor an
-   api/data/ui planner for a terminal endpoint. If left unratified, `/axb-dsl-refine` must either
-   invent an out-of-enum subpath (e.g. `features/cli/**`) or mis-file CLI features under `backend`.
-   **Proposed resolution (for the owner):** extend `InterfaceKind` with a CLI value
-   (`cli` → `features/cli/**`), **or** declare `/axb-dsl-refine` the CLI end's planner-of-record.
-   *(Consolidates grill Q1 + Q3 + Q6.)* **Tracked upstream:**
-   [`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1).
+1. ~~**Cross-repo blocker (`aixbdd-tmg` truth-model owner) — no seat for a CLI end.**~~ **RESOLVED**
+   (upstream, 2026-09-10): [`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1)
+   is **closed by PR [#2](https://github.com/gosharplite/aixbdd-tmg/pull/2)** — `InterfaceKind` gained
+   **`cli`** (`features/cli/**`) and `wave-covers-interfaces` now reads *"…either delegated to a
+   planner **in at least one `Wave`** or carried forward to its contract owner **at delivery**."*
+   `/axb-dsl-refine` is the CLI end's **contract owner** (a forward handoff at delivery, **not** a
+   planner). *(Consolidated grill Q1 + Q3 + Q6.)*
 2. ~~**PM-owned acceptance gap #1 — `-d` on a broken/unresolved setup.**~~ **RESOLVED** (session 5, PM
    role): `version-and-setup-diagnostic.feature` now carries the `-d`-unresolved Example (plain +
    `--json`) with the dedicated non-zero "diagnostic: unresolved" exit, and `spec.md` adds the matching
@@ -151,5 +166,5 @@ OpenAPI surface).
    `starting-with-a-configuration.feature` now carries the positive no-`-c` + `MODE≠butler`
    found-default Example. *(Was grill Q5; closed as PM-2.)*
 
-**Only blocker 1 (the cross-repo `aixbdd-tmg` decision) remains** — the CLI-end slice is gated on that
-alone. The persistence half (single wave → `/axb-data-plan`) is **not** gated.
+**All three gating blockers are resolved** — the CLI-end slice is **ungated**. The persistence half
+(single wave → `/axb-data-plan`) was never gated.
