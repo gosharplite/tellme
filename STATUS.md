@@ -9,12 +9,13 @@
 
 | Branch | Head | Role |
 | --- | --- | --- |
-| `main` | `6b0fdb7` | Stable / released line |
-| `dev` | `505e474` | Integration line (round work lands here before `main`) |
-| `001-cli-bootstrap-and-config` | `cca7c0e` (+ closeout) | This session's working branch |
+| `main` | `5f5d801` | Stable / released line |
+| `dev` | `c573a44` | Integration line (round work lands here before `main`) |
+| `001-cli-bootstrap-and-config` | `2a552b3` | This session's working branch |
 
-> **Propagation pending:** `dev`/`main` predate the round-1 RD artifacts. The two-step merge
-> `working → dev → main` has not been run yet.
+> **Propagation done (2026-09-10):** the two-step merge `working → dev → main` has been run — `dev`
+> (`c573a44`) and `main` (`5f5d801`) now carry the round-001 artifacts and the session-continuity
+> tooling. Re-run the merge after any later working-branch commit.
 
 ## Current round — `001-cli-bootstrap-and-config`
 
