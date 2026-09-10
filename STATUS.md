@@ -16,11 +16,10 @@
 > **Heads are intentionally not pinned here** — the working branch is the moving tip and every commit
 > on it is followed by the two-step merge `working → dev → main`. Read live heads with
 > `git rev-parse --short main dev HEAD` rather than trusting a snapshot.
-> **Propagation status (2026-09-10, end of day):** **PENDING.** The last propagation
-> (`working → dev → main`) carried the round-001 artifacts + session-continuity tooling to `dev`/`main`,
-> but **4 later commits** on `001-cli-bootstrap-and-config` (grill #2 edit set → its tracking link →
-> PM checklist → PM closure) are **not yet** merged up. Live heads: `main a8efcfe`, `dev 416667d`,
-> working `79bcb28` (working is **4 ahead of both**). Re-run the two-step merge on approval.
+> **Propagation status (2026-09-10, end of day):** **DONE.** The two-step merge
+> `working → dev → main` carried grill round #2 + the PM closure (PM-1..PM-4) + the cross-repo tracking
+> to `dev`/`main`. Heads after this closeout's propagation: `main 6963b2c`, `dev 8fd2420`,
+> working `5d614a4`. All three lines now carry the round-001 artifacts through the PM closure.
 
 ## Current round — `001-cli-bootstrap-and-config`
 
