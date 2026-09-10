@@ -75,8 +75,8 @@ Round 1 through the RD pipeline and closed its adversarial review gate.
 | `dev` | `505e474` | `origin/dev` | Integration line |
 | `001-cli-bootstrap-and-config` | `6951d17` (+ day-close commit) | `origin/001-cli-bootstrap-and-config` | This session's working branch |
 
-> **Propagation pending:** `dev`/`main` predate the round-1 RD artifacts (`94d6772`, `5bac86e`,
-> `d72c9b9`, `6951d17`). The two-step merge `working → dev → main` has **not** been run yet.
+> **Propagation done (2026-09-10):** the two-step merge `working → dev → main` has been run; `dev` and
+> `main` now carry the round-1 RD artifacts (`94d6772` … `cca7c0e`) and the session-continuity tooling.
 
 ### Sequence performed
 1. `dev` created from `main`; the round-1 spec package committed onto it and pushed.
@@ -268,6 +268,7 @@ Both recorded into `research.md` / `truth-delta.md` / `STATUS.md`.
 | `6951d17` | `docs(001): feasibility pass — netns sandbox limitation + portable no-egress fallback` |
 | *(day-close)* | system-analysis `plan.md` + revised daily log + `STATUS.md` |
 | *(closeout)* | session-continuity tooling — bootstrap Step 8 + `SESSION-CLOSEOUT.md` + status/summary |
+| *(propagation)* | two-step merge `working → dev → main` (round-001 artifacts + session-continuity tooling) |
 
 ---
 
@@ -287,7 +288,7 @@ Both recorded into `research.md` / `truth-delta.md` / `STATUS.md`.
    lifecycle) in `specs/truth/data/**`.
 3. **Wave 2 — `/axb-dsl-refine`**: produce the executable CLI contract (`specs/truth/features/**` + `dsl.md`).
 4. Then `/axb-tasks` → `/axb-implement` (red → green → refactor via `/axb-bdd`).
-5. **Propagate** the working branch `→ dev → main`.
+5. **Propagate** the working branch `→ dev → main` — **done (2026-09-10)**.
 
 ### PM follow-ups (spec/acceptance are PM-owned)
 - Update `spec.md` Assumptions — the data-scope lock is **released** (Q2).
