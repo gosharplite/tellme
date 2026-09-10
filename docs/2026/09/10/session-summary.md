@@ -6,10 +6,11 @@
 **Session mode**: `butler` — working directly with the user (no `pm`/`rd` delegation this phase)
 **Branches**: working `001-cli-bootstrap-and-config` → `dev` → `main`
 **Status at end of day**: Round 1 has advanced through the **RD pipeline to `/axb-system-analysis`**,
-now **revised by grill round #2** — `plan.md` reports **2 interfaces / 1 wave** with the CLI end's
-missing planner recorded as a **blocking gap**. Grill rounds #1 and #2 are **closed**; both PM-boundary
-items are **resolved**. **Next: `/axb-data-plan`** (not gated) **→ `/axb-dsl-refine`** (CLI slice gated
-on the `aixbdd-tmg` decision + the two PM acceptance gaps).
+now **revised by grill round #2** — `plan.md` reports **2 interfaces / 1 wave**. Grill rounds #1 and #2
+are **closed**; the PM-boundary items and the **two PM acceptance gaps (PM-1/PM-2)** are **resolved**.
+**Only one gate remains:** the cross-repo CLI-seat decision
+([`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1)), which gates the
+`/axb-dsl-refine` **CLI slice** alone. **Next: `/axb-data-plan`** (not gated) **→ `/axb-dsl-refine`**.
 
 > **Four sessions this day.** An earlier session (bootstrap → branching → round-1 spec) is captured in
 > §1–§7. A **later session resumed after the `deepseek-flash` v4.1 provider upgrade** and carried the
@@ -413,10 +414,20 @@ The `/axb-data-plan` half is **not** gated.
 
 ---
 
-## 22. Session 5 — PM TODO closure (acting as PM)
+## 22. Session 5 — cross-repo coordination + PM TODO closure (acting as PM)
 
 The user asked the butler to **act as PM** and close the four PM TODO items raised by grill round #2
 (§21) and clarify Q2. **All four are closed; round-001 scope was not expanded.**
+
+### Upstream coordination (session 5)
+- **Created** the upstream issue [`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1)
+  — the consolidated CLI-seat blocker, cross-linked to `gosharplite/tellme#2` and to upstream
+  `Waterball-Software-Academy/aixbdd#66` (non-duplicate; same files).
+- **Recorded** the tracking link in `plan.md` / `STATUS.md` / this summary (`5937ee6`).
+- **Posted** a **resolution-proposal comment** recommending **Option B** (CLI end's planner-of-record =
+  `/axb-dsl-refine`; truth root `cli` → `features/cli/**`) with the exact edit set, trade-offs, and
+  verification: <https://github.com/gosharplite/aixbdd-tmg/issues/1#issuecomment-5617926477>.
+- **Added** the explicit **PM TODO checklist** (blocking/optional split) to `STATUS.md` (`7ae00d4`).
 
 ### Work done (PM-owned artifacts)
 - **PM-1** — `features/acceptance/version-and-setup-diagnostic.feature`: added the **`-d`-unresolved**
@@ -435,6 +446,13 @@ The user asked the butler to **act as PM** and close the four PM TODO items rais
   (cross-repo `aixbdd-tmg` decision, `gosharplite/aixbdd-tmg#1`) remains, gating the `/axb-dsl-refine`
   CLI slice alone. The `/axb-data-plan` half is not gated.
 - `plan.md` *Gating blockers* and `STATUS.md` (grill #2 section, PM checklist, open items) updated.
+
+### Commits (working branch `001-cli-bootstrap-and-config`)
+| Commit | Note |
+| --- | --- |
+| `5937ee6` | cite upstream tracking issue for the CLI-seat gate |
+| `7ae00d4` | explicit PM TODO checklist (PM-1..PM-4) |
+| `79bcb28` | PM closes PM-1..PM-4 (acceptance gaps + spec reconcile) |
 
 ### Next steps
 1. `/axb-data-plan` (single wave; not gated).

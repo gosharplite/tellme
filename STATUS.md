@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-10 (session 5 — PM TODO closure: PM-1..PM-3 landed, PM-4 deferred)
+**Last updated**: 2026-09-10 (end-of-day closeout — session 5: PM-1..PM-4 closed; upstream issue #1 + resolution proposal recorded)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `001-cli-bootstrap-and-config` (→ `dev` → `main`)
 **Daily log**: [`docs/2026/09/10/session-summary.md`](docs/2026/09/10/session-summary.md)
@@ -16,8 +16,11 @@
 > **Heads are intentionally not pinned here** — the working branch is the moving tip and every commit
 > on it is followed by the two-step merge `working → dev → main`. Read live heads with
 > `git rev-parse --short main dev HEAD` rather than trusting a snapshot.
-> **Last propagation (2026-09-10):** `working → dev → main` — `dev`/`main` carry the round-001
-> artifacts and the session-continuity tooling. Re-run the merge after any later working-branch commit.
+> **Propagation status (2026-09-10, end of day):** **PENDING.** The last propagation
+> (`working → dev → main`) carried the round-001 artifacts + session-continuity tooling to `dev`/`main`,
+> but **4 later commits** on `001-cli-bootstrap-and-config` (grill #2 edit set → its tracking link →
+> PM checklist → PM closure) are **not yet** merged up. Live heads: `main a8efcfe`, `dev 416667d`,
+> working `79bcb28` (working is **4 ahead of both**). Re-run the two-step merge on approval.
 
 ## Current round — `001-cli-bootstrap-and-config`
 
