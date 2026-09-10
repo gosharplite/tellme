@@ -5,16 +5,18 @@
 **Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`)
 **Session mode**: `butler` — working directly with the user (no `pm`/`rd` delegation this phase)
 **Branches**: working `001-cli-bootstrap-and-config` → `dev` → `main`
-**Status at end of day**: Round 1 has advanced through the **RD pipeline to `/axb-system-analysis`** —
-`spec.md`, `features/acceptance/*`, `research.md`, `specs/truth/techstack.md`, and `plan.md` all exist;
-grill round #1 is **closed**; both PM-boundary items are **resolved**. **Next: `/axb-data-plan` (Wave 1)
-→ `/axb-dsl-refine` (Wave 2).**
+**Status at end of day**: Round 1 has advanced through the **RD pipeline to `/axb-system-analysis`**,
+now **revised by grill round #2** — `plan.md` reports **2 interfaces / 1 wave** with the CLI end's
+missing planner recorded as a **blocking gap**. Grill rounds #1 and #2 are **closed**; both PM-boundary
+items are **resolved**. **Next: `/axb-data-plan`** (not gated) **→ `/axb-dsl-refine`** (CLI slice gated
+on the `aixbdd-tmg` decision + the two PM acceptance gaps).
 
-> **Three sessions this day.** An earlier session (bootstrap → branching → round-1 spec) is captured in
+> **Four sessions this day.** An earlier session (bootstrap → branching → round-1 spec) is captured in
 > §1–§7. A **later session resumed after the `deepseek-flash` v4.1 provider upgrade** and carried the
 > round through spec alignment, acceptance Gherkin, technical research, the grill round, the clarify
 > round, a feasibility pass, and system analysis (§8–§14). A **third session** added session-continuity
 > tooling — a 5-day session-summary read in the bootstrap and a new end-of-day closeout procedure (§20).
+> A **fourth session** ran **grill round #2** on `plan.md` and applied its edit set (§21).
 
 ---
 
@@ -341,3 +343,61 @@ stateful in **both** directions — the start-of-session read and the end-of-day
 
 Unchanged — **Wave 1 `/axb-data-plan`** → Wave 2 `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`
 (see §18). The remaining pending decision is the **grill round on `plan.md`**.
+
+
+---
+
+## 21. Session 4 — grill round #2 on `plan.md` + plan revision
+
+A focused review session: an adversarial grill round on the system-analysis `plan.md` (round 001), its
+findings published to GitHub, and the plan revised in place.
+
+### What was run
+- **Grill round #2** (`tmg-grill-round` protocol): subject `architect`, griller `griller`, orchestrator
+  `butler`; **6/6 questions** (cap 6); both agents seeded with `--new` and executed
+  `SESSION-BOOTSTRAP.md` Steps 1–8 before the round.
+- **Issue** [#2](https://github.com/gosharplite/tellme/issues/2) created to anchor the round; **public
+  gist** transcript <https://gist.github.com/gosharplite/27c916a78fd3eb988f2ac22f7b4da954>; detailed
+  findings comment <https://github.com/gosharplite/tellme/issues/2#issuecomment-5617519522>.
+
+### Outcome — verdict **proceed with changes**
+
+Four subject retractions (all conceded under verification):
+
+| Q | Premise | Outcome |
+|---|---|---|
+| Q1 | CLI end materialises as a truth-tree `Interface`; `Interface.kind` mismatch = "forward risk" | **Retracted** — `InterfaceKind` is a closed `{backend, frontend}`; no CLI seat → present blocker |
+| Q2 | Wave 1 (data) → Wave 2 (CLI contract) dependency | **Retracted** — dsl-refine reads no `specs/truth/data/**`; collapse to one wave |
+| Q3 | "`wave-covers-interfaces` holds" | **Retracted** — dsl-refine is a phase/truth-owner, not a planner |
+| Q4 | (fix) count = 1 / CLI = "phase handoff" | **Superseded by Q6** |
+| Q5 | Wave 2 delivers the `-d`-unresolved contract | **Conceded** — no acceptance Example carries it; over-commit |
+| Q6 | `系統介面` = "endpoint a planner carries" | **Retracted** — inverted inventory-then-delegate; made the skill's own check unfalsifiable → revert to count = 2 |
+
+Net: the plan's structure / NOOP-skip rulings **held**; the waves collapse to one; the count stays **2**
+with the CLI end's missing planner exposed as the blocker.
+
+### Artifacts produced / changed
+- `specs/plans/001-cli-bootstrap-and-config/plan.md` — **revised** (edit set applied): single wave;
+  2 interfaces with the CLI end's planner **UNASSIGNED (recorded gap)**; delegation re-attributed to
+  **pipeline phasing**; new **Gating blockers** subsection; `-d`-unresolved / default-path marked
+  **not-yet-delegable**.
+- `STATUS.md` — grill round #2 section + **Gating blockers**; pipeline position, artifact checklist,
+  system-analysis summary, decisions log, and open items updated.
+- Issue #2 + public gist + findings comment.
+
+### Gating blockers (gate the `/axb-dsl-refine` CLI slice)
+1. **Cross-repo (`aixbdd-tmg` truth-model owner)** — no seat for a CLI end: no `InterfaceKind` value
+   (`{backend, frontend}`, both web-bound) and no api/data/ui planner for a terminal endpoint.
+   Proposed resolution: extend `InterfaceKind` (`cli` → `features/cli/**`) **or** declare
+   `/axb-dsl-refine` the CLI end's planner-of-record. *(Consolidates Q1 + Q3 + Q6.)*
+2. **PM-owned acceptance gap #1** — an Example for **`-d` on a broken/unresolved setup** + the non-zero
+   "diagnostic: unresolved" exit. *(Q5.)*
+3. **PM-owned acceptance gap #2** — an Example for **no-`-c` + `MODE≠butler` default-path discovery**.
+   *(Q5.)*
+
+The `/axb-data-plan` half is **not** gated.
+
+### Next steps
+1. Resolve the `aixbdd-tmg` blocker (truth-model owner) and land the two PM acceptance Examples.
+2. `/axb-data-plan` (single wave; not gated) → `/axb-dsl-refine` (CLI slice gated).
+3. Then `/axb-tasks` → `/axb-implement`.

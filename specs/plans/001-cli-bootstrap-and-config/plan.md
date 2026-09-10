@@ -54,6 +54,14 @@ truth lives in `specs/truth/data/**`.
 
 ## Analysis Plan
 
+> **Revised by grill round #2** (issue [#2](https://github.com/gosharplite/tellme/issues/2); subject
+> `architect`, griller `griller`, 6/6 questions; verdict **proceed with changes**). Three corrections
+> landed below: (a) the two-wave split **collapses to a single wave** (no information dependency —
+> `/axb-dsl-refine`'s READ contract excludes `specs/truth/data/**`); (b) the interface count is
+> retained at **2** with the **CLI end's unassigned planner recorded as a gap** (not deleted);
+> (c) the **`-d`-unresolved / default-path scope is marked not-yet-delegable** pending PM acceptance
+> Examples. See *Gating blockers* at the end of this section.
+
 ### System interface inventory
 
 This requirement yields **2** system interfaces.
@@ -67,6 +75,13 @@ This requirement yields **2** system interfaces.
    - Requirement evidence: `FR-001`–`FR-015`, `NFR-003`/`NFR-004`; the four acceptance features
      (`starting-with-a-configuration`, `runtime-home-and-session-workspace`,
      `version-and-setup-diagnostic`, `unsupported-cli-usage`).
+   - Planner: **UNASSIGNED — recorded gap** (consolidated blocker). No `axb-system-analysis` planner
+     takes a terminal endpoint: `/axb-api-plan` is `NOOP`, `/axb-ui-plan` is skipped, and
+     `/axb-data-plan` is N/A (this is not entity/field/lifecycle/storage). Its executable contract is
+     produced by the **next pipeline phase `/axb-dsl-refine`** — a phase/truth owner, **not** an
+     api/data/ui planner. Under the invariant's strict wording (`wave-covers-interfaces` — "every
+     interface … delegated to a **planner**"), this interface is therefore **not covered**; see
+     *Gating blockers*.
 
 2. `Configuration & workspace persistence interface`
    - Endpoint type: `local-file / state endpoint`
@@ -76,6 +91,7 @@ This requirement yields **2** system interfaces.
      idempotent).
    - Requirement evidence: `FR-002`/`003`/`005`/`006`/`007`/`008`/`009`/`015`, `NFR-001`/`NFR-002`;
      `spec.md` Assumptions.
+   - Planner: **`/axb-data-plan`** → minimal `specs/truth/data/**`.
 
 > **Scope notes.** `spec.md` originally locked "no `data/**` truth this round"; that lock was
 > **released** (clarify Q2 → Option 1), so interface 2 now delegates a **minimal** data truth.
@@ -84,35 +100,54 @@ This requirement yields **2** system interfaces.
 
 ### Analysis Wave schedule
 
-#### Wave 1
-
-- Parallel-analyzed interfaces:
-  - `Configuration & workspace persistence interface`
-- Analysis focus:
-  - Model the **minimal data truth**: the config input contract (keys, types, `TELL_ME_*` precedence)
-    and the workspace/state lifecycle (`output/<mode>/`), in `specs/truth/data/**`.
-- Scheduling rationale: the persisted-state model is the shape the executable CLI contract references,
-  so it is settled first. This is the only **planner delegation** performed by `/axb-system-analysis`
-  for this round (`/axb-data-plan`).
-
-#### Wave 2
+#### Wave 1 (single wave)
 
 - Parallel-analyzed interfaces:
   - `CLI end (operator terminal interface)`
+  - `Configuration & workspace persistence interface`
 - Analysis focus:
-  - Produce the **executable CLI contract** — interface Gherkin + DSL for the config-resolution order
-    (the 6-step contract, `research.md` Decision 3), workspace initialization, `--version`, and the
-    ratified `-d` reporting contract (always report; dedicated non-zero "unresolved" code; `FR-014`
-    codes bind the boot path only), driven E2E against the built binary.
-- Scheduling rationale: the CLI contract's file / stream / workspace behavior is expressed against the
-  model settled in Wave 1, so it follows. This wave is produced by the **next pipeline phase
-  `/axb-dsl-refine`** (the CLI contract), not by a `/axb-system-analysis` planner.
+  - **Persistence** → model the **minimal data truth**: the config input contract (keys, types,
+    `TELL_ME_*` precedence) and the workspace/state lifecycle (`output/<mode>/`), in
+    `specs/truth/data/**`.
+  - **CLI end** → produce the **executable CLI contract** — interface Gherkin + DSL for the
+    config-resolution order (the 6-step contract, `research.md` Decision 3), workspace initialization,
+    `--version`, and the **resolved** `-d` / `-d --json` reporting — driven E2E against the built
+    binary. The unresolved `-d` and default-path behaviour is **gated** (see *Gating blockers*).
+- Scheduling rationale: the two interfaces are **information-independent** — both read the *same*
+  upstream sources (`spec.md` `FR-003`/`005`/`007`/`015` and `research.md` Decision 3), and neither
+  consumes the other's output (`/axb-dsl-refine`'s READ contract does **not** include
+  `specs/truth/data/**`). Per `Wave依賴排序與平行分組判準.md` Rule 2 they therefore share a **single
+  wave**. *Grill round #2 retracted the earlier Wave 1 → Wave 2 split: it was a semantic hand-wave,
+  not an information-supply dependency.*
 
 ### Delegation order
 
 1. **`/axb-data-plan`** — Wave 1 (`Configuration & workspace persistence interface`) → minimal
    `specs/truth/data/**`.
-2. **`/axb-dsl-refine`** *(next phase)* — Wave 2 (`CLI end`) → `specs/truth/features/**` + `dsl.md`.
+2. **`/axb-dsl-refine`** *(next phase)* — Wave 1 (`CLI end`) → `specs/truth/features/**` + `dsl.md`.
+
+> The order above is the **CLI-streamlined pipeline's phase sequence** (`aixbdd-tmg/README.md`:
+> `/axb-system-analysis` + `/axb-data-plan`, then the next phase `/axb-dsl-refine`) — **not** a Rule-2
+> information dependency within the single wave.
 
 Not delegated: `/axb-ui-plan` (skipped — no UI) and `/axb-api-plan` (`NOOP` — single CLI end, no
 OpenAPI surface).
+
+### Gating blockers (gate `/axb-dsl-refine` — the CLI-end executable contract)
+
+1. **Cross-repo blocker (`aixbdd-tmg` truth-model owner) — no seat for a CLI end.** The typed model
+   has neither a valid `InterfaceKind` value (the enum is `{backend, frontend}`, both web-bound) nor an
+   api/data/ui planner for a terminal endpoint. If left unratified, `/axb-dsl-refine` must either
+   invent an out-of-enum subpath (e.g. `features/cli/**`) or mis-file CLI features under `backend`.
+   **Proposed resolution (for the owner):** extend `InterfaceKind` with a CLI value
+   (`cli` → `features/cli/**`), **or** declare `/axb-dsl-refine` the CLI end's planner-of-record.
+   *(Consolidates grill Q1 + Q3 + Q6.)*
+2. **PM-owned acceptance gap #1 — `-d` on a broken/unresolved setup.** No acceptance Example carries
+   the *unresolved* `-d` case or the dedicated non-zero "diagnostic: unresolved" exit (clarify Q1's
+   other half). *(Grill Q5.)*
+3. **PM-owned acceptance gap #2 — default-path discovery.** No acceptance Example covers the positive
+   no-`-c` + `MODE≠butler` default-path discovery (only the failure case is expressed). *(Grill Q5.)*
+
+Until 1–3 are resolved, the CLI-end slice — the `-d`-unresolved / default-path behaviour in
+particular — is **not yet delegable**, and `/axb-dsl-refine` for that slice is **gated**. The
+persistence half (Wave 1 → `/axb-data-plan`) is **not** gated.
