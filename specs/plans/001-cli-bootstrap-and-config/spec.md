@@ -6,7 +6,9 @@
 
 **Status**: Draft
 
-**Input**: User description: "Create the first iteration of tellme — a narrow foundation slice. The CLI must boot, locate and validate its YAML configuration and runtime home, initialize a per-mode session workspace, and expose its build version plus an offline setup diagnostic. No provider calls, tools, MCP, memory, TUI, or history persistence this round. Configuration is treated as a slice-local input, not a system truth artifact."
+**Input**: User description: "Create the first iteration of tellme — a narrow foundation slice. The CLI must boot, locate and validate its YAML configuration and runtime home, initialize a per-mode session workspace, and expose its build version plus an offline setup diagnostic. No provider calls, tools, MCP, memory, TUI, or history persistence this round."
+
+*(Revision — clarify Q2: the "treated as a slice-local input, not a system truth artifact" scope lock was **released**; the round now owes a **minimal** data truth — the config input contract + workspace lifecycle.)*
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -27,7 +29,7 @@ As a user launching tellme, I want the tool to locate and load my YAML configura
 **Functional Requirements**:
 
 - **FR-001**: The system MUST accept a configuration file path via a `-c` / `--config` flag.
-- **FR-002**: The system MUST load its configuration from a YAML file and treat it as a slice-local input.
+- **FR-002**: The system MUST load its configuration from a YAML file as the boot-time input.
 - **FR-003**: The system MUST resolve the *effective* selected provider — the `TELL_ME_SELECTED_PROVIDER` environment variable when set, otherwise the configuration's `SELECTED_PROVIDER` — and MUST validate that it references an entry in the provider registry.
 - **FR-004**: When the configuration is missing, unreadable, or fails validation, the system MUST emit an actionable message on stderr and exit with a non-zero code distinct from the success code.
 - **FR-005**: The system MUST support, at minimum, the configuration keys `MODE`, `PERSON`, `SELECTED_PROVIDER`, and a `PROVIDERS` registry that starts with a single provider.
@@ -95,6 +97,7 @@ As an operator, I want to see the running build version and run a setup diagnost
 - When `TELL_ME_HOME` is unset or points to a non-writable location, the system MUST report an actionable environment error and exit non-zero.
 - When `TELL_ME_MODE` / `TELL_ME_SELECTED_PROVIDER` are set, they MUST take precedence over the configuration's `MODE` / `SELECTED_PROVIDER`; when an override names an unknown provider, the same actionable validation failure MUST occur as for an in-file mismatch.
 - When the resolved workspace path already exists as a regular file rather than a directory, the system MUST fail with an actionable error instead of overwriting it.
+- When the setup does not fully resolve, the diagnostic command MUST still produce a report (resolved or unresolved) and MUST exit with a dedicated, distinct non-zero "diagnostic: unresolved" code; the `FR-014` success/usage/configuration/environment codes bind the boot path only.
 
 ## Requirements *(mandatory)*
 
@@ -114,7 +117,7 @@ As an operator, I want to see the running build version and run a setup diagnost
 
 ### Key Entities *(include if feature involves data)*
 
-- **Configuration**: The slice-local YAML input that bootstraps a run. Carries at least `MODE`, `PERSON`, `SELECTED_PROVIDER`, and a `PROVIDERS` registry. It is a slice-local input and **not** a system truth artifact (no contract or data-truth entry this round).
+- **Configuration**: The boot-time YAML input that bootstraps a run. Carries at least `MODE`, `PERSON`, `SELECTED_PROVIDER`, and a `PROVIDERS` registry. The round records a **minimal data truth** for its shape (the config input contract); there is no API `contract/**` (no API surface this round).
 - **Runtime Home**: The `TELL_ME_HOME` root directory under which all tellme state is namespaced.
 - **Session Workspace**: The per-mode directory `output/<mode>/` under the runtime home — the future home of session state.
 
@@ -135,5 +138,5 @@ As an operator, I want to see the running build version and run a setup diagnost
 - Integration note (binary name): Niffler currently invokes a binary named `tell-me-go` (`$NIFFLER_GOBIN/tell-me-go`, and `tell-me-go completion bash`), whereas tellme's binary is named `tellme`. Running tellme under an unmodified Niffler requires a matching binary/alias or a Niffler-side adaptation; reconciling this is out of scope for this round.
 - Round 1's provider registry contains exactly one provider; multi-provider support belongs to a later slice.
 - The implementation language is Go, mirroring the tell-me-go reference; the exact toolchain and test stack are fixed later by technical research (techstack truth).
-- Configuration is a slice-local input; this round adds no `contracts/**` and no `data/**` truth.
+- Configuration is a boot-time input; this round adds no `contracts/**` (no API surface) but **does** record a minimal `data/**` truth (the config input contract + workspace lifecycle) — the earlier "no `data/**`" lock was released (clarify Q2).
 - Out of scope this round: provider API calls, the reasoning/`Thought` model, `Turn`/`History` persistence, cost/metrics, tools, MCP, memory, TUI prompts, browsing, retry/edit, and callback delivery.
