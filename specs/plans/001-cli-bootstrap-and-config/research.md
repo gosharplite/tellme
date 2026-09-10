@@ -16,7 +16,7 @@ answered by the user before writing: **system ends = one CLI end**, **BDD techst
 > folded in below, flagged **⟦grill R1⟧**. The two PM-boundary items the grill routed were then
 > resolved by **`/axb-clarify`** (2026-09-10), flagged **⟦clarify⟧**: **Q1 → Option 3** (the `-d`
 > diagnostic contract in Decision 2) and **Q2 → Option 1** (the round's "no `data/**` truth" scope
-> lock is **released** — `/axb-data-plan` authors a minimal data truth; see the Clarify round section).
+> lock is **released** — `/axb-data-plan` authors a minimal data truth; see the Clarify round section). **⟦grill #3 + user ratification, 2026-09-11: REVERSED — round 001 owes no `data/**` model; `/axb-data-plan` = `NOOP`.**
 
 ## Decision 1: Go module & project layout
 
@@ -264,7 +264,7 @@ Grill round #1 routed two PM-boundary items to `/axb-clarify`; both were ratifie
 - **Q1 → Option 3 — `-d` diagnostic semantics.** `-d` always reports (resolved *or* unresolved) and
   exits a **dedicated non-zero "diagnostic: unresolved"** code on failure; the `FR-014` codes bind the
   boot path only (Decision 2).
-- **Q2 → Option 1 — `/axb-data-plan`.** The round's "no `data/**` truth" scope lock is **released**;
+- **Q2 → Option 1 — `/axb-data-plan`.** **⟦grill #3 + user ratification, 2026-09-11: REVERSED — `data-model.dbml` was authored then deleted within the round; the round owes no `data/**` model and `/axb-data-plan` = `NOOP`. This ruling is kept only as history.⟧** The round's "no `data/**` truth" scope lock is **released**;
   the owner authors a minimal data truth — the config input contract (`configs/<mode>.yaml`:
   `MODE`/`PERSON`/`SELECTED_PROVIDER`/`PROVIDERS` + `TELL_ME_*` precedence) and the workspace/state
   lifecycle (`output/<mode>/`).
@@ -287,7 +287,7 @@ spec/acceptance and `data/**`, which are PM / truth-owner territory).
   `output/<mode>/` workspace — turning "tellme configured itself" into "tellme set me up"; a lighter
   read-only alternative is **`tellme config show`** (print the effective mode/provider/home/workspace),
   which overlaps `-d` and so adds less. Adding user value is a PM decision, not an RD one.
-- **⟦grill R1⟧ ⟦clarify⟧ `/axb-data-plan` — RULED (clarify Q2 → Option 1).** The round's "no `data/**`
+- **⟦grill R1⟧ ⟦clarify⟧ ⟦grill #3⟧ `/axb-data-plan` — RULED, then REVERSED.** ⟦grill #3 + user ratification (2026-09-11): `data-model.dbml` was authored then deleted; round 001 owes **no** `data/**` model; `/axb-data-plan` = `NOOP`. (Original ruling:) The round's "no `data/**`
   truth" scope lock is **released**. `aixbdd-tmg/README.md`'s CLI rule triggers `/axb-data-plan` for a
   CLI that manages persistent configuration (`configs/<mode>.yaml`) and system-owned state
   (`output/<mode>/`); the benchmark (`tell-me-go`) likewise persists and models these surfaces. The
@@ -298,7 +298,7 @@ spec/acceptance and `data/**`, which are PM / truth-owner territory).
 - **⟦clarify⟧ `-d` / FR-014 scope — RESOLVED** (clarify Q1 → Option 3; Decision 2). The `FR-014` codes
   bind the boot path; `-d` gets its own "diagnostic: unresolved" code and always emits the report.
   **PM follow-ups remain** (spec/acceptance are PM-owned): add an edge case + an acceptance Example for
-  `-d` on a broken/unresolved setup, and update `spec.md` to reflect the released data lock (Q2).
+  `-d` on a broken/unresolved setup, and update `spec.md` to reflect the released data lock (Q2) — **done (PM-3), then further reversed by grill #3: `spec.md` now states there is no `data/**` model.**
 - **Acceptance-coverage gap (PM-routed).** No acceptance Example exercises the no-`-c` + `MODE≠butler`
   default-path discovery (FR-007 already defines the requirement; the missing artifact is an acceptance
   Example → `/axb-spec-by-example`, and downstream an `InterfaceFeature`). RD raises it; the PM authors it.
