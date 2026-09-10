@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-11 (**session 7**: **grill round #3** on the round-001 **data truth** → verdict *proceed with changes*; user **ratified reversing clarify Q2 → Option 1** — `specs/truth/data/**` **deleted**, `/axb-data-plan` = **NOOP**; next = `/axb-dsl-refine`)
+**Last updated**: 2026-09-11 (**session 7**: grill round #3 → data truth **deleted** (`/axb-data-plan` = **NOOP**, ratified); `/axb-dsl-refine` done — CLI contract under `specs/truth/features/cli/**`; **grill round #4** on the CLI contract → verdict *proceed with changes* → **in-round fixes applied** (arrange loss restored; `--json` schema pinned); 2 host-rule residuals routed upstream; audit PASSED; next = **`/axb-tasks`**)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `001-cli-bootstrap-and-config` (→ `dev` → `main`)
 **Daily log**: [`docs/2026/09/10/session-summary.md`](docs/2026/09/10/session-summary.md)
@@ -42,7 +42,7 @@
 - [x] `specs/truth/techstack.md` — `/axb-technical-research` (**post-grill**)
 - [x] `specs/plans/001-cli-bootstrap-and-config/plan.md` — `/axb-system-analysis` (**revised by grill #2**: 2 interfaces, **1 wave**; **all gating blockers resolved** — CLI-seat blocker closed by `aixbdd-tmg` PR #2)
 - [x] `specs/truth/data/**` — `/axb-data-plan` = **NOOP** (authored as `data-model.dbml`, then **deleted** by the user-ratified reversal of clarify Q2 — grill round #3)
-- [ ] `specs/truth/features/cli/**` + `dsl.md` — `/axb-dsl-refine` (CLI **contract owner**; **ungated**)
+- [x] `specs/truth/features/cli/**` + `dsl.md` — `/axb-dsl-refine` (CLI **contract owner**; **ungated**) — **4 modules**, interface-root + module DSL; **audit PASSED** (0 errors/0 warnings) — **grill round #4 corrections applied** (restored W1/W2/W5 arrange; pinned the `--json` key schema; error-code rows assert distinctness)
 - [ ] `specs/plans/001-cli-bootstrap-and-config/tasks.md` — `/axb-tasks`
 - [ ] Implementation — `/axb-implement`
 
@@ -61,8 +61,8 @@
 
 `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` (+ **grill round #1**, **clarify**) →
 `/axb-system-analysis` **(done — `plan.md`, revised by grill round #2)** → `/axb-data-plan`
-**(done — NOOP, grill #3 + ratification)** → **next: `/axb-dsl-refine`** (CLI contract via its
-**contract owner**; **ungated**) → `/axb-tasks` → `/axb-implement`.
+**(done — NOOP, grill #3 + ratification)** → `/axb-dsl-refine` **(done — CLI executable contract;
+audit PASSED)** → **next: `/axb-tasks`** → `/axb-implement`.
 
 **Pending decision:** *(none)* the **grill round on `plan.md`** ran as **grill round #2** (6/6,
 verdict *proceed with changes*); its edit set is applied. **All gates cleared:** the two PM acceptance
@@ -132,6 +132,16 @@ gaps landed (PM-1/PM-2) and the cross-repo `aixbdd-tmg` CLI-seat blocker is **cl
 - **Applied (user-ratified 2026-09-11)**: `specs/truth/data/data-model.dbml` **deleted**; the
   `/axb-data-plan` owner section records **`NOOP`**; the CLI input contract + workspace lifecycle hand
   to **`/axb-dsl-refine`** as their single owner. *(Reverse of clarify Q2 → Option 1.)*
+
+## Grill round #4 — round-001 CLI interface truth (CLOSED)
+
+- **Issue**: [#4](https://github.com/gosharplite/tellme/issues/4) · subject `architect` · griller `griller` · orchestrator `butler` · **8/8 questions** (cap 8)
+- **Full transcript (gist)**: <https://gist.github.com/gosharplite/7adcc308e12ff10f91cf676fd391b8b5>
+- **Findings comment**: <https://github.com/gosharplite/tellme/issues/4#issuecomment-5625335168>
+- **Verdict**: **proceed with changes** — the core shapes held (the `cli` kind, root/module DSL split, one-Act-per-Example; coverage genuinely complete 7→17), but two contract defects and two host-rule matters surfaced.
+- **In-round fixes applied** (`/axb-dsl-refine`, ungated): (a) restored the dropped configuration `Given` in `workspace` W1/W2/W5 — without it W1/W2 are **unsatisfiable** and W5 asserts the **wrong exit class** under the ratified resolver (a Rule-5/6 arrange loss); (b) **pinned the `--json` key schema** in the two `diagnostics` structured-output rows; (c) reworded the four error-code rows to assert **distinctness** (FR-014), not a literal. Audit re-run → **PASSED**.
+- **Routed residuals** (host-rule matters — not locally editable): **(R1) the atomicity convention** (Rule 2's fold/split boundary is not mechanically derivable); **(R2) the English override** (STANDARDS §2/§3 unconditional; no warrant in either repo). Both route `/axb-clarify` → `aixbdd-tmg` issue → PR. *See Open items.*
+- **Subject retractions/concessions** (under verification): **Q1** "six" was a **miscount** (7); coverage holds via the enumerated 7→17 map; **Q2/Q3** the "subject" atomicity discriminator is **not mechanical** (W2 ≡ D2) → the D2 split was retracted and the boundary routed upstream (R1); **Q5** the axis-6 config "hole" was **wrong** (the shape is owned by `/axb-dsl-refine` via `cli/dsl.md`); **Q6** exit-code **values = implementation** (blocker retracted), `--json` **schema = contract** (fixed); **Q7** confirmed the root `When` is fine and **W1/W2/W5 under-arranged** (fixed); **Q8** the English override has **no ratified home** (routed, R2).
 
 ## Upstream — `aixbdd-tmg` CLI-seat resolution (session 6, CLOSED)
 
@@ -239,6 +249,8 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 - Exit-code numeric values (incl. the new dedicated "diagnostic: unresolved" code).
 - Error-message wording (`NFR-004`).
 - **Unchecked-error coverage** (round-001 residual): closed next slice by `golangci-lint` + `errcheck`.
+- **Host-rule residuals (grill #4)** — **(R1) the atomicity convention** (Rule 2's fold/split boundary is not mechanically derivable) and **(R2) the English override** (STANDARDS §2/§3 are unconditional; no ratified warrant in either repo). Both are **out of `/axb-dsl-refine`'s writ** → route `/axb-clarify` → `aixbdd-tmg` issue → PR (the PR #2 route). They **do not gate** `/axb-tasks`; round-001 ships the CLI contract unchanged on these two points.
+- **DECIDED (grill #4)**: exit-code **numeric values** = an **implementation** choice (FR-014 requires only *distinct + deterministic*); the `--json` **key schema** is now **pinned** in `specs/truth/features/cli/diagnostics/dsl.md`.
 
 ## Environment notes
 
