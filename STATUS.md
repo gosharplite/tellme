@@ -3,6 +3,7 @@
 **Last updated**: 2026-09-10
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `001-cli-bootstrap-and-config` (→ `dev` → `main`)
+**Daily log**: [`docs/2026/09/10/session-summary.md`](docs/2026/09/10/session-summary.md)
 
 ## Branch model
 
@@ -45,7 +46,7 @@ Configuration is a **slice-local input** — no `contracts/**`, no `data/**` tru
 - **No `/axb-clarify`** round needed (no gap changed story splitting, flows, acceptance, or success criteria).
 - Artifacts written in **English** (project + working language).
 - Working agreement: butler runs the `axb-*` skills directly, one phase at a time, with a review gate between phases.
-- **Self-starting bootstrap**: the operating instructions (`SESSION-BOOTSTRAP.md` Step 7) and `STATUS.md` live on `main` **and** `dev`; Step 7 checks out the **Active branch** before any work, so a fresh session can continue from any starting branch.
+- **Self-starting bootstrap**: the operating instructions (`SESSION-BOOTSTRAP.md` Step 7) and `STATUS.md` live on **every** branch (each branch's `STATUS.md` serves that branch); Step 7 checks out the **Active branch** before any work, so a fresh session can continue from any starting branch.
 
 ## Open items (non-blocking)
 
