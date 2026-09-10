@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-10 (end of day)
+**Last updated**: 2026-09-10 (end of day — session-continuity tooling added)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `001-cli-bootstrap-and-config` (→ `dev` → `main`)
 **Daily log**: [`docs/2026/09/10/session-summary.md`](docs/2026/09/10/session-summary.md)
@@ -11,7 +11,7 @@
 | --- | --- | --- |
 | `main` | `6b0fdb7` | Stable / released line |
 | `dev` | `505e474` | Integration line (round work lands here before `main`) |
-| `001-cli-bootstrap-and-config` | `6951d17` (+ day-close) | This session's working branch |
+| `001-cli-bootstrap-and-config` | `cca7c0e` (+ closeout) | This session's working branch |
 
 > **Propagation pending:** `dev`/`main` predate the round-1 RD artifacts. The two-step merge
 > `working → dev → main` has not been run yet.
@@ -96,6 +96,9 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 - **Working style**: session work on a local branch; updates flow up via the two-step merge–merge.
 - **Data scope released** (clarify Q2); **`-d` = reporting path** (clarify Q1).
 - **Two-wave analysis** (data → CLI contract): the persistence model underpins the executable contract.
+- **Session-continuity tooling**: `SESSION-BOOTSTRAP.md` gains **Step 8** (read the last 5 days of
+  `docs/…/session-summary.md`); new **`SESSION-CLOSEOUT.md`** defines the end-of-day procedure
+  (review tree → quality gates → `STATUS.md` → daily summary → reconcile → commit → propagate).
 
 ## PM follow-ups (spec/acceptance are PM-owned — not written by the RD/butler flow)
 
@@ -110,6 +113,7 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 - Exit-code numeric values (incl. the new dedicated "diagnostic: unresolved" code).
 - Error-message wording (`NFR-004`).
 - **Unchecked-error coverage** (round-001 residual): closed next slice by `golangci-lint` + `errcheck`.
+- **Session-lifecycle docs**: optionally cross-link `SESSION-BOOTSTRAP.md` ↔ `SESSION-CLOSEOUT.md`.
 
 ## Environment notes
 

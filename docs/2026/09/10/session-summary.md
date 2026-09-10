@@ -10,10 +10,11 @@
 grill round #1 is **closed**; both PM-boundary items are **resolved**. **Next: `/axb-data-plan` (Wave 1)
 → `/axb-dsl-refine` (Wave 2).**
 
-> **Two sessions this day.** An earlier session (bootstrap → branching → round-1 spec) is captured in
+> **Three sessions this day.** An earlier session (bootstrap → branching → round-1 spec) is captured in
 > §1–§7. A **later session resumed after the `deepseek-flash` v4.1 provider upgrade** and carried the
 > round through spec alignment, acceptance Gherkin, technical research, the grill round, the clarify
-> round, a feasibility pass, and system analysis (§8–§14).
+> round, a feasibility pass, and system analysis (§8–§14). A **third session** added session-continuity
+> tooling — a 5-day session-summary read in the bootstrap and a new end-of-day closeout procedure (§20).
 
 ---
 
@@ -46,7 +47,7 @@ Round 1 through the RD pipeline and closed its adversarial review gate.
 
 ---
 
-## 3. Bootstrap executed (Steps 1–7)
+## 3. Bootstrap executed (Steps 1–7 — Step 8 added later, §20)
 
 1. **Step 1 — `tellme` README**: vision (BDD re-creation), PM/RD split, CLI-streamlined roadmap.
 2. **Step 2 — `tell-me-go` AI session bootstrap (8 items)**: README, Makefile, `tell-me-go.modelith.md`,
@@ -266,6 +267,7 @@ Both recorded into `research.md` / `truth-delta.md` / `STATUS.md`.
 | `d72c9b9` | `docs(001): land grill corrections + clarify rulings for round-001 research` |
 | `6951d17` | `docs(001): feasibility pass — netns sandbox limitation + portable no-egress fallback` |
 | *(day-close)* | system-analysis `plan.md` + revised daily log + `STATUS.md` |
+| *(closeout)* | session-continuity tooling — bootstrap Step 8 + `SESSION-CLOSEOUT.md` + status/summary |
 
 ---
 
@@ -298,3 +300,39 @@ Both recorded into `research.md` / `truth-delta.md` / `STATUS.md`.
 
 - Decide `SESSION-BOOTSTRAP.md` placement (`main` vs working branch).
 - Keep `STATUS.md` linked to this daily log (already back-linked).
+
+---
+
+## 20. Session 3 — session-continuity tooling
+
+A short governance session (no pipeline advance). Requested by the user, it made session hand-off
+stateful in **both** directions — the start-of-session read and the end-of-day write.
+
+### Work done
+
+1. **Bootstrap gains Step 8** — `SESSION-BOOTSTRAP.md` now reads the **session summary of the last 5
+   days** (`docs/<YYYY>/<MM>/<DD>/session-summary.md`, current day + preceding 4) to inherit recent
+   context, decisions, artifact progress, and open items. Added: the Step 8 table row, the completion
+   gate update ("Steps 1–8"), the END-OF-FILE order update, a new **§6 "Recent Session Summaries (Step 8
+   Details)"** mapping section, and **Agent Rule 9 — Session History Continuity**.
+2. **New `SESSION-CLOSEOUT.md`** — the end-of-day procedure mirroring the bootstrap: a 7-step
+   checklist (review tree → quality gates → update `STATUS.md` → write/refresh the day's
+   `session-summary.md` → reconcile status ↔ summary → commit the working branch → propagate + hand
+   off) with per-step details and 10 closeout rules. Name chosen as the verb-paired counterpart of
+   *bootstrap* and consistent with the existing "day-close" vocabulary.
+3. **Closeout executed** — ran the procedure on the working branch: docs-only quality gate (link
+   check + secret scan) passed; `STATUS.md` and this summary updated; branch committed and pushed.
+
+### Decisions
+
+- **`SESSION-CLOSEOUT.md`** as the end-of-day filename (mirrors `SESSION-BOOTSTRAP.md`, matches the
+  "day-close" wording already in use).
+
+### Open items
+
+- Optional: cross-link `SESSION-BOOTSTRAP.md` ↔ `SESSION-CLOSEOUT.md` in their header blocks.
+
+### Next steps
+
+Unchanged — **Wave 1 `/axb-data-plan`** → Wave 2 `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`
+(see §18). The remaining pending decision is the **grill round on `plan.md`**.
