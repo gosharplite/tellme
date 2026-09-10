@@ -55,6 +55,8 @@ Configuration is a **slice-local input** — no `contracts/**`, no `data/**` tru
 
 ## Environment notes
 
-- `origin` uses **HTTPS** (`https://github.com/gosharplite/tellme.git`). The SSH key present
-  authenticates as `thptcnec`, which cannot write to `gosharplite/tellme`; pushes go through the
-  `gh` credential helper under the `gosharplite` account.
+- `origin` uses **SSH** (`git@github.com:gosharplite/tellme.git`). Authentication as `thptcnec`
+  is confirmed working for both read and write (verified with a create/delete probe branch).
+- Historical note: the initial `dev`/session pushes were routed through HTTPS via the `gh`
+  credential helper (account `gosharplite`) while SSH write access was unavailable. That
+  workaround is no longer needed; `origin` is back on SSH.
