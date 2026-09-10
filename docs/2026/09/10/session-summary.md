@@ -509,8 +509,8 @@ the issue's **Option B**, with two design amendments.
 ### Commits (working branch `001-cli-bootstrap-and-config`)
 | Commit | Note |
 | --- | --- |
-| *(session-6 closeout)* | un-gate CLI slice — `aixbdd-tmg#1` resolved by PR #2: `plan.md` contract-owner mapping, `STATUS.md` sync + upstream section, daily-log §23, closeout edits. **Propagation `working → dev → main` → PENDING (awaiting approval).** |
+| *(session-6 closeout)* | un-gate CLI slice — `aixbdd-tmg#1` resolved by PR #2: `plan.md` contract-owner mapping, `STATUS.md` sync + upstream section, daily-log §23, closeout edits. **Propagation `working → dev → main` → DONE** (user-approved). |
 
 ### Open items
 - None new. Non-blocking items unchanged (§17).
-- **Pending propagation** — the two-step merge `working → dev → main` for the session-6 commit awaits user approval (recorded in `STATUS.md`).
+- **Propagation** — the two-step merge `working → dev → main` for the session-6 commit is **DONE** (user-approved).

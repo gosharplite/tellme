@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-10 (**end-of-day closeout — session 6**: upstream `aixbdd-tmg#1` **closed by PR #2**; CLI-seat blocker **resolved**; round-001 `plan.md` **un-gated**)
+**Last updated**: 2026-09-10 (**end-of-day closeout — session 6**: upstream `aixbdd-tmg#1` **closed by PR #2**; CLI-seat blocker **resolved**; round-001 `plan.md` **un-gated**; `working → dev → main` **propagation DONE**)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `001-cli-bootstrap-and-config` (→ `dev` → `main`)
 **Daily log**: [`docs/2026/09/10/session-summary.md`](docs/2026/09/10/session-summary.md)
@@ -16,11 +16,11 @@
 > **Heads are intentionally not pinned here** — the working branch is the moving tip and every commit
 > on it is followed by the two-step merge `working → dev → main`. Read live heads with
 > `git rev-parse --short main dev HEAD` rather than trusting a snapshot.
-> **Propagation status (2026-09-10, end of day):** the **earlier** two-step merge
-> `working → dev → main` (grill round #2 + PM closure PM-1..PM-4 + cross-repo tracking) is **DONE**.
-> The **session-6** follow-up (upstream CLI-seat resolution + paired `tellme` change + this closeout)
-> is **committed on the working branch** (`001-cli-bootstrap-and-config`) and pushed; its
-> `working → dev → main` **propagation is PENDING — awaiting user approval**.
+> **Propagation status (2026-09-10, end of day):** **DONE.** The two-step merge
+> `working → dev → main` carried the **session-6** follow-up (upstream CLI-seat resolution + paired
+> `tellme` change + this closeout) to `dev` and `main`. All three lines now carry the round-001
+> artifacts through the session-6 closeout. *(The earlier merge — grill round #2 + PM closure
+> PM-1..PM-4 + cross-repo tracking — was also done today.)*
 
 ## Current round — `001-cli-bootstrap-and-config`
 
