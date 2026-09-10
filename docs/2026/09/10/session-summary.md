@@ -402,3 +402,10 @@ The `/axb-data-plan` half is **not** gated.
 1. Resolve the `aixbdd-tmg` blocker (truth-model owner) and land the two PM acceptance Examples.
 2. `/axb-data-plan` (single wave; not gated) → `/axb-dsl-refine` (CLI slice gated).
 3. Then `/axb-tasks` → `/axb-implement`.
+
+
+### PM TODO (PM-owned — checklist lives in `STATUS.md`)
+- **PM-1** *(blocking)* — acceptance Example for `-d` on a broken/unresolved setup + the non-zero "diagnostic: unresolved" exit.
+- **PM-2** *(blocking)* — acceptance Example for no-`-c` + `MODE≠butler` found-default path.
+- **PM-3** *(required cleanup)* — `spec.md`: reconcile the stale "slice-local / no `data/**` truth" wording (~3–4 sentences).
+- **PM-4** *(optional)* — smallest vertical addition for user value (`tellme init` / `tellme config show`).

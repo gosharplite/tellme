@@ -148,10 +148,27 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 
 ## PM follow-ups (spec/acceptance are PM-owned — not written by the RD/butler flow)
 
-- **`spec.md`**: update the Assumptions line — the "no `data/**` truth this round" lock is released (Q2).
-- **`features/acceptance/**`**: add an edge case + Example for **`-d` on a broken/unresolved setup** (Q1),
-  and the missing **no-`-c` + `MODE≠butler`** default-path Example.
-- **Proposal (optional)**: smallest vertical addition for user value — `tellme init` (or `tellme config show`).
+**PM TODO checklist** — owner `pm`; source: clarify Q2 + grill round #2 Q5. **Distinct PM tasks: 4**
+= 3 required (**2 blocking**) + 1 optional.
+
+### Blocking (gate the `/axb-dsl-refine` CLI slice)
+
+- [ ] **PM-1** — `features/acceptance/version-and-setup-diagnostic.feature`: add an Example for **`-d`
+  on a broken/unresolved setup** + the dedicated **non-zero "diagnostic: unresolved"** exit (clarify
+  Q1's other half; grill #2 Q5).
+- [ ] **PM-2** — `features/acceptance/starting-with-a-configuration.feature`: add the **positive**
+  Example for **no-`-c` + `MODE≠butler`** → default `$TELL_ME_HOME/configs/<mode>.yaml` is found and
+  resolves (grill #2 Q5).
+
+### Required (tracked cleanup — not blocking)
+
+- [ ] **PM-3** — `spec.md`: reconcile the stale "slice-local input / no `data/**` truth" wording to the
+  **released** lock (clarify Q2). Touches ~3–4 sentences: the `**Input**:` line, the **Key Entities →
+  Configuration** note, the **Assumptions** line (and, arguably, **FR-002**).
+
+### Optional
+
+- [ ] **PM-4** — smallest vertical addition for user value — `tellme init` (or `tellme config show`).
 
 ## Open items (non-blocking)
 
