@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-10 (**end-of-day closeout — session 6**: upstream `aixbdd-tmg#1` **closed by PR #2**; CLI-seat blocker **resolved**; round-001 `plan.md` **un-gated**; `working → dev → main` **propagation DONE**)
+**Last updated**: 2026-09-11 (**session 7**: **grill round #3** on the round-001 **data truth** → verdict *proceed with changes*; user **ratified reversing clarify Q2 → Option 1** — `specs/truth/data/**` **deleted**, `/axb-data-plan` = **NOOP**; next = `/axb-dsl-refine`)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `001-cli-bootstrap-and-config` (→ `dev` → `main`)
 **Daily log**: [`docs/2026/09/10/session-summary.md`](docs/2026/09/10/session-summary.md)
@@ -28,9 +28,9 @@
 (`config-valid-provider`); runtime home (`TELL_ME_HOME`) + per-mode session workspace
 (`output/<mode>/`); build version (`--version`); offline setup diagnostic (`-d`, `-d --json`).
 
-> **Scope note (updated by clarify Q2)**: the original "no `data/**` truth this round" lock was
-> **released** — this round now owes a **minimal** data truth (config input contract + workspace
-> lifecycle).
+> **Scope note (updated by grill round #3 + user ratification, 2026-09-11)**: clarify-Q2's "minimal
+> `data/**` truth" is **reversed by ratification** — round 001 owes **no** `data/**` model. The config
+> input contract and the workspace lifecycle are owned by `/axb-dsl-refine` (the CLI contract owner).
 
 ### Artifacts
 
@@ -41,7 +41,7 @@
 - [x] `specs/plans/001-cli-bootstrap-and-config/research.md` — `/axb-technical-research` (7 decisions; **post-grill + post-clarify**)
 - [x] `specs/truth/techstack.md` — `/axb-technical-research` (**post-grill**)
 - [x] `specs/plans/001-cli-bootstrap-and-config/plan.md` — `/axb-system-analysis` (**revised by grill #2**: 2 interfaces, **1 wave**; **all gating blockers resolved** — CLI-seat blocker closed by `aixbdd-tmg` PR #2)
-- [ ] `specs/truth/data/**` — `/axb-data-plan` (Wave 1; minimal) ← **next** (not gated)
+- [x] `specs/truth/data/**` — `/axb-data-plan` = **NOOP** (authored as `data-model.dbml`, then **deleted** by the user-ratified reversal of clarify Q2 — grill round #3)
 - [ ] `specs/truth/features/cli/**` + `dsl.md` — `/axb-dsl-refine` (CLI **contract owner**; **ungated**)
 - [ ] `specs/plans/001-cli-bootstrap-and-config/tasks.md` — `/axb-tasks`
 - [ ] Implementation — `/axb-implement`
@@ -60,9 +60,9 @@
 ### Pipeline position
 
 `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` (+ **grill round #1**, **clarify**) →
-`/axb-system-analysis` **(done — `plan.md`, revised by grill round #2)** → **next: `/axb-data-plan`
-(single wave; not gated) → `/axb-dsl-refine` (CLI contract via its **contract owner**; **ungated** —
-all blockers resolved)** → `/axb-tasks` → `/axb-implement`.
+`/axb-system-analysis` **(done — `plan.md`, revised by grill round #2)** → `/axb-data-plan`
+**(done — NOOP, grill #3 + ratification)** → **next: `/axb-dsl-refine`** (CLI contract via its
+**contract owner**; **ungated**) → `/axb-tasks` → `/axb-implement`.
 
 **Pending decision:** *(none)* the **grill round on `plan.md`** ran as **grill round #2** (6/6,
 verdict *proceed with changes*); its edit set is applied. **All gates cleared:** the two PM acceptance
@@ -116,6 +116,23 @@ gaps landed (PM-1/PM-2) and the cross-repo `aixbdd-tmg` CLI-seat blocker is **cl
 
 **All three gating blockers are resolved** — the `/axb-dsl-refine` CLI slice is **ungated**.
 
+## Grill round #3 — round-001 data truth (CLOSED)
+
+- **Issue**: [#3](https://github.com/gosharplite/tellme/issues/3) · subject `architect` · griller `griller` · orchestrator `butler` · **6/6 questions** (cap 6)
+- **Full transcript (gist)**: <https://gist.github.com/gosharplite/8744cdb9d2f748c070e985cf7d42ce3d>
+- **Findings comment**: <https://github.com/gosharplite/tellme/issues/3#issuecomment-5624893374>
+- **Verdict**: **proceed with changes** — both the *diagnosis* ("provably meets the trigger") and the
+  *design* (`data-model.dbml`) failed under the artifact's own input-vs-state test.
+- **Subject retractions/concessions** (all under verification): **Q1** trigger not "provable" — clarify
+  Q2 is the sole binding warrant; **Q2** `config-valid-provider` is **file-only** and the **effective
+  provider is unmodelled** (false-pass on `TELL_ME_SELECTED_PROVIDER=ghost`); **Q3** the `Ref` is a
+  **relational FK over non-relational storage** (a PK enforces uniqueness, not existence); **Q4**
+  collapse the two tables → one document-shaped unit, no `Ref`; **Q5** the artifact's content is
+  **argued out of `data/**`**; **Q6** **no self-NOOP** — escalate to `/axb-clarify`.
+- **Applied (user-ratified 2026-09-11)**: `specs/truth/data/data-model.dbml` **deleted**; the
+  `/axb-data-plan` owner section records **`NOOP`**; the CLI input contract + workspace lifecycle hand
+  to **`/axb-dsl-refine`** as their single owner. *(Reverse of clarify Q2 → Option 1.)*
+
 ## Upstream — `aixbdd-tmg` CLI-seat resolution (session 6, CLOSED)
 
 `aixbdd-tmg#1` (the round-001 cross-repo Gating blocker #1) is **closed** by
@@ -148,6 +165,8 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
   (success/usage/config/environment) bind the **boot** path only.
 - **Q2 → Option 1** — the "no `data/**` truth this round" scope lock is **released**; `/axb-data-plan`
   authors a **minimal** data truth (config input contract + workspace lifecycle).
+  **⟦REVERSED 2026-09-11 — grill round #3 + user ratification: round 001 owes NO `data/**` model;
+  `specs/truth/data/**` deleted, `/axb-data-plan` = NOOP.⟧**
 
 ## Feasibility verification pass (done)
 
@@ -169,6 +188,10 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 - **Self-starting bootstrap** (`SESSION-BOOTSTRAP.md` Step 7 + `STATUS.md`) on `main`/`dev`/working branch.
 - **Working style**: session work on a local branch; updates flow up via the two-step merge–merge.
 - **Data scope released** (clarify Q2); **`-d` = reporting path** (clarify Q1).
+- **Data scope reversed** (2026-09-11, grill #3 + user ratification): the "minimal `data/**` truth"
+  owed by Q2 is **withdrawn** — round 001 owes **no** data model; `specs/truth/data/**` **deleted**,
+  `/axb-data-plan` = **NOOP**; the CLI input contract + workspace lifecycle are owned by
+  `/axb-dsl-refine`.
 - **~~Two-wave analysis~~** (data → CLI contract) — **retracted by grill round #2**: the two
   interfaces are information-independent, so the analysis collapses to a **single wave**; the
   `/axb-data-plan` → `/axb-dsl-refine` ordering is **pipeline phasing**, not a Rule-2 dependency.
