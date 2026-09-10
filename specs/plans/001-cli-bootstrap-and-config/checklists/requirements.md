@@ -45,7 +45,9 @@
 
 ## Issues & Correction Log
 
-- Default configuration path (used when `-c`/`--config` is omitted) is left as an assumption + `NEEDS CLARIFICATION`. Non-blocking: the main flow ("valid config → ready; invalid config → actionable failure") holds regardless of the exact default path.
+- Default configuration path (used when `-c`/`--config` is omitted): **RESOLVED** to `$TELL_ME_HOME/configs/<mode>.yaml`, with `<mode>` defaulting to `butler`. Recorded in Assumptions; the `NEEDS CLARIFICATION` marker is removed.
+- Niffler shell-env alignment (folded this round): `TELL_ME_*` env overrides (`TELL_ME_MODE`, `TELL_ME_SELECTED_PROVIDER`) take precedence over the YAML config (`FR-015`); `FR-003` and `FR-007` now resolve the *effective* provider/mode. Non-blocking; closes the latent precedence gap between the spec and the tell-me-go Niffler environment.
+- Binary-name integration note: Niffler invokes `tell-me-go`; tellme ships `tellme`. Deferred as an integration concern, not a spec gap.
 - Exact `-d --json` output schema is not fixed. Non-blocking observability detail deferred to `/axb-dsl-refine`.
 - Error-message wording/format (`NFR-004`) is not fixed; only "actionable, on stderr" is required. Non-blocking.
 - Exit-code numeric values are not fixed; only their distinctness is required (`FR-014`). Non-blocking.

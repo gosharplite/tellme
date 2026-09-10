@@ -43,6 +43,7 @@ Configuration is a **slice-local input** — no `contracts/**`, no `data/**` tru
 - **Not everything in tell-me-go will appear in tellme** — the scope is a deliberate subset.
 - **`/axb-constitution` skipped** — the default constitution is used.
 - Configuration treated as a **slice-local input**, not a truth artifact.
+- **Niffler shell-env alignment folded into `spec.md`** (this round): `TELL_ME_*` env overrides (`TELL_ME_MODE`, `TELL_ME_SELECTED_PROVIDER`) take precedence over the YAML config — `FR-003`/`FR-007` now resolve the *effective* provider/mode and new `FR-015` records the cross-story rule (plus a matching edge case); default config path resolved to `$TELL_ME_HOME/configs/<mode>.yaml` (`<mode>` defaulting to `butler`); binary-name divergence (Niffler invokes `tell-me-go` vs tellme's `tellme`) recorded as an out-of-scope integration note.
 - **No `/axb-clarify`** round needed (no gap changed story splitting, flows, acceptance, or success criteria).
 - Artifacts written in **English** (project + working language).
 - Working agreement: butler runs the `axb-*` skills directly, one phase at a time, with a review gate between phases.
@@ -51,10 +52,11 @@ Configuration is a **slice-local input** — no `contracts/**`, no `data/**` tru
 
 ## Open items (non-blocking)
 
-- Default configuration path when `-c`/`--config` is omitted.
 - Exact `-d --json` output schema.
 - Exit-code numeric values (only distinctness is required).
-- Error-message wording.
+- Error-message wording (`NFR-004`).
+
+*(Resolved this round: default configuration path → `$TELL_ME_HOME/configs/<mode>.yaml`, `<mode>` defaulting to `butler` — see Decisions locked.)*
 
 ## Environment notes
 

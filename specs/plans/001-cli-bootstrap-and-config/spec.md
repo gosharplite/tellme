@@ -28,7 +28,7 @@ As a user launching tellme, I want the tool to locate and load my YAML configura
 
 - **FR-001**: The system MUST accept a configuration file path via a `-c` / `--config` flag.
 - **FR-002**: The system MUST load its configuration from a YAML file and treat it as a slice-local input.
-- **FR-003**: The system MUST validate that the configuration's selected provider references an entry in the provider registry.
+- **FR-003**: The system MUST resolve the *effective* selected provider — the `TELL_ME_SELECTED_PROVIDER` environment variable when set, otherwise the configuration's `SELECTED_PROVIDER` — and MUST validate that it references an entry in the provider registry.
 - **FR-004**: When the configuration is missing, unreadable, or fails validation, the system MUST emit an actionable message on stderr and exit with a non-zero code distinct from the success code.
 - **FR-005**: The system MUST support, at minimum, the configuration keys `MODE`, `PERSON`, `SELECTED_PROVIDER`, and a `PROVIDERS` registry that starts with a single provider.
 
@@ -54,7 +54,7 @@ As a returning user, I want tellme to resolve its runtime home and prepare a per
 **Functional Requirements**:
 
 - **FR-006**: The system MUST resolve its runtime home from the `TELL_ME_HOME` environment variable.
-- **FR-007**: The system MUST derive the session workspace path as `output/<mode>/` under the runtime home, where `<mode>` is the configuration's `MODE` value.
+- **FR-007**: The system MUST derive the session workspace path as `output/<mode>/` under the runtime home, where `<mode>` is the *effective* mode — the `TELL_ME_MODE` environment variable when set, otherwise the configuration's `MODE` value.
 - **FR-008**: On first run the system MUST create the session workspace; on subsequent runs it MUST reuse the existing one.
 - **FR-009**: The system MUST report the resolved workspace path in a human-readable form.
 
@@ -93,6 +93,7 @@ As an operator, I want to see the running build version and run a setup diagnost
 - When a configuration parses but its `PROVIDERS` registry is empty, the system MUST treat the selected-provider validation as failed.
 - When an unrecognized flag is supplied, the system MUST report a usage error and exit with a code distinct from both success and configuration failure.
 - When `TELL_ME_HOME` is unset or points to a non-writable location, the system MUST report an actionable environment error and exit non-zero.
+- When `TELL_ME_MODE` / `TELL_ME_SELECTED_PROVIDER` are set, they MUST take precedence over the configuration's `MODE` / `SELECTED_PROVIDER`; when an override names an unknown provider, the same actionable validation failure MUST occur as for an in-file mismatch.
 - When the resolved workspace path already exists as a regular file rather than a directory, the system MUST fail with an actionable error instead of overwriting it.
 
 ## Requirements *(mandatory)*
@@ -104,6 +105,7 @@ As an operator, I want to see the running build version and run a setup diagnost
 #### Functional Requirements
 
 - **FR-014**: The system MUST return distinct, deterministic exit codes for at least: success, usage error, configuration error, and environment error.
+- **FR-015**: The system MUST give `TELL_ME_*` environment variables precedence over the YAML configuration when resolving the effective mode (`TELL_ME_MODE`) and the effective selected provider (`TELL_ME_SELECTED_PROVIDER`); this constrains both the configuration story and the workspace story.
 
 #### Non-Functional Requirements
 
@@ -128,7 +130,9 @@ As an operator, I want to see the running build version and run a setup diagnost
 ## Assumptions
 
 - Round 1 is invoked as a single binary/command named `tellme`.
-- When `-c`/`--config` is omitted, a default configuration is sought under the runtime home (`TELL_ME_HOME`); the exact default path is [NEEDS CLARIFICATION: default config filename/location not yet fixed].
+- When `-c`/`--config` is omitted, the default configuration is sought at `$TELL_ME_HOME/configs/<mode>.yaml`, where `<mode>` is the effective mode; when no effective mode is set, `<mode>` defaults to `butler` (`$TELL_ME_HOME/configs/butler.yaml`), matching the tell-me-go reference default.
+- Runtime-home and mode/provider resolution is aligned with the tell-me-go Niffler shell environment: Niffler exports `TELL_ME_HOME=ait-<tag>/`, `TELL_ME_MODE=<role>`, and `TELL_ME_SELECTED_PROVIDER=<provider>`, and always passes an explicit `-c "$TELL_ME_HOME/configs/<mode>.yaml"`. tellme therefore resolves home from `TELL_ME_HOME`, honours the `TELL_ME_*` overrides with precedence over the file, and uses the `output/<mode>/` layout that Niffler already provisions under the tag workspace.
+- Integration note (binary name): Niffler currently invokes a binary named `tell-me-go` (`$NIFFLER_GOBIN/tell-me-go`, and `tell-me-go completion bash`), whereas tellme's binary is named `tellme`. Running tellme under an unmodified Niffler requires a matching binary/alias or a Niffler-side adaptation; reconciling this is out of scope for this round.
 - Round 1's provider registry contains exactly one provider; multi-provider support belongs to a later slice.
 - The implementation language is Go, mirroring the tell-me-go reference; the exact toolchain and test stack are fixed later by technical research (techstack truth).
 - Configuration is a slice-local input; this round adds no `contracts/**` and no `data/**` truth.
