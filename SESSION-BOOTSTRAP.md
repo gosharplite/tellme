@@ -22,7 +22,7 @@
 | **4** | Read [`~/tmp/github/gosharplite/aixbdd-tmg/README.md`](~/tmp/github/gosharplite/aixbdd-tmg/README.md) | Operational BDD engine: PM/RD separation, skills execution pipeline, and CLI-streamlined adaptations |
 | **5** | List all pre-load skills | Inventory and inspect all pre-loaded skills in the current session context to establish operational capabilities and governance boundaries |
 | **6** | List all agents you can talk to in current shell env | Discover peer agents and personas in the current workspace (`$TELL_ME_HOME/configs/*.yaml`), identify self (`$TELL_ME_MODE`), and map available conversational targets per `tmg-chat-ingroup` |
-| **7** | Read [`STATUS.md`](STATUS.md) | Live session state — current round / active plan package and its pipeline position, the branch model (`main` → `dev` → session branch), decisions locked so far, artifact progress, and any open non-blocking items |
+| **7** | Read [`STATUS.md`](STATUS.md), then align to the active branch | Live session state — current round / active plan package and its pipeline position, the branch model (`main` → `dev` → session branch), decisions locked so far, artifact progress, and open items. Then run `git branch --show-current`; if it is **not** the **Active branch** named in `STATUS.md`, `git checkout` that branch before doing any work, so the round's artifacts are present |
 
 Only after Steps 1, 2, 3, 4, 5, 6, and 7 are complete and results are reported may the agent respond to user tasking.
 
@@ -83,11 +83,12 @@ Inspect the current shell environment and discover available peer agents using t
 
 ### 5. Session Status Verification (Step 7 Details)
 
-Read the repo-root `STATUS.md` to establish live session state:
+Read the repo-root `STATUS.md` to establish live session state, then align the working branch:
 1. Current round / active plan package and its position in the phase pipeline.
-2. The branch model (`main` → `dev` → session branch) and which branch is currently checked out.
-3. Decisions locked so far, plus any open non-blocking items.
-4. Keep it current: update `STATUS.md` at each pipeline phase gate and whenever a decision is locked.
+2. The **Active branch** and the branch model (`main` → `dev` → session branch).
+3. **Align the working tree**: run `git branch --show-current`; if it is not the **Active branch** named in `STATUS.md`, check that branch out before doing any work (otherwise the round's artifacts are absent).
+4. Decisions locked so far, plus any open non-blocking items.
+5. Keep it current: update `STATUS.md` at each pipeline phase gate and whenever a decision is locked.
 
 ---
 
