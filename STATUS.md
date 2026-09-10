@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-10 (end of day — session-continuity tooling + follow-ups)
+**Last updated**: 2026-09-10 (end-of-day closeout — session 5: PM-1..PM-4 closed; upstream issue #1 + resolution proposal recorded)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `001-cli-bootstrap-and-config` (→ `dev` → `main`)
 **Daily log**: [`docs/2026/09/10/session-summary.md`](docs/2026/09/10/session-summary.md)
@@ -16,8 +16,11 @@
 > **Heads are intentionally not pinned here** — the working branch is the moving tip and every commit
 > on it is followed by the two-step merge `working → dev → main`. Read live heads with
 > `git rev-parse --short main dev HEAD` rather than trusting a snapshot.
-> **Last propagation (2026-09-10):** `working → dev → main` — `dev`/`main` carry the round-001
-> artifacts and the session-continuity tooling. Re-run the merge after any later working-branch commit.
+> **Propagation status (2026-09-10, end of day):** **PENDING.** The last propagation
+> (`working → dev → main`) carried the round-001 artifacts + session-continuity tooling to `dev`/`main`,
+> but **4 later commits** on `001-cli-bootstrap-and-config` (grill #2 edit set → its tracking link →
+> PM checklist → PM closure) are **not yet** merged up. Live heads: `main a8efcfe`, `dev 416667d`,
+> working `79bcb28` (working is **4 ahead of both**). Re-run the two-step merge on approval.
 
 ## Current round — `001-cli-bootstrap-and-config`
 
@@ -37,25 +40,32 @@
 - [x] `specs/plans/001-cli-bootstrap-and-config/features/acceptance/*.feature` (4 journey features) — `/axb-spec-by-example`
 - [x] `specs/plans/001-cli-bootstrap-and-config/research.md` — `/axb-technical-research` (7 decisions; **post-grill + post-clarify**)
 - [x] `specs/truth/techstack.md` — `/axb-technical-research` (**post-grill**)
-- [x] `specs/plans/001-cli-bootstrap-and-config/plan.md` — `/axb-system-analysis` (2 interfaces, 2 waves)
-- [ ] `specs/truth/data/**` — `/axb-data-plan` (Wave 1; minimal) ← **next**
-- [ ] `specs/truth/features/**` + `dsl.md` — `/axb-dsl-refine` (Wave 2)
+- [x] `specs/plans/001-cli-bootstrap-and-config/plan.md` — `/axb-system-analysis` (**revised by grill #2**: 2 interfaces, **1 wave**, gating blockers)
+- [ ] `specs/truth/data/**` — `/axb-data-plan` (Wave 1; minimal) ← **next** (not gated)
+- [ ] `specs/truth/features/**` + `dsl.md` — `/axb-dsl-refine` (**CLI slice gated** — see gating blockers)
 - [ ] `specs/plans/001-cli-bootstrap-and-config/tasks.md` — `/axb-tasks`
 - [ ] Implementation — `/axb-implement`
 
-### System analysis (`plan.md`)
+### System analysis (`plan.md`) — **revised by grill round #2**
 
-- **Interfaces (2)**: `CLI end (operator terminal interface)`; `Configuration & workspace persistence interface`.
-- **Waves (2)**: **Wave 1** = persistence → `/axb-data-plan`; **Wave 2** = CLI contract → `/axb-dsl-refine`.
+- **Interfaces (2)**: `CLI end (operator terminal interface)` — planner **UNASSIGNED (recorded gap)**;
+  `Configuration & workspace persistence interface` — `/axb-data-plan`.
+- **Wave (1, single)**: both interfaces are information-independent → one parallel wave. *(The earlier
+  2-wave split was retracted — no Rule-2 information dependency.)*
 - **`/axb-api-plan` = NOOP** (single CLI end, no OpenAPI); **`/axb-ui-plan` skipped** (CLI).
+- **Gating blockers** (gate the `/axb-dsl-refine` CLI slice — see grill round #2 below).
 
 ### Pipeline position
 
 `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` (+ **grill round #1**, **clarify**) →
-`/axb-system-analysis` **(done — `plan.md`)** → **next: `/axb-data-plan` (Wave 1) → `/axb-dsl-refine`
-(Wave 2)** → `/axb-tasks` → `/axb-implement`.
+`/axb-system-analysis` **(done — `plan.md`, revised by grill round #2)** → **next: `/axb-data-plan`
+(single wave; not gated) → `/axb-dsl-refine` (Wave 1 CLI contract — **CLI slice gated** on the
+blockers)** → `/axb-tasks` → `/axb-implement`.
 
-**Pending decision:** run a **grill round on `plan.md`** (recommended, cap ~6) or proceed directly to Wave 1.
+**Pending decision:** *(resolved)* the **grill round on `plan.md`** ran as **grill round #2** (6/6,
+verdict *proceed with changes*); the edit set is applied. **Remaining gate:** the cross-repo
+`aixbdd-tmg` blocker + the two PM acceptance gaps must land before the `/axb-dsl-refine` CLI slice
+(the `-d`-unresolved / default-path behaviour) can proceed; the `/axb-data-plan` half is **not** gated.
 
 ## Grill round #1 — round-001 techstack & research (CLOSED)
 
@@ -66,6 +76,40 @@
   `truth-delta.md`: SC-004 proven by the **host harness** (sandbox + build-graph guard); `godog` labelled
   *adopted, first instantiated in `/axb-dsl-refine`*; **6-step resolver**; **dropped `internal/version`**;
   `VERSION=0.0.0-harness` sentinel; **`staticcheck` adopted**; three-state truth discipline.
+
+## Grill round #2 — round-001 `plan.md` system analysis (CLOSED)
+
+- **Issue**: [#2](https://github.com/gosharplite/tellme/issues/2) · subject `architect` · griller `griller` · orchestrator `butler` · **6/6 questions** (cap 6)
+- **Full transcript (gist)**: <https://gist.github.com/gosharplite/27c916a78fd3eb988f2ac22f7b4da954>
+- **Findings comment**: <https://github.com/gosharplite/tellme/issues/2#issuecomment-5617519522>
+- **Verdict**: **proceed with changes** — the plan's structure / NOOP-skip rulings held; its wave
+  structure and interface framing were corrected.
+- **Applied to `plan.md`** (edit set): (a) **2-wave split → single wave** (no information dependency —
+  `/axb-dsl-refine` reads no `specs/truth/data/**`); (b) **count stays 2** with the **CLI end's planner
+  UNASSIGNED recorded as a gap** (not deleted); (c) **`-d`-unresolved / default-path marked
+  not-yet-delegable**; (d) delegation ordering re-attributed to **pipeline phasing**, not a Rule-2
+  dependency; (e) a **Gating blockers** subsection added.
+- **Subject retractions** (all conceded under verification): **Q1** `Interface.kind` gap is a present
+  blocker, not a "forward risk"; **Q2** the Wave-1→Wave-2 dependency; **Q3**
+  `wave-covers-interfaces` ("holds" claim); **Q6** the count-1 fix (definition inverted the skill's
+  inventory-then-delegate order). **Q5**: conceded an over-commit.
+
+### Gating blockers (gate the `/axb-dsl-refine` CLI slice)
+
+1. **Cross-repo blocker (`aixbdd-tmg` truth-model owner)** — the typed model has **no seat for a CLI
+   end**: no valid `InterfaceKind` value (`{backend, frontend}`, both web-bound) and no api/data/ui
+   planner for a terminal endpoint. *Proposed resolution:* extend `InterfaceKind` (`cli` →
+   `features/cli/**`) **or** declare `/axb-dsl-refine` the CLI end's planner-of-record.
+   *(Consolidates grill Q1 + Q3 + Q6.)* **Tracked upstream:**
+   [`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1).
+2. ~~**PM-owned acceptance gap #1**~~ — **RESOLVED** (session 5, PM role): the `-d`-unresolved Example
+   (plain + `--json`) + the non-zero "diagnostic: unresolved" exit added; a `spec.md` edge case added.
+   *(PM-1.)*
+3. ~~**PM-owned acceptance gap #2**~~ — **RESOLVED** (session 5, PM role): the positive
+   no-`-c` + `MODE≠butler` found-default Example added. *(PM-2.)*
+
+**Only blocker 1 (the cross-repo `aixbdd-tmg` decision) remains**; the `/axb-data-plan` half is not
+gated.
 
 ## Clarify round — PM-boundary rulings (CLOSED)
 
@@ -98,22 +142,45 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 - **Self-starting bootstrap** (`SESSION-BOOTSTRAP.md` Step 7 + `STATUS.md`) on `main`/`dev`/working branch.
 - **Working style**: session work on a local branch; updates flow up via the two-step merge–merge.
 - **Data scope released** (clarify Q2); **`-d` = reporting path** (clarify Q1).
-- **Two-wave analysis** (data → CLI contract): the persistence model underpins the executable contract.
+- **~~Two-wave analysis~~** (data → CLI contract) — **retracted by grill round #2**: the two
+  interfaces are information-independent, so the analysis collapses to a **single wave**; the
+  `/axb-data-plan` → `/axb-dsl-refine` ordering is **pipeline phasing**, not a Rule-2 dependency.
 - **Session-continuity tooling**: `SESSION-BOOTSTRAP.md` gains **Step 8** (read the last 5 days of
   `docs/…/session-summary.md`); new **`SESSION-CLOSEOUT.md`** defines the end-of-day procedure
   (review tree → quality gates → `STATUS.md` → daily summary → reconcile → commit → propagate).
 - **Status de-brittling**: `SESSION-BOOTSTRAP.md` ↔ `SESSION-CLOSEOUT.md` cross-linked; the branch
   model above no longer pins head hashes (read live with `git rev-parse`).
 
-## PM follow-ups (spec/acceptance are PM-owned — not written by the RD/butler flow)
+## PM follow-ups (spec/acceptance are PM-owned) — **CLOSED** (session 5, PM role)
 
-- **`spec.md`**: update the Assumptions line — the "no `data/**` truth this round" lock is released (Q2).
-- **`features/acceptance/**`**: add an edge case + Example for **`-d` on a broken/unresolved setup** (Q1),
-  and the missing **no-`-c` + `MODE≠butler`** default-path Example.
-- **Proposal (optional)**: smallest vertical addition for user value — `tellme init` (or `tellme config show`).
+**PM TODO checklist** — owner `pm`; source: clarify Q2 + grill round #2 Q5. **4/4 closed** on
+2026-09-10 (PM role): PM-1..PM-3 landed, PM-4 decided (deferred).
+
+### Blocking (gated the `/axb-dsl-refine` CLI slice) — CLOSED
+
+- [x] **PM-1** — `features/acceptance/version-and-setup-diagnostic.feature`: added the **`-d`-unresolved**
+  Example (plain + `--json`) with the non-zero "diagnostic: unresolved" exit; `spec.md` gained the
+  matching edge case.
+- [x] **PM-2** — `features/acceptance/starting-with-a-configuration.feature`: added the positive
+  **no-`-c` + `MODE≠butler`** found-default Example.
+
+### Required (tracked cleanup) — CLOSED
+
+- [x] **PM-3** — `spec.md`: reconciled the stale "slice-local / no `data/**` truth" wording to the
+  released lock (clarify Q2) — the `**Input**:` line, **FR-002**, **Key Entities → Configuration**, and
+  the **Assumptions** line.
+
+### Optional — DECIDED (deferred)
+
+- [x] **PM-4** — **deferred to a future round** (candidate: `tellme init` — first-run value via a
+  generated default config). **Not** added to round 001: its scope is locked and
+  `fresh-package-per-round` requires a new plan package for new scope.
 
 ## Open items (non-blocking)
 
+- **Blocking (grill #2)** — the two **PM** acceptance gaps are **resolved** (PM-1/PM-2); the only
+  remaining gate on the `/axb-dsl-refine` CLI slice is the cross-repo `aixbdd-tmg` decision
+  ([`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1)).
 - Exact `-d --json` output schema.
 - Exit-code numeric values (incl. the new dedicated "diagnostic: unresolved" code).
 - Error-message wording (`NFR-004`).

@@ -24,3 +24,17 @@ Feature: Checking the build version and diagnosing setup
       Then tellme emits the same resolution status as structured output
       And tellme performs no network access
       And tellme exits successfully
+
+    Example: The operator diagnoses a setup that does not resolve, plainly and machine-readably
+      Given the runtime home "TELL_ME_HOME" is set to "ait-tmg"
+      And a configuration "configs/butler.yaml" does not resolve to a ready state
+      When the operator runs tellme's diagnostic "-d"
+      Then tellme reports that the configuration did not resolve
+      And tellme reports the reason the configuration did not resolve
+      And tellme performs no network access
+      And tellme exits with a diagnostic error code distinct from the success code
+
+      When the operator runs the diagnostic once more with "--json"
+      Then tellme emits the same unresolved status as structured output
+      And tellme performs no network access
+      And tellme exits with a diagnostic error code distinct from the success code

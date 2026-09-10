@@ -32,6 +32,14 @@ Feature: Starting tellme with a configuration
       And tellme explains on stderr that no configuration could be found
       And tellme exits with a configuration error code distinct from the success code
 
+    Example: The operator omits "-c" and the default configuration for the effective mode is found
+      Given the operator has a runnable tellme installation
+      And the runtime home holds a well-formed configuration "configs/coder.yaml"
+      And the effective mode is "coder"
+      When the operator starts tellme without any "-c" flag
+      Then tellme reports that the configuration is ready
+      And tellme exits successfully
+
   Rule: A run must not proceed unless its effective selected provider exists in the provider registry
 
     Example: The selected provider is taken from the environment first, then from the file
