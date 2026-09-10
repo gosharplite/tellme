@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-11 (**session 7**: grill round #3 → data truth **deleted** (`/axb-data-plan` = **NOOP**, ratified); `/axb-dsl-refine` done — CLI contract under `specs/truth/features/cli/**`; **grill round #4** on the CLI contract → verdict *proceed with changes* → **in-round fixes applied** (arrange loss restored; `--json` schema pinned); 2 host-rule residuals routed upstream; audit PASSED; next = **`/axb-tasks`**)
+**Last updated**: 2026-09-11 (**end-of-day closeout — session 7**: grill #3 → data truth **deleted** (`/axb-data-plan` = **NOOP**, ratified); `/axb-dsl-refine` done — CLI contract under `specs/truth/features/cli/**`; **grill #4** → CLI-contract fixes applied (arrange loss restored; `--json` schema pinned) + audit PASSED; upstream residuals opened ([aixbdd-tmg#5](https://github.com/gosharplite/aixbdd-tmg/issues/5), [#6](https://github.com/gosharplite/aixbdd-tmg/issues/6)); next = **`/axb-tasks`**)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `001-cli-bootstrap-and-config` (→ `dev` → `main`)
 **Daily log**: [`docs/2026/09/10/session-summary.md`](docs/2026/09/10/session-summary.md)
@@ -261,3 +261,7 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 - **No-network sandbox limitation (verified 2026-09-10)**: `unshare -n` / `unshare -rn` fail
   `Operation not permitted` on this dev host — the privileged netns sandbox is a CI/privileged-Linux
   mechanism; local SC-004 uses the unprivileged hostile-DNS/proxy fallback + the build-graph guard.
+- **2026-09-11 (session 7)**: grill rounds **#3** and **#4** ran via `tell-me-go` sub-agents (`architect`,
+  `griller`) seeded with `SESSION-BOOTSTRAP.md`; both authorized the reference repos via `register_readpath`.
+  Issue/gist/PR workflow via `gh` (token scopes `gist` + `repo`). The feature/DSL topology audit ran via
+  `python3` (script at `$TELL_ME_HOME/docs/skills/axb-gherkin-and-dsl/scripts/`); `uv` is present.
