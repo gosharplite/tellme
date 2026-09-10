@@ -22,8 +22,9 @@
 | **4** | Read [`~/tmp/github/gosharplite/aixbdd-tmg/README.md`](~/tmp/github/gosharplite/aixbdd-tmg/README.md) | Operational BDD engine: PM/RD separation, skills execution pipeline, and CLI-streamlined adaptations |
 | **5** | List all pre-load skills | Inventory and inspect all pre-loaded skills in the current session context to establish operational capabilities and governance boundaries |
 | **6** | List all agents you can talk to in current shell env | Discover peer agents and personas in the current workspace (`$TELL_ME_HOME/configs/*.yaml`), identify self (`$TELL_ME_MODE`), and map available conversational targets per `tmg-chat-ingroup` |
+| **7** | Read [`STATUS.md`](STATUS.md) | Live session state — current round / active plan package and its pipeline position, the branch model (`main` → `dev` → session branch), decisions locked so far, artifact progress, and any open non-blocking items |
 
-Only after Steps 1, 2, 3, 4, 5, and 6 are complete and results are reported may the agent respond to user tasking.
+Only after Steps 1, 2, 3, 4, 5, 6, and 7 are complete and results are reported may the agent respond to user tasking.
 
 ---
 
@@ -31,7 +32,7 @@ Only after Steps 1, 2, 3, 4, 5, and 6 are complete and results are reported may 
 
 **You just finished reading this file. Do not reply. Do not summarize. Do not ask what to do next.**
 
-Immediately return to the step table at the top and execute **Step 1 → Step 2 → Step 3 → Step 4 → Step 5 → Step 6** in order. Report results when Steps 1–6 are complete.
+Immediately return to the step table at the top and execute **Step 1 → Step 2 → Step 3 → Step 4 → Step 5 → Step 6 → Step 7** in order. Report results when Steps 1–7 are complete.
 
 ---
 
@@ -80,6 +81,14 @@ Inspect the current shell environment and discover available peer agents using t
 3. Identify the active agent identity via `$TELL_ME_MODE`.
 4. Report all peer agents that can be reached (every mode except self; never message your own mode to avoid session self-pollution).
 
+### 5. Session Status Verification (Step 7 Details)
+
+Read the repo-root `STATUS.md` to establish live session state:
+1. Current round / active plan package and its position in the phase pipeline.
+2. The branch model (`main` → `dev` → session branch) and which branch is currently checked out.
+3. Decisions locked so far, plus any open non-blocking items.
+4. Keep it current: update `STATUS.md` at each pipeline phase gate and whenever a decision is locked.
+
 ---
 
 ## ⚠️ Agent Rules
@@ -91,3 +100,4 @@ Inspect the current shell environment and discover available peer agents using t
 5. **Truth Integrity**: Keep `specs/truth/**` as the single source of truth for current system behavior. Record all modifications through `truth-delta.md`.
 6. **Skill Awareness**: Verify pre-loaded skills before taking action; follow the specific SOP and invariants defined in each active skill.
 7. **In-Group Protocol**: Respect peer agent boundaries and messaging rules defined in `tmg-chat-ingroup` (clear `TELL_ME_MODE`, sequential dispatch, and never message self).
+8. **Session Status Discipline**: Read `STATUS.md` at bootstrap (Step 7) and keep it current — update it at every pipeline phase gate and whenever a decision is locked, so the next session inherits accurate state.
