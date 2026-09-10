@@ -1,21 +1,23 @@
 # tellme — Status
 
-**Last updated**: 2026-09-10 (end of day — session-continuity tooling added)
+**Last updated**: 2026-09-10 (end of day — session-continuity tooling + follow-ups)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `001-cli-bootstrap-and-config` (→ `dev` → `main`)
 **Daily log**: [`docs/2026/09/10/session-summary.md`](docs/2026/09/10/session-summary.md)
 
 ## Branch model
 
-| Branch | Head | Role |
+| Branch | State | Role |
 | --- | --- | --- |
-| `main` | `5f5d801` | Stable / released line |
-| `dev` | `c573a44` | Integration line (round work lands here before `main`) |
-| `001-cli-bootstrap-and-config` | `2a552b3` | This session's working branch |
+| `main` | merged up from `dev` | Stable / released line |
+| `dev` | merged up from the working branch | Integration line (round work lands here before `main`) |
+| `001-cli-bootstrap-and-config` | session tip (moves per commit) | This session's working branch |
 
-> **Propagation done (2026-09-10):** the two-step merge `working → dev → main` has been run — `dev`
-> (`c573a44`) and `main` (`5f5d801`) now carry the round-001 artifacts and the session-continuity
-> tooling. Re-run the merge after any later working-branch commit.
+> **Heads are intentionally not pinned here** — the working branch is the moving tip and every commit
+> on it is followed by the two-step merge `working → dev → main`. Read live heads with
+> `git rev-parse --short main dev HEAD` rather than trusting a snapshot.
+> **Last propagation (2026-09-10):** `working → dev → main` — `dev`/`main` carry the round-001
+> artifacts and the session-continuity tooling. Re-run the merge after any later working-branch commit.
 
 ## Current round — `001-cli-bootstrap-and-config`
 
@@ -100,6 +102,8 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 - **Session-continuity tooling**: `SESSION-BOOTSTRAP.md` gains **Step 8** (read the last 5 days of
   `docs/…/session-summary.md`); new **`SESSION-CLOSEOUT.md`** defines the end-of-day procedure
   (review tree → quality gates → `STATUS.md` → daily summary → reconcile → commit → propagate).
+- **Status de-brittling**: `SESSION-BOOTSTRAP.md` ↔ `SESSION-CLOSEOUT.md` cross-linked; the branch
+  model above no longer pins head hashes (read live with `git rev-parse`).
 
 ## PM follow-ups (spec/acceptance are PM-owned — not written by the RD/butler flow)
 
@@ -114,7 +118,6 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 - Exit-code numeric values (incl. the new dedicated "diagnostic: unresolved" code).
 - Error-message wording (`NFR-004`).
 - **Unchecked-error coverage** (round-001 residual): closed next slice by `golangci-lint` + `errcheck`.
-- **Session-lifecycle docs**: optionally cross-link `SESSION-BOOTSTRAP.md` ↔ `SESSION-CLOSEOUT.md`.
 
 ## Environment notes
 
