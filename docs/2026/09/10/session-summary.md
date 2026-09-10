@@ -2,22 +2,27 @@
 
 **Project**: `tellme` — a disciplined BDD re-creation of `tell-me-go`
 **Repo**: `github.com/gosharplite/tellme`
+**Status file**: [`STATUS.md`](../../../STATUS.md) *(back-link — the single live-state source)*
 **Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`)
 **Session mode**: `butler` — working directly with the user (no `pm`/`rd` delegation this phase)
 **Branches**: working `001-cli-bootstrap-and-config` → `dev` → `main`
 **Status at end of day**: Round 1 has advanced through the **RD pipeline to `/axb-system-analysis`**,
 now **revised by grill round #2** — `plan.md` reports **2 interfaces / 1 wave**. Grill rounds #1 and #2
 are **closed**; the PM-boundary items and the **two PM acceptance gaps (PM-1/PM-2)** are **resolved**.
-**Only one gate remains:** the cross-repo CLI-seat decision
-([`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1)), which gates the
-`/axb-dsl-refine` **CLI slice** alone. **Next: `/axb-data-plan`** (not gated) **→ `/axb-dsl-refine`**.
+**No gate remains:** the cross-repo CLI-seat decision
+([`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1)) is **closed by
+upstream PR [#2](https://github.com/gosharplite/aixbdd-tmg/pull/2)**, and the paired `tellme` follow-up
+has landed — the `/axb-dsl-refine` **CLI slice is un-gated**. **Next: `/axb-data-plan`** (not gated)
+**→ `/axb-dsl-refine`**.
 
-> **Four sessions this day.** An earlier session (bootstrap → branching → round-1 spec) is captured in
+> **Six sessions this day.** An earlier session (bootstrap → branching → round-1 spec) is captured in
 > §1–§7. A **later session resumed after the `deepseek-flash` v4.1 provider upgrade** and carried the
 > round through spec alignment, acceptance Gherkin, technical research, the grill round, the clarify
 > round, a feasibility pass, and system analysis (§8–§14). A **third session** added session-continuity
 > tooling — a 5-day session-summary read in the bootstrap and a new end-of-day closeout procedure (§20).
-> A **fourth session** ran **grill round #2** on `plan.md` and applied its edit set (§21).
+> A **fourth session** ran **grill round #2** on `plan.md` and applied its edit set (§21). A **fifth
+> session** acted as PM and closed PM-1..PM-4 (§22). A **sixth session** recorded the upstream
+> `aixbdd-tmg` CLI-seat resolution and applied the **paired `tellme` follow-up** (§23).
 
 ---
 
@@ -458,3 +463,54 @@ The user asked the butler to **act as PM** and close the four PM TODO items rais
 1. `/axb-data-plan` (single wave; not gated).
 2. `/axb-dsl-refine` CLI slice — **gated only** on `aixbdd-tmg#1`.
 3. Then `/axb-tasks` → `/axb-implement`.
+
+
+---
+
+## 23. Session 6 — upstream CLI-seat resolution + paired follow-up
+
+The user directed the butler to **follow `gosharplite/aixbdd-tmg`** (dropping the unrelated
+`Waterball-Software-Academy/aixbdd#66` sequencing note) and to **do the paired `tellme` follow-up** now.
+
+### Upstream landed (closed)
+[`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1) — the round-001
+cross-repo **Gating blocker #1** — is **closed by
+[PR #2](https://github.com/gosharplite/aixbdd-tmg/pull/2)** (merged to `main`; 2 commits, 8 files):
+the issue's **Option B**, with two design amendments.
+
+- **`InterfaceKind` gains `cli`** → executable truth under `specs/truth/features/cli/**`
+  (`Interface.definition` → `backend (API), frontend (web), or CLI (terminal)`).
+- **`wave-covers-interfaces` reworded** → *"…either delegated to a planner **in at least one `Wave`**
+  or carried forward to its contract owner **at delivery**."*
+- **Locus = delivery**; **`/axb-dsl-refine` is the CLI end's *contract owner*, not a "planner"** (a
+  forward handoff at delivery, not a `Wave` delegation).
+- Cross-file coherence: `axb-system-analysis/SKILL.md` (+ Rule 2 → `planner／contract-owner 對應`,
+  承接／交棒), `axb-dsl-refine/SKILL.md`, `README.md` §3, `axb-tasks/templates/tasks.md`
+  (`Core Inputs` → root-agnostic `specs/truth/features/**`).
+- Verification: `modelith lint` → 0 errors/0 warnings; `modelith render --check` → up to date.
+
+### Paired `tellme` follow-up (this session)
+- **`specs/plans/001-cli-bootstrap-and-config/plan.md`** — dropped the CLI-end
+  "Planner: **UNASSIGNED — recorded gap**" (now its **contract-owner** mapping to `/axb-dsl-refine`,
+  covered by `wave-covers-interfaces`'s *carried-forward-to-its-contract-owner at delivery* branch);
+  Gating blocker **#1 → RESOLVED**; the `-d`/default-path scope **un-gated**; delegation order reframed
+  (data-plan = in-wave planner delegation; dsl-refine = delivery-time contract-owner handoff).
+- **`STATUS.md`** — new **Upstream — `aixbdd-tmg` CLI-seat resolution (session 6)** section; system
+  analysis, artifact checklist, pipeline position, pending decision, gating-blockers subsection, open
+  items, and decisions log synced. **All three gating blockers resolved → the `/axb-dsl-refine` CLI
+  slice is un-gated.**
+
+### State at end of session
+- Round 001 `plan.md` reports **2 interfaces / 1 wave**, **no gating blockers**. Next pipeline step:
+  **`/axb-data-plan`** (single wave; not gated) → **`/axb-dsl-refine`** (CLI contract owner; un-gated)
+  → `/axb-tasks` → `/axb-implement`.
+- No truth change (plan-side `plan.md` + repo-root `STATUS.md` only) → **no `truth-delta.md` update**.
+
+### Commits (working branch `001-cli-bootstrap-and-config`)
+| Commit | Note |
+| --- | --- |
+| *(session-6 closeout)* | un-gate CLI slice — `aixbdd-tmg#1` resolved by PR #2: `plan.md` contract-owner mapping, `STATUS.md` sync + upstream section, daily-log §23, closeout edits. **Propagation `working → dev → main` → PENDING (awaiting approval).** |
+
+### Open items
+- None new. Non-blocking items unchanged (§17).
+- **Pending propagation** — the two-step merge `working → dev → main` for the session-6 commit awaits user approval (recorded in `STATUS.md`).
