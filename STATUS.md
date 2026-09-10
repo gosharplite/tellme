@@ -46,7 +46,8 @@ Configuration is a **slice-local input** — no `contracts/**`, no `data/**` tru
 - **No `/axb-clarify`** round needed (no gap changed story splitting, flows, acceptance, or success criteria).
 - Artifacts written in **English** (project + working language).
 - Working agreement: butler runs the `axb-*` skills directly, one phase at a time, with a review gate between phases.
-- **Self-starting bootstrap**: the operating instructions (`SESSION-BOOTSTRAP.md` Step 7) and `STATUS.md` live on **every** branch (each branch's `STATUS.md` serves that branch); Step 7 checks out the **Active branch** before any work, so a fresh session can continue from any starting branch.
+- **Self-starting bootstrap**: `SESSION-BOOTSTRAP.md` (Step 7) and `STATUS.md` are present on the branches in play — `main`, `dev`, and the current working branch; a new working branch inherits it from its base. We do **not** fan out copies to every branch. Step 7 checks out the **Active branch** before any work, so a fresh session can continue.
+- **Working style**: do the session's work on a local branch (where `STATUS.md` is present); updates flow up via the explicit two-step merge–merge (`working branch → dev → main`).
 
 ## Open items (non-blocking)
 
