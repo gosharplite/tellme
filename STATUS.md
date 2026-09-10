@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-10 (session 4 — grill round #2 on `plan.md` + plan revision)
+**Last updated**: 2026-09-10 (session 5 — PM TODO closure: PM-1..PM-3 landed, PM-4 deferred)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `001-cli-bootstrap-and-config` (→ `dev` → `main`)
 **Daily log**: [`docs/2026/09/10/session-summary.md`](docs/2026/09/10/session-summary.md)
@@ -99,12 +99,14 @@ verdict *proceed with changes*); the edit set is applied. **Remaining gate:** th
    `features/cli/**`) **or** declare `/axb-dsl-refine` the CLI end's planner-of-record.
    *(Consolidates grill Q1 + Q3 + Q6.)* **Tracked upstream:**
    [`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1).
-2. **PM-owned acceptance gap #1** — an Example for **`-d` on a broken/unresolved setup** + the
-   non-zero "diagnostic: unresolved" exit. *(Grill Q5.)*
-3. **PM-owned acceptance gap #2** — an Example for **no-`-c` + `MODE≠butler` default-path discovery**.
-   *(Grill Q5.)*
+2. ~~**PM-owned acceptance gap #1**~~ — **RESOLVED** (session 5, PM role): the `-d`-unresolved Example
+   (plain + `--json`) + the non-zero "diagnostic: unresolved" exit added; a `spec.md` edge case added.
+   *(PM-1.)*
+3. ~~**PM-owned acceptance gap #2**~~ — **RESOLVED** (session 5, PM role): the positive
+   no-`-c` + `MODE≠butler` found-default Example added. *(PM-2.)*
 
-The **`/axb-data-plan` half is not gated**; the CLI-contract slice is.
+**Only blocker 1 (the cross-repo `aixbdd-tmg` decision) remains**; the `/axb-data-plan` half is not
+gated.
 
 ## Clarify round — PM-boundary rulings (CLOSED)
 
@@ -146,34 +148,36 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 - **Status de-brittling**: `SESSION-BOOTSTRAP.md` ↔ `SESSION-CLOSEOUT.md` cross-linked; the branch
   model above no longer pins head hashes (read live with `git rev-parse`).
 
-## PM follow-ups (spec/acceptance are PM-owned — not written by the RD/butler flow)
+## PM follow-ups (spec/acceptance are PM-owned) — **CLOSED** (session 5, PM role)
 
-**PM TODO checklist** — owner `pm`; source: clarify Q2 + grill round #2 Q5. **Distinct PM tasks: 4**
-= 3 required (**2 blocking**) + 1 optional.
+**PM TODO checklist** — owner `pm`; source: clarify Q2 + grill round #2 Q5. **4/4 closed** on
+2026-09-10 (PM role): PM-1..PM-3 landed, PM-4 decided (deferred).
 
-### Blocking (gate the `/axb-dsl-refine` CLI slice)
+### Blocking (gated the `/axb-dsl-refine` CLI slice) — CLOSED
 
-- [ ] **PM-1** — `features/acceptance/version-and-setup-diagnostic.feature`: add an Example for **`-d`
-  on a broken/unresolved setup** + the dedicated **non-zero "diagnostic: unresolved"** exit (clarify
-  Q1's other half; grill #2 Q5).
-- [ ] **PM-2** — `features/acceptance/starting-with-a-configuration.feature`: add the **positive**
-  Example for **no-`-c` + `MODE≠butler`** → default `$TELL_ME_HOME/configs/<mode>.yaml` is found and
-  resolves (grill #2 Q5).
+- [x] **PM-1** — `features/acceptance/version-and-setup-diagnostic.feature`: added the **`-d`-unresolved**
+  Example (plain + `--json`) with the non-zero "diagnostic: unresolved" exit; `spec.md` gained the
+  matching edge case.
+- [x] **PM-2** — `features/acceptance/starting-with-a-configuration.feature`: added the positive
+  **no-`-c` + `MODE≠butler`** found-default Example.
 
-### Required (tracked cleanup — not blocking)
+### Required (tracked cleanup) — CLOSED
 
-- [ ] **PM-3** — `spec.md`: reconcile the stale "slice-local input / no `data/**` truth" wording to the
-  **released** lock (clarify Q2). Touches ~3–4 sentences: the `**Input**:` line, the **Key Entities →
-  Configuration** note, the **Assumptions** line (and, arguably, **FR-002**).
+- [x] **PM-3** — `spec.md`: reconciled the stale "slice-local / no `data/**` truth" wording to the
+  released lock (clarify Q2) — the `**Input**:` line, **FR-002**, **Key Entities → Configuration**, and
+  the **Assumptions** line.
 
-### Optional
+### Optional — DECIDED (deferred)
 
-- [ ] **PM-4** — smallest vertical addition for user value — `tellme init` (or `tellme config show`).
+- [x] **PM-4** — **deferred to a future round** (candidate: `tellme init` — first-run value via a
+  generated default config). **Not** added to round 001: its scope is locked and
+  `fresh-package-per-round` requires a new plan package for new scope.
 
 ## Open items (non-blocking)
 
-- **Blocking (grill #2)** — see the *Gating blockers* section above: the cross-repo `aixbdd-tmg`
-  decision + the two PM acceptance gaps gate the `/axb-dsl-refine` CLI slice.
+- **Blocking (grill #2)** — the two **PM** acceptance gaps are **resolved** (PM-1/PM-2); the only
+  remaining gate on the `/axb-dsl-refine` CLI slice is the cross-repo `aixbdd-tmg` decision
+  ([`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1)).
 - Exact `-d --json` output schema.
 - Exit-code numeric values (incl. the new dedicated "diagnostic: unresolved" code).
 - Error-message wording (`NFR-004`).

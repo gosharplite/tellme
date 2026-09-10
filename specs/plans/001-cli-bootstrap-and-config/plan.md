@@ -143,12 +143,13 @@ OpenAPI surface).
    (`cli` → `features/cli/**`), **or** declare `/axb-dsl-refine` the CLI end's planner-of-record.
    *(Consolidates grill Q1 + Q3 + Q6.)* **Tracked upstream:**
    [`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1).
-2. **PM-owned acceptance gap #1 — `-d` on a broken/unresolved setup.** No acceptance Example carries
-   the *unresolved* `-d` case or the dedicated non-zero "diagnostic: unresolved" exit (clarify Q1's
-   other half). *(Grill Q5.)*
-3. **PM-owned acceptance gap #2 — default-path discovery.** No acceptance Example covers the positive
-   no-`-c` + `MODE≠butler` default-path discovery (only the failure case is expressed). *(Grill Q5.)*
+2. ~~**PM-owned acceptance gap #1 — `-d` on a broken/unresolved setup.**~~ **RESOLVED** (session 5, PM
+   role): `version-and-setup-diagnostic.feature` now carries the `-d`-unresolved Example (plain +
+   `--json`) with the dedicated non-zero "diagnostic: unresolved" exit, and `spec.md` adds the matching
+   edge case. *(Was grill Q5; closed as PM-1.)*
+3. ~~**PM-owned acceptance gap #2 — default-path discovery.**~~ **RESOLVED** (session 5, PM role):
+   `starting-with-a-configuration.feature` now carries the positive no-`-c` + `MODE≠butler`
+   found-default Example. *(Was grill Q5; closed as PM-2.)*
 
-Until 1–3 are resolved, the CLI-end slice — the `-d`-unresolved / default-path behaviour in
-particular — is **not yet delegable**, and `/axb-dsl-refine` for that slice is **gated**. The
-persistence half (Wave 1 → `/axb-data-plan`) is **not** gated.
+**Only blocker 1 (the cross-repo `aixbdd-tmg` decision) remains** — the CLI-end slice is gated on that
+alone. The persistence half (single wave → `/axb-data-plan`) is **not** gated.

@@ -404,8 +404,39 @@ The `/axb-data-plan` half is **not** gated.
 3. Then `/axb-tasks` → `/axb-implement`.
 
 
-### PM TODO (PM-owned — checklist lives in `STATUS.md`)
-- **PM-1** *(blocking)* — acceptance Example for `-d` on a broken/unresolved setup + the non-zero "diagnostic: unresolved" exit.
-- **PM-2** *(blocking)* — acceptance Example for no-`-c` + `MODE≠butler` found-default path.
-- **PM-3** *(required cleanup)* — `spec.md`: reconcile the stale "slice-local / no `data/**` truth" wording (~3–4 sentences).
-- **PM-4** *(optional)* — smallest vertical addition for user value (`tellme init` / `tellme config show`).
+### PM TODO (PM-owned — checklist lives in `STATUS.md`) — **CLOSED (session 5)**
+- **PM-1** *(blocking)* — ✅ resolved: `-d`-unresolved acceptance Example + non-zero "diagnostic: unresolved" exit added; `spec.md` edge case added.
+- **PM-2** *(blocking)* — ✅ resolved: no-`-c` + `MODE≠butler` found-default acceptance Example added.
+- **PM-3** *(required)* — ✅ resolved: `spec.md` stale "slice-local / no `data/**` truth" wording reconciled (Input line, FR-002, Key Entities, Assumptions).
+- **PM-4** *(optional)* — ✅ decided: **deferred to a future round** (candidate `tellme init`); not added to round 001.
+
+
+---
+
+## 22. Session 5 — PM TODO closure (acting as PM)
+
+The user asked the butler to **act as PM** and close the four PM TODO items raised by grill round #2
+(§21) and clarify Q2. **All four are closed; round-001 scope was not expanded.**
+
+### Work done (PM-owned artifacts)
+- **PM-1** — `features/acceptance/version-and-setup-diagnostic.feature`: added the **`-d`-unresolved**
+  Example (plain + `--json`) asserting the report is still produced and the process exits with a
+  dedicated non-zero **"diagnostic: unresolved"** code; added the matching **`spec.md` edge case**.
+- **PM-2** — `features/acceptance/starting-with-a-configuration.feature`: added the positive
+  **no-`-c` + `MODE≠butler`** Example (default `$TELL_ME_HOME/configs/<mode>.yaml` found → ready).
+- **PM-3** — `spec.md`: reconciled the stale **"slice-local / no `data/**` truth"** wording to the
+  released lock — the `**Input**:` line (annotated revision), **FR-002**, **Key Entities →
+  Configuration**, and the **Assumptions** line.
+- **PM-4** — **decided (deferred)**: candidate `tellme init` recorded for a **future round**; **not**
+  added to round 001 (scope locked; `fresh-package-per-round`).
+
+### Consequences
+- Gating blockers **#2 and #3** (the two PM acceptance gaps) are **resolved**. **Only blocker #1**
+  (cross-repo `aixbdd-tmg` decision, `gosharplite/aixbdd-tmg#1`) remains, gating the `/axb-dsl-refine`
+  CLI slice alone. The `/axb-data-plan` half is not gated.
+- `plan.md` *Gating blockers* and `STATUS.md` (grill #2 section, PM checklist, open items) updated.
+
+### Next steps
+1. `/axb-data-plan` (single wave; not gated).
+2. `/axb-dsl-refine` CLI slice — **gated only** on `aixbdd-tmg#1`.
+3. Then `/axb-tasks` → `/axb-implement`.
