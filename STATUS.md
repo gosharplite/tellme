@@ -25,7 +25,7 @@ Configuration is a **slice-local input** — no `contracts/**`, no `data/**` tru
 - [x] `specs/plans/001-cli-bootstrap-and-config/spec.md`
 - [x] `specs/plans/001-cli-bootstrap-and-config/checklists/requirements.md`
 - [x] `specs/plans/001-cli-bootstrap-and-config/truth-delta.md` (skeleton)
-- [ ] `specs/plans/001-cli-bootstrap-and-config/features/acceptance/*.feature` — `/axb-spec-by-example`
+- [x] `specs/plans/001-cli-bootstrap-and-config/features/acceptance/*.feature` (4 journey features) — `/axb-spec-by-example`
 - [ ] `specs/plans/001-cli-bootstrap-and-config/research.md` + `specs/truth/techstack.md` — `/axb-technical-research`
 - [ ] `specs/plans/001-cli-bootstrap-and-config/plan.md` — `/axb-system-analysis`
 - [ ] `specs/truth/features/**` + `dsl.md` — `/axb-dsl-refine`
@@ -34,7 +34,7 @@ Configuration is a **slice-local input** — no `contracts/**`, no `data/**` tru
 
 ### Pipeline position
 
-`/axb-specify` done → **next:** `/axb-spec-by-example`, then `/axb-technical-research`
+`/axb-specify` done → `/axb-spec-by-example` done → **next:** `/axb-technical-research`
 → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`.
 
 ## Decisions locked this session
@@ -44,6 +44,7 @@ Configuration is a **slice-local input** — no `contracts/**`, no `data/**` tru
 - **`/axb-constitution` skipped** — the default constitution is used.
 - Configuration treated as a **slice-local input**, not a truth artifact.
 - **Niffler shell-env alignment folded into `spec.md`** (this round): `TELL_ME_*` env overrides (`TELL_ME_MODE`, `TELL_ME_SELECTED_PROVIDER`) take precedence over the YAML config — `FR-003`/`FR-007` now resolve the *effective* provider/mode and new `FR-015` records the cross-story rule (plus a matching edge case); default config path resolved to `$TELL_ME_HOME/configs/<mode>.yaml` (`<mode>` defaulting to `butler`); binary-name divergence (Niffler invokes `tell-me-go` vs tellme's `tellme`) recorded as an out-of-scope integration note.
+- **Round-001 acceptance Gherkin written** (`features/acceptance/`, 4 journey features: *Starting tellme with a configuration*; *Resolving the runtime home and session workspace*; *Checking the build version and diagnosing setup*; *Rejecting unsupported command-line usage*). Plan-side only — no `dsl.md`, no `specs/truth/**`; no `# [need clarification]` markers and no `/axb-clarify` (remaining open items are non-blocking observability details).
 - **No `/axb-clarify`** round needed (no gap changed story splitting, flows, acceptance, or success criteria).
 - Artifacts written in **English** (project + working language).
 - Working agreement: butler runs the `axb-*` skills directly, one phase at a time, with a review gate between phases.
