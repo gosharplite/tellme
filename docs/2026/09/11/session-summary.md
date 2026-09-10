@@ -176,7 +176,7 @@ were **resolved and merged**, and tellme applied its paired follow-ups.
 
 ### Open items (non-blocking)
 - None new. Non-blocking items unchanged (§9 of this log): exact `-d --json` **values**, exit-code numeric values, `NFR-004` wording, unchecked-error coverage (next slice).
-- **Propagation** — session-8 closeout commit: `working → dev → main` **pending user approval**.
+- **Propagation** — session-8 closeout: `working → dev → main` **DONE** (user-approved).
 
 ### Next steps
 - **`/axb-tasks`** — turn the plan + CLI contract into the executable `tasks.md`.

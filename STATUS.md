@@ -16,10 +16,10 @@
 > **Heads are intentionally not pinned here** — the working branch is the moving tip and every commit
 > on it is followed by the two-step merge `working → dev → main`. Read live heads with
 > `git rev-parse --short main dev HEAD` rather than trusting a snapshot.
-> **Propagation status (2026-09-11, session 8 closeout):** **PENDING user approval.** `main` and `dev`
-> carry the **session-7** day close (`main` `d89f09e`, `dev` `220f02e`). The **session-8** follow-up
-> (this closeout commit) is on the working branch only — the two-step merge `working → dev → main` has
-> **not** been run yet.
+> **Propagation status (2026-09-11, session 8 closeout):** **DONE.** The two-step merge
+> `working → dev → main` carried the **session-8** follow-up (upstream R1/R2 resolution + language home
+> + W2/D2 re-decision + `data/**`-NOOP doc reconcile) to `dev` and `main`. All three lines now carry the
+> round-001 artifacts through the session-8 closeout.
 
 ## Current round — `001-cli-bootstrap-and-config`
 
