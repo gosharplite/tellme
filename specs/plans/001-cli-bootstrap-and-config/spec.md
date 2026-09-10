@@ -8,7 +8,7 @@
 
 **Input**: User description: "Create the first iteration of tellme — a narrow foundation slice. The CLI must boot, locate and validate its YAML configuration and runtime home, initialize a per-mode session workspace, and expose its build version plus an offline setup diagnostic. No provider calls, tools, MCP, memory, TUI, or history persistence this round."
 
-*(Revision — clarify Q2: the "treated as a slice-local input, not a system truth artifact" scope lock was **released**; the round now owes a **minimal** data truth — the config input contract + workspace lifecycle.)*
+*(Revision — clarify Q2 **released** the "treated as a slice-local input, not a system truth artifact" scope lock and authorized a **minimal** data truth; that minimal data truth was then **withdrawn** — grill round #3 argued its content out of `data/**`, and the user ratified reversing clarify Q2 on 2026-09-11. Round 001 therefore owes **no** `data/**` model: the config input contract and the workspace lifecycle are executable CLI-contract behaviour owned by `/axb-dsl-refine` under `specs/truth/features/cli/**`.)*
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -117,7 +117,7 @@ As an operator, I want to see the running build version and run a setup diagnost
 
 ### Key Entities *(include if feature involves data)*
 
-- **Configuration**: The boot-time YAML input that bootstraps a run. Carries at least `MODE`, `PERSON`, `SELECTED_PROVIDER`, and a `PROVIDERS` registry. The round records a **minimal data truth** for its shape (the config input contract); there is no API `contract/**` (no API surface this round).
+- **Configuration**: The boot-time YAML input that bootstraps a run. Carries at least `MODE`, `PERSON`, `SELECTED_PROVIDER`, and a `PROVIDERS` registry. No `contracts/**` (no API surface) and no `data/**` model this round — the config input contract and the workspace lifecycle are executable CLI-contract behaviour owned by `/axb-dsl-refine` under `specs/truth/features/cli/**` (grill round #3 + user ratification).
 - **Runtime Home**: The `TELL_ME_HOME` root directory under which all tellme state is namespaced.
 - **Session Workspace**: The per-mode directory `output/<mode>/` under the runtime home — the future home of session state.
 
@@ -138,5 +138,5 @@ As an operator, I want to see the running build version and run a setup diagnost
 - Integration note (binary name): Niffler currently invokes a binary named `tell-me-go` (`$NIFFLER_GOBIN/tell-me-go`, and `tell-me-go completion bash`), whereas tellme's binary is named `tellme`. Running tellme under an unmodified Niffler requires a matching binary/alias or a Niffler-side adaptation; reconciling this is out of scope for this round.
 - Round 1's provider registry contains exactly one provider; multi-provider support belongs to a later slice.
 - The implementation language is Go, mirroring the tell-me-go reference; the exact toolchain and test stack are fixed later by technical research (techstack truth).
-- Configuration is a boot-time input; this round adds no `contracts/**` (no API surface) but **does** record a minimal `data/**` truth (the config input contract + workspace lifecycle) — the earlier "no `data/**`" lock was released (clarify Q2).
+- Configuration is a boot-time input; this round adds no `contracts/**` (no API surface) and **no** `data/**` model — the config input contract and the workspace lifecycle are executable CLI-contract behaviour owned by `/axb-dsl-refine` (`specs/truth/features/cli/**`). (Clarify Q2 released the earlier "no `data/**`" lock; grill round #3 + user ratification withdrew the minimal data truth that release had authorized.)
 - Out of scope this round: provider API calls, the reasoning/`Thought` model, `Turn`/`History` persistence, cost/metrics, tools, MCP, memory, TUI prompts, browsing, retry/edit, and callback delivery.

@@ -1,9 +1,9 @@
 # tellme — Status
 
-**Last updated**: 2026-09-11 (**end-of-day closeout — session 7**: grill #3 → data truth **deleted** (`/axb-data-plan` = **NOOP**, ratified); `/axb-dsl-refine` done — CLI contract under `specs/truth/features/cli/**`; **grill #4** → CLI-contract fixes applied (arrange loss restored; `--json` schema pinned) + audit PASSED; upstream residuals opened ([aixbdd-tmg#5](https://github.com/gosharplite/aixbdd-tmg/issues/5), [#6](https://github.com/gosharplite/aixbdd-tmg/issues/6)); next = **`/axb-tasks`**)
+**Last updated**: 2026-09-11 (**end-of-day closeout — session 8**: upstream **R1/R2 resolved** — [aixbdd-tmg PR #7](https://github.com/gosharplite/aixbdd-tmg/pull/7) (Rule 2 **entailment** criterion + ADR mechanism) and [PR #8](https://github.com/gosharplite/aixbdd-tmg/pull/8) (**Project Language** clause); tellme follow-ups applied — project-language declaration home (`decisions/0001-project-language.md`), **W2/D2 re-decided (fold, NOOP)** under the entailment criterion, and `spec.md` / `plan.md` / `research.md` reconciled to the ratified `data/**` NOOP; next = **`/axb-tasks`**)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `001-cli-bootstrap-and-config` (→ `dev` → `main`)
-**Daily log**: [`docs/2026/09/10/session-summary.md`](docs/2026/09/10/session-summary.md)
+**Daily log**: [`docs/2026/09/11/session-summary.md`](docs/2026/09/11/session-summary.md)
 
 ## Branch model
 
@@ -16,11 +16,10 @@
 > **Heads are intentionally not pinned here** — the working branch is the moving tip and every commit
 > on it is followed by the two-step merge `working → dev → main`. Read live heads with
 > `git rev-parse --short main dev HEAD` rather than trusting a snapshot.
-> **Propagation status (2026-09-10, end of day):** **DONE.** The two-step merge
-> `working → dev → main` carried the **session-6** follow-up (upstream CLI-seat resolution + paired
-> `tellme` change + this closeout) to `dev` and `main`. All three lines now carry the round-001
-> artifacts through the session-6 closeout. *(The earlier merge — grill round #2 + PM closure
-> PM-1..PM-4 + cross-repo tracking — was also done today.)*
+> **Propagation status (2026-09-11, session 8 closeout):** **DONE.** The two-step merge
+> `working → dev → main` carried the **session-8** follow-up (upstream R1/R2 resolution + language home
+> + W2/D2 re-decision + `data/**`-NOOP doc reconcile) to `dev` and `main`. All three lines now carry the
+> round-001 artifacts through the session-8 closeout.
 
 ## Current round — `001-cli-bootstrap-and-config`
 
@@ -34,15 +33,16 @@
 
 ### Artifacts
 
-- [x] `specs/plans/001-cli-bootstrap-and-config/spec.md` *(PM edits landed — PM-1..PM-3)*
+- [x] `specs/plans/001-cli-bootstrap-and-config/spec.md` *(PM edits landed — PM-1..PM-3; **session 8**: grill-#3 data-scope wording reconciled — no `data/**` model)*
 - [x] `specs/plans/001-cli-bootstrap-and-config/checklists/requirements.md`
 - [x] `specs/plans/001-cli-bootstrap-and-config/truth-delta.md`
 - [x] `specs/plans/001-cli-bootstrap-and-config/features/acceptance/*.feature` (4 journey features) — `/axb-spec-by-example`
-- [x] `specs/plans/001-cli-bootstrap-and-config/research.md` — `/axb-technical-research` (7 decisions; **post-grill + post-clarify**)
+- [x] `specs/plans/001-cli-bootstrap-and-config/research.md` — `/axb-technical-research` (7 decisions; **post-grill + post-clarify**; **session 8**: clarify-Q2 data-scope ruling annotated ⟦grill #3⟧ REVERSED)
 - [x] `specs/truth/techstack.md` — `/axb-technical-research` (**post-grill**)
-- [x] `specs/plans/001-cli-bootstrap-and-config/plan.md` — `/axb-system-analysis` (**revised by grill #2**: 2 interfaces, **1 wave**; **all gating blockers resolved** — CLI-seat blocker closed by `aixbdd-tmg` PR #2)
+- [x] `specs/plans/001-cli-bootstrap-and-config/plan.md` — `/axb-system-analysis` (**revised by grill #2**: 2 interfaces, **1 wave**; **all gating blockers resolved** — CLI-seat blocker closed by `aixbdd-tmg` PR #2; **session 8**: `/axb-data-plan` reconciled to the ratified **NOOP**)
 - [x] `specs/truth/data/**` — `/axb-data-plan` = **NOOP** (authored as `data-model.dbml`, then **deleted** by the user-ratified reversal of clarify Q2 — grill round #3)
-- [x] `specs/truth/features/cli/**` + `dsl.md` — `/axb-dsl-refine` (CLI **contract owner**; **ungated**) — **4 modules**, interface-root + module DSL; **audit PASSED** (0 errors/0 warnings) — **grill round #4 corrections applied** (restored W1/W2/W5 arrange; pinned the `--json` key schema; error-code rows assert distinctness)
+- [x] `specs/truth/features/cli/**` + `dsl.md` — `/axb-dsl-refine` (CLI **contract owner**; **ungated**) — **4 modules**, interface-root + module DSL; **audit PASSED** (0 errors/0 warnings) — **grill round #4 corrections applied** (restored W1/W2/W5 arrange; pinned the `--json` key schema; error-code rows assert distinctness); **session 8**: W2/D2 re-decided under the upstream **entailment** criterion ([PR #7](https://github.com/gosharplite/aixbdd-tmg/pull/7)) → **fold** (identical verdict), recorded as **NOOP**
+- [x] `decisions/0001-project-language.md` + `decisions/README.md` — project-language declaration (**named home**, English; upstream PR #8 / R2)
 - [ ] `specs/plans/001-cli-bootstrap-and-config/tasks.md` — `/axb-tasks`
 - [ ] Implementation — `/axb-implement`
 
@@ -50,7 +50,7 @@
 
 - **Interfaces (2)**: `CLI end (operator terminal interface)` — **contract owner `/axb-dsl-refine`**
   (carried forward at delivery; no api/data/ui planner); `Configuration & workspace persistence
-  interface` — `/axb-data-plan`.
+  interface` — `/axb-data-plan` = **NOOP** (grill #3 + ratification).
 - **Wave (1, single)**: both interfaces are information-independent → one parallel wave. *(The earlier
   2-wave split was retracted — no Rule-2 information dependency.)*
 - **`/axb-api-plan` = NOOP** (single CLI end, no OpenAPI); **`/axb-ui-plan` skipped** (CLI).
@@ -62,7 +62,7 @@
 `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` (+ **grill round #1**, **clarify**) →
 `/axb-system-analysis` **(done — `plan.md`, revised by grill round #2)** → `/axb-data-plan`
 **(done — NOOP, grill #3 + ratification)** → `/axb-dsl-refine` **(done — CLI executable contract;
-audit PASSED)** → **next: `/axb-tasks`** → `/axb-implement`.
+audit PASSED; W2/D2 re-decided → fold)** → **next: `/axb-tasks`** → `/axb-implement`.
 
 **Pending decision:** *(none)* the **grill round on `plan.md`** ran as **grill round #2** (6/6,
 verdict *proceed with changes*); its edit set is applied. **All gates cleared:** the two PM acceptance
@@ -140,7 +140,7 @@ gaps landed (PM-1/PM-2) and the cross-repo `aixbdd-tmg` CLI-seat blocker is **cl
 - **Findings comment**: <https://github.com/gosharplite/tellme/issues/4#issuecomment-5625335168>
 - **Verdict**: **proceed with changes** — the core shapes held (the `cli` kind, root/module DSL split, one-Act-per-Example; coverage genuinely complete 7→17), but two contract defects and two host-rule matters surfaced.
 - **In-round fixes applied** (`/axb-dsl-refine`, ungated): (a) restored the dropped configuration `Given` in `workspace` W1/W2/W5 — without it W1/W2 are **unsatisfiable** and W5 asserts the **wrong exit class** under the ratified resolver (a Rule-5/6 arrange loss); (b) **pinned the `--json` key schema** in the two `diagnostics` structured-output rows; (c) reworded the four error-code rows to assert **distinctness** (FR-014), not a literal. Audit re-run → **PASSED**.
-- **Routed residuals** (host-rule matters — not locally editable): **(R1) the atomicity convention** (Rule 2's fold/split boundary is not mechanically derivable) and **(R2) the English override** (STANDARDS §2/§3 unconditional; no warrant in either repo). Both route `/axb-clarify` → `aixbdd-tmg` issue → PR. **Opened upstream**: [aixbdd-tmg#5](https://github.com/gosharplite/aixbdd-tmg/issues/5) (R1), [aixbdd-tmg#6](https://github.com/gosharplite/aixbdd-tmg/issues/6) (R2). *See Open items.*
+- **Routed residuals** (host-rule matters — not locally editable): **(R1) the atomicity convention** (Rule 2's fold/split boundary is not mechanically derivable) and **(R2) the English override** (STANDARDS §2/§3 unconditional; no warrant in either repo). Both route `/axb-clarify` → `aixbdd-tmg` issue → PR. **Opened upstream**: [aixbdd-tmg#5](https://github.com/gosharplite/aixbdd-tmg/issues/5) (R1), [aixbdd-tmg#6](https://github.com/gosharplite/aixbdd-tmg/issues/6) (R2). *See Open items.* **⟦RESOLVED session 8 — R1 by [PR #7](https://github.com/gosharplite/aixbdd-tmg/pull/7), R2 by [PR #8](https://github.com/gosharplite/aixbdd-tmg/pull/8).⟧**
 - **Subject retractions/concessions** (under verification): **Q1** "six" was a **miscount** (7); coverage holds via the enumerated 7→17 map; **Q2/Q3** the "subject" atomicity discriminator is **not mechanical** (W2 ≡ D2) → the D2 split was retracted and the boundary routed upstream (R1); **Q5** the axis-6 config "hole" was **wrong** (the shape is owned by `/axb-dsl-refine` via `cli/dsl.md`); **Q6** exit-code **values = implementation** (blocker retracted), `--json` **schema = contract** (fixed); **Q7** confirmed the root `When` is fine and **W1/W2/W5 under-arranged** (fixed); **Q8** the English override has **no ratified home** (routed, R2).
 
 ## Upstream — `aixbdd-tmg` CLI-seat resolution (session 6, CLOSED)
@@ -164,6 +164,19 @@ amendments.
 **Paired `tellme` follow-up (this session)**: round-001 `plan.md` dropped the CLI-end
 "Planner: **UNASSIGNED — recorded gap**" (now the **contract-owner** mapping) and moved Gating blocker
 #1 → **resolved**; `STATUS.md` synced. **The `/axb-dsl-refine` CLI slice is un-gated.**
+
+## Upstream — R1/R2 resolution (session 8, CLOSED)
+
+Both round-001 host-rule residuals (raised by grill round #4) are **resolved upstream**, merged, and the paired tellme follow-ups are applied.
+
+- **R1 → [aixbdd-tmg PR #7](https://github.com/gosharplite/aixbdd-tmg/pull/7)** (closes [#5](https://github.com/gosharplite/aixbdd-tmg/issues/5)): Rule 2 now states a single **entailment** criterion — *one named subject; a `Then`/`And` folds in iff entailed by the subject's outcome over **valid domain states** (never injected bugs)* — plus a **calibration set**; the repo gained a `decisions/` **ADR mechanism** (`0001-atomicity-fold-split-criterion`). `STANDARDS.md` §2 and `axb-spec-by-example` Rule 4 aligned (title test demoted to a smell).
+- **R2 → [aixbdd-tmg PR #8](https://github.com/gosharplite/aixbdd-tmg/pull/8)** (closes [#6](https://github.com/gosharplite/aixbdd-tmg/issues/6)): `STANDARDS.md` gains a **Project Language** clause — default 繁體中文, but language is **project-declared** with a **named home** (`.agents/constitution/shared.md` → project ADR → `spec.md` constraint); the §4/§5 DSL meta-schema tokens + §5.2 channel labels stay **fixed** (the topology audit requires the first header to be exactly `DSL 句型`).
+
+**Paired `tellme` follow-ups applied (session 8):**
+
+- **R2 home** — created [`decisions/0001-project-language.md`](decisions/0001-project-language.md) (+ [`decisions/README.md`](decisions/README.md)) declaring **English** as tellme's artifact language (the named home; previously only a status-log note). tellme's `dsl.md` headers already keep the fixed Chinese meta-schema tokens, so the audit stays green.
+- **R1 re-decision → NOOP** — `/axb-dsl-refine` re-decided **W2/D2** under the entailment criterion → **fold** for both (structurally isomorphic ⇒ identical verdict, as the calibration set requires); recorded in `truth-delta.md`. **No feature/DSL body change.**
+- **Doc reconcile** — `spec.md` (revision note + Key Entities + Assumptions), `plan.md`, and `research.md` reconciled to the ratified `data/**` NOOP (grill #3).
 
 ## Clarify round — PM-boundary rulings (CLOSED)
 
@@ -214,6 +227,8 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
   (`features/cli/**`); `wave-covers-interfaces` reworded to allow a **contract-owner handoff at
   delivery**; `/axb-dsl-refine` is the CLI end's **contract owner** (not a planner). Round-001
   `plan.md` Gating blocker #1 → resolved; the CLI slice is **ungated**.
+- **Project-language declaration home** (session 8, R2): `decisions/0001-project-language.md` declares **English** as tellme's artifact language — the **named home** the upstream Project Language clause requires (previously recorded only in `STATUS.md` / the daily log). The fixed §4/§5 DSL meta-schema tokens are unchanged.
+- **W2/D2 re-decided → fold** (session 8, R1): under upstream Rule 2's **entailment** criterion the workspace-reuse pair (W2) and the config-resolution pair (D2) both **fold** (identical verdict) — grounded in the contract's domain definitions (FR-008 + NFR-002 for W2; FR-001/FR-003 for D2); recorded as a **NOOP** in `truth-delta.md`.
 
 ## PM follow-ups (spec/acceptance are PM-owned) — **CLOSED** (session 5, PM role)
 
@@ -249,7 +264,7 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 - Exit-code numeric values (incl. the new dedicated "diagnostic: unresolved" code).
 - Error-message wording (`NFR-004`).
 - **Unchecked-error coverage** (round-001 residual): closed next slice by `golangci-lint` + `errcheck`.
-- **Host-rule residuals (grill #4)** — **(R1) the atomicity convention** (Rule 2's fold/split boundary is not mechanically derivable) and **(R2) the English override** (STANDARDS §2/§3 are unconditional; no ratified warrant in either repo). Both are **out of `/axb-dsl-refine`'s writ** → route `/axb-clarify` → `aixbdd-tmg` issue → PR (the PR #2 route). **Opened upstream 2026-09-11**: [aixbdd-tmg#5](https://github.com/gosharplite/aixbdd-tmg/issues/5) (R1) and [aixbdd-tmg#6](https://github.com/gosharplite/aixbdd-tmg/issues/6) (R2). They **do not gate** `/axb-tasks`; round-001 ships the CLI contract unchanged on these two points.
+- **Host-rule residuals (grill #4)** — **(R1) the atomicity convention** (Rule 2's fold/split boundary is not mechanically derivable) and **(R2) the English override** (STANDARDS §2/§3 are unconditional; no ratified warrant in either repo). Both are **out of `/axb-dsl-refine`'s writ** → route `/axb-clarify` → `aixbdd-tmg` issue → PR (the PR #2 route). **Opened upstream 2026-09-11**: [aixbdd-tmg#5](https://github.com/gosharplite/aixbdd-tmg/issues/5) (R1) and [aixbdd-tmg#6](https://github.com/gosharplite/aixbdd-tmg/issues/6) (R2). They **do not gate** `/axb-tasks`; round-001 ships the CLI contract unchanged on these two points. **⟦RESOLVED (session 8)⟧** — R1 closed by [aixbdd-tmg PR #7](https://github.com/gosharplite/aixbdd-tmg/pull/7) (entailment criterion), R2 by [PR #8](https://github.com/gosharplite/aixbdd-tmg/pull/8) (Project Language clause); tellme followed up with `decisions/0001-project-language.md` (English home) and the W2/D2 re-decision (fold → recorded as NOOP in `truth-delta.md`). Nothing outstanding here.
 - **DECIDED (grill #4)**: exit-code **numeric values** = an **implementation** choice (FR-014 requires only *distinct + deterministic*); the `--json` **key schema** is now **pinned** in `specs/truth/features/cli/diagnostics/dsl.md`.
 
 ## Environment notes
@@ -265,3 +280,4 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
   `griller`) seeded with `SESSION-BOOTSTRAP.md`; both authorized the reference repos via `register_readpath`.
   Issue/gist/PR workflow via `gh` (token scopes `gist` + `repo`). The feature/DSL topology audit ran via
   `python3` (script at `$TELL_ME_HOME/docs/skills/axb-gherkin-and-dsl/scripts/`); `uv` is present.
+- **2026-09-11 (session 8)**: upstream `aixbdd-tmg` [PR #7](https://github.com/gosharplite/aixbdd-tmg/pull/7) (R1 — atomicity entailment criterion + ADR mechanism) and [PR #8](https://github.com/gosharplite/aixbdd-tmg/pull/8) (R2 — Project Language clause) read and confirmed **merged**; local skill copies under `$TELL_ME_HOME/docs/skills/` verified **synced** with both. Created tellme's `decisions/` ADR home (project language).

@@ -22,8 +22,6 @@ specs/plans/001-cli-bootstrap-and-config/
 
 specs/truth/
 ├── techstack.md                   # /axb-technical-research — done
-├── data/                          # minimal data truth — /axb-data-plan
-│   └── *.dbml
 └── features/                      # executable CLI Gherkin + DSL — /axb-dsl-refine
     └── <interface>/<module>/{*.feature, dsl.md}
 ```
@@ -49,8 +47,8 @@ go.mod / go.sum
 **Structure Decision**: a **single CLI end** — Go 1.26 module `github.com/gosharplite/tellme`, entrypoint
 `cmd/tellme/`, non-public logic in `internal/{cli,config,home}` (one FR cluster each — `research.md`
 Decision 1). There is **no web UI and no HTTP/OpenAPI server**. The executable CLI contract lives in
-`specs/truth/features/**` (godog, driven from `tests/e2e/`), and the round's minimal persisted-state
-truth lives in `specs/truth/data/**`.
+`specs/truth/features/**` (godog, driven from `tests/e2e/`). There is **no `data/**` truth this round**
+(`/axb-data-plan` = **NOOP** — grill round #3 + user ratification; see *Scope notes* below).
 
 ## Analysis Plan
 
@@ -103,12 +101,17 @@ This requirement yields **2** system interfaces.
      idempotent).
    - Requirement evidence: `FR-002`/`003`/`005`/`006`/`007`/`008`/`009`/`015`, `NFR-001`/`NFR-002`;
      `spec.md` Assumptions.
-   - Planner: **`/axb-data-plan`** → minimal `specs/truth/data/**`.
+   - Planner: **`/axb-data-plan`** = **`NOOP`** (grill round #3 + user ratification: no `data/**` model
+     this round). The config input contract and the workspace lifecycle are owned by `/axb-dsl-refine`
+     (`specs/truth/features/cli/**`).
 
-> **Scope notes.** `spec.md` originally locked "no `data/**` truth this round"; that lock was
-> **released** (clarify Q2 → Option 1), so interface 2 now delegates a **minimal** data truth.
-> There is **no API/HTTP interface** — a CLI has a single end, so `/axb-api-plan` is **`NOOP`** —
-> and **no UI interface** — `/axb-ui-plan` is **skipped** (CLI-streamlined workflow).
+> **Scope notes.** `spec.md` originally locked "no `data/**` truth this round"; clarify Q2 **released**
+> that lock (→ Option 1) and authorized a **minimal** data truth, but grill round #3 argued its content
+> out of `data/**` and the user **ratified reversing clarify Q2** (2026-09-11) — so round 001 owes **no**
+> `data/**` model and `/axb-data-plan` = **`NOOP`** (see the truth-delta `/axb-data-plan` section). The
+> config input contract + workspace lifecycle are owned by `/axb-dsl-refine`. There is **no API/HTTP
+> interface** — a CLI has a single end, so `/axb-api-plan` is **`NOOP`** — and **no UI interface** —
+> `/axb-ui-plan` is **skipped** (CLI-streamlined workflow).
 
 ### Analysis Wave schedule
 
@@ -118,9 +121,9 @@ This requirement yields **2** system interfaces.
   - `CLI end (operator terminal interface)`
   - `Configuration & workspace persistence interface`
 - Analysis focus:
-  - **Persistence** → model the **minimal data truth**: the config input contract (keys, types,
-    `TELL_ME_*` precedence) and the workspace/state lifecycle (`output/<mode>/`), in
-    `specs/truth/data/**`.
+  - **Persistence** → **`NOOP`**: no `data/**` model this round (grill round #3 + user ratification).
+    The config input contract (keys, types, `TELL_ME_*` precedence) and the workspace/state lifecycle
+    (`output/<mode>/`) are executable CLI-contract behaviour owned by `/axb-dsl-refine`.
   - **CLI end** → produce the **executable CLI contract** — interface Gherkin + DSL for the
     config-resolution order (the 6-step contract, `research.md` Decision 3), workspace initialization,
     `--version`, and the **resolved** `-d` / `-d --json` reporting — driven E2E against the built
@@ -136,8 +139,9 @@ This requirement yields **2** system interfaces.
 
 ### Delegation order
 
-1. **`/axb-data-plan`** — Wave 1 (`Configuration & workspace persistence interface`) → minimal
-   `specs/truth/data/**` (a real planner delegation **inside** the wave).
+1. **`/axb-data-plan`** — Wave 1 (`Configuration & workspace persistence interface`) → **`NOOP`**
+   (no `data/**` model: grill round #3 + user ratification); the config input contract + workspace
+   lifecycle move to the CLI contract owner below.
 2. **`/axb-dsl-refine`** — **contract-owner handoff at delivery** for the `CLI end` (no api/data/ui
    planner applies; **not** a `Wave` delegation) → `specs/truth/features/cli/**` + `dsl.md`.
 
