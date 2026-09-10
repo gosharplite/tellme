@@ -164,13 +164,19 @@ answered by the user before writing: **system ends = one CLI end**, **BDD techst
   *observation* cannot witness an **absence** claim — `And tellme performs no network access`
   (in `version-and-setup-diagnostic.feature`) is not observable in exit code / stdout / stderr /
   filesystem. The proof is a **host-harness assertion**, not a product observation:
-  1. **Primary — no-network sandbox.** Run the built `tellme -d` and `tellme -d --json` inside an
-     emptied network namespace (Linux `unshare -n`; macOS `sandbox-exec` deny-network profile) and
-     assert the expected exit code + byte-identical structured output. Any `connect()`/DNS attempt under
-     an empty netns returns `ENETUNREACH`/`ENETDOWN` immediately, so a path that *requires* network
-     produces a genuine **FAIL** (non-zero exit / changed output / timeout). **⟦clarify⟧** the sandbox
-     covers both the ready case (exit 0) **and** the `-d` **failure path** (the dedicated non-zero
-     "unresolved" code), per Decision 2.
+  1. **Primary — no-egress sandbox (differential witness).** Run the built `tellme -d` and
+     `tellme -d --json` with network egress blocked and assert the expected exit code + byte-identical
+     structured output, so a path that *requires* network produces a genuine **FAIL** (non-zero exit /
+     changed output / timeout). Two mechanisms, in preference order:
+     - **Privileged netns** — an emptied network namespace (Linux `unshare -n`; macOS `sandbox-exec`
+       deny-network profile). **⟦verified 2026-09-10⟧ NOT available on the local dev host**: `unshare -n`
+       and `unshare -rn` both fail with `Operation not permitted`, so this is a CI / privileged-Linux
+       mechanism.
+     - **Unprivileged fallback (portable)** — a **hostile network environment**: an unroutable DNS
+       resolver (`resolv.conf` → loopback/blackhole) plus `HTTP(S)_PROXY` pointed at a closed port, so
+       any real egress fails fast. No privileges required; usable on the local host.
+     **⟦clarify⟧** both cover the ready case (exit 0) **and** the `-d` **failure path** (the dedicated
+     non-zero "unresolved" code), per Decision 2.
   2. **Backstop — build-graph capability guard.** A `verify`-style Makefile gate
      (`go list -deps ./cmd/tellme` / `go tool nm`) asserting no network-capable package (`net`,
      `net/http`, provider SDKs) is in the diagnostic binary's dependency closure. This closes the case the
@@ -178,8 +184,10 @@ answered by the user before writing: **system ends = one CLI end**, **BDD techst
      capability-absence is decisive and platform-independent.
   3. **Epistemic grade (stated honestly).** The sandbox is a *necessary-condition / differential*
      witness — it can produce a real FAIL, it cannot *prove* absence. The build-graph guard supplies the
-     *capability-absence* witness. Neither alone is sufficient; together they are. If no portable sandbox
-     is available (no userns / non-Linux-macOS), the step is **SKIPPED — never passed green-by-skip**.
+     *capability-absence* witness. Neither alone is sufficient; together they are. On the local dev host
+     the privileged netns is unavailable (above), so local SC-004 rests on the **unprivileged hostile-env
+     fallback + the build-graph guard**; if no differential mechanism can run, that witness is
+     **SKIPPED — never passed green-by-skip** (the build-graph guard still holds).
 - **Alternatives considered**:
   - Unit-first: cheaper, but does not exercise the acceptance journeys.
   - White-box injection (an injected network client that fails the test if invoked): rejected — it forces

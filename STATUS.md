@@ -111,3 +111,7 @@ and models both):
   is confirmed working for both read and write.
 - **2026-09-10**: session restarted following the `deepseek-flash` (v4.1) provider upgrade. The restart is
   a session/environment event only — nothing in round 001 depends on the provider version.
+- **Verified 2026-09-10 (feasibility pass)**: `go1.26.6` ✓; `staticcheck`/`golangci-lint`/`govulncheck`
+  present in `$GOPATH/bin` ✓; **`unshare -n` / `unshare -rn` fail `Operation not permitted`** on this dev
+  host — the privileged netns sandbox is a CI/privileged-Linux mechanism, so local SC-004 uses the
+  unprivileged hostile-DNS/proxy fallback + the build-graph guard (see `research.md` Decision 5).
