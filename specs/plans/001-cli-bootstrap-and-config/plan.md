@@ -141,7 +141,8 @@ OpenAPI surface).
    invent an out-of-enum subpath (e.g. `features/cli/**`) or mis-file CLI features under `backend`.
    **Proposed resolution (for the owner):** extend `InterfaceKind` with a CLI value
    (`cli` → `features/cli/**`), **or** declare `/axb-dsl-refine` the CLI end's planner-of-record.
-   *(Consolidates grill Q1 + Q3 + Q6.)*
+   *(Consolidates grill Q1 + Q3 + Q6.)* **Tracked upstream:**
+   [`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1).
 2. **PM-owned acceptance gap #1 — `-d` on a broken/unresolved setup.** No acceptance Example carries
    the *unresolved* `-d` case or the dedicated non-zero "diagnostic: unresolved" exit (clarify Q1's
    other half). *(Grill Q5.)*

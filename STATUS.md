@@ -97,7 +97,8 @@ verdict *proceed with changes*); the edit set is applied. **Remaining gate:** th
    end**: no valid `InterfaceKind` value (`{backend, frontend}`, both web-bound) and no api/data/ui
    planner for a terminal endpoint. *Proposed resolution:* extend `InterfaceKind` (`cli` →
    `features/cli/**`) **or** declare `/axb-dsl-refine` the CLI end's planner-of-record.
-   *(Consolidates grill Q1 + Q3 + Q6.)*
+   *(Consolidates grill Q1 + Q3 + Q6.)* **Tracked upstream:**
+   [`gosharplite/aixbdd-tmg#1`](https://github.com/gosharplite/aixbdd-tmg/issues/1).
 2. **PM-owned acceptance gap #1** — an Example for **`-d` on a broken/unresolved setup** + the
    non-zero "diagnostic: unresolved" exit. *(Grill Q5.)*
 3. **PM-owned acceptance gap #2** — an Example for **no-`-c` + `MODE≠butler` default-path discovery**.
