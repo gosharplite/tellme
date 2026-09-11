@@ -20,6 +20,7 @@ const (
 	reasonConfigMissing    = "config-missing"
 	reasonConfigInvalid    = "config-invalid"
 	reasonProviderMismatch = "provider-mismatch"
+	reasonProviderInvalid  = "provider-invalid"
 )
 
 // options are the parsed CLI flags.
@@ -125,6 +126,16 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 		return res, &resolveError{Reason: reasonProviderMismatch}
 	}
 
+	// Step 5b — the selected provider entry must be valid and resolvable (FR-001..009).
+	prov := cfg.Providers[res.Selected]
+	if err := prov.Validate(); err != nil {
+		return res, &resolveError{Reason: reasonProviderInvalid, Err: err}
+	}
+	if err := prov.Expand(); err != nil {
+		return res, &resolveError{Reason: reasonProviderInvalid, Err: err}
+	}
+	cfg.Providers[res.Selected] = prov
+
 	// Step 6 — effective mode + prepare the session workspace (FR-007/008/009).
 	res.Mode = cfg.EffectiveMode(os.Getenv("TELL_ME_MODE"))
 	workspace, err := home.EnsureWorkspace(homeDir, res.Mode)
@@ -161,6 +172,9 @@ func emitBootError(res resolution, rerr *resolveError) int {
 		return ConfigError
 	case reasonProviderMismatch:
 		fmt.Fprintf(os.Stderr, "tellme: the selected provider is not in the registry (%q)\n", res.Selected)
+		return ConfigError
+	case reasonProviderInvalid:
+		fmt.Fprintf(os.Stderr, "tellme: the provider configuration is invalid: provider %q: %v\n", res.Selected, rerr.Err)
 		return ConfigError
 	case reasonHomeUnusable:
 		if errors.Is(rerr.Err, home.ErrNotDirectory) {

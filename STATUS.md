@@ -37,11 +37,11 @@
 - [x] `specs/plans/003-provider-registry-completeness/plan.md` — `/axb-system-analysis`
 - [x] `specs/truth/features/cli/**` — `/axb-dsl-refine`
 - [x] `specs/plans/003-provider-registry-completeness/tasks.md` — `/axb-tasks`
-- [ ] Implementation — `/axb-implement`
+- [x] Implementation — `/axb-implement` (18/18 tasks `[X]`; 26/26 scenarios passed, `make verify` OK)
 
 ### Pipeline position
 
-Phase 1 (`/axb-specify`) **complete** (`spec.md`, `checklists/requirements.md`, `truth-delta.md` authored). Clarify Round 1 resolved with user. Ready for parallel / sequential Phase 2: `/axb-spec-by-example` (PM acceptance Gherkin) and `/axb-technical-research` (RD technical decisions).
+All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → **`/axb-implement` (18/18 tasks `[X]`)**. Unit tests passed, godog **26/26 scenarios · 187/187 steps** green, `make verify` OK (zero test-sleep, zero network capability, 0 lint issues, 0 vulnerabilities). Ready for review & PR.
 
 ### Decisions locked (round 003)
 

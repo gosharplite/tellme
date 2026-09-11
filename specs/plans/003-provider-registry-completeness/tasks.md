@@ -25,20 +25,20 @@
 
 **Goal**: 建立變數展開器 `internal/config/expand.go`、單元測試 `internal/config/expand_test.go` 與 8 個 Phase 3 獨立 stepdef 檔案骨架（Zero Shared Edits 原則），為並行分派消除同檔衝突。
 
-- [ ] T001 建立變數展開器函式骨架 `internal/config/expand.go`
+- [X] T001 建立變數展開器函式骨架 `internal/config/expand.go`
   - Read:
     - `specs/plans/003-provider-registry-completeness/research.md` -> Decision 2（Environment Variable Expansion Engine）
     - `specs/plans/003-provider-registry-completeness/plan.md` -> Source-code structure
   - 只做：建立 `internal/config/expand.go`，宣告 package `config`，定義 `ExpandString(s string) (string, error)` 與相關 error 常數或變數宣告（回傳 stub `return s, nil`）。
   - 不做：不實作正規表示式解析、不碰 `config.go`、不寫產品邏輯。
 
-- [ ] T002 建立變數展開單元測試檔骨架 `internal/config/expand_test.go`
+- [X] T002 建立變數展開單元測試檔骨架 `internal/config/expand_test.go`
   - Read:
     - `specs/plans/003-provider-registry-completeness/research.md` -> Decision 4（Pure-Helper Unit Testing Architecture）
   - 只做：建立 `internal/config/expand_test.go`（宣告 package `config_test` 或 `config` 與 `testing` 引用）。
   - 不做：不寫測試案例或斷言、不更動既有測試。
 
-- [ ] T003 建立 8 個獨立 stepdef 檔案骨架 `tests/e2e/steps/step_t004_*.go` 至 `step_t011_*.go`
+- [X] T003 建立 8 個獨立 stepdef 檔案骨架 `tests/e2e/steps/step_t004_*.go` 至 `step_t011_*.go`
   - Read:
     - `specs/truth/features/cli/configuration/dsl.md`（8 個新增 Given 句型）
     - `tests/e2e/steps/register.go`
@@ -78,49 +78,49 @@
 
 ### BDD-RED（configuration 模組新增 Given 句型）
 
-- [ ] T004 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}" where provider "{provider}" specifies:` (DataTable)
+- [X] T004 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}" where provider "{provider}" specifies:` (DataTable)
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `a well-formed configuration "{config_path}" where provider "{provider}" specifies:`
   - Landing: `tests/e2e/steps/step_t004_config_given_provider_specifies.go`
   - 語意：依 DataTable（`field`, `value`）寫出 YAML，包含 `TYPE`, `MODEL`, `URL`, `API_KEY`, `MAX_TOKENS`, `THINKING_BUDGET`, `THINKING_LEVEL`，並將 `SELECTED_PROVIDER` 預設為 `{provider}`。
 
-- [ ] T005 [P] [BDD-RED] `Given: the provider "{provider}" in configuration "{config_path}" includes custom headers:` (DataTable)
+- [X] T005 [P] [BDD-RED] `Given: the provider "{provider}" in configuration "{config_path}" includes custom headers:` (DataTable)
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `the provider "{provider}" in configuration "{config_path}" includes custom headers:`
   - Landing: `tests/e2e/steps/step_t005_config_given_provider_headers.go`
   - 語意：依 DataTable（`header`, `value`）在指定 configuration 的 `{provider}` 下更新 `HEADERS` 鍵值對。
 
-- [ ] T006 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}" where provider "{provider}" specifies only mandatory fields:` (DataTable)
+- [X] T006 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}" where provider "{provider}" specifies only mandatory fields:` (DataTable)
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `a well-formed configuration "{config_path}" where provider "{provider}" specifies only mandatory fields:`
   - Landing: `tests/e2e/steps/step_t006_config_given_provider_mandatory_only.go`
   - 語意：依 DataTable 僅寫入 `TYPE`, `MODEL`, `URL` 三個必填欄位，省略所有可選欄位。
 
-- [ ] T007 [P] [BDD-RED] `Given: the environment variable "{var_name}" is set to "{var_value}"`
+- [X] T007 [P] [BDD-RED] `Given: the environment variable "{var_name}" is set to "{var_value}"`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `the environment variable "{var_name}" is set to "{var_value}"`
   - Landing: `tests/e2e/steps/step_t007_config_given_env_var_set.go`
   - 語意：在 scenario 的 subprocess 環境中設定 `{var_name}={var_value}`。
 
-- [ ] T008 [P] [BDD-RED] `Given: the environment variable "{var_name}" is unset`
+- [X] T008 [P] [BDD-RED] `Given: the environment variable "{var_name}" is unset`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `the environment variable "{var_name}" is unset`
   - Landing: `tests/e2e/steps/step_t008_config_given_env_var_unset.go`
   - 語意：在 scenario 的 subprocess 環境中確保 `{var_name}` 被移除。
 
-- [ ] T009 [P] [BDD-RED] `Given: a configuration "{config_path}" where selected provider "{provider}" is missing "{field}"`
+- [X] T009 [P] [BDD-RED] `Given: a configuration "{config_path}" where selected provider "{provider}" is missing "{field}"`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `a configuration "{config_path}" where selected provider "{provider}" is missing "{field}"`
   - Landing: `tests/e2e/steps/step_t009_config_given_provider_missing_field.go`
   - 語意：寫入缺少 mandatory 欄位 `{field}` 的 provider 設定，並選定該 provider。
 
-- [ ] T010 [P] [BDD-RED] `Given: a configuration "{config_path}" where selected provider "{provider}" has negative "{field}"`
+- [X] T010 [P] [BDD-RED] `Given: a configuration "{config_path}" where selected provider "{provider}" has negative "{field}"`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `a configuration "{config_path}" where selected provider "{provider}" has negative "{field}"`
   - Landing: `tests/e2e/steps/step_t010_config_given_provider_negative_field.go`
   - 語意：寫入 `{field}` 為負數（如 `-1`）的 provider 設定，並選定該 provider。
 
-- [ ] T011 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}" where provider "{provider}" references unset variable "{var_name}"`
+- [X] T011 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}" where provider "{provider}" references unset variable "{var_name}"`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `a well-formed configuration "{config_path}" where provider "{provider}" references unset variable "{var_name}"`
   - Landing: `tests/e2e/steps/step_t011_config_given_provider_unset_var.go`
   - 語意：寫入 `API_KEY` 為 `${{var_name}}` 且環境中 `{var_name}` 為 unset 的 provider 設定。
 
 ### BDD-ALIGN（介面根 class phrase 詞彙對齊）
 
-- [ ] T012 [P] [BDD-ALIGN] `Then: tellme explains on stderr that "{reason}"`（介面根；驗證包含 `the provider configuration is invalid`）
+- [X] T012 [P] [BDD-ALIGN] `Then: tellme explains on stderr that "{reason}"`（介面根；驗證包含 `the provider configuration is invalid`）
   - Read:
     - `specs/truth/features/cli/dsl.md` -> `tellme explains on stderr that "{reason}"`
     - `tests/e2e/steps/step_t017_root_then_explains_stderr.go`
@@ -128,19 +128,19 @@
 
 ### UNIT（pure-helper 單元測試）
 
-- [ ] T013 [P] [UNIT] `internal/config/expand_test.go` 變數展開表驅動單元測試
+- [X] T013 [P] [UNIT] `internal/config/expand_test.go` 變數展開表驅動單元測試
   - Read:
     - `specs/plans/003-provider-registry-completeness/research.md` -> Decision 2 & 4
   - 撰寫表驅動測試覆蓋：`${VAR}` 正確展開、`${VAR:-default}` fallback、`${VAR:-}` 空 fallback、多重變數展開、未宣告且無預設之變數拋出錯誤、格式不合規 `${` 拋出錯誤。
 
-- [ ] T014 [P] [UNIT] `internal/config/config_test.go` Provider 結構與驗證單元測試
+- [X] T014 [P] [UNIT] `internal/config/config_test.go` Provider 結構與驗證單元測試
   - Read:
     - `specs/plans/003-provider-registry-completeness/research.md` -> Decision 1, 3 & 4
   - 撰寫表驅動測試覆蓋：完整欄位 YAML 解析、可選欄位省略與零值、必填欄位缺失校驗、負數限制校驗、未選用 provider 之環境變數未設不報錯。
 
 ### Phase Review Gate
 
-- [ ] T015 subagent review (phase quality gate)
+- [X] T015 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/configuration/starting-with-a-configuration.feature`
     - `specs/truth/features/cli/configuration/dsl.md`
@@ -176,15 +176,15 @@
 - `internal/config/expand_test.go`
 - `internal/config/config_test.go`
 
-- [ ] T016 [BDD-GREEN] 實作 Provider 結構、變數展開器與驗證邏輯，使 Test Scope 全綠
+- [X] T016 [BDD-GREEN] 實作 Provider 結構、變數展開器與驗證邏輯，使 Test Scope 全綠
   - 實作 `expand.go` 與 `config.go` 中的欄位擴充與校驗邏輯。
   - 執行 `go test ./internal/config/...` 與 godog 驗收測試確認全數通過。
 
-- [ ] T017 [BDD-REFACTOR] 在綠燈保護下整理展開器與校驗邏輯
+- [X] T017 [BDD-REFACTOR] 在綠燈保護下整理展開器與校驗邏輯
   - 檢視代碼清晰度、錯誤訊息可讀性與函數圈複雜度。
   - 確保無代碼重複且所有 exported/unexported 識別碼符合 Go 慣例。
 
-- [ ] T018 [REGRESSION] 執行全域回歸檢驗確認零破壞
+- [X] T018 [REGRESSION] 執行全域回歸檢驗確認零破壞
   - 執行 `make verify`（含 `gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`、unit tests、e2e tests）。
   - 確認既有 Round 001/002 退出碼與所有 4 個 CLI 模組功能 100% 維持綠燈。
 
