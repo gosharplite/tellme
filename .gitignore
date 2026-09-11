@@ -1,0 +1,11 @@
+# Compiled binaries (root only — do NOT use a bare `tellme`, which would ignore cmd/tellme/)
+/tellme
+/tellme.exe
+
+# Go test / cover artifacts
+*.test
+coverage.raw
+coverage.out
+
+# Local build/tmp output
+/dist/
