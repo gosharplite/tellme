@@ -68,7 +68,7 @@ numeric exit codes (`FR-014`); (3) **F9** — fast unit tests for the pure resol
 
 `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` →
 `/axb-dsl-refine` → `/axb-tasks` → **`/axb-implement` — all done (19/19 tasks `[X]`; `make verify` OK;
-godog 19/19; `.golangci.yml` + `golangci-lint`/`govulncheck` gates added; `--json` removed). Round 002
+godog 20/20; `.golangci.yml` + `golangci-lint`/`govulncheck` gates added; `--json` removed). Round 002
 **committed as PR [#7](https://github.com/gosharplite/tellme/pull/7) (head `002-implement-followup-cleanups` → base `002-followup-cleanups`) — not yet merged / propagated.**
 
 ### Decisions locked (round 002)
