@@ -141,16 +141,6 @@ func (sc *scenarioContext) workspacePath(op string) string {
 	return filepath.Join(sc.home, filepath.FromSlash(trimmed))
 }
 
-// expectedWorkspace is the workspace the product should resolve for the
-// scenario's effective mode (TELL_ME_MODE env, else "butler").
-func (sc *scenarioContext) expectedWorkspace() string {
-	mode := "butler"
-	if m, ok := sc.envOverrides["TELL_ME_MODE"]; ok && m != "" {
-		mode = m
-	}
-	return filepath.Join(sc.home, "output", mode)
-}
-
 // writeFile writes content at a home-relative path, creating parent dirs.
 func (sc *scenarioContext) writeFile(rel string, content []byte) error {
 	p := sc.homePath(rel)
