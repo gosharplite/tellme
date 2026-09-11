@@ -35,7 +35,7 @@ cmd/tellme/
 internal/
 ├── cli/                           # flag parsing (pflag), exit-code classification, `-d` dispatch
 │   ├── cli.go                     # `--json` flag removed this round
-│   ├── exitcode.go                # exit-code values FROZEN this round (FR-005)
+│   ├── exitcode.go                # exit-code values (0/2/3/4/5) pinned + asserted (FR-005; values unchanged)
 │   └── *_test.go                  # NEW: pure-helper unit tests (stdlib testing)
 ├── config/                        # YAML load + validate + effective-value resolver
 │   └── *_test.go                  # NEW: precedence unit tests (EffectiveMode / EffectiveSelectedProvider)

@@ -1,8 +1,8 @@
 # tellme — Status
 
-**Last updated**: 2026-09-11 (**session 11 closeout — round-001 implementation delivered & propagated**: `/axb-implement` One-Shot (63/63 tasks `[X]`) merged via **PR [#6](https://github.com/gosharplite/tellme/pull/6)** (merge commit `62f217f`; merged into `001-cli-bootstrap-and-config`, head branch deleted); review **approved** (F1+F8 / F2 / F3 + F5 / F6 / F7 + 3 nits fixed; **F4 / F9 deferred & recorded**); `make verify` OK · godog **19/19** · topology audit PASSED; two-step propagation `working → dev → main` **DONE**; `SESSION-CLOSEOUT.md` executed. *Prior — session 10: upstream grill-#5 closeout.* **Round 001 delivered / frozen.** **Round 002 `002-followup-cleanups` opened (session 12)** — `/axb-specify` done after a 2-question clarify round (**Q1**: remove the `--json` flag entirely; **Q2**: quality-gate hardening + pin the NFR-004 wording + pin the FR-014 exit-code values); next = `/axb-spec-by-example` + `/axb-technical-research`; *post-closeout amendment — human `tm`/`tellme.sh` tooling recorded + daily-log link fix; re-propagated*)
+**Last updated**: 2026-09-11 (**session 11 closeout — round-001 implementation delivered & propagated**: `/axb-implement` One-Shot (63/63 tasks `[X]`) merged via **PR [#6](https://github.com/gosharplite/tellme/pull/6)** (merge commit `62f217f`; merged into `001-cli-bootstrap-and-config`, head branch deleted); review **approved** (F1+F8 / F2 / F3 + F5 / F6 / F7 + 3 nits fixed; **F4 / F9 deferred & recorded**); `make verify` OK · godog **19/19** · topology audit PASSED; two-step propagation `working → dev → main` **DONE**; `SESSION-CLOSEOUT.md` executed. *Prior — session 10: upstream grill-#5 closeout.* **Round 001 delivered / frozen.** **Round 002 `002-followup-cleanups` opened (session 12)** — `/axb-specify` done after a 2-question clarify round (**Q1**: remove the `--json` flag entirely; **Q2**: quality-gate hardening + pin the NFR-004 wording + pin the FR-014 exit-code values); next = **round 002 delivered — PR [#7](https://github.com/gosharplite/tellme/pull/7) open** (19/19 tasks; `make verify` OK; godog 19/19); *post-closeout amendment — human `tm`/`tellme.sh` tooling recorded + daily-log link fix; re-propagated*)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
-**Active branch**: `002-followup-cleanups` (round-002 session working branch, branched from `dev`) → `dev` → `main`
+**Active branch**: `002-implement-followup-cleanups` (round-002 implementation head; PR [#7](https://github.com/gosharplite/tellme/pull/7) → base `002-followup-cleanups`)
 **Daily log**: [`docs/2026/09/11/session-summary.md`](docs/2026/09/11/session-summary.md)
 
 ## Branch model
@@ -12,7 +12,8 @@
 | `main` | merged up from `dev` | Stable / released line |
 | `dev` | merged up from the working branch | Integration line (round work lands here before `main`) |
 | `001-cli-bootstrap-and-config` | delivered / frozen (round 001) | Round-001 working branch — PR [#6](https://github.com/gosharplite/tellme/pull/6) merged; round 001 is delivered / frozen history |
-| `002-followup-cleanups` | session working branch (moves per commit) | Round-002 working branch, branched from `dev`; the two-step merge carries it `→ dev → main` |
+| `002-followup-cleanups` | 002 integration / PR base | Round-002 base branch (branched from `dev`); PR [#7](https://github.com/gosharplite/tellme/pull/7) targets it |
+| `002-implement-followup-cleanups` | session working branch (moves per commit) | Round-002 implementation head; PR [#7](https://github.com/gosharplite/tellme/pull/7) head |
 
 > `001-implement-cli-bootstrap-and-config` (the PR #6 head branch) was **merged into `001-cli-bootstrap-and-config` and deleted** (remote + local) at the session-11 closeout.
 
@@ -68,7 +69,7 @@ numeric exit codes (`FR-014`); (3) **F9** — fast unit tests for the pure resol
 `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` →
 `/axb-dsl-refine` → `/axb-tasks` → **`/axb-implement` — all done (19/19 tasks `[X]`; `make verify` OK;
 godog 19/19; `.golangci.yml` + `golangci-lint`/`govulncheck` gates added; `--json` removed). Round 002
-implemented — not yet committed / propagated.**
+**committed as PR [#7](https://github.com/gosharplite/tellme/pull/7) (head `002-implement-followup-cleanups` → base `002-followup-cleanups`) — not yet merged / propagated.**
 
 ### Decisions locked (round 002)
 

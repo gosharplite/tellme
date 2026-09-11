@@ -16,6 +16,7 @@ match exactly one row.
 | --- | --- | --- | --- | --- |
 | `the operator starts tellme pointing at the configuration "{config_path}" with the unrecognized flag "{flag}"` | `config_path`: string; path relative to the runtime home. `flag`: string; an unrecognized command-line flag. | 不支援 | `旗標順序`: the unrecognized flag may appear with `-c`; argument parsing precedes any resolution. | `怎麼做`: run `tellme -c $TELL_ME_HOME/{config_path} {flag}`. `權威狀態落地`: parsing runs before resolution; the unrecognized flag is a usage error even when a valid configuration is present. `回寫`: captured exit code, stdout, stderr. |
 | `the operator runs tellme's diagnostic with "--json"` | 無 | 不支援 | `旗標`: the run is invoked with `-d --json`. | `怎麼做`: run `tellme -d --json`. `權威狀態落地`: parsing runs before the diagnostic dispatch; `--json` is not a flag, so the run is a usage error even though `-d` is present. `回寫`: captured exit code, stdout, stderr. |
+| `the operator starts tellme with "--version" and the unrecognized flag "--json"` | 無 | 不支援 | `旗標`: the run is invoked with `--version --json`. | `怎麼做`: run `tellme --version --json`. `權威狀態落地`: parsing runs before the version path; `--json` is not a flag, so the run is a usage error even though `--version` is present. `回寫`: captured exit code, stdout, stderr. |
 
 ## Then
 

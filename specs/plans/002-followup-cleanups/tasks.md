@@ -193,3 +193,23 @@
 | `truth-delta.md` -> `/axb-api-plan` = NOOP、`/axb-data-plan` = NOOP | 豁免（NOOP 不建任務） | PASS |
 
 > 孤立產物件數：0。掃描通過，准予交付。
+
+---
+
+## Post-review amendments (PR #7 review, 2026-09-11)
+
+Applied after the PR #7 architectural review (`#issuecomment-5630046711`):
+
+- **F1** — added `TestExitCodesMatchPinnedContract` (literal `0/2/3/4/5` oracle) so the FR-005 pin is falsifiable; the per-class code stepdefs (`step_t026/t038/t052/t054`) already asserted the `cli.*` constants, so they needed no change (the earlier T009–T012 claim was over-stated).
+- **F2** — `internal/cli/exitcode.go` comment now cites FR-005 and the pinned `0/2/3/4/5` table (was "an implementation choice").
+- **F3** — `lint`/`vulncheck` now resolve their tools via `command -v` with an actionable error (mirroring `staticcheck`); `make help` refreshed.
+- **F4** — `STATUS.md` reconciled (active branch, header, pipeline position, branch table).
+- **F5** — `truth-delta.md` DELETE row corrected (one `--json` When row + two structured-output Then rows).
+- **F6** — `step_t017` tightened to the documented `tellme: {reason}` **prefix** check (was `Contains`).
+- **N1** — `cli_test.go` now covers a genuinely-unset `TELL_ME_MODE` (plus a blank case).
+- **N2** — added the `--json --version` rejection (spec Edge Case) to the usage feature + DSL (new task **T020**).
+- **N3** — `plan.md` annotation corrected (the exit-code values were already `0/2/3/4/5`; this round pins + asserts them).
+
+- [X] T020 [P] [BDD-RED] `When: the operator starts tellme with "--version" and the unrecognized flag "--json"`
+  - Read: `specs/truth/features/cli/usage/dsl.md` -> `the operator starts tellme with "--version" and the unrecognized flag "--json"`
+  - Landing: `tests/e2e/steps/step_t020_usage_when_version_and_json.go`

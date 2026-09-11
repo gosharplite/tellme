@@ -6,6 +6,8 @@
 VERSION ?= dev
 
 STATICCHECK := $(shell command -v staticcheck 2>/dev/null)
+GOLANGCI := $(shell command -v golangci-lint 2>/dev/null)
+GOVULNCHECK := $(shell command -v govulncheck 2>/dev/null)
 
 .PHONY: help build fmt vet staticcheck tidy lint vulncheck test verify verify-no-test-sleep verify-no-network
 
@@ -15,11 +17,13 @@ help:
 	@echo "  make fmt                  - go fmt ./..."
 	@echo "  make vet                  - go vet ./..."
 	@echo "  make staticcheck          - run staticcheck ./... (resolved from PATH)"
+	@echo "  make lint                 - run golangci-lint ./... (resolved from PATH; errcheck via .golangci.yml)"
+	@echo "  make vulncheck            - run govulncheck ./... (resolved from PATH)"
 	@echo "  make tidy                 - go mod tidy"
 	@echo "  make test                 - go test ./..."
 	@echo "  make verify-no-test-sleep - forbid time.Sleep for synchronization in *_test.go (ADR-036 parity)"
 	@echo "  make verify-no-network    - build-graph capability guard: no net/net/http in ./cmd/tellme closure"
-	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + vet"
+	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + vet + lint + vulncheck"
 
 # NOTE: `VERSION ?= dev` is the local/release default ONLY.
 # The E2E harness must build explicitly with the sentinel
@@ -50,10 +54,20 @@ tidy:
 	go mod tidy
 
 lint:
-	golangci-lint run ./...
+ifeq ($(GOLANGCI),)
+	@echo "golangci-lint not found; install: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest" >&2
+	@exit 1
+else
+	$(GOLANGCI) run ./...
+endif
 
 vulncheck:
-	govulncheck ./...
+ifeq ($(GOVULNCHECK),)
+	@echo "govulncheck not found; install: go install golang.org/x/vuln/cmd/govulncheck@latest" >&2
+	@exit 1
+else
+	$(GOVULNCHECK) ./...
+endif
 
 test:
 	go test ./...

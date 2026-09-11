@@ -18,6 +18,11 @@ Feature: The setup diagnostic has a single, plain output form
       And tellme explains on stderr how tellme is meant to be invoked
       And tellme exits with a usage error code distinct from the success, configuration, and environment error codes
 
+      When the operator runs tellme with "--version" and "--json"
+      Then tellme refuses to proceed
+      And tellme explains on stderr how tellme is meant to be invoked
+      And tellme exits with a usage error code distinct from the success, configuration, and environment error codes
+
   Rule: The diagnostic must report a resolved and an unresolved setup in one plain form
 
     Example: The operator runs the plain diagnostic on a resolved setup, then on an unresolved one

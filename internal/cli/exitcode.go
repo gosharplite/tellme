@@ -5,10 +5,14 @@ package cli
 // Process exit codes.
 //
 // FR-014 requires distinct, deterministic codes for at least: success, usage
-// error, configuration error, and environment error. The diagnostic
-// "unresolved" code is additive (research.md Decision 2 / clarify Q1). The
-// numeric values are an implementation choice — only distinctness and
-// determinism are contractual (see TestExitCodesAreDistinct).
+// error, configuration error, and environment error; the diagnostic
+// "unresolved" code is additive (research.md Decision 2 / clarify Q1).
+//
+// Round 002 / FR-005: the numeric values are now FIXED contract — success 0,
+// usage 2, configuration 3, environment 4, diagnostic-unresolved 5 — published
+// in specs/truth/features/cli/**/dsl.md and pinned by
+// TestExitCodesMatchPinnedContract (distinctness by TestExitCodesAreDistinct).
+// They are no longer "an implementation choice".
 const (
 	Success                   = 0 // a successful boot / reporting run
 	UsageError                = 2 // unrecognized flag / invalid command-line usage
