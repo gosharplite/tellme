@@ -39,6 +39,10 @@
 > **Propagation status (2026-09-11, session 11 — post-closeout amendment):** **DONE.** The two-step merge
 > `working → dev → main` re-ran to carry the daily-log amendment (human `tm` / `tellme.sh` tooling + a
 > link-depth fix) to `dev` and `main`. All three lines remain aligned.
+>
+> **Propagation status (2026-09-11, session 12 closeout):** **DONE** (user-approved). The two-step merge
+> `002-followup-cleanups → dev → main` carried the **round-002 delivery** (merged PR [#7](https://github.com/gosharplite/tellme/pull/7), `f2a058f`) and this session-12 closeout (`STATUS.md` + the daily log) to
+> `dev` and `main`. All three lines carry round 002; the round-002 head branch is deleted.
 
 ## Current round — `002-followup-cleanups`
 
