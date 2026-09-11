@@ -259,14 +259,14 @@ A coordination + closeout session: read the two upstream PRs that resolve grill 
 | Commit | Note |
 | --- | --- |
 | `d5d7d63` | docs(001): upstream grill-#5 closeout — #9/#10 resolved by PR #11/#12, ADR 0003/0004 indexed |
-| *(session-10 closeout)* | session-10 daily-log §13 + `STATUS.md` issue-#5 closure + closeout edits |
+| `8aa2ed4` | docs(001): session-10 closeout — tellme#5 closed; upstream grill-#5 resolution (PR #11/#12, ADR 0003/0004) recorded; daily log §13 |
 
 ### Open items (non-blocking)
 
 - Unchanged (§9): exact `-d --json` **values**, exit-code numeric values, `NFR-004` wording, unchecked-error coverage (next slice).
-- **Propagation** — session-10 closeout: two-step merge `working → dev → main` — pending unless the user approves (see closeout Step 7).
+- **Propagation** — session-10 closeout: two-step merge `working → dev → main` **DONE** (user-approved) — carried to `dev` and `main`.
 
 ### Next steps
 
 1. **`/axb-implement`** — one-shot over the delivered 63-task plan, starting with Phase 1 Setup (T001–T003) → Phase 2 → Phase 3 (aligned, per-task stepdef files) → Phase 4A–4D.
-2. Propagate the working branch `→ dev → main` once approved.
+2. **Propagation** — `working → dev → main` **DONE** (user-approved).
