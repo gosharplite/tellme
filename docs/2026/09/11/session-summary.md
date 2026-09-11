@@ -5,7 +5,7 @@
 **Status file**: [`STATUS.md`](../../../../STATUS.md) *(back-link — the single live-state source)*
 **Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation)
-**Branches**: working `001-cli-bootstrap-and-config` → `dev` → `main`
+**Branches**: round-002 `002-followup-cleanups` → `dev` → `main` (merged & propagated)
 **Status at end of day**: Round 001 advanced from `plan.md` through **`/axb-data-plan`** and
 **`/axb-dsl-refine`** (session 7), each truth owner gated by an adversarial **grill round** (#3, #4) —
 the data truth was **authored then deleted** (grill #3 + user-ratified reversal of clarify Q2) and the
@@ -13,9 +13,9 @@ CLI executable contract authored (4 modules) + corrected (grill #4). **Session 8
 both host-rule residuals from upstream (**R1** → [aixbdd-tmg PR #7](https://github.com/gosharplite/aixbdd-tmg/pull/7), **R2** → [PR #8](https://github.com/gosharplite/aixbdd-tmg/pull/8)),
 applied the tellme follow-ups (project-language home `decisions/0001-project-language.md`; **W2/D2
 re-decided → fold**, recorded as **NOOP**), and reconciled `spec.md` / `plan.md` / `research.md` to the
-ratified `data/**` NOOP. **Session 9** delivered `tasks.md` (63 tasks; grill #5 closed; pre-delivery orphan-coverage sweep **19/19 PASSED**). **Session 10** closed the two upstream methodology issues grill #5 routed ([aixbdd-tmg#9](https://github.com/gosharplite/aixbdd-tmg/issues/9) → [PR #11](https://github.com/gosharplite/aixbdd-tmg/pull/11) / ADR 0003; [#10](https://github.com/gosharplite/aixbdd-tmg/issues/10) → [PR #12](https://github.com/gosharplite/aixbdd-tmg/pull/12) / ADR 0004), verified round-001 `tasks.md` **already conformant** (no artifact change), and **closed [`tellme#5`](https://github.com/gosharplite/tellme/issues/5)** as completed. No product code written yet. **Next: `/axb-implement`** (Phase 1 Setup, T001–T003).
+ratified `data/**` NOOP. **Session 9** delivered `tasks.md` (63 tasks; grill #5 closed; pre-delivery orphan-coverage sweep **19/19 PASSED**). **Session 10** closed the two upstream methodology issues grill #5 routed ([aixbdd-tmg#9](https://github.com/gosharplite/aixbdd-tmg/issues/9) → [PR #11](https://github.com/gosharplite/aixbdd-tmg/pull/11) / ADR 0003; [#10](https://github.com/gosharplite/aixbdd-tmg/issues/10) → [PR #12](https://github.com/gosharplite/aixbdd-tmg/pull/12) / ADR 0004), verified round-001 `tasks.md` **already conformant** (no artifact change), and **closed [`tellme#5`](https://github.com/gosharplite/tellme/issues/5)** as completed. **Sessions 11–12** then delivered both rounds: round 001 via `/axb-implement` (63/63; **PR [#6](https://github.com/gosharplite/tellme/pull/6)** merged `62f217f`) and round 002 (19/19; **PR [#7](https://github.com/gosharplite/tellme/pull/7)** merged `f2a058f`) — the latter reviewed over two architecture rounds **plus Grill Round #6**, merged, and propagated. **Next: a fresh `003-*` slice** (future candidates in `STATUS.md` Open items).
 
-> **Four sessions this day** — session 7 (the seventh), session 8 (the eighth), session 9 (the ninth), and session 10 (the tenth — upstream grill-#5 resolution + issue closure + closeout; session 6 closed 2026-09-10). All are captured below (§1–§10 = session 7; §11 = session 8; §12 = session 9; §13 = session 10).
+> **Six sessions this day** — sessions 7–12 (session 6 closed 2026-09-10). Captured below: §1–§10 = session 7; §11 = session 8; §12 = session 9; §13 = session 10; §14 = session 11 (round-001 implementation); **§15 = session 12 (round-002 delivery, Grill Round #6, merge + propagation, closeout)**.
 
 ---
 
@@ -343,3 +343,52 @@ tm -n engineers tmg vertex-flash     # provision ait-tmg from group 'engineers'
 Verified (fresh-shell + inherited-env): `tm tellme deepseek-flash` → aliases `b/a/c/g/p/r` defined; bare `tellme` → `configuration: ready / …/output/butler` (exit 0); `a`/`r` → `…/output/architect` / `…/output/rd`; `tellme -d --json` → `{"status":"resolved",…}`; `bash -n tellme.sh` clean.
 
 **Notes**: it **shares the `NIFFLER_*` variable names** with `niffler.sh` (faithful) → don't source both in one shell; the aliases still pass a prompt, which `tellme` ignores until a later slice adds chat. This is **human/dev tooling outside the repo** (not a truth artifact) — recorded here for session continuity, and it is a follow-on to the round-001 **Niffler ↔ `tellme` binary-name alignment** integration note. *(Persistent access registrations this session: read+write for `…/beta-niffler/` and `~/.bashrc`.)*
+
+---
+
+## 15. Session 12 — round-002 delivery (PR #7) + Grill Round #6 + closeout
+
+Executed the full round-002 pipeline (`/axb-specify` → … → `/axb-tasks` → `/axb-implement`), took it through a two-round architecture review **and** an adversarial grill round, merged it, propagated to `dev`/`main`, and executed `SESSION-CLOSEOUT.md`.
+
+### Work done
+- **Plan package authored** — `/axb-specify` (spec + checklist + truth-delta skeleton) after a 2-question clarify round (**Q1**: remove `--json`; **Q2**: quality-gate hardening + pin the `NFR-004` wording + pin the `FR-014` exit codes). `/axb-spec-by-example` (2 acceptance features); `/axb-technical-research` (3 decisions: E2E acceptance path + pure-helper unit tests; adopt `golangci-lint`+`errcheck` and `govulncheck`; stdlib `testing`); `/axb-system-analysis` (2 interfaces, 1 wave, api/data NOOP); `/axb-dsl-refine` (`--json` DELETED, usage ADD, class phrases + codes pinned; audit PASSED); `/axb-tasks` (19 tasks + orphan sweep).
+- **`/axb-implement` One-Shot (19/19 tasks `[X]`)** — removed the `--json` flag + JSON emission (`internal/cli/cli.go`); `dsl.md` root-row class-phrase vocabulary + exactly-one predicate; `step_t017` count==1 + prefix; pinned exit codes (`2/3/4/5`); F9 unit tests (`internal/{cli,config,home}`); `.golangci.yml` + Makefile `lint`/`vulncheck` wired into `make verify`.
+- **PR [#7](https://github.com/gosharplite/tellme/pull/7)** — opened (`002-implement-followup-cleanups` → `002-followup-cleanups`).
+- **Architecture review (2 rounds)** — findings **F1–F7, N1–N3** + residuals, all addressed (`0bf12f4`, `81ae0fa`, `018f494`; **F7** `e842c4a`; trim `4c63664`). Headline: **F1** — the exit-code pin was documented but **not enforced** → `TestExitCodesMatchPinnedContract` (the literals `0/2/3/4/5`).
+- **Grill Round #6** ([issue #8](https://github.com/gosharplite/tellme/issues/8); gist <https://gist.github.com/gosharplite/a9042dd85a246bd667de2bb40a6226fc>) — `architect` vs `griller`, **6/6**, verdict *proceed with changes*; 5 corrections + **F7** + 2 advisories. The real catches: the **class-phrase rescope** (the spec over-promised "verbatim") and the **non-existent `make check` target**. Fix-set applied **PM-first** (`950946e`).
+- **Re-certification** — `gofmt`/`vet` clean · `go test` green · godog **20/20** · `make verify` OK · **SC-003 witness** (`make lint` exit 2 on a deliberate unchecked error, reverted) · orphan sweep 0 · audit **126 steps**.
+- **Merge + propagation** — PR #7 **merged** (`f2a058f`); head branch deleted; local synced (`git fetch --prune`); two-step merge `002-followup-cleanups → dev → main` (`dev` `2b50cfd`, `main` `7caa4f1`). Issue #8 **closed**. `SESSION-CLOSEOUT.md` executed.
+
+### Decisions log
+| # | Decision | Rationale |
+| --- | --- | --- |
+| D1 | **`--json` removed entirely** (clarify Q1) | resolves F4 by deletion (the existing unrecognized-flag path); user-ratified reverse of round-001 FR-013 |
+| D2 | **Freeze granularity = class phrase** (`tellme: {phrase}`; tail contract-free) | grill #6 Q1/Q2 — the only enforceable invariant (8 emitted forms → 7 classes); prefix, never equality |
+| D3 | **No `decisions/000N` ADR owed**; record the reference divergence instead | grill #6 Q3 — no rule requires one; the divergence is recorded in `research.md` + the truth-delta DELETE Reason + the standing `techstack.md` |
+| D4 | **No CI this round**; `make verify` is the manual closeout gate | grill #6 Q4 — the repo has no CI; CI is a future-package candidate |
+| D5 | **Spec half PM-first** (`spec-pm-authored`, butler-as-PM) | grill #6 Q6 — the `spec.md` rewording is PM-owned; the RD truth/test edits followed |
+| D6 | **Merge + propagate `002-followup-cleanups → dev → main`** | user-approved round at a green, mergeable point |
+
+### Commits (branch `002-implement-followup-cleanups`, then merged)
+| Commit | Note |
+| --- | --- |
+| `ac09845` | `feat(002): remove the --json flag, pin the operator-facing contract, add unit tests + gates` |
+| `0bf12f4` | `fix(002): address PR #7 review — F1-F6, N1-N3` |
+| `81ae0fa` | `docs(002): apply non-blocking re-review residuals` |
+| `018f494` | `docs(002): fix stale round-002 godog count in STATUS (19/19 -> 20/20)` |
+| `950946e` | `fix(002): apply Grill Round #6 fix-set (grill #8)` |
+| `e842c4a` | `docs(002): grill #6 re-review — F7 + SC-003 witness + divergence rationale` |
+| `4c63664` | `docs(002): trim duplicated witness restatement` |
+| `f2a058f` | **PR #7 merge** into `002-followup-cleanups` |
+| `2b50cfd` / `7caa4f1` | two-step propagation onto `dev` / `main` |
+
+### Open items (non-blocking)
+- **Future-package candidates**: (a) a **CI** workflow to run `make verify`; (b) **F9 extension** — unit tests for `internal/cli` flag parsing; (c) **PM-4** `tellme init`; (d) revisit the `--json` **reference divergence** if a downstream consumer needs machine-readable output.
+- **Propagation** — done (`dev` `2b50cfd`, `main` `7caa4f1`).
+
+### Next steps
+1. **Fresh `003-*` slice** via `/axb-specify` (candidates above).
+2. `SESSION-BOOTSTRAP.md` reads `STATUS.md` + this summary; active branch `002-followup-cleanups`.
+
+### PM follow-ups
+- None new — the round's PM half (the class-phrase rewording of FR-004/FR-006 + SC-002/SC-003) landed in-session (butler-as-PM); PM-1..PM-4 remain closed.
