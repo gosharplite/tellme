@@ -15,20 +15,20 @@
 
 **Goal**: 初始化 Go 1.26 模組 `github.com/gosharplite/tellme`，引入 CLI 與測試所需依賴套件 (`github.com/spf13/pflag`, `gopkg.in/yaml.v3`, `github.com/cucumber/godog`)，配置 Makefile 構建、靜態分析與驗證目標（含 `verify-no-test-sleep` 與 `verify` 聚合目標），並以 smoke-test 驗證 Go 測試與 godog 運行環境。不寫 DSL 語意、不寫產品行為。
 
-- [ ] T001 初始化 Go 模組並引入核心相依套件
+- [X] T001 初始化 Go 模組並引入核心相依套件
   - Read:
     - `specs/truth/techstack.md` -> CLI Application / Configuration / Testing & Verification
   - 執行 `go mod init github.com/gosharplite/tellme`，將 Go 版本設為 1.26。
   - 引入 `github.com/spf13/pflag`、`gopkg.in/yaml.v3` 與 `github.com/cucumber/godog` 套件並完成 `go mod tidy`。
 
-- [ ] T002 建立標準 Makefile 構建、檢驗與驗證目標
+- [X] T002 建立標準 Makefile 構建、檢驗與驗證目標
   - Read:
     - `specs/truth/techstack.md` -> Build & Tooling (Task runner: `make | fmt, tidy, build, test, verify`)
     - `specs/plans/001-cli-bootstrap-and-config/research.md` -> Decision 4 & 7 (verify-no-test-sleep parity)
   - 建立 `Makefile`，提供 `build`（預設 `VERSION ?= dev` 注入版本至 `main.version`）、`fmt`、`vet`、`staticcheck`、`tidy`、`test`、`verify-no-test-sleep`（grep 掃描測試程式碼禁止使用非同步 `time.Sleep`）與 `verify`（聚合驗證目標：執行 `verify-no-test-sleep` 與依賴圖防護驗證）。
   - Makefile 備註說明：`build` 的 `dev` 預設值僅供本機與正式 release 構建，不可作為 E2E 測試 harness 的構建途徑（harness 嚴格走帶 sentinel 的顯式構建）。
 
-- [ ] T003 建立 Go 與 godog runner 初始化 smoke-test
+- [X] T003 建立 Go 與 godog runner 初始化 smoke-test
   - Read:
     - `specs/truth/techstack.md` -> Testing & Verification
   - 建立基本測試檔驗證 `go test` 與 `godog.TestSuite` 能夠正常編譯與被 Go 測試工具鏈執行。
@@ -38,21 +38,21 @@
 
 **Goal**: 建立 E2E 測試框架入口、Stepdef 登錄機制與場景狀態結構、CLI 子行程執行 helper（帶 sentinel 注入）、退出碼常數定義與成對相異性斷言、產品程式碼進入點骨架，以及離線依賴圖防護，為後續測試與實作提供確定性共用設施。
 
-- [ ] T004 建立 E2E 測試套件入口與 Suite 佈線
+- [X] T004 建立 E2E 測試套件入口與 Suite 佈線
   - Read:
     - `specs/truth/techstack.md` -> Testing & Verification (E2E runner / step definitions)
     - `specs/plans/001-cli-bootstrap-and-config/plan.md` -> Source-code structure
   - 只做：在 `tests/e2e/suite_test.go` 建立 `godog.TestSuite` 入口（宣告 `TestFeatures`），設置 `ScenarioInitializer` 為 `func(ctx *godog.ScenarioContext) { steps.RegisterAll(ctx) }`，並指定 features 路徑指向 `../../specs/truth/features/cli`。
   - 不做：不實作各步驟的 StepDef 實作語意，不宣告 scenarioContext 實體（由 steps 套件管理）。
 
-- [ ] T005 建立 Stepdef 自我註冊機制、ScenarioContext 與執行期掛鉤骨架
+- [X] T005 建立 Stepdef 自我註冊機制、ScenarioContext 與執行期掛鉤骨架
   - Read:
     - `specs/plans/001-cli-bootstrap-and-config/research.md` -> Decision 4 (Runner/step-definition location)
     - `specs/truth/features/cli/dsl.md` -> Given / When / Then 總表
   - 只做：在 `tests/e2e/steps/register.go` 建立 `var registrars []func(*godog.ScenarioContext)` 與 `func RegisterAll(ctx *godog.ScenarioContext)` 走訪執行；建立 `tests/e2e/steps/scenario_context.go` 定義 `scenarioContext` 結構（記錄暫存 `TELL_ME_HOME`、執行參數、環境變數、捕獲的 exitCode/stdout/stderr），並透過 `ctx.Before(...)` 掛鉤在每個場景建立獨立 context 與注入 `context.Context`，於場景結束時清理暫存目錄。
   - 不做：不撰寫各別 DSL 句型邏輯，不實作產品行為。
 
-- [ ] T006 建立 CLI 子行程編譯 helper 與 Sentinel 版本注入
+- [X] T006 建立 CLI 子行程編譯 helper 與 Sentinel 版本注入
   - Read:
     - `specs/truth/techstack.md` -> Testing & Verification (Version assertion: `VERSION=0.0.0-harness`)
     - `specs/plans/001-cli-bootstrap-and-config/research.md` -> Decision 5 & 6 (E2E black-box harness, version injection)
@@ -60,21 +60,21 @@
   - 只做：在 `tests/e2e/harness/cmd_helper.go`（或 `tests/e2e/steps/cmd_helper.go` 獨立 leaf 套件）定義常數 `const SentinelVersion = "0.0.0-harness"`，實作單次編譯 helper 嚴格執行 `go build -ldflags "-X main.version=0.0.0-harness" -o <tmp>/tellme ./cmd/tellme`（禁止走會落入 `dev` 預設值的 `make build`）；提供以指定命令列參數與環境變數執行該 binary、完整收集 stdout、stderr 與 exit code 的黑箱執行 helper。
   - 不做：不斷言 exit code 語意或輸出內容，不寫業務流程。
 
-- [ ] T007 定義退出碼常數與成對相異性斷言
+- [X] T007 定義退出碼常數與成對相異性斷言
   - Read:
     - `specs/plans/001-cli-bootstrap-and-config/spec.md` -> FR-014
     - `specs/plans/001-cli-bootstrap-and-config/research.md` -> Decision 1 & 7
   - 只做：在 `internal/cli/exitcode.go` 定義並匯出 5 個退出碼常數：`Success` (0)、`UsageError`、`ConfigError`、`EnvironmentError` 以及 `DiagnosticUnresolvedError`；在 `tests/e2e/exitcode_test.go` 撰寫 host-harness 測試 `TestExitCodesAreDistinct`，斷言 4 個非零錯誤碼兩兩互不相同且皆大於 0（非零）。E2E harness 匯入 `internal/cli` 作為預期碼值 oracle，執行步驟則黑箱比對子行程產生的實際退出碼。
   - 不做：不實作參數解析、配置檔案讀取或診斷邏輯。
 
-- [ ] T008 建立產品程式碼進入點與核心套件骨架
+- [X] T008 建立產品程式碼進入點與核心套件骨架
   - Read:
     - `specs/plans/001-cli-bootstrap-and-config/plan.md` -> Source-code structure
     - `specs/truth/techstack.md` -> Project layout
   - 只做：建立 `cmd/tellme/main.go`（宣告 `var version = "dev"`），以及 `internal/cli`、`internal/config`、`internal/home` 的基本 package 宣告與型別骨架，確保專案能順利被 T006 編譯成 binary。
   - 不做：不實作具體參數解析、YAML 載入、路徑解析或產品行為。
 
-- [ ] T009 建立 E2E 離線檢驗與依賴圖防護 helper
+- [X] T009 建立 E2E 離線檢驗與依賴圖防護 helper
   - Read:
     - `specs/truth/techstack.md` -> No-network verification
     - `specs/plans/001-cli-bootstrap-and-config/research.md` -> Decision 5
@@ -119,197 +119,197 @@
 
 ### Interface Root DSL Steps
 
-- [ ] T010 [P] [BDD-RED] `Given: the operator has a runnable tellme installation`
+- [X] T010 [P] [BDD-RED] `Given: the operator has a runnable tellme installation`
   - Read: `specs/truth/features/cli/dsl.md` -> `the operator has a runnable tellme installation`
   - Landing: `tests/e2e/steps/step_t010_root_given_runnable_installation.go`
 
-- [ ] T011 [P] [BDD-RED] `Given: the runtime home is "{home}"`
+- [X] T011 [P] [BDD-RED] `Given: the runtime home is "{home}"`
   - Read: `specs/truth/features/cli/dsl.md` -> `the runtime home is "{home}"`
   - Landing: `tests/e2e/steps/step_t011_root_given_runtime_home.go`
 
-- [ ] T012 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}"`
+- [X] T012 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}"`
   - Read: `specs/truth/features/cli/dsl.md` -> `a well-formed configuration "{config_path}"`
   - Landing: `tests/e2e/steps/step_t012_root_given_well_formed_config.go`
 
-- [ ] T013 [P] [BDD-RED] `When: the operator starts tellme`
+- [X] T013 [P] [BDD-RED] `When: the operator starts tellme`
   - Read: `specs/truth/features/cli/dsl.md` -> `the operator starts tellme`
   - Landing: `tests/e2e/steps/step_t013_root_when_starts_tellme.go`
 
-- [ ] T014 [P] [BDD-RED] `When: the operator starts tellme pointing at the configuration "{config_path}"`
+- [X] T014 [P] [BDD-RED] `When: the operator starts tellme pointing at the configuration "{config_path}"`
   - Read: `specs/truth/features/cli/dsl.md` -> `the operator starts tellme pointing at the configuration "{config_path}"`
   - Landing: `tests/e2e/steps/step_t014_root_when_starts_with_config.go`
 
-- [ ] T015 [P] [BDD-RED] `Then: tellme exits successfully`
+- [X] T015 [P] [BDD-RED] `Then: tellme exits successfully`
   - Read: `specs/truth/features/cli/dsl.md` -> `tellme exits successfully`
   - Landing: `tests/e2e/steps/step_t015_root_then_exits_successfully.go`
 
-- [ ] T016 [P] [BDD-RED] `Then: tellme refuses to proceed`
+- [X] T016 [P] [BDD-RED] `Then: tellme refuses to proceed`
   - Read: `specs/truth/features/cli/dsl.md` -> `tellme refuses to proceed`
   - Landing: `tests/e2e/steps/step_t016_root_then_refuses_to_proceed.go`
 
-- [ ] T017 [P] [BDD-RED] `Then: tellme explains on stderr that "{reason}"`
+- [X] T017 [P] [BDD-RED] `Then: tellme explains on stderr that "{reason}"`
   - Read: `specs/truth/features/cli/dsl.md` -> `tellme explains on stderr that "{reason}"`
   - Landing: `tests/e2e/steps/step_t017_root_then_explains_stderr.go`
 
 ### Configuration Module DSL Steps
 
-- [ ] T018 [P] [BDD-RED] `Given: no configuration exists at "{config_path}"`
+- [X] T018 [P] [BDD-RED] `Given: no configuration exists at "{config_path}"`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `no configuration exists at "{config_path}"`
   - Landing: `tests/e2e/steps/step_t018_config_given_no_config_at_path.go`
 
-- [ ] T019 [P] [BDD-RED] `Given: a malformed configuration "{config_path}"`
+- [X] T019 [P] [BDD-RED] `Given: a malformed configuration "{config_path}"`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `a malformed configuration "{config_path}"`
   - Landing: `tests/e2e/steps/step_t019_config_given_malformed_config.go`
 
-- [ ] T020 [P] [BDD-RED] `Given: no configuration exists at the default location`
+- [X] T020 [P] [BDD-RED] `Given: no configuration exists at the default location`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `no configuration exists at the default location`
   - Landing: `tests/e2e/steps/step_t020_config_given_no_default_config.go`
 
-- [ ] T021 [P] [BDD-RED] `Given: the effective mode is "{mode}"`
+- [X] T021 [P] [BDD-RED] `Given: the effective mode is "{mode}"`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `the effective mode is "{mode}"`
   - Landing: `tests/e2e/steps/step_t021_config_given_effective_mode.go`
 
-- [ ] T022 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}" whose selected provider "{provider}" is in its registry`
+- [X] T022 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}" whose selected provider "{provider}" is in its registry`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `a well-formed configuration "{config_path}" whose selected provider "{provider}" is in its registry`
   - Landing: `tests/e2e/steps/step_t022_config_given_selected_provider_in_registry.go`
 
-- [ ] T023 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}" whose provider registry is empty`
+- [X] T023 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}" whose provider registry is empty`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `a well-formed configuration "{config_path}" whose provider registry is empty`
   - Landing: `tests/e2e/steps/step_t023_config_given_provider_registry_empty.go`
 
-- [ ] T024 [P] [BDD-RED] `Given: the selected provider override is "{provider}"`
+- [X] T024 [P] [BDD-RED] `Given: the selected provider override is "{provider}"`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `the selected provider override is "{provider}"`
   - Landing: `tests/e2e/steps/step_t024_config_given_selected_provider_override.go`
 
-- [ ] T025 [P] [BDD-RED] `Then: tellme reports the configuration is ready`
+- [X] T025 [P] [BDD-RED] `Then: tellme reports the configuration is ready`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `tellme reports the configuration is ready`
   - Landing: `tests/e2e/steps/step_t025_config_then_reports_ready.go`
 
-- [ ] T026 [P] [BDD-RED] `Then: tellme exits with the configuration error code`
+- [X] T026 [P] [BDD-RED] `Then: tellme exits with the configuration error code`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `tellme exits with the configuration error code`
   - Landing: `tests/e2e/steps/step_t026_config_then_exits_config_error.go`
 
 ### Workspace Module DSL Steps
 
-- [ ] T027 [P] [BDD-RED] `Given: no session workspace exists under "{home}"`
+- [X] T027 [P] [BDD-RED] `Given: no session workspace exists under "{home}"`
   - Read: `specs/truth/features/cli/workspace/dsl.md` -> `no session workspace exists under "{home}"`
   - Landing: `tests/e2e/steps/step_t027_workspace_given_no_workspace_under_home.go`
 
-- [ ] T028 [P] [BDD-RED] `Given: the session workspace "{workspace_path}" already exists`
+- [X] T028 [P] [BDD-RED] `Given: the session workspace "{workspace_path}" already exists`
   - Read: `specs/truth/features/cli/workspace/dsl.md` -> `the session workspace "{workspace_path}" already exists`
   - Landing: `tests/e2e/steps/step_t028_workspace_given_workspace_already_exists.go`
 
-- [ ] T029 [P] [BDD-RED] `Given: the workspace "{workspace_path}" already holds a file "{file_name}"`
+- [X] T029 [P] [BDD-RED] `Given: the workspace "{workspace_path}" already holds a file "{file_name}"`
   - Read: `specs/truth/features/cli/workspace/dsl.md` -> `the workspace "{workspace_path}" already holds a file "{file_name}"`
   - Landing: `tests/e2e/steps/step_t029_workspace_given_workspace_holds_file.go`
 
-- [ ] T030 [P] [BDD-RED] `Given: the configuration "{config_path}" declares the mode "{mode}"`
+- [X] T030 [P] [BDD-RED] `Given: the configuration "{config_path}" declares the mode "{mode}"`
   - Read: `specs/truth/features/cli/workspace/dsl.md` -> `the configuration "{config_path}" declares the mode "{mode}"`
   - Landing: `tests/e2e/steps/step_t030_workspace_given_config_declares_mode.go`
 
-- [ ] T031 [P] [BDD-RED] `Given: the mode override is "{mode}"`
+- [X] T031 [P] [BDD-RED] `Given: the mode override is "{mode}"`
   - Read: `specs/truth/features/cli/workspace/dsl.md` -> `the mode override is "{mode}"`
   - Landing: `tests/e2e/steps/step_t031_workspace_given_mode_override.go`
 
-- [ ] T032 [P] [BDD-RED] `Given: the runtime home is not set`
+- [X] T032 [P] [BDD-RED] `Given: the runtime home is not set`
   - Read: `specs/truth/features/cli/workspace/dsl.md` -> `the runtime home is not set`
   - Landing: `tests/e2e/steps/step_t032_workspace_given_runtime_home_not_set.go`
 
-- [ ] T033 [P] [BDD-RED] `Given: the workspace path "{workspace_path}" already exists as a regular file`
+- [X] T033 [P] [BDD-RED] `Given: the workspace path "{workspace_path}" already exists as a regular file`
   - Read: `specs/truth/features/cli/workspace/dsl.md` -> `the workspace path "{workspace_path}" already exists as a regular file`
   - Landing: `tests/e2e/steps/step_t033_workspace_given_workspace_is_regular_file.go`
 
-- [ ] T034 [P] [BDD-RED] `Then: tellme creates the session workspace "{workspace_path}"`
+- [X] T034 [P] [BDD-RED] `Then: tellme creates the session workspace "{workspace_path}"`
   - Read: `specs/truth/features/cli/workspace/dsl.md` -> `tellme creates the session workspace "{workspace_path}"`
   - Landing: `tests/e2e/steps/step_t034_workspace_then_creates_workspace.go`
 
-- [ ] T035 [P] [BDD-RED] `Then: tellme reports the session workspace "{workspace_path}"`
+- [X] T035 [P] [BDD-RED] `Then: tellme reports the session workspace "{workspace_path}"`
   - Read: `specs/truth/features/cli/workspace/dsl.md` -> `tellme reports the session workspace "{workspace_path}"`
   - Landing: `tests/e2e/steps/step_t035_workspace_then_reports_workspace.go`
 
-- [ ] T036 [P] [BDD-RED] `Then: tellme reuses the session workspace "{workspace_path}"`
+- [X] T036 [P] [BDD-RED] `Then: tellme reuses the session workspace "{workspace_path}"`
   - Read: `specs/truth/features/cli/workspace/dsl.md` -> `tellme reuses the session workspace "{workspace_path}"`
   - Landing: `tests/e2e/steps/step_t036_workspace_then_reuses_workspace.go`
 
-- [ ] T037 [P] [BDD-RED] `Then: the workspace "{workspace_path}" still holds the file "{file_name}"`
+- [X] T037 [P] [BDD-RED] `Then: the workspace "{workspace_path}" still holds the file "{file_name}"`
   - Read: `specs/truth/features/cli/workspace/dsl.md` -> `the workspace "{workspace_path}" still holds the file "{file_name}"`
   - Landing: `tests/e2e/steps/step_t037_workspace_then_workspace_still_holds_file.go`
 
-- [ ] T038 [P] [BDD-RED] `Then: tellme exits with the environment error code`
+- [X] T038 [P] [BDD-RED] `Then: tellme exits with the environment error code`
   - Read: `specs/truth/features/cli/workspace/dsl.md` -> `tellme exits with the environment error code`
   - Landing: `tests/e2e/steps/step_t038_workspace_then_exits_environment_error.go`
 
 ### Diagnostics Module DSL Steps
 
-- [ ] T039 [P] [BDD-RED] `Given: a configuration "{config_path}" that does not resolve`
+- [X] T039 [P] [BDD-RED] `Given: a configuration "{config_path}" that does not resolve`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `a configuration "{config_path}" that does not resolve`
   - Landing: `tests/e2e/steps/step_t039_diag_given_unresolved_config.go`
 
-- [ ] T040 [P] [BDD-RED] `When: the operator runs tellme with "--version"`
+- [X] T040 [P] [BDD-RED] `When: the operator runs tellme with "--version"`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `the operator runs tellme with "--version"`
   - Landing: `tests/e2e/steps/step_t040_diag_when_runs_version.go`
 
-- [ ] T041 [P] [BDD-RED] `When: the operator runs tellme's diagnostic`
+- [X] T041 [P] [BDD-RED] `When: the operator runs tellme's diagnostic`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `the operator runs tellme's diagnostic`
   - Landing: `tests/e2e/steps/step_t041_diag_when_runs_diagnostic.go`
 
-- [ ] T042 [P] [BDD-RED] `When: the operator runs tellme's diagnostic with "--json"`
+- [X] T042 [P] [BDD-RED] `When: the operator runs tellme's diagnostic with "--json"`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `the operator runs tellme's diagnostic with "--json"`
   - Landing: `tests/e2e/steps/step_t042_diag_when_runs_diagnostic_json.go`
 
-- [ ] T043 [P] [BDD-RED] `Then: tellme prints the build version`
+- [X] T043 [P] [BDD-RED] `Then: tellme prints the build version`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `tellme prints the build version`
   - Landing: `tests/e2e/steps/step_t043_diag_then_prints_build_version.go`
 
-- [ ] T044 [P] [BDD-RED] `Then: tellme reports the configuration resolved`
+- [X] T044 [P] [BDD-RED] `Then: tellme reports the configuration resolved`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `tellme reports the configuration resolved`
   - Landing: `tests/e2e/steps/step_t044_diag_then_reports_config_resolved.go`
 
-- [ ] T045 [P] [BDD-RED] `Then: tellme reports the runtime home resolved to "{home}"`
+- [X] T045 [P] [BDD-RED] `Then: tellme reports the runtime home resolved to "{home}"`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `tellme reports the runtime home resolved to "{home}"`
   - Landing: `tests/e2e/steps/step_t045_diag_then_reports_home_resolved.go`
 
-- [ ] T046 [P] [BDD-RED] `Then: tellme reports the session workspace resolved to "{workspace_path}"`
+- [X] T046 [P] [BDD-RED] `Then: tellme reports the session workspace resolved to "{workspace_path}"`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `tellme reports the session workspace resolved to "{workspace_path}"`
   - Landing: `tests/e2e/steps/step_t046_diag_then_reports_workspace_resolved.go`
 
-- [ ] T047 [P] [BDD-RED] `Then: tellme reports the configuration did not resolve`
+- [X] T047 [P] [BDD-RED] `Then: tellme reports the configuration did not resolve`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `tellme reports the configuration did not resolve`
   - Landing: `tests/e2e/steps/step_t047_diag_then_reports_config_not_resolved.go`
 
-- [ ] T048 [P] [BDD-RED] `Then: tellme reports the reason the configuration did not resolve`
+- [X] T048 [P] [BDD-RED] `Then: tellme reports the reason the configuration did not resolve`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `tellme reports the reason the configuration did not resolve`
   - Landing: `tests/e2e/steps/step_t048_diag_then_reports_unresolved_reason.go`
 
-- [ ] T049 [P] [BDD-RED] `Then: tellme emits the resolution status as structured output`
+- [X] T049 [P] [BDD-RED] `Then: tellme emits the resolution status as structured output`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `tellme emits the resolution status as structured output`
   - Landing: `tests/e2e/steps/step_t049_diag_then_emits_structured_resolution.go`
 
-- [ ] T050 [P] [BDD-RED] `Then: tellme emits the unresolved status as structured output`
+- [X] T050 [P] [BDD-RED] `Then: tellme emits the unresolved status as structured output`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `tellme emits the unresolved status as structured output`
   - Landing: `tests/e2e/steps/step_t050_diag_then_emits_structured_unresolved.go`
 
-- [ ] T051 [P] [BDD-RED] `Then: tellme performs no network access`
+- [X] T051 [P] [BDD-RED] `Then: tellme performs no network access`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `tellme performs no network access`
   - Landing: `tests/e2e/steps/step_t051_diag_then_performs_no_network.go`
 
-- [ ] T052 [P] [BDD-RED] `Then: tellme exits with the diagnostic error code`
+- [X] T052 [P] [BDD-RED] `Then: tellme exits with the diagnostic error code`
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `tellme exits with the diagnostic error code`
   - Landing: `tests/e2e/steps/step_t052_diag_then_exits_diagnostic_error.go`
 
 ### Usage Module DSL Steps
 
-- [ ] T053 [P] [BDD-RED] `When: the operator starts tellme pointing at the configuration "{config_path}" with the unrecognized flag "{flag}"`
+- [X] T053 [P] [BDD-RED] `When: the operator starts tellme pointing at the configuration "{config_path}" with the unrecognized flag "{flag}"`
   - Read: `specs/truth/features/cli/usage/dsl.md` -> `the operator starts tellme pointing at the configuration "{config_path}" with the unrecognized flag "{flag}"`
   - Landing: `tests/e2e/steps/step_t053_usage_when_unrecognized_flag.go`
 
-- [ ] T054 [P] [BDD-RED] `Then: tellme exits with the usage error code`
+- [X] T054 [P] [BDD-RED] `Then: tellme exits with the usage error code`
   - Read: `specs/truth/features/cli/usage/dsl.md` -> `tellme exits with the usage error code`
   - Landing: `tests/e2e/steps/step_t054_usage_then_exits_usage_error.go`
 
 ### Phase Review Gate
 
-- [ ] T055 subagent review (phase quality gate)
+- [X] T055 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/**/*.feature`
     - `tests/e2e/steps/*.go`
@@ -338,8 +338,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/configuration/starting-with-a-configuration.feature`
 
-- [ ] T056 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T057 [BDD-REFACTOR] 在綠燈下重構與整理 configuration 模組實作與 YAML 解析邏輯
+- [X] T056 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T057 [BDD-REFACTOR] 在綠燈下重構與整理 configuration 模組實作與 YAML 解析邏輯
 
 ## Phase 4B: ADD Feature File - cli/workspace/runtime-home-and-session-workspace.feature
 
@@ -359,8 +359,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/workspace/runtime-home-and-session-workspace.feature`
 
-- [ ] T058 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T059 [BDD-REFACTOR] 在綠燈下重構與整理 workspace 模組實作與目錄權限/生命週期管理邏輯
+- [X] T058 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T059 [BDD-REFACTOR] 在綠燈下重構與整理 workspace 模組實作與目錄權限/生命週期管理邏輯
 
 ## Phase 4C: ADD Feature File - cli/diagnostics/version-and-setup-diagnostic.feature
 
@@ -381,8 +381,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/diagnostics/version-and-setup-diagnostic.feature`
 
-- [ ] T060 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T061 [BDD-REFACTOR] 在綠燈下重構與整理 diagnostics 模組實作與 structured output / offline 檢查邏輯
+- [X] T060 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T061 [BDD-REFACTOR] 在綠燈下重構與整理 diagnostics 模組實作與 structured output / offline 檢查邏輯
 
 ## Phase 4D: ADD Feature File - cli/usage/unsupported-cli-usage.feature
 
@@ -401,8 +401,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/usage/unsupported-cli-usage.feature`
 
-- [ ] T062 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T063 [BDD-REFACTOR] 在綠燈下重構與整理 CLI flag 解析與 usage error 分流邏輯
+- [X] T062 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T063 [BDD-REFACTOR] 在綠燈下重構與整理 CLI flag 解析與 usage error 分流邏輯
 
 ---
 

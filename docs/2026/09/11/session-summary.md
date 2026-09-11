@@ -270,3 +270,57 @@ A coordination + closeout session: read the two upstream PRs that resolve grill 
 
 1. **`/axb-implement`** — one-shot over the delivered 63-task plan, starting with Phase 1 Setup (T001–T003) → Phase 2 → Phase 3 (aligned, per-task stepdef files) → Phase 4A–4D.
 2. **Propagation** — `working → dev → main` **DONE** (user-approved).
+
+---
+
+## 14. Session 11 — `/axb-implement` delivered (round-001 implementation)
+
+Executed `/axb-implement` as a One-Shot over the delivered 63-task plan, opened the PR, addressed a two-round architecture review, and recorded the deferred items.
+
+### Work done
+1. **`/axb-implement` One-Shot (T001–T063, all `[X]`)** — Setup (Go 1.26 module + Makefile + toolchain smoke), Foundational (godog suite entry, `steps` self-registration + scenario context, leaf `harness`, exit-code oracle, `cmd/tellme` + `internal/{cli,config,home}` skeletons, offline/build-graph guard), Phase 3 (45 per-task step files; review gate PASS — 0 undefined), Feature 4A–4D (configuration / workspace / diagnostics / usage — GREEN + REFACTOR).
+2. **Repo hygiene** — added a minimal Go-relevant `.gitignore`.
+3. **Branch + PR** — `001-implement-cli-bootstrap-and-config` from `001-cli-bootstrap-and-config` (commit `d2fec98`); **PR [#6](https://github.com/gosharplite/tellme/pull/6)** (base = the session branch).
+4. **Guard wording — owner-ratified in-round (`2547320`)** — `/axb-dsl-refine` reworded `diagnostics/dsl.md` and `/axb-technical-research` reworded `techstack.md` to **capability** semantics (the prior `go list -deps` "no `net` in the closure" wording was unsatisfiable — the mandated `spf13/pflag` links `net`); `/axb-truth-delta` recorded `MODIFY` rows under both owners. Topology audit re-run → PASSED.
+5. **Review round 1** (`#issuecomment-5628564073`) — verdict *approve with non-blocking follow-ups*; findings **F1–F9**.
+6. **Review fixes (`defd416`)** — **F1+F8** (single `resolve()` + `ResolveError`; split `Run` into `parseFlags`/`renderBoot`/`renderDiagnostic`), **F2** (one guard definition; Makefile delegates to the Go test), **F3** (test owns its env), **F5** (hoist hostile-env/differential wiring to `harness`), **F6** (document the deliberate non-strict decode), **F7** (typed `diagnosticJSON`).
+7. **Review round 2** (`#issuecomment-5628657071`) — verdict *findings resolved; approve* (verified file-by-file at `defd416`); 3 minor nits; F4/F9 routing confirmed.
+8. **Nits fixed** — dropped the write-only `Resolution.Config`; lowercased `resolution`/`resolveError`; restored `%q` in the provider-mismatch message.
+
+### Decisions log
+| # | Decision | Rationale |
+| --- | --- | --- |
+| D1 | Review now-set **F1+F8 / F2 / F3** + in-area **F5 / F6 / F7** addressed in-round | the reviewer's stated order (F1+F8 → F2 → F3) plus cheap in-file fixes |
+| D2 | **F4 / F9 deferred** to the next slice (recorded in `STATUS.md`) | F4 changes the **CLI contract** (needs PM + `/axb-dsl-refine`); F9 needs a **D5 re-decision** (`/axb-technical-research`) — D5 governs the **acceptance path**, not pure-helper unit tests |
+| D3 | Guard wording corrected **in-round** via the truth owners (not a fresh `002`) | round 001 was not yet delivered; the defect was round 001's own truth output |
+
+### Verification
+- `gofmt -l .` clean · `go vet ./...` clean · `staticcheck ./...` clean
+- `make verify` → **OK** · `go test -count=1 ./...` → **green** · godog **19/19 scenarios · 135/135 steps** · `axb-gherkin-and-dsl` topology audit → **PASSED** (120 steps)
+
+### Commits (branch `001-implement-cli-bootstrap-and-config`)
+| Commit | Note |
+| --- | --- |
+| `d2fec98` | `feat(001): implement CLI bootstrap & configuration` |
+| `2547320` | `docs(001): reword no-network guard to capability semantics (owner ratification)` |
+| `defd416` | `refactor(001): address PR #6 review — single resolver, one guard, test isolation` |
+| *(this commit)* | `fix(001): review nits + record F4/F9 durably (STATUS + daily log)` |
+
+### Open items (non-blocking) — **recorded durably in `STATUS.md`**
+- **F4** — `--json` without `-d` (silent no-op): decide usage-error **vs.** documented no-op (PM + `/axb-dsl-refine`, `usage/dsl.md`) — **next slice**.
+- **F9** — unit tests for `internal/{cli,config,home}`, **reframed** against D5 (complementary, not contradictory) — **next slice** (`/axb-technical-research`).
+- Pre-existing: exact `-d --json` values, exit-code numeric values, `NFR-004` wording, unchecked-error coverage.
+
+### Next steps
+1. **Merge PR #6** into `001-cli-bootstrap-and-config`.
+2. Run **`SESSION-CLOSEOUT.md`** (STATUS + daily log) → two-step propagation `working → dev → main`.
+3. **Next slice**: carry **F4** (PM acceptance rule + `usage/dsl.md`) and **F9** (D5 re-decision); fold the 3 nits' pass.
+
+### PM follow-ups
+- None new this session (`spec.md` / acceptance unchanged; PM-1..PM-4 remained closed). **Note for next slice:** F4 will require a **PM acceptance rule**.
+
+### Closeout (end of session 11)
+- **Merged**: PR [#6](https://github.com/gosharplite/tellme/pull/6) → `001-cli-bootstrap-and-config` (merge commit `62f217f`); the head branch `001-implement-cli-bootstrap-and-config` was **deleted** (remote + local); local synced via `git fetch --prune` + fast-forward.
+- **Quality gates**: `gofmt -l .` clean · `go vet ./...` clean · `staticcheck ./...` clean · `make verify` OK · `go test -count=1 ./...` green · godog **19/19** · topology audit PASSED · secret scan clean.
+- **Propagation**: two-step merge `working → dev → main` (no-ff) — **DONE**; `STATUS.md` propagation blockquote appended.
+- **Handoff**: **round 001 delivered / frozen** — later rounds must not modify `specs/plans/001-cli-bootstrap-and-config/**`. Active branch `001-cli-bootstrap-and-config`; **next session starts a fresh `002-*` plan package** carrying **F4** (PM acceptance rule + `/axb-dsl-refine` `usage/dsl.md`) and **F9** (D5 re-decision for pure-helper unit tests).
