@@ -318,3 +318,9 @@ Executed `/axb-implement` as a One-Shot over the delivered 63-task plan, opened 
 
 ### PM follow-ups
 - None new this session (`spec.md` / acceptance unchanged; PM-1..PM-4 remained closed). **Note for next slice:** F4 will require a **PM acceptance rule**.
+
+### Closeout (end of session 11)
+- **Merged**: PR [#6](https://github.com/gosharplite/tellme/pull/6) → `001-cli-bootstrap-and-config` (merge commit `62f217f`); the head branch `001-implement-cli-bootstrap-and-config` was **deleted** (remote + local); local synced via `git fetch --prune` + fast-forward.
+- **Quality gates**: `gofmt -l .` clean · `go vet ./...` clean · `staticcheck ./...` clean · `make verify` OK · `go test -count=1 ./...` green · godog **19/19** · topology audit PASSED · secret scan clean.
+- **Propagation**: two-step merge `working → dev → main` (no-ff) — **DONE**; `STATUS.md` propagation blockquote appended.
+- **Handoff**: **round 001 delivered / frozen** — later rounds must not modify `specs/plans/001-cli-bootstrap-and-config/**`. Active branch `001-cli-bootstrap-and-config`; **next session starts a fresh `002-*` plan package** carrying **F4** (PM acceptance rule + `/axb-dsl-refine` `usage/dsl.md`) and **F9** (D5 re-decision for pure-helper unit tests).

@@ -1,8 +1,8 @@
 # tellme — Status
 
-**Last updated**: 2026-09-11 (**session 11 — round-001 implementation delivered**: `/axb-implement` One-Shot executed over the 63-task plan — **all 63 tasks `[X]`**; `cmd/tellme` + `internal/{cli,config,home}` + `tests/e2e` godog suite (45 step files). PR [#6](https://github.com/gosharplite/tellme/pull/6) opened from `001-implement-cli-bootstrap-and-config` → `001-cli-bootstrap-and-config`. Architecture review **approved** (round 1: findings F1–F9; round 2: verified closed at `defd416`): now-set **F1+F8 / F2 / F3** + in-area **F5 / F6 / F7** fixed; 3 nits fixed; **F4 / F9 deferred & recorded** (Open items). `make verify` OK · godog **19/19 scenarios · 135/135 steps** · topology audit PASSED. *Prior — session 10: upstream grill-#5 closeout; session 9: `/axb-tasks` (63 tasks).* Next = **merge PR #6 → `SESSION-CLOSEOUT.md` → propagate `working → dev → main`**)
+**Last updated**: 2026-09-11 (**session 11 closeout — round-001 implementation delivered & propagated**: `/axb-implement` One-Shot (63/63 tasks `[X]`) merged via **PR [#6](https://github.com/gosharplite/tellme/pull/6)** (merge commit `62f217f`; merged into `001-cli-bootstrap-and-config`, head branch deleted); review **approved** (F1+F8 / F2 / F3 + F5 / F6 / F7 + 3 nits fixed; **F4 / F9 deferred & recorded**); `make verify` OK · godog **19/19** · topology audit PASSED; two-step propagation `working → dev → main` **DONE**; `SESSION-CLOSEOUT.md` executed. *Prior — session 10: upstream grill-#5 closeout.* **Round 001 delivered / frozen**; next = **fresh `002-*` slice** (carry **F4** + **F9**))
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
-**Active branch**: `001-implement-cli-bootstrap-and-config` (PR [#6](https://github.com/gosharplite/tellme/pull/6)) → `001-cli-bootstrap-and-config` → `dev` → `main`
+**Active branch**: `001-cli-bootstrap-and-config` (session working branch; PR [#6](https://github.com/gosharplite/tellme/pull/6) **merged** — its head branch `001-implement-cli-bootstrap-and-config` is deleted) → `dev` → `main`
 **Daily log**: [`docs/2026/09/11/session-summary.md`](docs/2026/09/11/session-summary.md)
 
 ## Branch model
@@ -11,8 +11,9 @@
 | --- | --- | --- |
 | `main` | merged up from `dev` | Stable / released line |
 | `dev` | merged up from the working branch | Integration line (round work lands here before `main`) |
-| `001-implement-cli-bootstrap-and-config` | session tip (moves per commit) | This session's working branch (PR [#6](https://github.com/gosharplite/tellme/pull/6)) |
-| `001-cli-bootstrap-and-config` | PR base | The round's session branch — PR #6 merges here, then the two-step merge carries it `→ dev → main` |
+| `001-cli-bootstrap-and-config` | session working branch (moves per commit) | This session's working branch — PR [#6](https://github.com/gosharplite/tellme/pull/6) merged into it, then the two-step merge carries it `→ dev → main` |
+
+> `001-implement-cli-bootstrap-and-config` (the PR #6 head branch) was **merged into `001-cli-bootstrap-and-config` and deleted** (remote + local) at the session-11 closeout.
 
 > **Heads are intentionally not pinned here** — the working branch is the moving tip and every commit
 > on it is followed by the two-step merge `working → dev → main`. Read live heads with
@@ -26,6 +27,12 @@
 > `working → dev → main` carried the session-10 closeout (upstream grill-#5 resolution, `tellme#5`
 > closure, daily-log §13) to `dev` and `main`. All three lines now carry the round-001 artifacts
 > through the session-10 closeout.
+>
+> **Propagation status (2026-09-11, session 11):** **DONE** (user-approved). The two-step merge
+> `working → dev → main` carried the session-11 closeout (round-001 implementation delivered via
+> PR [#6](https://github.com/gosharplite/tellme/pull/6), review findings addressed, F4/F9 recorded) to
+> `dev` and `main`. All three lines now carry the round-001 artifacts through the session-11 closeout;
+> **round 001 is delivered / frozen.**
 
 ## Current round — `001-cli-bootstrap-and-config`
 
@@ -68,7 +75,7 @@
 `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` (+ **grill round #1**, **clarify**) →
 `/axb-system-analysis` **(done — `plan.md`, revised by grill round #2)** → `/axb-data-plan`
 **(done — NOOP, grill #3 + ratification)** → `/axb-dsl-refine` **(done — CLI executable contract;
-audit PASSED; W2/D2 re-decided → fold)** → `/axb-tasks` **(done — `tasks.md`, 63 tasks, grill #5 closed, Q5 truth fix landed, orphan sweep passed)** → **`/axb-implement` (done — 63/63 tasks `[X]`; PR #6 review approved)** → **next: merge PR #6 → `SESSION-CLOSEOUT.md` → propagate `working → dev → main`**.
+audit PASSED; W2/D2 re-decided → fold)** → `/axb-tasks` **(done — `tasks.md`, 63 tasks, grill #5 closed, Q5 truth fix landed, orphan sweep passed)** → **`/axb-implement` (done — 63/63 tasks `[X]`; PR [#6](https://github.com/gosharplite/tellme/pull/6) review approved; merged via `62f217f`) → round 001 delivered / frozen → `SESSION-CLOSEOUT.md` executed → two-step propagation `working → dev → main` done**. **Next: a fresh `002-*` slice** (carry **F4** + **F9**).
 
 **Pending decision:** *(none)* the **grill round on `plan.md`** ran as **grill round #2** (6/6,
 verdict *proceed with changes*); its edit set is applied. **All gates cleared:** the two PM acceptance
@@ -329,3 +336,4 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
   `python3` (script at `$TELL_ME_HOME/docs/skills/axb-gherkin-and-dsl/scripts/`); `uv` is present.
 - **2026-09-11 (session 8)**: upstream `aixbdd-tmg` [PR #7](https://github.com/gosharplite/aixbdd-tmg/pull/7) (R1 — atomicity entailment criterion + ADR mechanism) and [PR #8](https://github.com/gosharplite/aixbdd-tmg/pull/8) (R2 — Project Language clause) read and confirmed **merged**; local skill copies under `$TELL_ME_HOME/docs/skills/` verified **synced** with both. Created tellme's `decisions/` ADR home (project language).
 - **2026-09-11 (session 10)**: upstream `aixbdd-tmg` [PR #11](https://github.com/gosharplite/aixbdd-tmg/pull/11) (grill-#5 [#9](https://github.com/gosharplite/aixbdd-tmg/issues/9) — Zero Shared Edits + ParallelHint concurrency arbitration, ADR 0003) and [PR #12](https://github.com/gosharplite/aixbdd-tmg/pull/12) (grill-#5 [#10](https://github.com/gosharplite/aixbdd-tmg/issues/10) — Pre-Delivery Orphan Coverage Sweep, ADR 0004) read and confirmed **merged**; `tellme` round-001 `tasks.md` verified **already conformant** (45 independent per-task stepdef files; orphan sweep 19/19 PASSED) — **no artifact change required**. `SESSION-BOOTSTRAP.md` re-executed; active branch `001-cli-bootstrap-and-config` confirmed current. `tellme` [#5](https://github.com/gosharplite/tellme/issues/5) closed as completed; `SESSION-CLOSEOUT.md` executed.
+- **2026-09-11 (session 11)**: `/axb-implement` One-Shot delivered round 001 (63/63 tasks). **PR [#6](https://github.com/gosharplite/tellme/pull/6)** opened from `001-implement-cli-bootstrap-and-config`, run through **4 architecture-review rounds** (F1–F9 → fixed/deferred; N1–N4 → fixed), and **merged** into `001-cli-bootstrap-and-config` (merge commit `62f217f`). The head branch was **deleted** (remote + local); local synced via `git fetch --prune` + fast-forward. Two-step propagation `working → dev → main` performed. QA tools: `gofmt`/`go vet`/`staticcheck`/`make verify`/`go test` + the `axb-gherkin-and-dsl` topology audit (`python3`) + a secret scan.
