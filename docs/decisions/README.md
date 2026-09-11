@@ -15,7 +15,7 @@ Typo- and editorial-only fixes do not need an ADR.
 
 ## Naming & lifecycle
 
-- One file per decision: `decisions/NNNN-<kebab-slug>.md`, zero-padded, ascending.
+- One file per decision: `docs/decisions/NNNN-<kebab-slug>.md`, zero-padded, ascending.
 - `Status` is one of `Proposed` / `Accepted` / `Superseded by NNNN` / `Rejected`.
 - Immutable once `Accepted` (except the `Status` line and this index) — supersede with a new ADR
   rather than rewriting history.

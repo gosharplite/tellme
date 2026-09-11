@@ -24,7 +24,7 @@
 | **5** | List all pre-load skills | Inventory and inspect all pre-loaded skills in the current session context to establish operational capabilities and governance boundaries |
 | **6** | List all agents you can talk to in current shell env | Discover peer agents and personas in the current workspace (`$TELL_ME_HOME/configs/*.yaml`), identify self (`$TELL_ME_MODE`), and map available conversational targets per `tmg-chat-ingroup` |
 | **7** | Read [`STATUS.md`](STATUS.md), then align to the active branch | Live session state — current round / active plan package and its pipeline position, the branch model (`main` → `dev` → session branch), decisions locked so far, artifact progress, and open items. Then run `git branch --show-current`; if it is **not** the **Active branch** named in `STATUS.md`, `git checkout` that branch before doing any work, so the round's artifacts are present |
-| **8** | Read the **session summary of the last 5 days** | Session continuity — read `docs/<YYYY>/<MM>/<DD>/session-summary.md` for the current day and the preceding 4 calendar days to inherit what recent sessions did, decisions locked, artifact progress, and open items. Skip any calendar day with no summary file |
+| **8** | Read the **session summary of the last 5 days** | Session continuity — read `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` for the current day and the preceding 4 calendar days to inherit what recent sessions did, decisions locked, artifact progress, and open items. Skip any calendar day with no summary file |
 
 Only after Steps 1, 2, 3, 4, 5, 6, 7, and 8 are complete and results are reported may the agent respond to user tasking.
 
@@ -95,11 +95,11 @@ Read the repo-root `STATUS.md` to establish live session state, then align the w
 ### 6. Recent Session Summaries (Step 8 Details)
 
 Read the per-day session summaries for the **last 5 days** to inherit recent session context:
-1. Locate summaries under `docs/<YYYY>/<MM>/<DD>/session-summary.md` (e.g. `docs/2026/09/10/session-summary.md`).
+1. Locate summaries under `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` (e.g. `docs/session-summary/2026/09/10/session-summary.md`).
 2. Read the summary for the **current day and the preceding 4 calendar days** — newest first is fine.
 3. Extract, per day: what was done, decisions locked, artifacts produced, commits, and open items; reconcile against `STATUS.md` (they should agree).
 4. **Skip any calendar day with no `session-summary.md` file** — do not treat a missing day as an error.
-5. Keep it current: maintain the daily summary (`docs/<YYYY>/<MM>/<DD>/session-summary.md`) alongside `STATUS.md` so the next session inherits accurate state.
+5. Keep it current: maintain the daily summary (`docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md`) alongside `STATUS.md` so the next session inherits accurate state.
 
 ---
 
@@ -113,4 +113,4 @@ Read the per-day session summaries for the **last 5 days** to inherit recent ses
 6. **Skill Awareness**: Verify pre-loaded skills before taking action; follow the specific SOP and invariants defined in each active skill.
 7. **In-Group Protocol**: Respect peer agent boundaries and messaging rules defined in `tmg-chat-ingroup` (clear `TELL_ME_MODE`, sequential dispatch, and never message self).
 8. **Session Status Discipline**: Read `STATUS.md` at bootstrap (Step 7) and keep it current — update it at every pipeline phase gate and whenever a decision is locked, so the next session inherits accurate state.
-9. **Session History Continuity**: Read the **session summaries of the last 5 days** at bootstrap (Step 8) — `docs/<YYYY>/<MM>/<DD>/session-summary.md` — to inherit recent context, decisions, artifact progress, and open items before tasking; reconcile them with `STATUS.md` and skip missing days.
+9. **Session History Continuity**: Read the **session summaries of the last 5 days** at bootstrap (Step 8) — `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` — to inherit recent context, decisions, artifact progress, and open items before tasking; reconcile them with `STATUS.md` and skip missing days.
