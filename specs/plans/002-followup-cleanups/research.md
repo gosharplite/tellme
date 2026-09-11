@@ -65,6 +65,26 @@ message/exit-code freeze are **behaviour** (spec + interface truth), not technol
   - **`testify` (assert/require)** — ergonomic, but adds a dependency for trivial equality checks;
     unnecessary at this size.
 
+## SC-003 verification witness (manual, one-time)
+
+`spec.md` **SC-003** requires that the ignored-error gate *fails* on a deliberately introduced unchecked error. That half was **witnessed once, manually** (grill round #6 Q4) — recorded here so it lives in the frozen package, not a PR thread (round-001 SC-004 precedent). A throwaway `internal/home/errcheckwitness_tmp.go` ignoring `os.Chdir`'s error made the gate fail, then it was reverted:
+
+```text
+$ cat internal/home/errcheckwitness_tmp.go        # func ErrcheckWitness() { os.Chdir(".") }   # unchecked error
+$ make lint
+/home/pos/go/bin/golangci-lint run ./...
+internal/home/errcheckwitness_tmp.go:10:10: Error return value of `os.Chdir` is not checked (errcheck)
+        os.Chdir(".")
+                ^
+1 issues:
+* errcheck: 1
+make: *** [Makefile:61: lint] Error 1             # exit 2
+$ rm internal/home/errcheckwitness_tmp.go && make verify   # clean-tree run
+verify: OK                                        # golangci-lint 0 issues; govulncheck: no vulnerabilities
+```
+
+On the clean tree `make verify` → **OK** (golangci-lint 0 issues; govulncheck no vulnerabilities).
+
 ## Residual risks / forward links
 
 - The `--json` removal **reverses round-001 FR-013**; round-001's plan package stays frozen history. The

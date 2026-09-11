@@ -14,7 +14,7 @@
 | Language | `Go 1.26` | Implementation language for the `tellme` binary |
 | Module path | `github.com/gosharplite/tellme` | Go module identity |
 | Project layout | `cmd/tellme/` + `internal/{config,home,cli}` | Entrypoint plus single-responsibility packages, each owning one FR cluster and one E2E-observable behaviour (separation of concerns; the acceptance strategy is E2E) |
-| CLI flag parsing | `spf13/pflag` | GNU-style flags (`-c/--config`, `-d`, `--version`) and usage-error classification. `--json` was **removed** (round 002) — the system **intentionally diverges** from the reference's documented `-d --json` machine-readable capability (`tell-me-go/README.md:157`) |
+| CLI flag parsing | `spf13/pflag` | GNU-style flags (`-c/--config`, `-d`, `--version`) and usage-error classification. `--json` was **removed** (round 002) — the system **intentionally diverges** from the reference's documented `-d --json` machine-readable capability (`tell-me-go/README.md:157`); the divergence was **accepted to resolve review finding F4** (the flag silently did nothing without `-d`), trading a reference capability for a single honest diagnostic path (full rationale: `specs/plans/002-followup-cleanups/research.md`) |
 | Version injection | `go build -ldflags "-X main.version=…"` | Bake the build version read by `--version`; the `version` var in `cmd/tellme/main.go` is the **only** version symbol and the single injection target |
 
 ### Configuration
