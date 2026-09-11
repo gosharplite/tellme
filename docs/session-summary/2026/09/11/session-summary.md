@@ -407,6 +407,7 @@ A short, **docs/metadata-only** session: re-ran `SESSION-BOOTSTRAP.md` to inheri
 2. **Roadmap discussion** — agreed the next two slices. **Correction surfaced:** the previously-proposed slice **A (effective-provider resolution)** is **already implemented** (round-001 `resolve()` Step 5 `EffectiveSelectedProvider`→`ProviderInRegistry`→provider-mismatch→ config error 3; round-002 **F9** unit tests), so a 003 built on A would be work for frozen behaviour. Re-scoped **003 = provider-registry completeness** (the documented "full config schema" gap in `internal/config/config.go`) → **004 = first reasoning turn (B)**.
 3. **Tracking issues opened** — **[#9](https://github.com/gosharplite/tellme/issues/9)** `003 — Provider-registry completeness (config input contract)` and **[#10](https://github.com/gosharplite/tellme/issues/10)** `004 — First reasoning turn: one prompt → provider → response` (marked **depends on #9**; must **amend the round-001 no-network capability guard**).
 4. **`STATUS.md` updated** — header bump; new `## Roadmap — next slices` section (table linking #9/#10); the round-002 `Next:` pointer retargeted; a decisions-log bullet + an environment note.
+5. **Docs-tree reorganization** — moved `docs/2026` → `docs/session-summary/2026`; **split `STATUS.md`** (live state kept; history archived to `docs/archives/status/2026-09-11.md`); moved `decisions/` → `docs/decisions/`. All references rewritten (incl. relative back-links); committed on `dev` (`3222635`).
 
 ### Decisions log
 | # | Decision | Rationale |
@@ -415,13 +416,14 @@ A short, **docs/metadata-only** session: re-ran `SESSION-BOOTSTRAP.md` to inheri
 | D2 | **004 = first reasoning turn (B)** | the deferred round-001 "Option B" — the first real reasoning capability |
 | D3 | **Slice A dropped (not scheduled)** | already implemented (round 001 + round-002 F9); a round for it would be redundant |
 | D4 | **Track both as GitHub issues** | anchor each round with an issue (the project's grill/PR convention) |
+| D5 | **Docs layout**: session summaries under `docs/session-summary/<YYYY>/<MM>/<DD>/`; `STATUS.md` kept lean with history split into `docs/archives/status/<date>.md`; project ADRs under `docs/decisions/` | keep the live-state file lean and the historical/frozen record archived (one dated snapshot per split) |
 
 ### Verification
-- `git status` — only `STATUS.md` modified; tree otherwise clean; branch `002-followup-cleanups` tracking `origin`. **Placement (option B):** the session-13 docs were re-landed on **`dev`** and `002-followup-cleanups` restored to its delivered tip `21d990a` — no post-round commit stays on the round-002 branch.
+- `git status` — `STATUS.md` + the docs-tree reorg files modified; tree otherwise clean; branch `dev` tracking `origin`. **Placement (option B):** the session-13 docs were re-landed on **`dev`** and `002-followup-cleanups` restored to its delivered tip `21d990a` — no post-round commit stays on the round-002 branch.
 - `gofmt -l .` clean · `go vet ./...` clean · secret scan clean (the lone pattern hit was the config field name `API_KEY` in prose, not a secret).
 
 ### Artifacts
-- GitHub issues **#9**, **#10** (`gosharplite/tellme`); the `STATUS.md` roadmap/decision/env updates; this daily-log §16. **No `specs/**` change; no `truth-delta.md` change.**
+- GitHub issues **#9**, **#10** (`gosharplite/tellme`); the `STATUS.md` roadmap/decision/env updates; this daily-log §16; **docs-tree reorg** — `docs/session-summary/2026/…`, `docs/archives/status/2026-09-11.md`, `docs/decisions/…` (commit `3222635`). **No `specs/**` change; no `truth-delta.md` change.**
 
 ### Next steps
 1. **`/axb-specify` for `003-provider-registry-completeness`** — the issue's five open questions become the round's clarify round.
