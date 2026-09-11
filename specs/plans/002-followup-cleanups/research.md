@@ -80,7 +80,7 @@ internal/home/errcheckwitness_tmp.go:10:10: Error return value of `os.Chdir` is 
 * errcheck: 1
 make: *** [Makefile:61: lint] Error 1             # exit 2
 $ rm internal/home/errcheckwitness_tmp.go && make verify   # clean-tree run
-verify: OK                                        # golangci-lint 0 issues; govulncheck: no vulnerabilities
+verify: OK
 ```
 
 On the clean tree `make verify` → **OK** (golangci-lint 0 issues; govulncheck no vulnerabilities).
