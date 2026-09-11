@@ -15,12 +15,26 @@ func init() {
 	})
 }
 
-// thenExplainsOnStderr (必查 呈現結果): stderr carries a readable message
-// corresponding to {reason}; the reason must not be only on stdout.
+// thenExplainsOnStderr (必查 呈現結果, grill round #6): exactly ONE stderr line
+// begins with the frozen prefix `tellme: `, and that line starts with the
+// frozen class phrase `tellme: {reason}` — the trailing detail (a path, a
+// provider name, an OS error string) is contract-free (prefix, never equality).
 func thenExplainsOnStderr(ctx context.Context, reason string) error {
 	sc := scenarioFrom(ctx)
-	if !strings.Contains(sc.stderr, reason) {
-		return fmt.Errorf("stderr %q does not explain %q", sc.stderr, reason)
+
+	var matched []string
+	for _, line := range strings.Split(sc.stderr, "\n") {
+		if strings.HasPrefix(line, "tellme: ") {
+			matched = append(matched, line)
+		}
+	}
+	if len(matched) != 1 {
+		return fmt.Errorf("want exactly one stderr line prefixed %q, got %d: %q", "tellme: ", len(matched), matched)
+	}
+
+	want := "tellme: " + reason
+	if !strings.HasPrefix(matched[0], want) {
+		return fmt.Errorf("stderr line %q does not start with the frozen class phrase %q", matched[0], want)
 	}
 	return nil
 }

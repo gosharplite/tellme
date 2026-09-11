@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -27,7 +26,6 @@ const (
 type options struct {
 	configPath string
 	diagnostic bool
-	json       bool
 	version    bool
 }
 
@@ -75,7 +73,7 @@ func Run(args []string, version string) int {
 
 	// -d is the reporting path: it always produces a report (Decision 2).
 	if opts.diagnostic {
-		return renderDiagnostic(homeDir, opts.configPath, opts.json)
+		return renderDiagnostic(homeDir, opts.configPath)
 	}
 	return renderBoot(homeDir, opts.configPath)
 }
@@ -87,7 +85,6 @@ func parseFlags(args []string) (opts *options, ok bool) {
 	o := &options{}
 	fs.StringVarP(&o.configPath, "config", "c", "", "Path to the YAML configuration file.")
 	fs.BoolVarP(&o.diagnostic, "diagnostics", "d", false, "Report configuration and home resolution, then exit.")
-	fs.BoolVar(&o.json, "json", false, "Emit machine-readable output for the diagnostic.")
 	fs.BoolVar(&o.version, "version", false, "Print the build version and exit.")
 	if err := fs.Parse(args); err != nil {
 		return nil, false
@@ -178,15 +175,13 @@ func emitBootError(res resolution, rerr *resolveError) int {
 	}
 }
 
-// renderDiagnostic runs the -d path. It always emits a report and returns 0 when
-// resolution succeeded, else the dedicated diagnostic "unresolved" code.
-func renderDiagnostic(homeDir, configPath string, asJSON bool) int {
+// renderDiagnostic runs the -d path. It always emits a plain report and returns 0
+// when resolution succeeded, else the dedicated diagnostic "unresolved" code.
+// Round 002: the machine-readable `--json` form was removed; `--json` is no
+// longer a flag, so any use of it is an unrecognized-flag usage error.
+func renderDiagnostic(homeDir, configPath string) int {
 	res, rerr := resolve(homeDir, configPath)
-	if asJSON {
-		emitDiagnosticJSON(res, rerr)
-	} else {
-		emitDiagnosticText(res, rerr)
-	}
+	emitDiagnosticText(res, rerr)
 	if rerr != nil {
 		return DiagnosticUnresolvedError
 	}
@@ -204,37 +199,6 @@ func emitDiagnosticText(res resolution, rerr *resolveError) {
 	}
 	fmt.Println("configuration: unresolved")
 	fmt.Println("reason: " + rerr.Reason)
-}
-
-// diagnosticJSON is the pinned --json object contract
-// (specs/truth/features/cli/diagnostics/dsl.md). A typed struct keeps a stable
-// key shape (and makes the Marshal error structurally trivial).
-type diagnosticJSON struct {
-	Status           string `json:"status"`
-	Reason           string `json:"reason,omitempty"`
-	RuntimeHome      string `json:"runtime_home,omitempty"`
-	SessionWorkspace string `json:"session_workspace,omitempty"`
-}
-
-// emitDiagnosticJSON writes the pinned structured report.
-func emitDiagnosticJSON(res resolution, rerr *resolveError) {
-	obj := diagnosticJSON{}
-	if rerr == nil {
-		obj.Status = "resolved"
-		obj.RuntimeHome = res.Home
-		obj.SessionWorkspace = res.Workspace
-	} else {
-		obj.Status = "unresolved"
-		obj.Reason = rerr.Reason
-	}
-
-	out, err := json.Marshal(obj)
-	if err != nil {
-		// Structurally unreachable: diagnosticJSON has only string fields.
-		fmt.Fprintln(os.Stderr, "tellme: the diagnostic report could not be produced")
-		return
-	}
-	fmt.Println(string(out))
 }
 
 // defaultConfigPath is the default configuration path for the effective mode
