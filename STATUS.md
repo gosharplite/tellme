@@ -21,10 +21,10 @@
 > 5 ratified decisions) to `dev` and `main`. All three lines now carry the round-001 artifacts through
 > the session-9 closeout.
 >
-> **Propagation status (2026-09-11, session 10):** **PENDING** — the session-10 closeout commit on the
-> working branch `001-cli-bootstrap-and-config` (upstream grill-#5 resolution + issue-#5 closure +
-> closeout) is committed but **not yet pushed/propagated**; awaiting user approval for the two-step
-> merge `working → dev → main`.
+> **Propagation status (2026-09-11, session 10):** **DONE** (user-approved). The two-step merge
+> `working → dev → main` carried the session-10 closeout (upstream grill-#5 resolution, `tellme#5`
+> closure, daily-log §13) to `dev` and `main`. All three lines now carry the round-001 artifacts
+> through the session-10 closeout.
 
 ## Current round — `001-cli-bootstrap-and-config`
 
