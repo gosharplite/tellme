@@ -21,7 +21,7 @@
   - Read:
     - `specs/truth/techstack.md` -> Build & Tooling（Lint aggregator `golangci-lint`（with `errcheck`）；Dependency vulnerability scan `govulncheck`）
     - `specs/plans/002-followup-cleanups/research.md` -> Decision 2
-  - 新增 `.golangci.yml`（至少啟用 `errcheck`），在 `Makefile` 新增 `lint`（`golangci-lint run ./...`，找不到時明確報錯）與 `vulncheck`（`govulncheck ./...`）目標，並將兩者接入 `verify` 與 `check` 聚合目標。
+  - 新增 `.golangci.yml`（至少啟用 `errcheck`），在 `Makefile` 新增 `lint`（`golangci-lint run ./...`，找不到時明確報錯）與 `vulncheck`（`govulncheck ./...`）目標，並將兩者接入 `verify` 聚合目標（本倉庫無 `check` 目標）。
   - 工具解析沿用既有慣例（`command -v` + `$GOPATH/bin` fallback），不引入新的安裝步驟。
 
 - [X] T002 Gate smoke-test
@@ -189,8 +189,10 @@
 | `specs/truth/techstack.md` -> Test strategy（E2E acceptance path + pure-helper unit tests） | T003、T013、T014 (Foundational / Phase 3) | PASS |
 | `specs/truth/techstack.md` -> CLI flag list（`--json` removed） | T016 (Phase 4A) | PASS |
 | `truth-delta.md` -> `/axb-dsl-refine` DELETE（diagnostics `--json` 3 句） | T004–T006 (Phase 3) + T016 (Phase 4A) | PASS |
-| `truth-delta.md` -> `/axb-dsl-refine` ADD（usage `--json` 1 句） | T007 (Phase 3) + T016 (Phase 4A) | PASS |
+| `truth-delta.md` -> `/axb-dsl-refine` ADD（usage：3 個 `--json` rejection Examples + 2 個 supporting When rows） | T007 + T020 (Phase 3) + T016 (Phase 4A) | PASS |
 | `truth-delta.md` -> `/axb-dsl-refine` MODIFY（root 訊息 + 4 退出碼 row） | T008–T012 (Phase 3) + T018 (Phase 4B) | PASS |
+| `specs/truth/features/cli/dsl.md` -> root `Then` row class-phrase vocabulary（grill #6） | T008 (Phase 3) + T015 (review) | PASS |
+| `specs/truth/techstack.md` -> "CLI flag parsing" divergence annotation（grill #6） | T001 (Setup) | PASS |
 | `research.md` -> Decision 1（E2E acceptance path + pure-helper unit tests） | T003、T013、T014 | PASS |
 | `research.md` -> Decision 2（adopt `golangci-lint` + `govulncheck` + `.golangci.yml`） | T001、T002 (Setup) | PASS |
 | `research.md` -> Decision 3（stdlib `testing`, table-driven） | T003、T013、T014 | PASS |
@@ -217,3 +219,19 @@ Applied after the PR #7 architectural review (`#issuecomment-5630046711`):
 - [X] T020 [P] [BDD-RED] `When: the operator starts tellme with "--version" and the unrecognized flag "--json"`
   - Read: `specs/truth/features/cli/usage/dsl.md` -> `the operator starts tellme with "--version" and the unrecognized flag "--json"`
   - Landing: `tests/e2e/steps/step_t020_usage_when_version_and_json.go`
+
+---
+
+## Post-grill amendments (Grill Round #6, 2026-09-11)
+
+Applied after the adversarial `griller` round on PR #7 (issue [#8](https://github.com/gosharplite/tellme/issues/8); verdict **proceed with changes**; transcript gist <https://gist.github.com/gosharplite/a9042dd85a246bd667de2bb40a6226fc>).
+
+- **Q1/Q2 (message-freeze granularity)** — the freeze is a **class phrase** (`tellme: {phrase}`), the tail contract-free; `step_t017` now requires **exactly one** `tellme: `-prefixed stderr line **and** a prefix match; the root `dsl.md` row carries the seven-phrase vocabulary.
+- **Q3 (ADR / divergence)** — no rule owes an ADR; the reference divergence is recorded in `research.md` + the `truth-delta` DELETE Reason + the `techstack` "CLI flag parsing" row.
+- **Q4 (CI)** — "fails CI" retracted; the gate is the **manual** `make verify` (`SESSION-CLOSEOUT.md`); CI recorded as a future-package candidate; SC-003 satisfied by a **recorded manual witness**; `make check` → `make verify`.
+- **Q5 (certification re-opened)** — the `truth-delta` ADD row + this sweep are refreshed to the post-N2 counts; T015 + `make verify` are re-run on the post-fix head.
+- **Q6 (boundary)** — the `spec.md` rewording was applied **PM-first** (butler-as-PM, `spec-pm-authored`); the RD-side edits followed.
+
+- [X] T021 (PM — butler-as-PM) reword `spec.md` FR-004/FR-006 + SC-002/SC-003 + the US2 scenarios to the class-phrase contract
+- [X] T022 (RD) `dsl.md` root-row class-phrase vocabulary + `step_t017` count==1 & prefix + `research.md` divergence + `make check`→`make verify` + `truth-delta` ADD/Reason + `techstack` annotation + `tasks.md` T001 fix
+- [X] T023 (re-certify) re-run the Orphan Sweep + T015 + `make verify` (with the SC-003 manual witness) on the post-fix head

@@ -12,6 +12,8 @@ message/exit-code freeze are **behaviour** (spec + interface truth), not technol
 `spec.md` and `specs/truth/features/cli/**`, so the only techstack row they touch is the CLI flag list
 (reconciled here).
 
+**Capability divergence (deliberate).** The `--json` diagnostic flag is removed to resolve review finding F4; this **accepts divergence from the reference's documented `-d --json` machine-readable capability** (`tell-me-go/README.md:157` / `:159`). The removal is a user-ratified `DELETE` (clarify Q1) and is recorded in `truth-delta.md`; the standing `techstack.md` "CLI flag parsing" row carries the same note so a future reader finds *why* tellme lacks a capability the reference ships.
+
 ## Decision 1: Test strategy — E2E acceptance path plus fast unit tests for pure helpers (amends round-001 Decision 5)
 
 - **Decision**: Keep round-001's **E2E black-box** strategy as the *acceptance* path, and **add
@@ -35,7 +37,7 @@ message/exit-code freeze are **behaviour** (spec + interface truth), not technol
 
 - **Decision**: Adopt **`golangci-lint`** — with **`errcheck`** enabled — as the lint **aggregator**
   gate, and **`govulncheck`** as the **dependency-vulnerability** gate. Both are wired into the Makefile
-  (`make verify` / `make check`) and require a small committed **`.golangci.yml`** policy artifact.
+  (`make verify`) and require a small committed **`.golangci.yml`** policy artifact.
 - **Rationale**: round-001 Decision 7 deferred both — naming `golangci-lint` the *"intended next-slice
   aggregator"* — and logged an explicit **unchecked-error residual**: the code does file/YAML I/O
   (`os.ReadFile`, `yaml.Unmarshal`, `os.Stat`, `os.MkdirAll`), and `staticcheck` does **not** cover
@@ -73,5 +75,6 @@ message/exit-code freeze are **behaviour** (spec + interface truth), not technol
   the aggregator was precisely "a curated policy artifact").
 - Whether the unit layer should later extend to `internal/cli`'s flag parsing is **deferred**; this
   round covers only the pure resolution helpers (F9's stated scope).
-- The exact stderr strings and numeric exit-code values are frozen by this round as **interface
-  contract** (recorded in `specs/truth/features/cli/**` by `/axb-dsl-refine`), not here.
+- The frozen stderr **class phrases** (`tellme: {phrase}`; the tail is contract-free) and the numeric
+  exit-code values are recorded as **interface contract** (in `specs/truth/features/cli/**` by
+  `/axb-dsl-refine`), not here.

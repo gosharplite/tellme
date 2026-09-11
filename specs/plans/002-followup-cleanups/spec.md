@@ -10,6 +10,8 @@
 
 *(Revision note: this round **reverses round-001 FR-013** by removing the `--json` diagnostic flag — a user-ratified `DELETE`. The frozen round-001 package `specs/plans/001-cli-bootstrap-and-config/**` is left untouched as history; this round supersedes the behavior in `specs/truth/**`.)*
 
+*(Revision — **grill round #6** (issue [#8](https://github.com/gosharplite/tellme/issues/8)), 2026-09-11: the failure-message freeze is a **class phrase** (`tellme: {phrase}`), **not** a verbatim line — the trailing detail (a path, a provider name, an OS error string) is contract-free. FR-004/FR-006 and SC-002/SC-003 are reworded accordingly, and the class list is reconciled to the eight emitted `tellme:` forms (seven classes — the two "runtime home" forms share one phrase; the "workspace path is not a directory" form is added). SC-003's "fails on a deliberately introduced ignored error" is now a **recorded manual witness**. Grill verdict: *proceed with changes*.)*
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A single, well-defined diagnostic output (remove `--json`) (Priority: P1)
@@ -49,15 +51,15 @@ As an operator or script author, I want tellme's failure messages and numeric ex
 
 **Acceptance Scenarios**:
 
-1. **Given** a setup that fails in a documented way, **When** I run tellme, **Then** stderr matches the documented message for that failure class exactly.
+1. **Given** a setup that fails in a documented way, **When** I run tellme, **Then** stderr carries the documented **class phrase** for that failure class — its `tellme: {phrase}` line — and emits no other `tellme: `-prefixed line.
 2. **Given** a setup that fails in a documented way, **When** I run tellme, **Then** the process exits the documented numeric code for that class.
-3. **Given** the documented operator-facing contract, **When** the acceptance tests run, **Then** each documented message and code is asserted verbatim (not merely "contains a reason").
+3. **Given** the documented operator-facing contract, **When** the acceptance tests run, **Then** each documented **class phrase** and each exit code is asserted — the class phrase as the `tellme: {phrase}` prefix of exactly one stderr line, and the code as the pinned numeric value.
 
 **Functional Requirements**:
 
-- **FR-004**: The system MUST emit fixed, exact operator-facing stderr messages for each failure class: missing configuration named via `-c`; missing default configuration; configuration that cannot be parsed; selected provider not in the registry; runtime home not usable; runtime home unset; invalid command-line usage.
+- **FR-004**: The system MUST emit a fixed, exact operator-facing stderr **class phrase** for each failure class — the line beginning `tellme: ` that names the class. Any class-specific trailing detail (a path, a provider name, an OS error string) is **not part of the frozen contract**. The frozen class phrases are: `the configuration could not be found` (missing via `-c`); `no configuration could be found` (missing default); `the configuration could not be parsed`; `the selected provider is not in the registry`; `the workspace path is not a directory`; `the runtime home is not usable` (a single class covering both the *not usable* and the *unset* paths); and `the command-line usage is invalid`.
 - **FR-005**: The system MUST use fixed numeric exit codes for: success, usage error, configuration error, environment error, and diagnostic "unresolved".
-- **FR-006**: The fixed messages and exit-code values MUST be recorded as the operator-facing contract and asserted verbatim by the acceptance set.
+- **FR-006**: The fixed **class phrases** and the exit-code values MUST be recorded as the operator-facing contract and asserted at **class-phrase granularity** by the acceptance set — each failure class's stderr line MUST begin `tellme: {phrase}`; the trailing detail is not asserted.
 
 **Non-Functional Requirements**:
 
@@ -70,7 +72,7 @@ As an operator or script author, I want tellme's failure messages and numeric ex
 - When `--json` appears together with any other flag (including `-d` and `--version`), it MUST be a usage error.
 - When an operator asks for machine-readable output by any means, the system MUST NOT emit JSON on the diagnostic path (the capability no longer exists) and MUST NOT silently fall back to another path.
 - When more than one failure class could apply, the documented round-001 resolver precedence MUST determine the single message and code emitted.
-- When a documented message or exit code changes in a later round, the contract and its verbatim assertions MUST change together.
+- When a documented **class phrase** or exit code changes in a later round, the contract and its class-phrase assertions MUST change together.
 
 ## Requirements *(mandatory)*
 
@@ -89,7 +91,7 @@ As an operator or script author, I want tellme's failure messages and numeric ex
 
 - **Diagnostic contract**: the single plain output form of `-d` (resolved / unresolved) and its retained exit behavior; there is no machine-readable form.
 - **Exit-code contract**: the fixed numeric code table — success, usage error, configuration error, environment error, diagnostic "unresolved".
-- **Operator-facing message catalog**: the fixed stderr strings, one per failure class.
+- **Operator-facing message catalog**: the fixed stderr **class phrases**, one per failure class (the frozen prefix `tellme: {phrase}`; the trailing detail is contract-free).
 - Round 002 adds no `contracts/**` (no API surface) and no `data/**` model — it is CLI-end behavior owned by `/axb-dsl-refine` under `specs/truth/features/cli/**`.
 
 ## Success Criteria *(mandatory)*
@@ -97,8 +99,8 @@ As an operator or script author, I want tellme's failure messages and numeric ex
 ### Measurable Outcomes
 
 - **SC-001**: In the acceptance set, 100% of `--json` invocations (alone or with `-d`) exit with the usage-error code, and `-d` without `--json` still reports resolved and unresolved correctly.
-- **SC-002**: In the acceptance set, 100% of documented failure messages and exit codes match the running binary verbatim.
-- **SC-003**: The pure resolution rules are covered by unit tests, and the verification suite fails on a deliberately introduced ignored error and passes on the clean tree.
+- **SC-002**: In the acceptance set, 100% of documented failure **class phrases** are asserted as the `tellme: {phrase}` prefix of the failure's stderr line (with **exactly one** `tellme: `-prefixed line emitted per failing run), and 100% of documented exit codes match the running binary.
+- **SC-003**: The pure resolution rules are covered by unit tests; `make verify` passes on the clean tree; and the ignored-error gate (`errcheck`, via `make lint`) exits non-zero on a deliberately introduced unchecked error — **witnessed once, manually, and recorded in the round's evidence** (round-001 SC-004 shape).
 
 ## Assumptions
 
