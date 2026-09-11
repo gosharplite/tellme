@@ -11,7 +11,8 @@
 | --- | --- | --- |
 | `main` | merged up from `dev` | Stable / released line |
 | `dev` | merged up from the working branch | Integration line (round work lands here before `main`) |
-| `001-cli-bootstrap-and-config` | session tip (moves per commit) | This session's working branch |
+| `001-implement-cli-bootstrap-and-config` | session tip (moves per commit) | This session's working branch (PR [#6](https://github.com/gosharplite/tellme/pull/6)) |
+| `001-cli-bootstrap-and-config` | PR base | The round's session branch — PR #6 merges here, then the two-step merge carries it `→ dev → main` |
 
 > **Heads are intentionally not pinned here** — the working branch is the moving tip and every commit
 > on it is followed by the two-step merge `working → dev → main`. Read live heads with
