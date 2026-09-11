@@ -13,9 +13,9 @@ CLI executable contract authored (4 modules) + corrected (grill #4). **Session 8
 both host-rule residuals from upstream (**R1** → [aixbdd-tmg PR #7](https://github.com/gosharplite/aixbdd-tmg/pull/7), **R2** → [PR #8](https://github.com/gosharplite/aixbdd-tmg/pull/8)),
 applied the tellme follow-ups (project-language home `decisions/0001-project-language.md`; **W2/D2
 re-decided → fold**, recorded as **NOOP**), and reconciled `spec.md` / `plan.md` / `research.md` to the
-ratified `data/**` NOOP. **Next: `/axb-tasks`** (`/axb-implement` after that).
+ratified `data/**` NOOP. **Session 9** delivered `tasks.md` (63 tasks; grill #5 closed; pre-delivery orphan-coverage sweep **19/19 PASSED**). **Session 10** closed the two upstream methodology issues grill #5 routed ([aixbdd-tmg#9](https://github.com/gosharplite/aixbdd-tmg/issues/9) → [PR #11](https://github.com/gosharplite/aixbdd-tmg/pull/11) / ADR 0003; [#10](https://github.com/gosharplite/aixbdd-tmg/issues/10) → [PR #12](https://github.com/gosharplite/aixbdd-tmg/pull/12) / ADR 0004), verified round-001 `tasks.md` **already conformant** (no artifact change), and **closed [`tellme#5`](https://github.com/gosharplite/tellme/issues/5)** as completed. No product code written yet. **Next: `/axb-implement`** (Phase 1 Setup, T001–T003).
 
-> **Three sessions this day** — session 7 (the seventh), session 8 (the eighth), and session 9 (the ninth; session 6 closed 2026-09-10). All are captured below (§1–§10 = session 7; §11 = session 8; §12 = session 9).
+> **Four sessions this day** — session 7 (the seventh), session 8 (the eighth), session 9 (the ninth), and session 10 (the tenth — upstream grill-#5 resolution + issue closure + closeout; session 6 closed 2026-09-10). All are captured below (§1–§10 = session 7; §11 = session 8; §12 = session 9; §13 = session 10).
 
 ---
 
@@ -229,3 +229,44 @@ The session executed `/axb-tasks` to generate the round's execution control plan
 - `tasks.md` is **DELIVERED** (63 tasks, orphan sweep 19/19 PASSED).
 - **Propagation** — session-9 closeout: `working → dev → main` **DONE** (user-approved).
 - Next: **`/axb-implement`** (starting with Phase 1 Setup: T001–T003).
+
+---
+
+## 13. Session 10 — upstream grill-#5 resolution, issue closure & closeout
+
+A coordination + closeout session: read the two upstream PRs that resolve grill #5's routed issues, verified `tellme` conformance, closed the round's tracking issue, and executed `SESSION-CLOSEOUT.md`.
+
+### Work done
+
+1. **Read both upstream PRs** (both **merged** to `aixbdd-tmg` `main`):
+   - **[PR #11](https://github.com/gosharplite/aixbdd-tmg/pull/11)** (closes [#9](https://github.com/gosharplite/aixbdd-tmg/issues/9)) — ParallelHint concurrency arbitration + **Zero Shared Edits** (`axb-tasks` Rule 5, `SHOULD`) + **ADR 0003**; rule file **renamed** `ParallelHint平行Subagent與衝突Merge判準.md` → `ParallelHint平行Subagent與同檔調度判準.md`; the "後寫入者自己 merge" contradiction removed; disjoint files → parallel dispatch, shared files → serialized/grouped; review is **audit-only**.
+   - **[PR #12](https://github.com/gosharplite/aixbdd-tmg/pull/12)** (closes [#10](https://github.com/gosharplite/aixbdd-tmg/issues/10)) — mandatory **Pre-Delivery Orphan Coverage Sweep** in `axb-tasks` Phase 5 + **ADR 0004** (non-NOOP `truth-delta.md` rows / decided `research.md` Decisions / changed `techstack.md` sections must be task-`Read`-covered or task-delivered; NOOP + empty-set exempt; otherwise delivery is blocked).
+2. **Verified `tellme` conformance** (**no artifact change**): round-001 `tasks.md` already embodies both — Phase 3 lands **45 independent per-task stepdef files** (the Zero Shared Edits pattern; Parallel Hint T010–T054 dispatched in parallel, review T055 last); its **Pre-Delivery Orphan Coverage Sweep** section passed **19/19**; no stale reference to the renamed rule file.
+3. **`STATUS.md` closeout** — refreshed the live-state header, added a new **"Upstream — grill #5 methodology resolution (session 10, CLOSED)"** section indexing **ADR 0003/0004**, marked the grill-#5 status line + decisions-log + open-items bullets resolved, and added a session-10 environment note.
+4. **Closed [`tellme#5`](https://github.com/gosharplite/tellme/issues/5)** (Grill Round #5) as **completed** — after confirming all findings landed (`tasks.md` delivered, Q5 truth fix via `/axb-dsl-refine`, orphan sweep 19/19) and both routed upstream issues resolved; posted a closing summary comment.
+5. **Executed `SESSION-CLOSEOUT.md`** (Steps 1–7).
+
+### Decisions log
+
+| # | Decision | Rationale |
+| --- | --- | --- |
+| D1 | **No `tellme` artifact change** from PR #11/#12 | round-001 `tasks.md` already conformant (Zero Shared Edits + sweep 19/19); the PRs are upstream rule/template changes |
+| D2 | **Close `tellme#5` as completed** | grill-#5 findings applied, `tasks.md` delivered, and the routed upstream issues (#9/#10) are resolved |
+| D3 | **Closeout = docs-only gate** (link check + secret scan) | no product code has landed this round; `gofmt`/`go vet` apply once `/axb-implement` starts |
+
+### Commits (working branch `001-cli-bootstrap-and-config`)
+
+| Commit | Note |
+| --- | --- |
+| `d5d7d63` | docs(001): upstream grill-#5 closeout — #9/#10 resolved by PR #11/#12, ADR 0003/0004 indexed |
+| *(session-10 closeout)* | session-10 daily-log §13 + `STATUS.md` issue-#5 closure + closeout edits |
+
+### Open items (non-blocking)
+
+- Unchanged (§9): exact `-d --json` **values**, exit-code numeric values, `NFR-004` wording, unchecked-error coverage (next slice).
+- **Propagation** — session-10 closeout: two-step merge `working → dev → main` — pending unless the user approves (see closeout Step 7).
+
+### Next steps
+
+1. **`/axb-implement`** — one-shot over the delivered 63-task plan, starting with Phase 1 Setup (T001–T003) → Phase 2 → Phase 3 (aligned, per-task stepdef files) → Phase 4A–4D.
+2. Propagate the working branch `→ dev → main` once approved.
