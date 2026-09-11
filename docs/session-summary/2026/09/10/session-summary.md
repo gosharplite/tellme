@@ -2,7 +2,7 @@
 
 **Project**: `tellme` — a disciplined BDD re-creation of `tell-me-go`
 **Repo**: `github.com/gosharplite/tellme`
-**Status file**: [`STATUS.md`](../../../STATUS.md) *(back-link — the single live-state source)*
+**Status file**: [`STATUS.md`](../../../../../STATUS.md) *(back-link — the single live-state source)*
 **Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`)
 **Session mode**: `butler` — working directly with the user (no `pm`/`rd` delegation this phase)
 **Branches**: working `001-cli-bootstrap-and-config` → `dev` → `main`
@@ -321,7 +321,7 @@ stateful in **both** directions — the start-of-session read and the end-of-day
 ### Work done
 
 1. **Bootstrap gains Step 8** — `SESSION-BOOTSTRAP.md` now reads the **session summary of the last 5
-   days** (`docs/<YYYY>/<MM>/<DD>/session-summary.md`, current day + preceding 4) to inherit recent
+   days** (`docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md`, current day + preceding 4) to inherit recent
    context, decisions, artifact progress, and open items. Added: the Step 8 table row, the completion
    gate update ("Steps 1–8"), the END-OF-FILE order update, a new **§6 "Recent Session Summaries (Step 8
    Details)"** mapping section, and **Agent Rule 9 — Session History Continuity**.

@@ -18,7 +18,7 @@
 | **1** | Review the working tree | `git status` + `git diff --stat`: no half-written artifacts, no stray temp files, every change belongs to the active round / plan package. |
 | **2** | Run the quality gates | Execute the project's gates — currently `gofmt` + `go vet` (research D7); the full `make check`-style pipeline once code lands. Docs-only round: verify internal links, artifact consistency, and run a secret scan. **Never close out on a red gate.** |
 | **3** | Update [`STATUS.md`](STATUS.md) | Refresh "Last updated", pipeline position, artifacts checklist, decisions locked, open items, and environment notes — the single live-state source the next `SESSION-BOOTSTRAP.md` reads. |
-| **4** | Write / refresh the day's session summary | Create or update `docs/<YYYY>/<MM>/<DD>/session-summary.md` — what was done, decisions, artifacts, commits, open items, next steps. This is the file `SESSION-BOOTSTRAP.md` **Step 8** reads. |
+| **4** | Write / refresh the day's session summary | Create or update `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` — what was done, decisions, artifacts, commits, open items, next steps. This is the file `SESSION-BOOTSTRAP.md` **Step 8** reads. |
 | **5** | Reconcile status ↔ summary | Confirm `STATUS.md` and the day's `session-summary.md` agree: same decisions, same pipeline position, same open items, same branch heads. |
 | **6** | Commit the working branch | Commit with a descriptive message (e.g. `docs(<NNN>): …`). The day must end committed and pushed. |
 | **7** | Propagate + hand off | If the round is at a mergeable point **and the user approves**, run the two-step merge `working → dev → main`; otherwise record the pending propagation in `STATUS.md`. State the exact next-session starting point. |
@@ -67,7 +67,7 @@ Keep `STATUS.md` the single live-state source the next bootstrap reads:
 
 ### 4. Daily Session Summary (Step 4 Details)
 
-Write or extend `docs/<YYYY>/<MM>/<DD>/session-summary.md` (e.g. `docs/2026/09/10/session-summary.md`):
+Write or extend `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` (e.g. `docs/session-summary/2026/09/10/session-summary.md`):
 
 1. Header: project, repo, workspace (`$TELL_ME_HOME`), session mode, branches, **status at end of day**.
 2. If the day had **multiple sessions**, number them (e.g. §1–§7 earlier, §8–§14 later) and say so — mirror the existing daily-log style.

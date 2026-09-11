@@ -28,7 +28,7 @@ only in status/journal prose — which the clause explicitly does not accept.
 ## Decision
 
 tellme declares **English** as its artifact language. The declaration lives in **this project ADR**
-(`decisions/0001-project-language.md`) — the second named home in the upstream order, chosen because
+(`docs/decisions/0001-project-language.md`) — the second named home in the upstream order, chosen because
 tellme has no constitution and a `spec.md` constraint would be per-round (wrong scope for a
 project-wide declaration).
 

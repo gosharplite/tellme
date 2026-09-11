@@ -2,7 +2,7 @@
 
 **Project**: `tellme` — a disciplined BDD re-creation of `tell-me-go`
 **Repo**: `github.com/gosharplite/tellme`
-**Status file**: [`STATUS.md`](../../../../STATUS.md) *(back-link — the single live-state source)*
+**Status file**: [`STATUS.md`](../../../../../STATUS.md) *(back-link — the single live-state source)*
 **Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation)
 **Branches**: round-002 `002-followup-cleanups` → `dev` → `main` (merged & propagated)
@@ -11,7 +11,7 @@
 the data truth was **authored then deleted** (grill #3 + user-ratified reversal of clarify Q2) and the
 CLI executable contract authored (4 modules) + corrected (grill #4). **Session 8** (closeout) resolved
 both host-rule residuals from upstream (**R1** → [aixbdd-tmg PR #7](https://github.com/gosharplite/aixbdd-tmg/pull/7), **R2** → [PR #8](https://github.com/gosharplite/aixbdd-tmg/pull/8)),
-applied the tellme follow-ups (project-language home `decisions/0001-project-language.md`; **W2/D2
+applied the tellme follow-ups (project-language home `docs/decisions/0001-project-language.md`; **W2/D2
 re-decided → fold**, recorded as **NOOP**), and reconciled `spec.md` / `plan.md` / `research.md` to the
 ratified `data/**` NOOP. **Session 9** delivered `tasks.md` (63 tasks; grill #5 closed; pre-delivery orphan-coverage sweep **19/19 PASSED**). **Session 10** closed the two upstream methodology issues grill #5 routed ([aixbdd-tmg#9](https://github.com/gosharplite/aixbdd-tmg/issues/9) → [PR #11](https://github.com/gosharplite/aixbdd-tmg/pull/11) / ADR 0003; [#10](https://github.com/gosharplite/aixbdd-tmg/issues/10) → [PR #12](https://github.com/gosharplite/aixbdd-tmg/pull/12) / ADR 0004), verified round-001 `tasks.md` **already conformant** (no artifact change), and **closed [`tellme#5`](https://github.com/gosharplite/tellme/issues/5)** as completed. **Sessions 11–12** then delivered both rounds: round 001 via `/axb-implement` (63/63; **PR [#6](https://github.com/gosharplite/tellme/pull/6)** merged `62f217f`) and round 002 (19/19; **PR [#7](https://github.com/gosharplite/tellme/pull/7)** merged `f2a058f`) — the latter reviewed over two architecture rounds **plus Grill Round #6**, merged, and propagated. **Next: a fresh `003-*` slice** (future candidates in `STATUS.md` Open items).
 
@@ -159,14 +159,14 @@ were **resolved and merged**, and tellme applied its paired follow-ups.
 - Local skill copies under `$TELL_ME_HOME/docs/skills/` verified **synced** with both.
 
 ### tellme follow-ups applied
-1. **R2 — language-declaration home**: created [`decisions/0001-project-language.md`](../../../../decisions/0001-project-language.md) (+ `decisions/README.md`) declaring **English** as tellme's artifact language (the named home the clause requires). Fixed DSL meta-schema tokens unchanged → audit stays green.
+1. **R2 — language-declaration home**: created [`docs/decisions/0001-project-language.md`](../../../../../docs/decisions/0001-project-language.md) (+ `docs/decisions/README.md`) declaring **English** as tellme's artifact language (the named home the clause requires). Fixed DSL meta-schema tokens unchanged → audit stays green.
 2. **R1 — W2/D2 re-decided**: `/axb-dsl-refine` re-decided the workspace-reuse (W2) and config-resolution (D2) atomicity boundary under the entailment criterion → **fold for both** (structurally isomorphic ⇒ identical verdict). No feature/DSL body change → recorded as a **`NOOP`** in `truth-delta.md`. Topology audit re-run → **PASSED**.
 3. **Doc reconcile**: `spec.md` (revision note + Key Entities + Assumptions), `plan.md` (structure tree, Structure Decision, interface-2 planner → NOOP, Scope notes, Wave focus, delegation order), and `research.md` (clarify-Q2 ruling annotated ⟦grill #3⟧ REVERSED) reconciled to the ratified `data/**` NOOP.
 
 ### Decisions log
 | # | Decision | Rationale |
 | --- | --- | --- |
-| D1 | **Language home = project ADR** (`decisions/0001-project-language.md`) | the named home per upstream PR #8; tellme has no constitution and a `spec.md` constraint is per-round |
+| D1 | **Language home = project ADR** (`docs/decisions/0001-project-language.md`) | the named home per upstream PR #8; tellme has no constitution and a `spec.md` constraint is per-round |
 | D2 | **W2/D2 → fold** (NOOP) | entailment over the contract's domain definitions; identical verdict for isomorphic cases; keeps the CLI contract unchanged |
 
 ### Commits (working branch `001-cli-bootstrap-and-config`)
@@ -324,7 +324,7 @@ Executed `/axb-implement` as a One-Shot over the delivered 63-task plan, opened 
 - **Quality gates**: `gofmt -l .` clean · `go vet ./...` clean · `staticcheck ./...` clean · `make verify` OK · `go test -count=1 ./...` green · godog **19/19** · topology audit PASSED · secret scan clean.
 - **Propagation**: two-step merge `working → dev → main` (no-ff) — **DONE**; `STATUS.md` propagation blockquote appended.
 - **Handoff**: **round 001 delivered / frozen** — later rounds must not modify `specs/plans/001-cli-bootstrap-and-config/**`. Active branch `001-cli-bootstrap-and-config`; **next session starts a fresh `002-*` plan package** carrying **F4** (PM acceptance rule + `/axb-dsl-refine` `usage/dsl.md`) and **F9** (D5 re-decision for pure-helper unit tests).
-- **Post-closeout amendment (human tooling)**: added the *Human tooling* subsection below, and fixed the daily-log relative-link depth (3 → 4 `..`, so `STATUS.md` / `decisions/` links resolve); `SESSION-CLOSEOUT.md` re-run (STATUS refresh + re-propagation).
+- **Post-closeout amendment (human tooling)**: added the *Human tooling* subsection below, and fixed the daily-log relative-link depth (3 → 4 `..`, so `STATUS.md` / `docs/decisions/` links resolve); `SESSION-CLOSEOUT.md` re-run (STATUS refresh + re-propagation).
 
 ### Human tooling — `tellme.sh` shell manager + `tm` alias (for manual use/testing)
 
@@ -407,6 +407,7 @@ A short, **docs/metadata-only** session: re-ran `SESSION-BOOTSTRAP.md` to inheri
 2. **Roadmap discussion** — agreed the next two slices. **Correction surfaced:** the previously-proposed slice **A (effective-provider resolution)** is **already implemented** (round-001 `resolve()` Step 5 `EffectiveSelectedProvider`→`ProviderInRegistry`→provider-mismatch→ config error 3; round-002 **F9** unit tests), so a 003 built on A would be work for frozen behaviour. Re-scoped **003 = provider-registry completeness** (the documented "full config schema" gap in `internal/config/config.go`) → **004 = first reasoning turn (B)**.
 3. **Tracking issues opened** — **[#9](https://github.com/gosharplite/tellme/issues/9)** `003 — Provider-registry completeness (config input contract)` and **[#10](https://github.com/gosharplite/tellme/issues/10)** `004 — First reasoning turn: one prompt → provider → response` (marked **depends on #9**; must **amend the round-001 no-network capability guard**).
 4. **`STATUS.md` updated** — header bump; new `## Roadmap — next slices` section (table linking #9/#10); the round-002 `Next:` pointer retargeted; a decisions-log bullet + an environment note.
+5. **Docs-tree reorganization** — moved `docs/2026` → `docs/session-summary/2026`; **split `STATUS.md`** (live state kept; history archived to `docs/archives/status/2026-09-11.md`); moved `decisions/` → `docs/decisions/`. All references rewritten (incl. relative back-links); committed on `dev` (`3222635`).
 
 ### Decisions log
 | # | Decision | Rationale |
@@ -415,13 +416,14 @@ A short, **docs/metadata-only** session: re-ran `SESSION-BOOTSTRAP.md` to inheri
 | D2 | **004 = first reasoning turn (B)** | the deferred round-001 "Option B" — the first real reasoning capability |
 | D3 | **Slice A dropped (not scheduled)** | already implemented (round 001 + round-002 F9); a round for it would be redundant |
 | D4 | **Track both as GitHub issues** | anchor each round with an issue (the project's grill/PR convention) |
+| D5 | **Docs layout**: session summaries under `docs/session-summary/<YYYY>/<MM>/<DD>/`; `STATUS.md` kept lean with history split into `docs/archives/status/<date>.md`; project ADRs under `docs/decisions/` | keep the live-state file lean and the historical/frozen record archived (one dated snapshot per split) |
 
 ### Verification
-- `git status` — only `STATUS.md` modified; tree otherwise clean; branch `002-followup-cleanups` tracking `origin`. **Placement (option B):** the session-13 docs were re-landed on **`dev`** and `002-followup-cleanups` restored to its delivered tip `21d990a` — no post-round commit stays on the round-002 branch.
+- `git status` — `STATUS.md` + the docs-tree reorg files modified; tree otherwise clean; branch `dev` tracking `origin`. **Placement (option B):** the session-13 docs were re-landed on **`dev`** and `002-followup-cleanups` restored to its delivered tip `21d990a` — no post-round commit stays on the round-002 branch.
 - `gofmt -l .` clean · `go vet ./...` clean · secret scan clean (the lone pattern hit was the config field name `API_KEY` in prose, not a secret).
 
 ### Artifacts
-- GitHub issues **#9**, **#10** (`gosharplite/tellme`); the `STATUS.md` roadmap/decision/env updates; this daily-log §16. **No `specs/**` change; no `truth-delta.md` change.**
+- GitHub issues **#9**, **#10** (`gosharplite/tellme`); the `STATUS.md` roadmap/decision/env updates; this daily-log §16; **docs-tree reorg** — `docs/session-summary/2026/…`, `docs/archives/status/2026-09-11.md`, `docs/decisions/…` (commit `3222635`). **No `specs/**` change; no `truth-delta.md` change.**
 
 ### Next steps
 1. **`/axb-specify` for `003-provider-registry-completeness`** — the issue's five open questions become the round's clarify round.
