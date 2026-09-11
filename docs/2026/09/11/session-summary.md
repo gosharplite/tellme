@@ -227,4 +227,5 @@ The session executed `/axb-tasks` to generate the round's execution control plan
 ### Status at end of session
 
 - `tasks.md` is **DELIVERED** (63 tasks, orphan sweep 19/19 PASSED).
+- **Propagation** — session-9 closeout: `working → dev → main` **DONE** (user-approved).
 - Next: **`/axb-implement`** (starting with Phase 1 Setup: T001–T003).
