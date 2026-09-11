@@ -15,7 +15,7 @@ applied the tellme follow-ups (project-language home `docs/decisions/0001-projec
 re-decided → fold**, recorded as **NOOP**), and reconciled `spec.md` / `plan.md` / `research.md` to the
 ratified `data/**` NOOP. **Session 9** delivered `tasks.md` (63 tasks; grill #5 closed; pre-delivery orphan-coverage sweep **19/19 PASSED**). **Session 10** closed the two upstream methodology issues grill #5 routed ([aixbdd-tmg#9](https://github.com/gosharplite/aixbdd-tmg/issues/9) → [PR #11](https://github.com/gosharplite/aixbdd-tmg/pull/11) / ADR 0003; [#10](https://github.com/gosharplite/aixbdd-tmg/issues/10) → [PR #12](https://github.com/gosharplite/aixbdd-tmg/pull/12) / ADR 0004), verified round-001 `tasks.md` **already conformant** (no artifact change), and **closed [`tellme#5`](https://github.com/gosharplite/tellme/issues/5)** as completed. **Sessions 11–12** then delivered both rounds: round 001 via `/axb-implement` (63/63; **PR [#6](https://github.com/gosharplite/tellme/pull/6)** merged `62f217f`) and round 002 (19/19; **PR [#7](https://github.com/gosharplite/tellme/pull/7)** merged `f2a058f`) — the latter reviewed over two architecture rounds **plus Grill Round #6**, merged, and propagated. **Next: a fresh `003-*` slice** (future candidates in `STATUS.md` Open items).
 
-> **Six sessions this day** — sessions 7–12 (session 6 closed 2026-09-10). Captured below: §1–§10 = session 7; §11 = session 8; §12 = session 9; §13 = session 10; §14 = session 11 (round-001 implementation); **§15 = session 12 (round-002 delivery, Grill Round #6, merge + propagation, closeout)**.
+> **Eight sessions this day** — sessions 7–14 (session 6 closed 2026-09-10). Captured below: §1–§10 = session 7; §11 = session 8; §12 = session 9; §13 = session 10; §14 = session 11 (round-001 implementation); §15 = session 12 (round-002 delivery, Grill Round #6, merge + propagation, closeout); §16 = session 13 (003/004 roadmap); **§17 = session 14 (round-003 delivery, PR #11 opened, closeout)**.
 
 ---
 
@@ -432,3 +432,74 @@ A short, **docs/metadata-only** session: re-ran `SESSION-BOOTSTRAP.md` to inheri
 
 ### PM follow-ups
 - None new (spec/acceptance unchanged; PM-1..PM-4 remain closed). Note for **003**: any new acceptance rule (e.g. a provider-entry failure class) is PM-owned.
+
+---
+
+## 17. Session 14 — round-003 delivery (PR #11) + closeout
+
+Executed the complete AIxBDD pipeline for **Round 003: Provider-Registry Completeness** (Issue [#9](https://github.com/gosharplite/tellme/issues/9)), from specification through implementation, testing, and opening PR [#11](https://github.com/gosharplite/tellme/pull/11).
+
+> Note: this is an additional (**eighth**) session on 2026-09-11 — session 14 overall.
+
+### Work done
+1. **Branching & `/axb-specify`** — created `003-provider-registry-completeness` off `dev`. Ran Clarify Round 1 to lock three foundational decisions:
+   - **Q1 -> Option 1 (Core request set)**: models `TYPE`, `MODEL`, `URL`, `API_KEY`, `MAX_TOKENS`, `HEADERS`, `THINKING_BUDGET`, `THINKING_LEVEL`. Defers `USER_ID`, `THINKING_ENABLED`, and `MODELS` pricing tables to future runtime slices.
+   - **Q2 -> Option 1 (Targeted `${VAR}` expansion with error on unset)**: expands `${VAR}` and `${VAR:-default}` in `API_KEY`, `URL`, and `HEADERS`; unresolved variables without default fail deterministically.
+   - **Q3 -> Option 1 (Exit code 3 with dedicated class phrase)**: provider validation failures exit with code `3` and emit `tellme: the provider configuration is invalid: <detail>`.
+   - Authored `specs/plans/003-provider-registry-completeness/spec.md`, `checklists/requirements.md`, and initialized `truth-delta.md`.
+2. **`/axb-spec-by-example`** — authored 2 business-language acceptance features under `features/acceptance/`:
+   - `provider-configuration-loading.feature` (complete attributes, optional field defaults, `${VAR}`/`${VAR:-default}` expansion).
+   - `provider-validation-contract.feature` (missing fields, negative bounds, unset variables failing with exit 3).
+3. **`/axb-technical-research`** — authored `research.md` (Decisions 1–4):
+   - Decision 1: Typed Go struct representation (`internal/config.Provider`) with tolerant root decoding.
+   - Decision 2: Hand-crafted, zero-dependency stdlib regex expansion engine (`\$\{([a-zA-Z_][a-zA-Z0-9_]*)(?::-([^}]*))?\}`) with `os.LookupEnv`.
+   - Decision 3: Active provider validation pipeline integrated into `resolve()`.
+   - Decision 4: Table-driven unit tests in `internal/config/` complementing the E2E acceptance path.
+   - Updated system truth `specs/truth/techstack.md` (Configuration and Testing rows).
+4. **`/axb-system-analysis`** — authored `plan.md` mapping 2 system interfaces (`CLI end` and `Configuration & workspace persistence`); single wave; `/axb-api-plan` = NOOP, `/axb-data-plan` = NOOP, `/axb-ui-plan` skipped; carried forward to contract owner `/axb-dsl-refine`.
+5. **`/axb-dsl-refine`** — updated interface truth under `specs/truth/features/cli/**`:
+   - `cli/dsl.md`: added `the provider configuration is invalid` to the frozen class phrase vocabulary (now 8 frozen class phrases).
+   - `configuration/dsl.md`: added 8 module Given rows for provider attributes, custom headers, mandatory-only fields, environment variables set/unset, and validation failures.
+   - `configuration/starting-with-a-configuration.feature`: added 4 Rules (6 Examples) carrying round-003 acceptance criteria.
+   - Mechanical topology audit (`audit_feature_dsl_topology.py`) → **PASSED** (165 steps, 0 errors, 0 warnings).
+6. **`/axb-tasks`** — authored `tasks.md` with 18 execution tasks following Zero Shared Edits:
+   - Phase 2 Foundational (T001–T003): skeletons for `expand.go`, `expand_test.go`, and 8 stepdef files.
+   - Phase 3 Test Alignment (T004–T015): 8 `[BDD-RED]` step definitions, 1 `[BDD-ALIGN]`, 2 `[UNIT]` table-driven suites, and T015 phase review gate.
+   - Phase 4 Feature Implementation (T016–T018): Green, Refactor, and Regression.
+   - Pre-Delivery Orphan Coverage Sweep: **12/12 PASSED** (0 orphans).
+7. **`/axb-implement` One-Shot** — branched `003-implement-provider-registry-completeness`:
+   - T001–T003: created skeletons.
+   - T004–T015: implemented step definitions in `tests/e2e/steps/` and unit test suites in `internal/config/`; verified T015 review gate (all tests compile, red state confirmed).
+   - T016–T018: implemented `Provider` struct expansion in `config.go`, regex expansion engine in `expand.go`, and active provider validation in `cli.go`. All 22 unit tests green, all 26 E2E scenarios green, `make verify` OK. Marked all 18 tasks `[X]`.
+8. **PR [#11](https://github.com/gosharplite/tellme/pull/11)** — opened from `003-implement-provider-registry-completeness` against `003-provider-registry-completeness`.
+
+### Decisions log
+| # | Decision | Rationale |
+| --- | --- | --- |
+| D1 | **Core request set modeled in 003** (clarify Q1) | exact fields required for Slice 004 LLM calls without premature pricing/memory overhead |
+| D2 | **Targeted `${VAR}`/`${VAR:-default}` expansion, error on unset** (clarify Q2) | standard convention; fails loud rather than silently issuing broken calls |
+| D3 | **Exit code 3 with frozen phrase `the provider configuration is invalid`** (clarify Q3) | preserves round-002 exit code hierarchy while giving unambiguous class identity |
+| D4 | **Hand-crafted regex engine (zero dependencies)** | Go stdlib `regexp` + `os.LookupEnv`; no external supply-chain risk |
+| D5 | **Active provider validation only** | unselected providers in multi-provider configs do not block startup if unconfigured |
+
+### Verification
+- `gofmt -l .` clean · `go vet ./...` clean · `staticcheck ./...` clean
+- `make verify` → **OK** (zero test-sleep, zero network capability, 0 lint issues, 0 vulnerabilities)
+- Unit tests: **22 / 22 passed** (`expand_test.go`, `config_test.go`)
+- Godog E2E: **26 / 26 scenarios · 187 / 187 steps green**
+- Topology audit: **165 steps passed** (0 errors, 0 warnings)
+
+### Commits
+| Commit | Branch | Note |
+| --- | --- | --- |
+| `78c447a` | `003-provider-registry-completeness` | `docs(003): plan package and truth specifications for provider-registry completeness` |
+| `c983d4b` | `003-implement-provider-registry-completeness` | `feat(003): implement provider-registry completeness and variable expansion` |
+
+### Open items (non-blocking)
+- PR [#11](https://github.com/gosharplite/tellme/pull/11) open for review.
+- Future candidate: Slice 004 (First reasoning turn, Issue [#10](https://github.com/gosharplite/tellme/issues/10)) follows upon merge of 003.
+
+### Next steps
+1. Review PR [#11](https://github.com/gosharplite/tellme/pull/11) (peer review / grill round).
+2. Merge PR [#11](https://github.com/gosharplite/tellme/pull/11) into `003-provider-registry-completeness`.
+3. Propagate `003-provider-registry-completeness → dev → main`.
