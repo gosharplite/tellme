@@ -13,86 +13,8 @@ import (
 	"github.com/gosharplite/tellme/internal/home"
 )
 
-// Run is the CLI entrypoint: main passes argv and the injected build version,
-// and Run returns the process exit code.
-//
-// Round 001 (narrow foundation): parse flags, then either report the build
-// version, run the setup diagnostic (reporting path), or run the boot path
-// (resolve the runtime home, configuration, and per-mode workspace, then report
-// readiness).
-func Run(args []string, version string) int {
-	fs := pflag.NewFlagSet("tellme", pflag.ContinueOnError)
-	fs.SetOutput(os.Stderr)
-	configPath := fs.StringP("config", "c", "", "Path to the YAML configuration file.")
-	diagnostic := fs.BoolP("diagnostics", "d", false, "Report configuration and home resolution, then exit.")
-	asJSON := fs.Bool("json", false, "Emit machine-readable output for the diagnostic.")
-	showVersion := fs.Bool("version", false, "Print the build version and exit.")
-	if err := fs.Parse(args); err != nil {
-		return emitUsageError()
-	}
-
-	// Version is independent of setup: report and exit (FR-010).
-	if *showVersion {
-		fmt.Printf("tellme %s\n", version)
-		return Success
-	}
-
-	// Step 1 — resolve TELL_ME_HOME first, always (FR-006).
-	homeDir := os.Getenv("TELL_ME_HOME")
-
-	// -d is the reporting path: it always produces a report (Decision 2).
-	if *diagnostic {
-		return runDiagnostic(homeDir, *configPath, *asJSON)
-	}
-
-	if homeDir == "" {
-		fmt.Fprintln(os.Stderr, "tellme: the runtime home is not usable")
-		return EnvironmentError
-	}
-
-	// Step 3 — the config path: -c when given, else the default for the mode seed.
-	explicit := *configPath != ""
-	path := *configPath
-	if !explicit {
-		path = defaultConfigPath(homeDir)
-	}
-
-	// Step 4 — load + validate the file (FR-002, FR-005).
-	cfg, err := config.Load(path)
-	if err != nil {
-		return emitConfigLoadError(path, explicit, err)
-	}
-
-	// Step 5 — validate the effective selected provider against the registry
-	// (FR-003).
-	selected := cfg.EffectiveSelectedProvider(os.Getenv("TELL_ME_SELECTED_PROVIDER"))
-	if !cfg.ProviderInRegistry(selected) {
-		fmt.Fprintf(os.Stderr, "tellme: the selected provider is not in the registry (%q)\n", selected)
-		return ConfigError
-	}
-
-	// Step 6 — resolve the effective mode and prepare the session workspace
-	// (FR-007, FR-008, FR-009).
-	mode := cfg.EffectiveMode(os.Getenv("TELL_ME_MODE"))
-	workspace, err := home.EnsureWorkspace(homeDir, mode)
-	if err != nil {
-		return emitWorkspaceError(workspace, err)
-	}
-
-	fmt.Println("configuration: ready")
-	fmt.Println("session workspace: " + workspace.Path)
-	return Success
-}
-
-// diagnostic is the resolved-or-unresolved report produced by -d (Decision 2).
-type diagnostic struct {
-	resolved  bool
-	reason    string // one of the pinned categories when not resolved
-	home      string
-	workspace string
-}
-
-// The pinned unresolved reason categories (specs/truth/features/cli/diagnostics/dsl.md).
+// The pinned unresolved reason categories
+// (specs/truth/features/cli/diagnostics/dsl.md).
 const (
 	reasonHomeUnset        = "home-unset"
 	reasonHomeUnusable     = "home-unusable"
@@ -101,90 +23,216 @@ const (
 	reasonProviderMismatch = "provider-mismatch"
 )
 
-// runDiagnostic produces the setup report and returns its exit code: 0 when
-// resolution succeeded, else the dedicated diagnostic "unresolved" code.
-func runDiagnostic(homeDir, configPath string, asJSON bool) int {
-	result := resolveDiagnostic(homeDir, configPath)
+// options are the parsed CLI flags.
+type options struct {
+	configPath string
+	diagnostic bool
+	json       bool
+	version    bool
+}
 
-	if asJSON {
-		emitDiagnosticJSON(result)
-	} else {
-		emitDiagnosticText(result)
+// Resolution is the outcome of resolving home → configuration → workspace. On a
+// resolve failure the partially populated fields (Home, Path, Workspace,
+// Selected) are still returned so a renderer can produce an actionable message.
+type Resolution struct {
+	Home      string
+	Config    *config.Config
+	Path      string // the configuration path (explicit or defaulted)
+	Explicit  bool   // whether -c was given
+	Selected  string // the effective selected provider (when reached)
+	Mode      string // the effective mode (when reached)
+	Workspace string // the resolved workspace path (when reached)
+}
+
+// ResolveError carries the pinned reason category plus the underlying cause.
+type ResolveError struct {
+	Reason string
+	Err    error
+}
+
+func (e *ResolveError) Error() string {
+	if e.Err != nil {
+		return e.Reason + ": " + e.Err.Error()
+	}
+	return e.Reason
+}
+
+func (e *ResolveError) Unwrap() error { return e.Err }
+
+// Run is the CLI entrypoint: main passes argv and the injected build version,
+// and Run returns the process exit code. It parses flags, then dispatches to the
+// version path, the diagnostic reporting path, or the boot path.
+func Run(args []string, version string) int {
+	opts, ok := parseFlags(args)
+	if !ok {
+		return emitUsageError()
+	}
+	if opts.version {
+		fmt.Printf("tellme %s\n", version)
+		return Success
 	}
 
-	if !result.resolved {
+	homeDir := os.Getenv("TELL_ME_HOME")
+
+	// -d is the reporting path: it always produces a report (Decision 2).
+	if opts.diagnostic {
+		return renderDiagnostic(homeDir, opts.configPath, opts.json)
+	}
+	return renderBoot(homeDir, opts.configPath)
+}
+
+// parseFlags parses argv. ok is false on an unrecognized or invalid flag.
+func parseFlags(args []string) (opts *options, ok bool) {
+	fs := pflag.NewFlagSet("tellme", pflag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	o := &options{}
+	fs.StringVarP(&o.configPath, "config", "c", "", "Path to the YAML configuration file.")
+	fs.BoolVarP(&o.diagnostic, "diagnostics", "d", false, "Report configuration and home resolution, then exit.")
+	fs.BoolVar(&o.json, "json", false, "Emit machine-readable output for the diagnostic.")
+	fs.BoolVar(&o.version, "version", false, "Print the build version and exit.")
+	if err := fs.Parse(args); err != nil {
+		return nil, false
+	}
+	return o, true
+}
+
+// resolve is the single resolution algorithm shared by the boot path and the
+// diagnostic path: home → config path → load/validate → effective selected
+// provider → effective mode → workspace. On failure it returns a *ResolveError
+// carrying the pinned reason category; the two callers differ only in how they
+// render it (boot message + code vs. diagnostic report).
+func resolve(homeDir, configPath string) (Resolution, *ResolveError) {
+	res := Resolution{Home: homeDir, Path: configPath, Explicit: configPath != ""}
+
+	// Step 1 — resolve TELL_ME_HOME first, always (FR-006).
+	if homeDir == "" {
+		return res, &ResolveError{Reason: reasonHomeUnset}
+	}
+
+	// Step 3 — the config path: -c when given, else the default for the mode seed.
+	if !res.Explicit {
+		res.Path = defaultConfigPath(homeDir)
+	}
+
+	// Step 4 — load + validate the file (FR-002, FR-005).
+	cfg, err := config.Load(res.Path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return res, &ResolveError{Reason: reasonConfigMissing, Err: err}
+		}
+		return res, &ResolveError{Reason: reasonConfigInvalid, Err: err}
+	}
+	res.Config = cfg
+
+	// Step 5 — the effective selected provider must be in the registry (FR-003).
+	res.Selected = cfg.EffectiveSelectedProvider(os.Getenv("TELL_ME_SELECTED_PROVIDER"))
+	if !cfg.ProviderInRegistry(res.Selected) {
+		return res, &ResolveError{Reason: reasonProviderMismatch}
+	}
+
+	// Step 6 — effective mode + prepare the session workspace (FR-007/008/009).
+	res.Mode = cfg.EffectiveMode(os.Getenv("TELL_ME_MODE"))
+	workspace, err := home.EnsureWorkspace(homeDir, res.Mode)
+	res.Workspace = workspace.Path
+	if err != nil {
+		return res, &ResolveError{Reason: reasonHomeUnusable, Err: err}
+	}
+	return res, nil
+}
+
+// renderBoot runs the boot path and reports readiness or an actionable error.
+func renderBoot(homeDir, configPath string) int {
+	res, rerr := resolve(homeDir, configPath)
+	if rerr != nil {
+		return emitBootError(res, rerr)
+	}
+	fmt.Println("configuration: ready")
+	fmt.Println("session workspace: " + res.Workspace)
+	return Success
+}
+
+// emitBootError maps a resolve failure to its actionable stderr message + code.
+func emitBootError(res Resolution, rerr *ResolveError) int {
+	switch rerr.Reason {
+	case reasonConfigMissing:
+		if res.Explicit {
+			fmt.Fprintf(os.Stderr, "tellme: the configuration could not be found at %s\n", res.Path)
+		} else {
+			fmt.Fprintf(os.Stderr, "tellme: no configuration could be found at %s\n", res.Path)
+		}
+		return ConfigError
+	case reasonConfigInvalid:
+		fmt.Fprintf(os.Stderr, "tellme: the configuration could not be parsed at %s\n", res.Path)
+		return ConfigError
+	case reasonProviderMismatch:
+		fmt.Fprintf(os.Stderr, "tellme: the selected provider is not in the registry (%s)\n", res.Selected)
+		return ConfigError
+	case reasonHomeUnusable:
+		if errors.Is(rerr.Err, home.ErrNotDirectory) {
+			fmt.Fprintf(os.Stderr, "tellme: the workspace path is not a directory (%s)\n", res.Workspace)
+		} else {
+			fmt.Fprintf(os.Stderr, "tellme: the runtime home is not usable (%v)\n", rerr.Err)
+		}
+		return EnvironmentError
+	default: // reasonHomeUnset
+		fmt.Fprintln(os.Stderr, "tellme: the runtime home is not usable")
+		return EnvironmentError
+	}
+}
+
+// renderDiagnostic runs the -d path. It always emits a report and returns 0 when
+// resolution succeeded, else the dedicated diagnostic "unresolved" code.
+func renderDiagnostic(homeDir, configPath string, asJSON bool) int {
+	res, rerr := resolve(homeDir, configPath)
+	if asJSON {
+		emitDiagnosticJSON(res, rerr)
+	} else {
+		emitDiagnosticText(res, rerr)
+	}
+	if rerr != nil {
 		return DiagnosticUnresolvedError
 	}
 	return Success
 }
 
-// resolveDiagnostic resolves home → configuration → selected provider →
-// workspace, capturing the first failure as a pinned reason category.
-func resolveDiagnostic(homeDir, configPath string) diagnostic {
-	if homeDir == "" {
-		return diagnostic{reason: reasonHomeUnset}
-	}
-	result := diagnostic{home: homeDir}
-
-	explicit := configPath != ""
-	path := configPath
-	if !explicit {
-		path = defaultConfigPath(homeDir)
-	}
-	cfg, err := config.Load(path)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			result.reason = reasonConfigMissing
-		} else {
-			result.reason = reasonConfigInvalid
-		}
-		return result
-	}
-
-	selected := cfg.EffectiveSelectedProvider(os.Getenv("TELL_ME_SELECTED_PROVIDER"))
-	if !cfg.ProviderInRegistry(selected) {
-		result.reason = reasonProviderMismatch
-		return result
-	}
-
-	mode := cfg.EffectiveMode(os.Getenv("TELL_ME_MODE"))
-	workspace, err := home.EnsureWorkspace(homeDir, mode)
-	if err != nil {
-		result.reason = reasonHomeUnusable
-		return result
-	}
-
-	result.resolved = true
-	result.workspace = workspace.Path
-	return result
-}
-
 // emitDiagnosticText writes the plain-text report.
-func emitDiagnosticText(result diagnostic) {
+func emitDiagnosticText(res Resolution, rerr *ResolveError) {
 	fmt.Println("tellme diagnostic")
-	if result.resolved {
+	if rerr == nil {
 		fmt.Println("configuration: resolved")
-		fmt.Println("runtime_home: " + result.home)
-		fmt.Println("session_workspace: " + result.workspace)
+		fmt.Println("runtime_home: " + res.Home)
+		fmt.Println("session_workspace: " + res.Workspace)
 		return
 	}
 	fmt.Println("configuration: unresolved")
-	fmt.Println("reason: " + result.reason)
+	fmt.Println("reason: " + rerr.Reason)
+}
+
+// diagnosticJSON is the pinned --json object contract
+// (specs/truth/features/cli/diagnostics/dsl.md). A typed struct keeps a stable
+// key shape (and makes the Marshal error structurally trivial).
+type diagnosticJSON struct {
+	Status           string `json:"status"`
+	Reason           string `json:"reason,omitempty"`
+	RuntimeHome      string `json:"runtime_home,omitempty"`
+	SessionWorkspace string `json:"session_workspace,omitempty"`
 }
 
 // emitDiagnosticJSON writes the pinned structured report.
-func emitDiagnosticJSON(result diagnostic) {
-	obj := map[string]string{}
-	if result.resolved {
-		obj["status"] = "resolved"
-		obj["runtime_home"] = result.home
-		obj["session_workspace"] = result.workspace
+func emitDiagnosticJSON(res Resolution, rerr *ResolveError) {
+	obj := diagnosticJSON{}
+	if rerr == nil {
+		obj.Status = "resolved"
+		obj.RuntimeHome = res.Home
+		obj.SessionWorkspace = res.Workspace
 	} else {
-		obj["status"] = "unresolved"
-		obj["reason"] = result.reason
+		obj.Status = "unresolved"
+		obj.Reason = rerr.Reason
 	}
+
 	out, err := json.Marshal(obj)
 	if err != nil {
+		// Structurally unreachable: diagnosticJSON has only string fields.
 		fmt.Fprintln(os.Stderr, "tellme: the diagnostic report could not be produced")
 		return
 	}
@@ -200,33 +248,6 @@ func defaultConfigPath(homeDir string) string {
 		seed = "butler"
 	}
 	return filepath.Join(homeDir, "configs", seed+".yaml")
-}
-
-// emitConfigLoadError writes the actionable stderr message for a configuration
-// load failure and returns the configuration error code. A missing file is
-// distinguished from a malformed one; a missing default (no -c) reads
-// differently from a missing explicit path.
-func emitConfigLoadError(path string, explicit bool, err error) int {
-	switch {
-	case errors.Is(err, os.ErrNotExist) && explicit:
-		fmt.Fprintf(os.Stderr, "tellme: the configuration could not be found at %s\n", path)
-	case errors.Is(err, os.ErrNotExist):
-		fmt.Fprintf(os.Stderr, "tellme: no configuration could be found at %s\n", path)
-	default:
-		fmt.Fprintf(os.Stderr, "tellme: the configuration could not be parsed at %s\n", path)
-	}
-	return ConfigError
-}
-
-// emitWorkspaceError writes the actionable stderr message for a workspace
-// preparation failure and returns the environment error code.
-func emitWorkspaceError(workspace home.Workspace, err error) int {
-	if errors.Is(err, home.ErrNotDirectory) {
-		fmt.Fprintf(os.Stderr, "tellme: the workspace path is not a directory (%s)\n", workspace.Path)
-	} else {
-		fmt.Fprintf(os.Stderr, "tellme: the runtime home is not usable (%v)\n", err)
-	}
-	return EnvironmentError
 }
 
 // emitUsageError writes the usage-error stderr message and returns the usage

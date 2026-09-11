@@ -27,6 +27,16 @@ type Provider struct {
 // Load reads and parses the YAML configuration at path. A missing file yields an
 // error satisfying errors.Is(err, os.ErrNotExist); a malformed file yields a
 // parser error.
+//
+// Decode strictness — DELIBERATE DECISION (review F6, round 001): decoding is
+// intentionally non-strict (unknown keys are tolerated). Round-001 Config models
+// only the boot subset (MODE / PERSON / SELECTED_PROVIDER / PROVIDERS), while
+// real tell-me-go configurations carry many more keys that later slices will add
+// — so rejecting unknown keys would reject valid configs. Validation here is
+// limited to selected-provider membership (performed in internal/cli); a typo
+// that empties PROVIDERS therefore classifies as provider-mismatch, not
+// config-invalid. Enabling yaml Decoder.KnownFields(true) is revisited when the
+// full config schema lands.
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

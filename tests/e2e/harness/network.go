@@ -13,7 +13,8 @@ import (
 var networkCapableClosurePackages = []string{"net/http"}
 
 // networkDialPatterns are symbols whose presence in the linked binary indicates
-// the ability to perform network I/O.
+// the ability to perform network I/O. This is the SINGLE definition of the guard
+// — the Makefile `verify-no-network` target delegates to it (no second copy).
 var networkDialPatterns = []string{
 	"net.Dial",
 	"net.(*Dialer).Dial",
@@ -36,7 +37,8 @@ var networkDialPatterns = []string{
 // rather than transitive package presence, which `spf13/pflag` would otherwise
 // false-positive on `net`.
 func NetworkCapabilityViolation() (string, error) {
-	if _, err := BinaryPath(); err != nil {
+	bin, err := BinaryPath()
+	if err != nil {
 		return "", err
 	}
 
@@ -50,10 +52,6 @@ func NetworkCapabilityViolation() (string, error) {
 		}
 	}
 
-	bin, err := BinaryPath()
-	if err != nil {
-		return "", err
-	}
 	nm, err := exec.Command("go", "tool", "nm", bin).Output()
 	if err != nil {
 		return "", err
@@ -81,4 +79,34 @@ func packageClosure() (map[string]bool, error) {
 		set[pkg] = true
 	}
 	return set, nil
+}
+
+// HostileNetworkEnv returns environment overrides that make any real egress fail
+// fast without privileges (an unroutable HTTP(S) proxy). It is the portable
+// no-egress witness for SC-004 — the privileged netns is not available on the
+// local dev host. This is the single definition of the differential wiring.
+func HostileNetworkEnv() map[string]string {
+	return map[string]string{
+		"HTTP_PROXY":  "http://127.0.0.1:1",
+		"HTTPS_PROXY": "http://127.0.0.1:1",
+		"NO_PROXY":    "",
+		"http_proxy":  "http://127.0.0.1:1",
+		"https_proxy": "http://127.0.0.1:1",
+		"no_proxy":    "",
+	}
+}
+
+// RunWithBlockedNetwork runs the built binary with args under a hostile network
+// environment: `set` overrides plus the hostile overrides, with `unset` names
+// removed. A caller compares the result to a normal run to obtain the
+// differential no-egress witness.
+func RunWithBlockedNetwork(args []string, set map[string]string, unset []string) RunResult {
+	merged := make(map[string]string, len(set)+len(HostileNetworkEnv()))
+	for k, v := range set {
+		merged[k] = v
+	}
+	for k, v := range HostileNetworkEnv() {
+		merged[k] = v
+	}
+	return Run(args, merged, unset)
 }

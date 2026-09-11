@@ -205,26 +205,9 @@ func networkCapabilityViolation() (string, error) {
 // for an unresolved setup (specs/truth/features/cli/diagnostics/dsl.md).
 var unresolvedCategories = []string{"config-missing", "config-invalid", "provider-mismatch", "home-unset", "home-unusable"}
 
-// hostileNetworkEnv returns environment overrides that make any real egress fail
-// fast without privileges (an unroutable HTTP(S) proxy) — the portable no-egress
-// witness for SC-004 (the privileged netns is unavailable on the local dev host).
-func hostileNetworkEnv() map[string]string {
-	return map[string]string{
-		"HTTP_PROXY":  "http://127.0.0.1:1",
-		"HTTPS_PROXY": "http://127.0.0.1:1",
-		"NO_PROXY":    "",
-		"http_proxy":  "http://127.0.0.1:1",
-		"https_proxy": "http://127.0.0.1:1",
-		"no_proxy":    "",
-	}
-}
-
 // blockedRun reruns the current command under a hostile network environment so a
 // caller can assert the outcome is unchanged (differential no-egress witness).
+// The hostile-env definition lives once in the leaf harness.
 func (sc *scenarioContext) blockedRun() harness.RunResult {
-	env := sc.runEnv()
-	for k, v := range hostileNetworkEnv() {
-		env[k] = v
-	}
-	return harness.Run(sc.args, env, sc.unsetNames())
+	return harness.RunWithBlockedNetwork(sc.args, sc.runEnv(), sc.unsetNames())
 }

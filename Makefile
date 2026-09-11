@@ -61,30 +61,16 @@ verify-no-test-sleep:
 	fi
 	@echo "  ✓ no time.Sleep in test files"
 
-# Build-graph capability guard (research.md Decision 5, backstop witness):
-# the diagnostic binary must have no network capability — no net/http package in
-# its dependency closure, and no dialing/listening symbol in the linked binary.
-# Bare `net` is intentionally NOT flagged: spf13/pflag (the mandated flag library)
-# links `net` for IP flag parsing but never performs I/O; the symbol check covers
-# real capability.
+# Build-graph capability guard (research.md Decision 5, backstop witness).
+# Single definition: delegates to the Go guard in tests/e2e (harness), so the
+# Makefile and the scenario step never drift (previously two diverging copies).
 verify-no-network:
 	@echo "verify-no-network: build-graph capability guard ..."
 	@if ! go list ./cmd/tellme >/dev/null 2>&1; then \
 		echo "  (skip) ./cmd/tellme package not present yet"; exit 0; \
-	fi; \
-	if go list -deps ./cmd/tellme | grep -qx 'net/http'; then \
-		echo "❌ net/http is linked into ./cmd/tellme"; exit 1; \
-	fi; \
-	tmpdir="$$(mktemp -d)"; \
-	if ! go build -o "$$tmpdir/tellme" ./cmd/tellme; then \
-		echo "❌ could not build ./cmd/tellme for the capability check"; exit 1; \
-	fi; \
-	if go tool nm "$$tmpdir/tellme" 2>/dev/null | grep -Eq 'net\.Dial|net\.\(\*Dialer\)\.Dial|net\.Listen|net\.ListenPacket|net\.LookupHost|net\.LookupIP|net\.LookupAddr|net\.Resolve|net/http\.|crypto/tls\.\(\*Conn\)\.Handshake'; then \
-		echo "❌ network dialing/listening symbols present in ./cmd/tellme:"; \
-		go tool nm "$$tmpdir/tellme" | grep -E 'net\.Dial|net/http\.' | head; \
-		exit 1; \
-	fi; \
-	echo "  ✓ no network capability in ./cmd/tellme"
+	fi
+	@go test -count=1 -run TestDependencyGraphHasNoNetworkCapability ./tests/e2e/
+	@echo "  ✓ no network capability in ./cmd/tellme"
 
 verify: verify-no-test-sleep verify-no-network vet
 	@echo "verify: OK"

@@ -20,42 +20,15 @@ func assertNoNetworkCapability(t *testing.T) {
 	}
 }
 
-// hostileNetworkEnv returns environment overrides that make any real egress fail
-// fast without privileges (an unroutable HTTP(S) proxy). This is the portable
-// no-egress witness for SC-004 — the privileged netns is not available on the
-// local dev host.
-func hostileNetworkEnv() map[string]string {
-	return map[string]string{
-		"HTTP_PROXY":  "http://127.0.0.1:1",
-		"HTTPS_PROXY": "http://127.0.0.1:1",
-		"NO_PROXY":    "",
-		"http_proxy":  "http://127.0.0.1:1",
-		"https_proxy": "http://127.0.0.1:1",
-		"no_proxy":    "",
-	}
-}
-
-// runWithBlockedNetwork runs the built tellme with args under a hostile network
-// environment. A caller compares the result to the same run under a normal
-// environment to obtain the differential no-egress witness.
-func runWithBlockedNetwork(args []string, env map[string]string) harness.RunResult {
-	merged := make(map[string]string, len(env)+len(hostileNetworkEnv()))
-	for k, v := range env {
-		merged[k] = v
-	}
-	for k, v := range hostileNetworkEnv() {
-		merged[k] = v
-	}
-	return harness.Run(args, merged, nil)
-}
-
-// TestDependencyGraphHasNoNetworkCapability proves the capability-absence
-// witness and smokes the differential harness wiring.
+// TestDependencyGraphHasNoNetworkCapability proves the capability-absence witness
+// and smokes the differential harness wiring. The child environment is owned by
+// the test (TELL_ME_* unset) so the outcome does not depend on the ambient shell.
 func TestDependencyGraphHasNoNetworkCapability(t *testing.T) {
 	assertNoNetworkCapability(t)
 
-	base := harness.Run(nil, nil, nil)
-	blocked := runWithBlockedNetwork(nil, nil)
+	unset := []string{"TELL_ME_HOME", "TELL_ME_MODE", "TELL_ME_SELECTED_PROVIDER"}
+	base := harness.Run(nil, nil, unset)
+	blocked := harness.RunWithBlockedNetwork(nil, nil, unset)
 	if base.Err != nil || blocked.Err != nil {
 		t.Fatalf("run error: base=%v blocked=%v", base.Err, blocked.Err)
 	}
