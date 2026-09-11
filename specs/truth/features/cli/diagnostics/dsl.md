@@ -6,8 +6,14 @@ match exactly one row.
 
 > `tellme performs no network access` is a host-harness assertion, not a black-box observation
 > (black-box cannot witness an absence). It is mediated by the E2E harness — a no-egress sandbox /
-> hostile-env differential witness plus the build-graph capability guard — per the round's
+> hostile-env differential witness plus the build-graph **capability** guard — per the round's
 > technical-research Decision 5.
+>
+> Capability-guard semantics (**corrected**, round-001 implementation): the guard checks **network
+> capability**, not bare package presence — no `net/http` in the binary's dependency closure, and no
+> dialing/listening symbol in the linked binary (`go tool nm`). Bare `net` / `net/netip` may be
+> linked transitively by `spf13/pflag`'s IP-flag parsing without performing any I/O, so they are
+> **not** indicators.
 >
 > `--json` output contract (**pinned**, grill #4 fix A2): a single JSON object with keys —
 > `status` (string, `"resolved"` or `"unresolved"`), `reason` (string, present only when unresolved:
@@ -45,5 +51,5 @@ match exactly one row.
 | `tellme reports the reason the configuration did not resolve` | 無 | 不支援 | 無 | `必查`: `呈現結果`: stdout names the unresolved category (one of `config-missing`, `config-invalid`, `provider-mismatch`, `home-unset`, `home-unusable`) consistent with the arranged setup. |
 | `tellme emits the resolution status as structured output` | 無 | 不支援 | `格式`: the pinned `--json` object (`status: "resolved"`, plus `runtime_home` and `session_workspace`). | `必查`: `呈現結果`: stdout parses as the pinned JSON object; assert `status == "resolved"` and that `runtime_home` / `session_workspace` equal the values the plain form reported. |
 | `tellme emits the unresolved status as structured output` | 無 | 不支援 | `格式`: the pinned `--json` object (`status: "unresolved"`, plus `reason`). | `必查`: `呈現結果`: stdout parses as the pinned JSON object; assert `status == "unresolved"` and that `reason` equals the unresolved category the plain form reported. |
-| `tellme performs no network access` | 無 | 不支援 | 無 | `必查`: harness-mediated — `呈現結果` / `權威狀態`: with egress blocked the diagnostic's exit code and output are unchanged, and the build graph (a `go list -deps` / `go tool nm` guard) shows no network-capable package linked. This is a differential + capability-absence witness, not a black-box observation. |
+| `tellme performs no network access` | 無 | 不支援 | 無 | `必查`: harness-mediated — `呈現結果` / `權威狀態`: with egress blocked the diagnostic's exit code and output are unchanged (differential witness), and the binary has **no network capability** — no `net/http` in its dependency closure and no dialing/listening symbol in the linked binary (`go tool nm` capability guard). Bare `net` / `net/netip` may be linked transitively by `spf13/pflag` IP-flag parsing without implying network I/O and are **not** indicators. This is a differential + capability-absence witness, not a black-box observation. |
 | `tellme exits with the diagnostic error code` | 無 | 不支援 | `碼值`: a dedicated, deterministic non-zero code distinct from the success code and from every other error class (usage, configuration, environment). | `必查`: `呈現結果`: the report was produced and the exit code is non-zero and equals **its** code dedicated to the diagnostic "unresolved" outcome. `不該發生`: it must not collapse to the success code or to any other error class. |
