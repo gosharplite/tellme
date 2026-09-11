@@ -98,15 +98,19 @@
 
 - [X] T009 [P] [BDD-ALIGN] `Then: tellme exits with the configuration error code`（釘住 `3`）
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `tellme exits with the configuration error code`；既有落點 `tests/e2e/steps/step_t026_config_then_exits_config_error.go`
+  - Note (post-review F1): no stepdef change — `step_t026` already asserted `cli.ConfigError` (= `3`); the literal `3` is pinned centrally by `TestExitCodesMatchPinnedContract`.
 
 - [X] T010 [P] [BDD-ALIGN] `Then: tellme exits with the environment error code`（釘住 `4`）
   - Read: `specs/truth/features/cli/workspace/dsl.md` -> `tellme exits with the environment error code`；既有落點 `tests/e2e/steps/step_t038_workspace_then_exits_environment_error.go`
+  - Note (post-review F1): no stepdef change — `step_t038` already asserted `cli.EnvironmentError` (= `4`); the literal `4` is pinned centrally by `TestExitCodesMatchPinnedContract`.
 
 - [X] T011 [P] [BDD-ALIGN] `Then: tellme exits with the usage error code`（釘住 `2`）
   - Read: `specs/truth/features/cli/usage/dsl.md` -> `tellme exits with the usage error code`；既有落點 `tests/e2e/steps/step_t054_usage_then_exits_usage_error.go`
+  - Note (post-review F1): no stepdef change — `step_t054` already asserted `cli.UsageError` (= `2`); the literal `2` is pinned centrally by `TestExitCodesMatchPinnedContract`.
 
 - [X] T012 [P] [BDD-ALIGN] `Then: tellme exits with the diagnostic error code`（釘住 `5`）
   - Read: `specs/truth/features/cli/diagnostics/dsl.md` -> `tellme exits with the diagnostic error code`；既有落點 `tests/e2e/steps/step_t052_diag_then_exits_diagnostic_error.go`
+  - Note (post-review F1): no stepdef change — `step_t052` already asserted `cli.DiagnosticUnresolvedError` (= `5`); the literal `5` is pinned centrally by `TestExitCodesMatchPinnedContract`.
 
 ### UNIT（pure-helper 單元測試，F9）
 
