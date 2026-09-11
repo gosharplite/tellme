@@ -62,7 +62,7 @@ When development begins, iterations will proceed through the standard AIxBDD lif
 /axb-technical-research ► Select tech stack & record decisions (research.md, specs/truth/techstack.md)
       │
       ▼
-/axb-system-analysis ──► Map CLI interfaces & data models (plan.md, /axb-data-plan)
+/axb-system-analysis ──► Map the CLI interfaces (plan.md); for this CLI: /axb-api-plan = NOOP, /axb-data-plan conditional / NOOP, /axb-ui-plan skipped
       │
       ▼
 /axb-dsl-refine ───────► Decompose acceptance rules into executable Gherkin & DSL (specs/truth/features/**)
