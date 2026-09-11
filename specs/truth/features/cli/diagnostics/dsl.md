@@ -14,6 +14,10 @@ match exactly one row.
 > one of `config-missing`, `config-invalid`, `provider-mismatch`, `home-unset`, `home-unusable`),
 > `runtime_home` (string, present when the home resolved), `session_workspace` (string, present when
 > the workspace resolved). The plain report and `--json` must agree on `status` and `reason`.
+>
+> Path normalization convention (**pinned**, grill #5 fix Q5):
+> - `{home}` is the operator-facing name standing for the actual runtime home (`TELL_ME_HOME`).
+> - `{workspace_path}` is an operator-facing path expressed with `{home}` as its root (e.g. `"ait-tmg/output/butler"`).
 
 ## Given
 
@@ -36,7 +40,7 @@ match exactly one row.
 | `tellme prints the build version` | 無 | 不支援 | 無 | `必查`: `呈現結果`: stdout contains the build version string (the E2E build uses a distinctive sentinel so a missed injection fails). |
 | `tellme reports the configuration resolved` | 無 | 不支援 | 無 | `必查`: `呈現結果`: stdout reports the configuration resolved. `權威狀態`: the resolution matches a ready configuration + effective provider. |
 | `tellme reports the runtime home resolved to "{home}"` | `home`: string; the operator-facing runtime home name. | 不支援 | 無 | `必查`: `呈現結果`: stdout reports the runtime home resolved to `{home}` (the arranged `TELL_ME_HOME`). |
-| `tellme reports the session workspace resolved to "{workspace_path}"` | `workspace_path`: string; the workspace path relative to the runtime home. | 不支援 | 無 | `必查`: `呈現結果`: stdout reports the session workspace resolved to `{workspace_path}`. |
+| `tellme reports the session workspace resolved to "{workspace_path}"` | `workspace_path`: string; the expected operator-facing path reported on stdout (e.g. "ait-tmg/output/butler"). | 不支援 | 無 | `必查`: `呈現結果`: stdout reports the session workspace resolved to `{workspace_path}`. |
 | `tellme reports the configuration did not resolve` | 無 | 不支援 | 無 | `必查`: `呈現結果`: stdout reports the configuration did not resolve. `權威狀態`: the reported status matches the arranged unresolved setup. |
 | `tellme reports the reason the configuration did not resolve` | 無 | 不支援 | 無 | `必查`: `呈現結果`: stdout names the unresolved category (one of `config-missing`, `config-invalid`, `provider-mismatch`, `home-unset`, `home-unusable`) consistent with the arranged setup. |
 | `tellme emits the resolution status as structured output` | 無 | 不支援 | `格式`: the pinned `--json` object (`status: "resolved"`, plus `runtime_home` and `session_workspace`). | `必查`: `呈現結果`: stdout parses as the pinned JSON object; assert `status == "resolved"` and that `runtime_home` / `session_workspace` equal the values the plain form reported. |

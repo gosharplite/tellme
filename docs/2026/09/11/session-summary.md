@@ -15,7 +15,7 @@ applied the tellme follow-ups (project-language home `decisions/0001-project-lan
 re-decided → fold**, recorded as **NOOP**), and reconciled `spec.md` / `plan.md` / `research.md` to the
 ratified `data/**` NOOP. **Next: `/axb-tasks`** (`/axb-implement` after that).
 
-> **Two sessions this day** — session 7 (the seventh) and session 8 (the eighth; session 6 closed 2026-09-10). Both are captured below (§1–§10 = session 7; §11 = session 8).
+> **Three sessions this day** — session 7 (the seventh), session 8 (the eighth), and session 9 (the ninth; session 6 closed 2026-09-10). All are captured below (§1–§10 = session 7; §11 = session 8; §12 = session 9).
 
 ---
 
@@ -181,3 +181,51 @@ were **resolved and merged**, and tellme applied its paired follow-ups.
 ### Next steps
 - **`/axb-tasks`** — turn the plan + CLI contract into the executable `tasks.md`.
 - Then **`/axb-implement`** (Phase 3 test alignment → Feature Green/Refactor via `/axb-bdd`).
+
+---
+
+## 12. Session 9 — `/axb-tasks` execution, Grill Round #5, Q5 truth fix & `tasks.md` delivery
+
+The session executed `/axb-tasks` to generate the round's execution control plane (`tasks.md`), pressure-tested it in an adversarial grill round (Grill Round #5, issue #5), applied the resulting Q5 truth fix to `specs/truth/features/cli/**`, resolved all 5 open questions with the user, opened upstream tracking issues in `aixbdd-tmg`, and delivered the revised 63-task plan.
+
+### Work done
+
+1. **Initial `tasks.md` authored** — 62 tasks decomposed across Setup (T001–T003), Foundational (T004–T008), Phase 3 Test Alignment (T009–T054), and Feature phases 4A–4D (T055–T062).
+2. **Grill Round #5 executed** — issue [#5](https://github.com/gosharplite/tellme/issues/5); subject `architect`, griller `griller`, orchestrator `butler`; **8/8 questions** (cap 8); verdict **proceed with changes**. Public transcript gist: <https://gist.github.com/gosharplite/b04e559d2451d8965a87e24c7a62b0d9>; findings comment: <https://github.com/gosharplite/tellme/issues/5#issuecomment-5627065931>.
+3. **Q5 Truth Defect resolved (`/axb-dsl-refine`)** — `{workspace_path}` path normalization semantics corrected:
+   - `workspace/dsl.md`: re-worded 7 rows and added the path normalization header convention (`{workspace_path}` is an operator-facing path rooted in `{home}`, where `{home}` stands for `TELL_ME_HOME`; step definitions normalize by name substitution before filesystem checks). Dropped the duplicate-home composition `{home}/{workspace_path}`.
+   - `diagnostics/dsl.md`: re-worded 1 row and aligned header notes.
+   - Mechanical audit: `audit_feature_dsl_topology.py` re-run → **PASSED** (120 steps, 0 errors, 0 warnings).
+   - `truth-delta.md`: recorded `/axb-dsl-refine` `MODIFY` entry.
+4. **5 Open Questions ratified with the user**:
+   - Q1: **Reading (b) ratified** — `{home}`-rooted operator paths normalized in step definitions.
+   - Q2: **Leaf package `tests/e2e/harness/`** for subprocess runner and sentinel constants (cycle-free).
+   - Q3: **Go test for build-graph guard** (`tests/e2e/network_guard_test.go`) invoked via `make verify`.
+   - Q4: **Host-harness exit-code test** (`tests/e2e/exitcode_test.go`) importing `internal/cli` as oracle.
+   - Q5: **Route upstream to `aixbdd-tmg`** — tracking issues opened.
+5. **Upstream issues created in `gosharplite/aixbdd-tmg`**:
+   - [aixbdd-tmg#9](https://github.com/gosharplite/aixbdd-tmg/issues/9): *ParallelHint 與同一檔案 merge 規則在並行 dispatch 下存在衝突風險（建議明確檔案分割或原子獨立寫入目標）*
+   - [aixbdd-tmg#10](https://github.com/gosharplite/aixbdd-tmg/issues/10): *axb-tasks Phase 5 缺少 Pre-Delivery Orphan Coverage Sweep 機械檢驗（防止 truth rows 與 plan decisions 產生斷層）*
+6. **`tasks.md` revised (63 tasks) & delivered**:
+   - Setup: T002 added `verify-no-test-sleep` and `verify` targets.
+   - Foundational: T004 & T005 pinned stepdef registration mechanism (`tests/e2e/steps/register.go` with `registrars` slice) and `scenario_context.go` (`ctx.Before` hook); T006 bound `VERSION=0.0.0-harness` sentinel injection via explicit `go build -ldflags`; T007 bound `internal/cli` export and `TestExitCodesAreDistinct` pairwise distinctness assertion.
+   - Phase 3: T010–T054 partitioned stepdefs into 45 individual files in `tests/e2e/steps/` with `init()` self-registration (zero shared edits under concurrent dispatch); T055 review gate enforced stepdef body-conformance against prose channels (`怎麼做`, `必查`).
+   - Phase 4A–4D: bound `research.md -> Decision 3` in `Shared Must Read` and quoted boundary rules.
+   - Pre-Delivery Orphan Coverage Sweep: 19/19 truth rows and research decisions verified covered (PASS).
+
+### Decisions log
+
+| # | Decision | Rationale |
+| --- | --- | --- |
+| D1 | **One stepdef file per task (`tests/e2e/steps/step_t###_*.go`)** | Grill #5 Q1/Q2 — `ParallelHint` mandates concurrent batch dispatch; separate files with `init()` registration guarantee zero shared edits and eliminate same-file merge races |
+| D2 | **Leaf package `tests/e2e/harness/` for runner & constants** | Grill #5 Q1/Q7 — prevents import cycle (`steps → e2e → steps`) while keeping `suite_test.go` minimal |
+| D3 | **Exit-code oracle = `internal/cli` + `TestExitCodesAreDistinct`** | Grill #5 Q3 — black-box subprocess provides observed values; `internal/cli` imported as expected oracle; pairwise distinctness proven compositionally |
+| D4 | **`{workspace_path}` reading (b) ratified** | Grill #5 Q5 — operator-facing `{home}`-rooted paths match user mental model and avoid re-touching feature files; normalized via name substitution |
+| D5 | **Pre-delivery orphan-coverage sweep required** | Grill #5 Q8 — mechanical gate ensuring 100% of truth rows and plan decisions are covered by tasks before delivery |
+| D6 | **Route framework lessons upstream to `aixbdd-tmg`** | Grill #5 Q2/Q8 — general methodology improvements for `ParallelHint` and `axb-tasks` Phase 5 |
+
+### Status at end of session
+
+- `tasks.md` is **DELIVERED** (63 tasks, orphan sweep 19/19 PASSED).
+- **Propagation** — session-9 closeout: `working → dev → main` **DONE** (user-approved).
+- Next: **`/axb-implement`** (starting with Phase 1 Setup: T001–T003).
