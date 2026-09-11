@@ -392,3 +392,41 @@ Executed the full round-002 pipeline (`/axb-specify` → … → `/axb-tasks` �
 
 ### PM follow-ups
 - None new — the round's PM half (the class-phrase rewording of FR-004/FR-006 + SC-002/SC-003) landed in-session (butler-as-PM); PM-1..PM-4 remain closed.
+
+
+---
+
+## 16. Session 13 — bootstrap + 003/004 roadmap & tracking issues (closeout)
+
+A short, **docs/metadata-only** session: re-ran `SESSION-BOOTSTRAP.md` to inherit state, discussed and agreed the next two slices, opened them as tracking issues, and closed out.
+
+> Note: §1–§15 above cover sessions 7–12 of 2026-09-11; this is an additional (**seventh**) session on the same day — session 13 overall. Mirrors the multi-session daily-log style.
+
+### Work done
+1. **`SESSION-BOOTSTRAP.md` (Steps 1–8)** — read `README.md`; the `tell-me-go` 8-item bootstrap (`README`, `Makefile`, `tell-me-go`/`quality`/`environment-management` models, `INTENTIONAL_NON_FIXES.md`, `list_skills`); the `aixbdd-tmg` domain model + README; `list_skills`; peer agents (self `butler`; peers `architect`, `coder`, `griller`, `pm`, `rd`); `STATUS.md` (active branch `002-followup-cleanups` **confirmed current**); and the last-5-days daily logs (09/11, 09/10).
+2. **Roadmap discussion** — agreed the next two slices. **Correction surfaced:** the previously-proposed slice **A (effective-provider resolution)** is **already implemented** (round-001 `resolve()` Step 5 `EffectiveSelectedProvider`→`ProviderInRegistry`→provider-mismatch→ config error 3; round-002 **F9** unit tests), so a 003 built on A would be work for frozen behaviour. Re-scoped **003 = provider-registry completeness** (the documented "full config schema" gap in `internal/config/config.go`) → **004 = first reasoning turn (B)**.
+3. **Tracking issues opened** — **[#9](https://github.com/gosharplite/tellme/issues/9)** `003 — Provider-registry completeness (config input contract)` and **[#10](https://github.com/gosharplite/tellme/issues/10)** `004 — First reasoning turn: one prompt → provider → response` (marked **depends on #9**; must **amend the round-001 no-network capability guard**).
+4. **`STATUS.md` updated** — header bump; new `## Roadmap — next slices` section (table linking #9/#10); the round-002 `Next:` pointer retargeted; a decisions-log bullet + an environment note.
+
+### Decisions log
+| # | Decision | Rationale |
+| --- | --- | --- |
+| D1 | **003 = provider-registry completeness** | the remaining, genuinely-unimplemented provider-config gap; a direct prerequisite for the first turn |
+| D2 | **004 = first reasoning turn (B)** | the deferred round-001 "Option B" — the first real reasoning capability |
+| D3 | **Slice A dropped (not scheduled)** | already implemented (round 001 + round-002 F9); a round for it would be redundant |
+| D4 | **Track both as GitHub issues** | anchor each round with an issue (the project's grill/PR convention) |
+
+### Verification
+- `git status` — only `STATUS.md` modified; tree otherwise clean; branch `002-followup-cleanups` tracking `origin`. **Placement (option B):** the session-13 docs were re-landed on **`dev`** and `002-followup-cleanups` restored to its delivered tip `21d990a` — no post-round commit stays on the round-002 branch.
+- `gofmt -l .` clean · `go vet ./...` clean · secret scan clean (the lone pattern hit was the config field name `API_KEY` in prose, not a secret).
+
+### Artifacts
+- GitHub issues **#9**, **#10** (`gosharplite/tellme`); the `STATUS.md` roadmap/decision/env updates; this daily-log §16. **No `specs/**` change; no `truth-delta.md` change.**
+
+### Next steps
+1. **`/axb-specify` for `003-provider-registry-completeness`** — the issue's five open questions become the round's clarify round.
+2. Then the standard pipeline → `/axb-implement`; **004** follows (starts a fresh `004-*` package).
+3. **Placement** — the session-13 docs live on **`dev`** (and `main`); `002-followup-cleanups` restored to its delivered tip `21d990a`. (No round-branch propagation — the round-002 branch stays unchanged from its delivered state.)
+
+### PM follow-ups
+- None new (spec/acceptance unchanged; PM-1..PM-4 remain closed). Note for **003**: any new acceptance rule (e.g. a provider-entry failure class) is PM-owned.
