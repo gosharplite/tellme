@@ -324,3 +324,21 @@ Executed `/axb-implement` as a One-Shot over the delivered 63-task plan, opened 
 - **Quality gates**: `gofmt -l .` clean · `go vet ./...` clean · `staticcheck ./...` clean · `make verify` OK · `go test -count=1 ./...` green · godog **19/19** · topology audit PASSED · secret scan clean.
 - **Propagation**: two-step merge `working → dev → main` (no-ff) — **DONE**; `STATUS.md` propagation blockquote appended.
 - **Handoff**: **round 001 delivered / frozen** — later rounds must not modify `specs/plans/001-cli-bootstrap-and-config/**`. Active branch `001-cli-bootstrap-and-config`; **next session starts a fresh `002-*` plan package** carrying **F4** (PM acceptance rule + `/axb-dsl-refine` `usage/dsl.md`) and **F9** (D5 re-decision for pure-helper unit tests).
+
+### Human tooling — `tellme.sh` shell manager + `tm` alias (for manual use/testing)
+
+Because the Niffler shell is wired for **`tell-me-go`** — its `a`/`b`/`c`/`g`/`p`/`r` aliases call `tell-me-go`, its `_niffler_run` injects `TELL_ME_MODE`/`TELL_ME_SELECTED_PROVIDER`/`TELL_ME_HOME` **per command**, and it exports `NIFFLER_HOME` but **not** `TELL_ME_HOME` — a bare `./tellme` in that shell sees no `TELL_ME_HOME` and exits *"the runtime home is not usable"*. To let a **human** use/test `tellme` directly:
+
+1. **Installed the binary** — `go install ./cmd/tellme` → **`/home/pos/go/bin/tellme`** (already on `PATH`).
+2. **Created `…/beta-niffler/tellme.sh`** — a **full-fidelity port of `niffler.sh`** that drives the `tellme` binary (group/tag/provider **provisioning** (`-n`), **switching**, **fzf** pickers, persona **aliases** (`b` + one per `configs/<mode>.yaml`), **prompt**, `secrets/keys` sourcing, `c-install`). `niffler.sh` left untouched. Three deliberate differences: **(i)** runs `tellme`; **(ii)** **exports `TELL_ME_HOME` + `TELL_ME_SELECTED_PROVIDER`** so a *bare* `tellme` works too; **(iii)** **no bash completion** (round-001 `tellme` has no `completion` subcommand).
+3. **Wired `alias tm="source …/beta-niffler/tellme.sh"` into `~/.bashrc`** (~line 175, beside the existing env aliases `nf` / `fp` / `wk` / `db` / `tb`).
+
+Usage (Niffler arg semantics — **without `-n`, one arg means *provider only***, so tag+provider needs **two** args):
+```bash
+tm tellme deepseek-flash            # non-interactive: <tag> <provider>
+tm                                  # no args → interactive fzf (tag → provider)
+tm -n engineers tmg vertex-flash     # provision ait-tmg from group 'engineers'
+```
+Verified (fresh-shell + inherited-env): `tm tellme deepseek-flash` → aliases `b/a/c/g/p/r` defined; bare `tellme` → `configuration: ready / …/output/butler` (exit 0); `a`/`r` → `…/output/architect` / `…/output/rd`; `tellme -d --json` → `{"status":"resolved",…}`; `bash -n tellme.sh` clean.
+
+**Notes**: it **shares the `NIFFLER_*` variable names** with `niffler.sh` (faithful) → don't source both in one shell; the aliases still pass a prompt, which `tellme` ignores until a later slice adds chat. This is **human/dev tooling outside the repo** (not a truth artifact) — recorded here for session continuity, and it is a follow-on to the round-001 **Niffler ↔ `tellme` binary-name alignment** integration note. *(Persistent access registrations this session: read+write for `…/beta-niffler/` and `~/.bashrc`.)*
