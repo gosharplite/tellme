@@ -1,8 +1,8 @@
 # tellme — Status
 
-**Last updated**: 2026-09-11 (**session 10 — upstream closeout**: grill-#5 methodology issues `aixbdd-tmg#9` and `#10` **resolved upstream** by [PR #11](https://github.com/gosharplite/aixbdd-tmg/pull/11) (Zero Shared Edits + ParallelHint arbitration, ADR 0003) and [PR #12](https://github.com/gosharplite/aixbdd-tmg/pull/12) (mandatory Pre-Delivery Orphan Coverage Sweep, ADR 0004); `tellme` round-001 `tasks.md` verified already conformant — no local change; `tellme` **issue [#5](https://github.com/gosharplite/tellme/issues/5)** (Grill Round #5) **closed as completed**; `SESSION-CLOSEOUT.md` executed). *Prior — session 9: `/axb-tasks` executed & grilled (Grill #5); `tasks.md` delivered (63 tasks, 45 per-task stepdef files, sweep 19/19 PASSED).* Next = **`/axb-implement`**)
+**Last updated**: 2026-09-11 (**session 11 — round-001 implementation delivered**: `/axb-implement` One-Shot executed over the 63-task plan — **all 63 tasks `[X]`**; `cmd/tellme` + `internal/{cli,config,home}` + `tests/e2e` godog suite (45 step files). PR [#6](https://github.com/gosharplite/tellme/pull/6) opened from `001-implement-cli-bootstrap-and-config` → `001-cli-bootstrap-and-config`. Architecture review **approved** (round 1: findings F1–F9; round 2: verified closed at `defd416`): now-set **F1+F8 / F2 / F3** + in-area **F5 / F6 / F7** fixed; 3 nits fixed; **F4 / F9 deferred & recorded** (Open items). `make verify` OK · godog **19/19 scenarios · 135/135 steps** · topology audit PASSED. *Prior — session 10: upstream grill-#5 closeout; session 9: `/axb-tasks` (63 tasks).* Next = **merge PR #6 → `SESSION-CLOSEOUT.md` → propagate `working → dev → main`**)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
-**Active branch**: `001-cli-bootstrap-and-config` (→ `dev` → `main`)
+**Active branch**: `001-implement-cli-bootstrap-and-config` (PR [#6](https://github.com/gosharplite/tellme/pull/6)) → `001-cli-bootstrap-and-config` → `dev` → `main`
 **Daily log**: [`docs/2026/09/11/session-summary.md`](docs/2026/09/11/session-summary.md)
 
 ## Branch model
@@ -49,7 +49,7 @@
 - [x] `specs/truth/features/cli/**` + `dsl.md` — `/axb-dsl-refine` (CLI **contract owner**; **ungated**) — **4 modules**, interface-root + module DSL; **audit PASSED** (0 errors/0 warnings) — **grill round #4 corrections applied** (restored W1/W2/W5 arrange; pinned the `--json` key schema; error-code rows assert distinctness); **session 8**: W2/D2 re-decided under the upstream **entailment** criterion ([PR #7](https://github.com/gosharplite/aixbdd-tmg/pull/7)) → **fold** (identical verdict), recorded as **NOOP**
 - [x] `decisions/0001-project-language.md` + `decisions/README.md` — project-language declaration (**named home**, English; upstream PR #8 / R2)
 - [x] `specs/plans/001-cli-bootstrap-and-config/tasks.md` — `/axb-tasks` (63 tasks: revised post-grill #5 — per-task stepdef files, sentinel in T006, exit-code oracle, Decision 3 reads, verify targets in T002, and pre-delivery orphan sweep)
-- [ ] Implementation — `/axb-implement`
+- [x] Implementation — `/axb-implement` (**round-001 delivered**: 63/63 tasks `[X]`; CLI boot + YAML config load/validate + runtime home & per-mode workspace + `--version` + offline `-d` / `-d --json`; godog **19/19**; `make verify` OK)
 
 ### System analysis (`plan.md`) — **revised by grill round #2**
 
@@ -67,7 +67,7 @@
 `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` (+ **grill round #1**, **clarify**) →
 `/axb-system-analysis` **(done — `plan.md`, revised by grill round #2)** → `/axb-data-plan`
 **(done — NOOP, grill #3 + ratification)** → `/axb-dsl-refine` **(done — CLI executable contract;
-audit PASSED; W2/D2 re-decided → fold)** → `/axb-tasks` **(done — `tasks.md`, 63 tasks, grill #5 closed, Q5 truth fix landed, orphan sweep passed)** → **next: `/axb-implement`**.
+audit PASSED; W2/D2 re-decided → fold)** → `/axb-tasks` **(done — `tasks.md`, 63 tasks, grill #5 closed, Q5 truth fix landed, orphan sweep passed)** → **`/axb-implement` (done — 63/63 tasks `[X]`; PR #6 review approved)** → **next: merge PR #6 → `SESSION-CLOSEOUT.md` → propagate `working → dev → main`**.
 
 **Pending decision:** *(none)* the **grill round on `plan.md`** ran as **grill round #2** (6/6,
 verdict *proceed with changes*); its edit set is applied. **All gates cleared:** the two PM acceptance
@@ -268,6 +268,9 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 - **`{workspace_path}` reading (b) ratified** (session 9, Q5): operator-facing `{home}`-rooted paths normalized via step definition name-substitution; Q5 truth fix landed in `workspace/dsl.md` and `diagnostics/dsl.md`.
 - **Pre-delivery orphan-coverage sweep** (session 9, Q8): 19/19 truth rows and research decisions verified covered by task `Read` or delivery.
 - **Upstream methodology tracking** (session 9, Q5; **⟦resolved session 10⟧**): issues [#9](https://github.com/gosharplite/aixbdd-tmg/issues/9) and [#10](https://github.com/gosharplite/aixbdd-tmg/issues/10) opened in `gosharplite/aixbdd-tmg` — both **closed** by [PR #11](https://github.com/gosharplite/aixbdd-tmg/pull/11) (**ADR 0003**, Zero Shared Edits + ParallelHint concurrency arbitration) and [PR #12](https://github.com/gosharplite/aixbdd-tmg/pull/12) (**ADR 0004**, Pre-Delivery Orphan Coverage Sweep). No `tellme` artifact change required.
+- **Round-001 implementation delivered** (session 11): `/axb-implement` One-Shot — **63/63 tasks `[X]`**; PR [#6](https://github.com/gosharplite/tellme/pull/6) (`001-implement-cli-bootstrap-and-config` → `001-cli-bootstrap-and-config`); architecture review **approved** (F1+F8 / F2 / F3 + F5 / F6 / F7 fixed; 3 nits fixed).
+- **No-network guard wording corrected in-round** (session 11): `/axb-dsl-refine` + `/axb-technical-research` reworded `diagnostics/dsl.md` + `techstack.md` to **capability** semantics (no `net/http` in the closure; no dialing/listening symbol via `go tool nm`); recorded in `truth-delta.md` (2 `MODIFY` rows).
+- **F4 / F9 deferred to the next slice** (session 11): F4 = `--json` without `-d` (CLI-contract decision; PM + `/axb-dsl-refine`); F9 = pure-helper unit tests, **reframed** against D5 (`/axb-technical-research`). Recorded in `STATUS.md` **Open items**.
 
 ## PM follow-ups (spec/acceptance are PM-owned) — **CLOSED** (session 5, PM role)
 
@@ -296,6 +299,9 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 
 ## Open items (non-blocking)
 
+- **Round-001 PR #6 review — deferred (recorded; next slice)** — carried from the architecture review ([round 1](https://github.com/gosharplite/tellme/pull/6#issuecomment-5628564073), [round 2 verified](https://github.com/gosharplite/tellme/pull/6#issuecomment-5628657071)). *Now-set F1+F8 / F2 / F3 + in-area F5 / F6 / F7 and the 3 nits are **fixed** (commits `defd416` + nits commit); the below are deliberately deferred:*
+  - **F4** — `tellme --json` **without `-d`** is a silent no-op (falls through to the boot path). Needs a **CLI-contract decision** (treat as a usage error **vs.** document the no-op) → **PM acceptance rule** + `/axb-dsl-refine` (`usage/dsl.md`); when decided, record it in `usage/dsl.md` **and** the next slice's `truth-delta.md`. **Owner:** PM + `/axb-dsl-refine`. **When:** next slice.
+  - **F9** — no unit tests for `internal/{cli,config,home}`. **Reframed:** the ratified **E2E-only D5 governs the acceptance path**; it does **not** forbid **table-driven unit tests for pure helpers** (`EffectiveMode` / `EffectiveSelectedProvider` precedence, `EnsureWorkspace` idempotency) — those are complementary. **Owner:** `/axb-technical-research` (re-decide against D5). **When:** next slice.
 - **Blocking (grill #2)** — **CLEARED.** Both PM acceptance gaps are resolved (PM-1/PM-2) and the
   cross-repo `aixbdd-tmg` CLI-seat decision is **closed** (PR
   [#2](https://github.com/gosharplite/aixbdd-tmg/pull/2)). No gating blockers remain.

@@ -31,12 +31,11 @@ type options struct {
 	version    bool
 }
 
-// Resolution is the outcome of resolving home → configuration → workspace. On a
+// resolution is the outcome of resolving home → configuration → workspace. On a
 // resolve failure the partially populated fields (Home, Path, Workspace,
 // Selected) are still returned so a renderer can produce an actionable message.
-type Resolution struct {
+type resolution struct {
 	Home      string
-	Config    *config.Config
 	Path      string // the configuration path (explicit or defaulted)
 	Explicit  bool   // whether -c was given
 	Selected  string // the effective selected provider (when reached)
@@ -44,20 +43,20 @@ type Resolution struct {
 	Workspace string // the resolved workspace path (when reached)
 }
 
-// ResolveError carries the pinned reason category plus the underlying cause.
-type ResolveError struct {
+// resolveError carries the pinned reason category plus the underlying cause.
+type resolveError struct {
 	Reason string
 	Err    error
 }
 
-func (e *ResolveError) Error() string {
+func (e *resolveError) Error() string {
 	if e.Err != nil {
 		return e.Reason + ": " + e.Err.Error()
 	}
 	return e.Reason
 }
 
-func (e *ResolveError) Unwrap() error { return e.Err }
+func (e *resolveError) Unwrap() error { return e.Err }
 
 // Run is the CLI entrypoint: main passes argv and the injected build version,
 // and Run returns the process exit code. It parses flags, then dispatches to the
@@ -98,15 +97,15 @@ func parseFlags(args []string) (opts *options, ok bool) {
 
 // resolve is the single resolution algorithm shared by the boot path and the
 // diagnostic path: home → config path → load/validate → effective selected
-// provider → effective mode → workspace. On failure it returns a *ResolveError
+// provider → effective mode → workspace. On failure it returns a *resolveError
 // carrying the pinned reason category; the two callers differ only in how they
 // render it (boot message + code vs. diagnostic report).
-func resolve(homeDir, configPath string) (Resolution, *ResolveError) {
-	res := Resolution{Home: homeDir, Path: configPath, Explicit: configPath != ""}
+func resolve(homeDir, configPath string) (resolution, *resolveError) {
+	res := resolution{Home: homeDir, Path: configPath, Explicit: configPath != ""}
 
 	// Step 1 — resolve TELL_ME_HOME first, always (FR-006).
 	if homeDir == "" {
-		return res, &ResolveError{Reason: reasonHomeUnset}
+		return res, &resolveError{Reason: reasonHomeUnset}
 	}
 
 	// Step 3 — the config path: -c when given, else the default for the mode seed.
@@ -118,16 +117,15 @@ func resolve(homeDir, configPath string) (Resolution, *ResolveError) {
 	cfg, err := config.Load(res.Path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return res, &ResolveError{Reason: reasonConfigMissing, Err: err}
+			return res, &resolveError{Reason: reasonConfigMissing, Err: err}
 		}
-		return res, &ResolveError{Reason: reasonConfigInvalid, Err: err}
+		return res, &resolveError{Reason: reasonConfigInvalid, Err: err}
 	}
-	res.Config = cfg
 
 	// Step 5 — the effective selected provider must be in the registry (FR-003).
 	res.Selected = cfg.EffectiveSelectedProvider(os.Getenv("TELL_ME_SELECTED_PROVIDER"))
 	if !cfg.ProviderInRegistry(res.Selected) {
-		return res, &ResolveError{Reason: reasonProviderMismatch}
+		return res, &resolveError{Reason: reasonProviderMismatch}
 	}
 
 	// Step 6 — effective mode + prepare the session workspace (FR-007/008/009).
@@ -135,7 +133,7 @@ func resolve(homeDir, configPath string) (Resolution, *ResolveError) {
 	workspace, err := home.EnsureWorkspace(homeDir, res.Mode)
 	res.Workspace = workspace.Path
 	if err != nil {
-		return res, &ResolveError{Reason: reasonHomeUnusable, Err: err}
+		return res, &resolveError{Reason: reasonHomeUnusable, Err: err}
 	}
 	return res, nil
 }
@@ -152,7 +150,7 @@ func renderBoot(homeDir, configPath string) int {
 }
 
 // emitBootError maps a resolve failure to its actionable stderr message + code.
-func emitBootError(res Resolution, rerr *ResolveError) int {
+func emitBootError(res resolution, rerr *resolveError) int {
 	switch rerr.Reason {
 	case reasonConfigMissing:
 		if res.Explicit {
@@ -165,7 +163,7 @@ func emitBootError(res Resolution, rerr *ResolveError) int {
 		fmt.Fprintf(os.Stderr, "tellme: the configuration could not be parsed at %s\n", res.Path)
 		return ConfigError
 	case reasonProviderMismatch:
-		fmt.Fprintf(os.Stderr, "tellme: the selected provider is not in the registry (%s)\n", res.Selected)
+		fmt.Fprintf(os.Stderr, "tellme: the selected provider is not in the registry (%q)\n", res.Selected)
 		return ConfigError
 	case reasonHomeUnusable:
 		if errors.Is(rerr.Err, home.ErrNotDirectory) {
@@ -196,7 +194,7 @@ func renderDiagnostic(homeDir, configPath string, asJSON bool) int {
 }
 
 // emitDiagnosticText writes the plain-text report.
-func emitDiagnosticText(res Resolution, rerr *ResolveError) {
+func emitDiagnosticText(res resolution, rerr *resolveError) {
 	fmt.Println("tellme diagnostic")
 	if rerr == nil {
 		fmt.Println("configuration: resolved")
@@ -219,7 +217,7 @@ type diagnosticJSON struct {
 }
 
 // emitDiagnosticJSON writes the pinned structured report.
-func emitDiagnosticJSON(res Resolution, rerr *ResolveError) {
+func emitDiagnosticJSON(res resolution, rerr *resolveError) {
 	obj := diagnosticJSON{}
 	if rerr == nil {
 		obj.Status = "resolved"
