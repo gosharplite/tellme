@@ -35,3 +35,25 @@ func TestExitCodesAreDistinct(t *testing.T) {
 		seen[code] = name
 	}
 }
+
+// TestExitCodesMatchPinnedContract pins the numeric values themselves (round
+// 002 / FR-005), so the published contract cannot drift silently: editing a
+// cli.* constant to a different number fails here even though the black-box
+// runs — which compare against the constants — would stay green.
+func TestExitCodesMatchPinnedContract(t *testing.T) {
+	cases := map[string]struct {
+		got  int
+		want int
+	}{
+		"Success":                   {cli.Success, 0},
+		"UsageError":                {cli.UsageError, 2},
+		"ConfigError":               {cli.ConfigError, 3},
+		"EnvironmentError":          {cli.EnvironmentError, 4},
+		"DiagnosticUnresolvedError": {cli.DiagnosticUnresolvedError, 5},
+	}
+	for name, c := range cases {
+		if c.got != c.want {
+			t.Errorf("cli.%s = %d, want %d (pinned FR-005)", name, c.got, c.want)
+		}
+	}
+}
