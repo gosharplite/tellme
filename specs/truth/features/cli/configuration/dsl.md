@@ -21,4 +21,4 @@ match exactly one row.
 | DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
 | --- | --- | --- | --- | --- |
 | `tellme reports the configuration is ready` | 無 | 不支援 | 無 | `必查`: `呈現結果`: stdout reports the configuration is ready. `權威狀態`: the run validated the file and the effective selected provider. `不該發生`: no configuration-error exit code. |
-| `tellme exits with the configuration error code` | 無 | 不支援 | `碼值`: a dedicated, deterministic non-zero code distinct from the success code and from every other error class (usage, environment, diagnostic). | `必查`: `呈現結果`: the exit code is non-zero and equals **its** code dedicated to configuration errors. `不該發生`: it must not collapse to the success code or to any other error class. |
+| `tellme exits with the configuration error code` | 無 | 不支援 | `碼值`: `3` (**pinned**, round 002 / FR-005) — a non-zero code distinct from success (0) and from every other error class (usage 2, environment 4, diagnostic 5). | `必查`: `呈現結果`: the exit code **equals the pinned configuration error code `3`**. `不該發生`: it must not collapse to the success code or to any other error class. |

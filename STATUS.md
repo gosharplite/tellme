@@ -1,8 +1,8 @@
 # tellme — Status
 
-**Last updated**: 2026-09-11 (**session 11 closeout — round-001 implementation delivered & propagated**: `/axb-implement` One-Shot (63/63 tasks `[X]`) merged via **PR [#6](https://github.com/gosharplite/tellme/pull/6)** (merge commit `62f217f`; merged into `001-cli-bootstrap-and-config`, head branch deleted); review **approved** (F1+F8 / F2 / F3 + F5 / F6 / F7 + 3 nits fixed; **F4 / F9 deferred & recorded**); `make verify` OK · godog **19/19** · topology audit PASSED; two-step propagation `working → dev → main` **DONE**; `SESSION-CLOSEOUT.md` executed. *Prior — session 10: upstream grill-#5 closeout.* **Round 001 delivered / frozen**; next = **fresh `002-*` slice** (carry **F4** + **F9**); *post-closeout amendment — human `tm`/`tellme.sh` tooling recorded + daily-log link fix; re-propagated*)
+**Last updated**: 2026-09-11 (**session 11 closeout — round-001 implementation delivered & propagated**: `/axb-implement` One-Shot (63/63 tasks `[X]`) merged via **PR [#6](https://github.com/gosharplite/tellme/pull/6)** (merge commit `62f217f`; merged into `001-cli-bootstrap-and-config`, head branch deleted); review **approved** (F1+F8 / F2 / F3 + F5 / F6 / F7 + 3 nits fixed; **F4 / F9 deferred & recorded**); `make verify` OK · godog **19/19** · topology audit PASSED; two-step propagation `working → dev → main` **DONE**; `SESSION-CLOSEOUT.md` executed. *Prior — session 10: upstream grill-#5 closeout.* **Round 001 delivered / frozen.** **Round 002 `002-followup-cleanups` opened (session 12)** — `/axb-specify` done after a 2-question clarify round (**Q1**: remove the `--json` flag entirely; **Q2**: quality-gate hardening + pin the NFR-004 wording + pin the FR-014 exit-code values); next = `/axb-spec-by-example` + `/axb-technical-research`; *post-closeout amendment — human `tm`/`tellme.sh` tooling recorded + daily-log link fix; re-propagated*)
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
-**Active branch**: `001-cli-bootstrap-and-config` (session working branch; PR [#6](https://github.com/gosharplite/tellme/pull/6) **merged** — its head branch `001-implement-cli-bootstrap-and-config` is deleted) → `dev` → `main`
+**Active branch**: `002-followup-cleanups` (round-002 session working branch, branched from `dev`) → `dev` → `main`
 **Daily log**: [`docs/2026/09/11/session-summary.md`](docs/2026/09/11/session-summary.md)
 
 ## Branch model
@@ -11,7 +11,8 @@
 | --- | --- | --- |
 | `main` | merged up from `dev` | Stable / released line |
 | `dev` | merged up from the working branch | Integration line (round work lands here before `main`) |
-| `001-cli-bootstrap-and-config` | session working branch (moves per commit) | This session's working branch — PR [#6](https://github.com/gosharplite/tellme/pull/6) merged into it, then the two-step merge carries it `→ dev → main` |
+| `001-cli-bootstrap-and-config` | delivered / frozen (round 001) | Round-001 working branch — PR [#6](https://github.com/gosharplite/tellme/pull/6) merged; round 001 is delivered / frozen history |
+| `002-followup-cleanups` | session working branch (moves per commit) | Round-002 working branch, branched from `dev`; the two-step merge carries it `→ dev → main` |
 
 > `001-implement-cli-bootstrap-and-config` (the PR #6 head branch) was **merged into `001-cli-bootstrap-and-config` and deleted** (remote + local) at the session-11 closeout.
 
@@ -38,7 +39,50 @@
 > `working → dev → main` re-ran to carry the daily-log amendment (human `tm` / `tellme.sh` tooling + a
 > link-depth fix) to `dev` and `main`. All three lines remain aligned.
 
-## Current round — `001-cli-bootstrap-and-config`
+## Current round — `002-followup-cleanups`
+
+**Scope (small follow-up cleanup, locked by the round-002 clarify round)**: (1) **remove the `--json`
+flag entirely** — no machine-readable diagnostic mode (reverses round-001 **FR-013**; resolves review
+finding **F4** by deletion, because `--json` becomes an unrecognized flag handled by the existing usage
+contract); (2) **freeze the operator-facing failure contract** — exact stderr messages (`NFR-004`) and
+numeric exit codes (`FR-014`); (3) **F9** — fast unit tests for the pure resolution helpers;
+(4) **quality-gate hardening** — an ignored-error gate and a dependency-vulnerability gate.
+
+> **Round-001 package stays frozen**: `specs/plans/001-cli-bootstrap-and-config/**` is history and is
+> not modified. Round 002 supersedes the affected behaviour in `specs/truth/**` (a `DELETE` intent).
+
+### Artifacts
+
+- [x] `specs/plans/002-followup-cleanups/spec.md` — `/axb-specify`
+- [x] `specs/plans/002-followup-cleanups/checklists/requirements.md`
+- [x] `specs/plans/002-followup-cleanups/truth-delta.md` (skeleton)
+- [x] `specs/plans/002-followup-cleanups/features/acceptance/*.feature` — `/axb-spec-by-example`
+- [x] `specs/plans/002-followup-cleanups/research.md` + `specs/truth/techstack.md` — `/axb-technical-research`
+- [x] `specs/plans/002-followup-cleanups/plan.md` — `/axb-system-analysis`
+- [x] `specs/truth/features/cli/**` — `/axb-dsl-refine`
+- [x] `specs/plans/002-followup-cleanups/tasks.md` — `/axb-tasks`
+- [x] Implementation — `/axb-implement`
+
+### Pipeline position
+
+`/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` →
+`/axb-dsl-refine` → `/axb-tasks` → **`/axb-implement` — all done (19/19 tasks `[X]`; `make verify` OK;
+godog 19/19; `.golangci.yml` + `golangci-lint`/`govulncheck` gates added; `--json` removed). Round 002
+implemented — not yet committed / propagated.**
+
+### Decisions locked (round 002)
+
+- **Clarify Q1** — the `--json` flag is **removed entirely** (no flag, no machine-readable diagnostic
+  mode). Reverses round-001 FR-013; **F4** resolves by deletion — with `--json` no longer a flag, its
+  rejection is covered by the existing unrecognized-flag usage rule (no new mechanism).
+- **Clarify Q2** — include (1) **quality-gate hardening** (ignored-error gate + dependency-vulnerability
+  gate), (2) **pin the `NFR-004` error-message wording**, (3) **pin the `FR-014` exit-code numeric
+  values** (currently `0/2/3/4/5`).
+- **F9** — in scope; reframes round-001 research **Decision 5** (E2E-only) to permit fast unit tests for
+  pure helpers (`EffectiveMode` / `EffectiveSelectedProvider` / `ProviderInRegistry` / `EnsureWorkspace`),
+  complementary to (never replacing) the E2E acceptance path. Owner: `/axb-technical-research`.
+
+## Current round — `001-cli-bootstrap-and-config` (delivered / frozen — history)
 
 **Scope (narrow foundation, locked)**: CLI boot; YAML configuration load + validation
 (`config-valid-provider`); runtime home (`TELL_ME_HOME`) + per-mode session workspace
@@ -312,6 +356,10 @@ Resolved the two items grill round #1 routed to `/axb-clarify`, **before** `/axb
 
 ## Open items (non-blocking)
 
+- **Round 002 in flight (2026-09-11)** — the items below are being addressed by
+  `specs/plans/002-followup-cleanups/`: **F4** → remove `--json` entirely; **F9** → pure-helper unit
+  tests; **exit-code numeric values** → pinned (`0/2/3/4/5`); **`NFR-004` wording** → pinned;
+  **unchecked-error coverage** → quality-gate hardening. The bullets below are kept as the origin record.
 - **Round-001 PR #6 review — deferred (recorded; next slice)** — carried from the architecture review ([round 1](https://github.com/gosharplite/tellme/pull/6#issuecomment-5628564073), [round 2 verified](https://github.com/gosharplite/tellme/pull/6#issuecomment-5628657071)). *Now-set F1+F8 / F2 / F3 + in-area F5 / F6 / F7 and the 3 nits are **fixed** (commits `defd416` + nits commit); the below are deliberately deferred:*
   - **F4** — `tellme --json` **without `-d`** is a silent no-op (falls through to the boot path). Needs a **CLI-contract decision** (treat as a usage error **vs.** document the no-op) → **PM acceptance rule** + `/axb-dsl-refine` (`usage/dsl.md`); when decided, record it in `usage/dsl.md` **and** the next slice's `truth-delta.md`. **Owner:** PM + `/axb-dsl-refine`. **When:** next slice.
   - **F9** — no unit tests for `internal/{cli,config,home}`. **Reframed:** the ratified **E2E-only D5 governs the acceptance path**; it does **not** forbid **table-driven unit tests for pure helpers** (`EffectiveMode` / `EffectiveSelectedProvider` precedence, `EnsureWorkspace` idempotency) — those are complementary. **Owner:** `/axb-technical-research` (re-decide against D5). **When:** next slice.

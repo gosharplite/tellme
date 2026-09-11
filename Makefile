@@ -7,7 +7,7 @@ VERSION ?= dev
 
 STATICCHECK := $(shell command -v staticcheck 2>/dev/null)
 
-.PHONY: help build fmt vet staticcheck tidy test verify verify-no-test-sleep verify-no-network
+.PHONY: help build fmt vet staticcheck tidy lint vulncheck test verify verify-no-test-sleep verify-no-network
 
 help:
 	@echo "tellme development tasks:"
@@ -49,6 +49,12 @@ endif
 tidy:
 	go mod tidy
 
+lint:
+	golangci-lint run ./...
+
+vulncheck:
+	govulncheck ./...
+
 test:
 	go test ./...
 
@@ -72,5 +78,5 @@ verify-no-network:
 	@go test -count=1 -run TestDependencyGraphHasNoNetworkCapability ./tests/e2e/
 	@echo "  ✓ no network capability in ./cmd/tellme"
 
-verify: verify-no-test-sleep verify-no-network vet
+verify: verify-no-test-sleep verify-no-network vet lint vulncheck
 	@echo "verify: OK"

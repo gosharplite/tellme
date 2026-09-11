@@ -30,4 +30,4 @@ Reading a feature merges this root with the feature's own module `dsl.md`; every
 | --- | --- | --- | --- | --- |
 | `tellme exits successfully` | 無 | 不支援 | 無 | `必查`: `呈現結果`: the exit code equals the success code (0). `不該發生`: no non-zero exit code. |
 | `tellme refuses to proceed` | 無 | 不支援 | 無 | `必查`: `呈現結果`: the exit code is non-zero (the run refused). `不該發生`: the run must not be reported as success. |
-| `tellme explains on stderr that "{reason}"` | `reason`: string; the operator-facing reason that must appear on stderr. | 不支援 | 無 | `必查`: `呈現結果`: stderr carries a readable message corresponding to `{reason}`. `不該發生`: the failure reason must not be swallowed or emitted only on stdout. |
+| `tellme explains on stderr that "{reason}"` | `reason`: string; the **frozen** operator-facing wording for a failure class (verbatim). | 不支援 | 無 | `必查`: `呈現結果`: stderr carries the **frozen** message for this failure class — it is pinned to start with `tellme: {reason}` (only a class-specific trailing detail, e.g. a path or provider name, may follow). `不該發生`: the failure reason must not be swallowed or emitted only on stdout. |

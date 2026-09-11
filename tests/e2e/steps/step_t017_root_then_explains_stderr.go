@@ -15,12 +15,14 @@ func init() {
 	})
 }
 
-// thenExplainsOnStderr (必查 呈現結果): stderr carries a readable message
-// corresponding to {reason}; the reason must not be only on stdout.
+// thenExplainsOnStderr (必查 呈現結果): stderr carries the frozen message for the
+// failure class — pinned to the `tellme: {reason}` prefix (round 002 / FR-004);
+// the reason must not be only on stdout.
 func thenExplainsOnStderr(ctx context.Context, reason string) error {
 	sc := scenarioFrom(ctx)
-	if !strings.Contains(sc.stderr, reason) {
-		return fmt.Errorf("stderr %q does not explain %q", sc.stderr, reason)
+	want := "tellme: " + reason
+	if !strings.Contains(sc.stderr, want) {
+		return fmt.Errorf("stderr %q does not carry the frozen message %q", sc.stderr, want)
 	}
 	return nil
 }
