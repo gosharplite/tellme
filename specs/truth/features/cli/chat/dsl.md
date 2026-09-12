@@ -9,6 +9,13 @@ match exactly one row.
 > newline-terminated or control-byte-bearing answer be written without a docstring, so the output
 > contract is falsifiable.
 
+> **Output rows (round 005, grill Q4/Q5):** the `is exactly` row is the byte-fidelity assertion and the
+> `carries no terminal decoration` row is the **FR-007 intent carrier** — they are mechanically
+> equivalent while tellme has no renderer (both assert `stdout == answer bytes + one appended newline`);
+> the distinction is intent-only, kept so Rule 1 retains a named decoration clause. The decoration row
+> relies on the scenario's scripted answer (the `a configured provider … answers with …` Given) and
+> fails loudly if it is absent.
+
 > Round 004 (`004-first-reasoning-turn`): one `tellme "<prompt>"` performs **exactly one** non-streaming
 > provider request and prints the answer. The provider transport is OpenAI-compatible; the request
 > endpoint is the resolved provider `URL`. The E2E suite arranges all provider behaviour on an

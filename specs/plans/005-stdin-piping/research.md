@@ -48,10 +48,10 @@ The two items the spec deferred here — the TTY-detection mechanism and the std
   - **TTY-agnostic (always identical output)** — rejected (Clarify Q3): diverges from the reference's posture.
   - **Detect and strip ANSI after the fact** — rejected: nothing emits ANSI yet; gating at the source is cleaner than post-hoc stripping.
 
-## Decision 6: No `-r` flag and no renderer this round; read stdin only on the prompt-turn path
+## Decision 6: No `-r` flag and no renderer this round; read stdin on the non-explicit-mode dispatch path
 
-- **Decision**: Do **not** add a `-r`/raw-output flag or any renderer; keep the flag surface `-c/--config`, `-d/--diagnostics`, `--version`. Read stdin **only** on the prompt-turn dispatch — `--version` and `-d` must never read stdin (FR-010), so the offline paths stay network-free and non-blocking.
-- **Rationale**: tellme's output already equals the reference's `-r` (raw) output, so a literal `-r` would be a vacuous flag (Clarify Q1). Gating the stdin read on the turn path preserves round-004's offline guarantees (NFR-004) and prevents `-d` from blocking on a piped stream.
+- **Decision**: Do **not** add a `-r`/raw-output flag or any renderer; keep the flag surface `-c/--config`, `-d/--diagnostics`, `--version`. Read stdin on the **non-explicit-mode dispatch** — the reasoning turn and the empty→boot fall-through (when stdin is not a terminal) — while `--version` and `-d` must never read stdin (FR-010), so the explicit-mode paths stay network-free and non-blocking. *(Corrected in the grill pass: an earlier draft said "prompt-turn path", but deciding turn-vs-boot requires reading the pipe, so the boot fall-through reads it too.)*
+- **Rationale**: tellme's output already equals the reference's `-r` (raw) output, so a literal `-r` would be a vacuous flag (Clarify Q1). Gating the stdin read off the explicit-mode paths preserves round-004's offline guarantees (NFR-004) and prevents `-d` from blocking on a piped stream.
 - **Alternatives considered**:
   - **Add `-r` now as a documented no-op** — rejected: a flag that does nothing invites confusion and a dead contract.
   - **Add a renderer plus `-r` this round** — rejected: a rendering capability belongs to its own slice with its own acceptance.

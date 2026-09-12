@@ -353,9 +353,9 @@ The full round-005 slice: bootstrap → `/axb-specify` → `/axb-spec-by-example
 | `/axb-spec-by-example` | 2 acceptance features (`piping-a-prompt`, `piping-the-answer-out`); zero `# [need clarification]` |
 | `/axb-technical-research` | `research.md` (6 decisions); `specs/truth/techstack.md` (CLI Application + Testing & Verification + Not Introduced Yet) |
 | `/axb-system-analysis` | `plan.md` — 1 interface, 1 wave (api/data NOOP; CLI end → `/axb-dsl-refine`) |
-| `/axb-dsl-refine` | 2 new `chat` interface features + 9 DSL rows; topology audit **PASSED** (261 steps) |
+| `/axb-dsl-refine` | 2 new `chat` interface features + 9 DSL rows; topology audit **PASSED** (261 steps; **275** post-correction) |
 | `/axb-tasks` | `tasks.md` (21 tasks; Setup omitted; Phase 3 = 9 `[BDD-RED]` + 1 `[UNIT]` + review; orphan sweep 0) |
-| `/axb-implement` | 21/21 tasks `[X]`; godog **40/40 · 284/284**; `make verify` OK |
+| `/axb-implement` | 21/21 tasks `[X]`; godog **40/40 · 284/284** *(→ **42/42 · 298/298** after the grill-correction pass)*; `make verify` OK |
 | Review | PR #16 — **APPROVE WITH NON-BLOCKING FOLLOW-UPS** → F1–F3 fixed (`acc4c82`) → re-check **FULL APPROVAL — READY TO MERGE** |
 | Delivery | committed (`0909529`); PR [#16](https://github.com/gosharplite/tellme/pull/16) opened (**base `dev`**); **NOT merged** |
 
@@ -391,7 +391,7 @@ The full round-005 slice: bootstrap → `/axb-specify` → `/axb-spec-by-example
 ### Verification
 
 - `gofmt` / `go vet` / `staticcheck` clean · `golangci-lint` **0 issues** · `govulncheck` clean.
-- `make verify` → **OK**; godog **40/40 scenarios · 284/284 steps**; topology audit **PASSED** (261 steps).
+- `make verify` → **OK**; godog **42/42 scenarios · 298/298 steps**; topology audit **PASSED** (275 steps). *(post-correction)*
 - **No new dependency** (`go.mod` unchanged); offline paths unchanged.
 
 ### Open items (non-blocking)

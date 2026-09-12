@@ -79,8 +79,9 @@ func Run(args []string, version string) int {
 
 // run parses flags, then dispatches to the version path, the diagnostic
 // reporting path, the prompt-bearing reasoning turn, or the boot path. stdin is
-// read only on the prompt-turn path (round-005 FR-010): the version and
-// diagnostic paths never read it.
+// read on the non-explicit-mode dispatch path (round-005 FR-010) — the reasoning
+// turn and the empty→boot fall-through, when stdin is not a terminal; the version
+// and diagnostic paths never read it.
 func run(args []string, version string, stdin io.Reader, stdout, stderr io.Writer, isTTY func(any) bool) int {
 	opts, flagArgs, ok := parseFlags(args, stderr)
 	if !ok {

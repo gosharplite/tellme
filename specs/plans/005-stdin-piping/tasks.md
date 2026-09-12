@@ -48,7 +48,7 @@
 
 - [X] T004 建立 CLI I/O seam 與 prompt 組合落點骨架 `internal/cli/prompt.go`（+ `cmd/tellme/main.go`、`internal/cli/cli.go` 簽名）
   - Read:
-    - `specs/plans/005-stdin-piping/research.md` -> Decision 1（TTY 偵測）、Decision 3（prompt 組合）、Decision 4（I/O seam）、Decision 6（僅 prompt-turn 讀 stdin）
+    - `specs/plans/005-stdin-piping/research.md` -> Decision 1（TTY 偵測）、Decision 3（prompt 組合）、Decision 4（I/O seam）、Decision 6（讀 stdin 於非顯式模式 dispatch 路徑）
     - `specs/truth/techstack.md` -> CLI Application（Prompt input / Terminal detection / Piped stdin read）
     - `internal/cli/cli.go`、`cmd/tellme/main.go`
   - 只做：宣告純函式簽名 `combinePrompt(args []string, piped []byte) string`（回傳 stub）；宣告 TTY 偵測 seam 型別（例如 `terminalDetector func(any) bool`）與 stdin/stdout/stderr 注入參數，讓 `cli.Run`／`runTurn` 接受注入；`cmd/tellme/main.go` 以真實 `os.Stdin/Stdout/Stderr` 與 `os.ModeCharDevice` 偵測器呼叫。
@@ -164,7 +164,7 @@
 
 ## Phase 4A: ADD Feature File - cli/chat/piping-a-prompt.feature
 
-**Goal**: 實作 stdin piped prompt 讀取與組合（`args (joined) + "\n"` + piped content，再 trim；僅 prompt-turn 讀 stdin），使 `piping-a-prompt.feature` 全綠，並在綠燈保護下重構。
+**Goal**: 實作 stdin piped prompt 讀取與組合（`args (joined) + "\n"` + piped content，再 trim；僅在非顯式模式 dispatch 路徑讀 stdin（turn ＋ 空→boot）），使 `piping-a-prompt.feature` 全綠，並在綠燈保護下重構。
 
 **Shared Must Read**:
 - `specs/truth/features/cli/chat/piping-a-prompt.feature` -> `Feature: Piping a prompt into tellme`
@@ -238,7 +238,7 @@
 | `research.md` -> Decision 3（prompt combine） | T004、T007、T011、T015、T017 | PASS |
 | `research.md` -> Decision 4（I/O-mode seam + unit tests，folding #14） | T004、T005、T015、T016 | PASS |
 | `research.md` -> Decision 5（TTY-aware 輸出契約，pin） | T013、T019 | PASS |
-| `research.md` -> Decision 6（僅 prompt-turn 讀 stdin；不加 `-r`） | T008、T009、T017 | PASS |
+| `research.md` -> Decision 6（讀 stdin 於非顯式模式 dispatch 路徑；不加 `-r`） | T008、T009、T017 | PASS |
 | `truth-delta.md` -> `/axb-api-plan` = NOOP、`/axb-data-plan` = NOOP | 豁免（NOOP 不建任務） | PASS |
 
 > 孤立產物件數：0。掃描通過，准予交付。

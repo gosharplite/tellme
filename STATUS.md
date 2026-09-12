@@ -138,9 +138,9 @@ Verification after the fix set: `gofmt`/`vet`/`staticcheck` clean · `make verif
 - [x] `features/acceptance/*.feature` — `/axb-spec-by-example` (2 journey features: `piping-a-prompt`, `piping-the-answer-out`; no `# [need clarification]` — zero high-impact gaps)
 - [x] `research.md` + `specs/truth/techstack.md` — `/axb-technical-research` (6 decisions; techstack MODIFY)
 - [x] `plan.md` — `/axb-system-analysis` (1 interface, 1 wave; `/axb-api-plan` + `/axb-data-plan` NOOP; CLI end → `/axb-dsl-refine`)
-- [x] `specs/truth/features/cli/**` — `/axb-dsl-refine` (2 new `chat` features + 4 When/5 Then rows; topology audit PASSED — 261 steps)
+- [x] `specs/truth/features/cli/**` — `/axb-dsl-refine` (2 new `chat` features + 4 When/5 Then rows; topology audit PASSED — 275 steps, post-correction)
 - [x] `tasks.md` — `/axb-tasks` (21 tasks; Setup omitted — no new dependency; Phase 3 = 9 `[BDD-RED]` + 1 `[UNIT]` + review; orphan sweep 0)
-- [x] Implementation — `/axb-implement` (21/21 tasks `[X]`; godog **40/40 scenarios · 284/284 steps**; `make verify` OK; committed `0909529`; PR [#16](https://github.com/gosharplite/tellme/pull/16) open)
+- [x] Implementation — `/axb-implement` (21/21 tasks `[X]`; godog **42/42 scenarios · 298/298 steps** post-correction; `make verify` OK; committed `0909529` + grill-correction `fb83cb4`; PR [#16](https://github.com/gosharplite/tellme/pull/16) open)
 
 ### Decisions locked (round 005 — Clarify Round 1, reissued & verified against `tell-me-go`)
 
@@ -177,7 +177,7 @@ A `tmg-grill-round` on PR [#16](https://github.com/gosharplite/tellme/pull/16#is
 - **Q7** — recorded the environment phrase's third cause (stdin unreadable) in root `dsl.md` + `exitcode.go`; **retracted F1's "no truth change"**.
 - **Q8** — scoped NFR-003 to the redirected/non-terminal stream.
 
-Deferred + **named** (not built): the class-level phrase rename (its own ADR-round; changes pre-005 text) and a pty-capable harness (new dependency). The prior "FULL APPROVAL — READY TO MERGE" is **superseded for the changed artifacts**; the code-level approval stands. Awaiting a scoped re-review (must exercise cross-artifact interaction), then merge.
+Deferred + **named** (not built): the class-level phrase rename (its own ADR-round; changes pre-005 text) and a pty-capable harness (new dependency). **Independent re-review** by `coder` ([comment](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644493633)) → **APPROVE WITH NON-BLOCKING FOLLOW-UPS** (all three interaction checks PASS; green independently reproduced). The residuals **R1–R5** were then swept (the residual read-scope predicate in `cli.go`/`research.md`/`tasks.md`; stale step counts in `STATUS.md`/daily log/`truth-delta.md`; the decoration-row coupling/equivalence notes). Prior **FULL APPROVAL is restored for the changed artifacts**; awaiting the merge go-ahead.
 
 ## Roadmap — next slices
 
