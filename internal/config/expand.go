@@ -18,8 +18,29 @@ var (
 	varRegex = regexp.MustCompile(`\$\{([a-zA-Z_][a-zA-Z0-9_]*)(?::-([^}]*))?\}`)
 )
 
-// ExpandString expands ${VAR} and ${VAR:-default} expressions in the given string using environment variables.
+// EnvLookupFunc resolves an environment variable by name. It mirrors
+// os.LookupEnv: ok is false when the variable is unset.
+//
+// Injecting the lookup keeps expansion a pure function of its inputs, so tests
+// can supply a deterministic, in-memory source instead of mutating
+// process-global environment state (review finding #1). The production entry
+// point ExpandString defaults to os.LookupEnv.
+type EnvLookupFunc func(key string) (value string, ok bool)
+
+// ExpandString expands ${VAR} and ${VAR:-default} expressions in the given
+// string using the process environment (os.LookupEnv).
 func ExpandString(s string) (string, error) {
+	return ExpandStringWithLookup(s, os.LookupEnv)
+}
+
+// ExpandStringWithLookup expands ${VAR} and ${VAR:-default} expressions in the
+// given string using the supplied environment lookup.
+//
+// Semantics: a variable that is unset or empty falls back to its default when
+// one is present (an empty default `:-` yields ""), otherwise expansion fails
+// with ErrUnsetVariable. Malformed ${...} syntax (an unclosed `${`) fails with
+// ErrMalformedVariable.
+func ExpandStringWithLookup(s string, lookup EnvLookupFunc) (string, error) {
 	if !strings.Contains(s, "${") {
 		return s, nil
 	}
@@ -48,7 +69,7 @@ func ExpandString(s string) (string, error) {
 			defaultVal = s[m[4]:m[5]]
 		}
 
-		val, found := os.LookupEnv(varName)
+		val, found := lookup(varName)
 		if !found || val == "" {
 			if hasDefault {
 				result.WriteString(defaultVal)

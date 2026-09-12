@@ -61,7 +61,6 @@ func TestProviderInRegistry(t *testing.T) {
 	}
 }
 
-
 func TestProviderYAMLUnmarshal(t *testing.T) {
 	raw := `
 TYPE: deepseek

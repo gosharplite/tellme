@@ -151,6 +151,19 @@ Feature: Starting tellme with a configuration
       And tellme explains on stderr that "the provider configuration is invalid"
       And tellme exits with the configuration error code
 
+    Example: A mandatory field resolves to empty after expansion
+      Given the runtime home is "ait-tmg"
+      And the environment variable "EMPTY_URL_VAR" is unset
+      And a well-formed configuration "configs/butler.yaml" where provider "empty-url-prov" specifies:
+        | field | value             |
+        | TYPE  | openai            |
+        | MODEL | gpt-5.5           |
+        | URL   | ${EMPTY_URL_VAR:-} |
+      When the operator starts tellme pointing at the configuration "configs/butler.yaml"
+      Then tellme refuses to proceed
+      And tellme explains on stderr that "the provider configuration is invalid"
+      And tellme exits with the configuration error code
+
   Rule: A run stops when an environment variable referenced without a default is unset
 
     Example: An environment variable in the selected provider has no value and no default

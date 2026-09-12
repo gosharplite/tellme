@@ -147,3 +147,42 @@ Updated interface truth under `specs/truth/features/cli/**`:
 1. Review PR [#11](https://github.com/gosharplite/tellme/pull/11) (peer review / grill round).
 2. Merge PR [#11](https://github.com/gosharplite/tellme/pull/11) into `003-provider-registry-completeness`.
 3. Propagate `003-provider-registry-completeness → dev → main`.
+
+---
+
+## 14. Session 15 — PR #11 architectural-review response (in-round)
+
+Responded to the PR [#11](https://github.com/gosharplite/tellme/pull/11) architectural review ([comment #5641984093](https://github.com/gosharplite/tellme/pull/11#issuecomment-5641984093), verdict **APPROVE WITH NON-BLOCKING FOLLOW-UPS**) by addressing all three findings directly on the PR head branch `003-implement-provider-registry-completeness` (round 003 is **not yet delivered** — in-round correction of round-003's own output, per the session-11 precedent).
+
+### Findings → fixes
+
+| # | Finding | Fix | Truth impact |
+| --- | --- | --- | --- |
+| F1 | `ExpandString` couples to global OS state; tests must mutate `os.Setenv` (no `t.Parallel()`) | Added an injectable `EnvLookupFunc` port + `ExpandStringWithLookup`; `ExpandString` delegates to `os.LookupEnv`. Rewrote `expand_test.go` to drive the port in-memory (`t.Parallel()`), plus a non-parallel process-env delegation test | `/axb-technical-research` MODIFY (`techstack.md` *Variable expansion*) |
+| F2 | `Validate()` ran **before** `Expand()`: `URL: "${UNSET:-}"` passed (literal non-empty) then became `""`, evading the non-empty invariant | Swapped to **expand-then-validate** in `resolve()`; added executable acceptance Example *"A mandatory field resolves to empty after expansion"* + `TestResolveRejectsEmptyAfterExpansion` | `/axb-technical-research` MODIFY (`techstack.md` resolution row) + `/axb-dsl-refine` MODIFY (`starting-with-a-configuration.feature`) |
+| F3 | `resolve()` discarded the resolved provider; Slice 004 would re-load/re-parse | `resolution` now carries the resolved (expanded) `config.Provider`; covered by `TestResolveCarriesExpandedProvider` | None (internal struct) |
+
+### Verification
+- `gofmt -l .` clean · `go build ./...` OK · `go vet ./...` clean · `staticcheck ./...` clean
+- Unit tests green (`internal/config`, `internal/cli`, `internal/home`)
+- godog E2E: **27/27 scenarios · 195/195 steps** (+1 scenario from the new Example)
+- Topology audit (`audit_feature_dsl_topology.py --root specs/truth/features/cli`): **PASSED** (172 steps; +7)
+- `make verify` → **OK** (no test-sleep, no network capability, 0 lint issues, 0 vulnerabilities)
+
+### Files changed
+`internal/config/expand.go`, `internal/config/expand_test.go`, `internal/cli/cli.go`, `internal/cli/cli_test.go`,
+`specs/truth/features/cli/configuration/starting-with-a-configuration.feature`, `specs/truth/techstack.md`,
+`specs/plans/003-provider-registry-completeness/truth-delta.md` (+ `internal/config/config_test.go` gofmt line).
+
+### Decisions log
+| # | Decision | Rationale |
+| --- | --- | --- |
+| D1 | Apply the fixes **in-round on the PR branch** (not a fresh `004`) | round 003 is not yet delivered; these are refinements to round-003's own output (session-11 precedent) |
+| D2 | F1 uses a **port defaulting to `os.LookupEnv`** (not a forced signature change) | keeps the production call site (`Provider.Expand` → `ExpandString`) unchanged while making the pure helper testable |
+| D3 | F2 fix is **expand-then-validate**; reinforced with an **executable acceptance Example** (not just a unit test) | enforces the contract on the resolved state at the CLI boundary, not only at the helper level |
+| D4 | F3 carries only the **resolved `Provider`** (not the whole `Config`) | minimal forward hook for Slice 004; avoids re-introducing the earlier write-only `Resolution.Config` nit |
+
+### Next steps
+1. Re-review PR [#11](https://github.com/gosharplite/tellme/pull/11) with the fixes in place.
+2. Merge + propagate `003-provider-registry-completeness → dev → main` on approval.
+3. Proceed to Slice **004 — First reasoning turn** ([#10](https://github.com/gosharplite/tellme/issues/10)), which now consumes the carried resolved `Provider`.
