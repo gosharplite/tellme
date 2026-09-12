@@ -133,7 +133,7 @@ Verification after the fix set: `gofmt`/`vet`/`staticcheck` clean · `make verif
 - **Future-package candidates** (list refreshed 2026-09-12):
   - **(a) Run `make verify` in a pipeline platform** — the CI/CD platform (GitHub Actions / ADO / Tekton) is **not a repo-level choice**, so the gate stays **manual for now** (the `SESSION-CLOSEOUT.md` `make verify`). The Makefile stays the single source of gate truth; whichever platform is chosen later wraps that same command. *(Re-scoped 2026-09-12 from "CI workflow".)*
   - **(b) F9 extension — `internal/cli` flag-parsing unit tests** — tracked as [#14](https://github.com/gosharplite/tellme/issues/14); recommended to **fold into the future piping / raw-output (`-r`) slice** rather than stand alone.
-  - **(c) PM-4 `tellme init`** — first-run bootstrap of `$TELL_ME_HOME` + config (PM-owned).
+  - ~~**(c) PM-4 `tellme init`**~~ — **DROPPED (2026-09-12)**: config provisioning stays with the environment manager (Niffler / `tellme.sh`); `tellme` remains a **load/validate consumer** working inside that shell — **no second config-writer**. Candidate withdrawn.
   - **(d) Coverage tooling** — [#13](https://github.com/gosharplite/tellme/issues/13) (`make test-coverage` report + `go build -cover` E2E-integration spike; PR [#12](https://github.com/gosharplite/tellme/pull/12) review follow-up). Triaged 2026-09-12 as **low-priority tooling**, not a committed round.
 - Pre-existing non-blocking items from rounds 001/002 remain documented in archive.
 

@@ -298,7 +298,8 @@ A short, **docs/metadata-only** session. `SESSION-BOOTSTRAP.md` (Steps 1–8) ra
 2. **Coverage tooling [#13](https://github.com/gosharplite/tellme/issues/13) triaged** — posted an assessment comment ([#5643319942](https://github.com/gosharplite/tellme/issues/13#issuecomment-5643319942)) and **de-scoped the title** (dropped “(Slice 005 candidate)”). Findings: unit-only coverage is **misleading** for an E2E-first CLI (`cmd/tellme` / `internal/domain/llm` report 0% yet are exercised through the built binary); the exclusion list is **premature** (`tellme` has none of the reference’s nine test-double dirs); Item 2 (`go build -cover` + `GOCOVERDIR`) is both the substance and the risk. Verdict: **low-priority tooling, not a committed round.**
 3. **F9 flag-parsing issue opened — [#14](https://github.com/gosharplite/tellme/issues/14)** — captured the discussion, including the key finding that the deferred F9 remainder becomes **materially more valuable once `tellme` gains `tell-me-go`’s piping model** (stdin prompt + stdout pipe/redirect + `-r` raw output). Recommendation: **fold into the piping / `-r` slice**, scoped as “flag parsing + I/O-mode selection” (stream behaviour stays E2E).
 4. **CI-platform decision** — the CI/CD platform (GitHub Actions / ADO / Tekton) is **not a repo-level choice** → **keep the gate manual for now**; candidate (a) re-scoped from “CI workflow” to the platform-agnostic “run `make verify` in a chosen pipeline platform”.
-5. **`STATUS.md` open-items refreshed** — candidate list now: (a) run `make verify` in a pipeline platform (manual for now, platform TBD); (b) F9 flag-parsing [#14]; (c) PM-4 `tellme init`; (d) coverage tooling [#13].
+5. **`STATUS.md` open-items refreshed** — candidate list now: (a) run `make verify` in a pipeline platform (manual for now, platform TBD); (b) F9 flag-parsing [#14]; (c) coverage tooling [#13].
+6. **PM-4 `tellme init` DROPPED** — config provisioning stays with the environment manager (Niffler / `tellme.sh`); `tellme` remains a **load/validate consumer** working inside that shell (no second config-writer). With the only user-value candidate withdrawn, the remaining `005-*` candidates are **all tooling/hygiene** — a meaningful next slice is most likely a **capability slice**.
 
 ### Decisions log
 
@@ -308,6 +309,7 @@ A short, **docs/metadata-only** session. `SESSION-BOOTSTRAP.md` (Steps 1–8) ra
 | D2 | **#14 (F9 flag-parsing) folds into the piping / `-r` slice** | at 3 flags the value is a nudge; once piping + `-r` land, the parsing + I/O-mode-selection matrix is exactly what E2E under-covers and unit tests cover cheaply |
 | D3 | **CI platform is not a repo-level choice → keep `make verify` manual for now** | avoid pre-committing to GitHub Actions; the Makefile stays the single gate source; platform (GH Actions / ADO / Tekton) TBD |
 | D4 | **Docs land on `dev`** (not a round branch) | round branches are frozen; `STATUS.md` + daily log are live session docs |
+| D5 | **Drop PM-4 `tellme init`** — keep today's behaviour | config provisioning is the **environment manager's** job (Niffler / `tellme.sh`); `tellme` stays a **load/validate consumer** — avoids a second config-writer / config-shape drift, and matches `tellme-go` (which also relies on the env manager, not self-scaffolding) |
 
 ### Artifacts / commits
 
@@ -316,7 +318,7 @@ A short, **docs/metadata-only** session. `SESSION-BOOTSTRAP.md` (Steps 1–8) ra
 
 ### Open items (non-blocking)
 
-- Unchanged otherwise. Lead `005-*` candidates: a **capability slice** (e.g. the piping / `-r` slice, or session / `history.jsonl` persistence) — or, among the tooling candidates, `tellme init`. (#13 and #14 are both judged low-priority.)
+- All remaining `005-*` candidates are **tooling/hygiene** (a: run `make verify` in a chosen pipeline platform; b: F9 flag-parsing [#14]; c: coverage tooling [#13]); `tellme init` is **withdrawn**. A meaningful next slice is most likely a **capability slice** (e.g. the piping / `-r` slice, or session / `history.jsonl` persistence). (#13 and #14 are both judged low-priority.)
 
 ### Next steps
 
