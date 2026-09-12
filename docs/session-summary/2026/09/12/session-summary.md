@@ -534,3 +534,65 @@ The full round-006 slice: bootstrap (Steps 1–8) → `/axb-specify` → `/axb-s
 ### PM follow-ups
 
 - None new.
+
+
+---
+
+## 21. Session 21 — round 007 (`007-session-history-persistence`) end-to-end + delivery + propagation
+
+The full round-007 slice: bootstrap (Steps 1–8) → `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` → PRs #20/#21 → merge → propagation → closeout. `tellme` gained a **durable session**: each completed turn is persisted and the next run resumes the conversation.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (rounds 001–006 delivered/frozen; active branch `dev`) |
+| `/axb-specify` | `specs/plans/007-session-history-persistence/`; Clarify Round 1 locked **Q1** auto-resume-always · **Q2** `--new`+`-l N` · **Q3** reuse `the runtime home is not usable` |
+| `/axb-spec-by-example` | 3 acceptance features (`remembering-the-conversation`, `starting-a-fresh-conversation`, `inspecting-the-session-history`) |
+| `/axb-technical-research` | `research.md` (8 decisions); `specs/truth/techstack.md` MODIFY |
+| `/axb-system-analysis` | `plan.md` — 2 interfaces, 1 wave; `/axb-api-plan` = NOOP, `/axb-data-plan` = ADD (Clarify Round 2 Q1 → invoke) |
+| `/axb-data-plan` | ADD `specs/truth/data/data-model.dbml` (`history_entry` + `history_location`) |
+| `/axb-dsl-refine` | ADD `history/**` + `chat/remembering-the-conversation`; MODIFY `chat/dsl.md` + root `cli/dsl.md`; audit PASSED (344 steps) |
+| `/axb-tasks` | `tasks.md` (26 tasks; Setup omitted — stdlib-only; orphan sweep 0) |
+| `/axb-implement` | 26/26 tasks `[X]`; godog **53/53 · 368/368**; `make verify` OK |
+| Review | PR #20 (plan/truth) → **FULL APPROVAL** + guidance folded (`34359ed`) → **CERTIFIED READY TO MERGE**; PR #21 (implementation) → **FULL ARCHITECTURAL APPROVAL — READY TO MERGE** |
+| Delivery | PR [#20](https://github.com/gosharplite/tellme/pull/20) merged into `007-session-history-persistence` (`3187584`); PR [#21](https://github.com/gosharplite/tellme/pull/21) merged (`f36a83b`); propagated `007 → dev` (`6f5483b`) `→ main` (`c7b9950`) |
+
+### Decisions locked (round 007)
+
+| # | Decision |
+| --- | --- |
+| Q1 | **Auto-resume, always** — every prompt run loads prior turns and carries them as context. |
+| Q2 | **Both `--new` and `-l N`** in scope. |
+| Q3 | History I/O failure **reuses** `the runtime home is not usable` (exit `4`); vocabulary stays 10. |
+| CR2-Q1 | **Invoke `/axb-data-plan`** — the persisted session history is system state (data truth ADD). |
+| Scope | Settled exclusions: `-b`/`--retry`, pinning, streaming, token-budget pruning, `SafePath`; summarisation **deferred** to the agent-tools round. |
+
+### Commits
+
+| Commit | Note |
+| --- | --- |
+| `d38d63d` … `34359ed` | `docs(007)`: plan package + truth (`007-plan-and-truth`) → PR [#20](https://github.com/gosharplite/tellme/pull/20) → merge `3187584` |
+| `cf16552` `4d2892d` `a2f7eaa` `bf5c456` | `feat(007)` + `test(007)` ×2 + `docs(007)` tasks `[X]` (`007-implement-session-history-persistence`) → PR [#21](https://github.com/gosharplite/tellme/pull/21) → merge `f36a83b` |
+| `6f5483b` | propagation `007-session-history-persistence → dev` (no-ff) |
+| `c7b9950` | propagation `dev → main` (no-ff) |
+
+### Verification
+
+- `gofmt -l .` clean · `go build ./...` · `go vet ./...` clean · `make verify` **OK** (0 lint, 0 vulns, no test-sleep, offline witness covering `-l 5` and prompt-less `--new`).
+- godog **53/53 scenarios · 368/368 steps**; unit tests green; topology audit PASSED (13 features, 6 modules, 344 steps).
+- Stdlib-only; `go.mod` / `go.sum` unchanged.
+
+### Open items (non-blocking)
+
+- PR #16 **Obs 1** (stdout TTY probe) **OPEN**; round-006 **Obs 3** (renderer lifecycle) deferred to multi-turn.
+- Forward (acknowledged from PR #21): unbounded history / no pruning → **agent-tools round**; no `flock` → `ModeLocker` when `--callback`/parallel personas arrive; centralize mode resolution into `internal/home` on growth.
+
+### Next steps
+
+1. **Fresh `008-*` off `dev`** — candidate: **agent tools / the tool-call loop** (brings history summarisation + token-budget pruning with it).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
