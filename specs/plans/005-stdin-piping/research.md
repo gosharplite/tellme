@@ -10,7 +10,7 @@ The two items the spec deferred here — the TTY-detection mechanism and the std
 
 ## Decision 1: TTY detection = dependency-free stdlib char-device check, behind an injected seam
 
-- **Decision**: Detect "is a terminal" with the standard library — `os.File.Stat()` and `(mode & os.ModeCharDevice) != 0` — probed **separately for stdin and stdout**, and wrapped behind a small injected function (defaulting to the real check) so unit tests can drive it. No new module.
+- **Decision**: Detect "is a terminal" with the standard library — `os.File.Stat()` and `(mode & os.ModeCharDevice) != 0` — wrapped behind a small injected function (a general stream probe, defaulting to the real check) so unit tests can drive it. Wired to **stdin** this round; the **stdout** probe is applied when presentation is introduced (Decision 5, review finding F2). No new module.
 - **Rationale**: Matches round-004's minimal-dependency stance (stdlib over SDKs) and is correct for the cases that matter — an interactive TTY is a character device (so stdin is *not* read), while a pipe/FIFO and a regular-file redirect are *not* (so stdin *is* read and presentation is suppressed). Keeping the probe behind an injected seam makes the I/O-mode selection unit-testable without a real terminal (Decision 4).
 - **Alternatives considered**:
   - **`golang.org/x/term` (`term.IsTerminal`)** — the reference's approach and more precise (ioctl-based); rejected for now because it is a **new direct dependency** not currently in `go.mod`, and the char-device check suffices for tellme's two modes.
@@ -42,7 +42,7 @@ The two items the spec deferred here — the TTY-detection mechanism and the std
 
 ## Decision 5: Output contract = TTY-aware suppression, pinned (no observable change today)
 
-- **Decision**: Compute `isTTY(stdout)` once and gate any presentation (color, spinner, rendering) on `isTTY && !raw`, in the spirit of the reference (`session_manager.go`: `UseColor = isTTY && !RawOutput`). Emit the answer to **stdout only**, as plain text with exactly one trailing newline; never write the answer to stderr. Because tellme has no presentation yet, the observable bytes are unchanged — the contract is simply pinned.
+- **Decision**: Emit the answer to **stdout only**, as plain text with exactly one trailing newline; never write the answer to stderr; and adopt the reference's rule that any presentation (color, spinner, rendering) is suppressed when stdout is not a terminal (`session_manager.go`: `UseColor = isTTY && !RawOutput`). Because tellme emits **no presentation yet**, the **stdout probe is not wired this round** — the `isTTY` seam gates the **stdin read** only (Decision 1); the stdout probe is applied when presentation is introduced (review finding F2). The observable bytes are therefore identical today, and the contract is pinned.
 - **Rationale**: Satisfies FR-006/FR-007 and Clarify Q3 (adopt `tell-me-go`'s posture); it is forward-compatible with the future renderer without any present-day behaviour change.
 - **Alternatives considered**:
   - **TTY-agnostic (always identical output)** — rejected (Clarify Q3): diverges from the reference's posture.

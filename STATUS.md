@@ -149,6 +149,14 @@ Verification after the fix set: `gofmt`/`vet`/`staticcheck` clean · `make verif
 - **Deferred to `/axb-technical-research`**: the TTY-detection mechanism and the exact stdin size cap (1 MiB assumed pending ratification).
 - **Research settled (round 005)**: TTY detection = dependency-free stdlib `os.ModeCharDevice` check behind an injected seam (not `golang.org/x/term`); piped stdin read bounded by a fixed **1 MiB** cap (`io.LimitReader`); I/O-mode selection made injectable so flag-parsing + mode selection carry unit tests (folding [#14](https://github.com/gosharplite/tellme/issues/14)); no renderer and no `-r` this round.
 
+### Review response — PR [#16](https://github.com/gosharplite/tellme/pull/16) (round 005, in-round)
+
+Review comment: [#5644257418](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644257418) — verdict **APPROVE WITH NON-BLOCKING FOLLOW-UPS**; all three findings resolved in-round on `005-stdin-piping`:
+
+- **F1 (uncataloged stderr class phrase)** — the defensive stdin-read path emitted a 10th, uncataloged phrase `standard input could not be read` with exit `4`. Fixed by **reusing the existing environment class phrase**: `tellme: the runtime home is not usable (standard input: …)` (closed nine-phrase vocabulary preserved; exit code `4` unchanged; no truth change).
+- **F2 (phantom `isTTY(stdout)`)** — `techstack.md` + `research.md` Decisions 1 & 5 claimed stdout was probed; the code only probes stdin. Fixed by **reconciling the docs** to the implementation: the seam is a general stream probe wired to stdin this round; the stdout probe is wired when presentation is introduced (truth-delta `MODIFY` recorded).
+- **F3 (partial stream DI in `run`)** — `stdout`/`stderr` are now threaded through **every** branch: `parseFlags(stderr)`, `emitUsageError(stderr)`, version→`stdout`, `renderDiagnostic(…, stdout)`, `emitDiagnosticText(stdout, …)`, `renderBoot(…, stdout, stderr)`, `emitBootError(stderr, …)`; no branch writes to global `os.Stdout`/`os.Stderr`.
+
 ## Roadmap — next slices
 
 | Slice | Issue | Scope | Status |

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"io"
 	"strings"
 	"testing"
 )
@@ -93,7 +94,7 @@ func TestDefaultIsTerminalNonFileIsFalse(t *testing.T) {
 }
 
 func TestParseFlags(t *testing.T) {
-	opts, args, ok := parseFlags([]string{"-c", "/tmp/x.yaml", "hello", "world"})
+	opts, args, ok := parseFlags([]string{"-c", "/tmp/x.yaml", "hello", "world"}, io.Discard)
 	if !ok {
 		t.Fatal("parseFlags ok = false, want true")
 	}
@@ -107,12 +108,12 @@ func TestParseFlags(t *testing.T) {
 		t.Errorf("positional args = %v, want [hello world]", args)
 	}
 
-	opts, args, ok = parseFlags([]string{"-d"})
+	opts, args, ok = parseFlags([]string{"-d"}, io.Discard)
 	if !ok || !opts.diagnostic || len(args) != 0 {
 		t.Errorf("parseFlags(-d) = (%+v, %v, %v), want diagnostic with no args", opts, args, ok)
 	}
 
-	if _, _, ok := parseFlags([]string{"--wibble"}); ok {
+	if _, _, ok := parseFlags([]string{"--wibble"}, io.Discard); ok {
 		t.Error("parseFlags(--wibble) ok = true, want false (unrecognized flag)")
 	}
 }
