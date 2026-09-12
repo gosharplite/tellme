@@ -61,7 +61,7 @@
 | Static analysis | `staticcheck` | Secondary static gate (`unused` + SA/S classes) — direct analyzer, no policy artifact; the Makefile resolves it explicitly (`command -v` + `$GOPATH/bin` fallback) |
 | Module hygiene | `go mod tidy` | Keep `go.mod` / `go.sum` consistent |
 | Task runner | `make` | `fmt`, `tidy`, `build`, `test`, `lint`, `vulncheck`, `verify` |
-| Lint aggregator | `golangci-lint` (with `errcheck`) | Multi-linter gate; `errcheck` closes the round-001 unchecked-error residual. Policy artifact: a committed `.golangci.yml` |
+| Lint aggregator | `golangci-lint` (with `errcheck` + `cyclop`) | Multi-linter gate; `errcheck` closes the round-001 unchecked-error residual; `cyclop` enforces a `max-complexity: 15` guard against complexity creep (round-004 PR #12 review follow-up). Policy artifact: a committed `.golangci.yml` |
 | Dependency vulnerability scan | `govulncheck` | Fails the verification on a known vulnerability in dependencies |
 
 ## Adopted, Not Yet Instantiated

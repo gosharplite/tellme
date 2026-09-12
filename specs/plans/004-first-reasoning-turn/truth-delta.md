@@ -15,6 +15,8 @@
 | MODIFY | `specs/truth/techstack.md` | **Testing & Verification**: added a `Local fake provider` row (`net/http/httptest`); **re-scoped** the `No-network verification` row from a whole-binary build-graph capability guard to offline-path witnesses (no-dial canary + differential no-egress sandbox) and recorded the guard's retirement; extended the `Pure-helper unit tests` row with request assembly + response normalization. | Round-004 Decision 6: the network-path test strategy and the amendment of round-001 Decision 5's capability guard (the chat path legitimately links `net/http`). |
 | MODIFY | `specs/truth/techstack.md` | **Not Introduced Yet**: reworded the provider-technology bullet (SDKs excluded — the transport uses stdlib `net/http`); added Gemini/Vertex + Anthropic adapters, streaming (SSE), and the full provider-agnostic `Thought` model / tool-call shapes. | Round-004 Decisions 2 & 4: scope of the first provider transport and the deferred `Thought` model. |
 
+| MODIFY | `specs/truth/techstack.md` | **Build & Tooling**: extended the `Lint aggregator` row to add `cyclop` with `max-complexity: 15` (a mechanical cyclomatic-complexity guard). | Round-004 PR #12 review follow-up (the `gocyclo`/`cyclop` recommendation) — a hard guard against complexity creep in later slices. |
+
 ## /axb-api-plan
 
 | Action | Truth Spec | Change Summary | Reason |
