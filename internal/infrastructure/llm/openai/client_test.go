@@ -29,7 +29,7 @@ func TestRequestURL(t *testing.T) {
 // TestRequestBody pins the request assembly: model, single user message,
 // max_tokens only when positive, reasoning_effort only when set.
 func TestRequestBody(t *testing.T) {
-	body, err := requestBody("deepseek-v4-flash", "hello world", 32768, "HIGH")
+	body, err := requestBody("deepseek-v4-flash", "hello world", nil, 32768, "HIGH")
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -55,7 +55,7 @@ func TestRequestBody(t *testing.T) {
 		t.Errorf("message = %v, want user/hello world", first)
 	}
 
-	body, err = requestBody("m", "p", 0, "")
+	body, err = requestBody("m", "p", nil, 0, "")
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -187,5 +187,41 @@ func TestCompleteRoundTrip(t *testing.T) {
 	}
 	if !strings.Contains(perr.Err.Error(), "Incorrect API key provided") {
 		t.Errorf("ProviderError.Err = %q, wants the actionable body detail", perr.Err.Error())
+	}
+}
+
+// TestRequestBody_PriorMessages pins round-007 RF-3: prior conversation messages
+// are prepended to the current user prompt in order; an empty prior slice yields
+// exactly the single current user message (byte-identical to rounds 004–006).
+func TestRequestBody_PriorMessages(t *testing.T) {
+	prior := []llm.Message{
+		{Role: "user", Content: "my name is alice"},
+		{Role: "assistant", Content: "noted"},
+	}
+	body, err := requestBody("m", "what is my name?", prior, 0, "")
+	if err != nil {
+		t.Fatalf("requestBody: %v", err)
+	}
+	var decoded struct {
+		Messages []struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+		} `json:"messages"`
+	}
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(decoded.Messages) != 3 {
+		t.Fatalf("messages = %+v, want 3", decoded.Messages)
+	}
+	want := []struct{ role, content string }{
+		{"user", "my name is alice"},
+		{"assistant", "noted"},
+		{"user", "what is my name?"},
+	}
+	for i, m := range decoded.Messages {
+		if m.Role != want[i].role || m.Content != want[i].content {
+			t.Errorf("messages[%d] = %s/%q, want %s/%q", i, m.Role, m.Content, want[i].role, want[i].content)
+		}
 	}
 }

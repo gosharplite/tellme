@@ -20,7 +20,7 @@
 
 **Goal**: 建立 history domain port、file adapter、`llm.Request` prior-message 擴充、CLI wiring、E2E 共用元件（fake 記錄 messages、history 檔案 helper、arranged-exchanges 場景狀態）與 11 個新句 stepdef 落點骨架（Zero Shared Edits 原則）。
 
-- [ ] T001 建立 history domain port 落點骨架 `internal/domain/history/history.go`
+- [X] T001 建立 history domain port 落點骨架 `internal/domain/history/history.go`
   - Read:
     - `specs/plans/007-session-history-persistence/research.md` -> Decision 1, 2
     - `specs/truth/data/data-model.dbml` -> `history_entry` / `history_location`
@@ -28,7 +28,7 @@
   - 只做：宣告 `internal/domain/history` 套件與 `Entry` value type（`Prompt`, `Answer`）及 `Store` 介面簽名 stub（例如 `Load() ([]Entry, error)`、`Append(Entry) error`、`Archive() error`）。
   - 不做：不實作任何檔案 I/O；不接 `internal/cli`；不寫斷言。
 
-- [ ] T002 建立 history file adapter 落點骨架 `internal/infrastructure/history/file_store.go`
+- [X] T002 建立 history file adapter 落點骨架 `internal/infrastructure/history/file_store.go`
   - Read:
     - `specs/plans/007-session-history-persistence/research.md` -> Decision 1, 3
     - `specs/truth/techstack.md` -> CLI Application（Session history store）
@@ -36,7 +36,7 @@
   - 只做：宣告 adapter 型別與 constructor 簽名，留下 `<workspace>/history.jsonl` 與 `<workspace>/history.archive.jsonl` 路徑解析 stub；讀取骨架採**有界 reader**（`json.Decoder`／`bufio.Reader`，或 `scanner.Buffer(make([]byte, 0, 1<<20), 1<<20)`），避免 `bufio.Scanner` 預設 64KB token 上限（**TD-2**）。
   - 不做：不實作 append / load / archive；不碰 `internal/cli`。
 
-- [ ] T003 擴充 `llm.Request` 與 OpenAI adapter 落點骨架
+- [X] T003 擴充 `llm.Request` 與 OpenAI adapter 落點骨架
   - Read:
     - `specs/plans/007-session-history-persistence/research.md` -> Decision 2
     - `specs/truth/techstack.md` -> Reasoning & Provider Transport（Conversation context / Request assembly）
@@ -44,7 +44,7 @@
   - 只做：在 `llm.Request` 新增 prior-message 欄位（`[]Message{Role, Content}`）之型別骨架；在 `requestBody` 留下把「resumed history + current prompt」組成 `messages` 陣列之簽名/stub（**RF-3**：`req.Messages` 為空時 `messages` 恰為當前單一 user 訊息，與 round 004–006 byte-for-byte 一致）。
   - 不做：不改 transport、錯誤處理或 response 解析。
 
-- [ ] T004 CLI wiring 落點骨架 `internal/cli/cli.go`
+- [X] T004 CLI wiring 落點骨架 `internal/cli/cli.go`
   - Read:
     - `specs/plans/007-session-history-persistence/research.md` -> Decision 4, 5, 6
     - `specs/truth/techstack.md` -> CLI Application（Session lifecycle flags）
@@ -52,7 +52,7 @@
   - 只做：新增 `--new`（bool）與 `-l`（int）flag 解析骨架；宣告注入 `history.Store` 的 seam（DI，採 `historyStoreFactory` 工廠型別，mirror `gatewayFactory` / `newGateway`，**TD-1**）；在 `run` 留下 `--version` → `-d` → `-l` → (`--new`) prompt turn → boot 的 dispatch stub；宣告「history I/O 失敗 → environment class phrase + code 4」的 hook 簽名；`-l` 於 `N ≤ 0` 立即 `emitUsageError`（code 2）且在任何網路/stdin 之前短路（**RF-2**）。
   - 不做：不實作 resume / persist / archive / list 行為；不改既有 dispatch 與 exit-code（產品行為留 Phase 4）。
 
-- [ ] T005 建立 E2E 共用元件落點骨架（fake 記錄 messages、history 檔案 helper、arranged-exchanges 場景狀態）
+- [X] T005 建立 E2E 共用元件落點骨架（fake 記錄 messages、history 檔案 helper、arranged-exchanges 場景狀態）
   - Read:
     - `specs/plans/007-session-history-persistence/research.md` -> Decision 8
     - `specs/truth/techstack.md` -> Testing & Verification（E2E runner / Local fake provider）
@@ -60,7 +60,7 @@
   - 只做：擴充 fake provider 以解析並記錄 request 的 `messages` 陣列；新增讀 `<workspace>/history.jsonl` / `history.archive.jsonl` 的 harness helper；在 scenario context 保存 Given 安排的 exchanges。
   - 不做：不寫具體 step 斷言；不碰 `internal/`。
 
-- [ ] T006 建立 11 個新句 stepdef 獨立檔案骨架 `tests/e2e/steps/step_t007_*.go`–`step_t017_*.go`
+- [X] T006 建立 11 個新句 stepdef 獨立檔案骨架 `tests/e2e/steps/step_t007_*.go`–`step_t017_*.go`
   - Read:
     - `specs/truth/features/cli/history/dsl.md`（新句：`the operator starts a fresh session with "--new"`、`the operator asks tellme to list the last {count} messages`、`the active session history holds no exchanges`、`the archived session history holds the exchange "{prompt}" and "{answer}"`、`tellme lists the last {count} messages`、`tellme lists no messages`、`tellme sends no request to any provider`）
     - `specs/truth/features/cli/chat/dsl.md`（新句：`tellme stored the exchange "{prompt}" and "{answer}" in the session history`、`the request carried the earlier exchange "{prompt}" and "{answer}"`、`the request carried no earlier exchange`）
@@ -106,64 +106,64 @@
 
 ### BDD-RED（本輪新增句型）
 
-- [ ] T007 [P] [BDD-RED] `Given: the session history already holds the exchanges:`
+- [X] T007 [P] [BDD-RED] `Given: the session history already holds the exchanges:`
   - Read: `specs/truth/features/cli/dsl.md` -> `the session history already holds the exchanges:`
   - Landing: `tests/e2e/steps/step_t007_history_given_holds_exchanges.go`
   - 語意：建立 per-mode session workspace 目錄（若不存在），依 DataTable 逐列寫一行 JSON（`prompt`、`answer`）進 `history.jsonl`（表序）；把 exchanges 存入 scenario context。
 
-- [ ] T008 [P] [BDD-RED] `Then: tellme stored the exchange "{prompt}" and "{answer}" in the session history`
+- [X] T008 [P] [BDD-RED] `Then: tellme stored the exchange "{prompt}" and "{answer}" in the session history`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `tellme stored the exchange "{prompt}" and "{answer}" in the session history`
   - Landing: `tests/e2e/steps/step_t008_chat_then_stored_exchange.go`
   - 語意：斷言 `<workspace>/history.jsonl` 存在一列，其 prompt/answer 為 `{prompt}`/`{answer}`。
 
-- [ ] T009 [P] [BDD-RED] `Then: the request carried the earlier exchange "{prompt}" and "{answer}"`
+- [X] T009 [P] [BDD-RED] `Then: the request carried the earlier exchange "{prompt}" and "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the request carried the earlier exchange "{prompt}" and "{answer}"`
   - Landing: `tests/e2e/steps/step_t009_chat_then_request_carried_exchange.go`
   - 語意：斷言 fake 記錄到**恰好一個**請求，其 `messages` 依序在最前帶有 user=`{prompt}`、assistant=`{answer}` 的先前訊息（在當前 prompt 之前）。
 
-- [ ] T010 [P] [BDD-RED] `Then: the request carried no earlier exchange`
+- [X] T010 [P] [BDD-RED] `Then: the request carried no earlier exchange`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the request carried no earlier exchange`
   - Landing: `tests/e2e/steps/step_t010_chat_then_request_carried_nothing.go`
   - 語意：斷言 fake 記錄到**恰好一個**請求，其 `messages` 僅為當前 user prompt。
 
-- [ ] T011 [P] [BDD-RED] `When: the operator starts a fresh session with "--new"`
+- [X] T011 [P] [BDD-RED] `When: the operator starts a fresh session with "--new"`
   - Read: `specs/truth/features/cli/history/dsl.md` -> `the operator starts a fresh session with "--new"`
   - Landing: `tests/e2e/steps/step_t011_history_when_start_fresh.go`
   - 語意：以 `tellme --new` 執行（無 `-c`、無 positional prompt）；擷取 exit code、stdout、stderr 與產生的 workspace 檔案。
 
-- [ ] T012 [P] [BDD-RED] `When: the operator asks tellme to list the last {count} messages`
+- [X] T012 [P] [BDD-RED] `When: the operator asks tellme to list the last {count} messages`
   - Read: `specs/truth/features/cli/history/dsl.md` -> `the operator asks tellme to list the last {count} messages`
   - Landing: `tests/e2e/steps/step_t012_history_when_list_last.go`
   - 語意：以 `tellme -l {count}` 執行（無 `-c`、無 positional prompt）；擷取 exit code、stdout、stderr。
 
-- [ ] T013 [P] [BDD-RED] `Then: the active session history holds no exchanges`
+- [X] T013 [P] [BDD-RED] `Then: the active session history holds no exchanges`
   - Read: `specs/truth/features/cli/history/dsl.md` -> `the active session history holds no exchanges`
   - Landing: `tests/e2e/steps/step_t013_history_then_active_empty.go`
   - 語意：斷言 `<workspace>/history.jsonl` 不含任何 exchange 列。
 
-- [ ] T014 [P] [BDD-RED] `Then: the archived session history holds the exchange "{prompt}" and "{answer}"`
+- [X] T014 [P] [BDD-RED] `Then: the archived session history holds the exchange "{prompt}" and "{answer}"`
   - Read: `specs/truth/features/cli/history/dsl.md` -> `the archived session history holds the exchange "{prompt}" and "{answer}"`
   - Landing: `tests/e2e/steps/step_t014_history_then_archived_holds_exchange.go`
   - 語意：斷言 `<workspace>/history.archive.jsonl` 存在一列，其 prompt/answer 為 `{prompt}`/`{answer}`。
 
-- [ ] T015 [P] [BDD-RED] `Then: tellme lists the last {count} messages`
+- [X] T015 [P] [BDD-RED] `Then: tellme lists the last {count} messages`
   - Read: `specs/truth/features/cli/history/dsl.md` -> `tellme lists the last {count} messages`
   - Landing: `tests/e2e/steps/step_t015_history_then_lists_last.go`
   - 語意：依 scenario context 的 arranged exchanges，斷言 stdout 依序列出最後 `{count}` 個訊息（每行 `role: content`，與 `internal/cli` 的 `"%s: %s\n"` 格式一致，**RF-2**）。
 
-- [ ] T016 [P] [BDD-RED] `Then: tellme lists no messages`
+- [X] T016 [P] [BDD-RED] `Then: tellme lists no messages`
   - Read: `specs/truth/features/cli/history/dsl.md` -> `tellme lists no messages`
   - Landing: `tests/e2e/steps/step_t016_history_then_lists_none.go`
   - 語意：斷言 stdout 不含任何訊息。
 
-- [ ] T017 [P] [BDD-RED] `Then: tellme sends no request to any provider`
+- [X] T017 [P] [BDD-RED] `Then: tellme sends no request to any provider`
   - Read: `specs/truth/features/cli/history/dsl.md` -> `tellme sends no request to any provider`
   - Landing: `tests/e2e/steps/step_t017_history_then_no_provider_request.go`
   - 語意：斷言所有設定的 fake provider 都記錄到**零**請求。
 
 ### UNIT（pure-helper 單元測試）
 
-- [ ] T018 [P] [UNIT] history store 與 request 組裝單元測試
+- [X] T018 [P] [UNIT] history store 與 request 組裝單元測試
   - Read:
     - `specs/plans/007-session-history-persistence/research.md` -> Decision 1, 2, 4
     - `specs/truth/data/data-model.dbml` -> `history_entry`
@@ -175,7 +175,7 @@
 
 ### Phase Review Gate
 
-- [ ] T019 subagent review (phase quality gate)
+- [X] T019 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/remembering-the-conversation.feature`、`specs/truth/features/cli/history/starting-a-fresh-session.feature`、`specs/truth/features/cli/history/inspecting-the-session-history.feature`
     - `specs/truth/features/cli/dsl.md`、`specs/truth/features/cli/chat/dsl.md`、`specs/truth/features/cli/history/dsl.md`
@@ -206,8 +206,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/remembering-the-conversation.feature`
 
-- [ ] T020 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T021 [BDD-REFACTOR] 在綠燈下整理 history store 落點與 request 組裝
+- [X] T020 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T021 [BDD-REFACTOR] 在綠燈下整理 history store 落點與 request 組裝
 
 ## Phase 4B: ADD Feature File - cli/history/starting-a-fresh-session.feature
 
@@ -230,8 +230,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/history/starting-a-fresh-session.feature`
 
-- [ ] T022 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T023 [BDD-REFACTOR] 在綠燈下整理 archive 搬移與 active 重置
+- [X] T022 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T023 [BDD-REFACTOR] 在綠燈下整理 archive 搬移與 active 重置
 
 ## Phase 4C: ADD Feature File - cli/history/inspecting-the-session-history.feature
 
@@ -253,8 +253,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/history/inspecting-the-session-history.feature`
 
-- [ ] T024 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T025 [BDD-REFACTOR] 在綠燈下整理 `-l` 模式選擇與輸出格式
+- [X] T024 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T025 [BDD-REFACTOR] 在綠燈下整理 `-l` 模式選擇與輸出格式
 
 ## Phase 4D: Regression
 
@@ -263,7 +263,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`（chat、history、configuration、workspace、diagnostics、usage 全模組）
 
-- [ ] T026 [REGRESSION] 執行全域回歸，確認零破壞
+- [X] T026 [REGRESSION] 執行全域回歸，確認零破壞
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
   - 確認 exit-code 表 `0/2/3/4/5/6` 與既有 CLI 契約（round 001–006）維持綠燈；offline paths（`--version`、`-d`、no-prompt boot、`-l`、prompt-less `--new`）不觸網；fresh-workspace 的既有 chat 場景行為不變；`go mod tidy` 後 module graph 不變（本輪無新相依）。
 
