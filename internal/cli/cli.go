@@ -17,6 +17,7 @@ import (
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/home"
 	infrallm "github.com/gosharplite/tellme/internal/infrastructure/llm"
+	"github.com/gosharplite/tellme/internal/ui"
 )
 
 // The pinned unresolved reason categories
@@ -35,6 +36,7 @@ type options struct {
 	configPath string
 	diagnostic bool
 	version    bool
+	raw        bool
 }
 
 // resolution is the outcome of resolving home → configuration → workspace. On a
@@ -49,7 +51,10 @@ type resolution struct {
 	// Provider is the resolved (variable-expanded) selected provider entry. It
 	// is carried here so the reasoning turn can construct the provider transport
 	// without re-loading or re-parsing the configuration (review finding #3).
-	Provider  config.Provider
+	Provider config.Provider
+	// WrapWidth is the resolved rendered width (round 006): the effective
+	// WRAP_WIDTH / TELL_ME_WRAP_WIDTH, or 0 for the renderer default.
+	WrapWidth int
 	Mode      string // the effective mode (when reached)
 	Workspace string // the resolved workspace path (when reached)
 }
@@ -68,6 +73,22 @@ func (e *resolveError) Error() string {
 }
 
 func (e *resolveError) Unwrap() error { return e.Err }
+
+// answerRenderer renders a Markdown answer to ANSI (round 006). It is the seam
+// that keeps the render/raw mode selection unit-testable without a real
+// renderer. On degradation it returns the (sanitized) text the caller should
+// fall back to.
+type answerRenderer interface {
+	// Render returns the rendered answer, and whether rendering degraded (in
+	// which case the returned string is the sanitized raw fallback text).
+	Render(markdown string, width int) (text string, degraded bool)
+	// WarnDegraded emits the one-time degradation warning.
+	WarnDegraded(w io.Writer)
+}
+
+// newRenderer builds the production answer renderer (a var so tests may inject a
+// fake).
+var newRenderer = func() answerRenderer { return ui.NewRenderer() }
 
 // Run is the CLI entrypoint: main passes argv and the injected build version,
 // and Run returns the process exit code. It binds the real process streams and
@@ -105,14 +126,14 @@ func run(args []string, version string, stdin io.Reader, stdout, stderr io.Write
 	// to boot (round-005 FR-001..FR-005).
 	prompt, err := resolvePrompt(flagArgs, stdin, isTTY)
 	if err != nil {
-		// Review finding F1: reuse the existing environment class phrase so the
-		// closed nine-phrase vocabulary (specs/truth/features/cli/dsl.md) is not
-		// widened; the trailing stdin detail is contract-free.
+		// Reuse the existing environment class phrase so the closed phrase
+		// vocabulary (specs/truth/features/cli/dsl.md) is not widened; the
+		// trailing stdin detail is contract-free.
 		_, _ = fmt.Fprintf(stderr, "tellme: the runtime home is not usable (standard input: %v)\n", err)
 		return EnvironmentError
 	}
 	if prompt != "" {
-		return renderTurn(homeDir, opts.configPath, prompt, stdout, stderr)
+		return renderTurn(homeDir, opts.configPath, prompt, opts.raw, stdout, stderr)
 	}
 	return renderBoot(homeDir, opts.configPath, stdout, stderr)
 }
@@ -128,6 +149,7 @@ func parseFlags(args []string, stderr io.Writer) (opts *options, flagArgs []stri
 	fs.StringVarP(&o.configPath, "config", "c", "", "Path to the YAML configuration file.")
 	fs.BoolVarP(&o.diagnostic, "diagnostics", "d", false, "Report configuration and home resolution, then exit.")
 	fs.BoolVar(&o.version, "version", false, "Print the build version and exit.")
+	fs.BoolVarP(&o.raw, "raw", "r", false, "Print the answer as raw text (no Markdown rendering).")
 	if err := fs.Parse(args); err != nil {
 		return nil, nil, false
 	}
@@ -159,6 +181,19 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 		}
 		return res, &resolveError{Reason: reasonConfigInvalid, Err: err}
 	}
+
+	// Step 4b — resolve and validate the rendered width (round-006 FR-006): the
+	// helper owns resolve+validate, so a non-integer override or a negative value
+	// from either source is a configuration error. A value error carries
+	// config.ErrInvalidValue so the boot error emits the general
+	// `the configuration is invalid` class phrase, not the parse phrase. This
+	// step runs before provider resolution, so a config that is both width-invalid
+	// and provider-invalid reports the width error (recorded precedence).
+	width, werr := cfg.EffectiveWrapWidth(os.Getenv("TELL_ME_WRAP_WIDTH"))
+	if werr != nil {
+		return res, &resolveError{Reason: reasonConfigInvalid, Err: werr}
+	}
+	res.WrapWidth = width
 
 	// Step 5 — the effective selected provider must be in the registry (FR-003).
 	res.Selected = cfg.EffectiveSelectedProvider(os.Getenv("TELL_ME_SELECTED_PROVIDER"))
@@ -220,18 +255,18 @@ var newGateway gatewayFactory = infrallm.NewGateway
 // resolve failure is rendered as a boot error; an unsupported family or a
 // provider/transport failure is rendered with the frozen provider class phrase
 // and exit code 6.
-func renderTurn(homeDir, configPath, prompt string, stdout, stderr io.Writer) int {
+func renderTurn(homeDir, configPath, prompt string, raw bool, stdout, stderr io.Writer) int {
 	res, rerr := resolve(homeDir, configPath)
 	if rerr != nil {
 		return emitBootError(stderr, res, rerr)
 	}
-	return runTurn(res, prompt, stdout, stderr, newGateway)
+	return runTurn(res, prompt, raw, stdout, stderr, newGateway, newRenderer())
 }
 
-// runTurn performs one reasoning turn through an injected gateway factory. The
-// context is cancelled on SIGINT/SIGTERM so a stalled provider can be
-// interrupted (review finding #2).
-func runTurn(res resolution, prompt string, out, errOut io.Writer, factory gatewayFactory) int {
+// runTurn performs one reasoning turn through an injected gateway factory and
+// answer renderer. The context is cancelled on SIGINT/SIGTERM so a stalled
+// provider can be interrupted (review finding #2).
+func runTurn(res resolution, prompt string, raw bool, out, errOut io.Writer, factory gatewayFactory, renderer answerRenderer) int {
 	gw, err := factory(res.Provider, res.Selected)
 	if err != nil {
 		return emitProviderError(errOut, err)
@@ -242,8 +277,37 @@ func runTurn(res resolution, prompt string, out, errOut io.Writer, factory gatew
 	if err != nil {
 		return emitProviderError(errOut, err)
 	}
-	_, _ = fmt.Fprintln(out, resp.Text)
+	writeAnswer(out, errOut, resp.Text, raw, res.WrapWidth, renderer)
 	return Success
+}
+
+// writeAnswer writes the provider's answer to stdout (round-006 FR-001/FR-004):
+// the answer bytes verbatim under -r/--raw, or the Markdown-rendered form by
+// default. Rendering is gated by -r ALONE — never by whether stdout is a
+// terminal. On renderer degradation the renderer's sanitized fallback text is
+// written and a one-time non-class warning goes to stderr (the frozen
+// `tellme: {phrase}` vocabulary is untouched).
+func writeAnswer(out, errOut io.Writer, answer string, raw bool, width int, renderer answerRenderer) {
+	if raw {
+		writeRawAnswer(out, answer)
+		return
+	}
+	rendered, degraded := renderer.Render(answer, width)
+	if degraded {
+		renderer.WarnDegraded(errOut)
+		writeRawAnswer(out, rendered) // research D5: the degraded fallback is the sanitized text
+		return
+	}
+	if trimmed := strings.Trim(rendered, "\n"); trimmed != "" {
+		_, _ = fmt.Fprint(out, trimmed+"\n\n")
+	}
+}
+
+// writeRawAnswer prints text verbatim followed by exactly one CLI-appended
+// terminating newline (round-005 FR-006). It serves both the raw (-r) path and
+// the sanitized degraded fallback (round-006 research D5).
+func writeRawAnswer(out io.Writer, answer string) {
+	_, _ = fmt.Fprintln(out, answer)
 }
 
 // emitBootError maps a resolve failure to its actionable stderr message + code.
@@ -257,7 +321,16 @@ func emitBootError(stderr io.Writer, res resolution, rerr *resolveError) int {
 		}
 		return ConfigError
 	case reasonConfigInvalid:
-		_, _ = fmt.Fprintf(stderr, "tellme: the configuration could not be parsed at %s\n", res.Path)
+		// A present-but-invalid value (e.g. a negative rendered width) uses the
+		// general configuration-invalid class phrase (round-006 FR-006); a YAML
+		// parse failure keeps the parse phrase. The sentinel prefix is stripped so
+		// the message does not double the wording.
+		if errors.Is(rerr.Err, config.ErrInvalidValue) {
+			detail := strings.TrimPrefix(rerr.Err.Error(), config.ErrInvalidValue.Error()+": ")
+			_, _ = fmt.Fprintf(stderr, "tellme: the configuration is invalid: %s\n", detail)
+		} else {
+			_, _ = fmt.Fprintf(stderr, "tellme: the configuration could not be parsed at %s\n", res.Path)
+		}
 		return ConfigError
 	case reasonProviderMismatch:
 		_, _ = fmt.Fprintf(stderr, "tellme: the selected provider is not in the registry (%q)\n", res.Selected)
