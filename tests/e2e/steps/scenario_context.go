@@ -9,6 +9,7 @@ import (
 
 	"github.com/cucumber/godog"
 
+	"github.com/gosharplite/tellme/tests/e2e/fakeprovider"
 	"github.com/gosharplite/tellme/tests/e2e/harness"
 )
 
@@ -38,6 +39,16 @@ type scenarioContext struct {
 
 	wsIno uint64 // inode of a pre-existing workspace dir (reuse assertion)
 	wsSet bool   // whether wsIno was recorded
+
+	// fakes holds every in-process fake provider the scenario started; they are
+	// closed by afterScenario. fakeByProvider maps a provider name to its fake so
+	// a Then can target the provider that must (or must not) have been hit.
+	fakes          []*fakeprovider.Provider
+	fakeByProvider map[string]*fakeprovider.Provider
+
+	// lastPrompt is the prompt the last prompt-bearing run carried (When), so a
+	// Then can assert the outbound request carried it.
+	lastPrompt string
 }
 
 // beforeScenario creates an independent scenarioContext backed by a fresh temp
@@ -66,8 +77,13 @@ func beforeScenario(ctx context.Context, _ *godog.Scenario) (context.Context, er
 // afterScenario removes the scenario's temporary runtime home. Godog calls this
 // after every scenario, regardless of outcome.
 func afterScenario(ctx context.Context, _ *godog.Scenario, _ error) (context.Context, error) {
-	if sc := scenarioFrom(ctx); sc != nil && sc.home != "" {
-		_ = os.RemoveAll(sc.home)
+	if sc := scenarioFrom(ctx); sc != nil {
+		for _, f := range sc.fakes {
+			f.Close()
+		}
+		if sc.home != "" {
+			_ = os.RemoveAll(sc.home)
+		}
 	}
 	return ctx, nil
 }
@@ -141,6 +157,30 @@ func (sc *scenarioContext) workspacePath(op string) string {
 	return filepath.Join(sc.home, filepath.FromSlash(trimmed))
 }
 
+// newFake starts an in-process fake provider owned by the scenario (closed by
+// afterScenario).
+func (sc *scenarioContext) newFake() *fakeprovider.Provider {
+	f := fakeprovider.Start()
+	sc.fakes = append(sc.fakes, f)
+	return f
+}
+
+// registerFake records the fake backing a named provider so a Then can assert
+// whether that provider was (or was not) contacted.
+func (sc *scenarioContext) registerFake(provider string, f *fakeprovider.Provider) {
+	if sc.fakeByProvider == nil {
+		sc.fakeByProvider = map[string]*fakeprovider.Provider{}
+	}
+	sc.fakeByProvider[provider] = f
+}
+
+// writeDefaultConfig writes the default configuration for the effective mode
+// (configs/butler.yaml) selecting `selected`, with each provider pointing at the
+// given endpoint.
+func (sc *scenarioContext) writeDefaultConfig(selected string, urls map[string]string) error {
+	return sc.writeFile("configs/butler.yaml", []byte(fakeprovider.ConfigYAML(selected, urls)))
+}
+
 // writeFile writes content at a home-relative path, creating parent dirs.
 func (sc *scenarioContext) writeFile(rel string, content []byte) error {
 	p := sc.homePath(rel)
@@ -182,13 +222,6 @@ func emptyRegistryConfig(mode string) string {
 		"PERSON: \"e2e persona\"\n" +
 		"SELECTED_PROVIDER: deepseek-flash\n" +
 		"PROVIDERS: {}\n"
-}
-
-// networkCapabilityViolation reports the first network-capability indicator in
-// the built binary, if any (the build-graph capability guard). It delegates to
-// the leaf harness so the guard has a single implementation.
-func networkCapabilityViolation() (string, error) {
-	return harness.NetworkCapabilityViolation()
 }
 
 // unresolvedCategories are the pinned reason categories the diagnostic reports

@@ -1,11 +1,19 @@
-# golangci-lint policy (round 002 / research Decision 2).
+# golangci-lint policy (round 002 / research Decision 2; round 004 review follow-up).
 #
-# Adopts the lint aggregator and enables errcheck — closing the round-001
-# unchecked-error residual. The surface stays minimal: only gates the team has
-# ratified. `staticcheck` and `go vet` remain independent Makefile gates.
+# Adopts the lint aggregator, enables errcheck (closing the round-001
+# unchecked-error residual), and adds cyclop as a mechanical cyclomatic-complexity
+# guard (max-complexity 15) against complexity creep in later slices (multi-turn
+# loops, streaming, agentic tool dispatch). The surface stays minimal: only gates
+# the team has ratified. `staticcheck` and `go vet` remain independent Makefile
+# gates.
 version: "2"
 
 linters:
   default: standard
   enable:
     - errcheck
+    - cyclop
+
+  settings:
+    cyclop:
+      max-complexity: 15
