@@ -72,7 +72,7 @@ All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-tech
 
 ## Round 004 — `004-first-reasoning-turn` (in progress)
 
-**Status**: 🚧 **IN PROGRESS** (2026-09-12) — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` done; branch `004-first-reasoning-turn` off `dev`.
+**Status**: 🚧 **IN PROGRESS** (2026-09-12) — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` done; implementation branch `004-implement-first-reasoning-turn` (base `004-first-reasoning-turn` off `dev`).
 
 **Scope**: (1) `tellme "<prompt>"` → one provider request → printed response; (2) a provider domain port + one concrete adapter (OpenAI-compatible family first); (3) request assembly from the round-003 resolved provider; (4) response normalization to a minimal answer; (5) a deterministic provider/transport failure contract (frozen class phrase `the provider request failed` + exit code `6`); (6) a network-path test strategy (local fake provider) + amended no-network capability guard.
 
@@ -86,11 +86,11 @@ All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-tech
 - [x] `plan.md` — `/axb-system-analysis` (2 interfaces, 1 wave; `/axb-api-plan` = NOOP, `/axb-data-plan` = NOOP; CLI end + provider gateway → `/axb-dsl-refine` handoff)
 - [x] `specs/truth/features/cli/**` — `/axb-dsl-refine` (new `chat` module: 2 features + dsl; root DSL +1 class phrase `the provider request failed`; 2 rows promoted to root; topology audit PASSED — 219 steps)
 - [x] `tasks.md` — `/axb-tasks` (25 tasks; Setup omitted — stdlib only; Phase 3 = 3 ALIGN + 1 UNIT + 10 RED + review; orphan sweep 0)
-- [ ] Implementation — `/axb-implement`
+- [x] Implementation — `/axb-implement` (25/25 tasks `[X]`; godog 34/34 scenarios · 242/242 steps; `make verify` OK)
 
 ### Pipeline position
 
-`/axb-specify` + `/axb-spec-by-example` + `/axb-technical-research` + `/axb-system-analysis` + `/axb-dsl-refine` + `/axb-tasks` **done** → **`/axb-implement`**.
+`/axb-specify` + `/axb-spec-by-example` + `/axb-technical-research` + `/axb-system-analysis` + `/axb-dsl-refine` + `/axb-tasks` + `/axb-implement` **done** (25/25 tasks `[X]`) → PR open for review.
 
 ### Decisions locked (round 004 — Clarify Round 1)
 
@@ -98,6 +98,18 @@ All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-tech
 - **Q2 -> Option 1 (OpenAI-compatible family first)**: the first adapter targets `openai`/`deepseek`/`kimi`; Gemini/Vertex and Anthropic are deferred.
 - **Q3 -> Option 1 (new failure class)**: provider/transport failure → frozen class phrase `the provider request failed` + new distinct exit code `6` (table extends `0/2/3/4/5` → `0/2/3/4/5/6`).
 - **Deferred to `/axb-technical-research`**: transport = stdlib `net/http` (no SDK); the no-network capability guard is re-scoped to boot/`--version`/`-d` (round-001 research Decision 5 amendment). Recorded as spec assumptions.
+
+### Review response — PR #12 (round 004, in-round)
+
+Review comment [#5642832718](https://github.com/gosharplite/tellme/pull/12#issuecomment-5642832718) — verdict **APPROVE WITH NON-BLOCKING FOLLOW-UPS**; all five findings addressed in-round on `004-implement-first-reasoning-turn` (round not yet delivered — in-round refinement of round-004's own output):
+
+- **F1** (direct infra coupling + unchecked `Provider.Type`) → added the **gateway factory/dispatch seam** `internal/infrastructure/llm/factory.go` (`NewGateway` switches on the family; unsupported → `*llm.ProviderError`) and made `runTurn` injectable; covered by `factory_test.go` + `turn_test.go`.
+- **F2** (unbounded hang) → the adapter's default HTTP client now carries a 300s timeout; the turn context is cancelled on `SIGINT`/`SIGTERM` (`signal.NotifyContext`).
+- **F3** (discarded non-2xx body) → the provider's structured error message (`{"error":{"message":…}}`) is surfaced in the actionable detail (FR-008).
+- **F4** (unbounded read) → response read bounded by `io.LimitReader` (32 MiB).
+- **F5** (hardcoded model in a test step) → `step_t017` now asserts a generic JSON `"model"` field instead of a literal.
+
+Verification after the fix set: `gofmt`/`vet`/`staticcheck` clean · `make verify` OK · godog **34/34 · 242/242** · new unit tests for the factory, `runTurn`, and `extractErrorMessage`.
 
 ## Roadmap — next slices
 
@@ -108,5 +120,5 @@ All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-tech
 
 ## Open items (non-blocking)
 
-- **Future-package candidates**: (a) CI workflow for `make verify`; (b) F9 extension for flag parsing unit tests; (c) PM-4 `tellme init`.
+- **Future-package candidates**: (a) CI workflow for `make verify`; (b) F9 extension for flag parsing unit tests; (c) PM-4 `tellme init`; (d) **Coverage tooling** — [#13](https://github.com/gosharplite/tellme/issues/13) (`make test-coverage` report + `go build -cover` E2E-integration spike; Slice 005 candidate, per PR [#12](https://github.com/gosharplite/tellme/pull/12) review follow-up).
 - Pre-existing non-blocking items from rounds 001/002 remain documented in archive.
