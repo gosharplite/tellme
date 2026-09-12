@@ -334,3 +334,133 @@ A short, **docs/metadata-only** session. `SESSION-BOOTSTRAP.md` (Steps 1–8) ra
 
 1. Choose the `005-*` theme and start it via `/axb-specify` off `dev`.
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+
+---
+
+## 18. Session 18 — round 005 (`005-stdin-piping`) end-to-end + PR #16 (OPEN)
+
+The full round-005 slice: bootstrap → `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` → delivery commit → PR #16 → architectural review (F1–F3 fixed in-round) → re-check **FULL APPROVAL — READY TO MERGE**. **Not merged** (user instruction — the PR is still on-going).
+
+> **One session this day** (session 18). `tellme` gained prompt piping: `cat file | tellme "instruction"` now works, and output is pipe-friendly.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (rounds 001–004 delivered/frozen; active branch `dev`) |
+| `/axb-specify` | `specs/plans/005-stdin-piping/` (spec + checklist + truth-delta skeleton); Clarify Round 1 (reissued, verified against `tell-me-go`) locked Q1→1, Q2→3, Q3→2 |
+| `/axb-spec-by-example` | 2 acceptance features (`piping-a-prompt`, `piping-the-answer-out`); zero `# [need clarification]` |
+| `/axb-technical-research` | `research.md` (6 decisions); `specs/truth/techstack.md` (CLI Application + Testing & Verification + Not Introduced Yet) |
+| `/axb-system-analysis` | `plan.md` — 1 interface, 1 wave (api/data NOOP; CLI end → `/axb-dsl-refine`) |
+| `/axb-dsl-refine` | 2 new `chat` interface features + 9 DSL rows; topology audit **PASSED** (261 steps; **275** post-correction) |
+| `/axb-tasks` | `tasks.md` (21 tasks; Setup omitted; Phase 3 = 9 `[BDD-RED]` + 1 `[UNIT]` + review; orphan sweep 0) |
+| `/axb-implement` | 21/21 tasks `[X]`; godog **40/40 · 284/284** *(→ **42/42 · 298/298** after the grill-correction pass)*; `make verify` OK |
+| Review | PR #16 — **APPROVE WITH NON-BLOCKING FOLLOW-UPS** → F1–F3 fixed (`acc4c82`) → re-check **FULL APPROVAL — READY TO MERGE** |
+| Delivery | committed (`0909529`); PR [#16](https://github.com/gosharplite/tellme/pull/16) opened (**base `dev`**); **NOT merged** |
+
+### Decisions locked (round 005 — Clarify Round 1, reissued & verified against `tell-me-go`)
+
+| # | Decision |
+| --- | --- |
+| Q1 | Piping only; **defer `-r`** — tellme's raw output already equals `tell-me-go`'s `-r` output. |
+| Q2 | **Combine**: `args (joined by spaces)` + `"\n"` + piped stdin (tell-me-go's main chat path). |
+| Q3 | **TTY-aware** output contract — presentation suppressed when stdout is not a terminal. |
+| D1 | TTY detection = dependency-free stdlib `os.ModeCharDevice` (no `golang.org/x/term`); piped stdin read bounded at **1 MiB**. |
+| D2 | I/O-mode seam injectable → flag-parsing + mode selection carry unit tests (folds [#14](https://github.com/gosharplite/tellme/issues/14)). |
+
+### Review response — PR #16 (round 005, in-round)
+
+- **F1** (uncataloged stderr phrase) → reuse the existing environment class phrase `the runtime home is not usable (standard input: …)`, exit `4` (closed nine-phrase vocabulary preserved).
+- **F2** (phantom `isTTY(stdout)`) → docs reconciled to the code (`techstack.md` + `research.md` Decisions 1 & 5): stdin probe wired this round; stdout probe deferred with presentation (+ truth-delta `MODIFY`).
+- **F3** (partial stream DI) → `stdout`/`stderr` threaded through every dispatch branch; no global `os.Stdout`/`os.Stderr` writes remain.
+
+### Commits (branch `005-stdin-piping`)
+
+| Commit | Note |
+| --- | --- |
+| `dbcff6f` | `docs(005)`: plan package for stdin piping |
+| `8695878` | `docs(005)`: acceptance Gherkin for stdin piping |
+| `dc3eca4` | `docs(005)`: technical research + techstack truth |
+| `7733983` | `docs(005)`: system analysis plan |
+| `931c97f` | `docs(005)`: executable CLI interface truth |
+| `93cdc1e` | `docs(005)`: task plan |
+| `0909529` | `feat(005)`: read the prompt from stdin and adopt the TTY-aware output contract |
+| `acc4c82` | `fix(005)`: address PR #16 review — env class phrase (F1), TTY-probe docs (F2), full stream DI (F3) |
+
+### Verification
+
+- `gofmt` / `go vet` / `staticcheck` clean · `golangci-lint` **0 issues** · `govulncheck` clean.
+- `make verify` → **OK**; godog **42/42 scenarios · 298/298 steps**; topology audit **PASSED** (275 steps). *(post-correction)*
+- **No new dependency** (`go.mod` unchanged); offline paths unchanged.
+
+### Open items (non-blocking)
+
+- **PR [#16](https://github.com/gosharplite/tellme/pull/16) awaiting merge** — reviewed **FULL APPROVAL**; next session: merge `005-stdin-piping → dev`, then propagate `dev → main` (no-ff).
+- Future-package candidates unchanged: (a) run `make verify` in a pipeline platform — [#15](https://github.com/gosharplite/tellme/issues/15); (d) coverage tooling — [#13](https://github.com/gosharplite/tellme/issues/13). F9 [#14](https://github.com/gosharplite/tellme/issues/14) **folded into round 005** (resolved).
+
+### Next steps
+
+1. Merge PR [#16](https://github.com/gosharplite/tellme/pull/16) (`005-stdin-piping` → `dev`) on approval.
+2. Propagate `dev → main` (no-ff) + run `SESSION-CLOSEOUT.md`.
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `005-stdin-piping`, PR #16 open).
+
+
+---
+
+## 19. Session 19 — round 005 merge sync + `SESSION-CLOSEOUT`
+
+The user merged PR #16 on GitHub; this session synced local to remote, ran the closeout procedure, and propagated.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Remote sync | `git fetch --prune` → `origin/dev` advanced `3f35962 → 37c0c24`; PR #16 merged as **`37c0c24`** ("Merge pull request #16 from gosharplite/005-stdin-piping"); local `dev` fast-forwarded to `37c0c24`; `005-stdin-piping` = `2d21e09` (frozen) |
+| Quality gates | `gofmt -l .` clean · `go vet ./...` clean · godog **42/42 · 298/298** · `make verify` OK (0 lint / 0 vulns) |
+| Closeout | `STATUS.md` → session 19 (round 005 delivered/frozen); this §19; committed on `dev` + pushed |
+| Propagation | `dev → main` (no-ff) — **DONE** |
+| Handoff | active branch `dev`; next round = a fresh `006-*` off `dev` |
+
+### Work done
+
+1. **Sync** — `git fetch --prune origin`; confirmed `2d21e09` is an ancestor of `origin/dev`; switched `005-stdin-piping → dev`; fast-forwarded local `dev` (`3f35962 → 37c0c24`).
+2. **Closeout Steps 1–2** — working tree clean; gates green (above).
+3. **Closeout Steps 3–5** — `STATUS.md` refreshed (Last updated = session 19; Active branch `dev`; branch model — `005-stdin-piping` delivered/frozen; round-005 section → DELIVERED/FROZEN; roadmap; open items; environment notes); this §19 appended; status ↔ summary reconciled.
+4. **Closeout Step 6** — committed on `dev` + pushed.
+5. **Closeout Step 7** — propagated `dev → main` (no-ff).
+
+### Decisions log
+
+| # | Decision | Rationale |
+| --- | --- | --- |
+| D1 | **Round 005 treated as delivered / frozen on merge** (`37c0c24`) | PR #16 merged into `dev`; `2d21e09` is an ancestor |
+| D2 | **Closeout docs land on `dev`** (not the frozen round branch) | session-13 D5 — round branches are frozen; `STATUS.md` + daily log are live session docs |
+| D3 | **`005-stdin-piping` branch kept as frozen history** | matches rounds 001–004 (no separate implement-branch this round) |
+| D4 | **Final Review Obs 1/2 tracked as the renderer/`-r` slice candidate (e)** | the stdout probe defers with the renderer; the `RuntimeEnv` consolidation belongs where the flag/env surface grows |
+
+### Commits (branch `dev`)
+
+| Commit | Note |
+| --- | --- |
+| *(this commit)* | `docs(005): day close — round 005 merged (37c0c24) + closeout (status + daily log)` |
+| `37c0c24` | PR #16 merge into `dev` (GitHub) |
+
+### Verification
+
+- `gofmt -l .` clean · `go vet ./...` clean · godog **42/42 scenarios · 298/298 steps** · `make verify` OK (0 lint issues, 0 vulnerabilities).
+- Diff-level secret scan clean (repo has no GitHub Advanced Security; `mcp_github_run_secret_scanning` unavailable).
+
+### Open items (non-blocking)
+
+- Future-package candidates unchanged: (a) run `make verify` in a pipeline platform — [#15](https://github.com/gosharplite/tellme/issues/15); (d) coverage tooling — [#13](https://github.com/gosharplite/tellme/issues/13); (e) rendered output + `-r` slice (carries Final-Review Obs 1/2).
+- **Propagation** — `dev → main` (no-ff) **DONE**.
+
+### Next steps
+
+1. **Fresh `006-*` off `dev`** — choose the theme (a capability slice is most likely); start via `/axb-specify`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).

@@ -70,49 +70,68 @@ func (e *resolveError) Error() string {
 func (e *resolveError) Unwrap() error { return e.Err }
 
 // Run is the CLI entrypoint: main passes argv and the injected build version,
-// and Run returns the process exit code. It parses flags, then dispatches to the
-// version path, the diagnostic reporting path, the prompt-bearing reasoning
-// turn, or the boot path.
+// and Run returns the process exit code. It binds the real process streams and
+// the default terminal detector, then delegates to run (round-005 research
+// Decision 4 — the seam keeps the input/output-mode selection unit-testable).
 func Run(args []string, version string) int {
-	opts, prompt, ok := parseFlags(args)
+	return run(args, version, os.Stdin, os.Stdout, os.Stderr, defaultIsTerminal)
+}
+
+// run parses flags, then dispatches to the version path, the diagnostic
+// reporting path, the prompt-bearing reasoning turn, or the boot path. stdin is
+// read on the non-explicit-mode dispatch path (round-005 FR-010) — the reasoning
+// turn and the empty→boot fall-through, when stdin is not a terminal; the version
+// and diagnostic paths never read it.
+func run(args []string, version string, stdin io.Reader, stdout, stderr io.Writer, isTTY func(any) bool) int {
+	opts, flagArgs, ok := parseFlags(args, stderr)
 	if !ok {
-		return emitUsageError()
+		return emitUsageError(stderr)
 	}
 	if opts.version {
-		fmt.Printf("tellme %s\n", version)
+		_, _ = fmt.Fprintf(stdout, "tellme %s\n", version)
 		return Success
 	}
 
 	homeDir := os.Getenv("TELL_ME_HOME")
 
 	// -d is the reporting path: it always produces a report (Decision 2), and it
-	// takes precedence over a positional prompt (round-004 Decision 7).
+	// takes precedence over a prompt or piped input (round-004 Decision 7 /
+	// round-005 FR-010).
 	if opts.diagnostic {
-		return renderDiagnostic(homeDir, opts.configPath)
+		return renderDiagnostic(homeDir, opts.configPath, stdout)
 	}
-	// A positional prompt runs exactly one reasoning turn; otherwise boot.
+	// The prompt turn reads piped input only when stdin is not a terminal and
+	// combines it with the positional argument(s); an empty result falls through
+	// to boot (round-005 FR-001..FR-005).
+	prompt, err := resolvePrompt(flagArgs, stdin, isTTY)
+	if err != nil {
+		// Review finding F1: reuse the existing environment class phrase so the
+		// closed nine-phrase vocabulary (specs/truth/features/cli/dsl.md) is not
+		// widened; the trailing stdin detail is contract-free.
+		_, _ = fmt.Fprintf(stderr, "tellme: the runtime home is not usable (standard input: %v)\n", err)
+		return EnvironmentError
+	}
 	if prompt != "" {
-		return renderTurn(homeDir, opts.configPath, prompt)
+		return renderTurn(homeDir, opts.configPath, prompt, stdout, stderr)
 	}
-	return renderBoot(homeDir, opts.configPath)
+	return renderBoot(homeDir, opts.configPath, stdout, stderr)
 }
 
-// parseFlags parses argv, returning the parsed flags and the first positional
-// argument (the prompt, if any). ok is false on an unrecognized or invalid flag.
-func parseFlags(args []string) (opts *options, prompt string, ok bool) {
+// parseFlags parses argv, returning the parsed flags and the positional
+// arguments (the prompt parts, if any). ok is false on an unrecognized or
+// invalid flag. Flag errors are written to the injected stderr (review finding
+// F3: no direct os.Stderr coupling).
+func parseFlags(args []string, stderr io.Writer) (opts *options, flagArgs []string, ok bool) {
 	fs := pflag.NewFlagSet("tellme", pflag.ContinueOnError)
-	fs.SetOutput(os.Stderr)
+	fs.SetOutput(stderr)
 	o := &options{}
 	fs.StringVarP(&o.configPath, "config", "c", "", "Path to the YAML configuration file.")
 	fs.BoolVarP(&o.diagnostic, "diagnostics", "d", false, "Report configuration and home resolution, then exit.")
 	fs.BoolVar(&o.version, "version", false, "Print the build version and exit.")
 	if err := fs.Parse(args); err != nil {
-		return nil, "", false
+		return nil, nil, false
 	}
-	if rest := fs.Args(); len(rest) > 0 {
-		prompt = rest[0]
-	}
-	return o, prompt, true
+	return o, fs.Args(), true
 }
 
 // resolve is the single resolution algorithm shared by the boot, diagnostic, and
@@ -177,13 +196,13 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 }
 
 // renderBoot runs the boot path and reports readiness or an actionable error.
-func renderBoot(homeDir, configPath string) int {
+func renderBoot(homeDir, configPath string, stdout, stderr io.Writer) int {
 	res, rerr := resolve(homeDir, configPath)
 	if rerr != nil {
-		return emitBootError(res, rerr)
+		return emitBootError(stderr, res, rerr)
 	}
-	fmt.Println("configuration: ready")
-	fmt.Println("session workspace: " + res.Workspace)
+	_, _ = fmt.Fprintln(stdout, "configuration: ready")
+	_, _ = fmt.Fprintln(stdout, "session workspace: "+res.Workspace)
 	return Success
 }
 
@@ -201,12 +220,12 @@ var newGateway gatewayFactory = infrallm.NewGateway
 // resolve failure is rendered as a boot error; an unsupported family or a
 // provider/transport failure is rendered with the frozen provider class phrase
 // and exit code 6.
-func renderTurn(homeDir, configPath, prompt string) int {
+func renderTurn(homeDir, configPath, prompt string, stdout, stderr io.Writer) int {
 	res, rerr := resolve(homeDir, configPath)
 	if rerr != nil {
-		return emitBootError(res, rerr)
+		return emitBootError(stderr, res, rerr)
 	}
-	return runTurn(res, prompt, os.Stdout, os.Stderr, newGateway)
+	return runTurn(res, prompt, stdout, stderr, newGateway)
 }
 
 // runTurn performs one reasoning turn through an injected gateway factory. The
@@ -228,33 +247,33 @@ func runTurn(res resolution, prompt string, out, errOut io.Writer, factory gatew
 }
 
 // emitBootError maps a resolve failure to its actionable stderr message + code.
-func emitBootError(res resolution, rerr *resolveError) int {
+func emitBootError(stderr io.Writer, res resolution, rerr *resolveError) int {
 	switch rerr.Reason {
 	case reasonConfigMissing:
 		if res.Explicit {
-			fmt.Fprintf(os.Stderr, "tellme: the configuration could not be found at %s\n", res.Path)
+			_, _ = fmt.Fprintf(stderr, "tellme: the configuration could not be found at %s\n", res.Path)
 		} else {
-			fmt.Fprintf(os.Stderr, "tellme: no configuration could be found at %s\n", res.Path)
+			_, _ = fmt.Fprintf(stderr, "tellme: no configuration could be found at %s\n", res.Path)
 		}
 		return ConfigError
 	case reasonConfigInvalid:
-		fmt.Fprintf(os.Stderr, "tellme: the configuration could not be parsed at %s\n", res.Path)
+		_, _ = fmt.Fprintf(stderr, "tellme: the configuration could not be parsed at %s\n", res.Path)
 		return ConfigError
 	case reasonProviderMismatch:
-		fmt.Fprintf(os.Stderr, "tellme: the selected provider is not in the registry (%q)\n", res.Selected)
+		_, _ = fmt.Fprintf(stderr, "tellme: the selected provider is not in the registry (%q)\n", res.Selected)
 		return ConfigError
 	case reasonProviderInvalid:
-		fmt.Fprintf(os.Stderr, "tellme: the provider configuration is invalid: provider %q: %v\n", res.Selected, rerr.Err)
+		_, _ = fmt.Fprintf(stderr, "tellme: the provider configuration is invalid: provider %q: %v\n", res.Selected, rerr.Err)
 		return ConfigError
 	case reasonHomeUnusable:
 		if errors.Is(rerr.Err, home.ErrNotDirectory) {
-			fmt.Fprintf(os.Stderr, "tellme: the workspace path is not a directory (%s)\n", res.Workspace)
+			_, _ = fmt.Fprintf(stderr, "tellme: the workspace path is not a directory (%s)\n", res.Workspace)
 		} else {
-			fmt.Fprintf(os.Stderr, "tellme: the runtime home is not usable (%v)\n", rerr.Err)
+			_, _ = fmt.Fprintf(stderr, "tellme: the runtime home is not usable (%v)\n", rerr.Err)
 		}
 		return EnvironmentError
 	default: // reasonHomeUnset
-		fmt.Fprintln(os.Stderr, "tellme: the runtime home is not usable")
+		_, _ = fmt.Fprintln(stderr, "tellme: the runtime home is not usable")
 		return EnvironmentError
 	}
 }
@@ -273,9 +292,9 @@ func emitProviderError(w io.Writer, err error) int {
 // when resolution succeeded, else the dedicated diagnostic "unresolved" code.
 // Round 002: the machine-readable `--json` form was removed; `--json` is no
 // longer a flag, so any use of it is an unrecognized-flag usage error.
-func renderDiagnostic(homeDir, configPath string) int {
+func renderDiagnostic(homeDir, configPath string, stdout io.Writer) int {
 	res, rerr := resolve(homeDir, configPath)
-	emitDiagnosticText(res, rerr)
+	emitDiagnosticText(stdout, res, rerr)
 	if rerr != nil {
 		return DiagnosticUnresolvedError
 	}
@@ -283,16 +302,16 @@ func renderDiagnostic(homeDir, configPath string) int {
 }
 
 // emitDiagnosticText writes the plain-text report.
-func emitDiagnosticText(res resolution, rerr *resolveError) {
-	fmt.Println("tellme diagnostic")
+func emitDiagnosticText(w io.Writer, res resolution, rerr *resolveError) {
+	_, _ = fmt.Fprintln(w, "tellme diagnostic")
 	if rerr == nil {
-		fmt.Println("configuration: resolved")
-		fmt.Println("runtime_home: " + res.Home)
-		fmt.Println("session_workspace: " + res.Workspace)
+		_, _ = fmt.Fprintln(w, "configuration: resolved")
+		_, _ = fmt.Fprintln(w, "runtime_home: "+res.Home)
+		_, _ = fmt.Fprintln(w, "session_workspace: "+res.Workspace)
 		return
 	}
-	fmt.Println("configuration: unresolved")
-	fmt.Println("reason: " + rerr.Reason)
+	_, _ = fmt.Fprintln(w, "configuration: unresolved")
+	_, _ = fmt.Fprintln(w, "reason: "+rerr.Reason)
 }
 
 // defaultConfigPath is the default configuration path for the effective mode
@@ -308,7 +327,7 @@ func defaultConfigPath(homeDir string) string {
 
 // emitUsageError writes the usage-error stderr message and returns the usage
 // error code (FR-014).
-func emitUsageError() int {
-	fmt.Fprintln(os.Stderr, "tellme: the command-line usage is invalid")
+func emitUsageError(w io.Writer) int {
+	_, _ = fmt.Fprintln(w, "tellme: the command-line usage is invalid")
 	return UsageError
 }

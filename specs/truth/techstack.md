@@ -16,7 +16,9 @@
 | Project layout | `cmd/tellme/` + `internal/{config,home,cli}` + `internal/domain` (port) & `internal/infrastructure` (adapter) | Entrypoint plus single-responsibility packages, each owning one FR cluster and one E2E-observable behaviour (separation of concerns; the acceptance strategy is E2E). Round 004 adds the layered seam: a network-free domain port and an infrastructure adapter |
 | CLI flag parsing | `spf13/pflag` | GNU-style flags (`-c/--config`, `-d`, `--version`) and usage-error classification. `--json` was **removed** (round 002) — the system **intentionally diverges** from the reference's documented `-d --json` machine-readable capability (`tell-me-go/README.md:157`); the divergence was **accepted to resolve review finding F4** (the flag silently did nothing without `-d`), trading a reference capability for a single honest diagnostic path (full rationale: `specs/plans/002-followup-cleanups/research.md`) |
 | Version injection | `go build -ldflags "-X main.version=…"` | Bake the build version read by `--version`; the `version` var in `cmd/tellme/main.go` is the **only** version symbol and the single injection target |
-| Prompt input | `spf13/pflag` positional argument | The operator's prompt is the first positional argument (`tellme "<prompt>"`), matching the reference; dispatch precedence stays `--version` → `-d` → prompt turn → boot |
+| Prompt input | `spf13/pflag` positional argument(s) + standard input | The operator's prompt is the positional argument(s) and/or piped standard input. Round 005 combines them — `args` (joined by single spaces) + `"\n"` + piped stdin — then trims, matching the reference's main chat path; a positional-only prompt is unchanged from round 004. Dispatch precedence stays `--version` → `-d` → prompt turn → boot; standard input is read on the **non-explicit-mode dispatch path** — the reasoning turn **and** the empty→boot fall-through; `--version` and `-d` never read it |
+| Terminal detection | Go stdlib `os.File` + `os.ModeCharDevice` | Detect whether a stream is a terminal, behind an injected seam (dependency-free — no `golang.org/x/term`). The seam is a general stream probe; it is wired to **stdin** this round (gating whether stdin is read). The **stdout** probe is wired when presentation is introduced (FR-007) |
+| Piped stdin read | Go stdlib `io.LimitReader` | Read piped/redirected standard input bounded by a fixed 1 MiB cap (matching the reference's `maxPromptSize`); content beyond the cap is not read |
 
 ### Configuration
 
@@ -43,13 +45,13 @@
 | Category | Technology | Purpose |
 | --- | --- | --- |
 | CLI BDD techstack | `godog` (Cucumber for Go) | Run the executable **interface** Gherkin (`specs/truth/features/**`) via step definitions — E2E against the built binary. Instantiated in round 001 by the `tests/e2e/` suite |
-| E2E runner / step definitions | Go test package at `tests/e2e/` (`godog.TestSuite`) | Loads `specs/truth/features/**`; builds the binary once per suite; per-scenario fresh `TELL_ME_HOME`; exit-code + stdout + stderr + filesystem assertions |
+| E2E runner / step definitions | Go test package at `tests/e2e/` (`godog.TestSuite`) | Loads `specs/truth/features/**`; builds the binary once per suite; per-scenario fresh `TELL_ME_HOME`; exit-code + stdout + stderr + filesystem assertions; round 005 extends the subprocess runner to inject a scripted stdin (a pipe) for the piped-prompt scenarios, to express newline-/control-byte-bearing answers via the DSL escape convention, and to run piped turns under a bounded deadline so a hang fails explicitly (see Not Introduced Yet: pty harness) |
 | Test strategy | E2E (black-box) for the acceptance path; fast unit tests for pure helpers | The acceptance path invokes the built `tellme` binary as a subprocess under a controlled environment and asserts exit code, stdout, stderr, and workspace effects; the pure resolution helpers are covered by fast, isolated unit tests |
 | Local fake provider | `net/http/httptest` (in-process server) | Serves the network-path acceptance scenarios: the scenario's provider `URL` points at the fake; assertions cover the printed answer, the frozen failure class, and the fake's recorded request (round 004) |
 | No-network verification (offline paths) | No-dial canary (recording sink) + differential no-egress sandbox | Prove the **offline paths** (`--version`, `-d` incl. its failure path, and no-prompt boot) never reach the network: (i) the offline paths must leave a recording sink — pointed at by the configured provider `URL` — with **zero** connections; (ii) the differential sandbox asserts byte-identical output with egress blocked (`unshare -n` where permitted, else a hostile DNS/proxy env; the privileged netns is **not** available on the local dev host). Round 004 **retired** the whole-binary build-graph capability guard ("no `net/http` in the closure" + no dialing symbol) because the prompt-bearing chat path now legitimately links `net/http`; the offline guarantee is now an offline-path behaviour claim, not a whole-binary absence claim |
 | Version assertion | `VERSION=0.0.0-harness` sentinel | The suite builds with a sentinel and asserts the exact `--version` string (single target `main.version`), making FR-010 falsifiable instead of passing against the `dev` default |
 | Host test harness | Go stdlib `testing` | Runs the godog suites and any supporting assertions; determinism — no `time.Sleep` for synchronization (ADR-036 parity) |
-| Pure-helper unit tests | Go stdlib `testing` (table-driven) | Fast, isolated, offline tests for pure helpers — effective mode, effective provider, workspace idempotency (round 001/002 F9), `${VAR}` expansion, provider validation (round 003), and request assembly + response normalization (round 004) — complementing the E2E acceptance path |
+| Pure-helper unit tests | Go stdlib `testing` (table-driven) | Fast, isolated, offline tests for pure helpers — effective mode, effective provider, workspace idempotency (round 001/002 F9), `${VAR}` expansion, provider validation (round 003), request assembly + response normalization (round 004), and prompt combination + input/output-mode selection (round 005, folding issue #14) — complementing the E2E acceptance path |
 
 ### Build & Tooling
 
@@ -78,6 +80,9 @@ under `specs/truth/features/**`.)*
 - Gemini/Vertex and Anthropic provider adapters (only the OpenAI-compatible family ships this round)
 - Streaming (SSE) response handling
 - The full provider-agnostic `Thought` model and tool-call shapes
+- `golang.org/x/term` — TTY detection uses a dependency-free stdlib char-device check instead (round 005)
+- A Markdown/ANSI renderer and the `-r`/raw-output flag — tellme's output is plain and already equals the reference's `-r` output (round 005, Clarify Q1); rendered-output parity is a future slice
+- A pty-capable E2E harness — real-TTY stdin fidelity and the stdout-is-a-terminal branch of FR-007. The round's stand-ins (`/dev/null` as "a terminal", a pipe as redirected stdout) cover the branch *logic* but not real-pty fidelity; a pty is a new dependency the round forswore (round 005 grill Q6 — the branch is a **named pin**, unverifiable this round)
 - TUI libraries (Bubble Tea, Lipgloss, Glamour)
 - MCP client SDK
 - SQLite / history persistence
