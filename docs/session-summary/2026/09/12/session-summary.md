@@ -453,7 +453,7 @@ The user merged PR #16 on GitHub; this session synced local to remote, ran the c
 
 ### Open items (non-blocking)
 
-- Future-package candidates unchanged: (a) run `make verify` in a pipeline platform — [#15](https://github.com/gosharplite/tellme/issues/15); (d) coverage tooling — [#13](https://github.com/gosharplite/tellme/issues/13); (e) rendered output + `-r` slice (carries Final-Review Obs 1/2).
+- Future-package candidates: ~~(a) run `make verify` in a pipeline platform — [#15](https://github.com/gosharplite/tellme/issues/15)~~ **withdrawn / closed `not_planned`**; (d) coverage tooling — [#13](https://github.com/gosharplite/tellme/issues/13); (e) rendered output + `-r` slice (carries Final-Review Obs 1/2).
 - **Propagation** — `dev → main` (no-ff) **DONE**.
 
 ### Next steps
