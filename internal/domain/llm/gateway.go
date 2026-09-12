@@ -6,11 +6,21 @@ package llm
 
 import "context"
 
-// Request is a single provider completion request. It carries only the
-// operator's prompt; the provider-specific endpoint, credential, model, and
-// limits are bound to the concrete adapter at construction time.
+// Message is one prior conversation message carried on a request: the role
+// ("user" or "assistant") and its content. It is empty on the request's first
+// turn; on later turns it carries the persisted conversation (round-007 research
+// Decision 2 / RF-3).
+type Message struct {
+	Role    string
+	Content string
+}
+
+// Request is a single provider completion request. Prompt is the current turn's
+// prompt; Messages is the resumed conversation that precedes it (empty for a
+// fresh conversation). The adapter sends Messages followed by the current prompt.
 type Request struct {
-	Prompt string
+	Prompt   string
+	Messages []Message
 }
 
 // Response is the normalized answer extracted from a provider response.

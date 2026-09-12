@@ -12,10 +12,12 @@ import (
 )
 
 // TestOfflinePathsDoNotContactProvider is the offline-path witness (round-004
-// research Decision 6): the offline paths (`--version`, `-d`, and a prompt-less
-// boot) must leave a recording sink untouched AND complete identically under
-// blocked egress. It replaces the retired whole-binary capability guard, which
-// no longer holds now that the prompt-bearing chat path links net/http.
+// research Decision 6; extended round 007 with `-l` and a prompt-less `--new`):
+// the offline paths (`--version`, `-d`, a prompt-less boot, `-l`, and a
+// prompt-less `--new`) must leave a recording sink untouched AND complete
+// identically under blocked egress. It replaces the retired whole-binary
+// capability guard, which no longer holds now that the prompt-bearing chat path
+// links net/http.
 func TestOfflinePathsDoNotContactProvider(t *testing.T) {
 	var hits int64
 	sink := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -45,7 +47,7 @@ func TestOfflinePathsDoNotContactProvider(t *testing.T) {
 	env := map[string]string{"TELL_ME_HOME": home}
 	unset := []string{"TELL_ME_MODE", "TELL_ME_SELECTED_PROVIDER"}
 
-	for _, args := range [][]string{{"--version"}, {"-d"}, nil} {
+	for _, args := range [][]string{{"--version"}, {"-d"}, {"-l", "5"}, {"--new"}, nil} {
 		base := harness.Run(args, env, unset)
 		if base.Err != nil || base.ExitCode != 0 {
 			t.Fatalf("offline %v exited %d (err=%v): stderr=%q", args, base.ExitCode, base.Err, base.Stderr)
