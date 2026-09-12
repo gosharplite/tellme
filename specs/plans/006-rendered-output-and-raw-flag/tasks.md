@@ -19,7 +19,7 @@
 
 **Goal**: 引入本輪唯一的第三方渲染相依（glamour），使 `go.mod` / `go.sum` 一致且可編譯，並以一個最小 smoke-test 證明版本可用。
 
-- [ ] T001 加入 glamour 相依並跑 smoke-test
+- [X] T001 加入 glamour 相依並跑 smoke-test
   - Read:
     - `specs/truth/techstack.md` -> CLI Application（Output rendering / Raw output flag）
     - `specs/plans/006-rendered-output-and-raw-flag/research.md` -> Decision 1
@@ -32,14 +32,14 @@
 
 **Goal**: 建立 renderer adapter、config 欄位、CLI wiring、harness predicate 與 6 個 stepdef 的落點骨架（Zero Shared Edits 原則，各步獨立檔案）。
 
-- [ ] T002 建立 renderer adapter 落點骨架 `internal/ui/renderer.go`
+- [X] T002 建立 renderer adapter 落點骨架 `internal/ui/renderer.go`
   - Read:
     - `specs/plans/006-rendered-output-and-raw-flag/research.md` -> Decision 1, 2, 4, 5, 6
     - `specs/truth/techstack.md` -> CLI Application（Output rendering）
   - 只做：宣告 `internal/ui` 套件與一個 `Renderer` seam（例如 `Render(markdown string, width int) (string, error)` 及/或 `Degraded() bool`），帶 glamour build options（`WithStandardStyle(resolveGlamourStyle())` + `WithEmoji()`）與 `resolveGlamourStyle()`（讀 `GLAMOUR_STYLE`）的 stub；宣告 `sanitizeForTerminal` 與 rendered/raw byte-handling 的函式簽名（stub）。
   - 不做：不實作渲染邏輯、不接 `internal/cli`、不寫斷言。
 
-- [ ] T003 建立 config `WrapWidth` 落點骨架 `internal/config/config.go`
+- [X] T003 建立 config `WrapWidth` 落點骨架 `internal/config/config.go`
   - Read:
     - `specs/plans/006-rendered-output-and-raw-flag/research.md` -> Decision 7
     - `specs/truth/techstack.md` -> Configuration（Rendered width）
@@ -47,7 +47,7 @@
   - 只做：在 `Config` 新增 `WrapWidth int`（`yaml:"WRAP_WIDTH"`）；在 config 載入/解析處綁定環境覆寫 `TELL_ME_WRAP_WIDTH`（沿用既有 `TELL_ME_*` env-over-file precedence）；留下 `>= 0` 驗證的 hook 簽名（stub）。
   - 不做：不實作寬度套用（屬 T002/renderer）；不寫驗證錯誤字串內容（屬 Phase 4D）。
 
-- [ ] T004 建立 CLI wiring 落點骨架 `internal/cli/cli.go`
+- [X] T004 建立 CLI wiring 落點骨架 `internal/cli/cli.go`
   - Read:
     - `specs/plans/006-rendered-output-and-raw-flag/research.md` -> Decision 3, 4
     - `specs/truth/techstack.md` -> CLI Application（Raw output flag / Terminal detection）
@@ -55,7 +55,7 @@
   - 只做：新增 `-r`/`--raw` boolean flag 的解析骨架；宣告 renderer seam 與 stdout TTY probe seam 的注入參數（讓 `cli.Run`／`runTurn` 可注入），`cmd/tellme/main.go` 以真實 `os.*` 與真實偵測器呼叫；render/raw 模式選擇與 answer 輸出改以注入的 renderer 為介面的 stub。
   - 不做：不實作渲染/raw 行為、不變更既有 dispatch 與 exit-code（產品行為留 Phase 4）。
 
-- [ ] T005 建立 E2E harness ANSI-aware predicate 骨架 `tests/e2e/harness/cmd_helper.go`
+- [X] T005 建立 E2E harness ANSI-aware predicate 骨架 `tests/e2e/harness/cmd_helper.go`
   - Read:
     - `specs/plans/006-rendered-output-and-raw-flag/research.md` -> Residual risks（ANSI-dependent assertions）
     - `specs/truth/techstack.md` -> Testing & Verification（E2E runner）
@@ -63,7 +63,7 @@
   - 只做：新增可判斷「渲染後」與「原樣」的 stdout 斷言輔助（例如 `stripANSI`、`containsLiteralMarkdown`），供 Phase 3 stepdef 使用；保留既有 `Run`／`RunWithStdin` 行為。
   - 不做：不寫具體 stepdef 斷言；不碰 `internal/`。
 
-- [ ] T006 建立 6 個新句 stepdef 獨立檔案骨架 `tests/e2e/steps/step_t007_*.go`–`step_t012_*.go`
+- [X] T006 建立 6 個新句 stepdef 獨立檔案骨架 `tests/e2e/steps/step_t007_*.go`–`step_t012_*.go`
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（新句：`the operator starts tellme with the prompt "{prompt}" and the raw flag`、`the rendered width is "{width}"`、`the captured standard output is the rendered answer, not its raw Markdown`、`the captured standard output is wrapped so that no line is wider than {width} columns`、`the captured standard output contains the answer on a single line`）
     - `specs/truth/features/cli/configuration/dsl.md`（新句：`a well-formed configuration "{config_path}" whose rendered width is "{width}"`）
@@ -107,39 +107,39 @@
 
 ### BDD-RED（本輪新增句型）
 
-- [ ] T007 [P] [BDD-RED] `When: the operator starts tellme with the prompt "{prompt}" and the raw flag`
+- [X] T007 [P] [BDD-RED] `When: the operator starts tellme with the prompt "{prompt}" and the raw flag`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the operator starts tellme with the prompt "{prompt}" and the raw flag`
   - Landing: `tests/e2e/steps/step_t007_chat_when_start_with_raw_prompt.go`
   - 語意：無 `-c`；以 `-r`（raw）加 positional prompt 執行 `tellme -r "{prompt}"`，擷取 exit code、stdout、stderr 與 fake 記錄的請求。
 
-- [ ] T008 [P] [BDD-RED] `Given: the rendered width is "{width}"`
+- [X] T008 [P] [BDD-RED] `Given: the rendered width is "{width}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the rendered width is "{width}"`
   - Landing: `tests/e2e/steps/step_t008_chat_given_rendered_width.go`
   - 語意：在子行程環境設 `TELL_ME_WRAP_WIDTH={width}`，讓有效渲染寬度解析為 `{width}`。
 
-- [ ] T009 [P] [BDD-RED] `Then: the captured standard output is the rendered answer, not its raw Markdown`
+- [X] T009 [P] [BDD-RED] `Then: the captured standard output is the rendered answer, not its raw Markdown`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the captured standard output is the rendered answer, not its raw Markdown`
   - Landing: `tests/e2e/steps/step_t009_chat_then_captured_is_rendered.go`
   - 語意：斷言擷取的 stdout **不含** 腳本答案攜帶的字面 Markdown 強調記號（`**`、`_`），且答案的文字仍在（即已被渲染）。
 
-- [ ] T010 [P] [BDD-RED] `Then: the captured standard output is wrapped so that no line is wider than {width} columns`
+- [X] T010 [P] [BDD-RED] `Then: the captured standard output is wrapped so that no line is wider than {width} columns`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the captured standard output is wrapped so that no line is wider than {width} columns`
   - Landing: `tests/e2e/steps/step_t010_chat_then_wrapped_width.go`
   - 語意：去除 ANSI 後逐行計算顯示寬度，斷言每行不寬於 `{width}` 欄。
 
-- [ ] T011 [P] [BDD-RED] `Then: the captured standard output contains the answer on a single line`
+- [X] T011 [P] [BDD-RED] `Then: the captured standard output contains the answer on a single line`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the captured standard output contains the answer on a single line`
   - Landing: `tests/e2e/steps/step_t011_chat_then_single_line.go`
   - 語意：斷言擷取的 stdout 以**單一未折行**帶出腳本答案（答案內不得被 tellme 插入換行）。
 
-- [ ] T012 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}" whose rendered width is "{width}"`
+- [X] T012 [P] [BDD-RED] `Given: a well-formed configuration "{config_path}" whose rendered width is "{width}"`
   - Read: `specs/truth/features/cli/configuration/dsl.md` -> `a well-formed configuration "{config_path}" whose rendered width is "{width}"`
   - Landing: `tests/e2e/steps/step_t012_config_given_rendered_width.go`
   - 語意：在 `{home}/{config_path}` 寫出一個可解析的 YAML，頂層 `WRAP_WIDTH` 為 `{width}`。
 
 ### UNIT（pure-helper 單元測試）
 
-- [ ] T013 [P] [UNIT] 渲染寬度解析與 render/raw 模式選擇單元測試
+- [X] T013 [P] [UNIT] 渲染寬度解析與 render/raw 模式選擇單元測試
   - Read:
     - `specs/plans/006-rendered-output-and-raw-flag/research.md` -> Decision 4, 7
     - `specs/truth/techstack.md` -> Configuration（Rendered width）、Testing & Verification（Pure-helper unit tests）
@@ -149,7 +149,7 @@
 
 ### Phase Review Gate
 
-- [ ] T014 subagent review (phase quality gate)
+- [X] T014 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/rendering-the-answer.feature`、`controlling-the-rendered-width.feature`、`piping-the-answer-out.feature`
     - `specs/truth/features/cli/configuration/starting-with-a-configuration.feature`
@@ -178,8 +178,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/rendering-the-answer.feature`
 
-- [ ] T015 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T016 [BDD-REFACTOR] 在綠燈下整理 renderer adapter、build options 與降級路徑
+- [X] T015 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T016 [BDD-REFACTOR] 在綠燈下整理 renderer adapter、build options 與降級路徑
 
 ## Phase 4B: ADD Feature File - cli/chat/controlling-the-rendered-width.feature
 
@@ -200,8 +200,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/controlling-the-rendered-width.feature`
 
-- [ ] T017 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T018 [BDD-REFACTOR] 在綠燈下整理寬度解析與折行套用
+- [X] T017 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T018 [BDD-REFACTOR] 在綠燈下整理寬度解析與折行套用
 
 ## Phase 4C: MODIFY Feature File - cli/chat/piping-the-answer-out.feature
 
@@ -222,8 +222,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/piping-the-answer-out.feature`
 
-- [ ] T019 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T020 [BDD-REFACTOR] 在綠燈下整理 raw/rendered 閘控與 stdout/stderr 分流
+- [X] T019 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T020 [BDD-REFACTOR] 在綠燈下整理 raw/rendered 閘控與 stdout/stderr 分流
 
 ## Phase 4D: MODIFY Feature File - cli/configuration/starting-with-a-configuration.feature
 
@@ -245,8 +245,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/configuration/starting-with-a-configuration.feature`
 
-- [ ] T021 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T022 [BDD-REFACTOR] 在綠燈下整理寬度驗證與設定錯誤片語對應
+- [X] T021 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T022 [BDD-REFACTOR] 在綠燈下整理寬度驗證與設定錯誤片語對應
 
 ## Phase 4E: Regression
 
@@ -255,7 +255,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`（chat、configuration、workspace、diagnostics、usage 全模組）
 
-- [ ] T023 [REGRESSION] 執行全域回歸，確認零破壞
+- [X] T023 [REGRESSION] 執行全域回歸，確認零破壞
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
   - 確認 exit-code 表 `0/2/3/4/5/6` 與既有 CLI 契約（round 001–005）維持綠燈；offline paths（`--version`、`-d`、no-prompt boot）不觸網；既有 E2E 場景（無 stdin 的子行程）行為不變；`go mod tidy` 後 module graph 一致。
 
