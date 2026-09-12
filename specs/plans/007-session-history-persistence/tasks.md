@@ -9,6 +9,7 @@
 - 本輪 `research.md` 已拍板 Decisions 與 `specs/truth/**` 非 NOOP 項目，必須在 tasks 的 `Read` 或交付目標中被全量涵蓋（Pre-Delivery Orphan Coverage Sweep）。
 - 由 `research.md` Decision 衍生的 Setup / Foundational 建置或驗證 task，不強制對應 `truth-delta.md` row。
 - **Phase 1 `Setup` 省略**：本輪無新增技術（stdlib-only — `encoding/json`、`os`；`go.mod` 不變），依 SOP 略過 Setup，且不得把 helper／fixture／落點骨架塞進 Setup。
+- **PR #20 Architectural Review 指引已納入**（verdict：FULL ARCHITECTURAL APPROVAL、無 blocker）：**TD-1**（`historyStoreFactory` DI seam）、**TD-2**（整檔讀取的有界 reader）、**RF-1**（`--new` archive 冪等/非破壞）、**RF-2**（`-l N` 契約：正整數驗證、存量 clamp、離線短路、`role: content` 格式）、**RF-3**（`llm.Request` 擴充向後相容）——分別落在對應 task 的 `只做` / `Boundary`。
 - Phase 2 `Foundational` 只建立後續實作程式、測試共用元件、入口、fixture、helper 與落點骨架；每則寫「只做／不做」。
 - Phase 3 `Test Alignment & Implementation` 在寫產品碼之前，先把本輪所有受影響的自動化測試對齊最新版 truth。
 - Truth 參照必須使用 `specs/truth/**` 路徑；plan 參照才使用當前 plan package 內相對路徑。
@@ -32,7 +33,7 @@
     - `specs/plans/007-session-history-persistence/research.md` -> Decision 1, 3
     - `specs/truth/techstack.md` -> CLI Application（Session history store）
     - `internal/domain/history/history.go`
-  - 只做：宣告 adapter 型別與 constructor 簽名，留下 `<workspace>/history.jsonl` 與 `<workspace>/history.archive.jsonl` 路徑解析 stub。
+  - 只做：宣告 adapter 型別與 constructor 簽名，留下 `<workspace>/history.jsonl` 與 `<workspace>/history.archive.jsonl` 路徑解析 stub；讀取骨架採**有界 reader**（`json.Decoder`／`bufio.Reader`，或 `scanner.Buffer(make([]byte, 0, 1<<20), 1<<20)`），避免 `bufio.Scanner` 預設 64KB token 上限（**TD-2**）。
   - 不做：不實作 append / load / archive；不碰 `internal/cli`。
 
 - [ ] T003 擴充 `llm.Request` 與 OpenAI adapter 落點骨架
@@ -40,7 +41,7 @@
     - `specs/plans/007-session-history-persistence/research.md` -> Decision 2
     - `specs/truth/techstack.md` -> Reasoning & Provider Transport（Conversation context / Request assembly）
     - `internal/domain/llm/gateway.go`、`internal/infrastructure/llm/openai/client.go`
-  - 只做：在 `llm.Request` 新增 prior-message 欄位（`[]Message{Role, Content}`）之型別骨架；在 `requestBody` 留下把「resumed history + current prompt」組成 `messages` 陣列之簽名/stub（空 history 時維持既有單一 user 訊息）。
+  - 只做：在 `llm.Request` 新增 prior-message 欄位（`[]Message{Role, Content}`）之型別骨架；在 `requestBody` 留下把「resumed history + current prompt」組成 `messages` 陣列之簽名/stub（**RF-3**：`req.Messages` 為空時 `messages` 恰為當前單一 user 訊息，與 round 004–006 byte-for-byte 一致）。
   - 不做：不改 transport、錯誤處理或 response 解析。
 
 - [ ] T004 CLI wiring 落點骨架 `internal/cli/cli.go`
@@ -48,7 +49,7 @@
     - `specs/plans/007-session-history-persistence/research.md` -> Decision 4, 5, 6
     - `specs/truth/techstack.md` -> CLI Application（Session lifecycle flags）
     - `internal/cli/cli.go`
-  - 只做：新增 `--new`（bool）與 `-l`（int）flag 解析骨架；宣告注入 `history.Store` 的 seam（DI）；在 `run` 留下 `--version` → `-d` → `-l` → (`--new`) prompt turn → boot 的 dispatch stub；宣告「history I/O 失敗 → environment class phrase + code 4」的 hook 簽名。
+  - 只做：新增 `--new`（bool）與 `-l`（int）flag 解析骨架；宣告注入 `history.Store` 的 seam（DI，採 `historyStoreFactory` 工廠型別，mirror `gatewayFactory` / `newGateway`，**TD-1**）；在 `run` 留下 `--version` → `-d` → `-l` → (`--new`) prompt turn → boot 的 dispatch stub；宣告「history I/O 失敗 → environment class phrase + code 4」的 hook 簽名；`-l` 於 `N ≤ 0` 立即 `emitUsageError`（code 2）且在任何網路/stdin 之前短路（**RF-2**）。
   - 不做：不實作 resume / persist / archive / list 行為；不改既有 dispatch 與 exit-code（產品行為留 Phase 4）。
 
 - [ ] T005 建立 E2E 共用元件落點骨架（fake 記錄 messages、history 檔案 helper、arranged-exchanges 場景狀態）
@@ -148,7 +149,7 @@
 - [ ] T015 [P] [BDD-RED] `Then: tellme lists the last {count} messages`
   - Read: `specs/truth/features/cli/history/dsl.md` -> `tellme lists the last {count} messages`
   - Landing: `tests/e2e/steps/step_t015_history_then_lists_last.go`
-  - 語意：依 scenario context 的 arranged exchanges，斷言 stdout 依序列出最後 `{count}` 個訊息。
+  - 語意：依 scenario context 的 arranged exchanges，斷言 stdout 依序列出最後 `{count}` 個訊息（每行 `role: content`，與 `internal/cli` 的 `"%s: %s\n"` 格式一致，**RF-2**）。
 
 - [ ] T016 [P] [BDD-RED] `Then: tellme lists no messages`
   - Read: `specs/truth/features/cli/history/dsl.md` -> `tellme lists no messages`
@@ -169,7 +170,8 @@
     - `specs/truth/techstack.md` -> CLI Application（Session history store）、Testing & Verification（Pure-helper unit tests）
     - `internal/domain/history/history.go`、`internal/infrastructure/history/file_store.go`、`internal/domain/llm/gateway.go`
   - Landing: `internal/infrastructure/history/file_store_test.go`、`internal/domain/llm/gateway_test.go`、`internal/cli/cli_test.go`（表驅動）
-  - 撰寫：history 路徑解析、append（一 turn 一列）、reload（列→有序 messages）、`--new` archive 搬移；`llm.Request` 的 messages 組裝（空 history = 單一 user 訊息）；`-l` 模式選擇 + 正整數 count 驗證（非正/缺值為 usage error）。
+  - 撰寫：history 路徑解析、append（一 turn 一列）、reload（列→有序 messages）、`--new` archive 搬移（含 active 不存在時 no-op 回 `nil`，**RF-1**）；`llm.Request` 的 messages 組裝（空 history = 單一 user 訊息，byte-identical，**RF-3**）；`-l` 模式選擇 + 正整數 count 驗證（`N ≤ 0` 為 usage error；存量 M < N 時印全部，**RF-2**）；大型 prompt（至 1 MiB）reload 不得因 reader 上限失敗（**TD-2**）。
+  - 註：CLI 單元測試以 `historyStoreFactory` 注入 in-memory fake store（**TD-1**），零磁碟 I/O。
 
 ### Phase Review Gate
 
@@ -197,8 +199,9 @@
 - `internal/domain/history/`、`internal/infrastructure/history/`、`internal/domain/llm/gateway.go`、`internal/infrastructure/llm/openai/client.go`、`internal/cli/cli.go`
 
 **Boundary**:
-- Prompt turn 完成後把 `{prompt, answer}` 以單一 JSON 列 append 進 `<workspace>/history.jsonl`（append-after-complete；不寫時間戳/ID）；resume 時整檔讀入，展開為 user/assistant 訊息，前置於當前 prompt 送給 provider。空 history 時 `messages` 與 round-004 單一 user 訊息一致（byte-identical）。
-- 不實作 `--new`（屬 Phase 4B）；不實作 `-l`（屬 Phase 4C）。
+- Prompt turn 完成後把 `{prompt, answer}` 以單一 JSON 列 append 進 `<workspace>/history.jsonl`（append-after-complete；不寫時間戳/ID）；resume 時整檔讀入，展開為 user/assistant 訊息，前置於當前 prompt 送給 provider。空 history 時 `messages` 與 round-004 單一 user 訊息一致（byte-identical，**RF-3**）。
+- 整檔讀取採**有界 reader**（見 T002 / **TD-2**），可處理至 1 MiB 的 prompt（round-005 piped stdin），不得因 `bufio.Scanner` 預設上限而 `ErrTooLong`。
+- store 以 `historyStoreFactory` 注入（**TD-1**）；不實作 `--new`（屬 Phase 4B）；不實作 `-l`（屬 Phase 4C）。
 
 **Test Scope**:
 - `specs/truth/features/cli/chat/remembering-the-conversation.feature`
@@ -221,6 +224,7 @@
 
 **Boundary**:
 - `--new`：把 active `history.jsonl` 的列 append 進 `history.archive.jsonl`（不存在則建立），再移除 active 檔（確定性單一 archive；保留、不銷毀）。
+- **RF-1**：active 檔不存在時 `Archive()` 為 **no-op 回 `nil`**（非 `os.ErrNotExist`）；archive 以 `os.O_APPEND|os.O_CREATE|os.O_WRONLY` 開啟並在 `os.Remove(activePath)` **之前** flush/sync，避免中途失敗時遺失 active。
 - 不實作 `-l`（屬 Phase 4C）；不改 prompt turn 的 resume/persist（屬 Phase 4A）。
 
 **Test Scope**:
@@ -242,7 +246,8 @@
 - `internal/cli/cli.go`、`internal/infrastructure/history/`
 
 **Boundary**:
-- `-l N`：讀 active `history.jsonl`，把最後 N 則訊息以純文字（`role: content`，每則一行）印到 stdout 後 exit；**不發 provider 請求**。N 必須為正整數；缺值/非正為 usage error（既有 usage class phrase + code 2）。輸出為純文字（history 的 rendering 屬後續 slice）。
+- `-l N`：讀 active `history.jsonl`，把最後 N 則訊息以純文字（`role: content`，每則一行）印到 stdout 後 exit；**不發 provider 請求**。輸出為純文字（history 的 rendering 屬後續 slice）。
+- **RF-2**：`N ≤ 0`（或缺值）於 `cli.Run` 立即 `emitUsageError`（既有 usage class phrase + code `2`）；存量 `M < N`（含 `M == 0`）時印出全部 `M` 則並以 code `0` 結束；`-l` 在任何網路呼叫與 stdin 讀取**之前**求值（嚴格離線，`NFR-001`）；每行格式固定為 `"%s: %s\n"`（`role: content`），且 `tests/e2e/steps/step_t015` 與 `internal/cli` 必須一致。
 - 不改 stdin 組合；不實作 `--new`（屬 Phase 4B）。
 
 **Test Scope**:
@@ -294,5 +299,6 @@
 | `research.md` -> Decision 7（持久化內容為 provider answer text） | T008、T020 | PASS |
 | `research.md` -> Decision 8（fake 記錄 messages；offline 擴充） | T005、T009、T010、T017 | PASS |
 | `spec.md` -> US1/US2/US3 驗收 + `FR-001`–`FR-012`、`NFR-001`–`NFR-003` | T007–T017（對齊）、T020–T025（交付）、T026 | PASS |
+| PR #20 Architectural Review -> TD-1 / TD-2 / RF-1 / RF-2 / RF-3 | T002（TD-2）、T003（RF-3）、T004（TD-1、RF-2）、T018（TD-1/TD-2/RF-1/RF-2/RF-3）、Phase 4A（TD-1/TD-2）、Phase 4B（RF-1）、Phase 4C（RF-2）、T015（RF-2 格式） | PASS |
 
 > 孤立產物件數：0。掃描通過，准予交付。
