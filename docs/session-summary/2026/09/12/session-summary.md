@@ -313,12 +313,12 @@ A short, **docs/metadata-only** session. `SESSION-BOOTSTRAP.md` (Steps 1–8) ra
 
 ### Artifacts / commits
 
-- **GitHub**: [#13](https://github.com/gosharplite/tellme/issues/13) — assessment comment [`5643319942`](https://github.com/gosharplite/tellme/issues/13#issuecomment-5643319942) + title de-scope; new issue [#14](https://github.com/gosharplite/tellme/issues/14).
+- **GitHub**: [#13](https://github.com/gosharplite/tellme/issues/13) — assessment comment [`5643319942`](https://github.com/gosharplite/tellme/issues/13#issuecomment-5643319942) + title de-scope; new issues [#14](https://github.com/gosharplite/tellme/issues/14) (F9 flag-parsing → piping slice) and [#15](https://github.com/gosharplite/tellme/issues/15) (wire `make verify` into a chosen pipeline platform — platform TBD).
 - **Repo**: `STATUS.md` open-items refresh (+ header note) and this daily-log §17 — committed on `dev`.
 
 ### Open items (non-blocking)
 
-- All remaining `005-*` candidates are **tooling/hygiene** (a: run `make verify` in a chosen pipeline platform; b: F9 flag-parsing [#14]; c: coverage tooling [#13]); `tellme init` is **withdrawn**. A meaningful next slice is most likely a **capability slice** (e.g. the piping / `-r` slice, or session / `history.jsonl` persistence). (#13 and #14 are both judged low-priority.)
+- All remaining `005-*` candidates are **tooling/hygiene** (a: run `make verify` in a chosen pipeline platform — [#15](https://github.com/gosharplite/tellme/issues/15); b: F9 flag-parsing — [#14](https://github.com/gosharplite/tellme/issues/14); c: coverage tooling — [#13](https://github.com/gosharplite/tellme/issues/13)); `tellme init` is **withdrawn**. A meaningful next slice is most likely a **capability slice** (e.g. the piping / `-r` slice, or session / `history.jsonl` persistence). (#13/#14/#15 — all judged low-priority / blocked on a decision.)
 
 ### Next steps
 
