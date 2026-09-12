@@ -154,7 +154,7 @@ Verification after the fix set: `gofmt`/`vet`/`staticcheck` clean · `make verif
 
 Review comment: [#5644257418](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644257418) — verdict **APPROVE WITH NON-BLOCKING FOLLOW-UPS**; all three findings resolved in-round on `005-stdin-piping`:
 
-- **F1 (uncataloged stderr class phrase)** — the defensive stdin-read path emitted a 10th, uncataloged phrase `standard input could not be read` with exit `4`. Fixed by **reusing the existing environment class phrase**: `tellme: the runtime home is not usable (standard input: …)` (closed nine-phrase vocabulary preserved; exit code `4` unchanged; no truth change).
+- **F1 (uncataloged stderr class phrase)** — the defensive stdin-read path emitted a 10th, uncataloged phrase `standard input could not be read` with exit `4`. Fixed by **reusing the existing environment class phrase**: `tellme: the runtime home is not usable (standard input: …)` (closed nine-phrase vocabulary preserved; exit code `4` unchanged; **truth change — retracting the earlier "no truth change"**: the environment phrase now carries a third cause, *standard input unreadable*, recorded in root `specs/truth/features/cli/dsl.md` + `exitcode.go` semantics — see the **grill-correction pass** below).
 - **F2 (phantom `isTTY(stdout)`)** — `techstack.md` + `research.md` Decisions 1 & 5 claimed stdout was probed; the code only probes stdin. Fixed by **reconciling the docs** to the implementation: the seam is a general stream probe wired to stdin this round; the stdout probe is wired when presentation is introduced (truth-delta `MODIFY` recorded).
 - **F3 (partial stream DI in `run`)** — `stdout`/`stderr` are now threaded through **every** branch: `parseFlags(stderr)`, `emitUsageError(stderr)`, version→`stdout`, `renderDiagnostic(…, stdout)`, `emitDiagnosticText(stdout, …)`, `renderBoot(…, stdout, stderr)`, `emitBootError(stderr, …)`; no branch writes to global `os.Stdout`/`os.Stderr`.
 
@@ -164,6 +164,20 @@ Review comment: [#5644257418](https://github.com/gosharplite/tellme/pull/16#issu
 - PR [#16](https://github.com/gosharplite/tellme/pull/16) opened — **base `dev` ← head `005-stdin-piping`**.
 - Architectural review [#5644257418](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644257418) (APPROVE WITH NON-BLOCKING FOLLOW-UPS) → **F1–F3 fixed in-round** (`acc4c82`); re-check [#5644293148](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644293148) → **FULL APPROVAL — READY TO MERGE**.
 - **NOT merged** (user instruction — PR still on-going). **Propagation `005-stdin-piping → dev → main` is PENDING.**
+
+### Grill-correction pass (pre-merge) — `architect` vs `griller`
+
+A `tmg-grill-round` on PR [#16](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644428299) returned **proceed with changes**: the product behavior (stdin piping + the TTY-aware posture) held up, but the artifact layer over-claimed in six places and self-contradicted in one. Full transcript: [gist](https://gist.github.com/gosharplite/7d14825abe126a4798d8be0e0a79709c). A **butler-as-PM+RD pre-merge pass** corrected them (docs + test code only — **no `internal/` behavior change**):
+
+- **Q1** — annotated the superseded `isTTY(stdout)` clause in `plan.md` + `tasks.md` Phase-4B Boundary (T019/T020 stay `[X]`).
+- **Q2** — `techstack.md` `Prompt input` read-scope → the **non-explicit-mode dispatch path** (truth defect).
+- **Q4** — narrowed the decoration `必查` to *system-introduced* decoration; `step_t013` rewritten (the content-blind predicate would misfire on a correct ANSI-bearing answer).
+- **Q5** — FR-006 reworded to "answer bytes verbatim + one CLI-appended newline" (+ US2/SC-002); DSL prose aligned.
+- **Q6** — DSL escape convention (`\n`/`\t`/`\\`/`\xHH`) + 2 falsifying Examples (newline-terminated; ANSI-bearing answer); bounded-time piped runs; the pty/TTY branch named **unverifiable-this-round**.
+- **Q7** — recorded the environment phrase's third cause (stdin unreadable) in root `dsl.md` + `exitcode.go`; **retracted F1's "no truth change"**.
+- **Q8** — scoped NFR-003 to the redirected/non-terminal stream.
+
+Deferred + **named** (not built): the class-level phrase rename (its own ADR-round; changes pre-005 text) and a pty-capable harness (new dependency). The prior "FULL APPROVAL — READY TO MERGE" is **superseded for the changed artifacts**; the code-level approval stands. Awaiting a scoped re-review (must exercise cross-artifact interaction), then merge.
 
 ## Roadmap — next slices
 

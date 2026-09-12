@@ -176,7 +176,7 @@
 - `internal/cli/cli.go`、`internal/cli/prompt.go`、`cmd/tellme/main.go`
 
 **Boundary**:
-- 實作 `combinePrompt`（`strings.Join(args, " ")` + 非空 piped 時 `"\n"` + piped → `TrimSpace`）；`internal/cli` 僅在 **prompt-turn** 路徑讀 stdin（`io.LimitReader(stdin, 1<<20)`，1 MiB 上限），且僅當 stdin 非 TTY；`--version`／`-d`／no-prompt boot 不讀 stdin、不觸網。
+- 實作 `combinePrompt`（`strings.Join(args, " ")` + 非空 piped 時 `"\n"` + piped → `TrimSpace`）；`internal/cli` 僅在 **prompt-turn** 路徑讀 stdin（`io.LimitReader(stdin, 1<<20)`，1 MiB 上限），且僅當 stdin 非 TTY；`--version`／`-d` 不讀 stdin、不觸網；而「stdin 被 pipe 且無 positional prompt」時，boot fall-through 前仍會讀 stdin（有界、立即 EOF），故精確敘述為「非顯式模式 dispatch 路徑」。[PR #16 評審 grill Q2/Q1 修正 — 見 plan.md 同註]
 - 不引入新依賴；不實作輸出契約（屬 Phase 4B）；不碰 provider 路徑。
 
 **Test Scope**:
@@ -199,7 +199,7 @@
 - `internal/cli/cli.go`、`internal/cli/prompt.go`
 
 **Boundary**:
-- 以 `isTTY(stdout)` 閘控任何呈現（color/spinner/rendering，`isTTY && !raw`）；answer 僅寫 stdout、恰好一個結尾換行、絕不寫 stderr。本輪無呈現可抑制，故可觀察位元不變，只 pin 契約。
+- 本輪未計算 `isTTY(stdout)`（無呈現可抑制）；TTY seam 本輪接在 stdin，stdout probe 待引入呈現時才接。output contract pin 為「answer bytes verbatim ＋ 一個 CLI 追加的結尾換行、僅寫 stdout、絕不寫 stderr」。本輪無呈現可抑制，故可觀察位元不變，只 pin 契約。[PR #16 評審 grill Q1/Q5 修正；T019/T020 維持 [X]（Test Scope 已達成）]
 - 不新增 renderer 或 `-r` flag；不碰 stdin 組合（屬 Phase 4A）。
 
 **Test Scope**:

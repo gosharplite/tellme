@@ -35,8 +35,9 @@ cmd/tellme/
 internal/
 ├── cli/                           # dispatch (--version → -d → prompt turn → boot)
 │   ├── cli.go                     #   CHANGED — injects the stdin/stdout/stderr + TTY-detection seam; combines
-│   │                              #   positional args + piped stdin; gates presentation on isTTY(stdout); reads stdin
-│   │                              #   only on the prompt-turn path
+│   │                              #   positional args + piped stdin; reads stdin on the non-explicit-mode dispatch
+│   │                              #   path (turn + empty→boot). [superseded by PR #16 review F2 — the stdout probe is
+│   │                              #   wired when presentation is introduced; the TTY seam is wired to stdin this round]
 │   └── exitcode.go                # unchanged this round (0/2/3/4/5/6)
 ├── config/                        # unchanged this round
 ├── home/                          # unchanged this round
@@ -83,7 +84,7 @@ This requirement inventories **1** system interface (round 005 changes prompt in
 - Analysis focus:
   - **API** → **`NOOP`**: no OpenAPI/HTTP surface of tellme's own; no provider request-shape change.
   - **Data** → **`NOOP`**: no persisted or in-memory state introduced.
-  - **CLI end** → handoff to contract owner **`/axb-dsl-refine`**: extend `specs/truth/features/cli/**` with the piped-prompt behaviour (read stdin on the prompt-turn path; combine `args + "\n"` + piped content; empty → boot) and the output contract (answer on stdout only, one trailing newline, presentation suppressed when stdout is not a terminal), adding the necessary Given/When/Then DSL rows in the right module(s) and interface-root `dsl.md`.
+  - **CLI end** → handoff to contract owner **`/axb-dsl-refine`**: extend `specs/truth/features/cli/**` with the piped-prompt behaviour (read stdin on the non-explicit-mode dispatch path — turn + empty→boot; combine `args + "\n"` + piped content) and the output contract (the answer bytes verbatim + one CLI-appended terminating newline on stdout only; presentation suppressed when stdout is not a terminal — the stdout probe is deferred with the renderer, review F2), adding the necessary Given/When/Then DSL rows in the right module(s) and interface-root `dsl.md`.
 - Scheduling rationale: there is a single interface, so no dependency ordering is needed — it settles entirely from the upstream sources (`spec.md` §US1/US2, `research.md` Decisions 1–6). Per `Wave依賴排序與平行分組判準.md` Rules 1–2, a lone interface forms a single wave.
 
 ---

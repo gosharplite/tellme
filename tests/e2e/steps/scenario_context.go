@@ -35,6 +35,9 @@ type scenarioContext struct {
 	stdin    string // scripted standard input for the next run (round 005)
 	stdinSet bool   // whether a scripted stdin should be piped to the child
 
+	scriptedAnswer    string // the answer scripted on the fake provider (decoded), for the decoration check (grill Q4/Q6)
+	scriptedAnswerSet bool   // whether scriptedAnswer was recorded
+
 	exitCode int    // captured process exit code
 	stdout   string // captured stdout
 	stderr   string // captured stderr
