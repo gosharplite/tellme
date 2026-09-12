@@ -14,8 +14,10 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/gosharplite/tellme/internal/config"
+	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/home"
+	infrhistory "github.com/gosharplite/tellme/internal/infrastructure/history"
 	infrallm "github.com/gosharplite/tellme/internal/infrastructure/llm"
 	"github.com/gosharplite/tellme/internal/ui"
 )
@@ -37,6 +39,9 @@ type options struct {
 	diagnostic bool
 	version    bool
 	raw        bool
+	newSession bool
+	list       int
+	listSet    bool
 }
 
 // resolution is the outcome of resolving home → configuration → workspace. On a
@@ -104,6 +109,18 @@ type answerRenderer interface {
 // fake).
 var newRenderer = func() answerRenderer { return ui.NewRenderer() }
 
+// historyStoreFactory builds the session-history store for a resolved workspace.
+// It is the DI seam (round-007 TD-1): the presentation layer never couples to a
+// concrete file adapter, and tests can inject an in-memory fake without disk
+// I/O. It mirrors gatewayFactory / answerRenderer.
+type historyStoreFactory func(workspace string) history.Store
+
+// newHistoryStore is the production history-store factory (a var so tests may
+// override it).
+var newHistoryStore historyStoreFactory = func(workspace string) history.Store {
+	return infrhistory.NewFileStore(workspace)
+}
+
 // Run is the CLI entrypoint: main passes argv and the injected build version,
 // and Run returns the process exit code. It binds the real process streams, the
 // default terminal detector, and the production renderer into a runtimeEnv, then
@@ -121,10 +138,11 @@ func Run(args []string, version string) int {
 }
 
 // run parses flags, then dispatches to the version path, the diagnostic
-// reporting path, the prompt-bearing reasoning turn, or the boot path. stdin is
-// read on the non-explicit-mode dispatch path (round-005 FR-010) — the reasoning
-// turn and the empty→boot fall-through, when stdin is not a terminal; the version
-// and diagnostic paths never read it.
+// reporting path, the history-listing path, the prompt-bearing reasoning turn,
+// the fresh-session path, or the boot path (round-007 Decision 5 precedence:
+// `--version` → `-d` → `-l` → (`--new`) prompt turn → boot). stdin is read on
+// the prompt path only (round-005 FR-010); the version, diagnostic, and `-l`
+// paths never read it.
 func run(args []string, version string, env runtimeEnv) int {
 	opts, flagArgs, ok := parseFlags(args, env.stderr)
 	if !ok {
@@ -143,9 +161,18 @@ func run(args []string, version string, env runtimeEnv) int {
 	if opts.diagnostic {
 		return renderDiagnostic(homeDir, opts.configPath, env.stdout)
 	}
+	// -l is a terminal reporting command: it lists the last N messages and exits,
+	// strictly offline (round-007 FR-007/FR-008). A non-positive N is a usage
+	// error, evaluated before any network or stdin access (RF-2).
+	if opts.listSet {
+		if opts.list <= 0 {
+			return emitUsageError(env.stderr)
+		}
+		return renderHistoryList(homeDir, opts.list, env)
+	}
 	// The prompt turn reads piped input only when stdin is not a terminal and
 	// combines it with the positional argument(s); an empty result falls through
-	// to boot (round-005 FR-001..FR-005).
+	// to the fresh-session or boot path (round-005 FR-001..FR-005).
 	prompt, err := resolvePrompt(flagArgs, env.stdin, env.isTTY)
 	if err != nil {
 		// Reuse the existing environment class phrase so the closed phrase
@@ -155,7 +182,10 @@ func run(args []string, version string, env runtimeEnv) int {
 		return EnvironmentError
 	}
 	if prompt != "" {
-		return renderTurn(homeDir, opts.configPath, prompt, opts.raw, env)
+		return renderTurn(homeDir, opts.configPath, prompt, opts.raw, opts.newSession, env)
+	}
+	if opts.newSession {
+		return renderNewSession(homeDir, env)
 	}
 	return renderBoot(homeDir, opts.configPath, env)
 }
@@ -172,9 +202,12 @@ func parseFlags(args []string, stderr io.Writer) (opts *options, flagArgs []stri
 	fs.BoolVarP(&o.diagnostic, "diagnostics", "d", false, "Report configuration and home resolution, then exit.")
 	fs.BoolVar(&o.version, "version", false, "Print the build version and exit.")
 	fs.BoolVarP(&o.raw, "raw", "r", false, "Print the answer as raw text (no Markdown rendering).")
+	fs.BoolVar(&o.newSession, "new", false, "Start a fresh session, archiving the current session history.")
+	fs.IntVarP(&o.list, "list", "l", 0, "List the last N messages of the session history and exit.")
 	if err := fs.Parse(args); err != nil {
 		return nil, nil, false
 	}
+	o.listSet = fs.Changed("list")
 	return o, fs.Args(), true
 }
 
@@ -206,11 +239,9 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 
 	// Step 4b — resolve and validate the rendered width (round-006 FR-006): the
 	// helper owns resolve+validate, so a non-integer override or a negative value
-	// from either source is a configuration error. A value error carries
-	// config.ErrInvalidValue so the boot error emits the general
-	// `the configuration is invalid` class phrase, not the parse phrase. This
-	// step runs before provider resolution, so a config that is both width-invalid
-	// and provider-invalid reports the width error (recorded precedence).
+	// from either source is a configuration error. This step runs before provider
+	// resolution, so a config that is both width-invalid and provider-invalid
+	// reports the width error (recorded precedence).
 	width, werr := cfg.EffectiveWrapWidth(os.Getenv("TELL_ME_WRAP_WIDTH"))
 	if werr != nil {
 		return res, &resolveError{Reason: reasonConfigInvalid, Err: werr}
@@ -225,13 +256,6 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 
 	// Step 5b — resolve the selected provider entry: expand ${VAR} placeholders
 	// FIRST, then validate the RESOLVED state (FR-001..FR-009).
-	//
-	// Ordering matters (review finding #2): validating before expansion would let
-	// a mandatory field whose value is a placeholder that resolves to empty
-	// (e.g. `URL: "${UNSET_ENDPOINT:-}"`) pass the non-empty invariant and then
-	// degrade to "" — evading validation. Expanding first makes Validate() see
-	// the final, post-substitution value, and guarantees the Provider carried for
-	// the reasoning turn is the fully-expanded one.
 	prov := cfg.Providers[res.Selected]
 	if err := prov.Expand(); err != nil {
 		return res, &resolveError{Reason: reasonProviderInvalid, Err: err}
@@ -272,35 +296,126 @@ type gatewayFactory func(prov config.Provider, name string) (llm.Gateway, error)
 // newGateway is the production gateway factory (a var so tests may override it).
 var newGateway gatewayFactory = infrallm.NewGateway
 
-// renderTurn resolves the setup, then runs exactly one reasoning turn against
-// the resolved provider and prints the answer (round-004 FR-001..FR-005). A
-// resolve failure is rendered as a boot error; an unsupported family or a
+// renderTurn resolves the setup, optionally archives the current session
+// (`--new`), then runs exactly one reasoning turn against the resolved provider
+// and prints the answer (round-004 FR-001..FR-005; round-007 FR-005). A resolve
+// failure is rendered as a boot error; an unsupported family or a
 // provider/transport failure is rendered with the frozen provider class phrase
-// and exit code 6.
-func renderTurn(homeDir, configPath, prompt string, raw bool, env runtimeEnv) int {
+// and exit code 6; a history failure reuses the environment class phrase.
+func renderTurn(homeDir, configPath, prompt string, raw bool, newSession bool, env runtimeEnv) int {
 	res, rerr := resolve(homeDir, configPath)
 	if rerr != nil {
 		return emitBootError(env.stderr, res, rerr)
 	}
-	return runTurn(res, prompt, raw, env, newGateway)
+	store := newHistoryStore(res.Workspace)
+	if newSession {
+		if err := store.Archive(); err != nil {
+			return emitHistoryError(env.stderr, err)
+		}
+	}
+	return runTurn(res, store, prompt, raw, env, newGateway)
 }
 
-// runTurn performs one reasoning turn through an injected gateway factory. The
-// answer is written by the runtimeEnv's renderer. The context is cancelled on
-// SIGINT/SIGTERM so a stalled provider can be interrupted (review finding #2).
-func runTurn(res resolution, prompt string, raw bool, env runtimeEnv, factory gatewayFactory) int {
+// runTurn performs one reasoning turn through an injected gateway factory and
+// history store. The resumed conversation is loaded and carried ahead of the
+// current prompt; the completed turn is appended after the provider answers
+// (append-after-complete, round-007 FR-001/FR-003). The answer is written by the
+// runtimeEnv's renderer. The context is cancelled on SIGINT/SIGTERM so a stalled
+// provider can be interrupted (review finding #2).
+func runTurn(res resolution, store history.Store, prompt string, raw bool, env runtimeEnv, factory gatewayFactory) int {
 	gw, err := factory(res.Provider, res.Selected)
 	if err != nil {
 		return emitProviderError(env.stderr, err)
 	}
+	prior, err := store.Load()
+	if err != nil {
+		return emitHistoryError(env.stderr, err)
+	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	resp, err := gw.Complete(ctx, llm.Request{Prompt: prompt})
+	resp, err := gw.Complete(ctx, llm.Request{Prompt: prompt, Messages: toMessages(prior)})
 	if err != nil {
 		return emitProviderError(env.stderr, err)
 	}
+	if err := store.Append(history.Entry{Prompt: prompt, Answer: resp.Text}); err != nil {
+		return emitHistoryError(env.stderr, err)
+	}
 	env.writeAnswer(resp.Text, raw, res.WrapWidth)
 	return Success
+}
+
+// renderHistoryList lists the last N persisted messages (round-007 FR-007..FR-009)
+// and exits — strictly offline, no provider request. It resolves only the
+// workspace (no configuration/provider requirement), so listing works even when
+// the configuration is absent.
+func renderHistoryList(homeDir string, n int, env runtimeEnv) int {
+	ws, rerr := resolveWorkspace(homeDir)
+	if rerr != nil {
+		return emitBootError(env.stderr, resolution{Home: homeDir, Workspace: ws}, rerr)
+	}
+	entries, err := newHistoryStore(ws).Load()
+	if err != nil {
+		return emitHistoryError(env.stderr, err)
+	}
+	msgs := toMessages(entries)
+	if len(msgs) > n {
+		msgs = msgs[len(msgs)-n:]
+	}
+	for _, m := range msgs {
+		_, _ = fmt.Fprintf(env.stdout, "%s: %s\n", m.Role, m.Content)
+	}
+	return Success
+}
+
+// renderNewSession starts a fresh session without a prompt: it archives the
+// active history (retaining it) and returns success (round-007 FR-005/FR-006).
+func renderNewSession(homeDir string, env runtimeEnv) int {
+	ws, rerr := resolveWorkspace(homeDir)
+	if rerr != nil {
+		return emitBootError(env.stderr, resolution{Home: homeDir, Workspace: ws}, rerr)
+	}
+	if err := newHistoryStore(ws).Archive(); err != nil {
+		return emitHistoryError(env.stderr, err)
+	}
+	return Success
+}
+
+// resolveWorkspace resolves only the runtime home + effective mode + session
+// workspace (no configuration/provider), for the session commands `-l` and
+// `--new` that must work offline.
+func resolveWorkspace(homeDir string) (string, *resolveError) {
+	if homeDir == "" {
+		return "", &resolveError{Reason: reasonHomeUnset}
+	}
+	ws, err := home.EnsureWorkspace(homeDir, historyMode(homeDir))
+	if err != nil {
+		return ws.Path, &resolveError{Reason: reasonHomeUnusable, Err: err}
+	}
+	return ws.Path, nil
+}
+
+// historyMode resolves the effective mode for a session command: the
+// TELL_ME_MODE override when set, else the configuration's MODE when the default
+// configuration is loadable, else "butler".
+func historyMode(homeDir string) string {
+	if m := os.Getenv("TELL_ME_MODE"); m != "" {
+		return m
+	}
+	if cfg, err := config.Load(defaultConfigPath(homeDir)); err == nil {
+		return cfg.EffectiveMode("")
+	}
+	return "butler"
+}
+
+// toMessages flattens persisted entries into the ordered conversation messages
+// (user prompt, assistant answer, …).
+func toMessages(entries []history.Entry) []llm.Message {
+	msgs := make([]llm.Message, 0, len(entries)*2)
+	for _, e := range entries {
+		msgs = append(msgs, llm.Message{Role: "user", Content: e.Prompt})
+		msgs = append(msgs, llm.Message{Role: "assistant", Content: e.Answer})
+	}
+	return msgs
 }
 
 // writeAnswer writes the provider's answer to the environment's stdout
@@ -381,6 +496,16 @@ func emitProviderError(w io.Writer, err error) int {
 	detail := strings.ReplaceAll(err.Error(), "\n", " ")
 	_, _ = fmt.Fprintf(w, "tellme: the provider request failed: %s\n", detail)
 	return ProviderError
+}
+
+// emitHistoryError maps a session-history read/write failure to the environment
+// class phrase and exit code (round-007 Decision 6 / Clarify Q3). The trailing
+// detail is contract-free; newlines are folded so exactly one line carries the
+// phrase, keeping the frozen vocabulary at ten.
+func emitHistoryError(w io.Writer, err error) int {
+	detail := strings.ReplaceAll(err.Error(), "\n", " ")
+	_, _ = fmt.Fprintf(w, "tellme: the runtime home is not usable (session history: %s)\n", detail)
+	return EnvironmentError
 }
 
 // renderDiagnostic runs the -d path. It always emits a plain report and returns 0

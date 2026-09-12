@@ -55,6 +55,16 @@ type scenarioContext struct {
 	// lastPrompt is the prompt the last prompt-bearing run carried (When), so a
 	// Then can assert the outbound request carried it.
 	lastPrompt string
+
+	// arrangedExchanges is the conversation the fixture Given arranged into the
+	// session history (round 007), so a Then can compute the expected listing.
+	arrangedExchanges []exchange
+}
+
+// exchange is one arranged prompt/answer pair (round 007).
+type exchange struct {
+	prompt string
+	answer string
 }
 
 // beforeScenario creates an independent scenarioContext backed by a fresh temp
@@ -251,4 +261,35 @@ var unresolvedCategories = []string{"config-missing", "config-invalid", "provide
 // The hostile-env definition lives once in the leaf harness.
 func (sc *scenarioContext) blockedRun() harness.RunResult {
 	return harness.RunWithBlockedNetwork(sc.args, sc.runEnv(), sc.unsetNames())
+}
+
+// historyDir returns the session workspace directory the session commands
+// resolve to in the E2E scenarios (no configuration, no TELL_ME_MODE → the
+// default mode "butler").
+func (sc *scenarioContext) historyDir() string {
+	return filepath.Join(sc.home, "output", "butler")
+}
+
+// historyFilePath is the active session-history file the fixture writes.
+func (sc *scenarioContext) historyFilePath() string {
+	return filepath.Join(sc.historyDir(), "history.jsonl")
+}
+
+// historyArchivePath is the archived session-history file (`--new`).
+func (sc *scenarioContext) historyArchivePath() string {
+	return filepath.Join(sc.historyDir(), "history.archive.jsonl")
+}
+
+// recordExchange records an arranged exchange so a listing Then can compute the
+// expected messages.
+func (sc *scenarioContext) recordExchange(prompt, answer string) {
+	sc.arrangedExchanges = append(sc.arrangedExchanges, exchange{prompt: prompt, answer: answer})
+}
+
+// onlyFake returns the scenario's single fake provider, or nil when none.
+func (sc *scenarioContext) onlyFake() *fakeprovider.Provider {
+	if len(sc.fakes) == 0 {
+		return nil
+	}
+	return sc.fakes[0]
 }
