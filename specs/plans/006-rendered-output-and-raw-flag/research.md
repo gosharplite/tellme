@@ -38,7 +38,7 @@ The byte-level behaviours the spec deferred here are settled below (Decisions 1�
 - **Decision**:
   - **Rendered path**: render the answer through glamour, then **trim leading and trailing newlines** from the rendered result; if the result is non-empty, write it followed by a trailing `"\n\n"`.
   - **Raw path** (`-r`): write the answer text **verbatim**, followed by **exactly one CLI-appended** `"\n"` (unconditional — matches round-005 FR-006 and the DSL `is exactly` row; M2 reconciliation).
-- **Rationale**: Reproduces the reference's byte behaviour (`renderMarkdownWithUILocked` trims then appends `"\n\n"`; `renderTextLocked`'s raw branch prints then conditionally `Fprintln`s). Keeping the raw path's single-terminating-newline rule preserves round-005 FR-006 for the raw mode.
+- **Rationale**: Reproduces the reference's byte behaviour (`renderMarkdownWithUILocked` trims then appends `"\n\n"`; `renderTextLocked`'s raw branch prints then `Fprintln`s; tellme appends unconditionally per round-005 FR-006). Keeping the raw path's single-terminating-newline rule preserves round-005 FR-006 for the raw mode.
 - **Alternatives considered**:
   - **Write glamour output as-is (no trim/append)** — rejected: produces unstable leading/trailing blank lines that diverge from the reference.
   - **Always append `"\n"` on the raw path** — rejected: would double-terminate answers that already end in a newline and break the verbatim rule.

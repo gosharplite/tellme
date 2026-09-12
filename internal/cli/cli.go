@@ -303,8 +303,9 @@ func writeAnswer(out, errOut io.Writer, answer string, raw bool, width int, rend
 	}
 }
 
-// writeRawAnswer prints the answer bytes verbatim, followed by exactly one
-// CLI-appended terminating newline (round-005 FR-006; the raw path).
+// writeRawAnswer prints text verbatim followed by exactly one CLI-appended
+// terminating newline (round-005 FR-006). It serves both the raw (-r) path and
+// the sanitized degraded fallback (round-006 research D5).
 func writeRawAnswer(out io.Writer, answer string) {
 	_, _ = fmt.Fprintln(out, answer)
 }
