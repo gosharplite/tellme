@@ -324,7 +324,7 @@ A short, **docs/metadata-only** session. `SESSION-BOOTSTRAP.md` (Steps 1–8) ra
 | `ea54bba` | `docs: drop PM-4 tellme init candidate (config provisioning stays with the env manager)` |
 | `720869b` | `docs: link #15 (pipeline make verify) in STATUS candidate (a) + daily log` |
 
-**Propagation:** session-17 docs are on `dev` (pushed); **`dev → main` PENDING** (awaiting approval).
+**Propagation:** session-17 docs are on `dev` (pushed); **propagated `dev → main` (no-ff)** — DONE.
 
 ### Open items (non-blocking)
 
