@@ -60,7 +60,7 @@ func NewWithHTTPClient(cfg Config, c *http.Client) *Client {
 // the normalized answer (round-004 research Decision 3 & 4). Every failure is
 // wrapped in a *llm.ProviderError.
 func (c *Client) Complete(ctx context.Context, req llm.Request) (llm.Response, error) {
-	body, err := requestBody(c.cfg.Model, req.Prompt, c.cfg.MaxTokens, c.cfg.ThinkingLevel)
+	body, err := requestBody(c.cfg.Model, req.Prompt, req.Messages, c.cfg.MaxTokens, c.cfg.ThinkingLevel)
 	if err != nil {
 		return llm.Response{}, c.wrap(err)
 	}
@@ -104,13 +104,20 @@ func requestURL(baseURL string) string {
 	return strings.TrimRight(baseURL, "/") + "/chat/completions"
 }
 
-// requestBody builds the JSON request body (pure helper).
-func requestBody(model, prompt string, maxTokens int, thinkingLevel string) ([]byte, error) {
+// requestBody builds the JSON request body (pure helper). The `messages` array
+// is the resumed prior conversation (when any) followed by the current user
+// prompt; with no prior messages it is exactly the single current user message,
+// byte-for-byte identical to rounds 004–006 (round-007 RF-3).
+func requestBody(model, prompt string, prior []llm.Message, maxTokens int, thinkingLevel string) ([]byte, error) {
+	messages := make([]map[string]string, 0, len(prior)+1)
+	for _, m := range prior {
+		messages = append(messages, map[string]string{"role": m.Role, "content": m.Content})
+	}
+	messages = append(messages, map[string]string{"role": "user", "content": prompt})
+
 	payload := map[string]any{
-		"model": model,
-		"messages": []map[string]string{
-			{"role": "user", "content": prompt},
-		},
+		"model":    model,
+		"messages": messages,
 	}
 	if maxTokens > 0 {
 		payload["max_tokens"] = maxTokens
