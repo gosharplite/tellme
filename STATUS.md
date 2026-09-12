@@ -120,5 +120,5 @@ Verification after the fix set: `gofmt`/`vet`/`staticcheck` clean · `make verif
 
 ## Open items (non-blocking)
 
-- **Future-package candidates**: (a) CI workflow for `make verify`; (b) F9 extension for flag parsing unit tests; (c) PM-4 `tellme init`.
+- **Future-package candidates**: (a) CI workflow for `make verify`; (b) F9 extension for flag parsing unit tests; (c) PM-4 `tellme init`; (d) **Coverage tooling** — [#13](https://github.com/gosharplite/tellme/issues/13) (`make test-coverage` report + `go build -cover` E2E-integration spike; Slice 005 candidate, per PR [#12](https://github.com/gosharplite/tellme/pull/12) review follow-up).
 - Pre-existing non-blocking items from rounds 001/002 remain documented in archive.
