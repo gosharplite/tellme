@@ -21,9 +21,11 @@
 
 | Category | Technology | Purpose |
 | --- | --- | --- |
-| Configuration format | YAML | Slice-local configuration input (`$TELL_ME_HOME/configs/<mode>.yaml`) |
-| YAML parsing | `gopkg.in/yaml.v3` | Load the YAML configuration into a typed struct |
-| Effective-value resolution | Hand-written Go (no framework) | Apply `TELL_ME_MODE` / `TELL_ME_SELECTED_PROVIDER` precedence over the file, and validate the selected provider (resolver algorithm lives in plan-side `research.md` Decision 3) |
+| Configuration format | YAML | Configuration input loaded from `$TELL_ME_HOME/configs/<mode>.yaml` or explicit `-c` path |
+| YAML parsing | `gopkg.in/yaml.v3` | Load YAML configuration into typed structs (`Config` with tolerant root decoding; typed `Provider` entries) |
+| Provider entry schema | Typed Go struct (`internal/config.Provider`) | Models complete request attributes: `TYPE`, `MODEL`, `URL`, `API_KEY`, `MAX_TOKENS`, `HEADERS`, `THINKING_BUDGET`, `THINKING_LEVEL` (expanded in round 003 from round-001 boot subset) |
+| Variable expansion | Hand-crafted stdlib regex (`internal/config/expand.go`) | Deterministic `${VAR}` and `${VAR:-default}` substitution in `API_KEY`, `URL`, and `HEADERS` values with zero third-party dependencies; fails on unset variables. The environment lookup is injected via an `EnvLookupFunc` port defaulting to `os.LookupEnv` (dependency inversion, review finding #1, so pure-helper unit tests are in-memory and parallel-safe) |
+| Effective-value resolution & validation | Hand-written Go (no framework) | Apply `TELL_ME_MODE` / `TELL_ME_SELECTED_PROVIDER` precedence, **expand the active provider's variables before validating** the resolved entry (so a mandatory field whose placeholder resolves to empty is rejected — review finding #2), validate required fields/bounds with frozen class phrase `tellme: the provider configuration is invalid`, and carry the resolved provider on the resolution outcome for downstream slices |
 
 ### Testing & Verification
 
@@ -35,7 +37,7 @@
 | No-network verification | No-egress sandbox (privileged netns **or** unprivileged hostile-env fallback) + build-graph capability guard | Prove SC-004 (zero network on `-d`, incl. the failure path): the sandbox is a differential witness (assert identical output with egress blocked — `unshare -n` where permitted, else a hostile DNS/proxy env; the privileged netns is **not** available on the local dev host); the capability guard asserts **network-capability absence**, not bare package presence — no `net/http` in the binary's dependency closure and no dialing/listening symbol in the linked binary (`go tool nm`). Bare `net` / `net/netip` are linked transitively by `spf13/pflag` IP-flag parsing without performing I/O and are **not** indicators |
 | Version assertion | `VERSION=0.0.0-harness` sentinel | The suite builds with a sentinel and asserts the exact `--version` string (single target `main.version`), making FR-010 falsifiable instead of passing against the `dev` default |
 | Host test harness | Go stdlib `testing` | Runs the godog suites and any supporting assertions; determinism — no `time.Sleep` for synchronization (ADR-036 parity) |
-| Pure-helper unit tests | Go stdlib `testing` (table-driven) | Fast, isolated, offline tests for the pure resolution helpers — effective mode, effective selected provider, provider-registry membership, workspace creation/reuse (round-001 finding F9) — complementing the E2E acceptance path |
+| Pure-helper unit tests | Go stdlib `testing` (table-driven) | Fast, isolated, offline tests for pure helpers — effective mode, effective provider, workspace idempotency (round 001/002 F9), `${VAR}` expansion, and provider validation (round 003) — complementing the E2E acceptance path |
 
 ### Build & Tooling
 
