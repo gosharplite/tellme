@@ -132,3 +132,10 @@ Verification after the fix set: `gofmt`/`vet`/`staticcheck` clean · `make verif
 
 - **Future-package candidates**: (a) CI workflow for `make verify`; (b) F9 extension for flag parsing unit tests; (c) PM-4 `tellme init`; (d) **Coverage tooling** — [#13](https://github.com/gosharplite/tellme/issues/13) (`make test-coverage` report + `go build -cover` E2E-integration spike; Slice 005 candidate, per PR [#12](https://github.com/gosharplite/tellme/pull/12) review follow-up).
 - Pre-existing non-blocking items from rounds 001/002 remain documented in archive.
+
+
+## Environment notes
+
+- **Dev tooling — `tellme.sh` (external; not a repo/truth artifact)**: the Niffler-style manager that drives the `tellme` binary lives at both `~/tmp/dualnets/seed/notebooks/beta-niffler/tellme.sh` and `…/mbp-johndoe-niffler/tellme.sh`. Its usage banner was made **round-agnostic** this session — the hardcoded `round-001` capability text (and the `bare boot` capability hint) were removed so it no longer needs revising each slice; the current-state pointer is this `STATUS.md`. Invoke via `source tellme.sh` (aliases `b`/`a`/`c`/`g`/`p`/`r` + optional prompt arg) or the `tm` alias in `~/.bashrc`.
+- **Host / toolchain**: Go 1.26; `golangci-lint` / `staticcheck` / `govulncheck` present in `$GOPATH/bin`; the `tellme` binary is installed at `$(go env GOPATH)/bin/tellme` via `go install ./cmd/tellme`. Sandbox: the privileged netns (`unshare -n`) is unavailable on the host, so the offline-path guard uses the unprivileged canary + hostile-env differential.
+- **Persistent path authorizations**: read+write for `…/beta-niffler/`, `…/mbp-johndoe-niffler/tellme.sh`, and `~/.bashrc` (the `tm` alias).

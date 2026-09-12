@@ -278,3 +278,10 @@ The full round-004 slice: bootstrap → `/axb-specify` → `/axb-spec-by-example
 
 1. **Slice 005** — start a fresh `005-*` package via `/axb-specify` off `dev` (rounds 001–004 frozen).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+
+### Environment / dev tooling (external — outside the repo)
+
+- **`tellme.sh` made round-agnostic.** The Niffler-style manager driving the `tellme` binary (`~/tmp/dualnets/seed/notebooks/{beta-niffler,mbp-johndoe-niffler}/tellme.sh`) had its usage banner de-round-ified: the hardcoded `round-001 … prompts ignored` text and the `bare boot` capability hint were removed so it no longer requires a per-slice revision (current-state pointer: `STATUS.md`). `bash -n` clean on both; no hardcoded round/capability list remains.
+- **Binary refreshed + smoked.** `go install ./cmd/tellme` on `dev` → `$(go env GOPATH)/bin/tellme`; a `tm` run confirmed the round-004 prompt turn end-to-end (`b "…"` → provider response; `--version` shows `dev`).
+- **Path authorizations** added (write) for both `tellme.sh` files.
