@@ -285,3 +285,52 @@ The full round-004 slice: bootstrap → `/axb-specify` → `/axb-spec-by-example
 - **`tellme.sh` made round-agnostic.** The Niffler-style manager driving the `tellme` binary (`~/tmp/dualnets/seed/notebooks/{beta-niffler,mbp-johndoe-niffler}/tellme.sh`) had its usage banner de-round-ified: the hardcoded `round-001 … prompts ignored` text and the `bare boot` capability hint were removed so it no longer requires a per-slice revision (current-state pointer: `STATUS.md`). `bash -n` clean on both; no hardcoded round/capability list remains.
 - **Binary refreshed + smoked.** `go install ./cmd/tellme` on `dev` → `$(go env GOPATH)/bin/tellme`; a `tm` run confirmed the round-004 prompt turn end-to-end (`b "…"` → provider response; `--version` shows `dev`).
 - **Path authorizations** added (write) for both `tellme.sh` files.
+
+---
+
+## 17. Session 17 — tooling / roadmap triage (docs-only)
+
+A short, **docs/metadata-only** session. `SESSION-BOOTSTRAP.md` (Steps 1–8) ran first to inherit state: rounds 001–004 delivered/frozen on `dev`; the next round is a fresh `005-*` off `dev`.
+
+### Work done
+
+1. **Bootstrap (Steps 1–8)** — re-read the reference pillars (`tell-me-go` 8-item bootstrap incl. domain/quality/environment models + `INTENTIONAL_NON_FIXES`; `aixbdd-tmg` model + README), `list_skills`, in-group peers (self `butler`; peers `architect`, `coder`, `griller`, `pm`, `rd`), `STATUS.md` (**active branch `dev` — confirmed current**), and the last-5-days summaries (09/10 · 09/11 · 09/12; 09/08–09/09 absent → skipped).
+2. **Coverage tooling [#13](https://github.com/gosharplite/tellme/issues/13) triaged** — posted an assessment comment ([#5643319942](https://github.com/gosharplite/tellme/issues/13#issuecomment-5643319942)) and **de-scoped the title** (dropped “(Slice 005 candidate)”). Findings: unit-only coverage is **misleading** for an E2E-first CLI (`cmd/tellme` / `internal/domain/llm` report 0% yet are exercised through the built binary); the exclusion list is **premature** (`tellme` has none of the reference’s nine test-double dirs); Item 2 (`go build -cover` + `GOCOVERDIR`) is both the substance and the risk. Verdict: **low-priority tooling, not a committed round.**
+3. **F9 flag-parsing issue opened — [#14](https://github.com/gosharplite/tellme/issues/14)** — captured the discussion, including the key finding that the deferred F9 remainder becomes **materially more valuable once `tellme` gains `tell-me-go`’s piping model** (stdin prompt + stdout pipe/redirect + `-r` raw output). Recommendation: **fold into the piping / `-r` slice**, scoped as “flag parsing + I/O-mode selection” (stream behaviour stays E2E).
+4. **CI-platform decision** — the CI/CD platform (GitHub Actions / ADO / Tekton) is **not a repo-level choice** → **keep the gate manual for now**; candidate (a) re-scoped from “CI workflow” to the platform-agnostic “run `make verify` in a chosen pipeline platform”.
+5. **`STATUS.md` open-items refreshed** — candidate list now: (a) run `make verify` in a pipeline platform (manual for now, platform TBD); (b) F9 flag-parsing [#14]; (c) coverage tooling [#13].
+6. **PM-4 `tellme init` DROPPED** — config provisioning stays with the environment manager (Niffler / `tellme.sh`); `tellme` remains a **load/validate consumer** working inside that shell (no second config-writer). With the only user-value candidate withdrawn, the remaining `005-*` candidates are **all tooling/hygiene** — a meaningful next slice is most likely a **capability slice**.
+
+### Decisions log
+
+| # | Decision | Rationale |
+| --- | --- | --- |
+| D1 | **#13 = low-priority tooling, not a committed round** (title de-scoped) | no acceptance behaviour is unverified; unit-only coverage misleads for an E2E-first CLI; coverage value scales with codebase size (~3.2k LOC) |
+| D2 | **#14 (F9 flag-parsing) folds into the piping / `-r` slice** | at 3 flags the value is a nudge; once piping + `-r` land, the parsing + I/O-mode-selection matrix is exactly what E2E under-covers and unit tests cover cheaply |
+| D3 | **CI platform is not a repo-level choice → keep `make verify` manual for now** | avoid pre-committing to GitHub Actions; the Makefile stays the single gate source; platform (GH Actions / ADO / Tekton) TBD |
+| D4 | **Docs land on `dev`** (not a round branch) | round branches are frozen; `STATUS.md` + daily log are live session docs |
+| D5 | **Drop PM-4 `tellme init`** — keep today's behaviour | config provisioning is the **environment manager's** job (Niffler / `tellme.sh`); `tellme` stays a **load/validate consumer** — avoids a second config-writer / config-shape drift, and matches `tellme-go` (which also relies on the env manager, not self-scaffolding) |
+
+### Artifacts / commits
+
+- **GitHub**: [#13](https://github.com/gosharplite/tellme/issues/13) — assessment comment [`5643319942`](https://github.com/gosharplite/tellme/issues/13#issuecomment-5643319942) + title de-scope; new issues [#14](https://github.com/gosharplite/tellme/issues/14) (F9 flag-parsing → piping slice) and [#15](https://github.com/gosharplite/tellme/issues/15) (wire `make verify` into a chosen pipeline platform — platform TBD).
+- **Repo**: `STATUS.md` open-items refresh (+ header/`Last updated` note) and this daily-log §17 — committed on `dev`, **pushed** (`dev` in sync with `origin/dev`).
+
+**Commits (branch `dev`):**
+
+| Commit | Note |
+| --- | --- |
+| `e518028` | `docs: triage coverage tooling (#13), open F9 flag-parsing (#14), re-scope CI candidate to manual-for-now` |
+| `ea54bba` | `docs: drop PM-4 tellme init candidate (config provisioning stays with the env manager)` |
+| `720869b` | `docs: link #15 (pipeline make verify) in STATUS candidate (a) + daily log` |
+
+**Propagation:** session-17 docs are on `dev` (pushed); **propagated `dev → main` (no-ff)** — DONE.
+
+### Open items (non-blocking)
+
+- All remaining `005-*` candidates are **tooling/hygiene** (a: run `make verify` in a chosen pipeline platform — [#15](https://github.com/gosharplite/tellme/issues/15); b: F9 flag-parsing — [#14](https://github.com/gosharplite/tellme/issues/14); c: coverage tooling — [#13](https://github.com/gosharplite/tellme/issues/13)); `tellme init` is **withdrawn**. A meaningful next slice is most likely a **capability slice** (e.g. the piping / `-r` slice, or session / `history.jsonl` persistence). (#13/#14/#15 — all judged low-priority / blocked on a decision.)
+
+### Next steps
+
+1. Choose the `005-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
