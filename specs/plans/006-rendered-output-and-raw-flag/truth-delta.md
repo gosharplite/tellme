@@ -18,13 +18,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `specs/truth/contracts/**` | | |
+| NOOP | `specs/truth/contracts/**` | Checked; left empty. tellme has a single CLI end and no HTTP/OpenAPI surface of its own; round 006 changes only how the answer is displayed, not any API surface (the provider request shape is unchanged from round 004). | `contract-authoritative` holds vacuously. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `specs/truth/data/**` | | |
+| NOOP | `specs/truth/data/**` | Checked; left empty. Round 006 introduces no persisted or in-memory state; `WRAP_WIDTH` is configuration input, not state. | `data-model-covers-all-state` holds vacuously. |
 
 ## /axb-dsl-refine
 
