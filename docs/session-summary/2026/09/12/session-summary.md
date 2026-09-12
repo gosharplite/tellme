@@ -186,3 +186,33 @@ Responded to the PR [#11](https://github.com/gosharplite/tellme/pull/11) archite
 1. Re-review PR [#11](https://github.com/gosharplite/tellme/pull/11) with the fixes in place.
 2. Merge + propagate `003-provider-registry-completeness → dev → main` on approval.
 3. Proceed to Slice **004 — First reasoning turn** ([#10](https://github.com/gosharplite/tellme/issues/10)), which now consumes the carried resolved `Provider`.
+
+---
+
+## 15. Session 15 (cont.) — round-003 delivery, merge & propagation
+
+Continuation of session 15: the PR [#11](https://github.com/gosharplite/tellme/pull/11) review loop closed with **FULL APPROVAL**, the PR was merged, and round 003 was propagated to `dev` and `main`.
+
+### Work done
+1. **Review loop closed** — the architectural re-check ([comment #5642050755](https://github.com/gosharplite/tellme/pull/11#issuecomment-5642050755)) returned **FULL APPROVAL — READY TO MERGE**, certifying review findings #1–#3 resolved in `05d2e0d` (godog 27/27 scenarios · 195/195 steps; topology audit PASSED 172 steps; `make verify` OK).
+2. **PR #11 merged** into `003-provider-registry-completeness` (`9ab3185`); the remote PR-head branch `003-implement-provider-registry-completeness` was deleted.
+3. **Remote sync + branch cleanup** — `git fetch --prune`; local `003-provider-registry-completeness` fast-forwarded to the merge; stale local PR-head branch deleted.
+4. **Propagation** — `003-provider-registry-completeness → dev` (`6db276e`, no-ff) `→ main` (no-ff); pushed both to origin.
+5. **Docs closeout on `dev`** — `STATUS.md` (branch model, round 003 → delivered/frozen, delivery + propagation section) and this daily log updated.
+
+### Decisions log
+| # | Decision | Rationale |
+| --- | --- | --- |
+| D1 | Propagate with **no-ff merges** (`round → dev`, `dev → main`) | the repo's established propagation convention |
+| D2 | Land the closeout docs **on `dev`** (not the frozen round branch) | session-13 D5 — keep the delivered round branch frozen; live/session docs live on the integration line |
+
+### Verification
+- `git rev-list --left-right --count dev...003-provider-registry-completeness` pre-merge: `0 6` (clean fast-forward-able); no conflicts.
+- `go test ./...` green on the merged tree; `make verify` OK.
+
+### Open items (non-blocking)
+- None new. Future-package candidates unchanged (CI for `make verify`; F9 flag-parsing unit tests; `tellme init`).
+
+### Next steps
+1. **Slice 004 — First reasoning turn** ([#10](https://github.com/gosharplite/tellme/issues/10)) — start a fresh `004-*` package via `/axb-specify` off `dev`; consumes `resolution.Provider` (review F3).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch now `dev`).

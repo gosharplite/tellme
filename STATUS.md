@@ -1,9 +1,9 @@
 # tellme — Status
 
-**Last updated**: 2026-09-12 (**session 14 closeout — round 003 `003-provider-registry-completeness` implemented & PR [#11](https://github.com/gosharplite/tellme/pull/11) opened**; full pipeline executed: `/axb-specify` [Clarify Round 1 resolved: Q1 core request set, Q2 targeted `${VAR}` expansion with error on unset, Q3 exit 3 with `tellme: the provider configuration is invalid`] → `/axb-spec-by-example` [2 acceptance features] → `/axb-technical-research` [`research.md` Decisions 1–4, updated `specs/truth/techstack.md`] → `/axb-system-analysis` [`plan.md`, 2 interfaces, 1 wave, api/data NOOP] → `/axb-dsl-refine` [updated `specs/truth/features/cli/**`, audit 165 steps PASSED] → `/axb-tasks` [18 tasks, orphan sweep 12/12 PASSED] → `/axb-implement` [18/18 tasks `[X]`, 26/26 scenarios green, `make verify` OK]). PR [#11](https://github.com/gosharplite/tellme/pull/11) opened against base `003-provider-registry-completeness`. *Prior — session 13: 003/004 roadmap and tracking issues ([#9](https://github.com/gosharplite/tellme/issues/9), [#10](https://github.com/gosharplite/tellme/issues/10)) + doc-tree reorganization. Prior — session 12: round 002 delivered & merged ([PR #7](https://github.com/gosharplite/tellme/pull/7)).*
-**Review response**: PR [#11](https://github.com/gosharplite/tellme/pull/11) architectural review ([comment #5641984093](https://github.com/gosharplite/tellme/pull/11#issuecomment-5641984093), verdict *APPROVE with non-blocking follow-ups*) — all three findings addressed in-round (F1 injectable env-lookup port; F2 expand-then-validate + acceptance Example; F3 carried resolved provider).
+**Last updated**: 2026-09-12 (**session 15 — round 003 `003-provider-registry-completeness` DELIVERED**: PR [#11](https://github.com/gosharplite/tellme/pull/11) re-reviewed (FULL APPROVAL) → review findings #1–#3 resolved in-round (`05d2e0d`) → merged (`9ab3185`) → propagated `003-provider-registry-completeness → dev → main`; local PR-head branch deleted). *Prior — session 14: round 003 implemented end-to-end (full pipeline `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`; 18/18 tasks `[X]`), PR [#11](https://github.com/gosharplite/tellme/pull/11) opened. Prior — session 13: 003/004 roadmap and tracking issues ([#9](https://github.com/gosharplite/tellme/issues/9), [#10](https://github.com/gosharplite/tellme/issues/10)) + doc-tree reorganization. Prior — session 12: round 002 delivered & merged ([PR #7](https://github.com/gosharplite/tellme/pull/7)).*
+**Review response**: PR [#11](https://github.com/gosharplite/tellme/pull/11) architectural review ([comment #5641984093](https://github.com/gosharplite/tellme/pull/11#issuecomment-5641984093), verdict *APPROVE with non-blocking follow-ups*; re-check [comment #5642050755](https://github.com/gosharplite/tellme/pull/11#issuecomment-5642050755), verdict *FULL APPROVAL — READY TO MERGE*) — all three findings addressed in-round (F1 injectable env-lookup port; F2 expand-then-validate + acceptance Example; F3 carried resolved provider).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
-**Active branch**: `003-implement-provider-registry-completeness` (PR [#11](https://github.com/gosharplite/tellme/pull/11) head branch).
+**Active branch**: `dev` (round 003 delivered; the next round starts a fresh `004-*` package off `dev`).
 **Daily log**: [`docs/session-summary/2026/09/12/session-summary.md`](docs/session-summary/2026/09/12/session-summary.md)
 **Archive**: [`docs/archives/status/2026-09-11.md`](docs/archives/status/2026-09-11.md) — historical status (rounds 001 and 002, all closed grill/upstream/clarify records, accumulated decisions log, propagation + environment history), cut at 2026-09-11 (session 13).
 
@@ -15,19 +15,19 @@
 | `dev` | merged up from delivered round branches | Integration line (round work lands here before `main`) |
 | `001-cli-bootstrap-and-config` | delivered / frozen (round 001) | Round-001 working branch — PR [#6](https://github.com/gosharplite/tellme/pull/6) merged; round 001 is delivered / frozen history |
 | `002-followup-cleanups` | delivered / frozen (round 002) | Round-002 base branch — PR [#7](https://github.com/gosharplite/tellme/pull/7) merged (`f2a058f`); propagated `→ dev → main` |
-| `003-provider-registry-completeness` | base branch (round 003) | Round-003 base branch — plan package & truth specifications committed (`78c447a`) |
-| `003-implement-provider-registry-completeness` | active (PR head) | Round-003 implementation head — PR [#11](https://github.com/gosharplite/tellme/pull/11) opened; all 18 tasks `[X]` |
+| `003-provider-registry-completeness` | delivered / frozen (round 003) | Round-003 base branch — PR [#11](https://github.com/gosharplite/tellme/pull/11) merged (`9ab3185`); propagated `→ dev → main`; frozen history |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`. Delivered round branches
-> (`001`, `002`) remain frozen history and never receive post-round commits.
+> (`001`, `002`, `003`) remain frozen history and never receive post-round commits.
 > Read live heads with `git rev-parse --short main dev HEAD`.
 
-## Current round — `003-provider-registry-completeness`
+## Round 003 — `003-provider-registry-completeness` (delivered / frozen)
+
+**Status**: ✅ **DELIVERED / FROZEN** (2026-09-12) — PR [#11](https://github.com/gosharplite/tellme/pull/11) merged; propagated to `dev` and `main`.
 
 **Scope**: (1) Expand `PROVIDERS` entry from boot subset to the real, typed provider configuration needed for LLM requests (`TYPE`, `MODEL`, `URL`, `API_KEY`, `MAX_TOKENS`, `HEADERS`, `THINKING_BUDGET`, `THINKING_LEVEL`); (2) Deterministic `${VAR}` and `${VAR:-default}` environment variable expansion in `API_KEY`, `URL`, and `HEADERS` string values; (3) Deterministic offline validation and operator-facing failure contract (exit code `3`, frozen class phrase `tellme: the provider configuration is invalid`); (4) Pure-helper unit tests and regression verification.
 
-> **Rounds 001 and 002 remain frozen**: `specs/plans/001-cli-bootstrap-and-config/**` and `specs/plans/002-followup-cleanups/**`
-> are immutable history.
+> **Rounds 001 and 002 (and now 003) remain frozen**: `specs/plans/001-cli-bootstrap-and-config/**`, `specs/plans/002-followup-cleanups/**`, and `specs/plans/003-provider-registry-completeness/**` are immutable history.
 
 ### Artifacts
 
@@ -39,11 +39,11 @@
 - [x] `specs/plans/003-provider-registry-completeness/plan.md` — `/axb-system-analysis`
 - [x] `specs/truth/features/cli/**` — `/axb-dsl-refine`
 - [x] `specs/plans/003-provider-registry-completeness/tasks.md` — `/axb-tasks`
-- [x] Implementation — `/axb-implement` (18/18 tasks `[X]`; 26/26 scenarios passed, `make verify` OK; PR [#11](https://github.com/gosharplite/tellme/pull/11) opened)
+- [x] Implementation — `/axb-implement` (18/18 tasks `[X]`; godog 27/27 scenarios, `make verify` OK; PR [#11](https://github.com/gosharplite/tellme/pull/11) **merged** `9ab3185`)
 
 ### Pipeline position
 
-All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → **`/axb-implement` (18/18 tasks `[X]`)**. Unit tests passed (22/22), godog **26/26 scenarios · 187/187 steps** green, `make verify` OK (zero test-sleep, zero network capability, 0 lint issues, 0 vulnerabilities). PR [#11](https://github.com/gosharplite/tellme/pull/11) opened. Ready for review and merge/propagation.
+All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → **`/axb-implement` (18/18 tasks `[X]`)**. Unit tests green, godog **27/27 scenarios · 195/195 steps**, `make verify` OK (zero test-sleep, zero network capability, 0 lint issues, 0 vulnerabilities). PR [#11](https://github.com/gosharplite/tellme/pull/11) reviewed (**FULL APPROVAL**), **merged** (`9ab3185`), and **propagated `003-provider-registry-completeness → dev → main`**. Round 003 is delivered / frozen.
 
 ### Decisions locked (round 003)
 
@@ -53,13 +53,6 @@ All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-tech
 - **Top-level key tolerance**: YAML parser maintains tolerance for unknown top-level keys (`MODELS:`, `MCP_SERVERS:`) to ensure compatibility with real-world configs, while strictly validating the resolved provider entry.
 - **Context-window / pricing mapping**: Deferred to Slice 004 as an assumption.
 
-## Roadmap — next slices
-
-| Slice | Issue | Scope | Primary truth owners |
-| --- | --- | --- | --- |
-| **003 — Provider-registry completeness** | [#9](https://github.com/gosharplite/tellme/issues/9) | Grow boot-subset `PROVIDERS` entry to real provider fields (`API_KEY` with `${VAR}` expansion, `HEADERS`, `THINKING_BUDGET`/`THINKING_LEVEL`) + deterministic offline validation. **(PR [#11](https://github.com/gosharplite/tellme/pull/11) Open)** | `/axb-dsl-refine` (MODIFY `features/cli` configuration), `/axb-technical-research` (techstack) |
-| **004 — First reasoning turn** | [#10](https://github.com/gosharplite/tellme/issues/10) | `tellme "<prompt>"` → one provider request → printed response; provider domain port + one adapter; deterministic failure class; network-path test strategy. **Depends on 003.** | `/axb-dsl-refine` (new chat/turn module), `/axb-technical-research` (transport amendment) |
-
 ### Review response — PR #11 (round 003, in-round)
 
 - Review comment: [#5641984093](https://github.com/gosharplite/tellme/pull/11#issuecomment-5641984093) — verdict **APPROVE WITH NON-BLOCKING FOLLOW-UPS**.
@@ -67,6 +60,21 @@ All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-tech
 - **F2 (validate ran before expand)** — `resolve()` now **expands then validates**, so a mandatory field whose placeholder resolves to empty (e.g. `URL: "${UNSET:-}"`) is rejected; added executable acceptance Example *"A mandatory field resolves to empty after expansion"* + `TestResolveRejectsEmptyAfterExpansion`. Truth: `techstack.md` resolution row (MODIFY) + `features/cli/configuration` feature (MODIFY).
 - **F3 (resolved provider discarded)** — `resolution` now carries the resolved (expanded) `config.Provider` for Slice 004; covered by `TestResolveCarriesExpandedProvider`. No truth change (internal struct).
 - Verification: unit tests green; godog **27/27 scenarios · 195/195 steps**; topology audit **PASSED** (172 steps); `make verify` OK; staticcheck clean.
+
+### Delivery & propagation (session 15)
+
+- Re-check comment: [#5642050755](https://github.com/gosharplite/tellme/pull/11#issuecomment-5642050755) — verdict **FULL APPROVAL — READY TO MERGE**.
+- PR [#11](https://github.com/gosharplite/tellme/pull/11) merged into `003-provider-registry-completeness` (`9ab3185`); remote PR-head branch deleted.
+- Propagated `003-provider-registry-completeness → dev` (`6db276e`, no-ff) `→ main` (no-ff).
+- Round 003 `specs/plans/003-provider-registry-completeness/**` is now **delivered / frozen** history.
+- Next: **Slice 004 — First reasoning turn** ([#10](https://github.com/gosharplite/tellme/issues/10)) starts a fresh `004-*` package off `dev`; it will consume the provider carried on `resolution` (review F3).
+
+## Roadmap — next slices
+
+| Slice | Issue | Scope | Status |
+| --- | --- | --- | --- |
+| **003 — Provider-registry completeness** | [#9](https://github.com/gosharplite/tellme/issues/9) | Grow boot-subset `PROVIDERS` entry to real provider fields (`API_KEY` with `${VAR}` expansion, `HEADERS`, `THINKING_BUDGET`/`THINKING_LEVEL`) + deterministic offline validation. | ✅ **Delivered** (PR [#11](https://github.com/gosharplite/tellme/pull/11) merged; propagated to `dev`/`main`) |
+| **004 — First reasoning turn** | [#10](https://github.com/gosharplite/tellme/issues/10) | `tellme "<prompt>"` → one provider request → printed response; provider domain port + one adapter; deterministic failure class; network-path test strategy. **Depends on 003.** | ⏳ Next |
 
 ## Open items (non-blocking)
 
