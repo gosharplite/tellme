@@ -6,24 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 )
-
-// ErrInvalidValue marks a configuration value that is present but invalid (e.g.
-// a negative rendered width). It distinguishes value errors from parse errors
-// so the CLI can emit the general `the configuration is invalid` class phrase
-// (round-006 FR-006) rather than the parse phrase.
-var ErrInvalidValue = errors.New("invalid configuration value")
 
 // Config is the boot-time YAML configuration input (FR-005).
 type Config struct {
 	Mode             string              `yaml:"MODE"`
 	Person           string              `yaml:"PERSON"`
 	SelectedProvider string              `yaml:"SELECTED_PROVIDER"`
-	WrapWidth        int                 `yaml:"WRAP_WIDTH"`
 	Providers        map[string]Provider `yaml:"PROVIDERS"`
 }
 
@@ -141,24 +132,4 @@ func (c *Config) EffectiveMode(override string) string {
 		return c.Mode
 	}
 	return "butler"
-}
-
-// EffectiveWrapWidth resolves AND validates the rendered width: the environment
-// override (TELL_ME_WRAP_WIDTH) when non-empty, else the file WRAP_WIDTH
-// (round-006 FR-006 / FR-015). A non-integer override, or a negative value from
-// either source, is an invalid configuration value (wrapping ErrInvalidValue).
-// The helper owns both resolve and validate so the caller cannot forget either.
-func (c *Config) EffectiveWrapWidth(override string) (int, error) {
-	width := c.WrapWidth
-	if override != "" {
-		n, err := strconv.Atoi(strings.TrimSpace(override))
-		if err != nil {
-			return 0, fmt.Errorf("%w: WRAP_WIDTH %q is not an integer", ErrInvalidValue, override)
-		}
-		width = n
-	}
-	if width < 0 {
-		return 0, fmt.Errorf("%w: WRAP_WIDTH cannot be negative (%d)", ErrInvalidValue, width)
-	}
-	return width, nil
 }
