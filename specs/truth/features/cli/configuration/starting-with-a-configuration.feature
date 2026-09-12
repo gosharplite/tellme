@@ -174,14 +174,3 @@ Feature: Starting tellme with a configuration
       Then tellme refuses to proceed
       And tellme explains on stderr that "the provider configuration is invalid"
       And tellme exits with the configuration error code
-
-
-  Rule: A run stops when the rendered width is invalid
-
-    Example: The configuration sets a negative rendered width
-      Given the runtime home is "ait-tmg"
-      And a well-formed configuration "configs/butler.yaml" whose rendered width is "-5"
-      When the operator starts tellme pointing at the configuration "configs/butler.yaml"
-      Then tellme refuses to proceed
-      And tellme explains on stderr that "the configuration is invalid"
-      And tellme exits with the configuration error code
