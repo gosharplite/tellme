@@ -4,16 +4,11 @@ Module-specific rows for the `diagnostics` module. Cross-module rows live in
 [`../dsl.md`](../dsl.md). Merged with the interface root, every step in this module's feature must
 match exactly one row.
 
-> `tellme performs no network access` is a host-harness assertion, not a black-box observation
-> (black-box cannot witness an absence). It is mediated by the E2E harness — a no-egress sandbox /
-> hostile-env differential witness plus the build-graph **capability** guard — per the round's
-> technical-research Decision 5.
->
-> Capability-guard semantics (**corrected**, round-001 implementation): the guard checks **network
-> capability**, not bare package presence — no `net/http` in the binary's dependency closure, and no
-> dialing/listening symbol in the linked binary (`go tool nm`). Bare `net` / `net/netip` may be
-> linked transitively by `spf13/pflag`'s IP-flag parsing without performing any I/O, so they are
-> **not** indicators.
+> `tellme performs no network access` (now a **cross-module** row in [`../dsl.md`](../dsl.md)) is a
+> host-harness assertion: the offline paths leave a recording sink untouched (zero connections) and
+> complete identically under blocked egress. Round 004 **retired** the whole-binary capability guard
+> ("no `net/http` in the closure") because the prompt-bearing chat path legitimately links `net/http`
+> — see the root DSL row.
 >
 > Path normalization convention (**pinned**, grill #5 fix Q5):
 > - `{home}` is the operator-facing name standing for the actual runtime home (`TELL_ME_HOME`).
@@ -46,5 +41,4 @@ match exactly one row.
 | `tellme reports the session workspace resolved to "{workspace_path}"` | `workspace_path`: string; the expected operator-facing path reported on stdout (e.g. "ait-tmg/output/butler"). | 不支援 | 無 | `必查`: `呈現結果`: stdout reports the session workspace resolved to `{workspace_path}`. |
 | `tellme reports the configuration did not resolve` | 無 | 不支援 | 無 | `必查`: `呈現結果`: stdout reports the configuration did not resolve. `權威狀態`: the reported status matches the arranged unresolved setup. |
 | `tellme reports the reason the configuration did not resolve` | 無 | 不支援 | 無 | `必查`: `呈現結果`: stdout names the unresolved category (one of `config-missing`, `config-invalid`, `provider-mismatch`, `home-unset`, `home-unusable`) consistent with the arranged setup. |
-| `tellme performs no network access` | 無 | 不支援 | 無 | `必查`: harness-mediated — `呈現結果` / `權威狀態`: with egress blocked the diagnostic's exit code and output are unchanged (differential witness), and the binary has **no network capability** — no `net/http` in its dependency closure and no dialing/listening symbol in the linked binary (`go tool nm` capability guard). Bare `net` / `net/netip` may be linked transitively by `spf13/pflag` IP-flag parsing without implying network I/O and are **not** indicators. This is a differential + capability-absence witness, not a black-box observation. |
 | `tellme exits with the diagnostic error code` | 無 | 不支援 | `碼值`: `5` (**pinned**, round 002 / FR-005) — a dedicated non-zero code distinct from success (0) and from every other error class (usage 2, configuration 3, environment 4). | `必查`: `呈現結果`: the report was produced and the exit code **equals the pinned diagnostic code `5`**. `不該發生`: it must not collapse to the success code or to any other error class. |

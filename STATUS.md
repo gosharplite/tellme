@@ -1,9 +1,9 @@
 # tellme — Status
 
-**Last updated**: 2026-09-12 (**session 15 — round 003 `003-provider-registry-completeness` DELIVERED**: PR [#11](https://github.com/gosharplite/tellme/pull/11) re-reviewed (FULL APPROVAL) → review findings #1–#3 resolved in-round (`05d2e0d`) → merged (`9ab3185`) → propagated `003-provider-registry-completeness → dev → main`; local PR-head branch deleted). *Prior — session 14: round 003 implemented end-to-end (full pipeline `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`; 18/18 tasks `[X]`), PR [#11](https://github.com/gosharplite/tellme/pull/11) opened. Prior — session 13: 003/004 roadmap and tracking issues ([#9](https://github.com/gosharplite/tellme/issues/9), [#10](https://github.com/gosharplite/tellme/issues/10)) + doc-tree reorganization. Prior — session 12: round 002 delivered & merged ([PR #7](https://github.com/gosharplite/tellme/pull/7)).*
+**Last updated**: 2026-09-12 (**session 16 — round 004 `004-first-reasoning-turn` STARTED** via `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine`: plan package authored (`spec.md`, `checklists/requirements.md`, `truth-delta.md`, `features/acceptance/*.feature`, `research.md`, techstack, `plan.md`); interface truth `specs/truth/features/cli/**` extended (new `chat` module + root class phrase); `tasks.md` (25 tasks) authored; Clarify Round 1 resolved (Q1 single in-memory non-streaming turn / no persistence; Q2 OpenAI-compatible family first; Q3 provider-failure frozen class phrase `the provider request failed` + exit code `6`). Branch `004-first-reasoning-turn` created off `dev`). (Prior — session 15: round 003 `003-provider-registry-completeness` **DELIVERED** — PR [#11](https://github.com/gosharplite/tellme/pull/11) re-reviewed (FULL APPROVAL) → review findings #1–#3 resolved in-round (`05d2e0d`) → merged (`9ab3185`) → propagated `003-provider-registry-completeness → dev → main`; local PR-head branch deleted). *Prior — session 14: round 003 implemented end-to-end (full pipeline `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`; 18/18 tasks `[X]`), PR [#11](https://github.com/gosharplite/tellme/pull/11) opened. Prior — session 13: 003/004 roadmap and tracking issues ([#9](https://github.com/gosharplite/tellme/issues/9), [#10](https://github.com/gosharplite/tellme/issues/10)) + doc-tree reorganization. Prior — session 12: round 002 delivered & merged ([PR #7](https://github.com/gosharplite/tellme/pull/7)).*
 **Review response**: PR [#11](https://github.com/gosharplite/tellme/pull/11) architectural review ([comment #5641984093](https://github.com/gosharplite/tellme/pull/11#issuecomment-5641984093), verdict *APPROVE with non-blocking follow-ups*; re-check [comment #5642050755](https://github.com/gosharplite/tellme/pull/11#issuecomment-5642050755), verdict *FULL APPROVAL — READY TO MERGE*) — all three findings addressed in-round (F1 injectable env-lookup port; F2 expand-then-validate + acceptance Example; F3 carried resolved provider).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
-**Active branch**: `dev` (round 003 delivered; the next round starts a fresh `004-*` package off `dev`).
+**Active branch**: `004-first-reasoning-turn` (round-004 working branch, created off `dev`; round 003 remains delivered/frozen on `dev`/`main`).
 **Daily log**: [`docs/session-summary/2026/09/12/session-summary.md`](docs/session-summary/2026/09/12/session-summary.md)
 **Archive**: [`docs/archives/status/2026-09-11.md`](docs/archives/status/2026-09-11.md) — historical status (rounds 001 and 002, all closed grill/upstream/clarify records, accumulated decisions log, propagation + environment history), cut at 2026-09-11 (session 13).
 
@@ -16,6 +16,7 @@
 | `001-cli-bootstrap-and-config` | delivered / frozen (round 001) | Round-001 working branch — PR [#6](https://github.com/gosharplite/tellme/pull/6) merged; round 001 is delivered / frozen history |
 | `002-followup-cleanups` | delivered / frozen (round 002) | Round-002 base branch — PR [#7](https://github.com/gosharplite/tellme/pull/7) merged (`f2a058f`); propagated `→ dev → main` |
 | `003-provider-registry-completeness` | delivered / frozen (round 003) | Round-003 base branch — PR [#11](https://github.com/gosharplite/tellme/pull/11) merged (`9ab3185`); propagated `→ dev → main`; frozen history |
+| `004-first-reasoning-turn` | active (round 004) | Round-004 working branch — created off `dev`; `/axb-specify` done (spec + checklist + truth-delta skeleton); Clarify Round 1 resolved |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`. Delivered round branches
 > (`001`, `002`, `003`) remain frozen history and never receive post-round commits.
@@ -69,12 +70,41 @@ All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-tech
 - Round 003 `specs/plans/003-provider-registry-completeness/**` is now **delivered / frozen** history.
 - Next: **Slice 004 — First reasoning turn** ([#10](https://github.com/gosharplite/tellme/issues/10)) starts a fresh `004-*` package off `dev`; it will consume the provider carried on `resolution` (review F3).
 
+## Round 004 — `004-first-reasoning-turn` (in progress)
+
+**Status**: 🚧 **IN PROGRESS** (2026-09-12) — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` done; branch `004-first-reasoning-turn` off `dev`.
+
+**Scope**: (1) `tellme "<prompt>"` → one provider request → printed response; (2) a provider domain port + one concrete adapter (OpenAI-compatible family first); (3) request assembly from the round-003 resolved provider; (4) response normalization to a minimal answer; (5) a deterministic provider/transport failure contract (frozen class phrase `the provider request failed` + exit code `6`); (6) a network-path test strategy (local fake provider) + amended no-network capability guard.
+
+### Artifacts
+
+- [x] `specs/plans/004-first-reasoning-turn/spec.md` — `/axb-specify`
+- [x] `specs/plans/004-first-reasoning-turn/checklists/requirements.md` — `/axb-specify`
+- [x] `specs/plans/004-first-reasoning-turn/truth-delta.md` — skeleton (`/axb-specify`)
+- [x] `features/acceptance/*.feature` — `/axb-spec-by-example` (2 journey features: `answering-a-single-prompt`, `reporting-a-failed-provider-request`)
+- [x] `research.md` + `specs/truth/techstack.md` — `/axb-technical-research` (7 decisions; techstack ADD Reasoning & Provider Transport + guard amendment)
+- [x] `plan.md` — `/axb-system-analysis` (2 interfaces, 1 wave; `/axb-api-plan` = NOOP, `/axb-data-plan` = NOOP; CLI end + provider gateway → `/axb-dsl-refine` handoff)
+- [x] `specs/truth/features/cli/**` — `/axb-dsl-refine` (new `chat` module: 2 features + dsl; root DSL +1 class phrase `the provider request failed`; 2 rows promoted to root; topology audit PASSED — 219 steps)
+- [x] `tasks.md` — `/axb-tasks` (25 tasks; Setup omitted — stdlib only; Phase 3 = 3 ALIGN + 1 UNIT + 10 RED + review; orphan sweep 0)
+- [ ] Implementation — `/axb-implement`
+
+### Pipeline position
+
+`/axb-specify` + `/axb-spec-by-example` + `/axb-technical-research` + `/axb-system-analysis` + `/axb-dsl-refine` + `/axb-tasks` **done** → **`/axb-implement`**.
+
+### Decisions locked (round 004 — Clarify Round 1)
+
+- **Q1 -> Option 1 (single in-memory, non-streaming turn; no persistence)**: one `tellme "<prompt>"` = one provider request → printed response; no `history.jsonl`, no session loop, no streaming.
+- **Q2 -> Option 1 (OpenAI-compatible family first)**: the first adapter targets `openai`/`deepseek`/`kimi`; Gemini/Vertex and Anthropic are deferred.
+- **Q3 -> Option 1 (new failure class)**: provider/transport failure → frozen class phrase `the provider request failed` + new distinct exit code `6` (table extends `0/2/3/4/5` → `0/2/3/4/5/6`).
+- **Deferred to `/axb-technical-research`**: transport = stdlib `net/http` (no SDK); the no-network capability guard is re-scoped to boot/`--version`/`-d` (round-001 research Decision 5 amendment). Recorded as spec assumptions.
+
 ## Roadmap — next slices
 
 | Slice | Issue | Scope | Status |
 | --- | --- | --- | --- |
 | **003 — Provider-registry completeness** | [#9](https://github.com/gosharplite/tellme/issues/9) | Grow boot-subset `PROVIDERS` entry to real provider fields (`API_KEY` with `${VAR}` expansion, `HEADERS`, `THINKING_BUDGET`/`THINKING_LEVEL`) + deterministic offline validation. | ✅ **Delivered** (PR [#11](https://github.com/gosharplite/tellme/pull/11) merged; propagated to `dev`/`main`) |
-| **004 — First reasoning turn** | [#10](https://github.com/gosharplite/tellme/issues/10) | `tellme "<prompt>"` → one provider request → printed response; provider domain port + one adapter; deterministic failure class; network-path test strategy. **Depends on 003.** | ⏳ Next |
+| **004 — First reasoning turn** | [#10](https://github.com/gosharplite/tellme/issues/10) | `tellme "<prompt>"` → one provider request → printed response; provider domain port + one adapter; deterministic failure class; network-path test strategy. **Depends on 003.** | 🚧 **In progress** — through `/axb-tasks`; next `/axb-implement` |
 
 ## Open items (non-blocking)
 
