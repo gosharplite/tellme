@@ -17,8 +17,8 @@
 |:---|:---|:---|
 | **1** | Review the working tree | `git status` + `git diff --stat`: no half-written artifacts, no stray temp files, every change belongs to the active round / plan package. |
 | **2** | Run the quality gates | Execute the project's gates — currently `gofmt` + `go vet` (research D7); the full `make check`-style pipeline once code lands. Docs-only round: verify internal links, artifact consistency, and run a secret scan. **Never close out on a red gate.** |
-| **3** | Update [`STATUS.md`](STATUS.md) | Refresh "Last updated", pipeline position, artifacts checklist, decisions locked, open items, and environment notes — the single live-state source the next `SESSION-BOOTSTRAP.md` reads. |
-| **4** | Write / refresh the day's session summary | Create or update `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` — what was done, decisions, artifacts, commits, open items, next steps. This is the file `SESSION-BOOTSTRAP.md` **Step 8** reads. |
+| **3** | Update [`STATUS.md`](STATUS.md) | Refresh "Last updated" using the exact system date from `date`, pipeline position, artifacts checklist, decisions locked, open items, and environment notes — the single live-state source the next `SESSION-BOOTSTRAP.md` reads. |
+| **4** | Write / refresh the day's session summary | **Run `date` to determine today's exact `<YYYY>/<MM>/<DD>` calendar date — NEVER guess or inherit from `STATUS.md` or prior summaries**. Create or update `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` — what was done, decisions, artifacts, commits, open items, next steps. This is the file `SESSION-BOOTSTRAP.md` **Step 8** reads. |
 | **5** | Reconcile status ↔ summary | Confirm `STATUS.md` and the day's `session-summary.md` agree: same decisions, same pipeline position, same open items, same branch heads. |
 | **6** | Commit the working branch | Commit with a descriptive message (e.g. `docs(<NNN>): …`). The day must end committed and pushed. |
 | **7** | Propagate + hand off | If the round is at a mergeable point **and the user approves**, run the two-step merge `working → dev → main`; otherwise record the pending propagation in `STATUS.md`. State the exact next-session starting point. |
@@ -58,19 +58,22 @@ A red gate **stops closeout** — fix, re-run, then continue. Never record a pas
 
 Keep `STATUS.md` the single live-state source the next bootstrap reads:
 
-1. Bump **"Last updated"** to today (add the end-of-day marker).
-2. Update the **Active branch** / branch model table (heads, tracking, propagation status).
-3. Update **Current round** — scope, and the **Artifacts** checklist (`[x]` only what actually landed).
-4. Update **Pipeline position** (which `axb-*` skill is `done` vs `next`) and any **pending decision**.
-5. Record **decisions locked this session**, **PM follow-ups**, and **Open items (non-blocking)**.
-6. Refresh **Environment notes** (provider upgrades, sandbox/host limitations, tool availability).
+1. Bump **"Last updated"** to today's exact calendar date obtained from `date` (e.g. `date +%Y-%m-%d`), adding the session / end-of-day marker.
+2. Point the **"Daily log"** link to `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` for today's date.
+3. Update the **Active branch** / branch model table (heads, tracking, propagation status).
+4. Update **Current round** — scope, and the **Artifacts** checklist (`[x]` only what actually landed).
+5. Update **Pipeline position** (which `axb-*` skill is `done` vs `next`) and any **pending decision**.
+6. Record **decisions locked this session**, **PM follow-ups**, and **Open items (non-blocking)**.
+7. Refresh **Environment notes** (provider upgrades, sandbox/host limitations, tool availability).
 
 ### 4. Daily Session Summary (Step 4 Details)
 
-Write or extend `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` (e.g. `docs/session-summary/2026/09/10/session-summary.md`):
+**Crucial Date Rule**: Always run `date` (e.g. `date +%Y/%m/%d`) to determine the current system calendar day. **Never infer the date from previous turns, previous files, or `STATUS.md`**. Crossing midnight starts a new calendar day directory and a fresh `session-summary.md`. Never append events of a new calendar day to an older day's log.
+
+Write or extend `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` (e.g. `docs/session-summary/2026/09/12/session-summary.md`):
 
 1. Header: project, repo, workspace (`$TELL_ME_HOME`), session mode, branches, **status at end of day**.
-2. If the day had **multiple sessions**, number them (e.g. §1–§7 earlier, §8–§14 later) and say so — mirror the existing daily-log style.
+2. If today's summary already exists (multiple sessions in the same calendar day), number them (e.g. §1–§7 earlier, §8–§14 later) and append a new section. If today is a new calendar day, create the file fresh with §1.
 3. Per session: at-a-glance table, artifacts produced, skills run, decisions, the grill/clarify outcomes if any, feasibility results.
 4. **Decisions log** and a **commits** table (working branch unless noted).
 5. **Open items (non-blocking)** and **Next steps** (the exact skill/step to resume at).
@@ -116,3 +119,4 @@ On any mismatch, fix the stale one (usually the summary) before committing.
 8. **Propagate only with approval** — the two-step merge `working → dev → main` runs on a green, user-approved round; otherwise record it as pending.
 9. **Hand off explicitly** — always name the active branch, pipeline position, next skill/step, and any pending decision for the next session.
 10. **Keep it current and linked** — maintain the daily log and its back-link so `SESSION-BOOTSTRAP.md` Step 8 always has a fresh, accurate summary to read.
+11. **Always verify system date with `date`** — run `date` to determine the exact calendar date (`<YYYY>/<MM>/<DD>`) before updating `STATUS.md` or writing `session-summary.md`. Never infer the date from previous turns, previous files, or `STATUS.md` — midnight crossings must begin a new daily summary file.

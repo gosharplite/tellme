@@ -20,6 +20,7 @@ const (
 	reasonConfigMissing    = "config-missing"
 	reasonConfigInvalid    = "config-invalid"
 	reasonProviderMismatch = "provider-mismatch"
+	reasonProviderInvalid  = "provider-invalid"
 )
 
 // options are the parsed CLI flags.
@@ -30,13 +31,18 @@ type options struct {
 }
 
 // resolution is the outcome of resolving home → configuration → workspace. On a
-// resolve failure the partially populated fields (Home, Path, Workspace,
-// Selected) are still returned so a renderer can produce an actionable message.
+// resolve failure the partially populated fields (Home, Path, Selected,
+// Provider, Workspace) are still returned so a renderer can produce an
+// actionable message.
 type resolution struct {
-	Home      string
-	Path      string // the configuration path (explicit or defaulted)
-	Explicit  bool   // whether -c was given
-	Selected  string // the effective selected provider (when reached)
+	Home     string
+	Path     string // the configuration path (explicit or defaulted)
+	Explicit bool   // whether -c was given
+	Selected string // the effective selected provider (when reached)
+	// Provider is the resolved (variable-expanded) selected provider entry. It
+	// is carried here so Slice 004 can construct the provider transport without
+	// re-loading or re-parsing the configuration (review finding #3).
+	Provider  config.Provider
 	Mode      string // the effective mode (when reached)
 	Workspace string // the resolved workspace path (when reached)
 }
@@ -125,6 +131,25 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 		return res, &resolveError{Reason: reasonProviderMismatch}
 	}
 
+	// Step 5b — resolve the selected provider entry: expand ${VAR} placeholders
+	// FIRST, then validate the RESOLVED state (FR-001..FR-009).
+	//
+	// Ordering matters (review finding #2): validating before expansion would let
+	// a mandatory field whose value is a placeholder that resolves to empty
+	// (e.g. `URL: "${UNSET_ENDPOINT:-}"`) pass the non-empty invariant and then
+	// degrade to "" — evading validation. Expanding first makes Validate() see
+	// the final, post-substitution value, and guarantees the Provider carried for
+	// Slice 004 is the fully-expanded one.
+	prov := cfg.Providers[res.Selected]
+	if err := prov.Expand(); err != nil {
+		return res, &resolveError{Reason: reasonProviderInvalid, Err: err}
+	}
+	if err := prov.Validate(); err != nil {
+		return res, &resolveError{Reason: reasonProviderInvalid, Err: err}
+	}
+	cfg.Providers[res.Selected] = prov
+	res.Provider = prov
+
 	// Step 6 — effective mode + prepare the session workspace (FR-007/008/009).
 	res.Mode = cfg.EffectiveMode(os.Getenv("TELL_ME_MODE"))
 	workspace, err := home.EnsureWorkspace(homeDir, res.Mode)
@@ -161,6 +186,9 @@ func emitBootError(res resolution, rerr *resolveError) int {
 		return ConfigError
 	case reasonProviderMismatch:
 		fmt.Fprintf(os.Stderr, "tellme: the selected provider is not in the registry (%q)\n", res.Selected)
+		return ConfigError
+	case reasonProviderInvalid:
+		fmt.Fprintf(os.Stderr, "tellme: the provider configuration is invalid: provider %q: %v\n", res.Selected, rerr.Err)
 		return ConfigError
 	case reasonHomeUnusable:
 		if errors.Is(rerr.Err, home.ErrNotDirectory) {

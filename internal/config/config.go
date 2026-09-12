@@ -3,6 +3,8 @@
 package config
 
 import (
+	"errors"
+	"fmt"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -18,10 +20,65 @@ type Config struct {
 
 // Provider is a single entry in the PROVIDERS registry.
 type Provider struct {
-	Type      string `yaml:"TYPE"`
-	Model     string `yaml:"MODEL"`
-	URL       string `yaml:"URL"`
-	MaxTokens int    `yaml:"MAX_TOKENS"`
+	Type           string            `yaml:"TYPE"`
+	Model          string            `yaml:"MODEL"`
+	URL            string            `yaml:"URL"`
+	APIKey         string            `yaml:"API_KEY"`
+	MaxTokens      int               `yaml:"MAX_TOKENS"`
+	Headers        map[string]string `yaml:"HEADERS"`
+	ThinkingBudget int               `yaml:"THINKING_BUDGET"`
+	ThinkingLevel  string            `yaml:"THINKING_LEVEL"`
+}
+
+// Validate validates that mandatory fields (TYPE, MODEL, URL) are non-empty and
+// numeric limits (MAX_TOKENS, THINKING_BUDGET) are non-negative.
+func (p *Provider) Validate() error {
+	if p.Type == "" {
+		return errors.New(`missing required field "TYPE"`)
+	}
+	if p.Model == "" {
+		return errors.New(`missing required field "MODEL"`)
+	}
+	if p.URL == "" {
+		return errors.New(`missing required field "URL"`)
+	}
+	if p.MaxTokens < 0 {
+		return errors.New(`field "MAX_TOKENS" cannot be negative`)
+	}
+	if p.ThinkingBudget < 0 {
+		return errors.New(`field "THINKING_BUDGET" cannot be negative`)
+	}
+	return nil
+}
+
+// Expand expands ${VAR} and ${VAR:-default} expressions in APIKey, URL, and Headers values.
+func (p *Provider) Expand() error {
+	expandedURL, err := ExpandString(p.URL)
+	if err != nil {
+		return fmt.Errorf("URL: %w", err)
+	}
+	p.URL = expandedURL
+
+	if p.APIKey != "" {
+		expandedKey, err := ExpandString(p.APIKey)
+		if err != nil {
+			return fmt.Errorf("API_KEY: %w", err)
+		}
+		p.APIKey = expandedKey
+	}
+
+	if len(p.Headers) > 0 {
+		expandedHeaders := make(map[string]string, len(p.Headers))
+		for k, v := range p.Headers {
+			expandedVal, err := ExpandString(v)
+			if err != nil {
+				return fmt.Errorf("header %q: %w", k, err)
+			}
+			expandedHeaders[k] = expandedVal
+		}
+		p.Headers = expandedHeaders
+	}
+	return nil
 }
 
 // Load reads and parses the YAML configuration at path. A missing file yields an
