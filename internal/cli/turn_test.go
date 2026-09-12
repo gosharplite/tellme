@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"strings"
 	"testing"
 
@@ -28,10 +29,25 @@ func factoryReturning(gw llm.Gateway, err error) gatewayFactory {
 	return func(config.Provider, string) (llm.Gateway, error) { return gw, err }
 }
 
-func TestRunTurn_PrintsAnswer(t *testing.T) {
+// stubRenderer is an answerRenderer whose behaviour the caller scripts.
+type stubRenderer struct {
+	out      string
+	degraded bool
+	warned   bool
+}
+
+func (s *stubRenderer) Render(string, int) (string, bool) { return s.out, s.degraded }
+func (s *stubRenderer) WarnDegraded(io.Writer)            { s.warned = true }
+
+// env builds a runtimeEnv over the given buffers + renderer for a unit test.
+func env(out, errOut io.Writer, r answerRenderer) runtimeEnv {
+	return runtimeEnv{stdout: out, stderr: errOut, renderer: r}
+}
+
+func TestRunTurn_PrintsRawAnswer(t *testing.T) {
 	var out, errOut bytes.Buffer
 	fg := &fakeGateway{text: "the answer"}
-	code := runTurn(resolution{Selected: "p"}, "ping", &out, &errOut, factoryReturning(fg, nil))
+	code := runTurn(resolution{Selected: "p"}, "ping", true, env(&out, &errOut, &stubRenderer{}), factoryReturning(fg, nil))
 	if code != Success {
 		t.Fatalf("code = %d, want %d (success)", code, Success)
 	}
@@ -49,7 +65,7 @@ func TestRunTurn_PrintsAnswer(t *testing.T) {
 func TestRunTurn_ProviderFailure(t *testing.T) {
 	var out, errOut bytes.Buffer
 	fg := &fakeGateway{err: &llm.ProviderError{Provider: "p", Err: errors.New("boom")}}
-	code := runTurn(resolution{Selected: "p"}, "ping", &out, &errOut, factoryReturning(fg, nil))
+	code := runTurn(resolution{Selected: "p"}, "ping", true, env(&out, &errOut, &stubRenderer{}), factoryReturning(fg, nil))
 	if code != ProviderError {
 		t.Fatalf("code = %d, want %d (provider error)", code, ProviderError)
 	}
@@ -64,7 +80,7 @@ func TestRunTurn_ProviderFailure(t *testing.T) {
 func TestRunTurn_UnsupportedFamilyIsProviderError(t *testing.T) {
 	var out, errOut bytes.Buffer
 	buildErr := &llm.ProviderError{Provider: "p", Err: errors.New(`unsupported provider family "gemini"`)}
-	code := runTurn(resolution{Selected: "p"}, "ping", &out, &errOut, factoryReturning(nil, buildErr))
+	code := runTurn(resolution{Selected: "p"}, "ping", true, env(&out, &errOut, &stubRenderer{}), factoryReturning(nil, buildErr))
 	if code != ProviderError {
 		t.Fatalf("code = %d, want %d (provider error)", code, ProviderError)
 	}

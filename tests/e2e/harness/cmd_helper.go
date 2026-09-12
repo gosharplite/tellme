@@ -190,3 +190,40 @@ func buildEnv(set map[string]string, unset []string) []string {
 	}
 	return env
 }
+
+// StripANSI removes ANSI SGR/CSI/OSC escape sequences so a step can assert the
+// visible text of a rendered answer. The glamour renderer's exact codes are
+// terminal/profile-dependent, so rendered assertions key on visible text
+// (round-006 research residual risks).
+func StripANSI(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for i := 0; i < len(s); i++ {
+		if s[i] == 0x1b {
+			// CSI: ESC [ ... <final byte 0x40-0x7e>
+			if i+1 < len(s) && s[i+1] == '[' {
+				j := i + 2
+				for j < len(s) && (s[j] < 0x40 || s[j] > 0x7e) {
+					j++
+				}
+				i = j
+				continue
+			}
+			// OSC: ESC ] ... BEL or ESC \
+			if i+1 < len(s) && s[i+1] == ']' {
+				j := i + 2
+				for j < len(s) && s[j] != 0x07 {
+					if s[j] == 0x1b && j+1 < len(s) && s[j+1] == '\\' {
+						j++
+						break
+					}
+					j++
+				}
+				i = j
+				continue
+			}
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
+}
