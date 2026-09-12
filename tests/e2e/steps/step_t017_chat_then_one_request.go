@@ -2,6 +2,7 @@ package steps
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -36,8 +37,16 @@ func thenSendsExactlyOneRequest(ctx context.Context, provider string) error {
 	if sc.lastPrompt != "" && !strings.Contains(body, sc.lastPrompt) {
 		return fmt.Errorf("the request to %q did not carry the prompt: %q", provider, body)
 	}
-	if !strings.Contains(body, "deepseek-v4-flash") {
-		return fmt.Errorf("the request to %q did not carry the resolved model: %q", provider, body)
+	// Assert a model was carried, generically (review finding #5) — no hardcoded
+	// provider model string couples this step to a specific configuration.
+	var decoded struct {
+		Model string `json:"model"`
+	}
+	if err := json.Unmarshal([]byte(body), &decoded); err != nil {
+		return fmt.Errorf("the request to %q was not valid JSON: %q", provider, body)
+	}
+	if strings.TrimSpace(decoded.Model) == "" {
+		return fmt.Errorf("the request to %q carried no model: %q", provider, body)
 	}
 	return nil
 }

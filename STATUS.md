@@ -99,6 +99,18 @@ All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-tech
 - **Q3 -> Option 1 (new failure class)**: provider/transport failure → frozen class phrase `the provider request failed` + new distinct exit code `6` (table extends `0/2/3/4/5` → `0/2/3/4/5/6`).
 - **Deferred to `/axb-technical-research`**: transport = stdlib `net/http` (no SDK); the no-network capability guard is re-scoped to boot/`--version`/`-d` (round-001 research Decision 5 amendment). Recorded as spec assumptions.
 
+### Review response — PR #12 (round 004, in-round)
+
+Review comment [#5642832718](https://github.com/gosharplite/tellme/pull/12#issuecomment-5642832718) — verdict **APPROVE WITH NON-BLOCKING FOLLOW-UPS**; all five findings addressed in-round on `004-implement-first-reasoning-turn` (round not yet delivered — in-round refinement of round-004's own output):
+
+- **F1** (direct infra coupling + unchecked `Provider.Type`) → added the **gateway factory/dispatch seam** `internal/infrastructure/llm/factory.go` (`NewGateway` switches on the family; unsupported → `*llm.ProviderError`) and made `runTurn` injectable; covered by `factory_test.go` + `turn_test.go`.
+- **F2** (unbounded hang) → the adapter's default HTTP client now carries a 300s timeout; the turn context is cancelled on `SIGINT`/`SIGTERM` (`signal.NotifyContext`).
+- **F3** (discarded non-2xx body) → the provider's structured error message (`{"error":{"message":…}}`) is surfaced in the actionable detail (FR-008).
+- **F4** (unbounded read) → response read bounded by `io.LimitReader` (32 MiB).
+- **F5** (hardcoded model in a test step) → `step_t017` now asserts a generic JSON `"model"` field instead of a literal.
+
+Verification after the fix set: `gofmt`/`vet`/`staticcheck` clean · `make verify` OK · godog **34/34 · 242/242** · new unit tests for the factory, `runTurn`, and `extractErrorMessage`.
+
 ## Roadmap — next slices
 
 | Slice | Issue | Scope | Status |

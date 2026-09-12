@@ -11,9 +11,18 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gosharplite/tellme/internal/domain/llm"
 )
+
+// defaultTimeout bounds a provider request so a stalled endpoint cannot hang the
+// CLI indefinitely (review finding #2).
+const defaultTimeout = 300 * time.Second
+
+// maxResponseBytes bounds the response body read so a rogue or misconfigured
+// upstream cannot exhaust memory (review finding #4).
+const maxResponseBytes = 32 << 20 // 32 MiB
 
 // Config binds a resolved provider entry to the adapter.
 type Config struct {
@@ -34,13 +43,15 @@ type Client struct {
 
 var _ llm.Gateway = (*Client)(nil)
 
-// New builds an adapter using the shared default HTTP client.
-func New(cfg Config) *Client { return &Client{cfg: cfg, http: http.DefaultClient} }
+// New builds an adapter with a timeout-bounded default HTTP client.
+func New(cfg Config) *Client {
+	return &Client{cfg: cfg, http: &http.Client{Timeout: defaultTimeout}}
+}
 
 // NewWithHTTPClient builds an adapter with an explicit HTTP client.
 func NewWithHTTPClient(cfg Config, c *http.Client) *Client {
 	if c == nil {
-		c = http.DefaultClient
+		c = &http.Client{Timeout: defaultTimeout}
 	}
 	return &Client{cfg: cfg, http: c}
 }
@@ -67,11 +78,14 @@ func (c *Client) Complete(ctx context.Context, req llm.Request) (llm.Response, e
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	raw, err := io.ReadAll(resp.Body)
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
 	if err != nil {
 		return llm.Response{}, c.wrap(err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := extractErrorMessage(raw); msg != "" {
+			return llm.Response{}, c.wrap(fmt.Errorf("provider returned status %d: %s", resp.StatusCode, msg))
+		}
 		return llm.Response{}, c.wrap(fmt.Errorf("provider returned status %d", resp.StatusCode))
 	}
 	text, err := parseAnswer(raw)
@@ -117,6 +131,20 @@ func requestHeaders(apiKey string, extra map[string]string) map[string]string {
 		headers[k] = v
 	}
 	return headers
+}
+
+// extractErrorMessage pulls the provider's structured error message out of an
+// error body (review finding #3), so a non-2xx detail is actionable.
+func extractErrorMessage(raw []byte) string {
+	var decoded struct {
+		Error struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(raw, &decoded); err == nil {
+		return strings.TrimSpace(decoded.Error.Message)
+	}
+	return ""
 }
 
 // parseAnswer extracts choices[0].message.content (pure helper).

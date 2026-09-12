@@ -4,16 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/spf13/pflag"
 
 	"github.com/gosharplite/tellme/internal/config"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/home"
-	"github.com/gosharplite/tellme/internal/infrastructure/llm/openai"
+	infrallm "github.com/gosharplite/tellme/internal/infrastructure/llm"
 )
 
 // The pinned unresolved reason categories
@@ -184,29 +187,43 @@ func renderBoot(homeDir, configPath string) int {
 	return Success
 }
 
+// gatewayFactory builds the provider gateway for a resolved provider entry. It
+// is the composition seam (review finding #1): the presentation layer never
+// couples to a concrete adapter constructor, tests can inject a fake
+// llm.Gateway, and an un-adapted family surfaces as an actionable error.
+type gatewayFactory func(prov config.Provider, name string) (llm.Gateway, error)
+
+// newGateway is the production gateway factory (a var so tests may override it).
+var newGateway gatewayFactory = infrallm.NewGateway
+
 // renderTurn resolves the setup, then runs exactly one reasoning turn against
 // the resolved provider and prints the answer (round-004 FR-001..FR-005). A
-// resolve failure is rendered as a boot error; a provider/transport failure is
-// rendered with the frozen provider class phrase and exit code 6.
+// resolve failure is rendered as a boot error; an unsupported family or a
+// provider/transport failure is rendered with the frozen provider class phrase
+// and exit code 6.
 func renderTurn(homeDir, configPath, prompt string) int {
 	res, rerr := resolve(homeDir, configPath)
 	if rerr != nil {
 		return emitBootError(res, rerr)
 	}
-	gw := openai.New(openai.Config{
-		ProviderName:  res.Selected,
-		BaseURL:       res.Provider.URL,
-		APIKey:        res.Provider.APIKey,
-		Model:         res.Provider.Model,
-		MaxTokens:     res.Provider.MaxTokens,
-		Headers:       res.Provider.Headers,
-		ThinkingLevel: res.Provider.ThinkingLevel,
-	})
-	resp, err := gw.Complete(context.Background(), llm.Request{Prompt: prompt})
+	return runTurn(res, prompt, os.Stdout, os.Stderr, newGateway)
+}
+
+// runTurn performs one reasoning turn through an injected gateway factory. The
+// context is cancelled on SIGINT/SIGTERM so a stalled provider can be
+// interrupted (review finding #2).
+func runTurn(res resolution, prompt string, out, errOut io.Writer, factory gatewayFactory) int {
+	gw, err := factory(res.Provider, res.Selected)
 	if err != nil {
-		return emitProviderError(err)
+		return emitProviderError(errOut, err)
 	}
-	fmt.Println(resp.Text)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	resp, err := gw.Complete(ctx, llm.Request{Prompt: prompt})
+	if err != nil {
+		return emitProviderError(errOut, err)
+	}
+	_, _ = fmt.Fprintln(out, resp.Text)
 	return Success
 }
 
@@ -244,11 +261,11 @@ func emitBootError(res resolution, rerr *resolveError) int {
 
 // emitProviderError maps a provider/transport failure to its frozen class phrase
 // and dedicated exit code (round-004 FR-006..FR-008, Clarify Q3). The trailing
-// detail is contract-free; newlines are folded so exactly one stderr line
-// carries the phrase.
-func emitProviderError(err error) int {
+// detail is contract-free; newlines are folded so exactly one line carries the
+// phrase.
+func emitProviderError(w io.Writer, err error) int {
 	detail := strings.ReplaceAll(err.Error(), "\n", " ")
-	fmt.Fprintf(os.Stderr, "tellme: the provider request failed: %s\n", detail)
+	_, _ = fmt.Fprintf(w, "tellme: the provider request failed: %s\n", detail)
 	return ProviderError
 }
 

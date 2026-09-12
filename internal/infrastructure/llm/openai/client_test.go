@@ -3,6 +3,7 @@ package openai
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -54,7 +55,6 @@ func TestRequestBody(t *testing.T) {
 		t.Errorf("message = %v, want user/hello world", first)
 	}
 
-	// Omitting max_tokens (0) and thinking level must not emit those keys.
 	body, err = requestBody("m", "p", 0, "")
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
@@ -83,6 +83,23 @@ func TestRequestHeaders(t *testing.T) {
 	}
 	if got := requestHeaders("", nil); got["Authorization"] != "" {
 		t.Errorf("Authorization set without a key: %q", got["Authorization"])
+	}
+}
+
+// TestExtractErrorMessage pins the actionable non-2xx detail (review finding #3).
+func TestExtractErrorMessage(t *testing.T) {
+	cases := []struct{ name, body, want string }{
+		{"openai shape", `{"error":{"message":"Incorrect API key provided"}}`, "Incorrect API key provided"},
+		{"trimmed", `{"error":{"message":"  rate limited  "}}`, "rate limited"},
+		{"no error object", `{"foo":"bar"}`, ""},
+		{"not json", `oops`, ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := extractErrorMessage([]byte(c.body)); got != c.want {
+				t.Errorf("extractErrorMessage = %q, want %q", got, c.want)
+			}
+		})
 	}
 }
 
@@ -120,7 +137,8 @@ func TestParseAnswer(t *testing.T) {
 }
 
 // TestCompleteRoundTrip drives Complete against a local server for the success
-// and failure paths, asserting the wire request and the typed error.
+// and failure paths, asserting the wire request, the typed error, and the
+// actionable non-2xx detail (review finding #3).
 func TestCompleteRoundTrip(t *testing.T) {
 	var gotPath, gotAuth, gotBody string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -152,26 +170,22 @@ func TestCompleteRoundTrip(t *testing.T) {
 		t.Errorf("body %q missing prompt", gotBody)
 	}
 
-	// Error status must surface as a *llm.ProviderError.
 	bad := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":{"message":"Incorrect API key provided"}}`))
 	}))
 	defer bad.Close()
 	c = New(Config{ProviderName: "prov", BaseURL: bad.URL})
 	_, err = c.Complete(context.Background(), llm.Request{Prompt: "ping"})
 	var perr *llm.ProviderError
-	if err == nil || !asProviderError(err, &perr) {
+	if err == nil || !errors.As(err, &perr) {
 		t.Fatalf("error = %v, want *llm.ProviderError", err)
 	}
 	if perr.Provider != "prov" {
 		t.Errorf("ProviderError.Provider = %q, want prov", perr.Provider)
 	}
-}
-
-func asProviderError(err error, target **llm.ProviderError) bool {
-	pe, ok := err.(*llm.ProviderError)
-	if ok {
-		*target = pe
+	if !strings.Contains(perr.Err.Error(), "Incorrect API key provided") {
+		t.Errorf("ProviderError.Err = %q, wants the actionable body detail", perr.Err.Error())
 	}
-	return ok
 }
