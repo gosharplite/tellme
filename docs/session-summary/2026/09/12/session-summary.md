@@ -314,7 +314,17 @@ A short, **docs/metadata-only** session. `SESSION-BOOTSTRAP.md` (Steps 1–8) ra
 ### Artifacts / commits
 
 - **GitHub**: [#13](https://github.com/gosharplite/tellme/issues/13) — assessment comment [`5643319942`](https://github.com/gosharplite/tellme/issues/13#issuecomment-5643319942) + title de-scope; new issues [#14](https://github.com/gosharplite/tellme/issues/14) (F9 flag-parsing → piping slice) and [#15](https://github.com/gosharplite/tellme/issues/15) (wire `make verify` into a chosen pipeline platform — platform TBD).
-- **Repo**: `STATUS.md` open-items refresh (+ header note) and this daily-log §17 — committed on `dev`.
+- **Repo**: `STATUS.md` open-items refresh (+ header/`Last updated` note) and this daily-log §17 — committed on `dev`, **pushed** (`dev` in sync with `origin/dev`).
+
+**Commits (branch `dev`):**
+
+| Commit | Note |
+| --- | --- |
+| `e518028` | `docs: triage coverage tooling (#13), open F9 flag-parsing (#14), re-scope CI candidate to manual-for-now` |
+| `ea54bba` | `docs: drop PM-4 tellme init candidate (config provisioning stays with the env manager)` |
+| `720869b` | `docs: link #15 (pipeline make verify) in STATUS candidate (a) + daily log` |
+
+**Propagation:** session-17 docs are on `dev` (pushed); **`dev → main` PENDING** (awaiting approval).
 
 ### Open items (non-blocking)
 
