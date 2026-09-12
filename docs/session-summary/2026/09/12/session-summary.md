@@ -216,3 +216,65 @@ Continuation of session 15: the PR [#11](https://github.com/gosharplite/tellme/p
 ### Next steps
 1. **Slice 004 — First reasoning turn** ([#10](https://github.com/gosharplite/tellme/issues/10)) — start a fresh `004-*` package via `/axb-specify` off `dev`; consumes `resolution.Provider` (review F3).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch now `dev`).
+
+
+---
+
+## 16. Session 16 — round 004 (`004-first-reasoning-turn`) end-to-end + delivery
+
+The full round-004 slice: bootstrap → `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` → PR [#12](https://github.com/gosharplite/tellme/pull/12) → architectural review (F1–F5) → merge → propagation → closeout.
+
+> **One session this day** (session 16). `tellme` moved from scaffolding to a working reasoning client: `tellme "<prompt>"` → one provider request → printed response.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 003 delivered/frozen on `dev`) |
+| `/axb-specify` | `specs/plans/004-first-reasoning-turn/` (spec + checklist + truth-delta); Clarify Round 1 resolved (Q1–Q3) |
+| `/axb-spec-by-example` | 2 acceptance features (`answering-a-single-prompt`, `reporting-a-failed-provider-request`) |
+| `/axb-technical-research` | `research.md` (7 decisions); `specs/truth/techstack.md` ADD **Reasoning & Provider Transport** + the guard amendment |
+| `/axb-system-analysis` | `plan.md` — 2 interfaces, 1 wave (api/data NOOP; CLI + provider gateway → `/axb-dsl-refine`) |
+| `/axb-dsl-refine` | new `chat` module (2 features + dsl); root DSL +9th class phrase `the provider request failed`; 2 rows promoted; audit **PASSED** (219 steps) |
+| `/axb-tasks` | `tasks.md` (25 tasks); Pre-Delivery orphan sweep 0 |
+| `/axb-implement` | 25/25 tasks `[X]`; godog 34/34 · 242/242; `make verify` OK |
+| Review | PR [#12](https://github.com/gosharplite/tellme/pull/12) — APPROVE WITH NON-BLOCKING FOLLOW-UPS → F1–F5 fixed (`6f1b6d5`) + `cyclop` gate (`bf6b983`) → **FULL APPROVAL — READY TO MERGE** → final sign-off |
+| Delivery | merged (`4525b38`); PR-head branch deleted; propagated `004-first-reasoning-turn → dev → main`; issue [#10](https://github.com/gosharplite/tellme/issues/10) closed; follow-up [#13](https://github.com/gosharplite/tellme/issues/13) opened |
+
+### Decisions locked (round 004)
+
+| # | Decision |
+| --- | --- |
+| Q1 | Single in-memory, non-streaming turn; no persistence, no session loop. |
+| Q2 | OpenAI-compatible family first (`openai`/`deepseek`/`kimi`); Gemini/Vertex + Anthropic deferred. |
+| Q3 | Provider/transport failure → frozen class phrase `the provider request failed` + new exit code `6`. |
+| D1 | Transport = stdlib `net/http` (no provider SDK); `/axb-technical-research` Decisions 1–7. |
+| D2 | No-network guard **re-scoped** (round-001 Decision 5 amended): the whole-binary capability guard is retired (the chat path links `net/http`); offline paths are proven by a **no-dial canary + differential** witness. |
+| D3 | PR #12 review **F1–F5** fixed in-round; **`cyclop`** complexity gate (`max-complexity: 15`) added (PR #12 follow-up). |
+| D4 | Coverage tooling deferred out of scope → [#13](https://github.com/gosharplite/tellme/issues/13). |
+
+### Commits
+
+| Commit | Note |
+| --- | --- |
+| `432cf2e` | `docs(004)`: plan package + interface truth (`004-first-reasoning-turn`) |
+| `2e95f37` | `feat(004)`: first reasoning turn (domain port + adapter + CLI dispatch + guard rework) |
+| `6f1b6d5` | `refactor(004)`: PR #12 review — gateway factory seam, request timeout, actionable errors (F1–F5) |
+| `bf6b983` | `chore(004)`: `cyclop` complexity gate (max-complexity 15) |
+| `b5b91b5` | `docs(004)`: record coverage-tooling issue #13 |
+| `4525b38` | PR #12 merge into `004-first-reasoning-turn` |
+| `ee54e46` | propagation `004-first-reasoning-turn → dev` (no-ff) then `dev → main` (no-ff) |
+
+### Verification
+
+- `gofmt` / `go vet` / `staticcheck` clean · `make verify` OK (0 lint issues, 0 vulnerabilities, no test-sleep, offline-path guard green)
+- godog **34/34 scenarios · 242/242 steps**; Gherkin/DSL topology audit **PASSED**
+
+### Open items (non-blocking)
+
+- **Future-package candidates**: (a) CI workflow for `make verify`; (b) F9 flag-parsing unit tests; (c) PM-4 `tellme init`; (d) **Coverage tooling** — [#13](https://github.com/gosharplite/tellme/issues/13).
+
+### Next steps
+
+1. **Slice 005** — start a fresh `005-*` package via `/axb-specify` off `dev` (rounds 001–004 frozen).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).

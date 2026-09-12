@@ -1,15 +1,22 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"strings"
+	"syscall"
 
 	"github.com/spf13/pflag"
 
 	"github.com/gosharplite/tellme/internal/config"
+	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/home"
+	infrallm "github.com/gosharplite/tellme/internal/infrastructure/llm"
 )
 
 // The pinned unresolved reason categories
@@ -40,8 +47,8 @@ type resolution struct {
 	Explicit bool   // whether -c was given
 	Selected string // the effective selected provider (when reached)
 	// Provider is the resolved (variable-expanded) selected provider entry. It
-	// is carried here so Slice 004 can construct the provider transport without
-	// re-loading or re-parsing the configuration (review finding #3).
+	// is carried here so the reasoning turn can construct the provider transport
+	// without re-loading or re-parsing the configuration (review finding #3).
 	Provider  config.Provider
 	Mode      string // the effective mode (when reached)
 	Workspace string // the resolved workspace path (when reached)
@@ -64,9 +71,10 @@ func (e *resolveError) Unwrap() error { return e.Err }
 
 // Run is the CLI entrypoint: main passes argv and the injected build version,
 // and Run returns the process exit code. It parses flags, then dispatches to the
-// version path, the diagnostic reporting path, or the boot path.
+// version path, the diagnostic reporting path, the prompt-bearing reasoning
+// turn, or the boot path.
 func Run(args []string, version string) int {
-	opts, ok := parseFlags(args)
+	opts, prompt, ok := parseFlags(args)
 	if !ok {
 		return emitUsageError()
 	}
@@ -77,15 +85,21 @@ func Run(args []string, version string) int {
 
 	homeDir := os.Getenv("TELL_ME_HOME")
 
-	// -d is the reporting path: it always produces a report (Decision 2).
+	// -d is the reporting path: it always produces a report (Decision 2), and it
+	// takes precedence over a positional prompt (round-004 Decision 7).
 	if opts.diagnostic {
 		return renderDiagnostic(homeDir, opts.configPath)
+	}
+	// A positional prompt runs exactly one reasoning turn; otherwise boot.
+	if prompt != "" {
+		return renderTurn(homeDir, opts.configPath, prompt)
 	}
 	return renderBoot(homeDir, opts.configPath)
 }
 
-// parseFlags parses argv. ok is false on an unrecognized or invalid flag.
-func parseFlags(args []string) (opts *options, ok bool) {
+// parseFlags parses argv, returning the parsed flags and the first positional
+// argument (the prompt, if any). ok is false on an unrecognized or invalid flag.
+func parseFlags(args []string) (opts *options, prompt string, ok bool) {
 	fs := pflag.NewFlagSet("tellme", pflag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	o := &options{}
@@ -93,16 +107,18 @@ func parseFlags(args []string) (opts *options, ok bool) {
 	fs.BoolVarP(&o.diagnostic, "diagnostics", "d", false, "Report configuration and home resolution, then exit.")
 	fs.BoolVar(&o.version, "version", false, "Print the build version and exit.")
 	if err := fs.Parse(args); err != nil {
-		return nil, false
+		return nil, "", false
 	}
-	return o, true
+	if rest := fs.Args(); len(rest) > 0 {
+		prompt = rest[0]
+	}
+	return o, prompt, true
 }
 
-// resolve is the single resolution algorithm shared by the boot path and the
-// diagnostic path: home → config path → load/validate → effective selected
-// provider → effective mode → workspace. On failure it returns a *resolveError
-// carrying the pinned reason category; the two callers differ only in how they
-// render it (boot message + code vs. diagnostic report).
+// resolve is the single resolution algorithm shared by the boot, diagnostic, and
+// turn paths: home → config path → load/validate → effective selected provider →
+// effective mode → workspace. On failure it returns a *resolveError carrying the
+// pinned reason category; the callers differ only in how they render it.
 func resolve(homeDir, configPath string) (resolution, *resolveError) {
 	res := resolution{Home: homeDir, Path: configPath, Explicit: configPath != ""}
 
@@ -139,7 +155,7 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 	// (e.g. `URL: "${UNSET_ENDPOINT:-}"`) pass the non-empty invariant and then
 	// degrade to "" — evading validation. Expanding first makes Validate() see
 	// the final, post-substitution value, and guarantees the Provider carried for
-	// Slice 004 is the fully-expanded one.
+	// the reasoning turn is the fully-expanded one.
 	prov := cfg.Providers[res.Selected]
 	if err := prov.Expand(); err != nil {
 		return res, &resolveError{Reason: reasonProviderInvalid, Err: err}
@@ -168,6 +184,46 @@ func renderBoot(homeDir, configPath string) int {
 	}
 	fmt.Println("configuration: ready")
 	fmt.Println("session workspace: " + res.Workspace)
+	return Success
+}
+
+// gatewayFactory builds the provider gateway for a resolved provider entry. It
+// is the composition seam (review finding #1): the presentation layer never
+// couples to a concrete adapter constructor, tests can inject a fake
+// llm.Gateway, and an un-adapted family surfaces as an actionable error.
+type gatewayFactory func(prov config.Provider, name string) (llm.Gateway, error)
+
+// newGateway is the production gateway factory (a var so tests may override it).
+var newGateway gatewayFactory = infrallm.NewGateway
+
+// renderTurn resolves the setup, then runs exactly one reasoning turn against
+// the resolved provider and prints the answer (round-004 FR-001..FR-005). A
+// resolve failure is rendered as a boot error; an unsupported family or a
+// provider/transport failure is rendered with the frozen provider class phrase
+// and exit code 6.
+func renderTurn(homeDir, configPath, prompt string) int {
+	res, rerr := resolve(homeDir, configPath)
+	if rerr != nil {
+		return emitBootError(res, rerr)
+	}
+	return runTurn(res, prompt, os.Stdout, os.Stderr, newGateway)
+}
+
+// runTurn performs one reasoning turn through an injected gateway factory. The
+// context is cancelled on SIGINT/SIGTERM so a stalled provider can be
+// interrupted (review finding #2).
+func runTurn(res resolution, prompt string, out, errOut io.Writer, factory gatewayFactory) int {
+	gw, err := factory(res.Provider, res.Selected)
+	if err != nil {
+		return emitProviderError(errOut, err)
+	}
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	resp, err := gw.Complete(ctx, llm.Request{Prompt: prompt})
+	if err != nil {
+		return emitProviderError(errOut, err)
+	}
+	_, _ = fmt.Fprintln(out, resp.Text)
 	return Success
 }
 
@@ -201,6 +257,16 @@ func emitBootError(res resolution, rerr *resolveError) int {
 		fmt.Fprintln(os.Stderr, "tellme: the runtime home is not usable")
 		return EnvironmentError
 	}
+}
+
+// emitProviderError maps a provider/transport failure to its frozen class phrase
+// and dedicated exit code (round-004 FR-006..FR-008, Clarify Q3). The trailing
+// detail is contract-free; newlines are folded so exactly one line carries the
+// phrase.
+func emitProviderError(w io.Writer, err error) int {
+	detail := strings.ReplaceAll(err.Error(), "\n", " ")
+	_, _ = fmt.Fprintf(w, "tellme: the provider request failed: %s\n", detail)
+	return ProviderError
 }
 
 // renderDiagnostic runs the -d path. It always emits a plain report and returns 0

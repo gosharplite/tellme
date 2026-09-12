@@ -85,12 +85,12 @@ verify-no-test-sleep:
 # Single definition: delegates to the Go guard in tests/e2e (harness), so the
 # Makefile and the scenario step never drift (previously two diverging copies).
 verify-no-network:
-	@echo "verify-no-network: build-graph capability guard ..."
+	@echo "verify-no-network: offline-path witness (recording sink + differential) ..."
 	@if ! go list ./cmd/tellme >/dev/null 2>&1; then \
 		echo "  (skip) ./cmd/tellme package not present yet"; exit 0; \
 	fi
-	@go test -count=1 -run TestDependencyGraphHasNoNetworkCapability ./tests/e2e/
-	@echo "  ✓ no network capability in ./cmd/tellme"
+	@go test -count=1 -run TestOfflinePathsDoNotContactProvider ./tests/e2e/
+	@echo "  ✓ offline paths (--version, -d, prompt-less boot) make no provider request"
 
 verify: verify-no-test-sleep verify-no-network vet lint vulncheck
 	@echo "verify: OK"
