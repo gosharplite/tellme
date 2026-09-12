@@ -12,11 +12,11 @@ import (
 
 // T013 — render/raw mode selection, the `--raw` alias, the degraded fallback,
 // and the invalid-width configuration error (round-006 research Decisions 3, 6,
-// 7).
+// 7). Round-006 review Obs 2: writeAnswer is now a method on runtimeEnv.
 
 func TestWriteAnswer_Raw(t *testing.T) {
 	var out, errOut bytes.Buffer
-	writeAnswer(&out, &errOut, "plain answer", true, 0, &stubRenderer{})
+	env(&out, &errOut, &stubRenderer{}).writeAnswer("plain answer", true, 0)
 	if out.String() != "plain answer\n" {
 		t.Fatalf("stdout = %q, want %q", out.String(), "plain answer\n")
 	}
@@ -27,7 +27,7 @@ func TestWriteAnswer_Raw(t *testing.T) {
 
 func TestWriteAnswer_RawAlwaysAppendsOneNewline(t *testing.T) {
 	var out, errOut bytes.Buffer
-	writeAnswer(&out, &errOut, "with newline\n", true, 0, &stubRenderer{})
+	env(&out, &errOut, &stubRenderer{}).writeAnswer("with newline\n", true, 0)
 	if out.String() != "with newline\n\n" {
 		t.Fatalf("stdout = %q, want %q (answer verbatim + exactly one CLI-appended newline)", out.String(), "with newline\n\n")
 	}
@@ -36,7 +36,7 @@ func TestWriteAnswer_RawAlwaysAppendsOneNewline(t *testing.T) {
 func TestWriteAnswer_Rendered(t *testing.T) {
 	var out, errOut bytes.Buffer
 	r := &stubRenderer{out: "\nRENDERED\n\n"}
-	writeAnswer(&out, &errOut, "**Bold**", false, 40, r)
+	env(&out, &errOut, r).writeAnswer("**Bold**", false, 40)
 	if out.String() != "RENDERED\n\n" {
 		t.Fatalf("stdout = %q, want %q (trimmed + one blank line)", out.String(), "RENDERED\n\n")
 	}
@@ -50,7 +50,7 @@ func TestWriteAnswer_DegradedFallsBackToSanitizedText(t *testing.T) {
 	// On degrade the renderer returns the sanitized raw fallback text; writeAnswer
 	// must write THAT text (research D5), not the original answer.
 	r := &stubRenderer{out: "sanitized fallback", degraded: true}
-	writeAnswer(&out, &errOut, "original answer", false, 0, r)
+	env(&out, &errOut, r).writeAnswer("original answer", false, 0)
 	if out.String() != "sanitized fallback\n" {
 		t.Fatalf("stdout = %q, want the renderer's sanitized fallback %q", out.String(), "sanitized fallback\n")
 	}

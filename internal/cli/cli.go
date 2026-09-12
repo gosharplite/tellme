@@ -74,6 +74,20 @@ func (e *resolveError) Error() string {
 
 func (e *resolveError) Unwrap() error { return e.Err }
 
+// runtimeEnv bundles the process I/O streams, the terminal detector, and the
+// answer renderer for one CLI invocation (round-006 review **Obs 2**). Threading
+// them as a single value keeps the call signatures stable as the flag/env
+// surface grows (additional flags, multi-turn sessions), instead of widening
+// `run`/`renderTurn`/`runTurn`/`writeAnswer` with more stream primitives. The
+// renderer is built once per invocation (see `Run`) and reused across the turn.
+type runtimeEnv struct {
+	stdin    io.Reader
+	stdout   io.Writer
+	stderr   io.Writer
+	isTTY    func(any) bool
+	renderer answerRenderer
+}
+
 // answerRenderer renders a Markdown answer to ANSI (round 006). It is the seam
 // that keeps the render/raw mode selection unit-testable without a real
 // renderer. On degradation it returns the (sanitized) text the caller should
@@ -91,11 +105,19 @@ type answerRenderer interface {
 var newRenderer = func() answerRenderer { return ui.NewRenderer() }
 
 // Run is the CLI entrypoint: main passes argv and the injected build version,
-// and Run returns the process exit code. It binds the real process streams and
-// the default terminal detector, then delegates to run (round-005 research
-// Decision 4 — the seam keeps the input/output-mode selection unit-testable).
+// and Run returns the process exit code. It binds the real process streams, the
+// default terminal detector, and the production renderer into a runtimeEnv, then
+// delegates to run (round-005 research Decision 4 — the seam keeps the
+// input/output-mode selection unit-testable; round-006 review Obs 2 — one value
+// instead of many stream primitives).
 func Run(args []string, version string) int {
-	return run(args, version, os.Stdin, os.Stdout, os.Stderr, defaultIsTerminal)
+	return run(args, version, runtimeEnv{
+		stdin:    os.Stdin,
+		stdout:   os.Stdout,
+		stderr:   os.Stderr,
+		isTTY:    defaultIsTerminal,
+		renderer: newRenderer(),
+	})
 }
 
 // run parses flags, then dispatches to the version path, the diagnostic
@@ -103,13 +125,13 @@ func Run(args []string, version string) int {
 // read on the non-explicit-mode dispatch path (round-005 FR-010) — the reasoning
 // turn and the empty→boot fall-through, when stdin is not a terminal; the version
 // and diagnostic paths never read it.
-func run(args []string, version string, stdin io.Reader, stdout, stderr io.Writer, isTTY func(any) bool) int {
-	opts, flagArgs, ok := parseFlags(args, stderr)
+func run(args []string, version string, env runtimeEnv) int {
+	opts, flagArgs, ok := parseFlags(args, env.stderr)
 	if !ok {
-		return emitUsageError(stderr)
+		return emitUsageError(env.stderr)
 	}
 	if opts.version {
-		_, _ = fmt.Fprintf(stdout, "tellme %s\n", version)
+		_, _ = fmt.Fprintf(env.stdout, "tellme %s\n", version)
 		return Success
 	}
 
@@ -119,23 +141,23 @@ func run(args []string, version string, stdin io.Reader, stdout, stderr io.Write
 	// takes precedence over a prompt or piped input (round-004 Decision 7 /
 	// round-005 FR-010).
 	if opts.diagnostic {
-		return renderDiagnostic(homeDir, opts.configPath, stdout)
+		return renderDiagnostic(homeDir, opts.configPath, env.stdout)
 	}
 	// The prompt turn reads piped input only when stdin is not a terminal and
 	// combines it with the positional argument(s); an empty result falls through
 	// to boot (round-005 FR-001..FR-005).
-	prompt, err := resolvePrompt(flagArgs, stdin, isTTY)
+	prompt, err := resolvePrompt(flagArgs, env.stdin, env.isTTY)
 	if err != nil {
 		// Reuse the existing environment class phrase so the closed phrase
 		// vocabulary (specs/truth/features/cli/dsl.md) is not widened; the
 		// trailing stdin detail is contract-free.
-		_, _ = fmt.Fprintf(stderr, "tellme: the runtime home is not usable (standard input: %v)\n", err)
+		_, _ = fmt.Fprintf(env.stderr, "tellme: the runtime home is not usable (standard input: %v)\n", err)
 		return EnvironmentError
 	}
 	if prompt != "" {
-		return renderTurn(homeDir, opts.configPath, prompt, opts.raw, stdout, stderr)
+		return renderTurn(homeDir, opts.configPath, prompt, opts.raw, env)
 	}
-	return renderBoot(homeDir, opts.configPath, stdout, stderr)
+	return renderBoot(homeDir, opts.configPath, env)
 }
 
 // parseFlags parses argv, returning the parsed flags and the positional
@@ -231,13 +253,13 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 }
 
 // renderBoot runs the boot path and reports readiness or an actionable error.
-func renderBoot(homeDir, configPath string, stdout, stderr io.Writer) int {
+func renderBoot(homeDir, configPath string, env runtimeEnv) int {
 	res, rerr := resolve(homeDir, configPath)
 	if rerr != nil {
-		return emitBootError(stderr, res, rerr)
+		return emitBootError(env.stderr, res, rerr)
 	}
-	_, _ = fmt.Fprintln(stdout, "configuration: ready")
-	_, _ = fmt.Fprintln(stdout, "session workspace: "+res.Workspace)
+	_, _ = fmt.Fprintln(env.stdout, "configuration: ready")
+	_, _ = fmt.Fprintln(env.stdout, "session workspace: "+res.Workspace)
 	return Success
 }
 
@@ -255,59 +277,59 @@ var newGateway gatewayFactory = infrallm.NewGateway
 // resolve failure is rendered as a boot error; an unsupported family or a
 // provider/transport failure is rendered with the frozen provider class phrase
 // and exit code 6.
-func renderTurn(homeDir, configPath, prompt string, raw bool, stdout, stderr io.Writer) int {
+func renderTurn(homeDir, configPath, prompt string, raw bool, env runtimeEnv) int {
 	res, rerr := resolve(homeDir, configPath)
 	if rerr != nil {
-		return emitBootError(stderr, res, rerr)
+		return emitBootError(env.stderr, res, rerr)
 	}
-	return runTurn(res, prompt, raw, stdout, stderr, newGateway, newRenderer())
+	return runTurn(res, prompt, raw, env, newGateway)
 }
 
-// runTurn performs one reasoning turn through an injected gateway factory and
-// answer renderer. The context is cancelled on SIGINT/SIGTERM so a stalled
-// provider can be interrupted (review finding #2).
-func runTurn(res resolution, prompt string, raw bool, out, errOut io.Writer, factory gatewayFactory, renderer answerRenderer) int {
+// runTurn performs one reasoning turn through an injected gateway factory. The
+// answer is written by the runtimeEnv's renderer. The context is cancelled on
+// SIGINT/SIGTERM so a stalled provider can be interrupted (review finding #2).
+func runTurn(res resolution, prompt string, raw bool, env runtimeEnv, factory gatewayFactory) int {
 	gw, err := factory(res.Provider, res.Selected)
 	if err != nil {
-		return emitProviderError(errOut, err)
+		return emitProviderError(env.stderr, err)
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	resp, err := gw.Complete(ctx, llm.Request{Prompt: prompt})
 	if err != nil {
-		return emitProviderError(errOut, err)
+		return emitProviderError(env.stderr, err)
 	}
-	writeAnswer(out, errOut, resp.Text, raw, res.WrapWidth, renderer)
+	env.writeAnswer(resp.Text, raw, res.WrapWidth)
 	return Success
 }
 
-// writeAnswer writes the provider's answer to stdout (round-006 FR-001/FR-004):
-// the answer bytes verbatim under -r/--raw, or the Markdown-rendered form by
-// default. Rendering is gated by -r ALONE — never by whether stdout is a
-// terminal. On renderer degradation the renderer's sanitized fallback text is
-// written and a one-time non-class warning goes to stderr (the frozen
-// `tellme: {phrase}` vocabulary is untouched).
-func writeAnswer(out, errOut io.Writer, answer string, raw bool, width int, renderer answerRenderer) {
+// writeAnswer writes the provider's answer to the environment's stdout
+// (round-006 FR-001/FR-004): the answer bytes verbatim under -r/--raw, or the
+// Markdown-rendered form by default. Rendering is gated by -r ALONE — never by
+// whether stdout is a terminal. On renderer degradation the renderer's sanitized
+// fallback text is written and a one-time non-class warning goes to stderr (the
+// frozen `tellme: {phrase}` vocabulary is untouched).
+func (e runtimeEnv) writeAnswer(answer string, raw bool, width int) {
 	if raw {
-		writeRawAnswer(out, answer)
+		e.writeRawAnswer(answer)
 		return
 	}
-	rendered, degraded := renderer.Render(answer, width)
+	rendered, degraded := e.renderer.Render(answer, width)
 	if degraded {
-		renderer.WarnDegraded(errOut)
-		writeRawAnswer(out, rendered) // research D5: the degraded fallback is the sanitized text
+		e.renderer.WarnDegraded(e.stderr)
+		e.writeRawAnswer(rendered) // research D5: the degraded fallback is the sanitized text
 		return
 	}
 	if trimmed := strings.Trim(rendered, "\n"); trimmed != "" {
-		_, _ = fmt.Fprint(out, trimmed+"\n\n")
+		_, _ = fmt.Fprint(e.stdout, trimmed+"\n\n")
 	}
 }
 
 // writeRawAnswer prints text verbatim followed by exactly one CLI-appended
 // terminating newline (round-005 FR-006). It serves both the raw (-r) path and
 // the sanitized degraded fallback (round-006 research D5).
-func writeRawAnswer(out io.Writer, answer string) {
-	_, _ = fmt.Fprintln(out, answer)
+func (e runtimeEnv) writeRawAnswer(answer string) {
+	_, _ = fmt.Fprintln(e.stdout, answer)
 }
 
 // emitBootError maps a resolve failure to its actionable stderr message + code.
