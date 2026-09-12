@@ -32,6 +32,9 @@ type scenarioContext struct {
 
 	args []string // CLI arguments for the next run (excluding the binary)
 
+	stdin    string // scripted standard input for the next run (round 005)
+	stdinSet bool   // whether a scripted stdin should be piped to the child
+
 	exitCode int    // captured process exit code
 	stdout   string // captured stdout
 	stderr   string // captured stderr
@@ -94,6 +97,13 @@ func scenarioFrom(ctx context.Context) *scenarioContext {
 	return sc
 }
 
+// pipeStdin arranges a scripted standard input for the next run (a pipe, so the
+// CLI sees a non-terminal and reads it).
+func (sc *scenarioContext) pipeStdin(content string) {
+	sc.stdin = content
+	sc.stdinSet = true
+}
+
 // setEnv arranges an environment override for the next run.
 func (sc *scenarioContext) setEnv(name, value string) {
 	if sc.envOverrides == nil {
@@ -132,7 +142,12 @@ func (sc *scenarioContext) unsetNames() []string {
 
 // run executes the currently arranged command and records the captured result.
 func (sc *scenarioContext) run() {
-	res := harness.Run(sc.args, sc.runEnv(), sc.unsetNames())
+	var res harness.RunResult
+	if sc.stdinSet {
+		res = harness.RunWithStdin(sc.args, sc.stdin, sc.runEnv(), sc.unsetNames())
+	} else {
+		res = harness.Run(sc.args, sc.runEnv(), sc.unsetNames())
+	}
 	sc.exitCode = res.ExitCode
 	sc.stdout = res.Stdout
 	sc.stderr = res.Stderr

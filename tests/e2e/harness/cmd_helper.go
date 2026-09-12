@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -77,18 +78,38 @@ type RunResult struct {
 
 // Run invokes the (once-built) tellme binary with args, under an environment
 // derived from the current process plus `set` overrides and minus `unset` names.
+// The child's stdin is the null device (the default: no piped input).
 func Run(args []string, set map[string]string, unset []string) RunResult {
 	bin, err := BinaryPath()
 	if err != nil {
 		return RunResult{ExitCode: -1, Err: err}
 	}
-	return RunBinary(bin, args, set, unset)
+	return runExec(bin, args, nil, set, unset)
+}
+
+// RunWithStdin is Run with a scripted standard input: the child's stdin is an
+// os.Pipe carrying `stdin` (a non-terminal, so the CLI reads it), then EOF.
+func RunWithStdin(args []string, stdin string, set map[string]string, unset []string) RunResult {
+	bin, err := BinaryPath()
+	if err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+	return runExec(bin, args, strings.NewReader(stdin), set, unset)
 }
 
 // RunBinary is Run against an explicit binary path.
 func RunBinary(bin string, args []string, set map[string]string, unset []string) RunResult {
+	return runExec(bin, args, nil, set, unset)
+}
+
+// runExec runs bin with args, wiring stdout/stderr (and stdin when non-nil) into
+// buffers and capturing the exit code.
+func runExec(bin string, args []string, stdin io.Reader, set map[string]string, unset []string) RunResult {
 	cmd := exec.Command(bin, args...)
 	cmd.Env = buildEnv(set, unset)
+	if stdin != nil {
+		cmd.Stdin = stdin
+	}
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

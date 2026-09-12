@@ -70,11 +70,19 @@ func (e *resolveError) Error() string {
 func (e *resolveError) Unwrap() error { return e.Err }
 
 // Run is the CLI entrypoint: main passes argv and the injected build version,
-// and Run returns the process exit code. It parses flags, then dispatches to the
-// version path, the diagnostic reporting path, the prompt-bearing reasoning
-// turn, or the boot path.
+// and Run returns the process exit code. It binds the real process streams and
+// the default terminal detector, then delegates to run (round-005 research
+// Decision 4 — the seam keeps the input/output-mode selection unit-testable).
 func Run(args []string, version string) int {
-	opts, prompt, ok := parseFlags(args)
+	return run(args, version, os.Stdin, os.Stdout, os.Stderr, defaultIsTerminal)
+}
+
+// run parses flags, then dispatches to the version path, the diagnostic
+// reporting path, the prompt-bearing reasoning turn, or the boot path. stdin is
+// read only on the prompt-turn path (round-005 FR-010): the version and
+// diagnostic paths never read it.
+func run(args []string, version string, stdin io.Reader, stdout, stderr io.Writer, isTTY func(any) bool) int {
+	opts, flagArgs, ok := parseFlags(args)
 	if !ok {
 		return emitUsageError()
 	}
@@ -86,20 +94,29 @@ func Run(args []string, version string) int {
 	homeDir := os.Getenv("TELL_ME_HOME")
 
 	// -d is the reporting path: it always produces a report (Decision 2), and it
-	// takes precedence over a positional prompt (round-004 Decision 7).
+	// takes precedence over a prompt or piped input (round-004 Decision 7 /
+	// round-005 FR-010).
 	if opts.diagnostic {
 		return renderDiagnostic(homeDir, opts.configPath)
 	}
-	// A positional prompt runs exactly one reasoning turn; otherwise boot.
+	// The prompt turn reads piped input only when stdin is not a terminal and
+	// combines it with the positional argument(s); an empty result falls through
+	// to boot (round-005 FR-001..FR-005).
+	prompt, err := resolvePrompt(flagArgs, stdin, isTTY)
+	if err != nil {
+		fmt.Fprintf(stderr, "tellme: standard input could not be read: %v\n", err) //nolint:errcheck // best-effort stderr report
+		return EnvironmentError
+	}
 	if prompt != "" {
-		return renderTurn(homeDir, opts.configPath, prompt)
+		return renderTurn(homeDir, opts.configPath, prompt, stdout, stderr)
 	}
 	return renderBoot(homeDir, opts.configPath)
 }
 
-// parseFlags parses argv, returning the parsed flags and the first positional
-// argument (the prompt, if any). ok is false on an unrecognized or invalid flag.
-func parseFlags(args []string) (opts *options, prompt string, ok bool) {
+// parseFlags parses argv, returning the parsed flags and the positional
+// arguments (the prompt parts, if any). ok is false on an unrecognized or
+// invalid flag.
+func parseFlags(args []string) (opts *options, flagArgs []string, ok bool) {
 	fs := pflag.NewFlagSet("tellme", pflag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	o := &options{}
@@ -107,12 +124,9 @@ func parseFlags(args []string) (opts *options, prompt string, ok bool) {
 	fs.BoolVarP(&o.diagnostic, "diagnostics", "d", false, "Report configuration and home resolution, then exit.")
 	fs.BoolVar(&o.version, "version", false, "Print the build version and exit.")
 	if err := fs.Parse(args); err != nil {
-		return nil, "", false
+		return nil, nil, false
 	}
-	if rest := fs.Args(); len(rest) > 0 {
-		prompt = rest[0]
-	}
-	return o, prompt, true
+	return o, fs.Args(), true
 }
 
 // resolve is the single resolution algorithm shared by the boot, diagnostic, and
@@ -201,12 +215,12 @@ var newGateway gatewayFactory = infrallm.NewGateway
 // resolve failure is rendered as a boot error; an unsupported family or a
 // provider/transport failure is rendered with the frozen provider class phrase
 // and exit code 6.
-func renderTurn(homeDir, configPath, prompt string) int {
+func renderTurn(homeDir, configPath, prompt string, stdout, stderr io.Writer) int {
 	res, rerr := resolve(homeDir, configPath)
 	if rerr != nil {
 		return emitBootError(res, rerr)
 	}
-	return runTurn(res, prompt, os.Stdout, os.Stderr, newGateway)
+	return runTurn(res, prompt, stdout, stderr, newGateway)
 }
 
 // runTurn performs one reasoning turn through an injected gateway factory. The
