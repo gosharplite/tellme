@@ -1,0 +1,29 @@
+Project "tellme_session_history" {
+  database_type: "JSON Lines (append-only local file)"
+  Note: '''
+  The persisted session-history model for tellme (round 007). One conversation is a sequence of
+  completed turns, stored as append-only JSON Lines under the per-mode session workspace
+  ($TELL_ME_HOME/output/<mode>/). The active file is `history.jsonl`; `--new` moves its entries into
+  `history.archive.jsonl`. The store is read wholesale on resume and written one line per completed turn.
+  It is not a relational database — this DBML pins the record shape and lifecycle so the CLI contract,
+  the interface feature truth, and the implementation share a single model.
+  '''
+}
+
+Enum history_location {
+  active
+  archived
+}
+
+Table history_entry {
+  location history_location
+  position int
+  prompt text
+  answer text
+
+  indexes {
+    (location, position) [pk]
+  }
+
+  Note: 'One completed exchange — the operator prompt and the provider answer — persisted as a single JSON line. Entries are append-only and ordered: within a file, `position` is the 1-based line ordinal (the record identity, since no ID or timestamp is stored) and the row order is the conversation order. `location` is `active` in `history.jsonl` and `archived` in `history.archive.jsonl`; `--new` moves every active entry to `archived` (entries from successive archived conversations append in order). An interrupted turn is never written, so no partial entry exists.'
+}
