@@ -404,3 +404,63 @@ The full round-005 slice: bootstrap → `/axb-specify` → `/axb-spec-by-example
 1. Merge PR [#16](https://github.com/gosharplite/tellme/pull/16) (`005-stdin-piping` → `dev`) on approval.
 2. Propagate `dev → main` (no-ff) + run `SESSION-CLOSEOUT.md`.
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `005-stdin-piping`, PR #16 open).
+
+
+---
+
+## 19. Session 19 — round 005 merge sync + `SESSION-CLOSEOUT`
+
+The user merged PR #16 on GitHub; this session synced local to remote, ran the closeout procedure, and propagated.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Remote sync | `git fetch --prune` → `origin/dev` advanced `3f35962 → 37c0c24`; PR #16 merged as **`37c0c24`** ("Merge pull request #16 from gosharplite/005-stdin-piping"); local `dev` fast-forwarded to `37c0c24`; `005-stdin-piping` = `2d21e09` (frozen) |
+| Quality gates | `gofmt -l .` clean · `go vet ./...` clean · godog **42/42 · 298/298** · `make verify` OK (0 lint / 0 vulns) |
+| Closeout | `STATUS.md` → session 19 (round 005 delivered/frozen); this §19; committed on `dev` + pushed |
+| Propagation | `dev → main` (no-ff) — **DONE** |
+| Handoff | active branch `dev`; next round = a fresh `006-*` off `dev` |
+
+### Work done
+
+1. **Sync** — `git fetch --prune origin`; confirmed `2d21e09` is an ancestor of `origin/dev`; switched `005-stdin-piping → dev`; fast-forwarded local `dev` (`3f35962 → 37c0c24`).
+2. **Closeout Steps 1–2** — working tree clean; gates green (above).
+3. **Closeout Steps 3–5** — `STATUS.md` refreshed (Last updated = session 19; Active branch `dev`; branch model — `005-stdin-piping` delivered/frozen; round-005 section → DELIVERED/FROZEN; roadmap; open items; environment notes); this §19 appended; status ↔ summary reconciled.
+4. **Closeout Step 6** — committed on `dev` + pushed.
+5. **Closeout Step 7** — propagated `dev → main` (no-ff).
+
+### Decisions log
+
+| # | Decision | Rationale |
+| --- | --- | --- |
+| D1 | **Round 005 treated as delivered / frozen on merge** (`37c0c24`) | PR #16 merged into `dev`; `2d21e09` is an ancestor |
+| D2 | **Closeout docs land on `dev`** (not the frozen round branch) | session-13 D5 — round branches are frozen; `STATUS.md` + daily log are live session docs |
+| D3 | **`005-stdin-piping` branch kept as frozen history** | matches rounds 001–004 (no separate implement-branch this round) |
+| D4 | **Final Review Obs 1/2 tracked as the renderer/`-r` slice candidate (e)** | the stdout probe defers with the renderer; the `RuntimeEnv` consolidation belongs where the flag/env surface grows |
+
+### Commits (branch `dev`)
+
+| Commit | Note |
+| --- | --- |
+| *(this commit)* | `docs(005): day close — round 005 merged (37c0c24) + closeout (status + daily log)` |
+| `37c0c24` | PR #16 merge into `dev` (GitHub) |
+
+### Verification
+
+- `gofmt -l .` clean · `go vet ./...` clean · godog **42/42 scenarios · 298/298 steps** · `make verify` OK (0 lint issues, 0 vulnerabilities).
+- Diff-level secret scan clean (repo has no GitHub Advanced Security; `mcp_github_run_secret_scanning` unavailable).
+
+### Open items (non-blocking)
+
+- Future-package candidates unchanged: (a) run `make verify` in a pipeline platform — [#15](https://github.com/gosharplite/tellme/issues/15); (d) coverage tooling — [#13](https://github.com/gosharplite/tellme/issues/13); (e) rendered output + `-r` slice (carries Final-Review Obs 1/2).
+- **Propagation** — `dev → main` (no-ff) **DONE**.
+
+### Next steps
+
+1. **Fresh `006-*` off `dev`** — choose the theme (a capability slice is most likely); start via `/axb-specify`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
