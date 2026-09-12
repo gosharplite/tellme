@@ -17,13 +17,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `specs/truth/contracts/**` | _Expected NOOP — tellme has a single CLI end and no HTTP/OpenAPI surface of its own._ | To be confirmed by `/axb-api-plan`. |
+| NOOP | `specs/truth/contracts/**` | Checked; left empty. tellme has a single CLI end and no HTTP/OpenAPI surface of its own; round 005 changes only prompt ingestion and the output contract, not any API surface (the provider request shape is unchanged from round 004). | `contract-authoritative` holds vacuously. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `specs/truth/data/**` | _Expected NOOP — no persisted or in-memory state is introduced._ | To be confirmed by `/axb-data-plan`. |
+| NOOP | `specs/truth/data/**` | Checked; left empty. Round 005 adds no persisted or in-memory state — it reads stdin into an ephemeral prompt string and prints the answer; no state model is introduced. | `data-model-covers-all-state` holds vacuously. |
 
 ## /axb-dsl-refine
 
