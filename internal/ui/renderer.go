@@ -61,11 +61,13 @@ func (r *Renderer) Render(markdown string, width int) (out string, degraded bool
 }
 
 // WarnDegraded emits the markdown-degradation warning at most once per renderer
-// (round-006 research Decision 6; reference ADR-007 rate-limits it with a
-// sync.Once). The trailing detail is contract-free.
+// (round-006 research Decision 6). It is a NON-class warning: it deliberately
+// does NOT use the reserved `tellme: ` prefix, which is kept exclusively for the
+// frozen class phrases — so the closed phrase vocabulary is untouched and the
+// "exactly one `tellme: ` line" contract holds.
 func (r *Renderer) WarnDegraded(w io.Writer) {
 	r.warnOnce.Do(func() {
-		_, _ = fmt.Fprintln(w, "tellme: markdown rendering degraded, falling back to raw text")
+		_, _ = fmt.Fprintln(w, "[WARN] markdown rendering degraded, falling back to raw text")
 	})
 }
 

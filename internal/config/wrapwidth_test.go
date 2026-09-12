@@ -1,8 +1,11 @@
 package config
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
-// T013 — rendered-width resolution (round-006 research Decision 7).
+// T013 — rendered-width resolution + validation (round-006 research Decision 7).
 
 func TestEffectiveWrapWidth(t *testing.T) {
 	c := &Config{WrapWidth: 120}
@@ -17,6 +20,7 @@ func TestEffectiveWrapWidth(t *testing.T) {
 		{name: "override is trimmed", override: "  80 ", want: 80},
 		{name: "zero is a valid value (renderer default)", override: "0", want: 0},
 		{name: "non-integer override is an invalid value", override: "abc", wantErr: true},
+		{name: "negative override is an invalid value", override: "-5", wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -25,8 +29,8 @@ func TestEffectiveWrapWidth(t *testing.T) {
 				if err == nil {
 					t.Fatalf("EffectiveWrapWidth(%q) = %d, want an error", tt.override, got)
 				}
-				if _, ok := err.(interface{ Unwrap() error }); !ok {
-					t.Errorf("error %v is not wrapped for errors.Is", err)
+				if !errors.Is(err, ErrInvalidValue) {
+					t.Errorf("EffectiveWrapWidth(%q) error = %v, want to wrap ErrInvalidValue", tt.override, err)
 				}
 				return
 			}
@@ -40,25 +44,8 @@ func TestEffectiveWrapWidth(t *testing.T) {
 	}
 }
 
-func TestEffectiveWrapWidthNonIntegerIsErrInvalidValue(t *testing.T) {
-	if _, err := (&Config{}).EffectiveWrapWidth("-x"); err == nil || !isErrInvalidValue(err) {
-		t.Fatalf("EffectiveWrapWidth(-x) error = %v, want ErrInvalidValue", err)
+func TestEffectiveWrapWidthRejectsNegativeFileValue(t *testing.T) {
+	if _, err := (&Config{WrapWidth: -5}).EffectiveWrapWidth(""); err == nil || !errors.Is(err, ErrInvalidValue) {
+		t.Fatalf("EffectiveWrapWidth(file=-5) error = %v, want to wrap ErrInvalidValue", err)
 	}
-}
-
-// isErrInvalidValue reports whether err wraps ErrInvalidValue.
-func isErrInvalidValue(err error) bool { return err != nil && errIs(err) }
-
-func errIs(err error) bool {
-	for err != nil {
-		if err == ErrInvalidValue {
-			return true
-		}
-		u, ok := err.(interface{ Unwrap() error })
-		if !ok {
-			return false
-		}
-		err = u.Unwrap()
-	}
-	return false
 }

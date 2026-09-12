@@ -216,7 +216,7 @@
 - `internal/cli/cli.go`
 
 **Boundary**:
-- 實作 `-r`/`--raw`：rendering 由 `-r` **單獨**決定（非由 TTY）；raw 路徑原樣輸出答案並在缺結尾換行時補一個；將 stdout TTY probe 接到 tellme **自身**呈現（`UseColor = isTTY && !raw`）。FR-007 修訂：非終端抑制僅涵蓋 tellme 自身 chrome，非答案渲染。**Round-005 既定 `isTTY(stdout)`「未接」敘述在此被取代**（T019/T020 為本 phase 的 GREEN/REFACTOR）。
+- 實作 `-r`/`--raw`：rendering 由 `-r` **單獨**決定（非由 TTY）；raw 路徑輸出答案並追加**恰好一個**結尾換行（`Fprintln`，無論答案是否已以換行結尾，對齊 round-005 FR-006 與 DSL `is exactly` 列）。FR-007 修訂：非終端抑制僅涵蓋 tellme 自身 chrome，非答案渲染。**stdout TTY probe 本輪不接**（tellme 無自身呈現可閘控）——PR #16 Obs 1 維持 **OPEN**，與 round-005 的「未接」敘述一致（H2 修正：不再宣稱已退役）。
 - 不改 stdin 組合；不實作寬度（屬 Phase 4B）。
 
 **Test Scope**:

@@ -22,10 +22,3 @@ Feature: Rendering the provider's answer
       Then the captured output contains the provider's answer "**Bold** and _italic_" as plain text
       And the captured output carries no formatting added by tellme
       And tellme exits successfully
-
-    Example: The long form of the raw flag behaves the same
-      Given the operator has a runnable tellme installation
-      And the runtime home holds a configuration with a reachable provider "test-model" that answers with "**Bold**"
-      When the operator asks tellme "Format this" with "--raw" and captures its standard output
-      Then the captured output contains the provider's answer "**Bold**" as plain text
-      And tellme exits successfully

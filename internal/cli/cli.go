@@ -76,11 +76,12 @@ func (e *resolveError) Unwrap() error { return e.Err }
 
 // answerRenderer renders a Markdown answer to ANSI (round 006). It is the seam
 // that keeps the render/raw mode selection unit-testable without a real
-// renderer.
+// renderer. On degradation it returns the (sanitized) text the caller should
+// fall back to.
 type answerRenderer interface {
-	// Render returns the rendered answer and whether rendering degraded (in
-	// which case the caller falls back to the raw text).
-	Render(markdown string, width int) (string, bool)
+	// Render returns the rendered answer, and whether rendering degraded (in
+	// which case the returned string is the sanitized raw fallback text).
+	Render(markdown string, width int) (text string, degraded bool)
 	// WarnDegraded emits the one-time degradation warning.
 	WarnDegraded(w io.Writer)
 }
@@ -182,15 +183,15 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 	}
 
 	// Step 4b — resolve and validate the rendered width (round-006 FR-006): the
-	// effective value must be a non-negative integer. A value error carries
+	// helper owns resolve+validate, so a non-integer override or a negative value
+	// from either source is a configuration error. A value error carries
 	// config.ErrInvalidValue so the boot error emits the general
-	// `the configuration is invalid` class phrase, not the parse phrase.
+	// `the configuration is invalid` class phrase, not the parse phrase. This
+	// step runs before provider resolution, so a config that is both width-invalid
+	// and provider-invalid reports the width error (recorded precedence).
 	width, werr := cfg.EffectiveWrapWidth(os.Getenv("TELL_ME_WRAP_WIDTH"))
 	if werr != nil {
 		return res, &resolveError{Reason: reasonConfigInvalid, Err: werr}
-	}
-	if width < 0 {
-		return res, &resolveError{Reason: reasonConfigInvalid, Err: fmt.Errorf("%w: WRAP_WIDTH cannot be negative (%d)", config.ErrInvalidValue, width)}
 	}
 	res.WrapWidth = width
 
@@ -283,8 +284,9 @@ func runTurn(res resolution, prompt string, raw bool, out, errOut io.Writer, fac
 // writeAnswer writes the provider's answer to stdout (round-006 FR-001/FR-004):
 // the answer bytes verbatim under -r/--raw, or the Markdown-rendered form by
 // default. Rendering is gated by -r ALONE — never by whether stdout is a
-// terminal. On renderer degradation the raw answer is written and a one-time
-// warning goes to stderr (FR-006/FR-007 stand for the raw path).
+// terminal. On renderer degradation the renderer's sanitized fallback text is
+// written and a one-time non-class warning goes to stderr (the frozen
+// `tellme: {phrase}` vocabulary is untouched).
 func writeAnswer(out, errOut io.Writer, answer string, raw bool, width int, renderer answerRenderer) {
 	if raw {
 		writeRawAnswer(out, answer)
@@ -293,7 +295,7 @@ func writeAnswer(out, errOut io.Writer, answer string, raw bool, width int, rend
 	rendered, degraded := renderer.Render(answer, width)
 	if degraded {
 		renderer.WarnDegraded(errOut)
-		writeRawAnswer(out, answer)
+		writeRawAnswer(out, rendered) // research D5: the degraded fallback is the sanitized text
 		return
 	}
 	if trimmed := strings.Trim(rendered, "\n"); trimmed != "" {
@@ -320,9 +322,11 @@ func emitBootError(stderr io.Writer, res resolution, rerr *resolveError) int {
 	case reasonConfigInvalid:
 		// A present-but-invalid value (e.g. a negative rendered width) uses the
 		// general configuration-invalid class phrase (round-006 FR-006); a YAML
-		// parse failure keeps the parse phrase.
+		// parse failure keeps the parse phrase. The sentinel prefix is stripped so
+		// the message does not double the wording.
 		if errors.Is(rerr.Err, config.ErrInvalidValue) {
-			_, _ = fmt.Fprintf(stderr, "tellme: the configuration is invalid: %v\n", rerr.Err)
+			detail := strings.TrimPrefix(rerr.Err.Error(), config.ErrInvalidValue.Error()+": ")
+			_, _ = fmt.Fprintf(stderr, "tellme: the configuration is invalid: %s\n", detail)
 		} else {
 			_, _ = fmt.Fprintf(stderr, "tellme: the configuration could not be parsed at %s\n", res.Path)
 		}

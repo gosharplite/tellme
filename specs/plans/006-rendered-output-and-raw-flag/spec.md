@@ -48,7 +48,6 @@ As an automation-script author, I want a `-r`/`--raw` flag that prints the model
 **Acceptance Scenarios**:
 
 1. **Given** a successful turn and the `-r` flag, **When** the turn completes, **Then** the answer is printed as **plain text** — no Markdown rendering and no renderer-introduced escape sequences — and the process exits with the success code.
-2. **Given** the `--raw` long form, **When** the operator uses it instead of `-r`, **Then** the behaviour is identical.
 
 **Functional Requirements**:
 

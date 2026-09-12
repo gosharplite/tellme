@@ -143,17 +143,22 @@ func (c *Config) EffectiveMode(override string) string {
 	return "butler"
 }
 
-// EffectiveWrapWidth resolves the rendered width: the environment override
-// (TELL_ME_WRAP_WIDTH) when non-empty, else the file WRAP_WIDTH (round-006
-// FR-006 / FR-015). A non-integer override is an invalid configuration value;
-// a negative result (from either source) is rejected by the caller.
+// EffectiveWrapWidth resolves AND validates the rendered width: the environment
+// override (TELL_ME_WRAP_WIDTH) when non-empty, else the file WRAP_WIDTH
+// (round-006 FR-006 / FR-015). A non-integer override, or a negative value from
+// either source, is an invalid configuration value (wrapping ErrInvalidValue).
+// The helper owns both resolve and validate so the caller cannot forget either.
 func (c *Config) EffectiveWrapWidth(override string) (int, error) {
-	if override == "" {
-		return c.WrapWidth, nil
+	width := c.WrapWidth
+	if override != "" {
+		n, err := strconv.Atoi(strings.TrimSpace(override))
+		if err != nil {
+			return 0, fmt.Errorf("%w: WRAP_WIDTH %q is not an integer", ErrInvalidValue, override)
+		}
+		width = n
 	}
-	n, err := strconv.Atoi(strings.TrimSpace(override))
-	if err != nil {
-		return 0, fmt.Errorf("%w: WRAP_WIDTH %q is not an integer", ErrInvalidValue, override)
+	if width < 0 {
+		return 0, fmt.Errorf("%w: WRAP_WIDTH cannot be negative (%d)", ErrInvalidValue, width)
 	}
-	return n, nil
+	return width, nil
 }

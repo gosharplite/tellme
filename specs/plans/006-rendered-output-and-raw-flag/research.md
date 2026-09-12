@@ -27,7 +27,7 @@ The byte-level behaviours the spec deferred here are settled below (Decisions 1�
 
 ## Decision 3: The render/raw gate is `-r` alone; the stdout terminal probe gates only tellme's own presentation
 
-- **Decision**: Add a boolean `-r`/`--raw` flag (`pflag` `BoolVarP(&raw, "raw", "r", false, …)`). Rendering is suppressed **iff `-r` is set** — never by whether stdout is a terminal (FR-001/FR-002/FR-004). Separately, wire the **stdout** terminal probe (the round-005 `isTTY` seam) so tellme's **own** presentation (color/spinner/labels) is used only when stdout is a terminal (`UseColor = isTTY && !raw`) — the reference's rule. This retires PR #16 Final-Review **Obs 1** (the deferred stdout probe).
+- **Decision**: Add a boolean `-r`/`--raw` flag (`pflag` `BoolVarP(&raw, "raw", "r", false, …)`). Rendering is suppressed **iff `-r` is set** — never by whether stdout is a terminal (FR-001/FR-002/FR-004). The **stdout** terminal probe is **NOT wired this round**: tellme ships no *own* presentation chrome (color/spinner/labels) for it to gate, so — exactly as round 005 recorded — it stays a **named pin**, and PR #16 Final-Review **Obs 1** therefore remains **OPEN** (to be wired when tellme gains its own presentation chrome). Rendering itself is gated by `-r` only.
 - **Rationale**: Matches the reference exactly: `renderTextLocked(ui, part, raw)` gates rendering on `raw`; `session_manager.go` computes `UseColor = isTTY && !RawOutput`, consumed only by the renderer's own color helpers. It also **amends round-005 FR-007**: the non-terminal suppression now covers tellme's *own* presentation, not the answer's rendering — the byte-exact/plain piped stream is obtained via `-r`.
 - **Alternatives considered**:
   - **A terminal gate on rendering** (auto-plain when stdout is not a terminal) — the round-005 posture; rejected for parity (Q1) and because it would re-render round 005's pipeline contract as automatic rather than `-r`-driven.
@@ -37,7 +37,7 @@ The byte-level behaviours the spec deferred here are settled below (Decisions 1�
 
 - **Decision**:
   - **Rendered path**: render the answer through glamour, then **trim leading and trailing newlines** from the rendered result; if the result is non-empty, write it followed by a trailing `"\n\n"`.
-  - **Raw path** (`-r`): write the answer text **verbatim**, appending a single `"\n"` only when the text does not already end with one.
+  - **Raw path** (`-r`): write the answer text **verbatim**, followed by **exactly one CLI-appended** `"\n"` (unconditional — matches round-005 FR-006 and the DSL `is exactly` row; M2 reconciliation).
 - **Rationale**: Reproduces the reference's byte behaviour (`renderMarkdownWithUILocked` trims then appends `"\n\n"`; `renderTextLocked`'s raw branch prints then conditionally `Fprintln`s). Keeping the raw path's single-terminating-newline rule preserves round-005 FR-006 for the raw mode.
 - **Alternatives considered**:
   - **Write glamour output as-is (no trim/append)** — rejected: produces unstable leading/trailing blank lines that diverge from the reference.

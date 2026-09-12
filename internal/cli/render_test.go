@@ -3,14 +3,16 @@ package cli
 import (
 	"bytes"
 	"errors"
+	"io"
 	"path/filepath"
 	"testing"
 
 	"github.com/gosharplite/tellme/internal/config"
 )
 
-// T013 — render/raw mode selection and the invalid-width configuration error
-// (round-006 research Decisions 3 & 7).
+// T013 — render/raw mode selection, the `--raw` alias, the degraded fallback,
+// and the invalid-width configuration error (round-006 research Decisions 3, 6,
+// 7).
 
 func TestWriteAnswer_Raw(t *testing.T) {
 	var out, errOut bytes.Buffer
@@ -43,15 +45,32 @@ func TestWriteAnswer_Rendered(t *testing.T) {
 	}
 }
 
-func TestWriteAnswer_DegradedFallsBackToRaw(t *testing.T) {
+func TestWriteAnswer_DegradedFallsBackToSanitizedText(t *testing.T) {
 	var out, errOut bytes.Buffer
-	r := &stubRenderer{degraded: true}
-	writeAnswer(&out, &errOut, "raw answer", false, 0, r)
-	if out.String() != "raw answer\n" {
-		t.Fatalf("stdout = %q, want the raw fallback %q", out.String(), "raw answer\n")
+	// On degrade the renderer returns the sanitized raw fallback text; writeAnswer
+	// must write THAT text (research D5), not the original answer.
+	r := &stubRenderer{out: "sanitized fallback", degraded: true}
+	writeAnswer(&out, &errOut, "original answer", false, 0, r)
+	if out.String() != "sanitized fallback\n" {
+		t.Fatalf("stdout = %q, want the renderer's sanitized fallback %q", out.String(), "sanitized fallback\n")
 	}
 	if !r.warned {
 		t.Error("degradation did not emit the one-time warning")
+	}
+}
+
+func TestParseFlagsRawAliases(t *testing.T) {
+	for _, form := range []string{"-r", "--raw"} {
+		opts, args, ok := parseFlags([]string{form, "hi"}, io.Discard)
+		if !ok {
+			t.Fatalf("parseFlags(%q) ok = false, want true", form)
+		}
+		if !opts.raw {
+			t.Errorf("parseFlags(%q): raw = false, want true", form)
+		}
+		if len(args) != 1 || args[0] != "hi" {
+			t.Errorf("parseFlags(%q): args = %v, want [hi]", form, args)
+		}
 	}
 }
 
