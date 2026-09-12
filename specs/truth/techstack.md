@@ -24,8 +24,8 @@
 | Configuration format | YAML | Configuration input loaded from `$TELL_ME_HOME/configs/<mode>.yaml` or explicit `-c` path |
 | YAML parsing | `gopkg.in/yaml.v3` | Load YAML configuration into typed structs (`Config` with tolerant root decoding; typed `Provider` entries) |
 | Provider entry schema | Typed Go struct (`internal/config.Provider`) | Models complete request attributes: `TYPE`, `MODEL`, `URL`, `API_KEY`, `MAX_TOKENS`, `HEADERS`, `THINKING_BUDGET`, `THINKING_LEVEL` (expanded in round 003 from round-001 boot subset) |
-| Variable expansion | Hand-crafted stdlib regex (`internal/config/expand.go`) | Deterministic `${VAR}` and `${VAR:-default}` substitution in `API_KEY`, `URL`, and `HEADERS` values using `os.LookupEnv` with zero third-party dependencies; fails on unset variables |
-| Effective-value resolution & validation | Hand-written Go (no framework) | Apply `TELL_ME_MODE` / `TELL_ME_SELECTED_PROVIDER` precedence, expand active provider variables, and validate required fields/bounds with frozen class phrase `tellme: the provider configuration is invalid` |
+| Variable expansion | Hand-crafted stdlib regex (`internal/config/expand.go`) | Deterministic `${VAR}` and `${VAR:-default}` substitution in `API_KEY`, `URL`, and `HEADERS` values with zero third-party dependencies; fails on unset variables. The environment lookup is injected via an `EnvLookupFunc` port defaulting to `os.LookupEnv` (dependency inversion, review finding #1, so pure-helper unit tests are in-memory and parallel-safe) |
+| Effective-value resolution & validation | Hand-written Go (no framework) | Apply `TELL_ME_MODE` / `TELL_ME_SELECTED_PROVIDER` precedence, **expand the active provider's variables before validating** the resolved entry (so a mandatory field whose placeholder resolves to empty is rejected — review finding #2), validate required fields/bounds with frozen class phrase `tellme: the provider configuration is invalid`, and carry the resolved provider on the resolution outcome for downstream slices |
 
 ### Testing & Verification
 

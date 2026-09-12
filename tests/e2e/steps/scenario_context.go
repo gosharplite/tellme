@@ -193,7 +193,7 @@ func networkCapabilityViolation() (string, error) {
 
 // unresolvedCategories are the pinned reason categories the diagnostic reports
 // for an unresolved setup (specs/truth/features/cli/diagnostics/dsl.md).
-var unresolvedCategories = []string{"config-missing", "config-invalid", "provider-mismatch", "home-unset", "home-unusable"}
+var unresolvedCategories = []string{"config-missing", "config-invalid", "provider-mismatch", "home-unset", "home-unusable", "provider-invalid"}
 
 // blockedRun reruns the current command under a hostile network environment so a
 // caller can assert the outcome is unchanged (differential no-egress witness).
