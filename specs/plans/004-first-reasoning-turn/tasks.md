@@ -25,7 +25,7 @@
 
 **Goal**: 建立 provider gateway port、OpenAI-compatible adapter 與 E2E fake provider helper 的落點骨架，預留 10 個 chat stepdef 獨立檔案（Zero Shared Edits 原則），並重構 no-network guard 為 offline-path witness。
 
-- [ ] T001 建立 provider gateway port 骨架 `internal/domain/llm/gateway.go`
+- [X] T001 建立 provider gateway port 骨架 `internal/domain/llm/gateway.go`
   - Read:
     - `specs/plans/004-first-reasoning-turn/research.md` -> Decision 1（Provider gateway as a domain port）
     - `specs/truth/techstack.md` -> Reasoning & Provider Transport（Provider gateway port）
@@ -33,28 +33,28 @@
   - 只做：宣告 package `llm`；定義 `Gateway` 介面（`Complete(ctx context.Context, req Request) (Response, error)`）與 `Request`、`Response`、`ProviderError` 型別（值型別；`ProviderError` 至少承載 provider 名稱與底層原因）。不含任何 `net/http` import。
   - 不做：不引入 `net/http`、不寫 request assembly、不碰 `internal/cli`。
 
-- [ ] T002 建立 OpenAI-compatible adapter 骨架 `internal/infrastructure/llm/openai/client.go`
+- [X] T002 建立 OpenAI-compatible adapter 骨架 `internal/infrastructure/llm/openai/client.go`
   - Read:
     - `specs/plans/004-first-reasoning-turn/research.md` -> Decision 1, 2, 3, 4
     - `specs/truth/techstack.md` -> Reasoning & Provider Transport（OpenAI-compatible adapter / HTTP transport / request assembly / response normalization）
   - 只做：宣告 package `openai`；定義 adapter struct（持有 `*http.Client` 與 base URL）並以 stub 實作 `llm.Gateway`；宣告純函式簽名 `buildRequest(...)`（request assembly）與 `parseAnswer(...)`（response normalization），回傳 stub（`buildRequest` 回零值、`parseAnswer` 回 `""`/error）。
   - 不做：不實作 HTTP 呼叫、不寫 request 組裝或回應解析邏輯、不碰 `internal/cli`。
 
-- [ ] T003 建立 E2E fake provider helper `tests/e2e/fakeprovider/fakeprovider.go`
+- [X] T003 建立 E2E fake provider helper `tests/e2e/fakeprovider/fakeprovider.go`
   - Read:
     - `specs/plans/004-first-reasoning-turn/research.md` -> Decision 6
     - `specs/truth/techstack.md` -> Testing & Verification（Local fake provider）
   - 只做：建立以 `net/http/httptest` 為底的 fake provider helper，提供**完整** API（供 Phase 3 直接呼叫，不需再改本檔）：啟動/關閉、`URL()`/`Host()`、設定回應（固定 answer、error status、no usable answer）、記錄收到的請求與請求數、以及寫入「指向該 fake 的預設 configuration」helper（單一 provider 與雙 provider 兩種，可指定 `SELECTED_PROVIDER`）。
   - 不做：不寫任何 stepdef 或斷言；不碰既有 `tests/e2e/harness/`。
 
-- [ ] T004 建立 10 個 chat stepdef 獨立檔案骨架 `tests/e2e/steps/step_t010_*.go`–`step_t019_*.go`
+- [X] T004 建立 10 個 chat stepdef 獨立檔案骨架 `tests/e2e/steps/step_t010_*.go`–`step_t019_*.go`
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（本輪新增句型）
     - `tests/e2e/steps/register.go`
   - 只做：在 `tests/e2e/steps/` 下建立 10 個獨立檔案（`step_t010_chat_given_provider_answers.go`、`step_t011_chat_given_two_providers.go`、`step_t012_chat_given_provider_error_status.go`、`step_t013_chat_given_provider_unreachable.go`、`step_t014_chat_given_provider_no_answer.go`、`step_t015_chat_when_starts_with_prompt.go`、`step_t016_chat_when_diagnostic_with_prompt.go`、`step_t017_chat_then_one_request.go`、`step_t018_chat_then_prints_answer.go`、`step_t019_chat_then_provider_error_code.go`），各自宣告 `init()` 並將空白 registrar 加入 `registrars` 切片。
   - 不做：不寫具體 step 實作邏輯、不碰既有 step 檔案。
 
-- [ ] T005 重構 no-network guard 為 offline-path witness
+- [X] T005 重構 no-network guard 為 offline-path witness
   - Read:
     - `specs/plans/004-first-reasoning-turn/research.md` -> Decision 6（Guard amendment）
     - `specs/truth/techstack.md` -> Testing & Verification（No-network verification (offline paths)）
@@ -97,19 +97,19 @@
 
 ### BDD-ALIGN（介面根 MODIFY／搬移句）
 
-- [ ] T006 [P] [BDD-ALIGN] `Then: tellme explains on stderr that "{reason}"`（介面根；新增第 9 條 class phrase `the provider request failed`）
+- [X] T006 [P] [BDD-ALIGN] `Then: tellme explains on stderr that "{reason}"`（介面根；新增第 9 條 class phrase `the provider request failed`）
   - Read:
     - `specs/truth/features/cli/dsl.md` -> `tellme explains on stderr that "{reason}"`
     - `tests/e2e/steps/step_t017_root_then_explains_stderr.go`
   - 對齊：確認既有前綴比對 stepdef 涵蓋 `tellme: the provider request failed` 失敗類別（片語詞彙由 8 條增為 9 條）。
 
-- [ ] T007 [P] [BDD-ALIGN] `Given: the selected provider override is "{provider}"`（由 configuration 模組搬移為介面根跨模組 row；語意不變）
+- [X] T007 [P] [BDD-ALIGN] `Given: the selected provider override is "{provider}"`（由 configuration 模組搬移為介面根跨模組 row；語意不變）
   - Read:
     - `specs/truth/features/cli/dsl.md` -> `the selected provider override is "{provider}"`
     - `tests/e2e/steps/step_t024_config_given_selected_provider_override.go`
   - 對齊：確認既有 stepdef 精確對應介面根那列，configuration 與 chat 兩模組皆可命中（單一權威，不得重複）。
 
-- [ ] T008 [P] [BDD-ALIGN] `Then: tellme performs no network access`（由 diagnostics 模組搬移為介面根跨模組 row，語意改為 offline-path canary）
+- [X] T008 [P] [BDD-ALIGN] `Then: tellme performs no network access`（由 diagnostics 模組搬移為介面根跨模組 row，語意改為 offline-path canary）
   - Read:
     - `specs/truth/features/cli/dsl.md` -> `tellme performs no network access`
     - `tests/e2e/steps/step_t051_diag_then_performs_no_network.go`
@@ -118,66 +118,66 @@
 
 ### UNIT（adapter pure-helper 單元測試）
 
-- [ ] T009 [P] [UNIT] `internal/infrastructure/llm/openai/*_test.go` request assembly 與 response normalization
+- [X] T009 [P] [UNIT] `internal/infrastructure/llm/openai/*_test.go` request assembly 與 response normalization
   - Read:
     - `specs/plans/004-first-reasoning-turn/research.md` -> Decision 1, 3 & 4
   - 撰寫表驅動測試覆蓋：endpoint 由 base URL 加上 `/chat/completions`、`Authorization: Bearer`、`MODEL`、`MAX_TOKENS`（>0 才帶）、`HEADERS` 合併；response 取 `choices[0].message.content`，空／缺欄／不可解析一律回 error。
 
 ### BDD-RED（chat 模組新增句型）
 
-- [ ] T010 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint answers with "{answer}"`
+- [X] T010 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint answers with "{answer}"`
   - Landing: `tests/e2e/steps/step_t010_chat_given_provider_answers.go`
   - 語意：寫入預設 configuration 選定 `{provider}`，其 endpoint 指向 fake provider，並 script fake 回覆 `{answer}`。
 
-- [ ] T011 [P] [BDD-RED] `Given: configured providers "{provider_a}" and "{provider_b}" whose endpoints answer`
+- [X] T011 [P] [BDD-RED] `Given: configured providers "{provider_a}" and "{provider_b}" whose endpoints answer`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `configured providers "{provider_a}" and "{provider_b}" whose endpoints answer`
   - Landing: `tests/e2e/steps/step_t011_chat_given_two_providers.go`
   - 語意：寫入含兩個 provider、皆指向 fake 的預設 configuration。
 
-- [ ] T012 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint answers with an error status`
+- [X] T012 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint answers with an error status`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint answers with an error status`
   - Landing: `tests/e2e/steps/step_t012_chat_given_provider_error_status.go`
   - 語意：寫入選定 `{provider}` 的預設 configuration，並 script fake 回非 2xx（如 `500`）。
 
-- [ ] T013 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint is unreachable`
+- [X] T013 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint is unreachable`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint is unreachable`
   - Landing: `tests/e2e/steps/step_t013_chat_given_provider_unreachable.go`
   - 語意：寫入選定 `{provider}` 的預設 configuration，endpoint 指向關閉的埠／不可達位址。
 
-- [ ] T014 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint answers with no usable answer`
+- [X] T014 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint answers with no usable answer`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint answers with no usable answer`
   - Landing: `tests/e2e/steps/step_t014_chat_given_provider_no_answer.go`
   - 語意：寫入選定 `{provider}` 的預設 configuration，並 script fake 回不可解讀的 body（如空 `choices`）。
 
-- [ ] T015 [P] [BDD-RED] `When: the operator starts tellme with the prompt "{prompt}"`
+- [X] T015 [P] [BDD-RED] `When: the operator starts tellme with the prompt "{prompt}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the operator starts tellme with the prompt "{prompt}"`
   - Landing: `tests/e2e/steps/step_t015_chat_when_starts_with_prompt.go`
   - 語意：在當前環境下執行 `tellme "{prompt}"`（無 `-c`），擷取 exit code / stdout / stderr 與 fake 收到的請求。
 
-- [ ] T016 [P] [BDD-RED] `When: the operator runs tellme's diagnostic with the prompt "{prompt}"`
+- [X] T016 [P] [BDD-RED] `When: the operator runs tellme's diagnostic with the prompt "{prompt}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the operator runs tellme's diagnostic with the prompt "{prompt}"`
   - Landing: `tests/e2e/steps/step_t016_chat_when_diagnostic_with_prompt.go`
   - 語意：執行 `tellme -d "{prompt}"`；`-d` dispatch 先於 prompt turn，產生診斷報告。
 
-- [ ] T017 [P] [BDD-RED] `Then: tellme sends exactly one request to the provider "{provider}"`
+- [X] T017 [P] [BDD-RED] `Then: tellme sends exactly one request to the provider "{provider}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `tellme sends exactly one request to the provider "{provider}"`
   - Landing: `tests/e2e/steps/step_t017_chat_then_one_request.go`
   - 語意：斷言 `{provider}` 的 fake 恰好收到 1 次請求，且攜帶 prompt 與解析後的 model/credential；無其它 provider 收到請求。
 
-- [ ] T018 [P] [BDD-RED] `Then: tellme prints the provider's answer "{answer}"`
+- [X] T018 [P] [BDD-RED] `Then: tellme prints the provider's answer "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `tellme prints the provider's answer "{answer}"`
   - Landing: `tests/e2e/steps/step_t018_chat_then_prints_answer.go`
   - 語意：斷言 stdout 含有 provider 的 answer `{answer}`，且未被吞掉或只出現在 stderr。
 
-- [ ] T019 [P] [BDD-RED] `Then: tellme exits with the provider error code`
+- [X] T019 [P] [BDD-RED] `Then: tellme exits with the provider error code`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `tellme exits with the provider error code`
   - Landing: `tests/e2e/steps/step_t019_chat_then_provider_error_code.go`
   - 語意：斷言 exit code 等於 pin 定的 provider error code `6`，且不得退化為其它錯誤類別。
 
 ### Phase Review Gate
 
-- [ ] T020 subagent review (phase quality gate)
+- [X] T020 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/answering-a-single-prompt.feature`
     - `specs/truth/features/cli/chat/reporting-a-failed-provider-request.feature`
@@ -211,8 +211,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/answering-a-single-prompt.feature`
 
-- [ ] T021 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T022 [BDD-REFACTOR] 在綠燈下整理 request assembly、response normalization 與 CLI dispatch
+- [X] T021 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T022 [BDD-REFACTOR] 在綠燈下整理 request assembly、response normalization 與 CLI dispatch
 
 ## Phase 4B: ADD Feature File - cli/chat/reporting-a-failed-provider-request.feature
 
@@ -233,8 +233,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/reporting-a-failed-provider-request.feature`
 
-- [ ] T023 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T024 [BDD-REFACTOR] 在綠燈下整理 failure 映射與 exit-code 分類
+- [X] T023 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T024 [BDD-REFACTOR] 在綠燈下整理 failure 映射與 exit-code 分類
 
 ## Phase 4C: Regression
 
@@ -243,7 +243,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`（chat、configuration、workspace、diagnostics、usage 全模組）
 
-- [ ] T025 [REGRESSION] 執行全域回歸，確認零破壞
+- [X] T025 [REGRESSION] 執行全域回歸，確認零破壞
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
   - 確認 exit-code 表 `0/2/3/4/5/6` 與既有 CLI 契約（round 001/002/003）100% 維持綠燈，且 offline paths 不觸網。
 

@@ -72,7 +72,7 @@ All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-tech
 
 ## Round 004 — `004-first-reasoning-turn` (in progress)
 
-**Status**: 🚧 **IN PROGRESS** (2026-09-12) — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` done; branch `004-first-reasoning-turn` off `dev`.
+**Status**: 🚧 **IN PROGRESS** (2026-09-12) — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` done; implementation branch `004-implement-first-reasoning-turn` (base `004-first-reasoning-turn` off `dev`).
 
 **Scope**: (1) `tellme "<prompt>"` → one provider request → printed response; (2) a provider domain port + one concrete adapter (OpenAI-compatible family first); (3) request assembly from the round-003 resolved provider; (4) response normalization to a minimal answer; (5) a deterministic provider/transport failure contract (frozen class phrase `the provider request failed` + exit code `6`); (6) a network-path test strategy (local fake provider) + amended no-network capability guard.
 
@@ -86,11 +86,11 @@ All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-tech
 - [x] `plan.md` — `/axb-system-analysis` (2 interfaces, 1 wave; `/axb-api-plan` = NOOP, `/axb-data-plan` = NOOP; CLI end + provider gateway → `/axb-dsl-refine` handoff)
 - [x] `specs/truth/features/cli/**` — `/axb-dsl-refine` (new `chat` module: 2 features + dsl; root DSL +1 class phrase `the provider request failed`; 2 rows promoted to root; topology audit PASSED — 219 steps)
 - [x] `tasks.md` — `/axb-tasks` (25 tasks; Setup omitted — stdlib only; Phase 3 = 3 ALIGN + 1 UNIT + 10 RED + review; orphan sweep 0)
-- [ ] Implementation — `/axb-implement`
+- [x] Implementation — `/axb-implement` (25/25 tasks `[X]`; godog 34/34 scenarios · 242/242 steps; `make verify` OK)
 
 ### Pipeline position
 
-`/axb-specify` + `/axb-spec-by-example` + `/axb-technical-research` + `/axb-system-analysis` + `/axb-dsl-refine` + `/axb-tasks` **done** → **`/axb-implement`**.
+`/axb-specify` + `/axb-spec-by-example` + `/axb-technical-research` + `/axb-system-analysis` + `/axb-dsl-refine` + `/axb-tasks` + `/axb-implement` **done** (25/25 tasks `[X]`) → PR open for review.
 
 ### Decisions locked (round 004 — Clarify Round 1)
 

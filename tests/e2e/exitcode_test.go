@@ -19,6 +19,7 @@ func TestExitCodesAreDistinct(t *testing.T) {
 		"ConfigError":               cli.ConfigError,
 		"EnvironmentError":          cli.EnvironmentError,
 		"DiagnosticUnresolvedError": cli.DiagnosticUnresolvedError,
+		"ProviderError":             cli.ProviderError,
 	}
 
 	seen := make(map[int]string, len(codes))
@@ -50,6 +51,7 @@ func TestExitCodesMatchPinnedContract(t *testing.T) {
 		"ConfigError":               {cli.ConfigError, 3},
 		"EnvironmentError":          {cli.EnvironmentError, 4},
 		"DiagnosticUnresolvedError": {cli.DiagnosticUnresolvedError, 5},
+		"ProviderError":             {cli.ProviderError, 6},
 	}
 	for name, c := range cases {
 		if c.got != c.want {
