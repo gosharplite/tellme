@@ -263,3 +263,16 @@
 | `plan.md` -> Scope notes（api/data NOOP；CLI end → /axb-dsl-refine） | T014、T021 | PASS |
 
 > 孤立產物件數：0。掃描通過，准予交付。
+
+---
+
+## Post-Delivery Amendment (`821824f`) — live-usage fix
+
+A live run of the operator's `dev` (Vertex `TYPE: gemini`) provider exposed a **wire defect the hermetic E2E fake cannot catch** (the fake does not validate the request body): the adapter sent **both** `thinkingBudget` and `thinkingLevel`, which Vertex rejects — `thinking_budget and thinking_level are not supported together` → HTTP 400 → `the provider request failed` (exit 6). The adapter also dropped Vertex's error body, hiding the cause.
+
+Fix (in-round, post-delivery — the round is not yet merged):
+- `buildGenerationConfig` sends **exactly one** thinking knob (level when set, else budget).
+- The adapter surfaces Vertex's `error.message` on a non-2xx (the OpenAI adapter already did).
+- Unit tests updated: `TestRequestBody_TextPersonaBudgetTools` (single knob) + `TestRequestBody_ThinkingBudgetOnly`.
+
+Verified **live**: the same prompt now answers (exit 0); `make verify` OK. See `research.md` Decision 9.

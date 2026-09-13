@@ -71,10 +71,21 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
 
 ---
 
+## Decision 9: Vertex thinking config is a single knob; provider errors are surfaced (`821824f`)
+
+- **Decision**: `generationConfig.thinkingConfig` carries **exactly one** of `thinkingLevel` (preferred when set — the Gemini 3 knob) or `thinkingBudget` (fallback) — never both. A non-2xx Vertex response also surfaces its structured `error.message` in the failure detail (the adapter previously reported only the status code).
+- **Rationale**: A live run of the operator's `dev` entry (which sets **both** `THINKING_BUDGET: 32768` and `THINKING_LEVEL: "HIGH"`) returned HTTP 400 — *"Unable to submit request because thinking_budget and thinking_level are not supported together."* Vertex treats the two as mutually exclusive. The adapter also dropped the error body, hiding the cause; surfacing it (matching the OpenAI adapter's `extractErrorMessage`) makes the failure actionable.
+- **Alternatives considered**:
+  - **Send both** (the original shape) — rejected: Vertex rejects it for Gemini 3 models; this is a live-usage defect, not a hypothetical.
+  - **Send only `thinkingBudget`** — rejected: Gemini 3 uses `thinkingLevel`, and the operator's entries set `THINKING_LEVEL: HIGH`, so the level is the effective knob.
+  - **Drop `thinkingConfig` entirely** — rejected: it would discard the operator's configured thinking level.
+
+---
+
 ## Residual risks / forward links
 
 - **Exact Vertex field names (Decision 2)**: the JSON field names (`contents`/`parts`/`systemInstruction`/`generationConfig`/`thinkingConfig`/`functionDeclarations`/`functionCall`/`usageMetadata`) follow the Vertex REST reference but are **not yet verified against the live API on this host**; the implementation/DSL phase must confirm them (a `/axb-dsl-refine`/implementation determination).
-- **Thinking-config mapping (Decision 2)**: how `THINKING_LEVEL` (`"HIGH"`) and `THINKING_BUDGET` map into `thinkingConfig` for a `gemini-3.8-flash` model is model-dependent; the round pins that they are **sent** (or omitted when zero), not that the API accepts every combination — a residual to verify live.
+- **Thinking-config mapping (Decision 2)**: how `THINKING_LEVEL` (`"HIGH"`) and `THINKING_BUDGET` map into `thinkingConfig` for a `gemini-3.8-flash` model is model-dependent. **RESOLVED (`821824f`)** — live-confirmed: the two are mutually exclusive, so exactly one is sent (Decision 9); verified against the live Vertex API.
 - **`google` TYPE alias (FR-001)**: whether `TYPE: "google"` is accepted in addition to `"gemini"` is a `/axb-dsl-refine`/implementation determination (held open here).
 - **Credential-failure class placement (Decision 4)**: exit 6 (`the provider request failed`) is chosen; revisit only if the implementation reveals a cleaner boundary with the configuration-invalid class (exit 3).
 - **Token expiry / 401 handling (Decision 5)**: the exact skew and the 401-triggered re-mint are implementation details; only "obtained once and reused within the run" is pinned.
