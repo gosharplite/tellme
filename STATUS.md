@@ -237,7 +237,7 @@ Deferred + **named** (not built): the class-level phrase rename (its own ADR-rou
 
 **Review trail**: PR [#20](https://github.com/gosharplite/tellme/pull/20) review ([#5645711029](https://github.com/gosharplite/tellme/pull/20#issuecomment-5645711029)) → **FULL APPROVAL**; guidance (TD-1 `historyStoreFactory` seam · TD-2 bounded read · RF-1 idempotent `--new` · RF-2 `-l` contract · RF-3 request widening) folded into `tasks.md` (`34359ed`) → certification **CERTIFIED READY TO MERGE** ([#5645748606](https://github.com/gosharplite/tellme/pull/20#issuecomment-5645748606)). PR [#21](https://github.com/gosharplite/tellme/pull/21) review ([#5645834214](https://github.com/gosharplite/tellme/pull/21#issuecomment-5645834214)) → **FULL ARCHITECTURAL APPROVAL — READY TO MERGE**; response ([#5645842877](https://github.com/gosharplite/tellme/pull/21#issuecomment-5645842877)).
 
-**Open (non-blocking)**: PR #16 **Obs 1** (stdout TTY probe) stays **OPEN**; round-006 **Obs 3** (renderer lifecycle) deferred to multi-turn. Forward items acknowledged from PR #21: unbounded history / no pruning → the **agent-tools round**; no `flock` → wire a `ModeLocker` with `--callback`/parallel personas; centralize mode resolution into `internal/home` on growth.
+**Open (non-blocking)**: PR #16 **Obs 1** (stdout TTY probe) stays **OPEN**; round-006 **Obs 3** (renderer lifecycle) deferred to multi-turn. Forward items acknowledged from PR #21: unbounded history → the **agent-tools round** (round 008 landed the tool loop but **not** pruning); **token-budget pruning remains a settled exclusion** (out of `tellme` scope, not merely deferred); no `flock` → wire a `ModeLocker` with `--callback`/parallel personas; centralize mode resolution into `internal/home` on growth.
 
 ## Roadmap — next slices
 
@@ -254,7 +254,7 @@ Deferred + **named** (not built): the class-level phrase rename (its own ADR-rou
 
 - **Round 008 delivered / frozen** — plan/truth PR [#24](https://github.com/gosharplite/tellme/pull/24) (`fb382fc`) + implementation PR [#25](https://github.com/gosharplite/tellme/pull/25) (`f9b5d74`) merged; propagated `008-agent-tools-and-tool-call-loop → dev` (`d376e03`) `→ main`. **Next round starts a fresh `009-*` off `dev`.**
 
-- **Round 007 delivered** — plan/truth PR [#20](https://github.com/gosharplite/tellme/pull/20) (`3187584`) + implementation PR [#21](https://github.com/gosharplite/tellme/pull/21) (`f36a83b`) merged; propagated `007-session-history-persistence → dev` (`6f5483b`) `→ main` (`c7b9950`). **Next round starts a fresh `008-*` off `dev`** (candidate: agent tools / the tool-call loop, which brings history summarisation + token-budget pruning).
+- **Round 007 delivered** — plan/truth PR [#20](https://github.com/gosharplite/tellme/pull/20) (`3187584`) + implementation PR [#21](https://github.com/gosharplite/tellme/pull/21) (`f36a83b`) merged; propagated `007-session-history-persistence → dev` (`6f5483b`) `→ main` (`c7b9950`). **Round 008 followed** (agent tools / the tool-call loop), landing **history summarisation as an on-demand agent tool**; **token-budget pruning is a settled exclusion** (out of `tellme` scope, not carried by that round).
 
 - **Round 006 delivered** — PR [#19](https://github.com/gosharplite/tellme/pull/19) merged (`7cc1304`) + propagated `dev → main`; issue [#17](https://github.com/gosharplite/tellme/issues/17) closed.
 
