@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -9,6 +11,11 @@ import (
 // maxStdinBytes bounds the standard-input read so an unbounded stream cannot
 // exhaust memory (round-005 research Decision 2; matches the reference's cap).
 const maxStdinBytes = 1 << 20 // 1 MiB
+
+// multiLineHint is the POSIX-terminal hint printed before the interactive
+// multi-line read (round-012 research Decision 3). It carries no `tellme: `
+// prefix, so the frozen class-phrase vocabulary is unchanged.
+const multiLineHint = "[Reading multi-line input. Press Ctrl+C to cancel, or Ctrl+D to send]"
 
 // defaultIsTerminal reports whether v is connected to a terminal, using the
 // dependency-free standard-library character-device check (round-005 research
@@ -59,4 +66,24 @@ func resolvePrompt(args []string, stdin io.Reader, isTTY func(any) bool) (string
 		piped = data
 	}
 	return combinePrompt(args, piped), nil
+}
+
+// readInteractivePrompt prints the multi-line hint to the diagnostic stream and
+// reads the prompt from a terminal to EOF (Ctrl+D), bounded by maxStdinBytes. It
+// reports ok=false when the read is cancelled (ctx) — the caller then sends no
+// request (round-012 research Decisions 2 & 4). POSIX-only; there is no Windows
+// variant (round-012 research Decision 5).
+func readInteractivePrompt(ctx context.Context, stdin io.Reader, stderr io.Writer) (string, bool) {
+	_, _ = fmt.Fprintln(stderr, multiLineHint)
+	done := make(chan []byte, 1)
+	go func() {
+		data, _ := io.ReadAll(io.LimitReader(stdin, maxStdinBytes))
+		done <- data
+	}()
+	select {
+	case data := <-done:
+		return strings.TrimSpace(string(data)), true
+	case <-ctx.Done():
+		return "", false
+	}
 }

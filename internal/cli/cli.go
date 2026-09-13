@@ -204,6 +204,19 @@ func run(args []string, version string, env runtimeEnv) int {
 	if opts.newSession {
 		return renderNewSession(homeDir, env)
 	}
+	// Round 012 — a bare invocation on a terminal reads an interactive multi-line
+	// prompt: print the hint to stderr and read stdin to EOF (Ctrl+D). An empty or
+	// cancelled submission sends no request (round-012 research Decisions 1–5).
+	// POSIX-only; there is no Windows variant.
+	if env.isTTY(env.stdin) {
+		ictx, icancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		text, ok := readInteractivePrompt(ictx, env.stdin, env.stderr)
+		icancel()
+		if !ok || text == "" {
+			return Success
+		}
+		return renderTurn(homeDir, opts.configPath, text, opts.raw, false, env)
+	}
 	return renderBoot(homeDir, opts.configPath, env)
 }
 

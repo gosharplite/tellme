@@ -178,6 +178,13 @@ func runExec(bin, dir string, args []string, stdin io.Reader, set map[string]str
 	cmd.Env = buildEnv(set, unset)
 	if stdin != nil {
 		cmd.Stdin = stdin
+	} else {
+		// Default: an empty pipe — a NON-terminal — so the CLI's char-device
+		// terminal probe does not mistake the null device for an interactive
+		// terminal (round 012). An empty reader gives the child an immediate EOF
+		// (the "no piped input" default), exactly as the null device did, but the
+		// child's stdin is a pipe, not a character device.
+		cmd.Stdin = strings.NewReader("")
 	}
 
 	var stdout, stderr bytes.Buffer
