@@ -87,12 +87,22 @@ func beforeScenario(ctx context.Context, _ *godog.Scenario) (context.Context, er
 		workDir:      work,
 		homeSet:      true,
 		envOverrides: map[string]string{},
-		envUnset:     map[string]bool{"TELL_ME_MODE": true, "TELL_ME_SELECTED_PROVIDER": true},
-		args:         nil,
-		exitCode:     0,
-		stdout:       "",
-		stderr:       "",
-		runErr:       nil,
+		// Unset every environment override the CLI honours by default, so an
+		// ambient shell value cannot leak into a scenario (hermetic E2E — e.g. a
+		// developer shell exporting TELL_ME_WRAP_WIDTH). A scenario that needs one
+		// arranges it explicitly via setEnv, which removes it from this set.
+		envUnset: map[string]bool{
+			"TELL_ME_MODE":              true,
+			"TELL_ME_SELECTED_PROVIDER": true,
+			"TELL_ME_WRAP_WIDTH":        true,
+			"MAX_TOOL_LOOP":             true,
+			"MAX_HISTORY_TOKENS":        true,
+		},
+		args:     nil,
+		exitCode: 0,
+		stdout:   "",
+		stderr:   "",
+		runErr:   nil,
 	}
 	return context.WithValue(ctx, scenarioKey{}, sc), nil
 }

@@ -17,7 +17,7 @@ func TestRunWireChronology(t *testing.T) {
 		{Text: "done"},
 	}}
 	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "R"})}
-	if _, _, err := a.Run(context.Background(), "read x", nil); err != nil {
+	if _, err := a.Run(context.Background(), "read x", nil); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 	if len(gw.calls) < 2 {

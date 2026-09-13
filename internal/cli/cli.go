@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/spf13/pflag"
 
@@ -66,8 +67,11 @@ type resolution struct {
 	// MaxToolLoop is the resolved tool-loop bound (round 008): MAX_TOOL_LOOP
 	// (env/config, default 1000).
 	MaxToolLoop int
-	Mode        string // the effective mode (when reached)
-	Workspace   string // the resolved workspace path (when reached)
+	// MaxHistoryTokens is the resolved payload budget (round 009): the value the
+	// payload status line measures against (MAX_HISTORY_TOKENS, default 1000000).
+	MaxHistoryTokens int
+	Mode             string // the effective mode (when reached)
+	Workspace        string // the resolved workspace path (when reached)
 }
 
 // resolveError carries the pinned reason category plus the underlying cause.
@@ -97,6 +101,9 @@ type runtimeEnv struct {
 	stderr   io.Writer
 	isTTY    func(any) bool
 	renderer answerRenderer
+	// clock is the injected time seam for the payload status line (round 009);
+	// nil falls back to time.Now.
+	clock func() time.Time
 }
 
 // answerRenderer renders a Markdown answer to ANSI (round 006). It is the seam
@@ -140,6 +147,7 @@ func Run(args []string, version string) int {
 		stderr:   os.Stderr,
 		isTTY:    defaultIsTerminal,
 		renderer: newRenderer(),
+		clock:    time.Now,
 	})
 }
 
@@ -263,6 +271,15 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 	}
 	res.MaxToolLoop = maxLoops
 
+	// Step 4d — resolve the payload budget (round-009 FR-010): MAX_HISTORY_TOKENS
+	// (env/config, default 1000000). A non-integer or negative value is a
+	// configuration error.
+	budget, bErr := cfg.EffectiveMaxHistoryTokens(os.Getenv("MAX_HISTORY_TOKENS"))
+	if bErr != nil {
+		return res, &resolveError{Reason: reasonConfigInvalid, Err: bErr}
+	}
+	res.MaxHistoryTokens = budget
+
 	// Step 5 — the effective selected provider must be in the registry (FR-003).
 	res.Selected = cfg.EffectiveSelectedProvider(os.Getenv("TELL_ME_SELECTED_PROVIDER"))
 	if !cfg.ProviderInRegistry(res.Selected) {
@@ -349,13 +366,20 @@ func runTurn(res resolution, store history.Store, prompt string, raw bool, env r
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
+	// Pre-flight payload status (round-009 FR-001): the estimated size of the
+	// assembled conversation — the resumed turns (via the shared projection,
+	// including tool steps — TD-1) plus the current prompt — measured against the
+	// payload budget. Diagnostic only, on stderr.
+	assembled := append(append(make([]llm.Message, 0, len(prior)+1), agent.BuildMessages(prior)...), llm.Message{Role: "user", Content: prompt})
+	emitPayloadStatus(env, res, llm.EstimateTokens(assembled), true)
+
 	loop := &agent.AgentLoop{
 		Gateway:  gw,
 		Registry: newToolRegistry(store, gw),
 		MaxLoops: res.MaxToolLoop,
 		Stderr:   env.stderr,
 	}
-	answer, steps, err := loop.Run(ctx, prompt, prior)
+	result, err := loop.Run(ctx, prompt, prior)
 	if err != nil {
 		var inc *agent.ErrIncomplete
 		if errors.As(err, &inc) {
@@ -363,11 +387,29 @@ func runTurn(res resolution, store history.Store, prompt string, raw bool, env r
 		}
 		return emitProviderError(env.stderr, err)
 	}
-	if err := store.Append(history.Entry{Prompt: prompt, Answer: answer, Steps: steps}); err != nil {
+	// Post-turn payload status (round-009 FR-006): the provider's measured prompt
+	// tokens when it reported usage; the line is omitted otherwise.
+	if result.Usage.Reported {
+		emitPayloadStatus(env, res, result.Usage.PromptTokens, false)
+	}
+	if err := store.Append(history.Entry{Prompt: prompt, Answer: result.Answer, Steps: result.Steps}); err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
-	env.writeAnswer(answer, raw, res.WrapWidth)
+	env.writeAnswer(result.Answer, raw, res.WrapWidth)
 	return Success
+}
+
+// emitPayloadStatus writes one payload status line to the diagnostic stream
+// (stderr) using the runtime's injected clock seam (round-009 FR-001/FR-006).
+// `estimated` selects the pre-flight `~` form; the measured form omits it. The
+// line carries no `tellme: ` prefix (FR-014) and names the effective mode and the
+// provider's configured MODEL (TD-2).
+func emitPayloadStatus(env runtimeEnv, res resolution, tokens int, estimated bool) {
+	clock := env.clock
+	if clock == nil {
+		clock = time.Now
+	}
+	_, _ = fmt.Fprintln(env.stderr, ui.FormatPayloadStatus(clock(), tokens, res.MaxHistoryTokens, res.Mode, res.Provider.Model, estimated))
 }
 
 // renderHistoryList lists the last N persisted messages (round-007 FR-007..FR-009)

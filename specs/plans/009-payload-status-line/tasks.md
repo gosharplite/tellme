@@ -19,21 +19,21 @@
 
 **Goal**: 建立 token estimator 落點、status-line formatter 落點、`llm.Response` usage 欄位、`MAX_HISTORY_TOKENS` 解析 stub、CLI 狀態行落點，以及 E2E 共用元件（fake 供應/隱藏 usage、stderr 擷取、budget 環境注入）與 9 個新句 stepdef 落點骨架（Zero Shared Edits 原則）。
 
-- [ ] T001 建立 token estimator 落點骨架 `internal/domain/llm/token.go`
+- [X] T001 建立 token estimator 落點骨架 `internal/domain/llm/token.go`
   - Read:
     - `specs/plans/009-payload-status-line/research.md` -> Decision 1, 6
     - `specs/truth/techstack.md` -> CLI Application（Token estimator）
   - 只做：宣告 `EstimateTokens(messages []Message) int` 純函式簽名 stub（stdlib-only、deterministic）與固定 bytes-per-token 比例常數槽；不呼叫 provider、不涉網路。
   - 不做：不實作估計算式；不接 `internal/cli`。
 
-- [ ] T002 建立 status-line formatter 落點骨架 `internal/ui/status.go`
+- [X] T002 建立 status-line formatter 落點骨架 `internal/ui/status.go`
   - Read:
     - `specs/plans/009-payload-status-line/research.md` -> Decision 3, 4
     - `specs/truth/techstack.md` -> CLI Application（Payload status line）
   - 只做：宣告 payload status line formatter 的簽名 stub（輸入 tokens/budget/mode/model + **注入的 clock seam**；輸出 pre-flight `~` 與 post-turn 兩型）；對齊 `[HH:MM:SS] Payload: <n>/<max> tokens - <mode> - <model>` 形狀；**不得**加 `tellme:` 前綴。
   - 不做：不決定何時輸出；不接 CLI 分流。
 
-- [ ] T003 擴充 `llm.Response` usage 欄位、OpenAI adapter 解析，與 `AgentLoop.Run` seam 落點骨架
+- [X] T003 擴充 `llm.Response` usage 欄位、OpenAI adapter 解析，與 `AgentLoop.Run` seam 落點骨架
   - Read:
     - `specs/plans/009-payload-status-line/research.md` -> Decision 2
     - `specs/truth/techstack.md` -> Reasoning & Provider Transport（Provider gateway port / Response normalization）
@@ -42,7 +42,7 @@
   - 只做：`llm.Response` 新增 `Usage`（prompt/completion/total tokens）型別骨架；在 `parseResponse` 留下解析回應 `usage` 區塊的 stub（無 `usage` 時為 zero-value）；在 `internal/agent/agentloop.go` 留下把 `Run` 回傳面由 `(string, []history.Step, error)` 加寬為 `(agent.AgentResult{Answer, Steps, Usage}, error)` 的型別與簽名 stub（**BLOCKER-2**：迴圈目前丟棄 `resp.Usage`；多步 tool run 取**最終** completion 的 usage）。**向後相容**：不帶 usage 的既有回應語意不變。
   - 不做：不改 transport、錯誤處理或既有 content/tool_calls 解析；不實作估算或狀態行。
 
-- [ ] T004 落點骨架 `internal/config/config.go`（`MAX_HISTORY_TOKENS`）
+- [X] T004 落點骨架 `internal/config/config.go`（`MAX_HISTORY_TOKENS`）
   - Read:
     - `specs/plans/009-payload-status-line/research.md` -> Decision 5
     - `specs/truth/techstack.md` -> Configuration（Payload budget）
@@ -50,7 +50,7 @@
   - 只做：`Config` 新增 `MaxHistoryTokens int`（`yaml:"MAX_HISTORY_TOKENS"`）與 `DefaultMaxHistoryTokens = 1000000` 常數；留下 `EffectiveMaxHistoryTokens(override string) (int, error)` 的 stub（env-over-file、預設 1000000、`>= 0`、非整數/負值 → `ErrInvalidValue`）。
   - 不做：不接 `resolve()`；不寫斷言（產品行為留 Phase 4）。
 
-- [ ] T005 落點骨架 `internal/cli/cli.go`（狀態行接線）與 `internal/agent/agentloop.go`（`BuildMessages` export）
+- [X] T005 落點骨架 `internal/cli/cli.go`（狀態行接線）與 `internal/agent/agentloop.go`（`BuildMessages` export）
   - Read:
     - `specs/plans/009-payload-status-line/research.md` -> Decision 2, 3, 4, 5, 6, 7
     - `specs/truth/techstack.md` -> CLI Application（Payload status line / Token estimator）、Configuration（Payload budget）
@@ -58,7 +58,7 @@
   - 只做：在 `resolution` 落點新增 `MaxHistoryTokens`；在 `resolve()` 留下 `EffectiveMaxHistoryTokens` 呼叫的 stub；把 `agent.buildMessages` 升格為 exported `agent.BuildMessages`（**TD-1**：CLI 的 pre-flight 估計與 loop 共用同一份含 tool steps 的對話投影，不得用 legacy `cli.toMessages`）；在 prompt turn 落點留下「送出前以 `EstimateTokens(append(agent.BuildMessages(prior), user prompt))` 寫 pre-flight 行、完成後以 `AgentLoop.Run` 回傳的 `AgentResult.Usage` 寫 post-turn 行到 `stderr`」的 hook 簽名（皆為 stub）；`<model>` 由 provider 的 `MODEL` 決定（**TD-2**）。狀態行只落 `stderr`。
   - 不做：不實作估計算式／formatter 內容；不改既有 dispatch、`stdout` 答案流、exit-code 或離線路徑。
 
-- [ ] T006 建立 E2E 共用元件落點骨架
+- [X] T006 建立 E2E 共用元件落點骨架
   - Read:
     - `specs/plans/009-payload-status-line/research.md` -> Decision 8, 9
     - `specs/truth/techstack.md` -> Testing & Verification（E2E runner / Local fake provider / Pure-helper unit tests）
@@ -66,7 +66,7 @@
   - 只做：擴充 fake provider 以**供應**帶 `usage` 的回應並可**隱藏** `usage`；新增擷取 subprocess `stderr` 的 harness helper；新增設定 `MAX_HISTORY_TOKENS` 的環境注入。
   - 不做：不寫具體 step 斷言；不碰 `internal/`。
 
-- [ ] T007 建立 9 個新句 stepdef 獨立檔案骨架 `tests/e2e/steps/step_t008_*.go`–`step_t016_*.go`
+- [X] T007 建立 9 個新句 stepdef 獨立檔案骨架 `tests/e2e/steps/step_t008_*.go`–`step_t016_*.go`
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（8 個新句）
     - `specs/truth/features/cli/history/dsl.md`（1 個新句）
@@ -110,54 +110,54 @@
 
 ### BDD-RED（本輪新增句型）
 
-- [ ] T008 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint answers with "{answer}" and reports its usage`
+- [X] T008 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint answers with "{answer}" and reports its usage`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint answers with "{answer}" and reports its usage`
   - Landing: `tests/e2e/steps/step_t008_chat_given_provider_usage.go`
   - 語意：寫可解析 config 選 `{provider}`；fake 回 `{answer}` 並附 `usage` 物件（scripted prompt-token 數）。
 
-- [ ] T009 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint answers with "{answer}" and reports no usage`
+- [X] T009 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint answers with "{answer}" and reports no usage`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint answers with "{answer}" and reports no usage`
   - Landing: `tests/e2e/steps/step_t009_chat_given_provider_no_usage.go`
   - 語意：寫可解析 config 選 `{provider}`；fake 回 `{answer}` 且**不**附 `usage`。
 
-- [ ] T010 [P] [BDD-RED] `Given: the payload budget is "{budget}"`
+- [X] T010 [P] [BDD-RED] `Given: the payload budget is "{budget}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the payload budget is "{budget}"`
   - Landing: `tests/e2e/steps/step_t010_chat_given_payload_budget.go`
   - 語意：把 `MAX_HISTORY_TOKENS` 設為 `{budget}` 進 subprocess 環境。
 
-- [ ] T011 [P] [BDD-RED] `Then: tellme reports the estimated payload status for the turn`
+- [X] T011 [P] [BDD-RED] `Then: tellme reports the estimated payload status for the turn`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `tellme reports the estimated payload status for the turn`
   - Landing: `tests/e2e/steps/step_t011_chat_then_estimated_status.go`
   - 語意：斷言擷取的 **stderr** 帶有 pre-flight 行（`[HH:MM:SS] Payload: ~<n>/<max> tokens - <mode> - <model>`，`~` 前綴）；且該行**不在** stdout。
 
-- [ ] T012 [P] [BDD-RED] `Then: tellme reports the measured payload status for the turn`
+- [X] T012 [P] [BDD-RED] `Then: tellme reports the measured payload status for the turn`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `tellme reports the measured payload status for the turn`
   - Landing: `tests/e2e/steps/step_t012_chat_then_measured_status.go`
   - 語意：斷言 stderr 帶有 post-turn 行（`[HH:MM:SS] Payload: <n>/<max> tokens - <mode> - <model>`，無 `~`）。
 
-- [ ] T013 [P] [BDD-RED] `Then: tellme reports no measured payload status`
+- [X] T013 [P] [BDD-RED] `Then: tellme reports no measured payload status`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `tellme reports no measured payload status`
   - Landing: `tests/e2e/steps/step_t013_chat_then_no_measured_status.go`
   - 語意：斷言 stderr 不含無 `~` 的 payload 行。
 
-- [ ] T014 [P] [BDD-RED] `Then: the payload status measures against a budget of {budget} tokens`
+- [X] T014 [P] [BDD-RED] `Then: the payload status measures against a budget of {budget} tokens`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the payload status measures against a budget of {budget} tokens`
   - Landing: `tests/e2e/steps/step_t014_chat_then_budget_value.go`
   - 語意：斷言回報的 payload 狀態行 `<max>` 欄等於 `{budget}`。
 
-- [ ] T015 [P] [BDD-RED] `Then: the payload status names the active mode and model`
+- [X] T015 [P] [BDD-RED] `Then: the payload status names the active mode and model`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the payload status names the active mode and model`
   - Landing: `tests/e2e/steps/step_t015_chat_then_mode_model.go`
   - 語意：斷言回報的 payload 狀態行以 ` - <mode> - <model>` 結尾；`<mode>` 為有效 mode，`<model>` 為該 provider 的 `MODEL` 屬性（reference parity，**非** registry key；**TD-2**）。
 
-- [ ] T016 [P] [BDD-RED] `Then: no payload status is reported`
+- [X] T016 [P] [BDD-RED] `Then: no payload status is reported`
   - Read: `specs/truth/features/cli/history/dsl.md` -> `no payload status is reported`
   - Landing: `tests/e2e/steps/step_t016_history_then_no_status.go`
   - 語意：斷言擷取的 stderr 不含任何 payload 狀態行（既無 `~` 估計行，也無 measured 行）。
 
 ### UNIT（pure-helper 單元測試）
 
-- [ ] T017 [P] [UNIT] estimator / budget resolver / status formatting / usage parsing 單元測試
+- [X] T017 [P] [UNIT] estimator / budget resolver / status formatting / usage parsing 單元測試
   - Read:
     - `specs/plans/009-payload-status-line/research.md` -> Decision 1, 2, 4, 5
     - `specs/truth/techstack.md` -> CLI Application（Token estimator / Payload status line）、Configuration（Payload budget）、Reasoning & Provider Transport（Response normalization）、Testing & Verification（Pure-helper unit tests）
@@ -166,7 +166,7 @@
 
 ### Phase Review Gate
 
-- [ ] T018 subagent review (phase quality gate)
+- [X] T018 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/reporting-the-payload-status.feature`、`specs/truth/features/cli/history/inspecting-the-session-history.feature`
     - `specs/truth/features/cli/chat/dsl.md`、`specs/truth/features/cli/history/dsl.md`、`specs/truth/features/cli/dsl.md`
@@ -198,8 +198,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/reporting-the-payload-status.feature`
 
-- [ ] T019 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T020 [BDD-REFACTOR] 在綠燈下整理 estimator、usage 解析與狀態行輸出（stream 分流）
+- [X] T019 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T020 [BDD-REFACTOR] 在綠燈下整理 estimator、usage 解析與狀態行輸出（stream 分流）
 
 ## Phase 4B: MODIFY Feature File - cli/history/inspecting-the-session-history.feature
 
@@ -218,8 +218,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/history/inspecting-the-session-history.feature`
 
-- [ ] T021 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T022 [BDD-REFACTOR] 在綠燈下整理「僅 prompt turn 輸出狀態行」的分流判斷
+- [X] T021 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T022 [BDD-REFACTOR] 在綠燈下整理「僅 prompt turn 輸出狀態行」的分流判斷
 
 ## Phase 4C: Regression
 
@@ -228,7 +228,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`（chat、history、configuration、workspace、diagnostics、usage 全模組）
 
-- [ ] T023 [REGRESSION] 執行全域回歸，確認零破壞
+- [X] T023 [REGRESSION] 執行全域回歸，確認零破壞
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
   - 確認 exit-code 表 `0/2/3/4/5/6/7` 與 class-phrase 詞彙維持 **10**（狀態行不帶 `tellme:` 前綴）；offline paths（`--version`、`-d`、no-prompt boot、`-l`、prompt-less `--new`）不觸網且**不**輸出狀態行；prompt turn 的 `stdout` 答案流 byte 不變；`go mod tidy` 後 module graph 不變（本輪無新相依）；`MAX_HISTORY_TOKENS` 預設 1000000。
 
