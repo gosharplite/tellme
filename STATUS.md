@@ -17,10 +17,11 @@
 **Artifacts / pipeline**:
 - [x] plan package (`spec.md`, `checklists/requirements.md`, `truth-delta.md` skeleton, `features/acceptance/` ×2) — on branch `010-stream-ordering-observability`.
 - [x] `research.md` + `specs/truth/techstack.md` MODIFY (cross-stream ordering witness + layered assertions).
-- [ ] truth (`features/cli/chat/**` MODIFY — ordering semantics; `/axb-api-plan` + `/axb-data-plan` = NOOP).
-- [ ] `plan.md`, `tasks.md`, implementation.
+- [x] `plan.md` (1 interface / 1 wave; `/axb-api-plan` + `/axb-data-plan` = NOOP).
+- [ ] truth (`features/cli/chat/**` MODIFY — ordering semantics).
+- [ ] `tasks.md`, implementation.
 
-**Pipeline position**: `/axb-specify` ✅ → `/axb-spec-by-example` ✅ → `/axb-technical-research` ✅ → next `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`.
+**Pipeline position**: `/axb-specify` ✅ → `/axb-spec-by-example` ✅ → `/axb-technical-research` ✅ → `/axb-system-analysis` ✅ → next `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`.
 
 **Open (non-blocking)**: research/DSL-level determinations only — merged-capture plumbing, no-final-answer ordering semantics, where the incidental-interleave note lives, and the unit emit-order helper.
 

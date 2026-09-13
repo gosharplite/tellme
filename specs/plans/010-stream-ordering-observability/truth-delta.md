@@ -15,13 +15,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _TBD_ | `specs/truth/contracts/**` | _Pending — round 010._ | _Placeholder; `/axb-api-plan` replaces it (expected NOOP — no API surface)._ |
+| NOOP | `specs/truth/contracts/**` | Checked; left empty. tellme has a single CLI end and no HTTP/OpenAPI surface of its own; the outbound provider request/response shape is unchanged this round. | `contract-authoritative` holds vacuously. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _TBD_ | `specs/truth/data/**` | _Pending — round 010._ | _Placeholder; `/axb-data-plan` replaces it (expected NOOP — no persisted state change)._ |
+| NOOP | `specs/truth/data/**` | Checked; left empty. No persisted state changes this round — per-turn token counts stay display-only and are recomputed; the session-history model (`history_entry`) is untouched. | `data-model-covers-all-state` holds vacuously. |
 
 ## /axb-dsl-refine
 
