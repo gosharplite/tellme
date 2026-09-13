@@ -529,3 +529,65 @@ PR [#31](https://github.com/gosharplite/tellme/pull/31) was **merged** by `thptc
 ### Next steps
 1. Choose the `013-*` theme and start it via `/axb-specify` off `dev`.
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+
+---
+
+## Round 013 — `013-vertex-gemini-provider` DELIVERED + propagated (closeout)
+
+The full round-013 slice: bootstrap (Steps 1–8) → `/axb-specify` → Clarify Round 1 → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` → PR [#33](https://github.com/gosharplite/tellme/pull/33) → review (plan+truth certified; implementation certified; **two live-usage defects** found by running against real Vertex) → re-certified → merge → propagation → closeout. `tellme` gained the **Vertex AI / Gemini provider family**.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 012 delivered/frozen; active branch `dev`) |
+| `/axb-specify` | `specs/plans/013-vertex-gemini-provider/`; **Clarify Round 1** locked `(1,1,1)` — Vertex-only · `.json` credential · stdlib-only OAuth2 |
+| `/axb-spec-by-example` | 3 acceptance features (`answering-with-a-gemini-model`, `authenticating-with-a-service-account-key`, `refusing-providers-tellme-cannot-drive`) |
+| `/axb-technical-research` | `research.md` (Decisions 1–10); `specs/truth/techstack.md` MODIFY |
+| `/axb-system-analysis` | `plan.md` — 1 interface / 1 wave; `/axb-api-plan` + `/axb-data-plan` = NOOP; CLI end → `/axb-dsl-refine` |
+| `/axb-dsl-refine` | ADD `chat/driving-a-vertex-gemini-model.feature`, `chat/authenticating-to-a-vertex-gemini-model.feature`, `chat/refusing-a-provider-family-tellme-cannot-drive.feature` + `chat/dsl.md` rows (5 Given + 2 Then); root `cli/dsl.md` NOOP; audit **PASSED** (595 steps) |
+| `/axb-tasks` | `tasks.md` (21 tasks; Setup omitted — stdlib-only; orphan sweep 0) |
+| `/axb-implement` | 21/21 tasks `[X]`; `internal/infrastructure/llm/gemini/{client.go,auth.go}` + `factory.go` + unit tests + E2E (fake Vertex + 7 steps + wire-agnostic helpers); `make verify` OK |
+| Review | plan+truth **FULL APPROVAL** → directives D1–D4 folded (`d1fc433`) → certified; implementation (`de79fc0`) **certified ready to merge** |
+| Live-usage defects | **`821824f`** (one thinking knob + surfaced Vertex error) + **`f7af54f`** (echo the Gemini `thoughtSignature`) → **RE-CERTIFIED at `6f3f83f`** |
+| Delivery | PR [#33](https://github.com/gosharplite/tellme/pull/33) merged into `dev` (`6ed3bbc`, by `thptcnec`); propagated `dev → main` (`9a3587a`) |
+
+### Decisions locked (round 013)
+| # | Decision |
+| --- | --- |
+| Q1 | **Vertex AI only** — the entry's shape (`aiplatform.googleapis.com` + service-account); the Google Gemini API family + ADC deferred |
+| Q2 | **`.json`-suffix service-account detection** (no config-schema change) |
+| Q3 | **stdlib-only OAuth2** service-account flow — no new module |
+| D9 | Vertex `thinkingConfig` is a **single knob** (`thinkingBudget` XOR `thinkingLevel`); a non-2xx surfaces Vertex's `error.message` |
+| D10 | Echo the Gemini **`thoughtSignature`** on replayed `functionCall` parts (required for tools) |
+
+### Verification (2026-09-13)
+`make verify` **OK** (0 lint · 0 reachable vulns · no test-sleep · offline witness) · `go test ./...` green · **godog 88/88** · topology audit **PASSED** (595 steps) · **falsifiability witness** reproduced · `go.mod`/`go.sum` unchanged (stdlib-only) · **live Vertex runs green** (single prompt + tool loop).
+
+### Commits (branch `013-vertex-gemini-provider`, then merged)
+| Commit | Note |
+| --- | --- |
+| `f6170fa` | `docs(013)`: plan package (spec + checklist + truth-delta skeleton) |
+| `02f4f8e` | `docs(013)`: acceptance Gherkin |
+| `8294dad` | `docs(013)`: technical research + techstack truth |
+| `f90a6e9` | `docs(013)`: system-analysis plan |
+| `5b1f93b` | `docs(013)`: CLI interface truth (drive/auth/refuse) + DSL rows |
+| `838b633` | `docs(013)`: tasks.md |
+| `d1fc433` | `docs(013)`: fold PR #33 review directives D1–D4 |
+| `de79fc0` | `feat(013)`: implement the Vertex/Gemini transport + stdlib service-account auth |
+| `821824f` | `fix(013)`: single thinking knob + surface Vertex error |
+| `f7af54f` | `fix(013)`: echo the `thoughtSignature` on replayed functionCall parts |
+| `c968a4f` / `6f3f83f` | `docs(013)`: record the live-usage fixes (Decision 9 / Decision 10) |
+| `6ed3bbc` | PR [#33](https://github.com/gosharplite/tellme/pull/33) merge into `dev` |
+| `9a3587a` | propagation `dev → main` (no-ff) |
+
+### Open items (non-blocking)
+- **Issue [#34](https://github.com/gosharplite/tellme/issues/34)** — the **014 slice candidate**: persist the per-tool-step **signature** for faithful **resume** replay (a **data-model** change, owned by `/axb-data-plan`); also lists further 014 candidates (Gemini API family, ADC, concurrent tool calls).
+- Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / no pruning / no `flock`; round-011 forward items (estimation constants; persona-plumbing seam; **N-2** estimator ignores replayed tool-call `arguments`).
+
+### Next steps
+1. Start a fresh `014-*` off `dev` (candidate: issue [#34](https://github.com/gosharplite/tellme/issues/34)).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
