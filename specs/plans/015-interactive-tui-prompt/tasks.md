@@ -30,14 +30,14 @@
 
 **Goal**: 引入本輪新增技術（Bubble Tea 家族），備妥 TUI 執行環境與單一來源公告字面，最後以最小 smoke-test 確認 TTY-gated `-i` 路徑可建置連結。不寫 DSL 語意、不寫提示／建議產品行為。
 
-- [ ] T001 加入 `bubbletea` + `bubbles`（textarea）並將 `lipgloss` 升為 direct
+- [X] T001 加入 `bubbletea` + `bubbles`（textarea）並將 `lipgloss` 升為 direct
   - Read:
     - `specs/truth/techstack.md` -> CLI Application（Interactive TUI prompt (`-i`)）、Not Introduced Yet（TUI libraries — introduced in round 015）
     - `specs/plans/015-interactive-tui-prompt/research.md` -> Decision 1, Decision 7
   - `go get github.com/charmbracelet/bubbletea github.com/charmbracelet/bubbles`；於 `go.mod` 將 `github.com/charmbracelet/lipgloss` 由 indirect 升為 direct；`go mod tidy`。
   - 只加這三個 TUI 家族模組，不加其他新相依（無 fuzzy／glob 套件）。
 
-- [ ] T002 備妥 TUI 執行環境與單一來源公告字面 `cli.TUIHint`
+- [X] T002 備妥 TUI 執行環境與單一來源公告字面 `cli.TUIHint`
   - Read:
     - `specs/truth/techstack.md` -> CLI Application（Terminal detection — 重用 round-012 real-isatty seam）、Interactive prompt enable（`USE_TUI_PROMPT` + `-i`）
     - `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt is shown`（其 `來源`: `cli.TUIHint`）
@@ -45,7 +45,7 @@
   - 於 `internal/cli` 定義單一來源公告字面 `const TUIHint = "[Interactive prompt. Type a prompt; Tab accepts a suggestion, Ctrl+S sends, Esc cancels]"`；確認注入式 I/O seam（`env.stdin`/`env.stderr`）與 `golang.org/x/term` real-isatty seam 已可重用。
   - 只定義字面與 seam 掛點；不實作提示渲染、不讀 stdin、不寫提示語意。
 
-- [ ] T003 smoke-test：TTY-gated `-i` 路徑可建置與連結
+- [X] T003 smoke-test：TTY-gated `-i` 路徑可建置與連結
   - Read:
     - `specs/truth/techstack.md` -> Testing & Verification（E2E runner / step definitions；Test strategy）
     - `Makefile`（`build`、`verify`）
@@ -58,7 +58,7 @@
 
 **Goal**: 建立本輪產品碼與測試層的落點骨架（Zero Shared Edits），讓後續 Phase 3／Phase 4 不各自發明檔案、seam 或套件路徑。只建立落點與載體，不寫建議／提示／紀錄行為。
 
-- [ ] T004 建立 `internal/ui/tui/prompt/` 套件骨架（Bubble Tea 模型 + 建議清單 + 編輯器）
+- [X] T004 建立 `internal/ui/tui/prompt/` 套件骨架（Bubble Tea 模型 + 建議清單 + 編輯器）
   - Read:
     - `specs/plans/015-interactive-tui-prompt/research.md` -> Decision 1, Decision 6
     - `specs/plans/015-interactive-tui-prompt/plan.md` -> Source-code structure
@@ -66,7 +66,7 @@
   - 只做：建立 `internal/ui/tui/prompt/model.go`（`tea.Model` 骨架；注入 `input io.Reader`、`output io.Writer`、`suggestion source`；**output 綁定 `env.stderr`**，見 review blocker）、`suggester.go`（selection cursor 骨架）、`textarea.go`（`bubbles/textarea` 包裝骨架）。所有注入點以參數形式存在，供單元測試注入。
   - 不做：不寫 seed／refresh／accept 行為；不寫 keybinding 邏輯；不寫 dashboard；不碰 `env.stdout`。
 
-- [ ] T005 於專責子領域建立 suggestion-source port 與 prompt-tracker port（**不得**用 `internal/domain/ports`）
+- [X] T005 於專責子領域建立 suggestion-source port 與 prompt-tracker port（**不得**用 `internal/domain/ports`）
   - Read:
     - `specs/plans/015-interactive-tui-prompt/research.md` -> Decision 2, Decision 3
     - `specs/plans/015-interactive-tui-prompt/plan.md` -> Source-code structure；PR #38 review directive ②
@@ -74,7 +74,7 @@
   - 只做：建立 `internal/domain/suggestions/suggestions.go`（`Suggestion` 值型別 + `SuggestionService` port）與 prompt-tracker port（`internal/domain/history/` 下，例如 `tracker.go`：`Append`／`Recent`／`Close(ctx) error`）。
   - 不做：不建立 `internal/domain/config` 或集中式 `internal/domain/ports`；不寫引擎或 store 實作。
 
-- [ ] T006 建立 `internal/app/suggestions/service.go` 協調者骨架（多來源引擎外殼）
+- [X] T006 建立 `internal/app/suggestions/service.go` 協調者骨架（多來源引擎外殼）
   - Read:
     - `specs/plans/015-interactive-tui-prompt/research.md` -> Decision 2
     - `specs/truth/techstack.md` -> CLI Application（Prompt suggestion engine）
@@ -82,7 +82,7 @@
   - 只做：建立 `multiSourceSuggestionService` 外殼，留出 recent-prompt / workspace-path / tool 三來源與 debounce 掛點；workspace 掃描以 `filepath.Split(query)` 收斂、`ReadDir` 分批、`ctx.Err()` 讓出、ignore 目錄跳過、10 筆上限（見 review directive ③）的函式殼。
   - 不做：不寫 subsequence 比對結果、不寫 dedupe、不寫 debounce 計時語意。
 
-- [ ] T007 建立 `internal/infrastructure/history/global_prompt_tracker.go` store 骨架（append-only JSONL）
+- [X] T007 建立 `internal/infrastructure/history/global_prompt_tracker.go` store 骨架（append-only JSONL）
   - Read:
     - `specs/plans/015-interactive-tui-prompt/research.md` -> Decision 3
     - `specs/truth/data/data-model.dbml` -> `prompt_log_entry`
@@ -90,7 +90,7 @@
   - 只做：建立 store 骨架——`output/` **root** 的 `global_prompts.jsonl` 路徑解析、`Append`（以 `O_APPEND|O_CREATE|O_WRONLY` 開檔，見 review directive ⑤）、`Recent`（newest-first + dedupe 讀取）與 `Close(ctx) error`（`sync.WaitGroup` 排水）的函式殼；保留 async compaction（`newSize == initialSize` 才 `AtomicWrite`）掛點。
   - 不做：不寫實際寫入／compaction 邏輯、不寫 `{timestamp,prompt}` 序列化斷言。
 
-- [ ] T008 於 `internal/config` 加 `USE_TUI_PROMPT`、於 `internal/cli` 加 `-i` 解析與 `tuiPromptRunner` DI seam
+- [X] T008 於 `internal/config` 加 `USE_TUI_PROMPT`、於 `internal/cli` 加 `-i` 解析與 `tuiPromptRunner` DI seam
   - Read:
     - `specs/truth/techstack.md` -> Configuration（Interactive prompt enable）、CLI Application（CLI flag parsing — `-i`/`--interactive`）
     - `specs/truth/techstack.md` -> CLI Application（Terminal detection）
@@ -99,7 +99,7 @@
   - 只做：`internal/config/config.go` 加 `USE_TUI_PROMPT` 欄位與解析；`internal/cli/cli.go` 新增 `-i`/`--interactive` flag 解析與 `tuiPromptRunner` factory 變數宣告（比照 `gatewayFactory`／`historyStoreFactory`），並在 dispatch 骨架留出 gating（`-i`/`USE_TUI_PROMPT` AND terminal stdin）分支，暫回非 TUI 路徑。
   - 不做：不寫真正的 TUI 呼叫與 rendering；不改既有非 `-i` dispatch 行為；不寫 gating 斷言。
 
-- [ ] T009 建立 16 個新句 stepdef 獨立檔骨架（Zero Shared Edits）
+- [X] T009 建立 16 個新句 stepdef 獨立檔骨架（Zero Shared Edits）
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（本輪 16 個新句）
     - `tests/e2e/steps/register.go`、`tests/e2e/harness/`（`TELL_ME_FORCE_STDIN_TTY` seam + scripted stdin 既有能力）
@@ -122,7 +122,7 @@
     - `tests/e2e/steps/step_t026_chat_then_no_request.go`
   - 不做：不寫具體 arrange／斷言邏輯；不碰既有 step 檔。
 
-- [ ] T010 建立 4 個 `[UNIT]` 落點檔骨架
+- [X] T010 建立 4 個 `[UNIT]` 落點檔骨架
   - Read:
     - `specs/plans/015-interactive-tui-prompt/research.md` -> Decision 2, 3, 4, 6
     - `specs/truth/techstack.md` -> Testing & Verification（Interactive TUI prompt harness；Pure-helper unit tests）

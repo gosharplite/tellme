@@ -39,13 +39,14 @@ const (
 
 // options are the parsed CLI flags.
 type options struct {
-	configPath string
-	diagnostic bool
-	version    bool
-	raw        bool
-	newSession bool
-	list       int
-	listSet    bool
+	configPath  string
+	diagnostic  bool
+	version     bool
+	raw         bool
+	newSession  bool
+	list        int
+	listSet     bool
+	interactive bool
 }
 
 // resolution is the outcome of resolving home → configuration → workspace. On a
@@ -137,6 +138,20 @@ var newHistoryStore historyStoreFactory = func(workspace string) history.Store {
 	return infrhistory.NewFileStore(workspace)
 }
 
+// tuiPromptRunner runs the interactive TUI prompt (round 015) for one invocation
+// and returns the composed prompt text plus whether a prompt was submitted (ok).
+// It is the DI seam (PR #38 review directive ④): the -i / USE_TUI_PROMPT / non-TTY
+// dispatch matrix is unit-testable without a terminal event loop, mirroring
+// gatewayFactory / historyStoreFactory.
+type tuiPromptRunner func(ctx context.Context, res resolution, store history.Store, env runtimeEnv) (string, bool, error)
+
+// newTUIPromptRunner is the production TUI runner (a var so tests may inject a
+// fake). Skeleton: the real Bubble Tea runner lands with the Feature phase
+// (round-015 T034).
+var newTUIPromptRunner tuiPromptRunner = func(_ context.Context, _ resolution, _ history.Store, _ runtimeEnv) (string, bool, error) {
+	return "", false, nil
+}
+
 // Run is the CLI entrypoint: main passes argv and the injected build version,
 // and Run returns the process exit code. It binds the real process streams, the
 // default terminal detector, and the production renderer into a runtimeEnv, then
@@ -183,6 +198,14 @@ func run(args []string, version string, env runtimeEnv) int {
 		_, _ = fmt.Fprintf(env.stdout, "tellme %s\n", version)
 		return Success
 	}
+
+	// Round 015 (skeleton, T008) — the opt-in interactive TUI prompt. The gating
+	// branch (-i / USE_TUI_PROMPT AND a terminal stdin → newTUIPromptRunner) is
+	// wired with the Feature phase (T038); until then the plain paths below are
+	// unchanged. The flag and the seam are referenced here so the landing skeleton
+	// is complete and free of unused symbols.
+	_ = opts.interactive
+	_ = newTUIPromptRunner
 
 	homeDir := os.Getenv("TELL_ME_HOME")
 
@@ -274,6 +297,7 @@ func parseFlags(args []string, stderr io.Writer) (opts *options, flagArgs []stri
 	fs.BoolVarP(&o.raw, "raw", "r", false, "Print the answer as raw text (no Markdown rendering).")
 	fs.BoolVar(&o.newSession, "new", false, "Start a fresh session, archiving the current session history.")
 	fs.IntVarP(&o.list, "list", "l", 0, "List the last N messages of the session history and exit.")
+	fs.BoolVarP(&o.interactive, "interactive", "i", false, "Open the interactive TUI prompt (requires a terminal).")
 	if err := fs.Parse(args); err != nil {
 		return nil, nil, false
 	}

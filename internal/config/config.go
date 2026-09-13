@@ -34,6 +34,7 @@ type Config struct {
 	WrapWidth        int                 `yaml:"WRAP_WIDTH"`
 	MaxToolLoop      int                 `yaml:"MAX_TOOL_LOOP"`
 	MaxHistoryTokens int                 `yaml:"MAX_HISTORY_TOKENS"`
+	UseTUIPrompt     bool                `yaml:"USE_TUI_PROMPT"`
 	Providers        map[string]Provider `yaml:"PROVIDERS"`
 }
 
@@ -218,4 +219,12 @@ func (c *Config) EffectiveMaxHistoryTokens(override string) (int, error) {
 		return 0, fmt.Errorf("%w: MAX_HISTORY_TOKENS cannot be negative (%d)", ErrInvalidValue, limit)
 	}
 	return limit, nil
+}
+
+// EffectiveUseTUIPrompt resolves whether the opt-in interactive TUI prompt is
+// enabled: the -i/--interactive flag OR the config USE_TUI_PROMPT key
+// (round-015 FR-001). The TUI also requires a terminal stdin; that second gate
+// lives in internal/cli (the real-isatty seam), not here.
+func (c *Config) EffectiveUseTUIPrompt(flag bool) bool {
+	return flag || c.UseTUIPrompt
 }
