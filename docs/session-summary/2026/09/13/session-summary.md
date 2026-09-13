@@ -358,3 +358,42 @@ A temporarily inverted emit order failed at **both** layers — unit `TestRunTur
 ### PM follow-ups
 
 - None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
+
+
+---
+
+## 28. Session 25 (cont.) — round-010 closeout (re-run) + binary refresh + issue #28 closed
+
+A post-merge wrap-up: re-ran `SESSION-CLOSEOUT.md` on the now-merged `dev`, closed the round anchor issue, refreshed the installed binary, and propagated.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Merge check | PR [#29](https://github.com/gosharplite/tellme/pull/29) confirmed **merged** into `dev` (`7c6d793`, by `thptcnec`) |
+| Closeout Steps 1–2 | Clean tree; `make verify` **OK**; diff-level secret scan clean |
+| Closeout Steps 3–6 | `STATUS.md` refreshed (round 010 → DELIVERED/FROZEN; branch model; roadmap; open items; propagation) + §27; committed on `dev` |
+| Anchor issue | [#28](https://github.com/gosharplite/tellme/issues/28) **closed** (completed) with a delivery-summary comment; `STATUS.md` note committed |
+| Step 7 | Propagated `dev → main` (`1272ade`); subsequent doc commits propagated |
+| Binary | `go install ./cmd/tellme` rebuilt `$(go env GOPATH)/bin/tellme` from `dev`; `tellme --version` → `dev` |
+
+### Commits (branch `dev`)
+
+| Commit | Note |
+| --- | --- |
+| `b223a37` | `docs(010)`: day close — round 010 delivered (PR #29 merged) + status/summary |
+| `ec3a5a6` | `docs(010)`: note issue #28 closed |
+| *(this closeout)* | `docs(010)`: end-of-day closeout — binary-refresh note + closeout re-run |
+
+### Open items (non-blocking)
+
+- None new. Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / no `flock`.
+
+### Next steps
+
+1. Choose the `011-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new.
