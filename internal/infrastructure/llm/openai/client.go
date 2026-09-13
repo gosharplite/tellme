@@ -218,6 +218,11 @@ func parseResponse(raw []byte) (llm.Response, error) {
 				ToolCalls []toolCall `json:"tool_calls"`
 			} `json:"message"`
 		} `json:"choices"`
+		Usage *struct {
+			PromptTokens     int `json:"prompt_tokens"`
+			CompletionTokens int `json:"completion_tokens"`
+			TotalTokens      int `json:"total_tokens"`
+		} `json:"usage"`
 	}
 	if err := json.Unmarshal(raw, &decoded); err != nil {
 		return llm.Response{}, fmt.Errorf("unreadable provider response: %w", err)
@@ -226,6 +231,14 @@ func parseResponse(raw []byte) (llm.Response, error) {
 		return llm.Response{}, fmt.Errorf("provider response carried no usable answer")
 	}
 	resp := llm.Response{Text: decoded.Choices[0].Message.Content}
+	if decoded.Usage != nil {
+		resp.Usage = llm.Usage{
+			Reported:         true,
+			PromptTokens:     decoded.Usage.PromptTokens,
+			CompletionTokens: decoded.Usage.CompletionTokens,
+			TotalTokens:      decoded.Usage.TotalTokens,
+		}
+	}
 	for _, tc := range decoded.Choices[0].Message.ToolCalls {
 		resp.ToolCalls = append(resp.ToolCalls, llm.ToolCall{
 			ID:        tc.ID,

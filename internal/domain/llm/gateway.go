@@ -50,12 +50,23 @@ type Request struct {
 	Tools    []ToolDef
 }
 
+// Usage is the provider's reported token usage for a completion (round-009
+// research Decision 2). Reported is false when the provider response carried no
+// usage block, so the caller omits the post-turn payload status line.
+type Usage struct {
+	Reported         bool
+	PromptTokens     int
+	CompletionTokens int
+	TotalTokens      int
+}
+
 // Response is the normalized answer extracted from a provider response: the
-// answer text (empty when the model only requested tools) and any structured
-// tool-call requests.
+// answer text (empty when the model only requested tools), any structured
+// tool-call requests, and — round 009 — the provider's reported Usage.
 type Response struct {
 	Text      string
 	ToolCalls []ToolCall
+	Usage     Usage
 }
 
 // ProviderError is the single typed error for a provider or transport failure

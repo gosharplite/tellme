@@ -35,3 +35,16 @@ Feature: Inspecting the session history
       When the operator asks tellme to list the last 2 messages
       Then tellme lists only the operator's messages
       And tellme exits successfully
+
+  Rule: Listing reports no payload status
+
+    Example: A listing shows no payload status
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds the exchanges:
+        | prompt            | answer |
+        | My name is Alice. | Noted. |
+      When the operator asks tellme to list the last 2 messages
+      Then no payload status is reported
+      And tellme exits successfully
+

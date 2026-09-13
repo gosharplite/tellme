@@ -22,6 +22,10 @@ var ErrInvalidValue = errors.New("invalid configuration value")
 // prompt run (round-008 research Decision 3 / FR-006).
 const DefaultMaxToolLoop = 1000
 
+// DefaultMaxHistoryTokens is the default payload budget the status line measures
+// against (round-009 research Decision 5; the user-locked default is 1000000).
+const DefaultMaxHistoryTokens = 1000000
+
 // Config is the boot-time YAML configuration input (FR-005).
 type Config struct {
 	Mode             string              `yaml:"MODE"`
@@ -29,6 +33,7 @@ type Config struct {
 	SelectedProvider string              `yaml:"SELECTED_PROVIDER"`
 	WrapWidth        int                 `yaml:"WRAP_WIDTH"`
 	MaxToolLoop      int                 `yaml:"MAX_TOOL_LOOP"`
+	MaxHistoryTokens int                 `yaml:"MAX_HISTORY_TOKENS"`
 	Providers        map[string]Provider `yaml:"PROVIDERS"`
 }
 
@@ -187,6 +192,30 @@ func (c *Config) EffectiveMaxToolLoop(override string) (int, error) {
 	}
 	if limit < 0 {
 		return 0, fmt.Errorf("%w: MAX_TOOL_LOOP cannot be negative (%d)", ErrInvalidValue, limit)
+	}
+	return limit, nil
+}
+
+// EffectiveMaxHistoryTokens resolves the payload budget the status line measures
+// against: the environment override (MAX_HISTORY_TOKENS) when non-empty, else
+// the file MAX_HISTORY_TOKENS, else the default DefaultMaxHistoryTokens
+// (round-009 research Decision 5). A zero (unset) value falls back to the
+// default; a non-integer override or a negative value from either source is an
+// invalid configuration value (wrapping ErrInvalidValue).
+func (c *Config) EffectiveMaxHistoryTokens(override string) (int, error) {
+	limit := c.MaxHistoryTokens
+	if override != "" {
+		n, err := strconv.Atoi(strings.TrimSpace(override))
+		if err != nil {
+			return 0, fmt.Errorf("%w: MAX_HISTORY_TOKENS %q is not an integer", ErrInvalidValue, override)
+		}
+		limit = n
+	}
+	if limit == 0 {
+		return DefaultMaxHistoryTokens, nil
+	}
+	if limit < 0 {
+		return 0, fmt.Errorf("%w: MAX_HISTORY_TOKENS cannot be negative (%d)", ErrInvalidValue, limit)
 	}
 	return limit, nil
 }
