@@ -138,3 +138,64 @@ Continuation of the same calendar day (2026-09-13): resumed `/axb-implement`, fi
 ### PM follow-ups
 
 - None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
+
+
+---
+
+## 24. Session 24 — round 009 (`009-payload-status-line`) delivered + propagated
+
+The full round-009 slice: bootstrap (Steps 1–8) → `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` → PRs [#26](https://github.com/gosharplite/tellme/pull/26)/[#27](https://github.com/gosharplite/tellme/pull/27) → merge → propagation → closeout. `tellme` gained **payload-budget visibility**: a prompt turn reports the payload's estimated size before the request and the provider's measured size after it, against a configurable budget.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (rounds 001–008 delivered/frozen; active branch `dev`) |
+| `/axb-specify` | `specs/plans/009-payload-status-line/`; Clarify Round 1 locked **Q1** stderr · **Q2** estimate + actual · **Q3** always-on; user-locked `MAX_HISTORY_TOKENS` default **1000000** |
+| `/axb-spec-by-example` | 2 acceptance features (`seeing-the-payload-status`, `choosing-the-payload-budget`) |
+| `/axb-technical-research` | `research.md` (9 decisions); `specs/truth/techstack.md` MODIFY |
+| `/axb-system-analysis` | `plan.md` — 1 interface / 1 wave; `/axb-api-plan` + `/axb-data-plan` = NOOP |
+| `/axb-dsl-refine` | ADD `chat/reporting-the-payload-status.feature` + `chat/dsl.md` rows; MODIFY `history/inspecting-the-session-history.feature` + `history/dsl.md`; root `cli/dsl.md` NOOP; topology audit **PASSED** (463 steps) |
+| `/axb-tasks` | `tasks.md` (23 tasks; Setup omitted — stdlib-only; orphan sweep 0) |
+| `/axb-implement` | 23/23 tasks `[X]`; `make verify` OK; `go test ./...` green |
+| Review | PR [#26](https://github.com/gosharplite/tellme/pull/26) → **REQUEST CHANGES** (BLOCKER-1/2, TD-1/2, RF-1) → fixed in-round (`e8182a6`) → **CERTIFIED READY TO MERGE**; PR [#27](https://github.com/gosharplite/tellme/pull/27) → **FULL ARCHITECTURAL APPROVAL** |
+| Delivery | PR [#26](https://github.com/gosharplite/tellme/pull/26) merged into `dev` (`98c0fb3`); PR [#27](https://github.com/gosharplite/tellme/pull/27) merged into `009-payload-status-line` (`5b744e8`); propagated `009-payload-status-line → dev` (`d4fd911`) `→ main` |
+
+### Decisions locked (round 009)
+
+| # | Decision |
+| --- | --- |
+| Q1 | Status line on the **diagnostic stream (`stderr`)**; `stdout` stays byte-exact (piping/`-r` unaffected). |
+| Q2 | Show **both** the pre-flight **estimate** (`~`) and the post-turn **actual** (widen `llm.Response` with the provider's reported `usage`). |
+| Q3 | **Always-on** — not TTY-gated, not suppressed by `-r`. |
+| Default | `MAX_HISTORY_TOKENS` = **1000000** (user-locked). |
+| TD-1 | Pre-flight estimate reuses the exported `agent.BuildMessages` (one projection incl. tool steps). |
+| TD-2 | `<model>` = the provider's configured `MODEL` (reference parity). |
+
+### Commits (round-009 branches, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `6f8f9a2` | `docs(009)`: plan package + spec |
+| `a0fa64d` | `docs(009)`: acceptance + research + techstack truth |
+| `7284537` | `docs(009)`: system-analysis `plan.md` |
+| `c33f6d8` | `docs(009)`: CLI interface truth |
+| `1f3881c` | `docs(009)`: `tasks.md` |
+| `e8182a6` | `fix(009)`: PR #26 review (BLOCKER-1/2, TD-1/2, RF-1) |
+| `541a769` | `feat(009)`: implement the payload status line |
+| `5b744e8` | PR [#27](https://github.com/gosharplite/tellme/pull/27) merge into `009-payload-status-line` |
+| `d4fd911` | propagation `009-payload-status-line → dev` (no-ff) |
+
+### Open items (non-blocking)
+
+- None new. Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / no `flock`.
+- **E2E hermeticity fix (round 009)**: the harness now unsets ambient overrides (`TELL_ME_WRAP_WIDTH`, `MAX_TOOL_LOOP`, `MAX_HISTORY_TOKENS`) so a developer shell cannot leak into a scenario.
+
+### Next steps
+
+1. Choose the `010-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
