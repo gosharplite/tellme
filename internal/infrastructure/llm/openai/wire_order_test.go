@@ -16,7 +16,7 @@ func TestRequestBody_EmptyPromptOmitsUserMessage(t *testing.T) {
 		{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_1", Name: "read_files", Arguments: `{"path":"notes.txt"}`}}},
 		{Role: "tool", Content: "ORANGE", ToolCallID: "call_1"},
 	}
-	body, err := requestBody("m", "", prior, nil, 0, "")
+	body, err := requestBody("m", "", prior, nil, 0, "", "")
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}

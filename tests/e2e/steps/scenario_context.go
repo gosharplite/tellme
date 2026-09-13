@@ -2,6 +2,7 @@ package steps
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/cucumber/godog"
+	"gopkg.in/yaml.v3"
 
 	"github.com/gosharplite/tellme/tests/e2e/fakeprovider"
 	"github.com/gosharplite/tellme/tests/e2e/harness"
@@ -67,6 +69,11 @@ type scenarioContext struct {
 	// arrangedExchanges is the conversation the fixture Given arranged into the
 	// session history (round 007), so a Then can compute the expected listing.
 	arrangedExchanges []exchange
+
+	// previousEstimate is the pre-flight estimate recorded by the round-011
+	// `a previous run …` Given, so a Then can compare the current run against it.
+	previousEstimate    int
+	previousEstimateSet bool
 }
 
 // exchange is one arranged prompt/answer pair (round 007).
@@ -410,4 +417,72 @@ func (sc *scenarioContext) onlyFake() *fakeprovider.Provider {
 		return nil
 	}
 	return sc.fakes[0]
+}
+
+// setPersona writes PERSON into the default configuration (configs/butler.yaml),
+// which the provider Given must have created (round-011 Given: persona config).
+func (sc *scenarioContext) setPersona(persona string) error {
+	return setPersonaAt(sc.home, persona)
+}
+
+// setPersonaAt writes PERSON into the default configuration under home.
+func setPersonaAt(home, persona string) error {
+	p := filepath.Join(home, "configs", "butler.yaml")
+	data, err := os.ReadFile(p)
+	if err != nil {
+		return fmt.Errorf("the default configuration must exist before setting the persona: %w", err)
+	}
+	var cfg map[string]any
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return err
+	}
+	cfg["PERSON"] = persona
+	out, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(p, out, 0o644)
+}
+
+// previousRunEstimate runs the current prompt once against a throwaway copy of
+// the runtime home with the given persona, parses the pre-flight `~<n>` estimate,
+// and stores it on the scenario (round-011 Given: a previous run …). The real
+// home (history, config) is left untouched.
+func (sc *scenarioContext) previousRunEstimate(persona, prompt string) error {
+	homeCopy, err := os.MkdirTemp("", "tellme-prev-home-")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.RemoveAll(homeCopy) }()
+	// Snapshot every fake so this arrange-run leaves NO request-count / script
+	// trace (round-011 TD-3, mirroring the round-010 merged-capture witness).
+	snaps := make([]fakeSnapshot, len(sc.fakes))
+	for i, f := range sc.fakes {
+		served, requests := f.Snapshot()
+		snaps[i] = fakeSnapshot{served: served, requests: requests}
+	}
+	defer func() {
+		for i, f := range sc.fakes {
+			f.Restore(snaps[i].served, snaps[i].requests)
+		}
+	}()
+
+	// Copy FIRST, then set the persona on the copy — the real home stays
+	// untouched (round-011 TD-1; the Given is hermetic).
+	if err := copyTree(sc.home, homeCopy); err != nil {
+		return err
+	}
+	if err := setPersonaAt(homeCopy, persona); err != nil {
+		return err
+	}
+	env := sc.runEnv()
+	env["TELL_ME_HOME"] = homeCopy
+	res := harness.RunIn(sc.workDir, []string{prompt}, env, sc.unsetNames())
+	n, ok := estimatedPayloadValue(res.Stderr)
+	if !ok {
+		return fmt.Errorf("the previous run reported no estimated payload status; stderr=%q", res.Stderr)
+	}
+	sc.previousEstimate = n
+	sc.previousEstimateSet = true
+	return nil
 }
