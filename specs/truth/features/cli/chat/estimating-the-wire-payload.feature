@@ -34,5 +34,5 @@ Feature: Estimating the wire payload
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint answers with "ok"
       And a previous run with the persona "be terse" and the prompt "Hi" reported an estimated payload status
-      When the operator starts tellme with the prompt "Hi"
+      When the operator uses the persona "be terse" and starts tellme with the prompt "Hi"
       Then the estimated payload matches the previous run's

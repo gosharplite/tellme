@@ -9,6 +9,13 @@ const (
 	perMessageOverhead = 4
 )
 
+// estimateTerm is the shared per-item heuristic term — a fixed bytes-per-token
+// ratio plus a small overhead — so the message, persona, and tool-declaration
+// terms cannot drift apart (round-011 N-1).
+func estimateTerm(s string) int {
+	return (len(s)+bytesPerToken-1)/bytesPerToken + perMessageOverhead
+}
+
 // EstimateTokens returns a deterministic, offline estimate of the token size of
 // an assembled conversation (round-009 research Decision 1). It is a
 // dependency-free heuristic — a fixed bytes-per-token ratio plus a small
@@ -21,7 +28,7 @@ const (
 func EstimateTokens(messages []Message) int {
 	total := 0
 	for _, m := range messages {
-		total += (len(m.Content)+bytesPerToken-1)/bytesPerToken + perMessageOverhead
+		total += estimateTerm(m.Content)
 	}
 	return total
 }
@@ -36,10 +43,12 @@ func EstimateTokens(messages []Message) int {
 func EstimatePayload(persona string, tools []ToolDef, messages []Message) int {
 	total := EstimateTokens(messages)
 	if persona != "" {
-		total += (len(persona)+bytesPerToken-1)/bytesPerToken + perMessageOverhead
+		total += estimateTerm(persona)
 	}
 	for _, t := range tools {
-		total += (len(t.Name)+len(t.Description)+len(t.Parameters)+bytesPerToken-1)/bytesPerToken + perMessageOverhead
+		total += estimateTerm(t.Name)
+		total += estimateTerm(t.Description)
+		total += estimateTerm(string(t.Parameters))
 	}
 	return total
 }

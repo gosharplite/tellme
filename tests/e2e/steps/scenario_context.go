@@ -454,10 +454,25 @@ func (sc *scenarioContext) previousRunEstimate(persona, prompt string) error {
 		return err
 	}
 	defer func() { _ = os.RemoveAll(homeCopy) }()
-	if err := sc.setPersona(persona); err != nil {
+	// Snapshot every fake so this arrange-run leaves NO request-count / script
+	// trace (round-011 TD-3, mirroring the round-010 merged-capture witness).
+	snaps := make([]fakeSnapshot, len(sc.fakes))
+	for i, f := range sc.fakes {
+		served, requests := f.Snapshot()
+		snaps[i] = fakeSnapshot{served: served, requests: requests}
+	}
+	defer func() {
+		for i, f := range sc.fakes {
+			f.Restore(snaps[i].served, snaps[i].requests)
+		}
+	}()
+
+	// Copy FIRST, then set the persona on the copy — the real home stays
+	// untouched (round-011 TD-1; the Given is hermetic).
+	if err := copyTree(sc.home, homeCopy); err != nil {
 		return err
 	}
-	if err := copyTree(sc.home, homeCopy); err != nil {
+	if err := setPersonaAt(homeCopy, persona); err != nil {
 		return err
 	}
 	env := sc.runEnv()

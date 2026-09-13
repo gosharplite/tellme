@@ -376,7 +376,7 @@ func runTurn(res resolution, store history.Store, prompt string, raw bool, env r
 	// payload budget. Diagnostic only, on stderr.
 	reg := newToolRegistry(store, gw)
 	assembled := append(append(make([]llm.Message, 0, len(prior)+1), agent.BuildMessages(prior)...), llm.Message{Role: "user", Content: prompt})
-	emitPayloadStatus(env, res, llm.EstimatePayload(res.Person, wireToolDefs(reg), assembled), true)
+	emitPayloadStatus(env, res, llm.EstimatePayload(res.Person, agent.ToolDefs(reg), assembled), true)
 
 	loop := &agent.AgentLoop{
 		Gateway:  gw,
@@ -586,21 +586,6 @@ var newToolRegistry toolRegistryFactory = func(store history.Store, gw llm.Gatew
 	ts := infratools.NewFilesystemTools()
 	ts = append(ts, infratools.NewSummarizeHistoryTool(store, gw))
 	return domaintools.NewRegistry(ts...)
-}
-
-// wireToolDefs projects the registry's tools into the wire definitions the
-// pre-flight estimate counts (round-011 research Decision 4). It mirrors the
-// agent loop's own projection so the estimate counts exactly what is sent.
-func wireToolDefs(reg domaintools.Registry) []llm.ToolDef {
-	if reg == nil {
-		return nil
-	}
-	ts := reg.Tools()
-	defs := make([]llm.ToolDef, 0, len(ts))
-	for _, t := range ts {
-		defs = append(defs, llm.ToolDef{Name: t.Name(), Description: t.Description(), Parameters: t.Parameters()})
-	}
-	return defs
 }
 
 // emitToolError maps an incomplete tool loop to the frozen tool class phrase and
