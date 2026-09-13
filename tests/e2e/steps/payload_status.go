@@ -42,6 +42,17 @@ func payloadStatusBudget(stderr string) (int, bool) {
 	return 0, false
 }
 
+// estimatedPayloadValue returns the `<est>` of the first pre-flight estimated
+// payload status line in stderr, and whether one was found (round-011 estimate
+// assertions).
+func estimatedPayloadValue(stderr string) (int, bool) {
+	if m := reEstimatedPayload.FindStringSubmatch(stderr); m != nil {
+		n, _ := strconv.Atoi(m[1])
+		return n, true
+	}
+	return 0, false
+}
+
 // hasPayloadStatusLine reports whether stderr carries any payload status line.
 func hasPayloadStatusLine(stderr string) bool {
 	return strings.Contains(stderr, "Payload: ")

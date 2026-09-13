@@ -1,5 +1,14 @@
 package llm
 
+// bytesPerToken and perMessageOverhead are the deterministic, dependency-free
+// heuristic constants shared by the estimation helpers (round-009 research
+// Decision 1). The exact ratio is NOT a contract term: only that the estimate is
+// deterministic, offline, and computed over the wire payload (round-011).
+const (
+	bytesPerToken      = 4
+	perMessageOverhead = 4
+)
+
 // EstimateTokens returns a deterministic, offline estimate of the token size of
 // an assembled conversation (round-009 research Decision 1). It is a
 // dependency-free heuristic — a fixed bytes-per-token ratio plus a small
@@ -10,11 +19,27 @@ package llm
 // the estimate is deterministic (round-009 chat/dsl.md, `the payload status
 // measures against a budget of {budget} tokens`).
 func EstimateTokens(messages []Message) int {
-	const bytesPerToken = 4
-	const perMessageOverhead = 4
 	total := 0
 	for _, m := range messages {
 		total += (len(m.Content)+bytesPerToken-1)/bytesPerToken + perMessageOverhead
+	}
+	return total
+}
+
+// EstimatePayload returns the wire-faithful pre-flight estimate of a request
+// (round-011 research Decision 4): the leading persona message, the tool
+// declarations sent in the request, and the conversation messages — the three
+// input components the provider's `prompt_tokens` covers. It is deterministic
+// and dependency-free; it is NOT required to equal the provider's reported count
+// (round-011 research Decision 5), only to be computed over the wired inputs and
+// to be responsive to their size.
+func EstimatePayload(persona string, tools []ToolDef, messages []Message) int {
+	total := EstimateTokens(messages)
+	if persona != "" {
+		total += (len(persona)+bytesPerToken-1)/bytesPerToken + perMessageOverhead
+	}
+	for _, t := range tools {
+		total += (len(t.Name)+len(t.Description)+len(t.Parameters)+bytesPerToken-1)/bytesPerToken + perMessageOverhead
 	}
 	return total
 }

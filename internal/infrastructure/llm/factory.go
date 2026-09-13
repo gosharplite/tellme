@@ -24,7 +24,7 @@ var supportedFamilies = map[string]bool{
 // NewGateway returns the concrete domainllm.Gateway for the resolved provider's
 // family. An unsupported family yields a *llm.ProviderError (rendered as the
 // frozen provider class phrase + exit code 6) instead of a malformed request.
-func NewGateway(prov config.Provider, name string) (domainllm.Gateway, error) {
+func NewGateway(prov config.Provider, name, persona string) (domainllm.Gateway, error) {
 	if !supportedFamilies[strings.ToLower(strings.TrimSpace(prov.Type))] {
 		return nil, &domainllm.ProviderError{
 			Provider: name,
@@ -39,5 +39,6 @@ func NewGateway(prov config.Provider, name string) (domainllm.Gateway, error) {
 		MaxTokens:     prov.MaxTokens,
 		Headers:       prov.Headers,
 		ThinkingLevel: prov.ThinkingLevel,
+		Persona:       persona,
 	}), nil
 }

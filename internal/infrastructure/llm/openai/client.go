@@ -33,6 +33,7 @@ type Config struct {
 	MaxTokens     int
 	Headers       map[string]string
 	ThinkingLevel string
+	Persona       string
 }
 
 // Client is the OpenAI-compatible adapter.
@@ -60,7 +61,7 @@ func NewWithHTTPClient(cfg Config, c *http.Client) *Client {
 // the normalized answer (round-004 research Decision 3 & 4). Every failure is
 // wrapped in a *llm.ProviderError.
 func (c *Client) Complete(ctx context.Context, req llm.Request) (llm.Response, error) {
-	body, err := requestBody(c.cfg.Model, req.Prompt, req.Messages, req.Tools, c.cfg.MaxTokens, c.cfg.ThinkingLevel)
+	body, err := requestBody(c.cfg.Model, req.Prompt, req.Messages, req.Tools, c.cfg.MaxTokens, c.cfg.ThinkingLevel, c.cfg.Persona)
 	if err != nil {
 		return llm.Response{}, c.wrap(err)
 	}
@@ -113,7 +114,7 @@ func requestURL(baseURL string) string {
 // stays `user → assistant(tool_calls) → tool(result)` (review PR #25 BLOCKER-1).
 // When no tool definitions are given the body is byte-identical to rounds
 // 004–007 (round-008 research Decision 2).
-func requestBody(model, prompt string, prior []llm.Message, toolDefs []llm.ToolDef, maxTokens int, thinkingLevel string) ([]byte, error) {
+func requestBody(model, prompt string, prior []llm.Message, toolDefs []llm.ToolDef, maxTokens int, thinkingLevel, persona string) ([]byte, error) {
 	messages := make([]map[string]any, 0, len(prior)+1)
 	for _, m := range prior {
 		msg := map[string]any{"role": m.Role, "content": m.Content}
@@ -138,6 +139,11 @@ func requestBody(model, prompt string, prior []llm.Message, toolDefs []llm.ToolD
 	}
 	if prompt != "" {
 		messages = append(messages, map[string]any{"role": "user", "content": prompt})
+	}
+	// Round 011 — the configured persona is the leading `system` message of the
+	// request (round-011 research Decision 1). An empty persona adds nothing.
+	if persona != "" {
+		messages = append([]map[string]any{{"role": "system", "content": persona}}, messages...)
 	}
 
 	payload := map[string]any{

@@ -29,7 +29,7 @@ func TestRequestURL(t *testing.T) {
 // TestRequestBody pins the request assembly: model, single user message,
 // max_tokens only when positive, reasoning_effort only when set.
 func TestRequestBody(t *testing.T) {
-	body, err := requestBody("deepseek-v4-flash", "hello world", nil, nil, 32768, "HIGH")
+	body, err := requestBody("deepseek-v4-flash", "hello world", nil, nil, 32768, "HIGH", "")
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -55,7 +55,7 @@ func TestRequestBody(t *testing.T) {
 		t.Errorf("message = %v, want user/hello world", first)
 	}
 
-	body, err = requestBody("m", "p", nil, nil, 0, "")
+	body, err = requestBody("m", "p", nil, nil, 0, "", "")
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -198,7 +198,7 @@ func TestRequestBody_PriorMessages(t *testing.T) {
 		{Role: "user", Content: "my name is alice"},
 		{Role: "assistant", Content: "noted"},
 	}
-	body, err := requestBody("m", "what is my name?", prior, nil, 0, "")
+	body, err := requestBody("m", "what is my name?", prior, nil, 0, "", "")
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -234,7 +234,7 @@ func TestRequestBody_Tools(t *testing.T) {
 		Description: "Read a file.",
 		Parameters:  []byte(`{"type":"object","properties":{"path":{"type":"string"}}}`),
 	}}
-	body, err := requestBody("m", "read x", nil, defs, 0, "")
+	body, err := requestBody("m", "read x", nil, defs, 0, "", "")
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}

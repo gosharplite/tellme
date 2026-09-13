@@ -19,7 +19,8 @@ func init() {
 }
 
 // thenRequestCarriedPipedContent (必查 呈現結果): the single recorded request's
-// `messages[0].content` equals {content} (trimmed).
+// current user prompt equals {content} (trimmed). The leading persona `system`
+// message, when present, is not the prompt (round-011).
 func thenRequestCarriedPipedContent(ctx context.Context, content string) error {
 	sc := scenarioFrom(ctx)
 	got, err := singleRequestPrompt(sc)
@@ -32,8 +33,9 @@ func thenRequestCarriedPipedContent(ctx context.Context, content string) error {
 	return nil
 }
 
-// singleRequestPrompt returns `messages[0].content` of the one request recorded
-// across the scenario's registered fakes.
+// singleRequestPrompt returns the current user prompt of the one request recorded
+// across the scenario's registered fakes: the request's first message that is not
+// a leading `system` (persona) message (round-011).
 func singleRequestPrompt(sc *scenarioContext) (string, error) {
 	var found *fakeprovider.Provider
 	for _, f := range sc.fakeByProvider {
@@ -50,14 +52,19 @@ func singleRequestPrompt(sc *scenarioContext) (string, error) {
 	body := found.LastBody()
 	var decoded struct {
 		Messages []struct {
+			Role    string `json:"role"`
 			Content string `json:"content"`
 		} `json:"messages"`
 	}
 	if err := json.Unmarshal([]byte(body), &decoded); err != nil {
 		return "", fmt.Errorf("the recorded request was not valid JSON: %q", body)
 	}
-	if len(decoded.Messages) == 0 {
+	msgs := decoded.Messages
+	if len(msgs) > 0 && msgs[0].Role == "system" {
+		msgs = msgs[1:]
+	}
+	if len(msgs) == 0 {
 		return "", fmt.Errorf("the recorded request carried no message: %q", body)
 	}
-	return decoded.Messages[0].Content, nil
+	return msgs[0].Content, nil
 }
