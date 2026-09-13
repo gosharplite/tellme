@@ -39,19 +39,63 @@ func readHistoryEntries(path string) ([]historyEntry, error) {
 	return entries, nil
 }
 
-// wireMessage is one entry of the OpenAI `messages` array recorded by the fake.
+// wireMessage is one entry of the conversation recorded by the fake, normalized
+// across wire families.
 type wireMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
 
-// decodeWireMessages extracts the `messages` array from a recorded request body.
+// decodeWireMessages extracts the conversation from a recorded request body,
+// normalized across wire families (round 013):
+//   - OpenAI-compatible: the top-level `messages` array.
+//   - Vertex/Gemini: a leading `system` message synthesised from
+//     `systemInstruction`, then the `contents` array with text parts concatenated
+//     and role "model" mapped to "assistant".
+//
+// Normalizing both keeps the wire-family-agnostic Then steps (persona, prior
+// exchange) working for a gemini provider.
 func decodeWireMessages(body string) ([]wireMessage, error) {
-	var decoded struct {
+	var probe struct {
 		Messages []wireMessage `json:"messages"`
+		Contents []struct {
+			Role  string `json:"role"`
+			Parts []struct {
+				Text string `json:"text"`
+			} `json:"parts"`
+		} `json:"contents"`
+		SystemInstruction *struct {
+			Parts []struct {
+				Text string `json:"text"`
+			} `json:"parts"`
+		} `json:"systemInstruction"`
 	}
-	if err := json.Unmarshal([]byte(body), &decoded); err != nil {
+	if err := json.Unmarshal([]byte(body), &probe); err != nil {
 		return nil, err
 	}
-	return decoded.Messages, nil
+	if len(probe.Messages) > 0 {
+		return probe.Messages, nil
+	}
+	out := make([]wireMessage, 0, len(probe.Contents)+1)
+	if probe.SystemInstruction != nil {
+		var sb strings.Builder
+		for _, p := range probe.SystemInstruction.Parts {
+			sb.WriteString(p.Text)
+		}
+		if sb.Len() > 0 {
+			out = append(out, wireMessage{Role: "system", Content: sb.String()})
+		}
+	}
+	for _, c := range probe.Contents {
+		role := c.Role
+		if role == "model" {
+			role = "assistant"
+		}
+		var sb strings.Builder
+		for _, p := range c.Parts {
+			sb.WriteString(p.Text)
+		}
+		out = append(out, wireMessage{Role: role, Content: sb.String()})
+	}
+	return out, nil
 }

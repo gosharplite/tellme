@@ -20,35 +20,35 @@
 
 **Goal**: 建立 Vertex/Gemini adapter 與其單元測試、E2E step、fake provider 的落點骨架與共用元件（Zero Shared Edits 原則），讓 Phase 3 / Phase 4 不各自發明檔或 seam。只建立落點與載體，不寫請求組裝、token 流程、family 對應等產品行為。
 
-- [ ] T001 建立 `gemini` adapter 套件落點骨架
+- [X] T001 建立 `gemini` adapter 套件落點骨架
   - Read:
     - `specs/plans/013-vertex-gemini-provider/research.md` -> Decision 1, 2, 3
     - `internal/infrastructure/llm/factory.go`、`internal/infrastructure/llm/openai/client.go`
   - 只做：建立 `internal/infrastructure/llm/gemini/client.go` 與 `auth.go`，各放最小型別／建構子 stub（例如 `New` 與 credential 型別的空殼），實作留空。
   - 不做：不寫請求組裝、回應正規化、JWT 簽章或 token 快取；不改 factory 對應。
 
-- [ ] T002 擴充 E2E fake provider 以服務 Vertex 形狀與 token 交換
+- [X] T002 擴充 E2E fake provider 以服務 Vertex 形狀與 token 交換
   - Read:
     - `specs/plans/013-vertex-gemini-provider/research.md` -> Decision 2, 6
     - `tests/e2e/fakeprovider/fakeprovider.go`
   - 只做：在 fake provider 增加一個可切換的 Vertex 形狀回應（`candidates[0].content.parts` 文本／`functionCall`、`usageMetadata`）與一個 token 端點（回 `access_token`），以 request path 分派（`…/token` → OAuth2 JSON；`…:generateContent` → Vertex JSON；其餘 → 既有 OpenAI handler）；保留既有 OpenAI 形狀與既有 recorder。
   - 不做：不改產品碼；不改既有 OpenAI 場景行為。
 
-- [ ] T003 新增 E2E「gemini provider + service-account key」共用 arrange helper
+- [X] T003 新增 E2E「gemini provider + service-account key」共用 arrange helper
   - Read:
     - `specs/truth/features/cli/chat/dsl.md` -> `a configured Gemini provider …` / `… whose key file is missing` / `the configured Gemini provider entry allows at most …` / `a configured provider … of a family tellme cannot drive`
     - `tests/e2e/steps/scenario_context.go`
   - 只做：在 `scenario_context.go` 增加 helper，寫出預設 config 的 `gemini` provider 條目（Vertex 形狀 URL 指向 fake、`API_KEY` 為 `.json` key 檔）與 service-account key 檔（其 `token_uri` 指向 fake token 端點）。
   - 不做：不寫 step 斷言邏輯；不碰 `internal/`。
 
-- [ ] T004 建立 7 個新句 stepdef 獨立檔骨架
+- [X] T004 建立 7 個新句 stepdef 獨立檔骨架
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（本輪 7 個新句）
     - `tests/e2e/steps/register.go`
   - 只做：建立 7 個獨立 stepdef 檔（各自 `init()` 自我註冊空白 registrar），對到 T006–T012 七句。
   - 不做：不寫具體斷言／arrange 邏輯；不碰既有 step 檔。
 
-- [ ] T005 建立 `[UNIT]` 落點骨架
+- [X] T005 建立 `[UNIT]` 落點骨架
   - Read:
     - `specs/plans/013-vertex-gemini-provider/research.md` -> Decision 2, 3, 7
     - `internal/infrastructure/llm/gemini/client.go`、`auth.go`、`internal/infrastructure/llm/factory_test.go`
@@ -97,44 +97,44 @@
 
 ### BDD-RED（本輪新增句型）
 
-- [ ] T006 [P] [BDD-RED] `Given: a configured Gemini provider "{provider}" whose endpoint answers with "{answer}"`
+- [X] T006 [P] [BDD-RED] `Given: a configured Gemini provider "{provider}" whose endpoint answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured Gemini provider "{provider}" whose endpoint answers with "{answer}"`
   - Landing: `tests/e2e/steps/step_t006_config_given_gemini_provider_answers.go`
   - 語意：寫出可解析的預設 config，`SELECTED_PROVIDER` = `{provider}`、`PROVIDERS.{provider}` 為 `gemini` 條目（Vertex 形狀 URL 指向 fake、`API_KEY` 為 service-account `.json` key 檔）；寫出 key 檔（`token_uri` 指向 fake token 端點）；script fake 以 Vertex 形狀回 `{answer}` 並服務 token 交換。
 
-- [ ] T007 [P] [BDD-RED] `Given: a configured Gemini provider "{provider}" whose endpoint asks tellme to read "{path}" and then answers with "{answer}"`
+- [X] T007 [P] [BDD-RED] `Given: a configured Gemini provider "{provider}" whose endpoint asks tellme to read "{path}" and then answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured Gemini provider "{provider}" whose endpoint asks tellme to read "{path}" and then answers with "{answer}"`
   - Landing: `tests/e2e/steps/step_t007_config_given_gemini_read_then_answer.go`
   - 語意：如上；script fake 兩步 Vertex 交換（先 `functionCall` 要求 `read_files` 讀 `{path}`，再回 Vertex 答案 `{answer}`）。
 
-- [ ] T008 [P] [BDD-RED] `Given: a configured Gemini provider "{provider}" whose key file is missing`
+- [X] T008 [P] [BDD-RED] `Given: a configured Gemini provider "{provider}" whose key file is missing`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured Gemini provider "{provider}" whose key file is missing`
   - Landing: `tests/e2e/steps/step_t008_config_given_gemini_key_missing.go`
   - 語意：寫出 config 選 `{provider}` 為 `gemini` 條目，`API_KEY` 為一個不存在（結尾 `.json`）的檔案。
 
-- [ ] T009 [P] [BDD-RED] `Given: the configured Gemini provider entry allows at most {tokens} output tokens`
+- [X] T009 [P] [BDD-RED] `Given: the configured Gemini provider entry allows at most {tokens} output tokens`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the configured Gemini provider entry allows at most {tokens} output tokens`
   - Landing: `tests/e2e/steps/step_t009_config_given_gemini_max_tokens.go`
   - 語意：把預設 config 選中 provider 條目的 `MAX_TOKENS` 設為 `{tokens}`。
 
-- [ ] T010 [P] [BDD-RED] `Given: a configured provider "{provider}" of a family tellme cannot drive`
+- [X] T010 [P] [BDD-RED] `Given: a configured provider "{provider}" of a family tellme cannot drive`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" of a family tellme cannot drive`
   - Landing: `tests/e2e/steps/step_t010_config_given_unsupported_family.go`
   - 語意：寫出可解析的預設 config，選中 `{provider}` 且其條目 `TYPE` 為 tellme 無法驅動的 family（例：`anthropic`）。
 
-- [ ] T011 [P] [BDD-RED] `Then: the request to the provider "{provider}" carried the service-account access token`
+- [X] T011 [P] [BDD-RED] `Then: the request to the provider "{provider}" carried the service-account access token`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the request to the provider "{provider}" carried the service-account access token`
   - Landing: `tests/e2e/steps/step_t011_chat_then_service_account_token.go`
   - 語意：fake 對 `{provider}` 恰記錄一次請求，且帶 `Authorization: Bearer <token>`；該 token 由 fake token 端點自 service-account 憑證簽發。
 
-- [ ] T012 [P] [BDD-RED] `Then: the request to the provider "{provider}" allows at most {tokens} output tokens`
+- [X] T012 [P] [BDD-RED] `Then: the request to the provider "{provider}" allows at most {tokens} output tokens`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the request to the provider "{provider}" allows at most {tokens} output tokens`
   - Landing: `tests/e2e/steps/step_t012_chat_then_output_budget.go`
   - 語意：fake 對 `{provider}` 恰記錄一次請求，且其 generation config 上限為 `{tokens}` tokens。
 
 ### UNIT（非 DSL 的單元斷言）
 
-- [ ] T013 [P] [UNIT] Vertex 請求／回應對應 + service-account JWT + token cache + family 對應
+- [X] T013 [P] [UNIT] Vertex 請求／回應對應 + service-account JWT + token cache + family 對應
   - Read:
     - `specs/plans/013-vertex-gemini-provider/research.md` -> Decision 1, 2, 3, 5, 7
     - `specs/truth/techstack.md` -> Reasoning & Provider Transport（Vertex/Gemini adapter；Service-account authentication；Provider family mapping）+ Testing & Verification（Pure-helper unit tests）
@@ -143,7 +143,7 @@
 
 ### Phase Review Gate
 
-- [ ] T014 subagent review (phase quality gate)
+- [X] T014 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/driving-a-vertex-gemini-model.feature`、`specs/truth/features/cli/chat/authenticating-to-a-vertex-gemini-model.feature`、`specs/truth/features/cli/chat/refusing-a-provider-family-tellme-cannot-drive.feature`
     - `specs/truth/features/cli/chat/dsl.md`、`specs/truth/features/cli/dsl.md`
@@ -173,8 +173,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/driving-a-vertex-gemini-model.feature`
 
-- [ ] T015 [BDD-GREEN] 讓 Test Scope 全綠（並使 T013 的請求／回應與 family 對應 `[UNIT]` 轉綠）
-- [ ] T016 [BDD-REFACTOR] 在綠燈下整理 Gemini 請求組裝與回應正規化
+- [X] T015 [BDD-GREEN] 讓 Test Scope 全綠（並使 T013 的請求／回應與 family 對應 `[UNIT]` 轉綠）
+- [X] T016 [BDD-REFACTOR] 在綠燈下整理 Gemini 請求組裝與回應正規化
 
 ## Phase 4B: ADD Feature File - cli/chat/authenticating-to-a-vertex-gemini-model.feature
 
@@ -194,8 +194,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/authenticating-to-a-vertex-gemini-model.feature`
 
-- [ ] T017 [BDD-GREEN] 讓 Test Scope 全綠（並使 T013 的 JWT／token cache `[UNIT]` 轉綠）
-- [ ] T018 [BDD-REFACTOR] 在綠燈下整理 service-account 憑證讀取與 token 快取
+- [X] T017 [BDD-GREEN] 讓 Test Scope 全綠（並使 T013 的 JWT／token cache `[UNIT]` 轉綠）
+- [X] T018 [BDD-REFACTOR] 在綠燈下整理 service-account 憑證讀取與 token 快取
 
 ## Phase 4C: ADD Feature File - cli/chat/refusing-a-provider-family-tellme-cannot-drive.feature
 
@@ -214,8 +214,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/refusing-a-provider-family-tellme-cannot-drive.feature`
 
-- [ ] T019 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T020 [BDD-REFACTOR] 在綠燈下整理 family 對應的預設分支
+- [X] T019 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T020 [BDD-REFACTOR] 在綠燈下整理 family 對應的預設分支
 
 ## Phase 4D: Regression
 
@@ -224,7 +224,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`（chat、history、configuration、workspace、diagnostics、usage 全模組）
 
-- [ ] T021 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T021 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
   - **可偽性見證**：暫時讓 factory 把 `gemini` 也視為 unsupported（或讓請求不帶 service-account token），確認對應 gemini E2E 場景失敗；觀察到失敗即還原。
   - 確認：exit-code 表 `0/2/3/4/5/6/7` 與 class-phrase 詞彙維持 **11**；OpenAI-family 請求 byte 不變；`stdout` byte-exact；offline paths（`--version`、`-d`、no-prompt boot、`-l`、prompt-less `--new`）不變；`go mod tidy` 後 module graph 不變（本輪無新相依）；Gherkin/DSL topology audit **PASSED**。
