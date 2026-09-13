@@ -499,3 +499,33 @@ After the #31 review loop closed (✅ APPROVE + closing confirmation), the opera
 ### A8 re-review fix — hermetic unit tests (`b5cb61c`)
 
 The re-review of A8 (PR head `035dee4`) returned **REQUEST CHANGES** with one must-fix: `TestRun_NewInteractiveEmptyArchivesAndSucceeds` asserted `output/butler` without neutralizing ambient `TELL_ME_MODE`, so it failed wherever the shell exports `TELL_ME_MODE` (the project's own shell) — the earlier "`make verify` OK" was environment-dependent (my shell exports `TELL_ME_MODE=butler`). Fixed by adding `clearAmbientOverrides(t)` (mirrors the E2E `beforeScenario`) to the three new tests; `go test ./...` is now green under `TELL_ME_MODE=architect` and a polluted env. Also documented the 🟡 archive-order divergence (a prompt-less `--new` archives **before** the turn's config resolution, so a broken config still archives — unlike `--new "<prompt>"`) at the call site + in `FR-012`.
+
+---
+
+## Round 012 — `012-interactive-multiline-prompt` DELIVERED + propagated (closeout)
+
+PR [#31](https://github.com/gosharplite/tellme/pull/31) was **merged** by `thptcnec` into `dev` (`90c2cd0`) — the approved frozen SHA `a171bd1` → `dev`. Local `dev` synced; round 012 is now delivered / frozen; propagated `dev → main`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Approval | Final review pinned — **✅ APPROVE at `a171bd1`** ([#5652828257](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652828257)) |
+| Merge | PR [#31](https://github.com/gosharplite/tellme/pull/31) merged into `dev` (`90c2cd0`, "Merge pull request #31 from gosharplite/012-interactive-multiline-prompt") by `thptcnec` (2026-09-13T10:56:11Z) |
+| Closeout gates | `make verify` **OK** · godog **81/81** · topology audit **PASSED** (547 steps) · tree clean |
+| Propagation | `012-interactive-multiline-prompt → dev` (`90c2cd0`) `→ main` — **DONE** |
+| Binary | `go install ./cmd/tellme` refreshed `$(go env GOPATH)/bin/tellme` |
+
+### Commits
+| Commit | Note |
+| --- | --- |
+| `a171bd1` | round-012 head — the **approved SHA** (B1 real isatty + ADR 0003; RF1/RF2/TD fixes; amendment A8; hermeticity fix) |
+| `90c2cd0` | PR [#31](https://github.com/gosharplite/tellme/pull/31) merge into `dev` (by `thptcnec`) |
+| *(closeout)* | `docs(012): day close — round 012 delivered (PR #31 merged) + propagation` |
+
+### Decisions / notes
+- Round 012 delivered / frozen; the round-012 branch head is the review-approved SHA `a171bd1` (any further commit would invalidate that approval — none made).
+- Carried open items unchanged: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / no pruning / no `flock`.
+
+### Next steps
+1. Choose the `013-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).

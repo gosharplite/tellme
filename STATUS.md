@@ -1,14 +1,16 @@
 # tellme — Status
 
-**Last updated**: 2026-09-13 — **round 011 `011-persona-and-payload-estimate` DELIVERED / FROZEN** (session 26; PR [#30](https://github.com/gosharplite/tellme/pull/30) merged into `dev` (`fe6d229`); propagated `dev → main`; see the *Round 011* section). Prior rounds' detail is in the archives. **2026-09-13 (review response):** round 012 PR [#31](https://github.com/gosharplite/tellme/pull/31) — review **BLOCKER B1** fixed (real isatty; ADR 0003) + RF1/RF2/TD fixes at `331cf88`.
+**Last updated**: 2026-09-13 — **round 012 `012-interactive-multiline-prompt` DELIVERED / FROZEN** (PR [#31](https://github.com/gosharplite/tellme/pull/31) merged into `dev` (`90c2cd0`, by `thptcnec`); propagated `dev → main`; see the *Round 012* section). Prior rounds' detail is in the archives ([2026-09-11](docs/archives/status/2026-09-11.md), [2026-09-13](docs/archives/status/2026-09-13.md)).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
-**Active branch**: `012-interactive-multiline-prompt` (round 012 in progress — PR [#31](https://github.com/gosharplite/tellme/pull/31) `012-interactive-multiline-prompt → dev`; review response at `331cf88`). Next: re-review → human merge → propagate `dev → main`.
+**Active branch**: `dev` — round 012 delivered / frozen; next round starts a fresh `013-*` off `dev`.
 **Daily log**: [`docs/session-summary/2026/09/13/session-summary.md`](docs/session-summary/2026/09/13/session-summary.md)
 **Archive**: [`docs/archives/status/2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`docs/archives/status/2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–010 detail + header/review-response/propagation history).
 
-## Round 012 — `012-interactive-multiline-prompt` (active)
+## Round 012 — `012-interactive-multiline-prompt` (delivered / frozen)
 
-**Status**: 🔄 **IN PROGRESS** — PR [#31](https://github.com/gosharplite/tellme/pull/31) (`012-interactive-multiline-prompt → dev`); review **REQUEST CHANGES** → **fixed** (`331cf88`) → re-review **✅ APPROVE** ([#5652688392](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652688392)) → spec/research drift closed (`abc49f0`) → closing confirmation ✅ ([#5652709341](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652709341)). **Amendment A8** (`1fb7a0e`): a prompt-less `--new` on a terminal now archives then reads. Fresh re-review of A8 **REQUEST CHANGES** ([#5652804419](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652804419) — a non-hermetic unit test) → **fixed** (`b5cb61c`).
+**Status**: ✅ **DELIVERED / FROZEN** (2026-09-13) — PR [#31](https://github.com/gosharplite/tellme/pull/31) **MERGED** into `dev` (`90c2cd0`, by `thptcnec`); propagated `dev → main`; godog **81/81** · topology audit **PASSED** (547 steps) · `make verify` OK. PR head frozen at **`a171bd1`** (the review-pinned approval SHA).
+
+**Review / A8 trail**: review **REQUEST CHANGES** (BLOCKER B1) → fixed `331cf88` → **✅ APPROVE** ([#5652688392](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652688392)) → spec/research drift closed `abc49f0` → **amendment A8** (prompt-less `--new` archives then reads) `1fb7a0e` → A8 re-review **REQUEST CHANGES** (a non-hermetic unit test) `[#5652804419]` → fixed `b5cb61c` → **final approval pinned to `a171bd1`** ([#5652828257](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652828257)).
 
 **Scope**: the reference's interactive multi-line prompt reader (`Ctrl+D`; hint to `stderr`; POSIX-only, no Windows variant). Tasks **8/8 `[X]`**; godog **81/81**; topology audit **PASSED** (547 steps).
 
@@ -16,9 +18,9 @@
 
 **Amendment A8 (`1fb7a0e`)**: a prompt-less `--new` on a **terminal** now archives the session **first**, then engages the reader (unifying "start fresh and type"); a **non-terminal** prompt-less `--new` keeps its round-007 archive-and-exit behaviour. Spec `FR-009` amended + `FR-012`/`SC-007` added; `reading-a-multi-line-prompt.feature` + `chat/dsl.md` + `truth-delta.md` updated; unit + E2E (`--new` archive-then-read) added; falsifiability witness reproduced. Landed after the approval, so a fresh re-review may be requested.
 
-**Open**: human merge → propagate `012-interactive-multiline-prompt → dev → main`; then STATUS split + daily log.
+**Open (non-blocking)**: round-011 forward items (estimation-heuristic constants; the persona-plumbing seam; **N-2** estimator ignores replayed tool-call `arguments`) + carried items (PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / no pruning / no `flock`). Next round starts a fresh `013-*` off `dev`.
 
-## Round 011 — `011-persona-and-payload-estimate` (active)
+## Round 011 — `011-persona-and-payload-estimate` (delivered / frozen)
 
 **Status**: ✅ **DELIVERED / FROZEN** (2026-09-13, session 26) — PR [#30](https://github.com/gosharplite/tellme/pull/30) merged into `dev` (`fe6d229`); propagated `dev → main`; `make verify` OK.
 
@@ -78,6 +80,7 @@ Detail lives in the archives (003–010 in [`2026-09-13.md`](docs/archives/statu
 | `009-payload-status-line` | delivered / frozen (round 009) | Round-009 branch — plan/truth PR [#26](https://github.com/gosharplite/tellme/pull/26) merged into `dev` (`98c0fb3`) + implementation PR [#27](https://github.com/gosharplite/tellme/pull/27) merged (`5b744e8`); propagated `009-payload-status-line → dev` (`d4fd911`) `→ main`; frozen history (impl branch `009-implement-payload-status-line` deleted) |
 | `010-stream-ordering-observability` | delivered / frozen (round 010) | Round-010 branch — PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`; frozen history |
 | `011-persona-and-payload-estimate` | delivered / frozen (round 011) | Round-011 branch — PR [#30](https://github.com/gosharplite/tellme/pull/30) merged into `dev` (`fe6d229`); propagated `dev → main`; frozen history |
+| `012-interactive-multiline-prompt` | delivered / frozen (round 012) | Round-012 branch — PR [#31](https://github.com/gosharplite/tellme/pull/31) merged into `dev` (`90c2cd0`); propagated `dev → main`; frozen history (head `a171bd1`, the approved SHA) |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`. Delivered round branches
 > (`001`–`009`) remain frozen history and never receive post-round commits.
@@ -85,6 +88,7 @@ Detail lives in the archives (003–010 in [`2026-09-13.md`](docs/archives/statu
 > **Propagation (round 009):** `009-payload-status-line → dev` (`d4fd911`) `→ main` (`32074ed`) — DONE; closeout docs on `dev` (`43d3507`).
 > **Propagation (round 010):** `010-stream-ordering-observability → dev` (PR [#29](https://github.com/gosharplite/tellme/pull/29), `7c6d793`) `→ main` — DONE; closeout docs on `dev`.
 > **Propagation (round 011):** `011-persona-and-payload-estimate → dev` (PR [#30](https://github.com/gosharplite/tellme/pull/30), `fe6d229`) `→ main` — DONE; closeout docs on `dev`.
+> **Propagation (round 012):** `012-interactive-multiline-prompt → dev` (PR [#31](https://github.com/gosharplite/tellme/pull/31), `90c2cd0`) `→ main` — DONE; closeout docs on `dev`.
 > Read live heads with `git rev-parse --short main dev HEAD`.
 
 ## Roadmap — next slices
@@ -100,6 +104,7 @@ Detail lives in the archives (003–010 in [`2026-09-13.md`](docs/archives/statu
 | **009 — Payload status line** | — | Per-turn payload status on `stderr` (pre-flight estimate `~est/max` + post-turn measured `actual/max`); `MAX_HISTORY_TOKENS` budget (default 1000000); widen `Response` with the provider's `usage`; estimator + clock seam. Observe-only (no pruning). | ✅ **Delivered** (PRs [#26](https://github.com/gosharplite/tellme/pull/26)/[#27](https://github.com/gosharplite/tellme/pull/27); propagated `009 → dev → main`) |
 | **010 — Stream-ordering observability** | [#28](https://github.com/gosharplite/tellme/issues/28) | Make cross-stream (`stdout`/`stderr`) ordering a checkable contract: pin the payload-status + tool-loop ordering in the CLI truth; add the merged-stream E2E witness; assert at unit + E2E. | ✅ **Delivered** (PR [#29](https://github.com/gosharplite/tellme/pull/29); propagated `010 → dev → main`) |
 | **011 — Persona on the wire & wire-faithful payload estimate** | — | Send the configured `PERSON` as the leading `system` message of every request; make the pre-flight estimate count the wire payload (persona + tool declarations + messages). | ✅ **Delivered** (PR [#30](https://github.com/gosharplite/tellme/pull/30); propagated `011 → dev → main`) |
+| **012 — Interactive multi-line prompt capture** | — | At a terminal with no prompt, print the multi-line hint to `stderr` and read the prompt to EOF (`Ctrl+D`, 1 MiB); empty/cancel sends no request. **A8**: a prompt-less `--new` on a terminal archives then reads. Real isatty (ADR 0003). | ✅ **Delivered** (PR [#31](https://github.com/gosharplite/tellme/pull/31); propagated `012 → dev → main`) |
 
 ## Open items (non-blocking)
 
@@ -127,7 +132,7 @@ Detail lives in the archives (003–010 in [`2026-09-13.md`](docs/archives/statu
 
 - **Dev tooling — `tellme.sh` (external; not a repo/truth artifact)**: the Niffler-style manager that drives the `tellme` binary lives at both `~/tmp/dualnets/seed/notebooks/beta-niffler/tellme.sh` and `…/mbp-johndoe-niffler/tellme.sh`. Its usage banner was made **round-agnostic** this session — the hardcoded `round-001` capability text (and the `bare boot` capability hint) were removed so it no longer needs revising each slice; the current-state pointer is this `STATUS.md`. Invoke via `source tellme.sh` (aliases `b`/`a`/`c`/`g`/`p`/`r` + optional prompt arg) or the `tm` alias in `~/.bashrc`.
 - **Host / toolchain**: Go 1.26; `golangci-lint` / `staticcheck` / `govulncheck` present in `$GOPATH/bin`; the `tellme` binary is installed at `$(go env GOPATH)/bin/tellme` via `go install ./cmd/tellme`. Sandbox: the privileged netns (`unshare -n`) is unavailable on the host, so the offline-path guard uses the unprivileged canary + hostile-env differential.
-- **Binary refresh (session 26, round 011)**: `go install ./cmd/tellme` rebuilt `$(go env GOPATH)/bin/tellme` from `dev`; `tellme --version` reports `dev` (no `-ldflags` version stamp).
+- **Binary refresh (round 012)**: `go install ./cmd/tellme` rebuilt `$(go env GOPATH)/bin/tellme` from the round-012 head (`a171bd1`); `tellme --version` reports `dev` (no `-ldflags` version stamp).
 - **Persistent path authorizations**: read+write for `…/beta-niffler/`, `…/mbp-johndoe-niffler/tellme.sh`, and `~/.bashrc` (the `tm` alias).
 
 - **Secret scanning (session 19)**: `mcp_github_run_secret_scanning` is **unavailable for this repo** — GitHub reports *"Repository does not have GitHub Advanced Security enabled."* Closeout secret scans are therefore **diff-level** (pattern grep over `git diff`), as run on 2026-09-13 (session 26 — clean, round-011 diff; session 25/24 — clean).
