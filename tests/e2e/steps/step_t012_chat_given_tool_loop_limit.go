@@ -1,12 +1,23 @@
 package steps
 
-import "github.com/cucumber/godog"
+import (
+	"context"
+
+	"github.com/cucumber/godog"
+)
 
 // T012 — Given: the tool-loop limit is "{limit}"
-//
-// Skeleton (round-008 T007): registered + implemented in Phase 3 (BDD-RED).
 func init() {
 	registrars = append(registrars, func(ctx *godog.ScenarioContext) {
-		_ = ctx // TODO(T012): ctx.Given(...) built from the DSL row's StepDef 實作語意
+		ctx.Given(`^the tool-loop limit is "([^"]*)"$`, givenToolLoopLimit)
 	})
+}
+
+// givenToolLoopLimit (怎麼做 / 權威狀態落地 / 回寫): set the MAX_TOOL_LOOP
+// environment override for the next run so the effective loop bound resolves to
+// {limit}.
+func givenToolLoopLimit(ctx context.Context, limit string) error {
+	sc := scenarioFrom(ctx)
+	sc.setEnv("MAX_TOOL_LOOP", limit)
+	return nil
 }

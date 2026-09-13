@@ -1,12 +1,22 @@
 package steps
 
-import "github.com/cucumber/godog"
+import (
+	"context"
+
+	"github.com/cucumber/godog"
+)
 
 // T008 — Given: the working directory contains a file "{name}" whose text is "{content}"
-//
-// Skeleton (round-008 T007): registered + implemented in Phase 3 (BDD-RED).
 func init() {
 	registrars = append(registrars, func(ctx *godog.ScenarioContext) {
-		_ = ctx // TODO(T008): ctx.Given(...) built from the DSL row's StepDef 實作語意
+		ctx.Given(`^the working directory contains a file "([^"]*)" whose text is "([^"]*)"$`, givenWorkdirFile)
 	})
+}
+
+// givenWorkdirFile (怎麼做 / 權威狀態落地 / 回寫): create a file named {name} whose
+// text is {content} in the subprocess working directory, so the read_files tool
+// can read it. {content} is decoded through the round-005 escape convention.
+func givenWorkdirFile(ctx context.Context, name, content string) error {
+	sc := scenarioFrom(ctx)
+	return sc.writeWorkFile(name, unescapeText(content))
 }

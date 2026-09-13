@@ -276,8 +276,6 @@ func (sc *scenarioContext) blockedRun() harness.RunResult {
 // writeWorkFile writes a working-directory fixture the child can read (e.g. a
 // file for the read_files tool). The name is relative to the child's working
 // directory.
-//
-//nolint:unused // landing helper for the round-008 tool-loop step definitions, used in Phase 3.
 func (sc *scenarioContext) writeWorkFile(name, content string) error {
 	return os.WriteFile(filepath.Join(sc.workDir, filepath.FromSlash(name)), []byte(content), 0o644)
 }
