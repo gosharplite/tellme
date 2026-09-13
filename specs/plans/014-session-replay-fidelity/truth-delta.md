@@ -9,7 +9,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(placeholder)_ | `specs/truth/techstack.md` | | |
+| MODIFY | `specs/truth/techstack.md` | **CLI Application → Session history store**: the tool-step record gains an optional provider-agnostic **`signature`** (`{tool, arguments, result, signature?}`), omitted when empty so existing lines stay byte-identical, replayed on resume. **CLI Application → Agent tool loop**: records each executed step's signature alongside its result. **Reasoning & Provider Transport → Vertex/Gemini adapter**: the captured `thoughtSignature` is now also **persisted with the step** so a resumed session replays it across processes. **Testing & Verification → E2E runner / Local fake provider / Pure-helper unit tests**: the two-process resume witness (E2E) + the `Step` signature round-trip and `BuildMessages` replay (unit). | Round-014 research Decisions 1–6: persist the tool-step signature and replay it on resume (Clarify Q1 = dedicated `signature` field; Q2 = unchanged best-effort for legacy histories); stdlib-only, no new module. |
 
 ## /axb-api-plan
 
