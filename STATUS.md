@@ -12,6 +12,8 @@
 
 **PR**: [#29](https://github.com/gosharplite/tellme/pull/29) (base `dev`) — open, awaiting owner review/merge.
 
+**Review trail (round 010)**: PR [#29](https://github.com/gosharplite/tellme/pull/29#issuecomment-5652030345) — **FULL ARCHITECTURAL APPROVAL — READY TO MERGE** (no blockers); both non-blocking findings fixed in-round: **[TECHNICAL DEBT]** trace-free merged capture (the merged re-run now executes against copies of home/workdir and restores each fake via `Snapshot`/`Restore`, so no history/request-count leak) and **[REFACTOR]** defensive `sc.merged = ""` reset in `run()`.
+
 **Scope**: make **cross-stream output ordering** (the interleave of the diagnostic stream `stderr` with the answer stream `stdout`) a **first-class, checkable contract** — responding to round 009's ordering defect (the post-turn payload line printed *before* the answer) that **every gate was structurally unable to see**. Required orderings: (a) the payload status brackets the answer (`pre-flight < answer < measured`); (b) the tool-loop log precedes the answer. The **witness** is a merged (`2>&1`) single-buffer capture in the E2E harness — the missing oracle. Behaviour intent **MODIFY** (contract + oracle; no content change; no new dependency).
 
 **Clarify decisions locked (Round 1)**: (Q1) required orderings = **payload-status + tool-loop** (the round-006 degrade warning is incidental); (Q2) E2E witness = **merged single-buffer capture**; (Q3) assert at **both** the unit and E2E layers.

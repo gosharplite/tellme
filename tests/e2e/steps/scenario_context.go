@@ -2,6 +2,7 @@ package steps
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -190,26 +191,91 @@ func (sc *scenarioContext) run() {
 	sc.stdout = res.Stdout
 	sc.stderr = res.Stderr
 	sc.runErr = res.Err
+	sc.merged = "" // defensive: drop any merged capture from a prior run
 }
 
 // captureMerged runs the currently arranged command with stdout and stderr
 // MERGED into one ordered buffer (the round-010 cross-stream ordering witness)
 // and stores the merged bytes in sc.merged. It deliberately does NOT disturb the
 // separate stdout/stderr/exitCode capture, so the presence assertions keep
-// working. It is invoked lazily by the ordering Then steps.
+// working.
+//
+// To leave NO trace on the scenario state — the re-run auto-resumes and appends
+// the session history, and a future mutating tool would touch the working
+// directory — the merged run executes against COPY-ONLY copies of the home and
+// working directory, and each fake is restored to its pre-capture script cursor
+// and recorded-request count afterwards. A later Then therefore sees the same
+// history, files, and RequestCount() as before the capture.
 func (sc *scenarioContext) captureMerged() {
-	// Re-arm the fakes' script cursor so the merged re-run replays the same
-	// scripted exchange as the captured separate run (round 010).
-	for _, f := range sc.fakes {
+	homeCopy, err := os.MkdirTemp("", "tellme-merged-home-")
+	if err != nil {
+		return
+	}
+	defer func() { _ = os.RemoveAll(homeCopy) }()
+	workCopy, err := os.MkdirTemp("", "tellme-merged-work-")
+	if err != nil {
+		return
+	}
+	defer func() { _ = os.RemoveAll(workCopy) }()
+	if err := copyTree(sc.home, homeCopy); err != nil {
+		return
+	}
+	if err := copyTree(sc.workDir, workCopy); err != nil {
+		return
+	}
+
+	// Snapshot each fake, re-arm its script cursor so the merged run replays the
+	// same scripted exchange, and restore it afterwards (no request-count leak).
+	snaps := make([]fakeSnapshot, len(sc.fakes))
+	for i, f := range sc.fakes {
+		served, requests := f.Snapshot()
+		snaps[i] = fakeSnapshot{served: served, requests: requests}
 		f.Reset()
 	}
+	defer func() {
+		for i, f := range sc.fakes {
+			f.Restore(snaps[i].served, snaps[i].requests)
+		}
+	}()
+
+	env := sc.runEnv()
+	env["TELL_ME_HOME"] = homeCopy
 	var res harness.RunResult
 	if sc.stdinSet {
-		res = harness.RunInMergedWithStdin(sc.workDir, sc.args, sc.stdin, sc.runEnv(), sc.unsetNames())
+		res = harness.RunInMergedWithStdin(workCopy, sc.args, sc.stdin, env, sc.unsetNames())
 	} else {
-		res = harness.RunInMerged(sc.workDir, sc.args, sc.runEnv(), sc.unsetNames())
+		res = harness.RunInMerged(workCopy, sc.args, env, sc.unsetNames())
 	}
 	sc.merged = res.Stdout
+}
+
+// fakeSnapshot is a fake provider's restorable state (round-010 merged capture).
+type fakeSnapshot struct {
+	served   int
+	requests int
+}
+
+// copyTree copies the directory tree src into dst (files + subdirectories),
+// preserving file modes. It is the isolation primitive for the merged capture.
+func copyTree(src, dst string) error {
+	return filepath.Walk(src, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, rel)
+		if info.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, info.Mode())
+	})
 }
 
 // homePath resolves a home-relative path (e.g. a {config_path}) under the home.

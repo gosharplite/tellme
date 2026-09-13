@@ -104,6 +104,27 @@ func (p *Provider) Reset() {
 	p.mu.Unlock()
 }
 
+// Snapshot returns the fake's restorable state — the script-reply cursor and the
+// recorded-request count — so a caller can run a side-effect-free replay and then
+// Restore() to leave the request count and script sequence unchanged.
+func (p *Provider) Snapshot() (served, requests int) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.served, len(p.bodies)
+}
+
+// Restore rewinds the fake to a Snapshot(): the script cursor and the number of
+// recorded requests. Bodies recorded beyond the snapshot are dropped, so a
+// replayed run leaves no trace on RequestCount.
+func (p *Provider) Restore(served, requests int) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.served = served
+	if requests >= 0 && requests < len(p.bodies) {
+		p.bodies = p.bodies[:requests]
+	}
+}
+
 // RequestCount returns how many requests the provider has received.
 func (p *Provider) RequestCount() int {
 	p.mu.Lock()
