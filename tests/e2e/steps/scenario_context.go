@@ -39,6 +39,9 @@ type scenarioContext struct {
 
 	stdin    string // scripted standard input for the next run (round 005)
 	stdinSet bool   // whether a scripted stdin should be piped to the child
+	// stdinDevNull wires the next run's stdin to the null device — a
+	// non-terminal character device (the round-012 review B1 E2E pin).
+	stdinDevNull bool
 
 	scriptedAnswer    string // the answer scripted on the fake provider (decoded), for the decoration check (grill Q4/Q6)
 	scriptedAnswerSet bool   // whether scriptedAnswer was recorded
@@ -110,6 +113,7 @@ func beforeScenario(ctx context.Context, _ *godog.Scenario) (context.Context, er
 			"TELL_ME_WRAP_WIDTH":        true,
 			"MAX_TOOL_LOOP":             true,
 			"MAX_HISTORY_TOKENS":        true,
+			"TELL_ME_FORCE_STDIN_TTY":   true,
 		},
 		args:     nil,
 		exitCode: 0,
@@ -148,6 +152,12 @@ func scenarioFrom(ctx context.Context) *scenarioContext {
 func (sc *scenarioContext) pipeStdin(content string) {
 	sc.stdin = content
 	sc.stdinSet = true
+}
+
+// devNullStdin arranges the next run's standard input to be the null device — a
+// character device that is NOT a terminal (the round-012 review B1 E2E pin).
+func (sc *scenarioContext) devNullStdin() {
+	sc.stdinDevNull = true
 }
 
 // setEnv arranges an environment override for the next run.
@@ -189,9 +199,12 @@ func (sc *scenarioContext) unsetNames() []string {
 // run executes the currently arranged command and records the captured result.
 func (sc *scenarioContext) run() {
 	var res harness.RunResult
-	if sc.stdinSet {
+	switch {
+	case sc.stdinDevNull:
+		res = harness.RunInWithDevNull(sc.workDir, sc.args, sc.runEnv(), sc.unsetNames())
+	case sc.stdinSet:
 		res = harness.RunInWithStdin(sc.workDir, sc.args, sc.stdin, sc.runEnv(), sc.unsetNames())
-	} else {
+	default:
 		res = harness.RunIn(sc.workDir, sc.args, sc.runEnv(), sc.unsetNames())
 	}
 	sc.exitCode = res.ExitCode

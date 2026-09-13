@@ -86,7 +86,8 @@ type RunResult struct {
 
 // Run invokes the (once-built) tellme binary with args, under an environment
 // derived from the current process plus `set` overrides and minus `unset` names.
-// The child's stdin is the null device (the default: no piped input).
+// The child's stdin is an empty pipe — a non-terminal giving immediate EOF (the
+// default: no piped input).
 func Run(args []string, set map[string]string, unset []string) RunResult {
 	bin, err := BinaryPath()
 	if err != nil {
@@ -129,6 +130,25 @@ func RunInWithStdin(dir string, args []string, stdin string, set map[string]stri
 		return RunResult{ExitCode: -1, Err: err}
 	}
 	return runExec(bin, dir, args, strings.NewReader(stdin), set, unset, pipedRunTimeout, false)
+}
+
+// RunInWithDevNull is RunIn with the child's stdin wired to the null device
+// (os.DevNull) — a *character device* that is NOT a terminal. It pins the
+// round-012 review BLOCKER B1 fix at the E2E layer: a real isatty probe must
+// treat /dev/null as non-interactive, so tellme takes the boot path and never
+// engages the interactive multi-line reader. (A bare os.ModeCharDevice probe
+// reported /dev/null as a terminal, which is what this helper now guards.)
+func RunInWithDevNull(dir string, args []string, set map[string]string, unset []string) RunResult {
+	bin, err := BinaryPath()
+	if err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+	defer func() { _ = f.Close() }()
+	return runExec(bin, dir, args, f, set, unset, 0, false)
 }
 
 // RunInMerged is RunIn with the child's stdout and stderr MERGED into a single

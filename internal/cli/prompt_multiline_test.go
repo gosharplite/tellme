@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"os"
 	"strings"
 	"testing"
 )
@@ -88,5 +89,45 @@ func TestRun_InteractivePromptRoutesToTurn(t *testing.T) {
 		isTTY: func(any) bool { return true }, renderer: &stubRenderer{}}
 	if code := run(nil, "dev", env); code != EnvironmentError {
 		t.Fatalf("run(...) = %d, want EnvironmentError (routed to the turn path)", code)
+	}
+}
+
+// TestDefaultIsTerminalRejectsNullDevice pins the round-012 review BLOCKER B1
+// fix: a character device that is NOT a terminal (the null device) must not be
+// reported as a terminal. A bare os.ModeCharDevice test returned true here and
+// silently masked a missing-configuration failure as exit 0.
+func TestDefaultIsTerminalRejectsNullDevice(t *testing.T) {
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatalf("open %s: %v", os.DevNull, err)
+	}
+	defer func() { _ = f.Close() }()
+	if defaultIsTerminal(f) {
+		t.Errorf("defaultIsTerminal(%s) = true, want false (a char device is not a terminal)", os.DevNull)
+	}
+}
+
+// TestDefaultIsTerminalRejectsPipe pins that a pipe is not a terminal (the
+// round-005 piped-input path depends on the probe being false here).
+func TestDefaultIsTerminalRejectsPipe(t *testing.T) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+	defer func() { _ = r.Close() }()
+	defer func() { _ = w.Close() }()
+	if defaultIsTerminal(r) {
+		t.Error("defaultIsTerminal(pipe) = true, want false")
+	}
+}
+
+// TestMultiLineHintMatchesDSLLiteral guards the single-sourced hint against
+// drift from the DSL truth (round-012 review TD1): the exported literal must
+// equal the exact string pinned in chat/dsl.md. If either side changes alone,
+// this fails.
+func TestMultiLineHintMatchesDSLLiteral(t *testing.T) {
+	const dslLiteral = "[Reading multi-line input. Press Ctrl+C to cancel, or Ctrl+D to send]"
+	if MultiLineHint != dslLiteral {
+		t.Errorf("MultiLineHint = %q, want the DSL literal %q", MultiLineHint, dslLiteral)
 	}
 }
