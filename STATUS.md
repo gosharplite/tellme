@@ -109,7 +109,7 @@ Detail lives in the archives (003–008 in [`2026-09-13.md`](docs/archives/statu
 
 ## Open items (non-blocking)
 
-- **Round 010 delivered / frozen — [#28](https://github.com/gosharplite/tellme/issues/28)**: **stream-ordering observability** — make cross-stream (`stdout`/`stderr`) ordering assertable (DSL ordering semantics + a merged-stream witness in the E2E harness). PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`. **Next round starts a fresh `011-*` off `dev`.**
+- **Round 010 delivered / frozen — [#28](https://github.com/gosharplite/tellme/issues/28)**: **stream-ordering observability** — make cross-stream (`stdout`/`stderr`) ordering assertable (DSL ordering semantics + a merged-stream witness in the E2E harness). PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`; issue [#28](https://github.com/gosharplite/tellme/issues/28) **closed**. **Next round starts a fresh `011-*` off `dev`.**
 
 - **Round 009 delivered / frozen** — plan/truth PR [#26](https://github.com/gosharplite/tellme/pull/26) merged into `dev` (`98c0fb3`); implementation PR [#27](https://github.com/gosharplite/tellme/pull/27) merged into `009-payload-status-line` (`5b744e8`); propagated `009-payload-status-line → dev` (`d4fd911`) `→ main`. **Next round starts a fresh `010-*` off `dev`.**
 
