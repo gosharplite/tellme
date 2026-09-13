@@ -451,3 +451,37 @@ The full round-011 slice: bootstrap (Steps 1–8) → `/axb-specify` → Clarify
 ### PM follow-ups
 
 - None new (spec/acceptance unchanged).
+
+---
+
+## Round 012 — `012-interactive-multiline-prompt` (implementation + PR #31 review response)
+
+The round's interactive multi-line prompt reader (`Ctrl+D`; hint to `stderr`; POSIX-only, no Windows variant) was implemented (`66924b4`) and opened as PR [#31](https://github.com/gosharplite/tellme/pull/31) (`012-interactive-multiline-prompt → dev`). An architectural review returned **REQUEST CHANGES** with one **BLOCKER B1** and six follow-ups ([#5652619720](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652619720)); the butler applied the full fix set in-round (`331cf88`, response [#5652672277](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652672277)).
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| B1 (blocker) | **Real isatty** (`golang.org/x/term.IsTerminal`, already in the module graph — no new module) replacing the `os.ModeCharDevice` heuristic; `< /dev/null` now exits **3** (was **0**) and takes the boot path. **ADR 0003** |
+| RF1 | `TELL_ME_FORCE_STDIN_TTY` seam + an **E2E positive-read** scenario (acceptance Rules 1–2 now executable) |
+| RF2 | Hermetic empty-pipe stdin default kept + a **null-device** E2E scenario |
+| TD1 | Hint single-sourced (`cli.MultiLineHint`); unit guard pins it to the DSL literal |
+| TD2/TD3/TD4 | Documented (goroutine lifetime, read-before-resolve ordering, SIGTERM→0) |
+| Truth | `techstack.md`, `chat/dsl.md`, `reading-a-multi-line-prompt.feature`, `truth-delta.md`, `docs/decisions/0003-*` (+ README index; 0002 indexed) |
+| Verification | `make verify` OK · `go test ./...` green · godog **80/80** · topology audit **PASSED** (537 steps) · **B1 falsifiability witness** reproduced |
+
+### Commits (branch `012-interactive-multiline-prompt`)
+| Commit | Note |
+| --- | --- |
+| `66924b4` | `feat(012): interactive multi-line prompt capture` (round-012 implementation) |
+| `331cf88` | `fix(012): address PR #31 review — real isatty (B1), interactive/null-device E2E pins` |
+
+### Decisions
+| # | Decision |
+| --- | --- |
+| D1 | B1 fixed via the **preferred option (a)** — a real isatty; `x/term` was already transitive, so no new module; recorded as ADR 0003 |
+| D2 | TD3 → **documented, not re-ordered** — an empty/cancel submission owes no request (Decision 4 / Q3), so readiness cannot gate the read |
+| D3 | RF2 → the empty-pipe default is **kept** (hermeticity); the char-device path is pinned by a null-device scenario |
+
+### Open items
+- Round 012 awaits re-review → human merge → propagate `012-interactive-multiline-prompt → dev → main`; then STATUS split + closeout.
+- Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / no `flock`.
