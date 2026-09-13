@@ -35,16 +35,16 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
 
 ## Decision 4: The tools — two read-only filesystem capabilities, size-bounded, no path boundary
 
-- **Decision**: Ship exactly two tools, both read-only and local: **`list files`** (enumerate a directory's entries) and **`read files`** (return a file's contents). `read files` output is **size-bounded by a fixed cap (1 MiB, matching the round-005 stdin cap)** and truncated with a marker if exceeded. The tools have **no path/safety boundary** (Clarify Q3); they read whatever path the model gives.
+- **Decision**: Ship exactly two **read-only filesystem** tools, both local: **`list_files`** (enumerate a directory's entries) and **`read_files`** (return a file's contents). `read_files` output is **size-bounded by a fixed cap (1 MiB, matching the round-005 stdin cap)** and truncated with a marker if exceeded. The filesystem tools have **no path/safety boundary** (Clarify Q3); they read whatever path the model gives. The registry also holds the session-summarisation tool (Decision 10), so a prompt run offers **three** tools. **Identifiers MUST be wire-valid snake_case** — the OpenAI `tools[i].function.name` schema (`^[a-zA-Z0-9_-]{1,64}$`) rejects whitespace with HTTP 400 — so the canonical names are `list_files` / `read_files` / `summarize_history` (parity with `tell-me-go`).
 - **Rationale**: Read-only tools need no consent/`SafePath`, keeping the slice's safety surface empty (a settled exclusion is preserved). The size cap is required because **token-budget pruning is out of scope**: an unbounded file read could otherwise exhaust the assembled context. The 1 MiB cap deliberately reuses the round-005 `io.LimitReader` convention for consistency.
 - **Alternatives considered**:
   - **Unbounded reads** — a single large file could exhaust the context — rejected.
   - **A path boundary / `SafePath`** — a settled exclusion; re-opening it is out of scope — rejected.
-  - **`read files` with line-range arguments** — extra parameter surface beyond the first slice — deferred.
+  - **`read_files` with line-range arguments** — extra parameter surface beyond the first slice — deferred.
 
 ## Decision 5: Persist the turn's tool activity — widen `history_entry`, replay on resume
 
-- **Decision**: Widen the persisted record (round 007 `history.Entry` / `history_entry`) to embed the completed turn's tool steps — e.g. `{prompt, answer, steps:[{tool, args, result}]}` — still written **append-after-complete** as one JSON-Lines line with **fixed field order and no timestamp/id** (byte-determinism preserved). On resume, the prior steps are **replayed** into the conversation sent to the provider (assistant tool-call + tool-result messages), so the model sees earlier tool activity. `-l N` continues to read **only** `prompt`/`answer`.
+- **Decision**: Widen the persisted record (round 007 `history.Entry` / `history_entry`) to embed the completed turn's tool steps — e.g. `{prompt, answer, steps:[{tool, arguments, result}]}` — still written **append-after-complete** as one JSON-Lines line with **fixed field order and no timestamp/id** (byte-determinism preserved). On resume, the prior steps are **replayed** into the conversation sent to the provider (assistant tool-call + tool-result messages), so the model sees earlier tool activity. `-l N` continues to read **only** `prompt`/`answer`. **No per-step identifier is stored**; on replay the adapter **synthesises a deterministic `tool_call_id`** (`call_step_<step>` — e.g. `call_step_1`) so the OpenAI-mandated assistant `tool_calls[].id` ↔ `tool.tool_call_id` pairing is valid **and** reproducible without persisting a random UUID (**TD-2**).
 - **Rationale**: Clarify Q2 chose `tell-me-go` parity (the reference persists a Turn with all its ToolCalls). Embedding the steps in the same line keeps a single append-only file (no sidecar), and replay gives resume true fidelity. `-l` staying prompt/answer preserves the round-007 contract (Clarify: `-l` is operator-facing).
 - **Alternatives considered**:
   - **Keep `{prompt, answer}`** — rejected by Clarify Q2 (loses tool activity).
@@ -71,7 +71,7 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
 
 - **Decision**:
   - Extend the **local fake provider** (`net/http/httptest`) to **serve tool-call responses** and to **record the sent tool definitions + messages**, so a scenario can assert the loop (a tool was offered, requested, executed, and its result fed back).
-  - Add **pure-helper / unit tests** for: the tool registry dispatch, the two tools (`list files`, `read files` incl. the size cap and a missing-path error), the loop bound (`MAX_TOOL_LOOP`) + timeout + the failure contract, and the widened history record (append + reload + `-l` reading only prompt/answer).
+  - Add **pure-helper / unit tests** for: the tool registry dispatch, the two tools (`list_files`, `read_files` incl. the size cap and a missing-path error), the loop bound (`MAX_TOOL_LOOP`) + timeout + the failure contract, and the widened history record (append + reload + `-l` reading only prompt/answer).
   - Keep the **offline no-network** set unchanged (`--version`, `-d`, `-l`, prompt-less boot); the tool-using turn is a chat path and may dial.
 - **Rationale**: The loop's claims (tools offered/executed/result-fed-back, bound reached, failure phrase) are only falsifiable if the fake records what was sent and returns scripted tool requests; the tools and store are pure and cheaply unit-testable.
 - **Alternatives considered**:
@@ -86,6 +86,12 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
   - **A JSON-schema library for tool parameters** — hand-written structs suffice for two tools — rejected.
   - **A third-party loop/agent framework** — out of proportion and a supply-chain cost — rejected.
 
+## Decision 10: The session-summarisation tool — `summarize_history` (LLM-backed)
+
+- **Decision**: Register a third tool, **`summarize_history`** — an **LLM-backed** agent tool that reads the persisted conversation and returns a condensed summary. Its parameter schema is an empty object (`{"type":"object","properties":{}}`); it is constructed with the injected `history.Store` (to read prior turns) and `llm.Gateway` (to request the summary), and it returns the summary as the tool-result string **without mutating** any stored record (FR-013). It executes as a **normal tool** inside the same bounded loop (subject to `MAX_TOOL_LOOP` and the per-tool timeout); a request for an un-declared tool therefore fails under the standard tool failure contract.
+- **Rationale**: Resolves BLOCKER-2 — the registry holds the two read-only filesystem tools **plus** this session-state tool (three total), so FR-001 and Story 4/FR-012 are consistent. `summarize_history` matches the reference's naming; injecting the existing ports keeps the tool hexagonal (no new layer) and fake-testable. Because the summary is returned as a tool result and persisted as a step, there is no re-entrant loop (the tool does not itself register tools).
+- **Alternatives considered**: a bespoke non-tool summarise flag — rejected (the round frames summarisation as an agent tool); a summarisation tool that rewrites the store — rejected (FR-013 forbids rewriting earlier records).
+
 ---
 
 ## Residual risks / forward links
@@ -97,3 +103,4 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
 - **Class-phrase vocabulary 10 → 11** and exit codes `0/2/3/4/5/6 → +7`; both must be published in `specs/truth/features/cli/**/dsl.md` by `/axb-dsl-refine`.
 - **`MAX_TOOL_LOOP` default 1000** is generous (reference parity); the per-turn input cost scales with iterations × re-sent history — a known cost characteristic, not a defect.
 - **Deferred, still out of scope**: the full provider-agnostic `Thought` model, streaming responses, MCP, memory, and any write/shell tools.
+- **`summarize_history` (Decision 10)** is the round's one LLM-backed tool: each invocation re-enters the provider, so a summarise-heavy loop multiplies input cost — bounded by `MAX_TOOL_LOOP`, not by token budget (pruning is excluded).

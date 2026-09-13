@@ -23,15 +23,15 @@
   - Read:
     - `specs/plans/008-agent-tools-and-tool-call-loop/research.md` -> Decision 1
     - `specs/truth/techstack.md` -> CLI Application（Read-only filesystem tools / Agent tool loop）
-  - 只做：宣告 `internal/domain/tools` 套件與 `Tool` value type（`Name`, `Description`, `Parameters`）及 `Registry` 型別（名稱→executor 解析）與 executor 介面簽名 stub。
+  - 只做：宣告 `internal/domain/tools` 套件與 `Tool` value type（`Name`, `Description`, `Parameters`）及 `Registry` 型別（名稱→executor 解析）與 executor 介面簽名 stub；`Tool` 實作介面 MUST 帶 `context.Context`（`Execute(ctx context.Context, arguments string) (string, error)`），供 loop 以 `context.WithTimeout` 派生 per-tool timeout（**RF-2**）。
   - 不做：不實作任何工具；不接 `internal/cli`；不寫斷言。
 
-- [ ] T002 建立 read-only filesystem tool adapter 落點骨架 `internal/infrastructure/tools/filesystem.go`
+- [ ] T002 建立 tool adapter 落點骨架 `internal/infrastructure/tools/filesystem.go`、`internal/infrastructure/tools/summarize.go`
   - Read:
     - `specs/plans/008-agent-tools-and-tool-call-loop/research.md` -> Decision 4
     - `specs/truth/techstack.md` -> CLI Application（Read-only filesystem tools）
     - `internal/domain/tools/tools.go`
-  - 只做：宣告 `list files` 與 `read files` 兩個工具的 constructor 簽名與 JSON-schema 參數；`read files` 留 `io.LimitReader` 的 **1 MiB** 上界 stub 與截斷標記；不做任何寫入 / 程序啟動 / 網路。
+  - 只做：宣告 `list_files` 與 `read_files` 兩個工具的 constructor 簽名與 **wire-valid snake_case** 名稱 + JSON-schema 參數；`read_files` 留 `io.LimitReader` 的 **1 MiB** 上界 stub 與截斷標記；另宣告 LLM-backed `summarize_history` 工具的 constructor 簽名（注入 `history.Store` + `llm.Gateway`；空參數 schema；回傳 summary 字串、不改記錄）；不做任何寫入 / 程序啟動 / 網路。
   - 不做：不實作目錄列舉 / 檔案讀取邏輯；不碰 `internal/cli`。
 
 - [ ] T003 擴充 `llm.Request`/`llm.Response` 與 OpenAI adapter 落點骨架
@@ -50,11 +50,11 @@
   - 只做：`Entry` 新增有序 `Steps`（`[]Step{Tool, Arguments, Result}`）欄位骨架；file adapter 留下把加寬欄位序列化進單一 JSON 列（固定欄位順序、無時間戳/ID）與讀回時的 stub。
   - 不做：不實作 append / load / archive 行為；不碰 `internal/cli`。
 
-- [ ] T005 CLI 落點骨架 `internal/cli/cli.go`、`internal/cli/exitcode.go`、`internal/config/config.go`
+- [ ] T005 落點骨架 `internal/agent/`、`internal/cli/cli.go`、`internal/cli/exitcode.go`、`internal/config/config.go`
   - Read:
     - `specs/plans/008-agent-tools-and-tool-call-loop/research.md` -> Decision 3, 6, 7
     - `specs/truth/techstack.md` -> CLI Application（Agent tool loop）、Configuration（Rendered width 之鄰）
-  - 只做：`internal/cli/exitcode.go` 新增 `ToolError = 7` 常數；`internal/config` 留下 `MAX_TOOL_LOOP` 解析 stub（env/config，預設 1000）；`runTurn` 留一個有界 loop 的呼叫簽名與 `stderr` 工具迴圈 log 的 seam stub；留「loop 無法完成 → `the tool request failed` + code 7」hook 簽名。
+  - 只做：`internal/cli/exitcode.go` 新增 `ToolError = 7` 常數；`internal/config` 留下 `MAX_TOOL_LOOP` 解析 stub（env/config，預設 1000）；建立 `internal/agent/` 落點骨架並宣告 `AgentLoop`（注入 `llm.Gateway` + `tools.Registry` + `history.Store`，`MaxLoops int`，`Stderr io.Writer`）之 `Run(ctx, prompt, prior)` 簽名（**RF-1**：loop 不在 `cli.go` 內）；`cli.go` 只留「wiring `AgentLoop`」與 `stderr` 工具迴圈 log 的 seam stub；留「loop 無法完成 → `the tool request failed` + code 7」hook 簽名。
   - 不做：不實作 loop 行為、工具派送或 resume/replay；不改既有 dispatch 與 exit-code（產品行為留 Phase 4）。
 
 - [ ] T006 建立 E2E 共用元件落點骨架
@@ -117,12 +117,12 @@
 - [ ] T009 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to read "{path}" and then answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint asks tellme to read "{path}" and then answers with "{answer}"`
   - Landing: `tests/e2e/steps/step_t009_chat_given_provider_read_then_answer.go`
-  - 語意：寫可解析 config 選 `{provider}`；fake 先回一個 `read files` 的 tool-call 回應（args 帶 `{path}`），下一個請求回 `{answer}`。
+  - 語意：寫可解析 config 選 `{provider}`；fake 先回一個 `read_files` 的 tool-call 回應（arguments 帶 `{path}`），下一個請求回 `{answer}`。
 
 - [ ] T010 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint always asks tellme to read "{path}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint always asks tellme to read "{path}"`
   - Landing: `tests/e2e/steps/step_t010_chat_given_provider_always_read.go`
-  - 語意：fake 每次請求都回同一個 `read files` tool-call 回應（永不給最終答案），使 loop 撞到上界。
+  - 語意：fake 每次請求都回同一個 `read_files` tool-call 回應（永不給最終答案），使 loop 撞到上界。
 
 - [ ] T011 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks for a tool that is not available`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint asks for a tool that is not available`
@@ -139,10 +139,10 @@
   - Landing: `tests/e2e/steps/step_t013_chat_given_provider_summarise_then_answer.go`
   - 語意：fake 先回一個 summarise tool-call 回應，下一個請求回 `{answer}`。
 
-- [ ] T014 [P] [BDD-RED] `Then: tellme read "{path}" using its read-files tool`
-  - Read: `specs/truth/features/cli/chat/dsl.md` -> `tellme read "{path}" using its read-files tool`
+- [ ] T014 [P] [BDD-RED] `Then: tellme read "{path}" using its read_files tool`
+  - Read: `specs/truth/features/cli/chat/dsl.md` -> `tellme read "{path}" using its read_files tool`
   - Landing: `tests/e2e/steps/step_t014_chat_then_read_tool.go`
-  - 語意：斷言 fake 記錄到模型對 `{path}` 的 `read files` tool-call，且該工具結果被餵回對話。
+  - 語意：斷言 fake 記錄到模型對 `{path}` 的 `read_files` tool-call，且該工具結果被餵回對話。
 
 - [ ] T015 [P] [BDD-RED] `Then: tellme used no tool`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `tellme used no tool`
@@ -157,7 +157,7 @@
 - [ ] T017 [P] [BDD-RED] `Then: the request carried the read-tool error for "{path}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the request carried the read-tool error for "{path}"`
   - Landing: `tests/e2e/steps/step_t017_chat_then_read_tool_error.go`
-  - 語意：斷言 fake 記錄到一個請求，帶有 `read files` 對 `{path}` 的**錯誤**結果且被當成非終結結果餵回。
+  - 語意：斷言 fake 記錄到一個請求，帶有 `read_files` 對 `{path}` 的**錯誤**結果且被當成非終結結果餵回。
 
 - [ ] T018 [P] [BDD-RED] `Then: tellme stopped after {count} tool iterations`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `tellme stopped after {count} tool iterations`
@@ -197,7 +197,7 @@
     - `specs/truth/data/data-model.dbml` -> `history_entry` / `history_step`
     - `specs/truth/techstack.md` -> CLI Application（Read-only filesystem tools / Agent tool loop）、Testing & Verification（Pure-helper unit tests）
   - Landing: `internal/domain/tools/*_test.go`、`internal/infrastructure/tools/*_test.go`、`internal/infrastructure/history/file_store_test.go`、`internal/config/*_test.go`、`internal/cli/*_test.go`（表驅動）
-  - 撰寫：tool registry 派送；`list files`/`read files`（含 1 MiB 讀取上界與 missing-path 錯誤）；loop bound（`MAX_TOOL_LOOP` 解析 + 預設 1000）與失敗契約（`the tool request failed` / code 7）；`history.Entry` 加寬的 append + reload（固定欄位順序、無時間戳/ID）；`-l` 僅讀 prompt/answer。
+  - 撰寫：tool registry 派送；`list_files`/`read_files`（含 1 MiB 讀取上界與 missing-path 錯誤）；loop bound（`MAX_TOOL_LOOP` 解析 + 預設 1000）與失敗契約（`the tool request failed` / code 7）；`history.Entry` 加寬的 append + reload（固定欄位順序、無時間戳/ID）；`-l` 僅讀 prompt/answer。
 
 ### Phase Review Gate
 
@@ -223,7 +223,7 @@
 - `internal/domain/tools/`、`internal/infrastructure/tools/`、`internal/domain/llm/gateway.go`、`internal/infrastructure/llm/openai/client.go`、`internal/cli/cli.go`
 
 **Boundary**:
-- 提供 `list files` 與 `read files`（read-only、1 MiB 讀取上界、無 path/safety boundary）；送出 `tools` 定義；解析模型回傳的 tool-call 並執行；把工具結果以 `tool`/assistant tool-call 訊息餵回 provider；loop 有界（`MAX_TOOL_LOOP`）。
+- 提供 `list_files` 與 `read_files`（read-only、1 MiB 讀取上界、無 path/safety boundary）；送出 `tools` 定義；解析模型回傳的 tool-call 並執行；把工具結果以 `tool`/assistant tool-call 訊息餵回 provider；loop 有界（`MAX_TOOL_LOOP`）。
 - 不需工具的 prompt 維持**單一** provider 請求，且 payload 與 round 004–007 byte-for-byte 一致。
 - 不實作 summarise / 失敗契約細節（屬 4C/4D boundary 內的其他 phase）。
 
@@ -244,7 +244,7 @@
 - `specs/plans/008-agent-tools-and-tool-call-loop/research.md` -> Decision 7
 
 **Boundary**:
-- 每個工具迴圈步驟寫一條**離散** log 行到 **standard error**（工具名、args、結果/錯誤），`loop` 進行時即時輸出；**stdout** 保持為答案流（rendered / raw 不變）；非 token streaming。
+- 每個工具迴圈步驟寫一條**離散** log 行到 **standard error**（工具名、arguments、結果/錯誤），`loop` 進行時即時輸出；**stdout** 保持為答案流（rendered / raw 不變）；非 token streaming。
 - 不把 log 寫到 stdout；不改最終答案輸出契約。
 
 **Test Scope**:
@@ -335,7 +335,7 @@
 |:---|:---|:---:|
 | `specs/truth/data/data-model.dbml` -> `history_entry`（加寬，嵌 steps） | T004、T020–T022、T024、T026、T034 | PASS |
 | `specs/truth/data/data-model.dbml` -> `history_step`（location, position, step） | T004、T022、T024、T034 | PASS |
-| `specs/truth/techstack.md` -> CLI Application（Read-only filesystem tools：`list files`/`read files`、1 MiB cap、no boundary） | T002、T014、T024、T026 | PASS |
+| `specs/truth/techstack.md` -> CLI Application（Read-only filesystem tools：`list_files`/`read_files`、1 MiB cap、no boundary；+ LLM-backed `summarize_history`） | T002、T013、T014、T020、T024、T026、T032 | PASS |
 | `specs/truth/techstack.md` -> CLI Application（Agent tool loop：`MAX_TOOL_LOOP` 1000、per-tool timeout、logs to stderr） | T005、T012、T016、T018、T024、T026、T028、T030、T031 | PASS |
 | `specs/truth/techstack.md` -> Reasoning & Provider Transport（Provider gateway port / Request assembly / Response normalization 工具欄位） | T003、T009–T013、T026、T027 | PASS |
 | `specs/truth/techstack.md` -> CLI Application（Session history store：加寬列 + resume replay；`-l` prompt/answer only） | T004、T021–T023、T034、T035 | PASS |
@@ -359,6 +359,8 @@
 | `research.md` -> Decision 7（工具迴圈 log → stderr，非 streaming） | T005、T016、T028、T029 | PASS |
 | `research.md` -> Decision 8（fake 供應/記錄 tool calls；offline 集合不變） | T006、T009–T010、T014、T036 | PASS |
 | `research.md` -> Decision 9（無新相依） | T036（`go mod tidy` graph 不變） | PASS |
+| `research.md` -> Decision 10（`summarize_history`：名稱、空 schema、注入 `Store`+`Gateway`、non-mutating） | T002、T013、T020、T032、T033 | PASS |
+| `research.md` -> Decision 4/5 修訂（wire-valid snake_case 名稱；`arguments` 欄位；`tool_call_id` 合成） | T002、T004、T014、T019、T024、T036 | PASS |
 | `spec.md` -> US1–US4、`FR-001`–`FR-018`、`NFR-001`–`NFR-007` | T008–T023（對齊）、T026–T035（交付）、T036 | PASS |
 
 > 孤立產物件數：0。掃描通過，准予交付。

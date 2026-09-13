@@ -47,7 +47,7 @@
 
 ### Resolved
 
-- **Q1 (R1) -> read-only filesystem tools** — `FR-001` = `list files`, `read files`; no writes/process/network.
+- **Q1 (R1) -> read-only filesystem tools** — `FR-001` = `list_files`, `read_files`; no writes/process/network.
 - **Q2 (R1) -> widen the persisted turn** — `FR-016`; data-truth MODIFY (`/axb-data-plan`).
 - **Q3 (R1) -> no boundary** — `FR-018`; `SafePath` + consent remain exclusions.
 - **Q1 (R2) -> failure contract** — `FR-010`: new class phrase `tellme: the tool request failed` + exit `7`.

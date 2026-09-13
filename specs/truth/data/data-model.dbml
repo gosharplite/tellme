@@ -42,7 +42,7 @@ Table history_step {
     (location, position, step) [pk]
   }
 
-  Note: 'One tool execution performed during a completed turn (round 008 agent tool loop), embedded in the turn line as an element of its ordered steps array. `step` is the 1-based ordinal within the turn (which tool ran first, second, …); `tool` is the tool name (for example "list files" or "read files"); `arguments` is the model arguments (JSON-encoded) and `result` is the tool result or error, size-bounded (for example a file read capped at 1 MiB). Read back and replayed into the conversation on resume; never surfaced by `-l`. A turn that made no tool calls has no `history_step` rows.'
+  Note: 'One tool execution performed during a completed turn (round 008 agent tool loop), embedded in the turn line as an element of its ordered steps array. `step` is the 1-based ordinal within the turn (which tool ran first, second, …); `tool` is the tool name (for example "list_files" or "read_files"); `arguments` is the model arguments (JSON-encoded) and `result` is the tool result or error, size-bounded (for example a file read capped at 1 MiB). Read back and replayed into the conversation on resume (no per-step id is stored — the adapter synthesises a deterministic tool-call id, `call_step_<step>`, when replaying); never surfaced by `-l`. A turn that made no tool calls has no `history_step` rows.'
 }
 
 Ref: history_step.(location, position) > history_entry.(location, position)

@@ -36,11 +36,14 @@ cmd/tellme/
 └── main.go                        # unchanged — entrypoint
 
 internal/
+├── agent/                         #   NEW — the tool-loop orchestrator (`AgentLoop`): the bounded
+│   │                              #   think→act→observe cycle; consumes `llm.Gateway` + `tools.Registry` +
+│   │                              #   `history.Store`; emits the `stderr` tool-loop logs; derives a per-tool
+│   │                              #   timeout context; maps an incomplete loop to
+│   │                              #   `the tool request failed` + code 7 (RF-1 — keeps the loop out of `cli`)
 ├── cli/
-│   ├── cli.go                     #   CHANGED — `runTurn` becomes a bounded think→act→observe loop:
-│   │                              #   send → dispatch requested tools → feed results back → repeat;
-│   │                              #   bound `MAX_TOOL_LOOP`; per-tool timeout; emit tool-loop logs to stderr;
-│   │                              #   map an incomplete loop to `the tool request failed` + code 7
+│   ├── cli.go                     #   CHANGED — wires `AgentLoop`; stays presentation/dispatch glue
+│   │                              #   (flag parsing, resolve, stream routing, exit-code mapping)
 │   └── exitcode.go                #   CHANGED — add `ToolError = 7` (0/2/3/4/5/6/7)
 ├── domain/
 │   ├── llm/gateway.go             #   CHANGED — `Request` gains tool definitions; `Response` gains the
@@ -48,12 +51,13 @@ internal/
 │   ├── tools/                     #   NEW — the tool domain port: `Tool` (name/description/parameters) +
 │   │                              #   `Registry` dispatch. Network-free, no I/O
 │   └── history/history.go         #   CHANGED — `Entry` widened to embed the turn's tool steps
-│                                  #   (`{prompt, answer, steps:[{tool, args, result}]}`)
+│                                  #   (`{prompt, answer, steps:[{tool, arguments, result}]}`)
 ├── infrastructure/
 │   ├── llm/openai/client.go       #   CHANGED — sends the `tools` array, assistant `tool_calls`, and `tool`-role
 │   │                              #   result messages; parses `choices[0].message.tool_calls`
-│   ├── tools/                     #   NEW — the read-only filesystem tools (`list files`, `read files`) behind
-│   │                              #   the tool port; `read files` bounded by a fixed 1 MiB cap; no path boundary
+│   ├── tools/                     #   NEW — the read-only filesystem tools (`list_files`, `read_files`) behind
+│   │                              #   the tool port (`read_files` bounded by a fixed 1 MiB cap; no path boundary),
+│   │                              #   plus the LLM-backed `summarize_history` tool (injected `history.Store` + `llm.Gateway`)
 │   └── history/file_store.go      #   CHANGED — serialize/parse the widened JSON line (fixed field order,
 │                                  #   no timestamp/id); replay steps into the conversation on load
 ├── config/                        #   CHANGED — resolve `MAX_TOOL_LOOP` (env/config, default 1000)
@@ -80,13 +84,13 @@ This requirement inventories **2** system interfaces. Round 008 does not introdu
 
 1. `CLI end (operator terminal interface)`
    - Endpoint type: `CLI / terminal endpoint`
-   - Primary interface: **standard output / standard error / exit code** for the operator — the agent tool loop (a prompt run may call the read-only tools and iterate to a final answer); the **live tool-loop log** on `stderr`; the loop bound `MAX_TOOL_LOOP` (default 1000, env/config); the per-tool timeout; the frozen `tellme: {phrase}` class phrases and the exit-code table (`0`/`2`/`3`/`4`/`5`/`6`/**`7`**), with an incomplete loop reported as the new `tellme: the tool request failed` + code `7`; and the two **read-only filesystem tools** (`list files`, `read files`) with the 1 MiB read cap. The `-l` contract is unchanged (prompt/answer only).
+   - Primary interface: **standard output / standard error / exit code** for the operator — the agent tool loop (a prompt run may call the read-only tools and iterate to a final answer); the **live tool-loop log** on `stderr`; the loop bound `MAX_TOOL_LOOP` (default 1000, env/config); the per-tool timeout; the frozen `tellme: {phrase}` class phrases and the exit-code table (`0`/`2`/`3`/`4`/`5`/`6`/**`7`**), with an incomplete loop reported as the new `tellme: the tool request failed` + code `7`; and the **three registered tools** — the read-only filesystem tools (`list_files`, `read_files`) with the 1 MiB read cap, plus the LLM-backed `summarize_history` tool (Story 4). The `-l` contract is unchanged (prompt/answer only).
    - Requirement evidence: `FR-001`–`FR-011`, `FR-013`, `FR-015`, `FR-017`, `FR-018`, `NFR-001`, `NFR-002`, `NFR-005`–`NFR-007`; acceptance features `answering-with-a-declared-tool.feature`, `watching-the-tool-loop.feature`, `bounding-and-failing-the-tool-loop.feature`.
    - Planner: **none** — terminal endpoints have no analysis planner. Its **contract owner** is **`/axb-dsl-refine`**, which updates the executable Gherkin features and DSL rows under `specs/truth/features/cli/**` at delivery (carried forward per `wave-covers-interfaces`).
 
 2. `Session history store (local persisted state)`
    - Endpoint type: `Filesystem / local-persistence endpoint`
-   - Primary interface: the persisted session model under the per-mode workspace — a **completed-turn** record that now carries the operator's `prompt`, the provider's `answer`, **and the turn's tool steps** (`{tool, args, result}`); stored append-only (one JSON line per completed turn, fixed field order, no timestamp/id) and read wholesale on resume, replaying the tool steps into the conversation. Lifecycle stays append-after-complete (an interrupted turn is never written).
+   - Primary interface: the persisted session model under the per-mode workspace — a **completed-turn** record that now carries the operator's `prompt`, the provider's `answer`, **and the turn's tool steps** (`{tool, arguments, result}`); stored append-only (one JSON line per completed turn, fixed field order, no timestamp/id) and read wholesale on resume, replaying the tool steps into the conversation. Lifecycle stays append-after-complete (an interrupted turn is never written).
    - Requirement evidence: `FR-016` (persist the widened turn), `FR-014` (stories 1–4 persistence), `NFR-006`; the store backs every acceptance feature.
    - Planner: **`/axb-data-plan`** — the persisted record model is a data responsibility; this round **widens** the round-007 `history_entry` (a MODIFY, owned by `/axb-data-plan`).
 

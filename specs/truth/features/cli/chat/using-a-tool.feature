@@ -11,7 +11,7 @@ Feature: Using a declared tool
       And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "The launch code is ORANGE"
       When the operator starts tellme with the prompt "What is the launch code? Read notes.txt."
-      Then tellme read "notes.txt" using its read-files tool
+      Then tellme read "notes.txt" using its read_files tool
       And tellme prints the provider's answer "The launch code is ORANGE"
       And tellme exits successfully
 

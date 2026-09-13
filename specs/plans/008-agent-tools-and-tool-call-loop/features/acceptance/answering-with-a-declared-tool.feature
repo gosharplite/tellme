@@ -10,7 +10,7 @@ Feature: Answering with a declared tool
       And the runtime home holds a configuration with a reachable provider "test-model" that answers using the tool results it receives
       And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
       When the operator asks tellme "What is the launch code? Read notes.txt to find out."
-      Then tellme reads "notes.txt" using its read-files tool
+      Then tellme reads "notes.txt" using its read_files tool
       And the final answer states that the launch code is "ORANGE"
       And tellme exits successfully
 

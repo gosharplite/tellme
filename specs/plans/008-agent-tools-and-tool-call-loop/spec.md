@@ -10,7 +10,7 @@
 
 **Clarify Round 1 (2026-09-12)** resolved three high-impact scope decisions:
 
-- **Q1 -> Option 2 (read-only filesystem tools)**: the first slice ships exactly **two read-only local tools** — **`list files`** and **`read files`**. No writes, no process execution, no network beyond the existing provider turn.
+- **Q1 -> Option 2 (read-only filesystem tools)**: the first slice ships exactly **two read-only local tools** — **`list_files`** and **`read_files`** — plus Story 4's **session-summarisation** tool `summarize_history`. No writes, no process execution, no network beyond the existing provider turn.
 - **Q2 -> Option 2 (widen the persisted turn)**: a completed tool-using turn persists its tool calls/results — a data-truth **MODIFY** to `history_entry` (owned by `/axb-data-plan`). This reverses round 007's "tool calls are not in scope" record shape.
 - **Q3 -> Option 1 (no boundary)**: the read tools have **no** path/safety boundary; `SafePath` and interactive consent remain **settled exclusions** (not re-opened).
 
@@ -37,7 +37,7 @@ As a developer using tellme from the terminal, I want tellme to **use a declared
 
 **Functional Requirements**:
 
-- **FR-001**: The system MUST provide exactly **two** read-only filesystem tools — **`list files`** (enumerate a directory's entries) and **`read files`** (return a file's contents) — and make them available to the model for a prompt run.
+- **FR-001**: The system MUST register exactly **three wire-valid tools** for a prompt run — two **read-only filesystem** tools, **`list_files`** (enumerate a directory's entries) and **`read_files`** (return a file's contents), and the **session-summarisation** tool **`summarize_history`** (Story 4 / FR-012) — and make them available to the model. Tool identifiers MUST be valid per the provider tool-name schema (`^[a-zA-Z0-9_-]{1,64}$`; no whitespace).
 - **FR-002**: On a prompt run, the system MUST offer the available tool definitions to the model and allow the model to request a tool instead of (or in addition to) answering.
 - **FR-003**: The system MUST execute a requested tool and return its result to the model for a subsequent request.
 - **FR-004**: The system MUST keep the think→act→observe cycle going until the model produces a final answer or a bound is reached (Story 3).
@@ -115,7 +115,7 @@ As a user with a long conversation, I want tellme to be able to **summarise earl
 
 **Functional Requirements**:
 
-- **FR-012**: The system MUST provide history summarisation **as an agent tool** (an LLM-backed tool), distinct from automatic context pruning.
+- **FR-012**: The system MUST provide history summarisation **as an agent tool** named **`summarize_history`** — an LLM-backed tool that reads the persisted conversation and returns a condensed summary as its tool result — distinct from automatic context pruning.
 - **FR-013**: Invoking the summarisation tool MUST NOT silently rewrite persisted history records.
 - **FR-014**: The summarisation tool MUST be subject to the same loop bounds and failure contract as Story 3.
 
@@ -128,9 +128,9 @@ As a user with a long conversation, I want tellme to be able to **summarise earl
 ### Edge Cases
 
 - When a requested tool is **not declared**, the system MUST treat it as a deterministic failure (fail fast), not a silent no-op.
-- When **`read files`** targets a missing or unreadable path, the system MUST treat it as a tool result (error), not crash the run.
-- When **`read files`** targets a **large file**, the returned content MUST be **size-bounded** so it cannot exhaust the model's context window — token-budget pruning is out of scope, so the read tool must not inject unbounded input.
-- When **`list files`** targets a non-directory path, the system MUST return a deterministic error result.
+- When **`read_files`** targets a missing or unreadable path, the system MUST treat it as a tool result (error), not crash the run.
+- When **`read_files`** targets a **large file**, the returned content MUST be **size-bounded** so it cannot exhaust the model's context window — token-budget pruning is out of scope, so the read tool must not inject unbounded input.
+- When **`list_files`** targets a non-directory path, the system MUST return a deterministic error result.
 - When the model returns **no tool request**, the run MUST behave exactly as a single-answer turn (Story 1, scenario 2) and print no tool-loop logs (Story 2, scenario 2).
 - When a prompt-bearing run **fails mid-loop**, the system MUST NOT write a partial/interrupted history record (round-007 append-after-complete is preserved at the turn level).
 - When the model requests **multiple tools in one response**, the system MUST handle the batch deterministically (sequential by default this round unless `/axb-technical-research` decides otherwise).
@@ -157,7 +157,7 @@ As a user with a long conversation, I want tellme to be able to **summarise earl
 
 ### Key Entities *(include if feature involves data)*
 
-- **Tool declaration**: the model-facing description of a capability — a name, a description, and a parameter schema. The first slice declares exactly `list files` and `read files`.
+- **Tool declaration**: the model-facing description of a capability — a name, a description, and a parameter schema. The first slice declares `list_files`, `read_files`, and `summarize_history` (all wire-valid snake_case).
 - **Tool request**: the model's request to run a tool with concrete arguments.
 - **Tool result**: the outcome of one tool execution (content, or an error/timeout), size-bounded.
 - **Turn (extended)**: one prompt run, which may now span **multiple** provider requests interleaved with tool executions; persisted as before, but now carrying its tool activity.
@@ -174,11 +174,11 @@ As a user with a long conversation, I want tellme to be able to **summarise earl
 - **SC-005**: In the acceptance set, 100% of tool-using failures (unknown tool, timeout, bound reached, unrecoverable error) report `the tool request failed` and exit `7`.
 - **SC-006**: All pre-existing round-001–007 acceptance scenarios remain green, except where a recorded truth MODIFY updates them for the now-tool-capable turn; `-l N` remains user/assistant-only.
 - **SC-007**: The history-summarisation agent tool produces a usable summary and leaves earlier persisted records unrewritten.
-- **SC-008**: 100% of `read files` results are size-bounded, so no single read can exhaust the assembled context.
+- **SC-008**: 100% of `read_files` results are size-bounded, so no single read can exhaust the assembled context.
 
 ## Assumptions
 
-- **Tool set (Q1)**: exactly two read-only filesystem tools, `list files` and `read files`; no writes, no process execution, no network beyond the provider turn.
+- **Tool set (Q1)**: exactly two read-only filesystem tools, `list_files` and `read_files`, plus the LLM-backed session-summarisation tool `summarize_history` (Story 4); no writes, no process execution, no network beyond the provider turn.
 - **Persistence (Q2)**: a completed tool-using turn's tool calls/results are persisted via a widened `history_entry` (data-truth MODIFY, `/axb-data-plan`); `-l` still lists only user/assistant messages.
 - **Safety (Q3)**: no path/safety boundary; `SafePath` and interactive consent remain settled exclusions.
 - **Visibility (Round 3)**: the tool loop is observable live during the run; the log is written to the diagnostic stream (`stderr`), so `stdout` remains the answer stream. The loop is a **sequence of discrete provider calls + tool executions**, **not** token-level streaming (streaming responses remain a settled exclusion).
