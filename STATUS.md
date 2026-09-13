@@ -8,7 +8,7 @@
 
 ## Round 012 — `012-interactive-multiline-prompt` (active)
 
-**Status**: 🔄 **IN PROGRESS** — PR [#31](https://github.com/gosharplite/tellme/pull/31) (`012-interactive-multiline-prompt → dev`); review **REQUEST CHANGES** → **fixed** (`331cf88`) → re-review **✅ APPROVE** ([#5652688392](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652688392)) → spec/research drift closed (`abc49f0`) → closing confirmation ✅ ([#5652709341](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652709341)). **Amendment A8** (`1fb7a0e`): a prompt-less `--new` on a terminal now archives then reads.
+**Status**: 🔄 **IN PROGRESS** — PR [#31](https://github.com/gosharplite/tellme/pull/31) (`012-interactive-multiline-prompt → dev`); review **REQUEST CHANGES** → **fixed** (`331cf88`) → re-review **✅ APPROVE** ([#5652688392](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652688392)) → spec/research drift closed (`abc49f0`) → closing confirmation ✅ ([#5652709341](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652709341)). **Amendment A8** (`1fb7a0e`): a prompt-less `--new` on a terminal now archives then reads. Fresh re-review of A8 **REQUEST CHANGES** ([#5652804419](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652804419) — a non-hermetic unit test) → **fixed** (`b5cb61c`).
 
 **Scope**: the reference's interactive multi-line prompt reader (`Ctrl+D`; hint to `stderr`; POSIX-only, no Windows variant). Tasks **8/8 `[X]`**; godog **81/81**; topology audit **PASSED** (547 steps).
 

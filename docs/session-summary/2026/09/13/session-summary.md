@@ -495,3 +495,7 @@ After the #31 review loop closed (✅ APPROVE + closing confirmation), the opera
 - **Truth**: `spec.md` (FR-009 amended; FR-012 + SC-007 added; edge case + US1 scenario), `chat/reading-a-multi-line-prompt.feature` (the `A prompt-less --new at the terminal starts fresh, then reads` Rule), `chat/dsl.md` (the When row), `truth-delta.md`.
 - **Tests**: unit dispatch tests (`TestRun_NewInteractive*`, `TestRun_NewNonTTYDoesNotRead`) + the E2E step/scenario.
 - **Verification**: `make verify` OK · godog **81/81** · topology audit **PASSED** (547 steps) · **falsifiability witness** reproduced (old behaviour → the new scenario fails with "no reading announcement").
+
+### A8 re-review fix — hermetic unit tests (`b5cb61c`)
+
+The re-review of A8 (PR head `035dee4`) returned **REQUEST CHANGES** with one must-fix: `TestRun_NewInteractiveEmptyArchivesAndSucceeds` asserted `output/butler` without neutralizing ambient `TELL_ME_MODE`, so it failed wherever the shell exports `TELL_ME_MODE` (the project's own shell) — the earlier "`make verify` OK" was environment-dependent (my shell exports `TELL_ME_MODE=butler`). Fixed by adding `clearAmbientOverrides(t)` (mirrors the E2E `beforeScenario`) to the three new tests; `go test ./...` is now green under `TELL_ME_MODE=architect` and a polluted env. Also documented the 🟡 archive-order divergence (a prompt-less `--new` archives **before** the turn's config resolution, so a broken config still archives — unlike `--new "<prompt>"`) at the call site + in `FR-012`.
