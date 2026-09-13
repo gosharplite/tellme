@@ -1,11 +1,10 @@
 # tellme — Status
 
-**Last updated**: 2026-09-13 — **round 009 `009-payload-status-line` DELIVERED + PROPAGATED** (session 24; see the *Round 009* section). Plan/truth PR [#26](https://github.com/gosharplite/tellme/pull/26) merged into `dev` (`98c0fb3`); implementation PR [#27](https://github.com/gosharplite/tellme/pull/27) merged into `009-payload-status-line` (`5b744e8`); propagated `009-payload-status-line → dev` (`d4fd911`) `→ main`. Prior: 2026-09-12 (**session 21 — round 007 `007-session-history-persistence` **DELIVERED + PROPAGATED** — full AIxBDD pipeline `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` (26/26 `[X]`); Clarify Round 1 locked **Q1** auto-resume-always · **Q2** `--new`+`-l N` · **Q3** reuse `the runtime home is not usable`; Clarify Round 2 → invoke `/axb-data-plan`; PR [#20](https://github.com/gosharplite/tellme/pull/20) plan&truth merged into `007-session-history-persistence` (`3187584`), PR [#21](https://github.com/gosharplite/tellme/pull/21) implementation merged (`f36a83b`), propagation `007 → dev` (`6f5483b`) `→ main` (`c7b9950`); `make verify` OK · godog **53/53 · 368/368**; adds durable session history (`history.jsonl` + `--new`/`-l`) — **first persisted system state** (data truth ADD); **Prior — session 20 — round 006 `006-rendered-output-and-raw-flag` **MERGED** (PR [#19](https://github.com/gosharplite/tellme/pull/19) → `dev`, merge `7cc1304`) + propagated `dev → main`; full pipeline `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` (23/23 `[X]`); Clarify Round 1 locked **Q1** (reference output parity) · **Q2** (glamour renderer / no pty) · **Q3** (`WRAP_WIDTH`+`TELL_ME_WRAP_WIDTH`); review: PR [#18](https://github.com/gosharplite/tellme/pull/18) blockers **H1/H2** + **M1–M8** → **reverted after an unauthorized merge**, re-opened as PR [#19](https://github.com/gosharplite/tellme/pull/19) → **CERTIFIED READY TO MERGE** (review **Obs 2** fixed in `ef7243d`); `make verify` OK · godog **46/46 · 325/325**; adds `-r`/`--raw` + the glamour renderer — **first presentation dependency** (ADR-0002); root class-phrase vocabulary 9→10** | **session 19 — round 005 `005-stdin-piping` MERGED (`37c0c24`) + CLOSEOUT**: PR [#16](https://github.com/gosharplite/tellme/pull/16) **merged** into `dev` (merge commit `37c0c24`, "Merge pull request #16 from gosharplite/005-stdin-piping"); local synced (`dev` = `origin/dev`); gates re-run green — `gofmt`/`go vet` clean · godog **42/42 scenarios · 298/298 steps** · `make verify` OK (0 lint / 0 vulns); **propagated `dev → main` (no-ff) — DONE**. Round 005 is **delivered / frozen**. Session 18 — round 005 implemented + fully reviewed (PR #16 OPEN; not merged)**: full pipeline `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` (21/21 tasks `[X]`); Clarify Round 1 (reissued, verified against `tell-me-go`) locked **Q1→1** (piping only; defer `-r`), **Q2→3** (combine `args + "\n"` + piped stdin), **Q3→2** (TTY-aware output contract); delivery committed (`0909529`) + PR [#16](https://github.com/gosharplite/tellme/pull/16) opened (**base `dev`**); architectural review ([#5644257418](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644257418)) → findings **F1–F3** fixed in-round (`acc4c82`) → re-check ([#5644293148](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644293148)) **FULL APPROVAL — READY TO MERGE**. Session 17 — tooling/roadmap triage (docs-only) + day close**: coverage tooling [#13](https://github.com/gosharplite/tellme/issues/13) triaged → low-priority (title de-scoped); F9 flag-parsing opened as [#14](https://github.com/gosharplite/tellme/issues/14) (→ fold into the piping/`-r` slice); pipeline candidate (a) re-scoped to "run `make verify` in a chosen platform" and filed as [#15](https://github.com/gosharplite/tellme/issues/15) — **manual for now, platform TBD (GitHub Actions / ADO / Tekton)**; **PM-4 `tellme init` dropped**; docs committed & pushed to `dev`; **propagation `dev → main` DONE** (no-ff merge, session 17). Session 16 — round 004 `004-first-reasoning-turn` DELIVERED**: full pipeline `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` (25/25 tasks `[X]`); PR [#12](https://github.com/gosharplite/tellme/pull/12) reviewed (**FULL APPROVAL — READY TO MERGE**; F1–F5 fixed at `6f1b6d5` + `cyclop` gate `bf6b983`) → **merged** (`4525b38`) → **propagated `→ dev → main`**; PR-head branch deleted; issue [#10](https://github.com/gosharplite/tellme/issues/10) closed; coverage tooling tracked as [#13](https://github.com/gosharplite/tellme/issues/13)). (Prior — session 15: round 003 `003-provider-registry-completeness` **DELIVERED** — PR [#11](https://github.com/gosharplite/tellme/pull/11) re-reviewed (FULL APPROVAL) → review findings #1–#3 resolved in-round (`05d2e0d`) → merged (`9ab3185`) → propagated `003-provider-registry-completeness → dev → main`; local PR-head branch deleted). *Prior — session 14: round 003 implemented end-to-end (full pipeline `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`; 18/18 tasks `[X]`), PR [#11](https://github.com/gosharplite/tellme/pull/11) opened. Prior — session 13: 003/004 roadmap and tracking issues ([#9](https://github.com/gosharplite/tellme/issues/9), [#10](https://github.com/gosharplite/tellme/issues/10)) + doc-tree reorganization. Prior — session 12: round 002 delivered & merged ([PR #7](https://github.com/gosharplite/tellme/pull/7)).*
-**Review response (round 008)**: PR [#24](https://github.com/gosharplite/tellme/pull/24) (plan/truth) review → 2 blockers (wire-invalid tool names; summarisation-tool void) + TD-1/TD-2/RF-1/RF-2 fixed (`abbdf41`) → **CERTIFIED READY TO MERGE**; PR [#25](https://github.com/gosharplite/tellme/pull/25) (implementation) architectural review ([#5650683107](https://github.com/gosharplite/tellme/pull/25#issuecomment-5650683107)) → **REQUEST CHANGES** — **BLOCKER-1** (inverted wire-message chronology on tool-loop iterations) + TD-1/TD-2/RF-1 → **fixed in-round** (`1f64b44`) → re-review ([#5650743377](https://github.com/gosharplite/tellme/pull/25#issuecomment-5650743377)) **FULL ARCHITECTURAL APPROVAL — READY TO MERGE** (human-merged). Prior: PR [#20](https://github.com/gosharplite/tellme/pull/20) architecture review ([#5645711029](https://github.com/gosharplite/tellme/pull/20#issuecomment-5645711029)) → **FULL APPROVAL** (guidance TD-1/TD-2/RF-1/RF-2/RF-3 folded into `tasks.md`, `34359ed`) → certification **CERTIFIED READY TO MERGE** ([#5645748606](https://github.com/gosharplite/tellme/pull/20#issuecomment-5645748606)); PR [#21](https://github.com/gosharplite/tellme/pull/21) architecture review ([#5645834214](https://github.com/gosharplite/tellme/pull/21#issuecomment-5645834214)) → **FULL ARCHITECTURAL APPROVAL — READY TO MERGE** (response [#5645842877](https://github.com/gosharplite/tellme/pull/21#issuecomment-5645842877)). Prior — PR [#16](https://github.com/gosharplite/tellme/pull/16) architectural review ([#5644257418](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644257418), verdict *APPROVE with non-blocking follow-ups*; re-check [#5644293148](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644293148), verdict *FULL APPROVAL — READY TO MERGE*) — findings **F1–F3** addressed in-round (`acc4c82`). Follow-up: grill round → correction pass (`fb83cb4`) + independent re-review + residual sweep (`2d21e09`) → **Final Architectural Review** [`#5644538637`](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644538637) **FULL ARCHITECTURAL APPROVAL — READY TO MERGE**. (Prior round 004: PR [#12](https://github.com/gosharplite/tellme/pull/12) F1–F5 + `cyclop` gate.)
+**Last updated**: 2026-09-13 — **round 009 `009-payload-status-line` DELIVERED + PROPAGATED** (session 24; see the *Round 009* section). Prior rounds' detail is in the archive. **Post-round closeout**: `STATUS.md` **split** into `docs/archives/status/2026-09-13.md` (rounds 003–008 detail), and the split procedure added to `SESSION-CLOSEOUT.md` (Rule 12 + Step 3 item 8); propagated `dev → main`.
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `dev` (round 009 delivered — plan/truth PR [#26](https://github.com/gosharplite/tellme/pull/26) merged into `dev` (`98c0fb3`); implementation PR [#27](https://github.com/gosharplite/tellme/pull/27) merged (`5b744e8`); propagated `009-payload-status-line → dev` (`d4fd911`) `→ main`). Next round starts a fresh `010-*` off `dev`.
 **Daily log**: [`docs/session-summary/2026/09/13/session-summary.md`](docs/session-summary/2026/09/13/session-summary.md)
-**Archive**: [`docs/archives/status/2026-09-11.md`](docs/archives/status/2026-09-11.md) — historical status (rounds 001 and 002, all closed grill/upstream/clarify records, accumulated decisions log, propagation + environment history), cut at 2026-09-11 (session 13).
+**Archive**: [`docs/archives/status/2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`docs/archives/status/2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–008 detail + header/review-response/propagation history).
 
 ## Round 009 — `009-payload-status-line` (delivered / frozen)
 
@@ -29,29 +28,21 @@
 
 **Open (non-blocking)**: none new — carried items unchanged (PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / no pruning / no `flock`).
 
-## Round 008 — `008-agent-tools-and-tool-call-loop` (delivered / frozen)
 
-**Status**: ✅ **DELIVERED / FROZEN** (2026-09-13, session 23) — plan/truth PR [#24](https://github.com/gosharplite/tellme/pull/24) merged into `008-agent-tools-and-tool-call-loop` (`fb382fc`); implementation PR [#25](https://github.com/gosharplite/tellme/pull/25) merged (`f9b5d74`); propagated `008-agent-tools-and-tool-call-loop → dev` (`d376e03`) `→ main`; godog **61/61 scenarios · 426/426 steps**; `make verify` OK. Tracking issue [#23](https://github.com/gosharplite/tellme/issues/23).
+## Delivered rounds (001–008)
 
-**Scope**: give tellme a bounded **agent tool-call loop** — a prompt run may call **read-only filesystem tools** (`list_files`, `read_files`) and iterate to a final answer; persist the turn's tool activity; surface the loop on `stderr`; a new failure class `the tool request failed` + exit `7`; bound `MAX_TOOL_LOOP` (default 1000); and history summarisation as an agent tool (`summarize_history`).
+Detail lives in the archives (003–008 in [`2026-09-13.md`](docs/archives/status/2026-09-13.md); 001–002 in [`2026-09-11.md`](docs/archives/status/2026-09-11.md)). Quick index:
 
-**Clarify decisions locked**: (Q1) two read-only filesystem tools · (Q2) widen `history_entry` to carry tool steps · (Q3) **no** path/safety boundary (`SafePath`/consent stay settled exclusions) · (R2 Q1) `the tool request failed` + exit `7` · (R2 Q2) `MAX_TOOL_LOOP` = 1000 · (extra) live tool-loop logs on `stderr`; `-l` unchanged (operator messages only).
-
-**Artifacts / pipeline**:
-- [x] plan package (`spec.md`, `checklists/requirements.md`, `research.md`, `plan.md`, `features/acceptance/` ×4, `tasks.md`, `truth-delta.md`) — merged PR [#24](https://github.com/gosharplite/tellme/pull/24).
-- [x] truth (`techstack.md` MODIFY, `data/data-model.dbml` MODIFY, `features/cli/**` ADD/MODIFY) — merged PR [#24](https://github.com/gosharplite/tellme/pull/24).
-- [x] implementation **Foundational T001–T007** (`[X]`) — commit `5a37fe4`.
-- [x] implementation **Phase 3 (T008–T025)** — 16 `[BDD-RED]` stepdefs + `wire_tools.go` + 4 `[UNIT]` test files; T025 read-only `architect` review **GREEN**.
-- [x] implementation **Feature phases 4A–4E (T026–T035)** + **Regression 4F (T036)** — incl. the LLM-backed `summarize_history` tool (`internal/infrastructure/tools/summarize.go`).
-- [x] **all 36/36 tasks `[X]`** — implementation PR [#25](https://github.com/gosharplite/tellme/pull/25) merged (`f9b5d74`).
-
-**Pipeline position**: all phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-data-plan` → `/axb-dsl-refine` → `/axb-tasks` → **`/axb-implement` (36/36 tasks `[X]`)**.
-
-**Verification (2026-09-13)**: `gofmt`/`go vet` clean · `make verify` **OK** (0 lint, 0 reachable vulns, no test-sleep, offline witness) · `go test -count=1 ./...` green · godog **61/61 scenarios · 426/426 steps** · `go mod tidy` graph unchanged (stdlib-only) · exit codes `0/2/3/4/5/6/7` distinct · class-phrase vocabulary **11** · `-l` operator-only.
-
-**Review trail (round 008)**: PR [#24](https://github.com/gosharplite/tellme/pull/24) (plan/truth) → blockers + TD-1/TD-2 + RF-1/RF-2 fixed (`abbdf41`) → **CERTIFIED READY TO MERGE**; PR [#25](https://github.com/gosharplite/tellme/pull/25) (implementation) architectural review ([#5650683107](https://github.com/gosharplite/tellme/pull/25#issuecomment-5650683107)) → **REQUEST CHANGES** (**BLOCKER-1** inverted wire-message chronology; TD-1/TD-2/RF-1) → fixed in-round (`1f64b44`) → re-review ([#5650743377](https://github.com/gosharplite/tellme/pull/25#issuecomment-5650743377)) **FULL ARCHITECTURAL APPROVAL — READY TO MERGE** → human-merged (`f9b5d74`).
-
-**Open (non-blocking)**: forward item from PR #25 review **RF-2** — tool calls execute sequentially; concurrency (bounded, à la the reference's `MAX_CONCURRENT_TOOLS`) is deferred until slower/external tools arrive. Carried from round 007: unbounded history / no pruning (pruning stays a settled exclusion); no `flock`/`ModeLocker`.
+| Round | Branch | Delivered via |
+| --- | --- | --- |
+| 001 | `001-cli-bootstrap-and-config` | PR [#6](https://github.com/gosharplite/tellme/pull/6) |
+| 002 | `002-followup-cleanups` | PR [#7](https://github.com/gosharplite/tellme/pull/7) |
+| 003 | `003-provider-registry-completeness` | PR [#11](https://github.com/gosharplite/tellme/pull/11) |
+| 004 | `004-first-reasoning-turn` | PR [#12](https://github.com/gosharplite/tellme/pull/12) |
+| 005 | `005-stdin-piping` | PR [#16](https://github.com/gosharplite/tellme/pull/16) |
+| 006 | `006-rendered-output-and-raw-flag` | PR [#19](https://github.com/gosharplite/tellme/pull/19) |
+| 007 | `007-session-history-persistence` | PRs [#20](https://github.com/gosharplite/tellme/pull/20)/[#21](https://github.com/gosharplite/tellme/pull/21) |
+| 008 | `008-agent-tools-and-tool-call-loop` | PRs [#24](https://github.com/gosharplite/tellme/pull/24)/[#25](https://github.com/gosharplite/tellme/pull/25) |
 
 ## Branch model
 
@@ -70,197 +61,10 @@
 | `009-payload-status-line` | delivered / frozen (round 009) | Round-009 branch — plan/truth PR [#26](https://github.com/gosharplite/tellme/pull/26) merged into `dev` (`98c0fb3`) + implementation PR [#27](https://github.com/gosharplite/tellme/pull/27) merged (`5b744e8`); propagated `009-payload-status-line → dev` (`d4fd911`) `→ main`; frozen history (impl branch `009-implement-payload-status-line` deleted) |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`. Delivered round branches
-> (`001`–`008`) remain frozen history and never receive post-round commits.
+> (`001`–`009`) remain frozen history and never receive post-round commits.
+>
+> **Propagation (round 009):** `009-payload-status-line → dev` (`d4fd911`) `→ main` (`32074ed`) — DONE; closeout docs on `dev` (`43d3507`).
 > Read live heads with `git rev-parse --short main dev HEAD`.
->
-> **Propagation status (2026-09-13, session 23):** round 008 delivered — plan/truth PR [#24](https://github.com/gosharplite/tellme/pull/24) merged into `008-agent-tools-and-tool-call-loop` (`fb382fc`), implementation PR [#25](https://github.com/gosharplite/tellme/pull/25) merged (`f9b5d74`); **propagated `008-agent-tools-and-tool-call-loop → dev` (`d376e03`) `→ main` — DONE**. Round 008 delivered / frozen.
->
-> **Prior (2026-09-12, session 21):** round 007 delivered — plan/truth PR [#20](https://github.com/gosharplite/tellme/pull/20) merged into `007-session-history-persistence` (`3187584`), implementation PR [#21](https://github.com/gosharplite/tellme/pull/21) merged (`f36a83b`); **propagated `007-session-history-persistence → dev` (`6f5483b`) `→ main` (`c7b9950`) — DONE**. Round 007 delivered / frozen.
->
-> **Prior (2026-09-12, session 19):** PR [#16](https://github.com/gosharplite/tellme/pull/16) **merged** into `dev` (`37c0c24`); **propagated `dev → main` (no-ff) — DONE**. Round 005 delivered / frozen.
-
-## Round 003 — `003-provider-registry-completeness` (delivered / frozen)
-
-**Status**: ✅ **DELIVERED / FROZEN** (2026-09-12) — PR [#11](https://github.com/gosharplite/tellme/pull/11) merged; propagated to `dev` and `main`.
-
-**Scope**: (1) Expand `PROVIDERS` entry from boot subset to the real, typed provider configuration needed for LLM requests (`TYPE`, `MODEL`, `URL`, `API_KEY`, `MAX_TOKENS`, `HEADERS`, `THINKING_BUDGET`, `THINKING_LEVEL`); (2) Deterministic `${VAR}` and `${VAR:-default}` environment variable expansion in `API_KEY`, `URL`, and `HEADERS` string values; (3) Deterministic offline validation and operator-facing failure contract (exit code `3`, frozen class phrase `tellme: the provider configuration is invalid`); (4) Pure-helper unit tests and regression verification.
-
-> **Rounds 001 and 002 (and now 003) remain frozen**: `specs/plans/001-cli-bootstrap-and-config/**`, `specs/plans/002-followup-cleanups/**`, and `specs/plans/003-provider-registry-completeness/**` are immutable history.
-
-### Artifacts
-
-- [x] `specs/plans/003-provider-registry-completeness/spec.md` — `/axb-specify`
-- [x] `specs/plans/003-provider-registry-completeness/checklists/requirements.md` — `/axb-specify`
-- [x] `specs/plans/003-provider-registry-completeness/truth-delta.md` — `/axb-specify` / `/axb-technical-research` / `/axb-dsl-refine`
-- [x] `specs/plans/003-provider-registry-completeness/features/acceptance/*.feature` — `/axb-spec-by-example`
-- [x] `specs/plans/003-provider-registry-completeness/research.md` + `specs/truth/techstack.md` — `/axb-technical-research`
-- [x] `specs/plans/003-provider-registry-completeness/plan.md` — `/axb-system-analysis`
-- [x] `specs/truth/features/cli/**` — `/axb-dsl-refine`
-- [x] `specs/plans/003-provider-registry-completeness/tasks.md` — `/axb-tasks`
-- [x] Implementation — `/axb-implement` (18/18 tasks `[X]`; godog 27/27 scenarios, `make verify` OK; PR [#11](https://github.com/gosharplite/tellme/pull/11) **merged** `9ab3185`)
-
-### Pipeline position
-
-All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → **`/axb-implement` (18/18 tasks `[X]`)**. Unit tests green, godog **27/27 scenarios · 195/195 steps**, `make verify` OK (zero test-sleep, zero network capability, 0 lint issues, 0 vulnerabilities). PR [#11](https://github.com/gosharplite/tellme/pull/11) reviewed (**FULL APPROVAL**), **merged** (`9ab3185`), and **propagated `003-provider-registry-completeness → dev → main`**. Round 003 is delivered / frozen.
-
-### Decisions locked (round 003)
-
-- **Clarify Q1 -> Option 1 (Core request set)**: Model `TYPE`, `MODEL`, `URL`, `API_KEY`, `MAX_TOKENS`, `HEADERS` (map of string to string), `THINKING_BUDGET` (int), and `THINKING_LEVEL` (string). Defer `USER_ID`, `THINKING_ENABLED`, and top-level `MODELS` pricing tables.
-- **Clarify Q2 -> Option 1 (Targeted `${VAR}` expansion with error on unset)**: Expand `${VAR}` and `${VAR:-default}` in `API_KEY`, `URL`, and `HEADERS` values. If an environment variable has no default and is unset/empty, configuration resolution fails deterministically.
-- **Clarify Q3 -> Option 1 (Exit code 3 with dedicated class phrase)**: Validation failure exits with code `3` and emits the frozen class phrase `tellme: the provider configuration is invalid`.
-- **Top-level key tolerance**: YAML parser maintains tolerance for unknown top-level keys (`MODELS:`, `MCP_SERVERS:`) to ensure compatibility with real-world configs, while strictly validating the resolved provider entry.
-- **Context-window / pricing mapping**: Deferred to Slice 004 as an assumption.
-
-### Review response — PR #11 (round 003, in-round)
-
-- Review comment: [#5641984093](https://github.com/gosharplite/tellme/pull/11#issuecomment-5641984093) — verdict **APPROVE WITH NON-BLOCKING FOLLOW-UPS**.
-- **F1 (OS coupling in `expand.go`)** — introduced an injectable `EnvLookupFunc` port (`ExpandStringWithLookup`; `ExpandString` delegates to `os.LookupEnv`); the expansion unit table is now in-memory and `t.Parallel()`-safe. Truth: `techstack.md` *Variable expansion* row (MODIFY).
-- **F2 (validate ran before expand)** — `resolve()` now **expands then validates**, so a mandatory field whose placeholder resolves to empty (e.g. `URL: "${UNSET:-}"`) is rejected; added executable acceptance Example *"A mandatory field resolves to empty after expansion"* + `TestResolveRejectsEmptyAfterExpansion`. Truth: `techstack.md` resolution row (MODIFY) + `features/cli/configuration` feature (MODIFY).
-- **F3 (resolved provider discarded)** — `resolution` now carries the resolved (expanded) `config.Provider` for Slice 004; covered by `TestResolveCarriesExpandedProvider`. No truth change (internal struct).
-- Verification: unit tests green; godog **27/27 scenarios · 195/195 steps**; topology audit **PASSED** (172 steps); `make verify` OK; staticcheck clean.
-
-### Delivery & propagation (session 15)
-
-- Re-check comment: [#5642050755](https://github.com/gosharplite/tellme/pull/11#issuecomment-5642050755) — verdict **FULL APPROVAL — READY TO MERGE**.
-- PR [#11](https://github.com/gosharplite/tellme/pull/11) merged into `003-provider-registry-completeness` (`9ab3185`); remote PR-head branch deleted.
-- Propagated `003-provider-registry-completeness → dev` (`6db276e`, no-ff) `→ main` (no-ff).
-- Round 003 `specs/plans/003-provider-registry-completeness/**` is now **delivered / frozen** history.
-- Next: **Slice 004 — First reasoning turn** ([#10](https://github.com/gosharplite/tellme/issues/10)) starts a fresh `004-*` package off `dev`; it will consume the provider carried on `resolution` (review F3).
-
-## Round 004 — `004-first-reasoning-turn` (delivered / frozen)
-
-**Status**: ✅ **DELIVERED / FROZEN** (2026-09-12) — PR [#12](https://github.com/gosharplite/tellme/pull/12) merged (`4525b38`); propagated to `dev` and `main`; issue [#10](https://github.com/gosharplite/tellme/issues/10) closed.
-
-> **Rounds 001–003 (and now 004) remain frozen**: `specs/plans/001-cli-bootstrap-and-config/**`, `specs/plans/002-followup-cleanups/**`, `specs/plans/003-provider-registry-completeness/**`, and `specs/plans/004-first-reasoning-turn/**` are immutable history.
-
-**Scope**: (1) `tellme "<prompt>"` → one provider request → printed response; (2) a provider domain port + one concrete adapter (OpenAI-compatible family first); (3) request assembly from the round-003 resolved provider; (4) response normalization to a minimal answer; (5) a deterministic provider/transport failure contract (frozen class phrase `the provider request failed` + exit code `6`); (6) a network-path test strategy (local fake provider) + amended no-network capability guard.
-
-### Artifacts
-
-- [x] `specs/plans/004-first-reasoning-turn/spec.md` — `/axb-specify`
-- [x] `specs/plans/004-first-reasoning-turn/checklists/requirements.md` — `/axb-specify`
-- [x] `specs/plans/004-first-reasoning-turn/truth-delta.md` — `/axb-specify` / `/axb-technical-research` / `/axb-dsl-refine`
-- [x] `features/acceptance/*.feature` — `/axb-spec-by-example` (2 journey features: `answering-a-single-prompt`, `reporting-a-failed-provider-request`)
-- [x] `research.md` + `specs/truth/techstack.md` — `/axb-technical-research` (7 decisions; techstack ADD Reasoning & Provider Transport + guard amendment)
-- [x] `plan.md` — `/axb-system-analysis` (2 interfaces, 1 wave; `/axb-api-plan` = NOOP, `/axb-data-plan` = NOOP; CLI end + provider gateway → `/axb-dsl-refine` handoff)
-- [x] `specs/truth/features/cli/**` — `/axb-dsl-refine` (new `chat` module: 2 features + dsl; root DSL +1 class phrase `the provider request failed`; 2 rows promoted to root; topology audit PASSED — 219 steps)
-- [x] `tasks.md` — `/axb-tasks` (25 tasks; Setup omitted — stdlib only; Phase 3 = 3 ALIGN + 1 UNIT + 10 RED + review; orphan sweep 0)
-- [x] Implementation — `/axb-implement` (25/25 tasks `[X]`; godog 34/34 scenarios · 242/242 steps; `make verify` OK)
-
-### Pipeline position
-
-All phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → **`/axb-implement` (25/25 tasks `[X]`)**. Unit tests green, godog **34/34 scenarios · 242/242 steps**, `make verify` OK (zero test-sleep, offline-path guard, 0 lint issues, 0 vulnerabilities). PR [#12](https://github.com/gosharplite/tellme/pull/12) reviewed (**FULL APPROVAL**), **merged** (`4525b38`), and **propagated `004-first-reasoning-turn → dev → main`**. Round 004 is delivered / frozen.
-
-### Decisions locked (round 004 — Clarify Round 1)
-
-- **Q1 -> Option 1 (single in-memory, non-streaming turn; no persistence)**: one `tellme "<prompt>"` = one provider request → printed response; no `history.jsonl`, no session loop, no streaming.
-- **Q2 -> Option 1 (OpenAI-compatible family first)**: the first adapter targets `openai`/`deepseek`/`kimi`; Gemini/Vertex and Anthropic are deferred.
-- **Q3 -> Option 1 (new failure class)**: provider/transport failure → frozen class phrase `the provider request failed` + new distinct exit code `6` (table extends `0/2/3/4/5` → `0/2/3/4/5/6`).
-- **Deferred to `/axb-technical-research`**: transport = stdlib `net/http` (no SDK); the no-network capability guard is re-scoped to boot/`--version`/`-d` (round-001 research Decision 5 amendment). Recorded as spec assumptions.
-
-### Review response — PR #12 (round 004)
-
-Review comment [#5642832718](https://github.com/gosharplite/tellme/pull/12#issuecomment-5642832718) — verdict **APPROVE WITH NON-BLOCKING FOLLOW-UPS**; re-check [#5642872784](https://github.com/gosharplite/tellme/pull/12#issuecomment-5642872784) — **FULL APPROVAL — READY TO MERGE**; final sign-off [#5643011832](https://github.com/gosharplite/tellme/pull/12#issuecomment-5643011832). All five findings were addressed in-round on the PR branch:
-
-- **F1** (direct infra coupling + unchecked `Provider.Type`) → added the **gateway factory/dispatch seam** `internal/infrastructure/llm/factory.go` (`NewGateway` switches on the family; unsupported → `*llm.ProviderError`) and made `runTurn` injectable; covered by `factory_test.go` + `turn_test.go`.
-- **F2** (unbounded hang) → the adapter's default HTTP client now carries a 300s timeout; the turn context is cancelled on `SIGINT`/`SIGTERM` (`signal.NotifyContext`).
-- **F3** (discarded non-2xx body) → the provider's structured error message (`{"error":{"message":…}}`) is surfaced in the actionable detail (FR-008).
-- **F4** (unbounded read) → response read bounded by `io.LimitReader` (32 MiB).
-- **F5** (hardcoded model in a test step) → `step_t017` now asserts a generic JSON `"model"` field instead of a literal.
-
-Verification after the fix set: `gofmt`/`vet`/`staticcheck` clean · `make verify` OK · godog **34/34 · 242/242** · new unit tests for the factory, `runTurn`, and `extractErrorMessage`.
-
-### Delivery & propagation (session 16)
-
-- Re-check comment: [#5642872784](https://github.com/gosharplite/tellme/pull/12#issuecomment-5642872784) — verdict **FULL APPROVAL — READY TO MERGE**; final sign-off: [#5643011832](https://github.com/gosharplite/tellme/pull/12#issuecomment-5643011832).
-- PR [#12](https://github.com/gosharplite/tellme/pull/12) merged into `004-first-reasoning-turn` (`4525b38`); remote + local PR-head branch `004-implement-first-reasoning-turn` deleted.
-- Propagated `004-first-reasoning-turn → dev` (`ee54e46`, no-ff) `→ main` (no-ff).
-- Issue [#10](https://github.com/gosharplite/tellme/issues/10) closed as **completed**; coverage-tooling follow-up tracked as [#13](https://github.com/gosharplite/tellme/issues/13).
-- Round 004 `specs/plans/004-first-reasoning-turn/**` is now **delivered / frozen** history.
-
-## Round 005 — `005-stdin-piping` (delivered / frozen)
-
-**Status**: ✅ **DELIVERED / FROZEN** (2026-09-12, session 19) — PR [#16](https://github.com/gosharplite/tellme/pull/16) **merged** into `dev` (`37c0c24`, "Merge pull request #16 from gosharplite/005-stdin-piping"), propagated to `main`; godog **42/42 scenarios · 298/298 steps**; `make verify` OK.
-
-> **Rounds 001–004 (and now 005) remain frozen**: `specs/plans/001-cli-bootstrap-and-config/**` … `specs/plans/005-stdin-piping/**` are immutable history.
-
-**Scope**: (1) Read the prompt from **stdin** and combine it with the positional instruction (`args (joined) + "\n" + piped stdin` — `tell-me-go`'s main-path behavior); (2) adopt `tell-me-go`'s **TTY-aware** output contract (presentation suppressed when stdout is not a terminal); (3) fold issue [#14](https://github.com/gosharplite/tellme/issues/14) (F9 flag-parsing / I-O-mode-selection unit tests). **`-r` is deferred** (no renderer exists, so it would be a no-op).
-
-### Artifacts
-
-- [x] `specs/plans/005-stdin-piping/spec.md` — `/axb-specify`
-- [x] `specs/plans/005-stdin-piping/checklists/requirements.md` — `/axb-specify`
-- [x] `specs/plans/005-stdin-piping/truth-delta.md` — `/axb-specify` (skeleton)
-- [x] `features/acceptance/*.feature` — `/axb-spec-by-example` (2 journey features: `piping-a-prompt`, `piping-the-answer-out`; no `# [need clarification]` — zero high-impact gaps)
-- [x] `research.md` + `specs/truth/techstack.md` — `/axb-technical-research` (6 decisions; techstack MODIFY)
-- [x] `plan.md` — `/axb-system-analysis` (1 interface, 1 wave; `/axb-api-plan` + `/axb-data-plan` NOOP; CLI end → `/axb-dsl-refine`)
-- [x] `specs/truth/features/cli/**` — `/axb-dsl-refine` (2 new `chat` features + 4 When/5 Then rows; topology audit PASSED — 275 steps, post-correction)
-- [x] `tasks.md` — `/axb-tasks` (21 tasks; Setup omitted — no new dependency; Phase 3 = 9 `[BDD-RED]` + 1 `[UNIT]` + review; orphan sweep 0)
-- [x] Implementation — `/axb-implement` (21/21 tasks `[X]`; godog **42/42 scenarios · 298/298 steps** post-correction; `make verify` OK; committed `0909529` + grill-correction `fb83cb4` + residual sweep `2d21e09`; PR [#16](https://github.com/gosharplite/tellme/pull/16) **merged** `37c0c24`)
-
-### Decisions locked (round 005 — Clarify Round 1, reissued & verified against `tell-me-go`)
-
-- **Q1 -> Option 1 (Piping only; defer `-r`)**: `tellme` has no renderer, so its output already equals `tell-me-go`'s `-r` (raw) output; a literal `-r` would be a no-op flag. Full output-rendering parity (rendered default + `-r`) is deferred to a future slice.
-- **Q2 -> Option 3 (Combine)**: the prompt is the positional argument(s) (joined by single spaces), then a newline, then the piped stdin content — matching `tell-me-go`'s main chat path (`internal/ui/capture.go`: `prompt + "\n" + stdin`). (The first draft's "arg wins" matched only `tell-me-go`'s callback-worker path and was corrected.)
-- **Q3 -> Option 2 (TTY-aware output contract)**: adopt `tell-me-go`'s posture — presentation (color/spinner/rendering) suppressed when stdout is not a terminal. No observable change today (nothing to suppress yet); the contract is pinned. (The first draft's "TTY-agnostic" diverged from `tell-me-go` and was corrected.)
-- **Deferred to `/axb-technical-research`**: the TTY-detection mechanism and the exact stdin size cap (1 MiB assumed pending ratification).
-- **Research settled (round 005)**: TTY detection = dependency-free stdlib `os.ModeCharDevice` check behind an injected seam (not `golang.org/x/term`); piped stdin read bounded by a fixed **1 MiB** cap (`io.LimitReader`); I/O-mode selection made injectable so flag-parsing + mode selection carry unit tests (folding [#14](https://github.com/gosharplite/tellme/issues/14)); no renderer and no `-r` this round.
-
-### Review response — PR [#16](https://github.com/gosharplite/tellme/pull/16) (round 005, in-round)
-
-Review comment: [#5644257418](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644257418) — verdict **APPROVE WITH NON-BLOCKING FOLLOW-UPS**; all three findings resolved in-round on `005-stdin-piping`:
-
-- **F1 (uncataloged stderr class phrase)** — the defensive stdin-read path emitted a 10th, uncataloged phrase `standard input could not be read` with exit `4`. Fixed by **reusing the existing environment class phrase**: `tellme: the runtime home is not usable (standard input: …)` (closed nine-phrase vocabulary preserved; exit code `4` unchanged; **truth change — retracting the earlier "no truth change"**: the environment phrase now carries a third cause, *standard input unreadable*, recorded in root `specs/truth/features/cli/dsl.md` + `exitcode.go` semantics — see the **grill-correction pass** below).
-- **F2 (phantom `isTTY(stdout)`)** — `techstack.md` + `research.md` Decisions 1 & 5 claimed stdout was probed; the code only probes stdin. Fixed by **reconciling the docs** to the implementation: the seam is a general stream probe wired to stdin this round; the stdout probe is wired when presentation is introduced (truth-delta `MODIFY` recorded).
-- **F3 (partial stream DI in `run`)** — `stdout`/`stderr` are now threaded through **every** branch: `parseFlags(stderr)`, `emitUsageError(stderr)`, version→`stdout`, `renderDiagnostic(…, stdout)`, `emitDiagnosticText(stdout, …)`, `renderBoot(…, stdout, stderr)`, `emitBootError(stderr, …)`; no branch writes to global `os.Stdout`/`os.Stderr`.
-
-### Delivery & propagation (sessions 18–19)
-
-- Delivery committed `0909529` on `005-stdin-piping`; pushed to `origin`; PR [#16](https://github.com/gosharplite/tellme/pull/16) opened — **base `dev` ← head `005-stdin-piping`**.
-- Architectural review [#5644257418](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644257418) (APPROVE WITH NON-BLOCKING FOLLOW-UPS) → **F1–F3 fixed in-round** (`acc4c82`); re-check [#5644293148](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644293148) → **FULL APPROVAL — READY TO MERGE**.
-- **Merged (session 19):** PR [#16](https://github.com/gosharplite/tellme/pull/16) merged into `dev` (`37c0c24`, "Merge pull request #16 from gosharplite/005-stdin-piping"); **propagated `dev → main` (no-ff)** — DONE. Round 005 delivered / frozen.
-
-### Grill-correction pass (pre-merge) — `architect` vs `griller`
-
-A `tmg-grill-round` on PR [#16](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644428299) returned **proceed with changes**: the product behavior (stdin piping + the TTY-aware posture) held up, but the artifact layer over-claimed in six places and self-contradicted in one. Full transcript: [gist](https://gist.github.com/gosharplite/7d14825abe126a4798d8be0e0a79709c). A **butler-as-PM+RD pre-merge pass** corrected them (docs + test code only — **no `internal/` behavior change**):
-
-- **Q1** — annotated the superseded `isTTY(stdout)` clause in `plan.md` + `tasks.md` Phase-4B Boundary (T019/T020 stay `[X]`).
-- **Q2** — `techstack.md` `Prompt input` read-scope → the **non-explicit-mode dispatch path** (truth defect).
-- **Q4** — narrowed the decoration `必查` to *system-introduced* decoration; `step_t013` rewritten (the content-blind predicate would misfire on a correct ANSI-bearing answer).
-- **Q5** — FR-006 reworded to "answer bytes verbatim + one CLI-appended newline" (+ US2/SC-002); DSL prose aligned.
-- **Q6** — DSL escape convention (`\n`/`\t`/`\\`/`\xHH`) + 2 falsifying Examples (newline-terminated; ANSI-bearing answer); bounded-time piped runs; the pty/TTY branch named **unverifiable-this-round**.
-- **Q7** — recorded the environment phrase's third cause (stdin unreadable) in root `dsl.md` + `exitcode.go`; **retracted F1's "no truth change"**.
-- **Q8** — scoped NFR-003 to the redirected/non-terminal stream.
-
-Deferred + **named** (not built): the class-level phrase rename (its own ADR-round; changes pre-005 text) and a pty-capable harness (new dependency). **Independent re-review** by `coder` ([comment](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644493633)) → **APPROVE WITH NON-BLOCKING FOLLOW-UPS** (all three interaction checks PASS; green independently reproduced); residuals **R1–R5** were then swept (`2d21e09`). **Final Architectural Review** [`#5644538637`](https://github.com/gosharplite/tellme/pull/16#issuecomment-5644538637) → **FULL ARCHITECTURAL APPROVAL — READY TO MERGE**. **Merged** — PR [#16](https://github.com/gosharplite/tellme/pull/16) into `dev` (`37c0c24`, session 19) + propagated `dev → main`.
-
-## Round 006 — `006-rendered-output-and-raw-flag` (delivered / frozen)
-
-**Status**: ✅ **DELIVERED / FROZEN** (2026-09-12, session 20) — PR [#19](https://github.com/gosharplite/tellme/pull/19) **merged** into `dev` (`7cc1304`); propagated to `main`; godog **46/46 scenarios · 325/325 steps**; `make verify` OK.
-
-> **Rounds 001–005 (and now 006) remain frozen**: `specs/plans/001-cli-bootstrap-and-config/**` … `specs/plans/006-rendered-output-and-raw-flag/**` are immutable history.
-
-**Scope**: default **rendered output** (glamour Markdown→ANSI on all streams) + the **`-r`/`--raw`** inverse + the **`WRAP_WIDTH`/`TELL_ME_WRAP_WIDTH`** rendered width; reference output parity (Clarify Q1/Q2/Q3); the round-005 FR-007 amendment; the first presentation dependency (ADR-0002).
-
-**Artifacts**: `spec.md`/`checklists` · acceptance Gherkin (`rendering-the-answer`, `controlling-the-rendered-width`) · `research.md` + `specs/truth/techstack.md` · `plan.md` · `specs/truth/features/cli/**` (ADD ×2, MODIFY ×2 incl. round-005 `piping-the-answer-out`; root vocabulary 9→10) · `tasks.md` (23 tasks; orphan sweep 0) · implementation (23/23 `[X]`; `internal/ui/renderer.go`, `-r`, `EffectiveWrapWidth`) · `docs/decisions/0002-first-presentation-dependency.md`. Delivered via PR [#19](https://github.com/gosharplite/tellme/pull/19) (`7cc1304`).
-
-**Review trail**: PR [#18](https://github.com/gosharplite/tellme/pull/18) architectural review ([#5645192048](https://github.com/gosharplite/tellme/pull/18#issuecomment-5645192048)) → blockers **H1** (de-reserved degrade `[WARN]`) + **H2** (Obs 1 re-recorded **OPEN**; composition-root fixed) + **M1–M8** fixed (`393d82a`) → re-check + final-head certification **CLEARED TO MERGE** (`7e67d5e`); then **merged without authorization → reverted** (`dev` `cd608e1`, `main` `c55e127`) → re-opened as PR [#19](https://github.com/gosharplite/tellme/pull/19) → review **Obs 2 fixed** (`ef7243d`, `runtimeEnv` consolidation; Obs 1/Obs 3 deferred with reason) → certification **CERTIFIED READY TO MERGE** ([#5645359181](https://github.com/gosharplite/tellme/pull/19#issuecomment-5645359181)).
-
-**Open (non-blocking)**: PR #16 **Obs 1** (stdout TTY probe) stays **OPEN** — tellme ships no own presentation chrome to gate (named pin); **Obs 2** (`RuntimeEnv`) **fixed**; **Obs 3** (session-scoped renderer lifecycle) deferred to multi-turn.
-
-## Round 007 — `007-session-history-persistence` (delivered / frozen)
-
-**Status**: ✅ **DELIVERED / FROZEN** (2026-09-12, session 21) — plan/truth via PR [#20](https://github.com/gosharplite/tellme/pull/20) merged into `007-session-history-persistence` (`3187584`), implementation via PR [#21](https://github.com/gosharplite/tellme/pull/21) merged (`f36a83b`); propagated `007-session-history-persistence → dev` (`6f5483b`) `→ main` (`c7b9950`); godog **53/53 scenarios · 368/368 steps**; `make verify` OK.
-
-> **Rounds 001–006 (and now 007) remain frozen**: `specs/plans/001-cli-bootstrap-and-config/**` … `specs/plans/007-session-history-persistence/**` are immutable history.
-
-**Scope**: (1) Persist each completed turn to an append-only JSON-Lines `history.jsonl` under the per-mode session workspace; (2) **auto-resume** — a prompt run loads prior turns and carries them as provider context; (3) **`--new`** (start a fresh session, archiving the current history into `history.archive.jsonl`); (4) **`-l N`** (list the last N messages, offline). History I/O failure reuses `the runtime home is not usable` (exit `4`); vocabulary stays **10**. Stdlib-only (no new dependency). Settled exclusions: `-b`/`--retry`, pinning, streaming, token-budget pruning, `SafePath`; summarisation **deferred** to the agent-tools round.
-
-**Artifacts**: `spec.md`/`checklists` · acceptance Gherkin (`remembering-the-conversation`, `starting-a-fresh-conversation`, `inspecting-the-session-history`) · `research.md` + `specs/truth/techstack.md` (MODIFY) · `plan.md` (2 interfaces / 1 wave; `/axb-api-plan` = NOOP, `/axb-data-plan` = ADD) · `specs/truth/data/data-model.dbml` (ADD — `history_entry` + `history_location`) · `specs/truth/features/cli/**` (ADD `history/**` + `chat/remembering-the-conversation`; MODIFY `chat/dsl.md` + root `cli/dsl.md`) · `tasks.md` (26 tasks; Setup omitted; orphan sweep 0) · implementation (`internal/domain/history`, `internal/infrastructure/history`, widened `llm.Request`, `--new`/`-l` dispatch, 11 E2E step files). Delivered via PRs [#20](https://github.com/gosharplite/tellme/pull/20) + [#21](https://github.com/gosharplite/tellme/pull/21).
-
-**Review trail**: PR [#20](https://github.com/gosharplite/tellme/pull/20) review ([#5645711029](https://github.com/gosharplite/tellme/pull/20#issuecomment-5645711029)) → **FULL APPROVAL**; guidance (TD-1 `historyStoreFactory` seam · TD-2 bounded read · RF-1 idempotent `--new` · RF-2 `-l` contract · RF-3 request widening) folded into `tasks.md` (`34359ed`) → certification **CERTIFIED READY TO MERGE** ([#5645748606](https://github.com/gosharplite/tellme/pull/20#issuecomment-5645748606)). PR [#21](https://github.com/gosharplite/tellme/pull/21) review ([#5645834214](https://github.com/gosharplite/tellme/pull/21#issuecomment-5645834214)) → **FULL ARCHITECTURAL APPROVAL — READY TO MERGE**; response ([#5645842877](https://github.com/gosharplite/tellme/pull/21#issuecomment-5645842877)).
-
-**Open (non-blocking)**: PR #16 **Obs 1** (stdout TTY probe) stays **OPEN**; round-006 **Obs 3** (renderer lifecycle) deferred to multi-turn. Forward items acknowledged from PR #21: unbounded history → the **agent-tools round** (round 008 landed the tool loop but **not** pruning); **token-budget pruning remains a settled exclusion** (out of `tellme` scope, not merely deferred); no `flock` → wire a `ModeLocker` with `--callback`/parallel personas; centralize mode resolution into `internal/home` on growth.
 
 ## Roadmap — next slices
 

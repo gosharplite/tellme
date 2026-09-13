@@ -199,3 +199,47 @@ The full round-009 slice: bootstrap (Steps 1–8) → `/axb-specify` → `/axb-s
 ### PM follow-ups
 
 - None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
+
+
+---
+
+## 25. Session 24 (cont.) — STATUS.md split + SESSION-CLOSEOUT revision + propagation
+
+A post-round documentation-maintenance bout (same calendar day). `STATUS.md` had grown to **303 lines**, so it was split; the closeout procedure gained a split rule; the docs were propagated `dev → main`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| `STATUS.md` split | 303 → **107 lines**; rounds 003–008 detail + the Last-updated chain + the review-response history + the branch-model propagation history moved verbatim to **`docs/archives/status/2026-09-13.md`** (232 lines); the header **Archive** line now links both archives |
+| `SESSION-CLOSEOUT.md` | Added the **split-when-too-long** procedure — Step-table row 3, Step 3 item 8 (trigger ≈ >150 lines or >1 delivered-round detail section; move verbatim / keep lean / link / back-link / never delete), and **Closeout Rule 12** |
+| Sync | `git fetch --prune`; remote `009-implement-payload-status-line` pruned (merged); local impl branch deleted; local round branch + `dev` fast-forwarded |
+| Propagation | `dev → main` (no-ff) |
+
+### Decisions log
+
+| # | Decision |
+| --- | --- |
+| D1 | **`STATUS.md` kept lean** — history relocated verbatim to `docs/archives/status/<date>.md` (dated snapshot), never deleted; the live state keeps header · current round · delivered-rounds index · branch model · roadmap · open items · environment notes. |
+| D2 | **Split threshold** (now in `SESSION-CLOSEOUT.md` Rule 12) — roughly **> ~150 lines**, or more than one delivered-round detail section beyond the current round. |
+
+### Commits (branch `dev`)
+
+| Commit | Note |
+| --- | --- |
+| `a81c5b0` | `docs: split STATUS.md — move rounds 003–008 detail … to docs/archives/status/2026-09-13.md` |
+| `787ab84` | `docs(closeout): add STATUS.md split-when-too-long procedure (docs/archives/status/<date>.md)` |
+| *(this closeout)* | `docs(009): day close (cont.) — STATUS split + closeout revision + propagation dev → main` |
+
+### Open items (non-blocking)
+
+- None new. Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / no `flock`.
+
+### Next steps
+
+1. Choose the `010-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
