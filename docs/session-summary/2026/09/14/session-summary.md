@@ -98,7 +98,7 @@ Re-read `README.md`; the `tell-me-go` 8-item bootstrap (README, Makefile, the `t
 
 ## 8. Open items (non-blocking)
 
-- **Round 015 candidates** — issue [#34](https://github.com/gosharplite/tellme/issues/34) residuals: the Google Gemini API family (inline key), Application Default Credentials, concurrent tool-call matching.
+- **Round 015 candidates** — issue [#36](https://github.com/gosharplite/tellme/issues/36) (opened 2026-09-14; #34 closed as completed on delivery): the Google Gemini API family (inline key), Application Default Credentials, concurrent tool-call matching.
 - Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / no `flock`; round-011 forward items (estimation constants; persona seam; **N-2** estimator ignores replayed tool-call `arguments`).
 
 ---
