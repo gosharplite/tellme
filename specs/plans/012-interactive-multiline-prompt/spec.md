@@ -8,7 +8,7 @@
 
 **Input**: User request "tellme needs the interactive multi-line prompt capture that `tell-me-go` has" (`tell-me-go` prints `[Reading multi-line input. Press Ctrl+C to cancel, or Ctrl+D to send]`, then reads stdin to EOF). Today `tellme` has **no** interactive read: a bare `tellme` on a terminal prints the boot report, and stdin is read only when it is **not** a terminal (round 005). This round adds an interactive multi-line prompt reader: on a TTY with no prompt argument, `tellme` prints a hint and reads the operator's prompt until EOF (Ctrl+D), bounded and cancellable.
 
-This round's behaviour intent is **ADD** (a new capability) that **MODIFIES** the bare no-prompt path on a terminal. It introduces no new dependency and does not change the piped/positional prompt paths, the answer stream, or the payload-status/ordering contracts.
+This round's behaviour intent is **ADD** (a new capability) that **MODIFIES** the bare no-prompt path on a terminal. It does not change the piped/positional prompt paths, the answer stream, or the payload-status/ordering contracts. **(Review-response amendment, PR #31 BLOCKER B1):** the round originally scoped "no new dependency"; the review showed the round-005 `os.ModeCharDevice` probe is unsound as a behaviour gate — it is true for `/dev/null`, so a redirected null device engaged the reader and masked a configuration failure as exit `0`. The probe is now a **real isatty** (`golang.org/x/term.IsTerminal` — already in the module graph transitively via glamour, promoted to a direct require; `go.sum` unchanged) recorded in **ADR 0003**. See NFR-001/NFR-004/SC-006/A6 below.
 
 **Clarify Round 1 (2026-09-13)** resolved three high-impact decisions:
 
@@ -45,7 +45,7 @@ As an operator, I want to type a multi-line prompt at the terminal and send it w
 
 **Non-Functional Requirements**:
 
-- **NFR-001**: The reader MUST be deterministic and offline-testable through the injected terminal-detection seam and a scripted stdin (no pty, no new dependency).
+- **NFR-001**: The reader MUST be deterministic and offline-testable through the injected terminal-detection seam and a scripted stdin (no pty; the probe is a real isatty via `golang.org/x/term` — ADR 0003, amending the original "no new dependency" intent).
 - **NFR-002**: The reader MUST NOT buffer without bound — the 1 MiB cap MUST bound memory.
 
 ---
@@ -99,7 +99,7 @@ As an operator, I want to cancel the reader (`Ctrl+C`) or accidentally send noth
 
 #### Non-Functional Requirements
 
-- **NFR-004**: The round MUST introduce **no new dependency** (`go.mod` / `go.sum` unchanged) — it reuses the existing dependency-free terminal-detection seam and the bounded stdin read.
+- **NFR-004**: The round MUST NOT add a new *module* (`go.sum` unchanged) — it reuses the bounded stdin read, and (review-response amendment, PR #31 B1) the terminal probe is a **real isatty** (`golang.org/x/term`, already in the module graph transitively via glamour; `go.mod` promotes it from indirect to direct — ADR 0003), superseding the original "dependency-free `os.ModeCharDevice` seam" wording.
 - **NFR-005**: All new assertions MUST be deterministic (no `time.Sleep`; the terminal seam + scripted stdin are the verification surface).
 
 ### Key Entities *(include if feature involves data)*
@@ -116,7 +116,7 @@ As an operator, I want to cancel the reader (`Ctrl+C`) or accidentally send noth
 - **SC-003**: In every interactive run, `stdout` carries only the answer (the hint is on `stderr`); `stdout` is byte-exact.
 - **SC-004**: The piped-input, positional-prompt, and non-prompt dispatch paths are byte-identical to rounds 001–011; all prior acceptance scenarios remain green.
 - **SC-005**: The interactive capture is carried by at least one executable interface Rule in `specs/truth/features/cli/**`, and the Gherkin/DSL topology audit passes.
-- **SC-006**: No new dependency is introduced (`go.mod` / `go.sum` unchanged).
+- **SC-006**: No new *module* is introduced (`go.sum` unchanged); the terminal probe (`golang.org/x/term`) was already in the module graph and is promoted to a direct require (ADR 0003 — review-response amendment of the original "no new dependency" criterion).
 
 ## Assumptions
 
@@ -125,6 +125,6 @@ As an operator, I want to cancel the reader (`Ctrl+C`) or accidentally send noth
 - **Send = EOF (A3)**: the read runs to EOF, not to a blank line; a trailing newline is trimmed.
 - **Bound (A4)**: the interactive read is capped at 1 MiB (rounds 005/006 stdin cap).
 - **Combination (A5)**: the reader engages only with no positional prompt and no piped stdin; combined prompt sources are unchanged from round 005.
-- **No new dependency (A6)**: reuse the dependency-free TTY seam (`os.ModeCharDevice`) + `io.LimitReader`/context handling — not `golang.org/x/term`.
+- **Terminal probe (A6)**: ~~reuse the dependency-free TTY seam (`os.ModeCharDevice`) + `io.LimitReader`/context handling — not `golang.org/x/term`~~ — **SUPERSEDED (PR #31 review BLOCKER B1)**: the probe is a **real isatty** (`golang.org/x/term.IsTerminal`), because `os.ModeCharDevice` is true for non-terminal character devices (`/dev/null`) and masked a configuration failure as exit `0`. The bounded read still uses `io.LimitReader`/context handling. See ADR 0003.
 - **Cancel semantics (A7)**: `Ctrl+C` (SIGINT) cancels the read without sending a prompt (consistent with rounds 004/005 SIGINT handling).
 - Single-turn execution (round 004), stdin piping (round 005), rendered/raw output (round 006), durable history (round 007), the agent tool loop (round 008), the payload status line (round 009), cross-stream ordering (round 010), and persona-on-the-wire + wire-faithful estimate (round 011) are unchanged. The round adds **no** streaming, pinning, `-b`/`--retry`, pruning, MCP, memory, or TUI (no Bubble Tea prompt mode).
