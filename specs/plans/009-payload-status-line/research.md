@@ -17,7 +17,7 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
 
 ## Decision 2: The "actual" figure — widen the gateway `Response` with the provider's reported usage
 
-- **Decision**: Extend the provider gateway `Response` (the round-008 shape) with the provider's reported **usage** (prompt/completion/total tokens) and parse the OpenAI-compatible `usage` block in the adapter. The post-turn status line reads `<actual>` from it; when the provider reports no usage, the post-turn line is **omitted**.
+- **Decision**: Extend the provider gateway `Response` (the round-008 shape) with the provider's reported **usage** (prompt/completion/total tokens) and parse the OpenAI-compatible `usage` block in the adapter. The post-turn status line reads `<actual>` from it; when the provider reports no usage, the post-turn line is **omitted**. The usage is surfaced to the CLI by **widening the agent-loop seam**: `AgentLoop.Run` (`internal/agent/agentloop.go`) returns an `AgentResult{Answer, Steps, Usage}` — the usage of the **final** completion — instead of dropping `resp.Usage`, so `internal/cli` can render the post-turn line (BLOCKER-2).
 - **Rationale**: The actual figure must be the provider's own accounting (the reference's post-call line uses the response's `prompt_tokens`). OpenAI-compatible providers already return `usage`; tellme currently discards it, so the change is a minimal widening of an existing value type with no new port.
 - **Alternatives considered**:
   - **Re-estimate locally and call it "actual"** — it is not the provider's number; the `~`-vs-bare distinction would be vacuous — rejected.
@@ -26,7 +26,7 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
 
 ## Decision 3: The status line — reference-parity format on `stderr`, always-on
 
-- **Decision**: Emit two status lines per prompt-bearing run, both to the **diagnostic stream (`stderr`)**: a **pre-flight** `[HH:MM:SS] Payload: ~<est>/<budget> tokens - <mode> - <model>` before the provider request, and a **post-turn** `[HH:MM:SS] Payload: <actual>/<budget> tokens - <mode> - <model>` after it. The line is **always-on** — **not** gated by whether the stream is a terminal and **not** suppressed by `-r/--raw` — and carries **no** `tellme: ` prefix. Non-prompt paths (`--version`, `-d`, `-l`, prompt-less boot, prompt-less `--new`) emit **no** status line.
+- **Decision**: Emit two status lines per prompt-bearing run, both to the **diagnostic stream (`stderr`)**: a **pre-flight** `[HH:MM:SS] Payload: ~<est>/<budget> tokens - <mode> - <model>` before the provider request, and a **post-turn** `[HH:MM:SS] Payload: <actual>/<budget> tokens - <mode> - <model>` after it. The line is **always-on** — **not** gated by whether the stream is a terminal and **not** suppressed by `-r/--raw` — and carries **no** `tellme: ` prefix. Non-prompt paths (`--version`, `-d`, `-l`, prompt-less boot, prompt-less `--new`) emit **no** status line. The `<model>` field is the active provider's configured **`MODEL`** attribute (e.g. `deepseek-v4-flash`) — **not** the registry key — matching the reference (`session_manager.go` uses `ts.Model`; TD-2); `<mode>` is the effective mode.
 - **Rationale**: Clarify Q1 (stderr) keeps `stdout` byte-exact for piping/`-r` and matches the reference's interactive path as well as tellme's round-008 `stderr` diagnostics; Clarify Q3 (always-on) matches the reference default and avoids the open PR #16 Obs 1 stdout probe. Excluding non-prompt paths keeps the offline commands' output contract intact.
 - **Alternatives considered**:
   - **`stdout`** — interleaves with (and perturbs) the piped/redirected answer — rejected.
@@ -53,7 +53,7 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
 
 ## Decision 6: What the estimate counts
 
-- **Decision**: The estimate counts the **assembled conversation the turn will send** — the resumed prior turns plus the current prompt (message text). Tool definitions are **excluded** (constant per run, small).
+- **Decision**: The estimate counts the **assembled conversation the turn will send** — the resumed prior turns plus the current prompt (message text). Tool definitions are **excluded** (constant per run, small). The projection MUST be the single exported `agent.BuildMessages(prior)` — the same one the loop uses, including tool steps — not the legacy `cli.toMessages` which drops tool steps; otherwise a tool-using turn is undercounted (TD-1).
 - **Rationale**: What the operator wants to gauge is the conversation's growth; excluding the constant tool schema keeps the number stable across turns and cheap to compute.
 - **Alternatives considered**:
   - **Include the tool-schema JSON** — a larger, mostly-constant surface with marginal value — rejected.

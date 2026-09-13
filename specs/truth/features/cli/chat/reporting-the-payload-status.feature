@@ -80,3 +80,15 @@ Feature: Reporting the payload status
       When the operator starts tellme with the prompt "What is two plus two?"
       Then tellme refuses to proceed
       And tellme explains on stderr that "the configuration is invalid"
+
+  Rule: A piped prompt reports the payload status too
+
+    Example: A prompt arriving on standard input still reports the status
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured provider "test-model" whose endpoint answers with "all good" and reports its usage
+      When the operator pipes "What is two plus two?" into tellme
+      Then tellme reports the estimated payload status for the turn
+      And tellme reports the measured payload status for the turn
+      And tellme prints the provider's answer "all good"
+      And tellme exits successfully

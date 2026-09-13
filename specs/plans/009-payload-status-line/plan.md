@@ -34,11 +34,19 @@ cmd/tellme/
 └── main.go                        # unchanged — entrypoint
 
 internal/
+├── agent/
+│   └── agentloop.go               #   CHANGED — `Run` widened to surface the provider's reported usage
+│                                  #   (returns an `AgentResult{Answer, Steps, Usage}` instead of dropping
+│                                  #   `resp.Usage`), so the CLI can render the post-turn line (BLOCKER-2);
+│                                  #   `BuildMessages` exported so the pre-flight estimate reuses the exact
+│                                  #   conversation projection including tool steps (TD-1)
 ├── cli/
 │   └── cli.go                     #   CHANGED — resolve the payload budget; emit the pre-flight status
 │                                  #   line before the turn and the post-turn line after it (both to
-│                                  #   stderr); carry the provider's reported usage into the post-turn
-│                                  #   line. Stays presentation/dispatch glue
+│                                  #   stderr), reading `Usage` from the widened `AgentLoop.Run` (BLOCKER-2)
+│                                  #   and rendering `<model>` from the provider's configured `MODEL`
+│                                  #   (reference parity, TD-2); estimate the assembled conversation via
+│                                  #   `agent.BuildMessages` (TD-1). Stays presentation/dispatch glue
 ├── config/
 │   └── config.go                  #   CHANGED — `MAX_HISTORY_TOKENS` field + `EffectiveMaxHistoryTokens`
 │                                  #   (env/config, default 1000000, `>= 0`; negative → configuration error),
@@ -64,7 +72,7 @@ go.mod / go.sum                     # unchanged — stdlib-only (time, strings);
 Makefile                            # unchanged (no new gate)
 ```
 
-**Structure Decision**: The change stays **inside the existing CLI surface** and follows the round-004/007/008 seam discipline: it **widens one existing seam** — the provider port (`llm.Response` gains the reported `usage`) — and adds **two pure pieces**: a deterministic estimator (`internal/domain/llm/token.go`) and a status-line formatter (`internal/ui/status.go`). `MAX_HISTORY_TOKENS` resolution joins `internal/config` beside the existing effective-value helpers. The status line is **emitted by the CLI** (`internal/cli`) to the diagnostic stream; it introduces **no** new domain port, **no** adapter, **no** persisted-state change, and **no** new dependency. `/axb-dsl-refine` owns the CLI truth. The behaviour is already settled by `research.md` Decisions 1–9, so this round adds no new architecture dimension.
+**Structure Decision**: The change stays **inside the existing CLI surface** and follows the round-004/007/008 seam discipline: it **widens two existing seams** — the provider port (`llm.Response` gains the reported `usage`) **and** the agent-loop seam (`AgentLoop.Run` surfaces that `usage` via an `AgentResult{Answer, Steps, Usage}` — BLOCKER-2 — and `BuildMessages` is exported so the CLI's pre-flight estimate reuses one conversation projection including tool steps — TD-1) — and adds **two pure pieces**: a deterministic estimator (`internal/domain/llm/token.go`) and a status-line formatter (`internal/ui/status.go`). `MAX_HISTORY_TOKENS` resolution joins `internal/config` beside the existing effective-value helpers. The status line is **emitted by the CLI** (`internal/cli`) to the diagnostic stream; it introduces **no** new domain port, **no** adapter, **no** persisted-state change, and **no** new dependency. `/axb-dsl-refine` owns the CLI truth. The behaviour is already settled by `research.md` Decisions 1–9, so this round adds no new architecture dimension.
 
 ---
 

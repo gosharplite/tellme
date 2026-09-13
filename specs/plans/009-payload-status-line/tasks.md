@@ -33,13 +33,14 @@
   - 只做：宣告 payload status line formatter 的簽名 stub（輸入 tokens/budget/mode/model + **注入的 clock seam**；輸出 pre-flight `~` 與 post-turn 兩型）；對齊 `[HH:MM:SS] Payload: <n>/<max> tokens - <mode> - <model>` 形狀；**不得**加 `tellme:` 前綴。
   - 不做：不決定何時輸出；不接 CLI 分流。
 
-- [ ] T003 擴充 `llm.Response` usage 欄位與 OpenAI adapter 落點骨架
+- [ ] T003 擴充 `llm.Response` usage 欄位、OpenAI adapter 解析，與 `AgentLoop.Run` seam 落點骨架
   - Read:
     - `specs/plans/009-payload-status-line/research.md` -> Decision 2
     - `specs/truth/techstack.md` -> Reasoning & Provider Transport（Provider gateway port / Response normalization）
-    - `internal/domain/llm/gateway.go`、`internal/infrastructure/llm/openai/client.go`
-  - 只做：`llm.Response` 新增 `Usage`（prompt/completion/total tokens）型別骨架；在 `parseResponse` 留下解析回應 `usage` 區塊的 stub（無 `usage` 時為 zero-value）。**向後相容**：不帶 usage 的既有回應語意不變。
-  - 不做：不改 transport、錯誤處理或既有 content/tool_calls 解析。
+    - `specs/plans/009-payload-status-line/plan.md` -> Source-code structure（`internal/agent/agentloop.go`）
+    - `internal/domain/llm/gateway.go`、`internal/infrastructure/llm/openai/client.go`、`internal/agent/agentloop.go`
+  - 只做：`llm.Response` 新增 `Usage`（prompt/completion/total tokens）型別骨架；在 `parseResponse` 留下解析回應 `usage` 區塊的 stub（無 `usage` 時為 zero-value）；在 `internal/agent/agentloop.go` 留下把 `Run` 回傳面由 `(string, []history.Step, error)` 加寬為 `(agent.AgentResult{Answer, Steps, Usage}, error)` 的型別與簽名 stub（**BLOCKER-2**：迴圈目前丟棄 `resp.Usage`；多步 tool run 取**最終** completion 的 usage）。**向後相容**：不帶 usage 的既有回應語意不變。
+  - 不做：不改 transport、錯誤處理或既有 content/tool_calls 解析；不實作估算或狀態行。
 
 - [ ] T004 落點骨架 `internal/config/config.go`（`MAX_HISTORY_TOKENS`）
   - Read:
@@ -49,12 +50,12 @@
   - 只做：`Config` 新增 `MaxHistoryTokens int`（`yaml:"MAX_HISTORY_TOKENS"`）與 `DefaultMaxHistoryTokens = 1000000` 常數；留下 `EffectiveMaxHistoryTokens(override string) (int, error)` 的 stub（env-over-file、預設 1000000、`>= 0`、非整數/負值 → `ErrInvalidValue`）。
   - 不做：不接 `resolve()`；不寫斷言（產品行為留 Phase 4）。
 
-- [ ] T005 落點骨架 `internal/cli/cli.go`（狀態行接線）
+- [ ] T005 落點骨架 `internal/cli/cli.go`（狀態行接線）與 `internal/agent/agentloop.go`（`BuildMessages` export）
   - Read:
-    - `specs/plans/009-payload-status-line/research.md` -> Decision 3, 4, 5, 7
+    - `specs/plans/009-payload-status-line/research.md` -> Decision 2, 3, 4, 5, 6, 7
     - `specs/truth/techstack.md` -> CLI Application（Payload status line / Token estimator）、Configuration（Payload budget）
-    - `internal/cli/cli.go`
-  - 只做：在 `resolution` 落點新增 `MaxHistoryTokens`；在 `resolve()` 留下 `EffectiveMaxHistoryTokens` 呼叫的 stub；在 prompt turn 落點留下「送出前寫 pre-flight 行、完成後寫 post-turn 行到 `stderr`」的 hook 簽名（皆為 stub）。狀態行只落 `stderr`。
+    - `internal/cli/cli.go`、`internal/agent/agentloop.go`
+  - 只做：在 `resolution` 落點新增 `MaxHistoryTokens`；在 `resolve()` 留下 `EffectiveMaxHistoryTokens` 呼叫的 stub；把 `agent.buildMessages` 升格為 exported `agent.BuildMessages`（**TD-1**：CLI 的 pre-flight 估計與 loop 共用同一份含 tool steps 的對話投影，不得用 legacy `cli.toMessages`）；在 prompt turn 落點留下「送出前以 `EstimateTokens(append(agent.BuildMessages(prior), user prompt))` 寫 pre-flight 行、完成後以 `AgentLoop.Run` 回傳的 `AgentResult.Usage` 寫 post-turn 行到 `stderr`」的 hook 簽名（皆為 stub）；`<model>` 由 provider 的 `MODEL` 決定（**TD-2**）。狀態行只落 `stderr`。
   - 不做：不實作估計算式／formatter 內容；不改既有 dispatch、`stdout` 答案流、exit-code 或離線路徑。
 
 - [ ] T006 建立 E2E 共用元件落點骨架
@@ -147,7 +148,7 @@
 - [ ] T015 [P] [BDD-RED] `Then: the payload status names the active mode and model`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the payload status names the active mode and model`
   - Landing: `tests/e2e/steps/step_t015_chat_then_mode_model.go`
-  - 語意：斷言回報的 payload 狀態行以 ` - <mode> - <model>` 結尾（本輪有效 mode 與作用 provider 標籤）。
+  - 語意：斷言回報的 payload 狀態行以 ` - <mode> - <model>` 結尾；`<mode>` 為有效 mode，`<model>` 為該 provider 的 `MODEL` 屬性（reference parity，**非** registry key；**TD-2**）。
 
 - [ ] T016 [P] [BDD-RED] `Then: no payload status is reported`
   - Read: `specs/truth/features/cli/history/dsl.md` -> `no payload status is reported`
@@ -190,6 +191,8 @@
 - 只用 stdlib 估算 payload（resumed conversation + 當前 prompt 文字；不含 tool 定義）；pre-flight 行以 `~` 標示估計；post-turn 行的 `<actual>` 來自 provider 回報的 `usage`（缺則整行省略）。
 - 兩行皆寫 **`stderr`**；**always-on**（不因非終端而抑制、不因 `-r` 而抑制）；**不帶** `tellme:` 前綴（frozen 詞彙維持 10）；timestamp 由注入的 clock seam 產生。
 - `stdout`（答案流）byte 不變；不得引入任何 pruning 或自動摘要（settled exclusion）。
+- `<actual>` 取自 `AgentLoop.Run` 回傳的 `AgentResult.Usage`（**BLOCKER-2**；多步 tool run 取最終 completion）；pre-flight 估計重用 exported `agent.BuildMessages`（**TD-1**）；`<model>` 用 provider 的 `MODEL`（**TD-2**）。
+- piped-stdin prompt 亦輸出相同狀態行（**RF-1**；Test Scope 內的 *A piped prompt reports the payload status too*）。
 - 不實作 `-l` 無狀態行（屬 4B boundary）。
 
 **Test Scope**:
@@ -257,5 +260,13 @@
 | `research.md` -> Decision 8（stdlib-only；no new dependency） | T001、T023（`go mod tidy` graph 不變） | PASS |
 | `research.md` -> Decision 9（testing unchanged; godog E2E + stdlib unit） | T006、T007、T017、T018、T019 | PASS |
 | `spec.md` -> US1–US3、`FR-001`–`FR-014`、`NFR-001`–`NFR-005` | T008–T016（對齊）、T019–T022（交付）、T023 | PASS |
+
+| `plan.md` -> Source-code structure（`internal/agent/agentloop.go`：`Run` 加寬 + `BuildMessages` export） | T003、T005、T019、T020 | PASS |
+| `research.md` -> Decision 2 增補（`AgentLoop.Run` seam 加寬；multi-step 取最終 completion） | T003、T005、T012、T019、T020 | PASS |
+| `research.md` -> Decision 3（`<model>` = provider 的 `MODEL` 屬性） | T002、T015、T019、T023 | PASS |
+| `research.md` -> Decision 6（estimate 重用 exported `agent.BuildMessages`） | T001、T005、T011、T019 | PASS |
+| `spec.md` -> `FR-004`（`<model>` 語意 pin，TD-2） | T015、T019、T023 | PASS |
+| `chat/reporting-the-payload-status.feature` -> *A piped prompt reports the payload status too*（RF-1） | T019、T023 | PASS |
+| `specs/truth/features/cli/chat/dsl.md` -> `the payload status names the active mode and model`（model pin，TD-2） | T015、T019 | PASS |
 
 > 孤立產物件數：0。掃描通過，准予交付。

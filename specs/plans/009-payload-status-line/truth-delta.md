@@ -15,13 +15,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _TBD_ | `specs/truth/contracts/**` | Expected `NOOP` — tellme has a single CLI end and no OpenAPI surface of its own. | `contract-authoritative` holds vacuously. |
+| NOOP | `specs/truth/contracts/**` | Checked; left empty. tellme has a single CLI end and no HTTP/OpenAPI surface of its own; the outbound provider request shape is unchanged. | `contract-authoritative` holds vacuously. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _TBD_ | `specs/truth/data/data-model.dbml` | Expected `NOOP` — per-turn payload token counts are computed for display, not persisted (recomputed from history text on resume); pending clarify. | Round-009 payload status line. |
+| NOOP | `specs/truth/data/data-model.dbml` | Checked; left empty. Per-turn payload token counts are display-only and recomputed from history text on resume; the persisted session model (`history_entry`) is unchanged. | `data-model-covers-all-state` holds vacuously. |
 
 ## /axb-dsl-refine
 

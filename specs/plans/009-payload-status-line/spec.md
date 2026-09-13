@@ -40,7 +40,7 @@ As an operator, I want to see, before tellme sends a request, how large the payl
 - **FR-001**: On a prompt-bearing run, the system MUST write exactly **one** pre-flight status line to the **diagnostic stream (`stderr`)** before the provider request: `[HH:MM:SS] Payload: ~<estimate>/<budget> tokens - <mode> - <model>`.
 - **FR-002**: `<estimate>` MUST be a **deterministic, offline** estimate of the assembled payload's size (the resumed conversation plus the current prompt), produced by a stdlib-only estimator (no provider call, no network).
 - **FR-003**: `<budget>` MUST be the resolved payload budget (Story 3; default **1000000**).
-- **FR-004**: `<mode>` MUST be the effective mode and `<model>` the active provider/model label for the session.
+- **FR-004**: `<mode>` MUST be the effective mode and `<model>` the active provider's configured **model** (its `MODEL` attribute, matching the reference's status line) — **not** the registry key.
 - **FR-005**: The pre-flight line MUST NOT perturb `stdout`: the answer stream stays byte-exact (piping and `-r` are unaffected).
 
 **Non-Functional Requirements**:
