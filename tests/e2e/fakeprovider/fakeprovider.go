@@ -95,6 +95,15 @@ func (p *Provider) Script(replies ...Reply) {
 	p.mu.Unlock()
 }
 
+// Reset rewinds the scripted reply cursor to the start so the SAME scripted
+// exchange can be replayed (round-010 ordering witness re-run). Recorded request
+// bodies are left intact.
+func (p *Provider) Reset() {
+	p.mu.Lock()
+	p.served = 0
+	p.mu.Unlock()
+}
+
 // RequestCount returns how many requests the provider has received.
 func (p *Provider) RequestCount() int {
 	p.mu.Lock()

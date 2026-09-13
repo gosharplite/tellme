@@ -20,7 +20,7 @@
 
 **Goal**: 建立 E2E **合併流擷取見證**（merged-stream witness）與 3 個新句 stepdef 落點骨架（Zero Shared Edits 原則），讓後續 Phase 3 不各自發明擷取方式、不各自重開檔。不寫 DSL 語意、不寫產品行為。
 
-- [ ] T001 在 E2E harness 新增 merged-stream 擷取變體
+- [X] T001 在 E2E harness 新增 merged-stream 擷取變體
   - Read:
     - `specs/plans/010-stream-ordering-observability/research.md` -> Decision 1, 6, 7
     - `specs/truth/techstack.md` -> Testing & Verification（Cross-stream ordering witness / E2E runner）
@@ -28,7 +28,7 @@
   - 只做：新增一個 run 變體，把 child 的 `stdout` 與 `stderr` 指向**同一個** `*bytes.Buffer`（comparable 指標，`os/exec` 對同一 writer 序列化寫入 → 保序），並回傳**合併後**輸出；保留既有分開擷取路徑不動。
   - 不做：不改既有 `RunResult{Stdout,Stderr}` 語意；不引入新相依（stdlib `os/exec`）；不寫 step 斷言。
 
-- [ ] T002 scenario context 走 merged-run 並暴露合併輸出
+- [X] T002 scenario context 走 merged-run 並暴露合併輸出
   - Read:
     - `specs/plans/010-stream-ordering-observability/research.md` -> Decision 1, 4, 6
     - `specs/truth/techstack.md` -> Testing & Verification（Cross-stream ordering witness）
@@ -36,7 +36,7 @@
   - 只做：新增一個以**合併流**執行當前 arranged command 的入口，並在 scenario context 暴露合併輸出欄位供 ordering Then 讀取；維持既有 `run()` 與 hermeticity（`envUnset`）不變。
   - 不做：不改既有 step 行為；不碰 `internal/`。
 
-- [ ] T003 建立 3 個新句 stepdef 獨立檔案骨架
+- [X] T003 建立 3 個新句 stepdef 獨立檔案骨架
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（3 個新 Then 句）
     - `tests/e2e/steps/register.go`
@@ -81,24 +81,24 @@
 
 ### BDD-RED（本輪新增句型）
 
-- [ ] T004 [P] [BDD-RED] `Then: the estimated payload status is reported before the answer`
+- [X] T004 [P] [BDD-RED] `Then: the estimated payload status is reported before the answer`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the estimated payload status is reported before the answer`
   - Landing: `tests/e2e/steps/step_t004_chat_then_estimated_before_answer.go`
   - 語意：在**合併流**擷取中，斷言 pre-flight estimated（`~`）行出現在答案位元組**之前**；答案在 `stdout`。
 
-- [ ] T005 [P] [BDD-RED] `Then: the measured payload status is reported after the answer`
+- [X] T005 [P] [BDD-RED] `Then: the measured payload status is reported after the answer`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the measured payload status is reported after the answer`
   - Landing: `tests/e2e/steps/step_t005_chat_then_measured_after_answer.go`
   - 語意：合併流中，measured 行出現在答案位元組**之後**。
 
-- [ ] T006 [P] [BDD-RED] `Then: the tool activity is reported before the answer`
+- [X] T006 [P] [BDD-RED] `Then: the tool activity is reported before the answer`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the tool activity is reported before the answer`
   - Landing: `tests/e2e/steps/step_t006_chat_then_tool_before_answer.go`
   - 語意：合併流中，tool-loop log 行出現在答案位元組**之前**。
 
 ### UNIT（非 DSL 的單元斷言）
 
-- [ ] T007 [P] [UNIT] `runTurn` emit-order 單元斷言（擴充既有 emit-order 測試）
+- [X] T007 [P] [UNIT] `runTurn` emit-order 單元斷言（擴充既有 emit-order 測試）
   - Read:
     - `specs/plans/010-stream-ordering-observability/research.md` -> Decision 4
     - `specs/truth/techstack.md` -> Testing & Verification（Cross-stream ordering witness / Pure-helper unit tests）
@@ -108,7 +108,7 @@
 
 ### Phase Review Gate
 
-- [ ] T008 subagent review (phase quality gate)
+- [X] T008 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/reporting-the-payload-status.feature`、`specs/truth/features/cli/chat/watching-the-tool-loop.feature`
     - `specs/truth/features/cli/chat/dsl.md`、`specs/truth/features/cli/dsl.md`
@@ -136,8 +136,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/reporting-the-payload-status.feature`
 
-- [ ] T009 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T010 [BDD-REFACTOR] 在綠燈下整理 ordering stepdef 與合併見證 helper
+- [X] T009 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T010 [BDD-REFACTOR] 在綠燈下整理 ordering stepdef 與合併見證 helper
 
 ## Phase 4B: MODIFY Feature File - cli/chat/watching-the-tool-loop.feature
 
@@ -156,8 +156,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/watching-the-tool-loop.feature`
 
-- [ ] T011 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T012 [BDD-REFACTOR] 在綠燈下整理 tool-ordering stepdef 與共用見證 helper
+- [X] T011 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T012 [BDD-REFACTOR] 在綠燈下整理 tool-ordering stepdef 與共用見證 helper
 
 ## Phase 4C: Regression
 
@@ -166,7 +166,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`（chat、history、configuration、workspace、diagnostics、usage 全模組）
 
-- [ ] T013 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T013 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
   - **可偽性見證（SC-003）**：暫時反轉 emit order（或暫時改壞 ordering 斷言），確認 **unit 與 E2E 兩層都失敗**；觀察到失敗即還原。
   - 確認：exit-code 表 `0/2/3/4/5/6/7` 與 class-phrase 詞彙維持 **10**；prompt turn 的 `stdout` byte 不變；offline paths（`--version`、`-d`、no-prompt boot、`-l`、prompt-less `--new`）不變且不輸出 ordering 行；`go mod tidy` 後 module graph 不變（本輪無新相依）；Gherkin/DSL topology audit **PASSED**。

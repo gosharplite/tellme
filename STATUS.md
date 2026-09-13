@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-13 — **round 010 `010-stream-ordering-observability` STARTED** (session 25; see the *Round 010* section). Round 009 `009-payload-status-line` DELIVERED + PROPAGATED (session 24; see the *Round 009* section). Prior rounds' detail is in the archive. **Post-round closeout**: `STATUS.md` **split** into `docs/archives/status/2026-09-13.md` (rounds 003–008 detail), and the split procedure added to `SESSION-CLOSEOUT.md` (Rule 12 + Step 3 item 8); propagated `dev → main`. **Ordering fix**: the post-turn payload status line now trails the answer (`7bcb2d3`); the round-010 anchor opened as [#28](https://github.com/gosharplite/tellme/issues/28) (cross-stream ordering observability).
+**Last updated**: 2026-09-13 — **round 010 `010-stream-ordering-observability` IMPLEMENTED** (session 25; 13/13 tasks `[X]`; see the *Round 010* section). Round 009 `009-payload-status-line` DELIVERED + PROPAGATED (session 24; see the *Round 009* section). Prior rounds' detail is in the archive. **Post-round closeout**: `STATUS.md` **split** into `docs/archives/status/2026-09-13.md` (rounds 003–008 detail), and the split procedure added to `SESSION-CLOSEOUT.md` (Rule 12 + Step 3 item 8); propagated `dev → main`. **Ordering fix**: the post-turn payload status line now trails the answer (`7bcb2d3`); the round-010 anchor opened as [#28](https://github.com/gosharplite/tellme/issues/28) (cross-stream ordering observability).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `010-stream-ordering-observability` (round 010 — branched off `dev`; round 009 is delivered/frozen — plan/truth PR [#26](https://github.com/gosharplite/tellme/pull/26) merged into `dev` (`98c0fb3`); implementation PR [#27](https://github.com/gosharplite/tellme/pull/27) merged (`5b744e8`); propagated `009-payload-status-line → dev` (`d4fd911`) `→ main`).
 **Daily log**: [`docs/session-summary/2026/09/13/session-summary.md`](docs/session-summary/2026/09/13/session-summary.md)
@@ -8,7 +8,7 @@
 
 ## Round 010 — `010-stream-ordering-observability` (active)
 
-**Status**: 🔵 **IN PROGRESS** (2026-09-13, session 25) — branched off `dev`. Plan-side only so far; no truth or code change yet.
+**Status**: 🟡 **IMPLEMENTED** (2026-09-13, session 25) — branched off `dev`; all 13/13 tasks `[X]`; pending commit/PR. No product change (a **contract + oracle** round): the deliverable is the merged-stream **witness** + the **executable ordering contract**.
 
 **Scope**: make **cross-stream output ordering** (the interleave of the diagnostic stream `stderr` with the answer stream `stdout`) a **first-class, checkable contract** — responding to round 009's ordering defect (the post-turn payload line printed *before* the answer) that **every gate was structurally unable to see**. Required orderings: (a) the payload status brackets the answer (`pre-flight < answer < measured`); (b) the tool-loop log precedes the answer. The **witness** is a merged (`2>&1`) single-buffer capture in the E2E harness — the missing oracle. Behaviour intent **MODIFY** (contract + oracle; no content change; no new dependency).
 
@@ -20,9 +20,11 @@
 - [x] `plan.md` (1 interface / 1 wave; `/axb-api-plan` + `/axb-data-plan` = NOOP).
 - [x] truth (`features/cli/chat/**` MODIFY — ordering semantics; topology audit **PASSED**, 467 steps).
 - [x] `tasks.md` (13 tasks; Setup omitted — stdlib-only; orphan sweep 0).
-- [ ] implementation (merged-stream witness + ordering stepdefs + regression).
+- [x] implementation (merged-stream witness + 3 ordering stepdefs + unit emit-order + falsifiability witness); **all 13/13 tasks `[X]`**.
 
-**Pipeline position**: `/axb-specify` ✅ → `/axb-spec-by-example` ✅ → `/axb-technical-research` ✅ → `/axb-system-analysis` ✅ → `/axb-dsl-refine` ✅ → `/axb-tasks` ✅ → next `/axb-implement`.
+**Pipeline position**: all phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → **`/axb-implement` (13/13 tasks `[X]`)**.
+
+**Verification (2026-09-13)**: `make verify` **OK** (0 lint · 0 reachable vulns · no test-sleep · offline witness) · `go test ./...` green · godog **70/70 scenarios** · topology audit **PASSED** (467 steps) · no new dependency · **falsifiability witness** confirmed (a temporarily inverted emit order failed at **both** the unit and E2E layers).
 
 **Open (non-blocking)**: research/DSL-level determinations only — merged-capture plumbing, no-final-answer ordering semantics, where the incidental-interleave note lives, and the unit emit-order helper.
 
