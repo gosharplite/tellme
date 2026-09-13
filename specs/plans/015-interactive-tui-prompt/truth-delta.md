@@ -9,7 +9,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/techstack.md` | _To be recorded by `/axb-technical-research`: the interactive TUI prompt dependency (the round's first TUI-grade library), the suggestion engine, the dashboard, and the shared global prompt log store._ | _Round 015 introduces the `-i` interactive TUI prompt._ |
+| MODIFY | `specs/truth/techstack.md` | **CLI Application → Interactive TUI prompt (`-i`)**: `bubbletea` + `bubbles` (textarea) + direct `lipgloss` — tellme's **first TUI dependency**; opt-in, gated by `-i`/`USE_TUI_PROMPT` + a terminal stdin. **Prompt suggestion engine**: multi-source (shared log + session + workspace + tools), subsequence, deduped, ≤10, ~100 ms debounce. **Shared global prompt log**: append-only JSONL at `output/global_prompts.jsonl` (`{timestamp, prompt}`, RFC3339), read newest-first + deduped, written **only under `-i`**, compaction ≈150 KiB/≤1200 unique. **Session dashboard**: reuses the provider/model + round-009 token figures + history turn count. **Terminal detection**: the round-012 real-isatty seam now also gates the TUI. **CLI flag parsing**: adds `-i`/`--interactive`; **Configuration**: adds `USE_TUI_PROMPT`. **Testing & Verification**: the injected-I/O + scripted-key TUI harness (no pty). **Not Introduced Yet**: TUI libraries now introduced; Windows variant excluded. | Round-015 research Decisions 1–9: adopt the Bubble Tea family, the multi-source suggestion engine, the append-only shared prompt log (write only under `-i`), the opt-in TUI with the round-012 default preserved, the reused dashboard state, and the hermetic no-pty verification. |
 
 ## /axb-api-plan
 
