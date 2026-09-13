@@ -17,7 +17,7 @@
 |:---|:---|:---|
 | **1** | Review the working tree | `git status` + `git diff --stat`: no half-written artifacts, no stray temp files, every change belongs to the active round / plan package. |
 | **2** | Run the quality gates | Execute the project's gates — currently `gofmt` + `go vet` (research D7); the full `make check`-style pipeline once code lands. Docs-only round: verify internal links, artifact consistency, and run a secret scan. **Never close out on a red gate.** |
-| **3** | Update [`STATUS.md`](STATUS.md) | Refresh "Last updated" using the exact system date from `date`, pipeline position, artifacts checklist, decisions locked, open items, and environment notes — the single live-state source the next `SESSION-BOOTSTRAP.md` reads. |
+| **3** | Update [`STATUS.md`](STATUS.md) (split it when too long) | Refresh "Last updated" using the exact system date from `date`, pipeline position, artifacts checklist, decisions locked, open items, and environment notes — the single live-state source the next `SESSION-BOOTSTRAP.md` reads. **If `STATUS.md` has outgrown the live state, split the historical detail into a dated archive** (`docs/archives/status/<YYYY-MM-DD>.md`) — see the Step 3 details. |
 | **4** | Write / refresh the day's session summary | **Run `date` to determine today's exact `<YYYY>/<MM>/<DD>` calendar date — NEVER guess or inherit from `STATUS.md` or prior summaries**. Create or update `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` — what was done, decisions, artifacts, commits, open items, next steps. This is the file `SESSION-BOOTSTRAP.md` **Step 8** reads. |
 | **5** | Reconcile status ↔ summary | Confirm `STATUS.md` and the day's `session-summary.md` agree: same decisions, same pipeline position, same open items, same branch heads. |
 | **6** | Commit the working branch | Commit with a descriptive message (e.g. `docs(<NNN>): …`). The day must end committed and pushed. |
@@ -65,6 +65,11 @@ Keep `STATUS.md` the single live-state source the next bootstrap reads:
 5. Update **Pipeline position** (which `axb-*` skill is `done` vs `next`) and any **pending decision**.
 6. Record **decisions locked this session**, **PM follow-ups**, and **Open items (non-blocking)**.
 7. Refresh **Environment notes** (provider upgrades, sandbox/host limitations, tool availability).
+8. **Split it when too long.** `STATUS.md` is the *live* state, not a history log. If it has outgrown the live state — roughly **more than ~150 lines**, or it carries **more than one delivered-round detail section** beyond the current round — split it:
+   - **Move** the historical detail **verbatim** into `docs/archives/status/<YYYY-MM-DD>.md` (today's date from `date`): the older/delivered-round detail sections, the accumulated **"Last updated" chain**, the **review-response history**, and the **branch-model propagation history**.
+   - **Keep** `STATUS.md` to the live state: header (concise Last-updated · Active branch · Daily log · Archive) · the **current round** section · a **delivered-rounds index** (round → branch → PR) · **branch model** · **roadmap** · **open items** · **environment notes**.
+   - **Update** the header **Archive** line to link **every** archive (oldest → newest), and put a **back-link to `STATUS.md`** at the top of the new archive. **Never delete history — only relocate it.**
+   - Do the split **before** the Step 4 summary write, so `STATUS.md`, the archive, and the daily summary all reflect it.
 
 ### 4. Daily Session Summary (Step 4 Details)
 
@@ -120,3 +125,4 @@ On any mismatch, fix the stale one (usually the summary) before committing.
 9. **Hand off explicitly** — always name the active branch, pipeline position, next skill/step, and any pending decision for the next session.
 10. **Keep it current and linked** — maintain the daily log and its back-link so `SESSION-BOOTSTRAP.md` Step 8 always has a fresh, accurate summary to read.
 11. **Always verify system date with `date`** — run `date` to determine the exact calendar date (`<YYYY>/<MM>/<DD>`) before updating `STATUS.md` or writing `session-summary.md`. Never infer the date from previous turns, previous files, or `STATUS.md` — midnight crossings must begin a new daily summary file.
+12. **Keep `STATUS.md` lean — split it when too long** — it is the *live* state, not a history log. When it outgrows that (roughly **> ~150 lines**, or more than one delivered-round detail section beyond the current round), relocate the historical detail **verbatim** into `docs/archives/status/<YYYY-MM-DD>.md` (today's date), trim `STATUS.md` back to the live state, link the archive from the header, and back-link `STATUS.md` from the archive. Never delete history.
