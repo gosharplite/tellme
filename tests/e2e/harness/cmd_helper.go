@@ -92,7 +92,7 @@ func Run(args []string, set map[string]string, unset []string) RunResult {
 	if err != nil {
 		return RunResult{ExitCode: -1, Err: err}
 	}
-	return runExec(bin, args, nil, set, unset, 0)
+	return runExec(bin, "", args, nil, set, unset, 0)
 }
 
 // RunWithStdin is Run with a scripted standard input: the child's stdin is an
@@ -103,19 +103,39 @@ func RunWithStdin(args []string, stdin string, set map[string]string, unset []st
 	if err != nil {
 		return RunResult{ExitCode: -1, Err: err}
 	}
-	return runExec(bin, args, strings.NewReader(stdin), set, unset, pipedRunTimeout)
+	return runExec(bin, "", args, strings.NewReader(stdin), set, unset, pipedRunTimeout)
 }
 
 // RunBinary is Run against an explicit binary path.
 func RunBinary(bin string, args []string, set map[string]string, unset []string) RunResult {
-	return runExec(bin, args, nil, set, unset, 0)
+	return runExec(bin, "", args, nil, set, unset, 0)
+}
+
+// RunIn is Run with the child's working directory set to dir, so a scenario's
+// working-directory fixtures (e.g. a file for the read_files tool) are visible
+// to the child.
+func RunIn(dir string, args []string, set map[string]string, unset []string) RunResult {
+	bin, err := BinaryPath()
+	if err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+	return runExec(bin, dir, args, nil, set, unset, 0)
+}
+
+// RunInWithStdin is RunWithStdin with the child's working directory set to dir.
+func RunInWithStdin(dir string, args []string, stdin string, set map[string]string, unset []string) RunResult {
+	bin, err := BinaryPath()
+	if err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+	return runExec(bin, dir, args, strings.NewReader(stdin), set, unset, pipedRunTimeout)
 }
 
 // runExec runs bin with args, wiring stdout/stderr (and stdin when non-nil) into
 // buffers and capturing the exit code. A non-zero timeout bounds the run via
 // exec.CommandContext; on deadline expiry the process is killed and Err carries
 // an explicit deadline message (distinct from a normal non-zero exit).
-func runExec(bin string, args []string, stdin io.Reader, set map[string]string, unset []string, timeout time.Duration) RunResult {
+func runExec(bin, dir string, args []string, stdin io.Reader, set map[string]string, unset []string, timeout time.Duration) RunResult {
 	var (
 		cmd *exec.Cmd
 		ctx context.Context
@@ -127,6 +147,9 @@ func runExec(bin string, args []string, stdin io.Reader, set map[string]string, 
 		cmd = exec.CommandContext(ctx, bin, args...)
 	} else {
 		cmd = exec.Command(bin, args...)
+	}
+	if dir != "" {
+		cmd.Dir = dir
 	}
 	cmd.Env = buildEnv(set, unset)
 	if stdin != nil {

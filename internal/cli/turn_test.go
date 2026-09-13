@@ -96,7 +96,9 @@ func TestRunTurn_CarriesPriorMessages(t *testing.T) {
 		t.Fatalf("code = %d, want success", code)
 	}
 	want := []llm.Message{{Role: "user", Content: "q1"}, {Role: "assistant", Content: "a1"}}
-	if len(fg.got.Messages) != 2 || fg.got.Messages[0] != want[0] || fg.got.Messages[1] != want[1] {
+	if len(fg.got.Messages) != 2 ||
+		fg.got.Messages[0].Role != want[0].Role || fg.got.Messages[0].Content != want[0].Content ||
+		fg.got.Messages[1].Role != want[1].Role || fg.got.Messages[1].Content != want[1].Content {
 		t.Errorf("messages = %+v, want %+v", fg.got.Messages, want)
 	}
 }

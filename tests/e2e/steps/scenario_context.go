@@ -27,6 +27,8 @@ type scenarioContext struct {
 	home    string // the actual resolved runtime home directory (temp dir)
 	homeSet bool   // whether TELL_ME_HOME should be exported for a run
 
+	workDir string // the child process working directory (holds working-directory file fixtures)
+
 	envOverrides map[string]string // env vars to set for the next run
 	envUnset     map[string]bool   // env vars to remove for the next run
 
@@ -76,8 +78,13 @@ func beforeScenario(ctx context.Context, _ *godog.Scenario) (context.Context, er
 	if err != nil {
 		return ctx, err
 	}
+	work, err := os.MkdirTemp("", "tellme-work-")
+	if err != nil {
+		return ctx, err
+	}
 	sc := &scenarioContext{
 		home:         dir,
+		workDir:      work,
 		homeSet:      true,
 		envOverrides: map[string]string{},
 		envUnset:     map[string]bool{"TELL_ME_MODE": true, "TELL_ME_SELECTED_PROVIDER": true},
@@ -99,6 +106,9 @@ func afterScenario(ctx context.Context, _ *godog.Scenario, _ error) (context.Con
 		}
 		if sc.home != "" {
 			_ = os.RemoveAll(sc.home)
+		}
+		if sc.workDir != "" {
+			_ = os.RemoveAll(sc.workDir)
 		}
 	}
 	return ctx, nil
@@ -157,9 +167,9 @@ func (sc *scenarioContext) unsetNames() []string {
 func (sc *scenarioContext) run() {
 	var res harness.RunResult
 	if sc.stdinSet {
-		res = harness.RunWithStdin(sc.args, sc.stdin, sc.runEnv(), sc.unsetNames())
+		res = harness.RunInWithStdin(sc.workDir, sc.args, sc.stdin, sc.runEnv(), sc.unsetNames())
 	} else {
-		res = harness.Run(sc.args, sc.runEnv(), sc.unsetNames())
+		res = harness.RunIn(sc.workDir, sc.args, sc.runEnv(), sc.unsetNames())
 	}
 	sc.exitCode = res.ExitCode
 	sc.stdout = res.Stdout
@@ -260,7 +270,14 @@ var unresolvedCategories = []string{"config-missing", "config-invalid", "provide
 // caller can assert the outcome is unchanged (differential no-egress witness).
 // The hostile-env definition lives once in the leaf harness.
 func (sc *scenarioContext) blockedRun() harness.RunResult {
-	return harness.RunWithBlockedNetwork(sc.args, sc.runEnv(), sc.unsetNames())
+	return harness.RunInWithBlockedNetwork(sc.workDir, sc.args, sc.runEnv(), sc.unsetNames())
+}
+
+// writeWorkFile writes a working-directory fixture the child can read (e.g. a
+// file for the read_files tool). The name is relative to the child's working
+// directory.
+func (sc *scenarioContext) writeWorkFile(name, content string) error {
+	return os.WriteFile(filepath.Join(sc.workDir, filepath.FromSlash(name)), []byte(content), 0o644)
 }
 
 // historyDir returns the session workspace directory the session commands

@@ -18,12 +18,17 @@ import (
 // (round-006 FR-006) rather than the parse phrase.
 var ErrInvalidValue = errors.New("invalid configuration value")
 
+// DefaultMaxToolLoop is the default bound on tool-iteration rounds within one
+// prompt run (round-008 research Decision 3 / FR-006).
+const DefaultMaxToolLoop = 1000
+
 // Config is the boot-time YAML configuration input (FR-005).
 type Config struct {
 	Mode             string              `yaml:"MODE"`
 	Person           string              `yaml:"PERSON"`
 	SelectedProvider string              `yaml:"SELECTED_PROVIDER"`
 	WrapWidth        int                 `yaml:"WRAP_WIDTH"`
+	MaxToolLoop      int                 `yaml:"MAX_TOOL_LOOP"`
 	Providers        map[string]Provider `yaml:"PROVIDERS"`
 }
 
@@ -161,4 +166,27 @@ func (c *Config) EffectiveWrapWidth(override string) (int, error) {
 		return 0, fmt.Errorf("%w: WRAP_WIDTH cannot be negative (%d)", ErrInvalidValue, width)
 	}
 	return width, nil
+}
+
+// EffectiveMaxToolLoop resolves the tool-loop bound: the environment override
+// (MAX_TOOL_LOOP) when non-empty, else the file MAX_TOOL_LOOP, else the default
+// DefaultMaxToolLoop (round-008 research Decision 3 / FR-006). A non-integer
+// override, or a negative value from either source, is an invalid configuration
+// value (wrapping ErrInvalidValue).
+func (c *Config) EffectiveMaxToolLoop(override string) (int, error) {
+	limit := c.MaxToolLoop
+	if override != "" {
+		n, err := strconv.Atoi(strings.TrimSpace(override))
+		if err != nil {
+			return 0, fmt.Errorf("%w: MAX_TOOL_LOOP %q is not an integer", ErrInvalidValue, override)
+		}
+		limit = n
+	}
+	if limit == 0 {
+		return DefaultMaxToolLoop, nil
+	}
+	if limit < 0 {
+		return 0, fmt.Errorf("%w: MAX_TOOL_LOOP cannot be negative (%d)", ErrInvalidValue, limit)
+	}
+	return limit, nil
 }

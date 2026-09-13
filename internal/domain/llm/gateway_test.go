@@ -18,10 +18,10 @@ func TestRequestCarriesPriorMessages(t *testing.T) {
 	if len(req.Messages) != 2 {
 		t.Fatalf("Messages = %+v, want 2", req.Messages)
 	}
-	if req.Messages[0] != (Message{Role: "user", Content: "my name is alice"}) {
+	if req.Messages[0].Role != "user" || req.Messages[0].Content != "my name is alice" {
 		t.Errorf("Messages[0] = %+v", req.Messages[0])
 	}
-	if req.Messages[1] != (Message{Role: "assistant", Content: "noted"}) {
+	if req.Messages[1].Role != "assistant" || req.Messages[1].Content != "noted" {
 		t.Errorf("Messages[1] = %+v", req.Messages[1])
 	}
 
