@@ -70,8 +70,11 @@ type resolution struct {
 	// MaxHistoryTokens is the resolved payload budget (round 009): the value the
 	// payload status line measures against (MAX_HISTORY_TOKENS, default 1000000).
 	MaxHistoryTokens int
-	Mode             string // the effective mode (when reached)
-	Workspace        string // the resolved workspace path (when reached)
+	// Person is the resolved PERSON — the persona sent to the provider as the
+	// leading `system` message of every request (round 011).
+	Person    string
+	Mode      string // the effective mode (when reached)
+	Workspace string // the resolved workspace path (when reached)
 }
 
 // resolveError carries the pinned reason category plus the underlying cause.
@@ -299,6 +302,7 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 	res.Provider = prov
 
 	// Step 6 — effective mode + prepare the session workspace (FR-007/008/009).
+	res.Person = cfg.Person
 	res.Mode = cfg.EffectiveMode(os.Getenv("TELL_ME_MODE"))
 	workspace, err := home.EnsureWorkspace(homeDir, res.Mode)
 	res.Workspace = workspace.Path
@@ -323,7 +327,7 @@ func renderBoot(homeDir, configPath string, env runtimeEnv) int {
 // is the composition seam (review finding #1): the presentation layer never
 // couples to a concrete adapter constructor, tests can inject a fake
 // llm.Gateway, and an un-adapted family surfaces as an actionable error.
-type gatewayFactory func(prov config.Provider, name string) (llm.Gateway, error)
+type gatewayFactory func(prov config.Provider, name, persona string) (llm.Gateway, error)
 
 // newGateway is the production gateway factory (a var so tests may override it).
 var newGateway gatewayFactory = infrallm.NewGateway
@@ -355,7 +359,7 @@ func renderTurn(homeDir, configPath, prompt string, raw bool, newSession bool, e
 // runtimeEnv's renderer. The context is cancelled on SIGINT/SIGTERM so a stalled
 // provider can be interrupted (review finding #2).
 func runTurn(res resolution, store history.Store, prompt string, raw bool, env runtimeEnv, factory gatewayFactory) int {
-	gw, err := factory(res.Provider, res.Selected)
+	gw, err := factory(res.Provider, res.Selected, res.Person)
 	if err != nil {
 		return emitProviderError(env.stderr, err)
 	}
@@ -370,12 +374,13 @@ func runTurn(res resolution, store history.Store, prompt string, raw bool, env r
 	// assembled conversation — the resumed turns (via the shared projection,
 	// including tool steps — TD-1) plus the current prompt — measured against the
 	// payload budget. Diagnostic only, on stderr.
+	reg := newToolRegistry(store, gw)
 	assembled := append(append(make([]llm.Message, 0, len(prior)+1), agent.BuildMessages(prior)...), llm.Message{Role: "user", Content: prompt})
-	emitPayloadStatus(env, res, llm.EstimateTokens(assembled), true)
+	emitPayloadStatus(env, res, llm.EstimatePayload(res.Person, agent.ToolDefs(reg), assembled), true)
 
 	loop := &agent.AgentLoop{
 		Gateway:  gw,
-		Registry: newToolRegistry(store, gw),
+		Registry: reg,
 		MaxLoops: res.MaxToolLoop,
 		Stderr:   env.stderr,
 	}

@@ -42,7 +42,7 @@ func (f *fakeGateway) Complete(_ context.Context, req llm.Request) (llm.Response
 }
 
 func factoryReturning(gw llm.Gateway, err error) gatewayFactory {
-	return func(config.Provider, string) (llm.Gateway, error) { return gw, err }
+	return func(config.Provider, string, string) (llm.Gateway, error) { return gw, err }
 }
 
 // fakeStore is an in-memory history.Store for runTurn tests (round-007 TD-1).
@@ -96,8 +96,8 @@ func TestRunTurn_PrintsRawAnswerAndPersists(t *testing.T) {
 	if out.String() != "the answer\n" {
 		t.Errorf("stdout = %q, want %q", out.String(), "the answer\n")
 	}
-	if got, want := errOut.String(), "[12:00:00] Payload: ~5/1000000 tokens - butler - deepseek-v4-flash\n"; got != want {
-		t.Errorf("stderr = %q, want the pre-flight payload status line %q", got, want)
+	if got := errOut.String(); !strings.HasPrefix(got, "[12:00:00] Payload: ~") || !strings.HasSuffix(got, "/1000000 tokens - butler - deepseek-v4-flash\n") {
+		t.Errorf("stderr = %q, want a pre-flight payload status line for butler/deepseek-v4-flash", got)
 	}
 	if len(st.appended) != 1 || st.appended[0].Prompt != "ping" || st.appended[0].Answer != "the answer" {
 		t.Errorf("persisted = %+v, want the completed exchange", st.appended)

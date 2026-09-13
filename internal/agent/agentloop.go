@@ -139,11 +139,16 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 
 // toolDefs projects the registry's tools into the wire definitions offered to
 // the model.
-func (a *AgentLoop) toolDefs() []llm.ToolDef {
-	if a.Registry == nil {
+func (a *AgentLoop) toolDefs() []llm.ToolDef { return ToolDefs(a.Registry) }
+
+// ToolDefs projects a tool registry into the wire definitions offered to the
+// model. Exported so the CLI's pre-flight estimate counts exactly what the loop
+// sends (round-011 RF-1), mirroring the BuildMessages reuse (round 009).
+func ToolDefs(reg tools.Registry) []llm.ToolDef {
+	if reg == nil {
 		return nil
 	}
-	ts := a.Registry.Tools()
+	ts := reg.Tools()
 	defs := make([]llm.ToolDef, 0, len(ts))
 	for _, t := range ts {
 		defs = append(defs, llm.ToolDef{Name: t.Name(), Description: t.Description(), Parameters: t.Parameters()})

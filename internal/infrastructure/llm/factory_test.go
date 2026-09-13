@@ -11,7 +11,7 @@ import (
 
 func TestNewGateway_SupportedFamilies(t *testing.T) {
 	for _, family := range []string{"openai", "deepseek", "kimi", "OpenAI", "  DeepSeek  "} {
-		gw, err := NewGateway(config.Provider{Type: family, URL: "https://x", Model: "m"}, "p")
+		gw, err := NewGateway(config.Provider{Type: family, URL: "https://x", Model: "m"}, "p", "")
 		if err != nil {
 			t.Fatalf("family %q: unexpected error %v", family, err)
 		}
@@ -23,7 +23,7 @@ func TestNewGateway_SupportedFamilies(t *testing.T) {
 
 func TestNewGateway_UnsupportedFamily(t *testing.T) {
 	for _, family := range []string{"gemini", "anthropic", "", "google"} {
-		gw, err := NewGateway(config.Provider{Type: family, URL: "https://x"}, "prov")
+		gw, err := NewGateway(config.Provider{Type: family, URL: "https://x"}, "prov", "")
 		if err == nil {
 			t.Fatalf("family %q: expected an error, got gateway %T", family, gw)
 		}
