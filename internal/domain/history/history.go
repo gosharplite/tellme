@@ -9,6 +9,11 @@ type Step struct {
 	Tool      string `json:"tool"`
 	Arguments string `json:"arguments"`
 	Result    string `json:"result"`
+	// Signature is the provider's opaque token for this tool call (for example
+	// the Gemini 3 `thoughtSignature`), persisted only when the provider
+	// supplies one (omitempty keeps a signature-less step byte-identical to the
+	// round-008 shape) and replayed verbatim on resume (round 014).
+	Signature string `json:"signature,omitempty"`
 }
 
 // Entry is one completed exchange in the session history: the operator's prompt

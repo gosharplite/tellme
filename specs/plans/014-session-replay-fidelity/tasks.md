@@ -20,14 +20,14 @@
 
 **Goal**: 建立本輪 stepdef／`[UNIT]` 的落點骨架與一個資料形狀骨架（Zero Shared Edits 原則），讓 Phase 3 / Phase 4 不各自發明檔案或 seam。只建立落點與載體，不寫記錄／重播行為。
 
-- [ ] T001 建立 4 個新句 stepdef 獨立檔骨架
+- [X] T001 建立 4 個新句 stepdef 獨立檔骨架
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（本輪 4 個新句）
     - `tests/e2e/steps/register.go`
   - 只做：建立 4 個獨立 stepdef 檔（各自 `init()` 自我註冊空白 registrar），對到 T003–T006 四句。
   - 不做：不寫具體 arrange／斷言邏輯；不碰既有 step 檔。
 
-- [ ] T002 建立 `Step.Signature` 資料形狀骨架與 `[UNIT]` 落點
+- [X] T002 建立 `Step.Signature` 資料形狀骨架與 `[UNIT]` 落點
   - Read:
     - `specs/plans/014-session-replay-fidelity/research.md` -> Decision 1, 3
     - `specs/truth/data/data-model.dbml` -> `history_step`
@@ -74,29 +74,29 @@
 
 ### BDD-RED（本輪新增句型）
 
-- [ ] T003 [P] [BDD-RED] `Given: the session history already holds a tool-using exchange carrying the provider token "{token}"`
+- [X] T003 [P] [BDD-RED] `Given: the session history already holds a tool-using exchange carrying the provider token "{token}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the session history already holds a tool-using exchange carrying the provider token "{token}"`
   - Landing: `tests/e2e/steps/step_t003_chat_given_signed_exchange.go`
   - 語意：建立 per-mode workspace，寫入一行 JSON，`steps` 含一個 step `{tool: "read_files", arguments, result, signature: "{token}"}`。
 
-- [ ] T004 [P] [BDD-RED] `Given: the session history already holds a tool-using exchange with no provider token`
+- [X] T004 [P] [BDD-RED] `Given: the session history already holds a tool-using exchange with no provider token`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the session history already holds a tool-using exchange with no provider token`
   - Landing: `tests/e2e/steps/step_t004_chat_given_unsigned_exchange.go`
   - 語意：同 T003，但 step 不含 `signature`（provider-neutral 形狀）。
 
-- [ ] T005 [P] [BDD-RED] `Then: the request replayed the earlier tool step "{tool}" carrying the provider token "{token}"`
+- [X] T005 [P] [BDD-RED] `Then: the request replayed the earlier tool step "{tool}" carrying the provider token "{token}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the request replayed the earlier tool step "{tool}" carrying the provider token "{token}"`
   - Landing: `tests/e2e/steps/step_t005_chat_then_replayed_with_token.go`
   - 語意：fake 恰記錄一次請求，其 assistant tool-call message 為 `{tool}` 且其 provider token 等於 `{token}`（verbatim），後接對應 tool result。
 
-- [ ] T006 [P] [BDD-RED] `Then: the request replayed the earlier tool step "{tool}"`
+- [X] T006 [P] [BDD-RED] `Then: the request replayed the earlier tool step "{tool}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the request replayed the earlier tool step "{tool}"`
   - Landing: `tests/e2e/steps/step_t006_chat_then_replayed.go`
   - 語意：fake 恰記錄一次請求，其 assistant tool-call message 為 `{tool}`，後接對應 tool result。
 
 ### UNIT（非 DSL 的單元斷言）
 
-- [ ] T007 [P] [UNIT] `history.Step` 的 signature JSON round-trip + omitempty 相容
+- [X] T007 [P] [UNIT] `history.Step` 的 signature JSON round-trip + omitempty 相容
   - Read:
     - `specs/plans/014-session-replay-fidelity/research.md` -> Decision 3, 4
     - `specs/truth/techstack.md` -> CLI Application（Session history store）+ Testing & Verification（Pure-helper unit tests）
@@ -104,7 +104,7 @@
   - 撰寫：append → reload 後 `Step.Signature` 保留；signature 為空時序列化與 round-008 形狀 byte-identical（無新欄位）。
   - 落點：`internal/infrastructure/history/file_store_widened_test.go`。
 
-- [ ] T008 [P] [UNIT] `BuildMessages` 重播輸出 `Signature`
+- [X] T008 [P] [UNIT] `BuildMessages` 重播輸出 `Signature`
   - Read:
     - `specs/plans/014-session-replay-fidelity/research.md` -> Decision 2
     - `internal/agent/agentloop.go`、`internal/agent/agentloop_test.go`
@@ -113,7 +113,7 @@
 
 ### Phase Review Gate
 
-- [ ] T009 subagent review (phase quality gate)
+- [X] T009 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/replaying-a-tool-using-conversation.feature`
     - `specs/truth/features/cli/chat/dsl.md`、`specs/truth/features/cli/history/dsl.md`、`specs/truth/features/cli/dsl.md`
@@ -142,8 +142,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/replaying-a-tool-using-conversation.feature`
 
-- [ ] T010 [BDD-GREEN] 讓 Test Scope 全綠（並使 T008 的 `BuildMessages` `[UNIT]` 轉綠）
-- [ ] T011 [BDD-REFACTOR] 在綠燈下整理 signature 的記錄／重播路徑
+- [X] T010 [BDD-GREEN] 讓 Test Scope 全綠（並使 T008 的 `BuildMessages` `[UNIT]` 轉綠）
+- [X] T011 [BDD-REFACTOR] 在綠燈下整理 signature 的記錄／重播路徑
 
 ## Phase 4B: Regression
 
@@ -152,7 +152,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`（chat、history、configuration、workspace、diagnostics、usage 全模組）
 
-- [ ] T012 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T012 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
   - **可偽性見證**：暫時讓 `BuildMessages` 的重播不帶 `Signature`，確認 `chat/replaying-a-tool-using-conversation.feature` 的 gemini 場景失敗（fake 記錄的重播 tool call 缺 token）；觀察到失敗即還原。
   - 確認：`history.jsonl` 對非工具回合與空 signature 步驟 byte-identical；OpenAI-family 請求 byte 不變；`stdout` byte-exact；exit-code 表 `0/2/3/4/5/6/7` 與 class-phrase 詞彙維持 **11**；offline paths（`--version`、`-d`、no-prompt boot、`-l`、prompt-less `--new`）不變；`go mod tidy` 後 module graph 不變（本輪無新相依）；Gherkin/DSL topology audit **PASSED**。

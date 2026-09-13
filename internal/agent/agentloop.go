@@ -132,7 +132,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 			}
 			a.logStep(tc, result)
 			turn = append(turn, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})
-			steps = append(steps, history.Step{Tool: tc.Name, Arguments: tc.Arguments, Result: result})
+			steps = append(steps, history.Step{Tool: tc.Name, Arguments: tc.Arguments, Result: result, Signature: tc.Signature})
 		}
 	}
 }
@@ -182,7 +182,7 @@ func BuildMessages(prior []history.Entry) []llm.Message {
 		msgs = append(msgs, llm.Message{Role: "user", Content: e.Prompt})
 		for i, s := range e.Steps {
 			id := fmt.Sprintf("call_step_%d", i+1)
-			msgs = append(msgs, llm.Message{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: id, Name: s.Tool, Arguments: s.Arguments}}})
+			msgs = append(msgs, llm.Message{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: id, Name: s.Tool, Arguments: s.Arguments, Signature: s.Signature}}})
 			msgs = append(msgs, llm.Message{Role: "tool", Content: s.Result, ToolCallID: id})
 		}
 		msgs = append(msgs, llm.Message{Role: "assistant", Content: e.Answer})
