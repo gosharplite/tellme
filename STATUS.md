@@ -19,9 +19,10 @@
 - [x] `research.md` + `specs/truth/techstack.md` MODIFY (cross-stream ordering witness + layered assertions).
 - [x] `plan.md` (1 interface / 1 wave; `/axb-api-plan` + `/axb-data-plan` = NOOP).
 - [x] truth (`features/cli/chat/**` MODIFY — ordering semantics; topology audit **PASSED**, 467 steps).
-- [ ] `tasks.md`, implementation.
+- [x] `tasks.md` (13 tasks; Setup omitted — stdlib-only; orphan sweep 0).
+- [ ] implementation (merged-stream witness + ordering stepdefs + regression).
 
-**Pipeline position**: `/axb-specify` ✅ → `/axb-spec-by-example` ✅ → `/axb-technical-research` ✅ → `/axb-system-analysis` ✅ → `/axb-dsl-refine` ✅ → next `/axb-tasks` → `/axb-implement`.
+**Pipeline position**: `/axb-specify` ✅ → `/axb-spec-by-example` ✅ → `/axb-technical-research` ✅ → `/axb-system-analysis` ✅ → `/axb-dsl-refine` ✅ → `/axb-tasks` ✅ → next `/axb-implement`.
 
 **Open (non-blocking)**: research/DSL-level determinations only — merged-capture plumbing, no-final-answer ordering semantics, where the incidental-interleave note lives, and the unit emit-order helper.
 
