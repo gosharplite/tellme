@@ -79,3 +79,62 @@
 ## 7. PM follow-ups
 
 - None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
+
+---
+
+## 8. Session 23 — round 008 (`008-agent-tools-and-tool-call-loop`) implemented, delivered, and propagated
+
+Continuation of the same calendar day (2026-09-13): resumed `/axb-implement`, finished the round, took PR #25 through an architectural review (one blocker fixed in-round), merged → propagated → closed out.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Resume | `/axb-implement` on `008-implement-agent-tools-and-tool-call-loop` (Foundational T001–T007 already `[X]`) |
+| Phase 3 (T008–T025) | 16 `[BDD-RED]` stepdefs + `tests/e2e/steps/wire_tools.go` + 4 `[UNIT]` test files; T025 **read-only `architect` review GREEN** (issues #1/#3 fixed + re-reviewed) |
+| Phase 4 (T026–T036) | 4A/4B/4C/4E Test Scopes already green (Foundational over-delivery — disclosed); **4D implemented the LLM-backed `summarize_history` tool**; 4F regression; all **36/36 tasks `[X]`** |
+| Delivery | commit `c442f6f` → PR [#25](https://github.com/gosharplite/tellme/pull/25) (base `008-agent-tools-and-tool-call-loop`) |
+| PR #25 review | architectural review ([#5650683107](https://github.com/gosharplite/tellme/pull/25#issuecomment-5650683107)) → **REQUEST CHANGES**: **BLOCKER-1** (inverted wire chronology) + TD-1/TD-2/RF-1 → fixed in-round (`1f64b44`) → re-review ([#5650743377](https://github.com/gosharplite/tellme/pull/25#issuecomment-5650743377)) **FULL ARCHITECTURAL APPROVAL — READY TO MERGE** |
+| Merge | PR [#25](https://github.com/gosharplite/tellme/pull/25) human-merged into `008-agent-tools-and-tool-call-loop` (`f9b5d74`); remote + local impl branch `008-implement-agent-tools-and-tool-call-loop` deleted |
+| Propagation | `008-agent-tools-and-tool-call-loop → dev` (`d376e03`, no-ff) `→ main` |
+| Verification | godog **61/61 scenarios · 426/426 steps**; `go test -count=1 ./...` green; `make verify` OK (0 lint · 0 reachable vulns · offline witness · no test-sleep); `go mod tidy` graph unchanged |
+
+### Artifacts / code
+
+- **Test layer (Phase 3)**: 16 round-008 step files (`tests/e2e/steps/step_t008…step_t023`), `wire_tools.go` (tool wire helpers + `toolExchangeChronologyOK`), 4 `[UNIT]` files (`internal/domain/tools` registry, `internal/config` `MAX_TOOL_LOOP`, `internal/infrastructure/history` widened record, `internal/cli` `-l` projection).
+- **Product (Phase 4D)**: `internal/infrastructure/tools/summarize.go` — the LLM-backed `summarize_history` tool (reads the store, requests a summary via the gateway, non-mutating).
+- **Review fixes**: `internal/agent/agentloop.go` (active-turn chronology), `internal/infrastructure/llm/openai/client.go` (no empty-prompt append), `internal/cli/cli.go` (`newToolRegistry` seam), `internal/infrastructure/tools/filesystem.go` (ctx propagation), + regression tests `internal/agent/tool_wire_order_test.go` and `internal/infrastructure/llm/openai/wire_order_test.go`.
+
+### Decisions log
+
+| # | Decision |
+| --- | --- |
+| D1 | **BLOCKER-1 fixed by letting `AgentLoop` own the active-turn chronology** — the user prompt precedes the assistant `tool_calls` + tool result on every wire request; `requestBody` no longer appends an empty prompt. Regression tests added at the loop and wire layers. |
+| D2 | **TD-1** — introduced the `newToolRegistry` DI seam (mirrors `gatewayFactory` / `historyStoreFactory`). |
+| D3 | **TD-2** — added the `toolExchangeChronologyOK` E2E oracle so a wire inversion fails the suite. |
+| D4 | **RF-1** — `list_files` / `read_files` honour the per-tool `ctx`. |
+| D5 | **RF-2** — sequential tool execution retained (documented; concurrency deferred to a forward item). |
+| D6 | **Only a human merges a GitHub PR** (repo policy, restated by both reviews). |
+
+### Commits (branch `008-implement-agent-tools-and-tool-call-loop`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `c442f6f` | `feat(008): implement the agent tool loop` |
+| `1f64b44` | `fix(008): address PR #25 review` (BLOCKER-1 / TD-1 / TD-2 / RF-1) |
+| `f9b5d74` | PR [#25](https://github.com/gosharplite/tellme/pull/25) merge into `008-agent-tools-and-tool-call-loop` |
+| `d376e03` | propagation `008-agent-tools-and-tool-call-loop → dev` (no-ff) |
+
+### Open items (non-blocking)
+
+- RF-2 (sequential tool execution) — forward item.
+- Carried: unbounded history / no pruning (pruning is a settled exclusion); no `flock`/`ModeLocker`; PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred.
+
+### Next steps
+
+1. Choose the `009-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
