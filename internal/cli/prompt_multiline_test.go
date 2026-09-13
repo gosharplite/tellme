@@ -133,10 +133,30 @@ func TestMultiLineHintMatchesDSLLiteral(t *testing.T) {
 	}
 }
 
+// clearAmbientOverrides neutralizes the ambient TELL_ME_*/MAX_* overrides the
+// project shell exports (e.g. TELL_ME_MODE), so a unit test resolves a
+// deterministic default mode. It mirrors the E2E harness's beforeScenario
+// hermeticity (round-009); without it, a test that asserts a workspace path
+// fails wherever TELL_ME_MODE selects a different mode.
+func clearAmbientOverrides(t *testing.T) {
+	t.Helper()
+	for _, name := range []string{
+		"TELL_ME_MODE",
+		"TELL_ME_SELECTED_PROVIDER",
+		"TELL_ME_WRAP_WIDTH",
+		"MAX_TOOL_LOOP",
+		"MAX_HISTORY_TOKENS",
+		"TELL_ME_FORCE_STDIN_TTY",
+	} {
+		t.Setenv(name, "")
+	}
+}
+
 // TestRun_NewInteractivePrintsHintThenRoutesToTurn pins amendment A8: a
 // prompt-less `--new` on a terminal archives the session, then engages the
 // reader; a non-empty read is routed to the turn path.
 func TestRun_NewInteractivePrintsHintThenRoutesToTurn(t *testing.T) {
+	clearAmbientOverrides(t)
 	t.Setenv("TELL_ME_HOME", t.TempDir()) // home present so the archive step succeeds
 	var out, errOut bytes.Buffer
 	env := runtimeEnv{stdin: strings.NewReader("hello\n"), stdout: &out, stderr: &errOut,
@@ -154,6 +174,7 @@ func TestRun_NewInteractivePrintsHintThenRoutesToTurn(t *testing.T) {
 // for a prompt-less `--new` on a terminal: the session is archived, no request is
 // made, and the run exits success.
 func TestRun_NewInteractiveEmptyArchivesAndSucceeds(t *testing.T) {
+	clearAmbientOverrides(t)
 	home := t.TempDir()
 	t.Setenv("TELL_ME_HOME", home)
 	var out, errOut bytes.Buffer
@@ -178,6 +199,7 @@ func TestRun_NewInteractiveEmptyArchivesAndSucceeds(t *testing.T) {
 // (empty pipe) keeps its round-007 behaviour: archive and exit, with no
 // reader/hint.
 func TestRun_NewNonTTYDoesNotRead(t *testing.T) {
+	clearAmbientOverrides(t)
 	t.Setenv("TELL_ME_HOME", t.TempDir())
 	var out, errOut bytes.Buffer
 	env := runtimeEnv{stdin: strings.NewReader(""), stdout: &out, stderr: &errOut,

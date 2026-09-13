@@ -236,6 +236,10 @@ func run(args []string, version string, env runtimeEnv) int {
 	// an operator-initiated interruption of a prompt turn.
 	if env.isTTY(env.stdin) {
 		if opts.newSession {
+			// Archive BEFORE resolving the configuration: a prompt-less --new is an
+			// archive command that works offline, so — unlike the prompt-bearing
+			// `--new "<prompt>"` form, which resolves first — a broken config still
+			// archives here and then fails when the turn resolves (round-012 review).
 			if code := renderNewSession(homeDir, env); code != Success {
 				return code
 			}
