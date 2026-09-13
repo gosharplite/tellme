@@ -25,3 +25,13 @@ Feature: Inspecting the session history
       When the operator asks tellme to list the last 5 messages
       Then tellme lists no messages
       And tellme exits successfully
+
+  Rule: Listing after a tool-using turn shows only the operator's messages
+
+    Example: The listing omits the tool activity
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds a tool-using exchange
+      When the operator asks tellme to list the last 2 messages
+      Then tellme lists only the operator's messages
+      And tellme exits successfully

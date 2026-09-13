@@ -1,12 +1,25 @@
 package history
 
+// Step is one tool execution performed during a completed turn (round 008, the
+// agent tool loop). It is embedded in the turn's line as an element of the
+// ordered Steps array (specs/truth/data/data-model.dbml, `history_step`). No
+// per-step id is stored; the adapter synthesises a deterministic tool-call id
+// on replay.
+type Step struct {
+	Tool      string `json:"tool"`
+	Arguments string `json:"arguments"`
+	Result    string `json:"result"`
+}
+
 // Entry is one completed exchange in the session history: the operator's prompt
-// and the provider's answer, stored verbatim (content, not the rendered form).
-// It is the persisted record of the session-history data truth
-// (specs/truth/data/data-model.dbml, `history_entry`).
+// and the provider's answer, stored verbatim (content, not the rendered form),
+// plus — since round 008 — the tool steps the turn performed (empty when the
+// turn made no tool calls). It is the persisted record of the session-history
+// data truth (specs/truth/data/data-model.dbml, `history_entry`).
 type Entry struct {
 	Prompt string `json:"prompt"`
 	Answer string `json:"answer"`
+	Steps  []Step `json:"steps,omitempty"`
 }
 
 // Store is the network-free session-history port: load the whole conversation,

@@ -26,6 +26,12 @@ func HostileNetworkEnv() map[string]string {
 // is now an offline-path behaviour claim — a recording sink left untouched plus
 // this differential witness.
 func RunWithBlockedNetwork(args []string, set map[string]string, unset []string) RunResult {
+	return RunInWithBlockedNetwork("", args, set, unset)
+}
+
+// RunInWithBlockedNetwork is RunWithBlockedNetwork with the child's working
+// directory set to dir (so the differential witness matches the normal run).
+func RunInWithBlockedNetwork(dir string, args []string, set map[string]string, unset []string) RunResult {
 	merged := make(map[string]string, len(set)+len(HostileNetworkEnv()))
 	for k, v := range set {
 		merged[k] = v
@@ -33,5 +39,5 @@ func RunWithBlockedNetwork(args []string, set map[string]string, unset []string)
 	for k, v := range HostileNetworkEnv() {
 		merged[k] = v
 	}
-	return Run(args, merged, unset)
+	return RunIn(dir, args, merged, unset)
 }
