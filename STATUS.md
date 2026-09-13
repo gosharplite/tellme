@@ -1,10 +1,22 @@
 # tellme — Status
 
-**Last updated**: 2026-09-13 — **round 011 `011-persona-and-payload-estimate` DELIVERED / FROZEN** (session 26; PR [#30](https://github.com/gosharplite/tellme/pull/30) merged into `dev` (`fe6d229`); propagated `dev → main`; see the *Round 011* section). Prior rounds' detail is in the archives.
+**Last updated**: 2026-09-13 — **round 011 `011-persona-and-payload-estimate` DELIVERED / FROZEN** (session 26; PR [#30](https://github.com/gosharplite/tellme/pull/30) merged into `dev` (`fe6d229`); propagated `dev → main`; see the *Round 011* section). Prior rounds' detail is in the archives. **2026-09-13 (review response):** round 012 PR [#31](https://github.com/gosharplite/tellme/pull/31) — review **BLOCKER B1** fixed (real isatty; ADR 0003) + RF1/RF2/TD fixes at `331cf88`.
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
-**Active branch**: `dev` (round 011 delivered — PR [#30](https://github.com/gosharplite/tellme/pull/30) merged into `dev` (`fe6d229`); propagated `dev → main`). Next round starts a fresh `012-*` off `dev`.
+**Active branch**: `012-interactive-multiline-prompt` (round 012 in progress — PR [#31](https://github.com/gosharplite/tellme/pull/31) `012-interactive-multiline-prompt → dev`; review response at `331cf88`). Next: re-review → human merge → propagate `dev → main`.
 **Daily log**: [`docs/session-summary/2026/09/13/session-summary.md`](docs/session-summary/2026/09/13/session-summary.md)
 **Archive**: [`docs/archives/status/2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`docs/archives/status/2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–010 detail + header/review-response/propagation history).
+
+## Round 012 — `012-interactive-multiline-prompt` (active)
+
+**Status**: 🔄 **IN PROGRESS** — PR [#31](https://github.com/gosharplite/tellme/pull/31) (`012-interactive-multiline-prompt → dev`); review **REQUEST CHANGES** → **fixed** (`331cf88`) → re-review **✅ APPROVE** ([#5652688392](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652688392)) → spec/research drift closed (`abc49f0`) → closing confirmation ✅ ([#5652709341](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652709341)). **Amendment A8** (`1fb7a0e`): a prompt-less `--new` on a terminal now archives then reads. Fresh re-review of A8 **REQUEST CHANGES** ([#5652804419](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652804419) — a non-hermetic unit test) → **fixed** (`b5cb61c`).
+
+**Scope**: the reference's interactive multi-line prompt reader (`Ctrl+D`; hint to `stderr`; POSIX-only, no Windows variant). Tasks **8/8 `[X]`**; godog **81/81**; topology audit **PASSED** (547 steps).
+
+**Review response (`331cf88`)**: **B1** — a **real isatty** (`golang.org/x/term.IsTerminal`, already in the module graph) replacing the `os.ModeCharDevice` heuristic, so `< /dev/null` no longer masks a config failure as exit `0` (now exit `3`); **ADR 0003** recorded. **RF1** — `TELL_ME_FORCE_STDIN_TTY` seam + an **E2E positive-read** scenario (carries acceptance Rules 1–2 executably). **RF2** — the hermetic empty-pipe stdin default kept + a **null-device** E2E scenario. **TD1** — the hint is single-sourced (`cli.MultiLineHint`). **TD2/TD3/TD4** — documented. Truth updated (`techstack.md`, `chat/dsl.md`, `reading-a-multi-line-prompt.feature`, `truth-delta.md`).
+
+**Amendment A8 (`1fb7a0e`)**: a prompt-less `--new` on a **terminal** now archives the session **first**, then engages the reader (unifying "start fresh and type"); a **non-terminal** prompt-less `--new` keeps its round-007 archive-and-exit behaviour. Spec `FR-009` amended + `FR-012`/`SC-007` added; `reading-a-multi-line-prompt.feature` + `chat/dsl.md` + `truth-delta.md` updated; unit + E2E (`--new` archive-then-read) added; falsifiability witness reproduced. Landed after the approval, so a fresh re-review may be requested.
+
+**Open**: human merge → propagate `012-interactive-multiline-prompt → dev → main`; then STATUS split + daily log.
 
 ## Round 011 — `011-persona-and-payload-estimate` (active)
 

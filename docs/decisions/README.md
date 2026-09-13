@@ -25,3 +25,5 @@ Typo- and editorial-only fixes do not need an ADR.
 | ADR | Title | Status |
 | --- | --- | --- |
 | [0001](0001-project-language.md) | Project language: English artifact declaration | Accepted |
+| [0002](0002-first-presentation-dependency.md) | First presentation dependency: glamour | Accepted |
+| [0003](0003-terminal-detection-isatty.md) | Terminal detection: a real isatty (`golang.org/x/term`) | Accepted |
