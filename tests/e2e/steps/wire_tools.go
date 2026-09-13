@@ -30,13 +30,65 @@ type wireToolMessage struct {
 	ToolCallID string         `json:"tool_call_id"`
 }
 
-// decodeToolMessages decodes the `messages` array from a recorded request body.
+// decodeToolMessages decodes a recorded request body into a NORMALIZED message
+// list, regardless of the wire family the provider speaks:
+//   - OpenAI-compatible: the top-level `messages` array (returned as-is).
+//   - Vertex/Gemini: the `contents` array — assistant tool calls under
+//     role:"model" functionCall, tool results under role:"user" functionResponse
+//     — normalized to the assistant / tool shape the Then steps assert on.
+//
+// Round 013 keeps the tool-loop Then steps wire-family-agnostic.
 func decodeToolMessages(body string) []wireToolMessage {
-	var decoded struct {
+	var probe struct {
 		Messages []wireToolMessage `json:"messages"`
+		Contents []struct {
+			Role  string `json:"role"`
+			Parts []struct {
+				Text         string `json:"text"`
+				FunctionCall *struct {
+					Name string          `json:"name"`
+					Args json.RawMessage `json:"args"`
+				} `json:"functionCall"`
+				FunctionResponse *struct {
+					Name     string `json:"name"`
+					Response struct {
+						Content string `json:"content"`
+					} `json:"response"`
+				} `json:"functionResponse"`
+			} `json:"parts"`
+		} `json:"contents"`
 	}
-	_ = json.Unmarshal([]byte(body), &decoded)
-	return decoded.Messages
+	_ = json.Unmarshal([]byte(body), &probe)
+	if len(probe.Messages) > 0 {
+		return probe.Messages
+	}
+	out := make([]wireToolMessage, 0, len(probe.Contents))
+	for _, c := range probe.Contents {
+		msg := wireToolMessage{Role: c.Role}
+		if msg.Role == "model" {
+			msg.Role = "assistant"
+		}
+		for _, p := range c.Parts {
+			switch {
+			case p.FunctionCall != nil:
+				args := strings.TrimSpace(string(p.FunctionCall.Args))
+				if args == "" {
+					args = "{}"
+				}
+				tc := wireToolCall{}
+				tc.Function.Name = p.FunctionCall.Name
+				tc.Function.Arguments = args
+				msg.ToolCalls = append(msg.ToolCalls, tc)
+			case p.FunctionResponse != nil:
+				msg.Role = "tool"
+				msg.Content = p.FunctionResponse.Response.Content
+			default:
+				msg.Content += p.Text
+			}
+		}
+		out = append(out, msg)
+	}
+	return out
 }
 
 // toolRounds returns, per recorded request, its decoded messages.

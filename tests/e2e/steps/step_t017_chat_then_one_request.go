@@ -37,15 +37,16 @@ func thenSendsExactlyOneRequest(ctx context.Context, provider string) error {
 	if sc.lastPrompt != "" && !strings.Contains(body, sc.lastPrompt) {
 		return fmt.Errorf("the request to %q did not carry the prompt: %q", provider, body)
 	}
-	// Assert a model was carried, generically (review finding #5) — no hardcoded
-	// provider model string couples this step to a specific configuration.
+	// Assert a model was addressed, wire-family-agnostically (review finding #5 /
+	// round 013): the OpenAI-compatible family carries `model` in the body; the
+	// Vertex family carries it in the request path (`…/<model>:generateContent`).
 	var decoded struct {
 		Model string `json:"model"`
 	}
 	if err := json.Unmarshal([]byte(body), &decoded); err != nil {
 		return fmt.Errorf("the request to %q was not valid JSON: %q", provider, body)
 	}
-	if strings.TrimSpace(decoded.Model) == "" {
+	if strings.TrimSpace(decoded.Model) == "" && !strings.HasSuffix(f.PathAt(-1), ":generateContent") {
 		return fmt.Errorf("the request to %q carried no model: %q", provider, body)
 	}
 	return nil

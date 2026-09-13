@@ -24,6 +24,11 @@ type ToolCall struct {
 	ID        string
 	Name      string
 	Arguments string
+	// Signature carries a provider-specific opaque token that must be echoed
+	// back verbatim when the call is replayed on a later request — the Vertex AI
+	// Gemini 3 `thoughtSignature`. Empty for providers that do not use one
+	// (e.g. the OpenAI family).
+	Signature string
 }
 
 // Message is one prior conversation message carried on a request: the role

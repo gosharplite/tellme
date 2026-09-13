@@ -10,35 +10,62 @@ import (
 
 	"github.com/gosharplite/tellme/internal/config"
 	domainllm "github.com/gosharplite/tellme/internal/domain/llm"
+	"github.com/gosharplite/tellme/internal/infrastructure/llm/gemini"
 	"github.com/gosharplite/tellme/internal/infrastructure/llm/openai"
 )
 
-// supportedFamilies are the OpenAI-compatible provider TYPE labels this slice
-// adapts (round-004 Clarify Q2). Gemini/Vertex and Anthropic are deferred.
+// supportedFamilies are the OpenAI-compatible provider TYPE labels.
 var supportedFamilies = map[string]bool{
 	"openai":   true,
 	"deepseek": true,
 	"kimi":     true,
 }
 
+// geminiFamilies are the Vertex/Gemini provider TYPE labels (round 013).
+var geminiFamilies = map[string]bool{
+	"gemini": true,
+	"google": true,
+}
+
 // NewGateway returns the concrete domainllm.Gateway for the resolved provider's
-// family. An unsupported family yields a *llm.ProviderError (rendered as the
-// frozen provider class phrase + exit code 6) instead of a malformed request.
+// family. `openai`/`deepseek`/`kimi` use the OpenAI-compatible adapter;
+// `gemini`/`google` use the Vertex/Gemini adapter (round 013); any other family
+// keeps the existing unsupported-provider failure — the mapping never widens
+// silently (round-013 FR-013).
 func NewGateway(prov config.Provider, name, persona string) (domainllm.Gateway, error) {
-	if !supportedFamilies[strings.ToLower(strings.TrimSpace(prov.Type))] {
+	family := strings.ToLower(strings.TrimSpace(prov.Type))
+	switch {
+	case supportedFamilies[family]:
+		return openai.New(openai.Config{
+			ProviderName:  name,
+			BaseURL:       prov.URL,
+			APIKey:        prov.APIKey,
+			Model:         prov.Model,
+			MaxTokens:     prov.MaxTokens,
+			Headers:       prov.Headers,
+			ThinkingLevel: prov.ThinkingLevel,
+			Persona:       persona,
+		}), nil
+	case geminiFamilies[family]:
+		gw, err := gemini.New(gemini.Config{
+			ProviderName:   name,
+			BaseURL:        prov.URL,
+			APIKey:         prov.APIKey,
+			Model:          prov.Model,
+			MaxTokens:      prov.MaxTokens,
+			Headers:        prov.Headers,
+			ThinkingBudget: prov.ThinkingBudget,
+			ThinkingLevel:  prov.ThinkingLevel,
+			Persona:        persona,
+		})
+		if err != nil {
+			return nil, err // already a *domainllm.ProviderError (credential failure)
+		}
+		return gw, nil
+	default:
 		return nil, &domainllm.ProviderError{
 			Provider: name,
-			Err:      fmt.Errorf("unsupported provider family %q (supported: openai, deepseek, kimi)", prov.Type),
+			Err:      fmt.Errorf("unsupported provider family %q (supported: openai, deepseek, kimi, gemini, google)", prov.Type),
 		}
 	}
-	return openai.New(openai.Config{
-		ProviderName:  name,
-		BaseURL:       prov.URL,
-		APIKey:        prov.APIKey,
-		Model:         prov.Model,
-		MaxTokens:     prov.MaxTokens,
-		Headers:       prov.Headers,
-		ThinkingLevel: prov.ThinkingLevel,
-		Persona:       persona,
-	}), nil
 }
