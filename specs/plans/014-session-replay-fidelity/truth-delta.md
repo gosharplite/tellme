@@ -15,7 +15,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(placeholder)_ | `specs/truth/contracts/**` | | |
+| NOOP | `specs/truth/contracts/**` | Checked; left empty. tellme has a single CLI end and authors no HTTP/OpenAPI surface of its own; round 014 changes no request shape — it only replays a provider token the round-013 adapter already re-emits. | `contract-authoritative` holds vacuously — round 014 changes the persisted record + resume behaviour, not a tellme-owned API. |
 
 ## /axb-data-plan
 
