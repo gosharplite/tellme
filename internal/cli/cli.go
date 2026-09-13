@@ -387,15 +387,16 @@ func runTurn(res resolution, store history.Store, prompt string, raw bool, env r
 		}
 		return emitProviderError(env.stderr, err)
 	}
-	// Post-turn payload status (round-009 FR-006): the provider's measured prompt
-	// tokens when it reported usage; the line is omitted otherwise.
-	if result.Usage.Reported {
-		emitPayloadStatus(env, res, result.Usage.PromptTokens, false)
-	}
 	if err := store.Append(history.Entry{Prompt: prompt, Answer: result.Answer, Steps: result.Steps}); err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
 	env.writeAnswer(result.Answer, raw, res.WrapWidth)
+	// Post-turn payload status (round-009 FR-006): the provider's measured prompt
+	// tokens, written AFTER the answer so it trails the response (the pre-flight
+	// line led it). Omitted when the provider reported no usage.
+	if result.Usage.Reported {
+		emitPayloadStatus(env, res, result.Usage.PromptTokens, false)
+	}
 	return Success
 }
 

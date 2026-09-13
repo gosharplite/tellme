@@ -17,14 +17,15 @@ import (
 // fakeGateway is an in-memory llm.Gateway for runTurn tests (review finding #1:
 // the turn must be unit-testable without the concrete adapter).
 type fakeGateway struct {
-	text string
-	err  error
-	got  llm.Request
+	text  string
+	usage llm.Usage
+	err   error
+	got   llm.Request
 }
 
 func (f *fakeGateway) Complete(_ context.Context, req llm.Request) (llm.Response, error) {
 	f.got = req
-	return llm.Response{Text: f.text}, f.err
+	return llm.Response{Text: f.text, Usage: f.usage}, f.err
 }
 
 func factoryReturning(gw llm.Gateway, err error) gatewayFactory {
@@ -159,5 +160,29 @@ func TestParseFlagsHistorySurfaces(t *testing.T) {
 	opts, _, ok := parseFlags([]string{"--new"}, io.Discard)
 	if !ok || !opts.newSession {
 		t.Errorf("parseFlags(--new): ok=%v newSession=%v, want true/true", ok, opts.newSession)
+	}
+}
+
+// TestRunTurn_PostTurnStatusFollowsAnswer pins the round-009 write ordering: the
+// pre-flight status line leads the answer, and the post-turn measured line trails
+// it. A single interleaved buffer captures the write order of stdout and stderr.
+func TestRunTurn_PostTurnStatusFollowsAnswer(t *testing.T) {
+	var buf bytes.Buffer
+	fg := &fakeGateway{text: "ANSWER", usage: llm.Usage{Reported: true, PromptTokens: 42}}
+	res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}
+	e := runtimeEnv{stdout: &buf, stderr: &buf, renderer: &stubRenderer{out: "ANSWER"},
+		clock: func() time.Time { return time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC) }}
+	if code := runTurn(res, &fakeStore{}, "ping", true, e, factoryReturning(fg, nil)); code != Success {
+		t.Fatalf("code = %d, want success", code)
+	}
+	out := buf.String()
+	pre := strings.Index(out, "Payload: ~")
+	answer := strings.Index(out, "ANSWER")
+	post := strings.Index(out, "Payload: 42/1000000")
+	if pre < 0 || answer < 0 || post < 0 {
+		t.Fatalf("missing markers in output: %q", out)
+	}
+	if pre >= answer || answer >= post {
+		t.Fatalf("write order = pre(%d) answer(%d) post(%d), want pre < answer < post: %q", pre, answer, post, out)
 	}
 }

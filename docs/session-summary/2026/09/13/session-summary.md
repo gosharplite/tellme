@@ -243,3 +243,49 @@ A post-round documentation-maintenance bout (same calendar day). `STATUS.md` had
 ### PM follow-ups
 
 - None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
+
+
+---
+
+## 26. Session 24 (cont.) — round-009 ordering fix + round-010 anchor
+
+A post-closeout correctness fix plus the next round's anchor issue.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Defect (observed on a real tty) | The round-009 **post-turn** payload status line printed **before** the answer (emitted to `stderr` before `writeAnswer` wrote `stdout`). |
+| Fix | `internal/cli/cli.go` (`runTurn`): emit the post-turn line **after** `writeAnswer`; commit **`7bcb2d3`**. |
+| Regression guard | `TestRunTurn_PostTurnStatusFollowsAnswer` pins `pre-flight < answer < post-turn` (interleaved single-buffer witness). |
+| Root-cause analysis | Round-009's verification was **structurally blind** to cross-stream ordering: spec weakened (`FR-006`), acceptance prose only, **DSL pinned presence not ordering**, **E2E harness captures stdout/stderr separately (no merged witness)**, unit gap, review lens + green-suite false confidence. |
+| Next round | Round **010** anchor opened: [#28](https://github.com/gosharplite/tellme/issues/28) — stream-ordering observability. |
+| Verification | `gofmt`/`go vet` clean · `go test ./...` green · `make verify` OK (after a staticcheck QF1001 nit was fixed). |
+
+### Decisions log
+
+| # | Decision |
+| --- | --- |
+| D1 | The post-turn status line MUST **trail the answer** (pre-flight → answer → post-turn); fixed at the `runTurn` write-order level, pinned by a unit test. |
+| D2 | The round-009 process defect = **verification-coverage gap** (no layer could represent cross-stream ordering), *not* a missed red gate; tracked as [#28](https://github.com/gosharplite/tellme/issues/28). |
+
+### Commits (branch `dev`)
+
+| Commit | Note |
+| --- | --- |
+| `7bcb2d3` | `fix(009): emit the post-turn payload status line after the answer (+ ordering regression test)` |
+| *(this closeout)* | `docs(009): day close (cont. 2) — post-turn ordering fix + round-010 anchor (#28)` |
+
+### Open items (non-blocking)
+
+- **Round 010** [#28](https://github.com/gosharplite/tellme/issues/28) — stream-ordering observability (awaiting scheduling).
+- Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / no `flock`.
+
+### Next steps
+
+1. Schedule round **010** ([#28](https://github.com/gosharplite/tellme/issues/28)) via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
