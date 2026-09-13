@@ -21,7 +21,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(placeholder)_ | `specs/truth/data/**` | | |
+| MODIFY | `specs/truth/data/data-model.dbml` | `history_step` gains a nullable, provider-agnostic **`signature`** (`varchar`) — the opaque token the model emitted for the call (for example the Gemini 3 `thoughtSignature`), persisted only when the provider supplies one and omitted when empty (so existing lines stay byte-identical). The `history_step` Note and the project Note are reconciled to the widened shape `{prompt, answer, steps:[{tool, arguments, result, signature?}]}` and to the replay semantics (echoed verbatim on resume). | Round-014 research Decisions 1/3 + spec `FR-001`/`FR-002`/`FR-005`/`FR-007`: persist the per-step signature so a resumed Gemini session replays its tool steps faithfully (`data-model-covers-all-state`). |
 
 ## /axb-dsl-refine
 
