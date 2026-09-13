@@ -13,12 +13,15 @@ import (
 
 	"github.com/spf13/pflag"
 
+	"github.com/gosharplite/tellme/internal/agent"
 	"github.com/gosharplite/tellme/internal/config"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
+	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 	"github.com/gosharplite/tellme/internal/home"
 	infrhistory "github.com/gosharplite/tellme/internal/infrastructure/history"
 	infrallm "github.com/gosharplite/tellme/internal/infrastructure/llm"
+	infratools "github.com/gosharplite/tellme/internal/infrastructure/tools"
 	"github.com/gosharplite/tellme/internal/ui"
 )
 
@@ -60,8 +63,11 @@ type resolution struct {
 	// WrapWidth is the resolved rendered width (round 006): the effective
 	// WRAP_WIDTH / TELL_ME_WRAP_WIDTH, or 0 for the renderer default.
 	WrapWidth int
-	Mode      string // the effective mode (when reached)
-	Workspace string // the resolved workspace path (when reached)
+	// MaxToolLoop is the resolved tool-loop bound (round 008): MAX_TOOL_LOOP
+	// (env/config, default 1000).
+	MaxToolLoop int
+	Mode        string // the effective mode (when reached)
+	Workspace   string // the resolved workspace path (when reached)
 }
 
 // resolveError carries the pinned reason category plus the underlying cause.
@@ -248,6 +254,15 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 	}
 	res.WrapWidth = width
 
+	// Step 4c — resolve the tool-loop bound (round-008 FR-006): MAX_TOOL_LOOP
+	// (env/config, default 1000). A non-integer or negative value is a
+	// configuration error.
+	maxLoops, lerr := cfg.EffectiveMaxToolLoop(os.Getenv("MAX_TOOL_LOOP"))
+	if lerr != nil {
+		return res, &resolveError{Reason: reasonConfigInvalid, Err: lerr}
+	}
+	res.MaxToolLoop = maxLoops
+
 	// Step 5 — the effective selected provider must be in the registry (FR-003).
 	res.Selected = cfg.EffectiveSelectedProvider(os.Getenv("TELL_ME_SELECTED_PROVIDER"))
 	if !cfg.ProviderInRegistry(res.Selected) {
@@ -333,14 +348,25 @@ func runTurn(res resolution, store history.Store, prompt string, raw bool, env r
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	resp, err := gw.Complete(ctx, llm.Request{Prompt: prompt, Messages: toMessages(prior)})
+
+	loop := &agent.AgentLoop{
+		Gateway:  gw,
+		Registry: buildRegistry(store, gw),
+		MaxLoops: res.MaxToolLoop,
+		Stderr:   env.stderr,
+	}
+	answer, steps, err := loop.Run(ctx, prompt, prior)
 	if err != nil {
+		var inc *agent.ErrIncomplete
+		if errors.As(err, &inc) {
+			return emitToolError(env.stderr, inc)
+		}
 		return emitProviderError(env.stderr, err)
 	}
-	if err := store.Append(history.Entry{Prompt: prompt, Answer: resp.Text}); err != nil {
+	if err := store.Append(history.Entry{Prompt: prompt, Answer: answer, Steps: steps}); err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
-	env.writeAnswer(resp.Text, raw, res.WrapWidth)
+	env.writeAnswer(answer, raw, res.WrapWidth)
 	return Success
 }
 
@@ -496,6 +522,24 @@ func emitProviderError(w io.Writer, err error) int {
 	detail := strings.ReplaceAll(err.Error(), "\n", " ")
 	_, _ = fmt.Fprintf(w, "tellme: the provider request failed: %s\n", detail)
 	return ProviderError
+}
+
+// buildRegistry assembles the tool registry offered to the model: the two
+// read-only filesystem tools plus the LLM-backed session-summarisation tool
+// (round-008 research Decisions 4 & 10).
+func buildRegistry(store history.Store, gw llm.Gateway) domaintools.Registry {
+	ts := infratools.NewFilesystemTools()
+	ts = append(ts, infratools.NewSummarizeHistoryTool(store, gw))
+	return domaintools.NewRegistry(ts...)
+}
+
+// emitToolError maps an incomplete tool loop to the frozen tool class phrase and
+// dedicated exit code (round-008 FR-010 / Clarify R2 Q1). The trailing detail is
+// contract-free; newlines are folded so exactly one line carries the phrase.
+func emitToolError(w io.Writer, err error) int {
+	detail := strings.ReplaceAll(err.Error(), "\n", " ")
+	_, _ = fmt.Fprintf(w, "tellme: the tool request failed: %s\n", detail)
+	return ToolError
 }
 
 // emitHistoryError maps a session-history read/write failure to the environment

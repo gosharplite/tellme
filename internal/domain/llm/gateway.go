@@ -4,28 +4,58 @@
 // so the transport is swappable and the turn is fake-testable.
 package llm
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+)
+
+// ToolDef is a tool definition offered to the model on a request (round-008
+// research Decision 2). The adapter sends the wire-valid snake_case Name, the
+// Description, and the Parameters JSON-schema in the top-level `tools` array.
+type ToolDef struct {
+	Name        string
+	Description string
+	Parameters  json.RawMessage
+}
+
+// ToolCall is a model's structured request to run a tool (round-008 research
+// Decision 2): the wire call id, the tool name, and the raw arguments string.
+type ToolCall struct {
+	ID        string
+	Name      string
+	Arguments string
+}
 
 // Message is one prior conversation message carried on a request: the role
-// ("user" or "assistant") and its content. It is empty on the request's first
-// turn; on later turns it carries the persisted conversation (round-007 research
-// Decision 2 / RF-3).
+// ("user", "assistant", or "tool") and its content. For a tool turn it also
+// carries the assistant's tool-call requests (ToolCalls) or a tool result's
+// ToolCallID (round-008 research Decision 2). It is empty on the request's first
+// turn; on later turns it carries the persisted conversation (round-007
+// research Decision 2 / RF-3).
 type Message struct {
-	Role    string
-	Content string
+	Role       string
+	Content    string
+	ToolCalls  []ToolCall
+	ToolCallID string
 }
 
 // Request is a single provider completion request. Prompt is the current turn's
 // prompt; Messages is the resumed conversation that precedes it (empty for a
-// fresh conversation). The adapter sends Messages followed by the current prompt.
+// fresh conversation); Tools are the tool definitions offered to the model
+// (empty when no tools are registered — the payload is then byte-identical to
+// rounds 004–007). The adapter sends Messages followed by the current prompt.
 type Request struct {
 	Prompt   string
 	Messages []Message
+	Tools    []ToolDef
 }
 
-// Response is the normalized answer extracted from a provider response.
+// Response is the normalized answer extracted from a provider response: the
+// answer text (empty when the model only requested tools) and any structured
+// tool-call requests.
 type Response struct {
-	Text string
+	Text      string
+	ToolCalls []ToolCall
 }
 
 // ProviderError is the single typed error for a provider or transport failure

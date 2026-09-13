@@ -19,14 +19,14 @@
 
 **Goal**: 建立 tool domain port、read-only filesystem tool adapter、`llm.Request`/`llm.Response` 工具欄位擴充、`history.Entry` 加寬、`MAX_TOOL_LOOP` 解析、`ToolError` code、CLI loop 落點，以及 E2E 共用元件（fake 供應 tool-call、記錄 tool definitions、stderr 擷取、working-dir 檔案 helper）與 16 個新句 stepdef 落點骨架（Zero Shared Edits 原則）。
 
-- [ ] T001 建立 tool domain port 落點骨架 `internal/domain/tools/tools.go`
+- [X] T001 建立 tool domain port 落點骨架 `internal/domain/tools/tools.go`
   - Read:
     - `specs/plans/008-agent-tools-and-tool-call-loop/research.md` -> Decision 1
     - `specs/truth/techstack.md` -> CLI Application（Read-only filesystem tools / Agent tool loop）
   - 只做：宣告 `internal/domain/tools` 套件與 `Tool` value type（`Name`, `Description`, `Parameters`）及 `Registry` 型別（名稱→executor 解析）與 executor 介面簽名 stub；`Tool` 實作介面 MUST 帶 `context.Context`（`Execute(ctx context.Context, arguments string) (string, error)`），供 loop 以 `context.WithTimeout` 派生 per-tool timeout（**RF-2**）。
   - 不做：不實作任何工具；不接 `internal/cli`；不寫斷言。
 
-- [ ] T002 建立 tool adapter 落點骨架 `internal/infrastructure/tools/filesystem.go`、`internal/infrastructure/tools/summarize.go`
+- [X] T002 建立 tool adapter 落點骨架 `internal/infrastructure/tools/filesystem.go`、`internal/infrastructure/tools/summarize.go`
   - Read:
     - `specs/plans/008-agent-tools-and-tool-call-loop/research.md` -> Decision 4
     - `specs/truth/techstack.md` -> CLI Application（Read-only filesystem tools）
@@ -34,7 +34,7 @@
   - 只做：宣告 `list_files` 與 `read_files` 兩個工具的 constructor 簽名與 **wire-valid snake_case** 名稱 + JSON-schema 參數；`read_files` 留 `io.LimitReader` 的 **1 MiB** 上界 stub 與截斷標記；另宣告 LLM-backed `summarize_history` 工具的 constructor 簽名（注入 `history.Store` + `llm.Gateway`；空參數 schema；回傳 summary 字串、不改記錄）；不做任何寫入 / 程序啟動 / 網路。
   - 不做：不實作目錄列舉 / 檔案讀取邏輯；不碰 `internal/cli`。
 
-- [ ] T003 擴充 `llm.Request`/`llm.Response` 與 OpenAI adapter 落點骨架
+- [X] T003 擴充 `llm.Request`/`llm.Response` 與 OpenAI adapter 落點骨架
   - Read:
     - `specs/plans/008-agent-tools-and-tool-call-loop/research.md` -> Decision 2
     - `specs/truth/techstack.md` -> Reasoning & Provider Transport（Provider gateway port / Request assembly / Response normalization）
@@ -42,7 +42,7 @@
   - 只做：`llm.Request` 新增 tool **definitions** 欄位、`llm.Response` 新增結構化 **tool-call requests**（id/name/arguments）欄位之型別骨架；在 `requestBody`/`parseAnswer` 留下送出 `tools` 陣列、assistant `tool_calls` 與 `tool`-role 訊息、解析 `choices[0].message.tool_calls` 的簽名/stub。**向後相容**：空 tools 時 payload 與 round 004–007 byte-for-byte 一致。
   - 不做：不改 transport、錯誤處理或既有 messages 組裝語意。
 
-- [ ] T004 加寬 `history.Entry` 與 file adapter 落點骨架 `internal/domain/history/history.go`、`internal/infrastructure/history/file_store.go`
+- [X] T004 加寬 `history.Entry` 與 file adapter 落點骨架 `internal/domain/history/history.go`、`internal/infrastructure/history/file_store.go`
   - Read:
     - `specs/plans/008-agent-tools-and-tool-call-loop/research.md` -> Decision 5
     - `specs/truth/data/data-model.dbml` -> `history_entry` / `history_step`
@@ -50,14 +50,14 @@
   - 只做：`Entry` 新增有序 `Steps`（`[]Step{Tool, Arguments, Result}`）欄位骨架；file adapter 留下把加寬欄位序列化進單一 JSON 列（固定欄位順序、無時間戳/ID）與讀回時的 stub。
   - 不做：不實作 append / load / archive 行為；不碰 `internal/cli`。
 
-- [ ] T005 落點骨架 `internal/agent/`、`internal/cli/cli.go`、`internal/cli/exitcode.go`、`internal/config/config.go`
+- [X] T005 落點骨架 `internal/agent/`、`internal/cli/cli.go`、`internal/cli/exitcode.go`、`internal/config/config.go`
   - Read:
     - `specs/plans/008-agent-tools-and-tool-call-loop/research.md` -> Decision 3, 6, 7
     - `specs/truth/techstack.md` -> CLI Application（Agent tool loop）、Configuration（Rendered width 之鄰）
   - 只做：`internal/cli/exitcode.go` 新增 `ToolError = 7` 常數；`internal/config` 留下 `MAX_TOOL_LOOP` 解析 stub（env/config，預設 1000）；建立 `internal/agent/` 落點骨架並宣告 `AgentLoop`（注入 `llm.Gateway` + `tools.Registry` + `history.Store`，`MaxLoops int`，`Stderr io.Writer`）之 `Run(ctx, prompt, prior)` 簽名（**RF-1**：loop 不在 `cli.go` 內）；`cli.go` 只留「wiring `AgentLoop`」與 `stderr` 工具迴圈 log 的 seam stub；留「loop 無法完成 → `the tool request failed` + code 7」hook 簽名。
   - 不做：不實作 loop 行為、工具派送或 resume/replay；不改既有 dispatch 與 exit-code（產品行為留 Phase 4）。
 
-- [ ] T006 建立 E2E 共用元件落點骨架
+- [X] T006 建立 E2E 共用元件落點骨架
   - Read:
     - `specs/plans/008-agent-tools-and-tool-call-loop/research.md` -> Decision 8, 9
     - `specs/truth/techstack.md` -> Testing & Verification（E2E runner / Local fake provider / Pure-helper unit tests）
@@ -65,7 +65,7 @@
   - 只做：擴充 fake provider 以**供應** scripted tool-call 回應並**記錄**送出的 `tools` 定義；新增擷取 subprocess `stderr` 的 harness helper；新增在 subprocess working directory 寫入檔案的 helper；新增設定 `MAX_TOOL_LOOP` 的環境注入。
   - 不做：不寫具體 step 斷言；不碰 `internal/`。
 
-- [ ] T007 建立 16 個新句 stepdef 獨立檔案骨架 `tests/e2e/steps/step_t008_*.go`–`step_t023_*.go`
+- [X] T007 建立 16 個新句 stepdef 獨立檔案骨架 `tests/e2e/steps/step_t008_*.go`–`step_t023_*.go`
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（14 個新句）
     - `specs/truth/features/cli/history/dsl.md`（2 個新句）
