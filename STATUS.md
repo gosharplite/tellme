@@ -1,10 +1,22 @@
 # tellme — Status
 
-**Last updated**: 2026-09-14 — **round 014 `014-session-replay-fidelity` DELIVERED / FROZEN** (PR [#35](https://github.com/gosharplite/tellme/pull/35) merged into `dev` (`e4dac2d`, by `thptcnec`); propagated `dev → main` (`e523c59`); see the *Round 014* section). Prior rounds' detail is in the archives ([2026-09-11](docs/archives/status/2026-09-11.md), [2026-09-13](docs/archives/status/2026-09-13.md), [2026-09-14](docs/archives/status/2026-09-14.md)).
+**Last updated**: 2026-09-14 (session 2) — **round 015 scoped** (`015-interactive-tui-prompt`, anchor [#37](https://github.com/gosharplite/tellme/issues/37)); round 014 remains **DELIVERED / FROZEN** (see the *Round 014* section). Prior rounds' detail is in the archives ([2026-09-11](docs/archives/status/2026-09-11.md), [2026-09-13](docs/archives/status/2026-09-13.md), [2026-09-14](docs/archives/status/2026-09-14.md)).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
-**Active branch**: `dev` — round 014 delivered / frozen; the next round starts a fresh `015-*` off `dev`.
+**Active branch**: `dev` — round 015 (`015-interactive-tui-prompt`) **scoped / not started**; opens via `/axb-specify` next session (see *Round 015*).
 **Daily log**: [`docs/session-summary/2026/09/14/session-summary.md`](docs/session-summary/2026/09/14/session-summary.md)
 **Archive**: [`docs/archives/status/2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`docs/archives/status/2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012 detail + header/review-response/propagation history) · [`docs/archives/status/2026-09-14.md`](docs/archives/status/2026-09-14.md) (round 013 detail).
+
+## Round 015 — `015-interactive-tui-prompt` (scoped / not started)
+
+**Status**: 📋 **SCOPED / NOT STARTED** (2026-09-14) — theme anchored at issue [#37](https://github.com/gosharplite/tellme/issues/37). The slice opens via `/axb-specify` next session.
+
+**Scope**: add the **`-i` / `--interactive` Interactive TUI Prompt** (re-creating `tell-me-go`'s TUI) — a live **suggestion engine** (history + filesystem + tools), a **session dashboard** (tokens / turns / provider), a multi-line editor, and terminal keybindings. Distinct from round 012's *plain* multi-line reader; the **non-TTY fallback is preserved**.
+
+**Compatibility requirement (shared Niffler env)**: the suggestion engine must interoperate with `$TELL_ME_HOME/output/global_prompts.jsonl` — the shared global prompt log at the `output/` **root** (format `{"timestamp":"<RFC3339>","prompt":"<text>"}`, append-only, dedupe, newest-first; source: `tell-me-go`'s `globalPromptTracker`). A **data-model** addition → `/axb-data-plan`.
+
+**Gating dependency**: the plan-side **TUI UI artifact** (`ui/`) needs the upstream **`axb-ui-plan` terminal mode** — requested as [aixbdd-tmg#13](https://github.com/gosharplite/aixbdd-tmg/issues/13) (option **c**: amend the existing skill, no new `axb-tui-plan`). The `/axb-ui-plan` step is **gated** on it (mirrors round 001's `InterfaceKind: cli` gate → aixbdd-tmg PR #2); the rest of the pipeline is not.
+
+**Open questions** (for `/axb-specify` + `/axb-clarify`): global prompt log **read-only vs read+write** and **record always vs only under `-i`**; **compaction parity**; **tool-suggestions source**; **round-012 relationship**; **platform scope**. Full list on issue [#37](https://github.com/gosharplite/tellme/issues/37).
 
 ## Round 014 — `014-session-replay-fidelity` (delivered / frozen)
 
@@ -56,6 +68,7 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`; only a human merges the PR. Propagation is the no-ff merge `dev → main`.
 > **Propagation (round 014):** `014-session-replay-fidelity → dev` (PR [#35](https://github.com/gosharplite/tellme/pull/35), `e4dac2d`) `→ main` (`e523c59`) — DONE; closeout docs on `dev`.
+> **Propagation (2026-09-14 session 2 closeout):** `dev → main` — DONE (docs-only; round-015 scoping + issue #37).
 > Read live heads with `git rev-parse --short main dev HEAD`.
 
 ## Roadmap — next slices
@@ -65,10 +78,12 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 | **003–012** | — | Provider-registry completeness → first reasoning turn → stdin piping → rendered output + `-r` → session-history persistence → agent tools & the tool-call loop → payload status line → stream-ordering observability → persona on the wire + wire-faithful estimate → interactive multi-line prompt capture. | ✅ **Delivered** (see the delivered-rounds index) |
 | **013 — Vertex AI / Gemini provider support** | [#32](https://github.com/gosharplite/tellme/issues/32) | Drive a `TYPE: gemini` Vertex provider end-to-end (Vertex `:generateContent` transport + stdlib service-account OAuth2), no new module. | ✅ **Delivered** (PR [#33](https://github.com/gosharplite/tellme/pull/33); propagated `013 → dev → main`) |
 | **014 — Session-replay fidelity** | [#34](https://github.com/gosharplite/tellme/issues/34) | Persist the per-tool-step provider signature (Gemini `thoughtSignature`) so a **resumed** session replays its tool steps faithfully — a data-model change. | ✅ **Delivered** (PR [#35](https://github.com/gosharplite/tellme/pull/35); propagated `014 → dev → main`) |
+| **015 — Interactive TUI prompt (`-i`)** | [#37](https://github.com/gosharplite/tellme/issues/37) | Rich terminal prompt (Bubble Tea): suggestion engine (history + FS + tools), session dashboard, multi-line editor, keybindings; compatible with the shared `output/global_prompts.jsonl`. Plan-side TUI artifact gated on [aixbdd-tmg#13](https://github.com/gosharplite/aixbdd-tmg/issues/13). | 📋 **Scoped** (not started) |
 | **future slices (candidates)** | [#36](https://github.com/gosharplite/tellme/issues/36) | The remaining #34 candidates — the **Google Gemini API family** (inline key), **Application Default Credentials**, and **concurrent tool-call matching**; plus the carried forward items below. | ⏳ **Candidate** (not started) |
 
 ## Open items (non-blocking)
 
+- **Round 015 (`015-interactive-tui-prompt`)** — scoped ([#37](https://github.com/gosharplite/tellme/issues/37)); upstream gate [aixbdd-tmg#13](https://github.com/gosharplite/aixbdd-tmg/issues/13) (the `axb-ui-plan` terminal mode) must land before the `/axb-ui-plan` step; scope + open questions on the issue.
 - **Future-slice candidates** — issue [#36](https://github.com/gosharplite/tellme/issues/36): the Google Gemini API family (`generativelanguage.googleapis.com`, inline key), Application Default Credentials for Vertex, and concurrent tool-call matching (the round-014 E2E helper matches replayed calls by **order** — ready for it).
 - **Carried forward items** — PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3** renderer lifecycle deferred to multi-turn; sequential tool execution / **no pruning** (a settled exclusion) / **no `flock`**; round-011 forward items (**estimation-heuristic constants**; the persona-plumbing seam; **N-2** estimator ignores replayed tool-call `arguments`).
 - **Future-package candidates** (list refreshed 2026-09-12): ~~(a) run `make verify` in a pipeline platform~~ (withdrawn — [#15](https://github.com/gosharplite/tellme/issues/15) closed `not_planned`; the gate stays manual); ~~(b) F9 flag-parsing units~~ (folded into round 005); ~~(c) `tellme init`~~ (dropped — config provisioning stays with the env manager); **(d) coverage tooling** — [#13](https://github.com/gosharplite/tellme/issues/13) (low-priority tooling); **(e)** the renderer/`-r` forward items (PR #16 Obs 1/2).
