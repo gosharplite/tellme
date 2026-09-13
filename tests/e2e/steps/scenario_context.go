@@ -2,6 +2,11 @@ package steps
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io/fs"
 	"os"
@@ -498,4 +503,83 @@ func (sc *scenarioContext) previousRunEstimate(persona, prompt string) error {
 	sc.previousEstimate = n
 	sc.previousEstimateSet = true
 	return nil
+}
+
+// writeServiceAccountKey generates a fresh RSA service-account key file at a
+// home-relative path (its token_uri pointing at tokenURI) and returns its
+// absolute path — the gemini provider's API_KEY target (round-013 T003).
+func (sc *scenarioContext) writeServiceAccountKey(rel, tokenURI string) (string, error) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return "", err
+	}
+	pkcs8, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		return "", err
+	}
+	sa := map[string]string{
+		"type":         "service_account",
+		"client_email": "e2e@example.iam.gserviceaccount.com",
+		"private_key":  string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8})),
+		"token_uri":    tokenURI,
+	}
+	data, err := json.Marshal(sa)
+	if err != nil {
+		return "", err
+	}
+	if err := sc.writeFile(rel, data); err != nil {
+		return "", err
+	}
+	return sc.homePath(rel), nil
+}
+
+// writeGeminiConfig writes the default configuration selecting a `gemini`
+// provider whose Vertex-shaped URL points at the fake and whose API_KEY is the
+// given service-account key file path (round-013 T003).
+func (sc *scenarioContext) writeGeminiConfig(provider, model, fakeBase, keyPath string, maxTokens int) error {
+	url := strings.TrimRight(fakeBase, "/") + "/v1/projects/e2e/locations/global/publishers/google/models"
+	cfg := fmt.Sprintf("MODE: butler\n"+
+		"PERSON: \"e2e persona\"\n"+
+		"SELECTED_PROVIDER: %s\n"+
+		"PROVIDERS:\n"+
+		"  %s:\n"+
+		"    TYPE: gemini\n"+
+		"    MODEL: %s\n"+
+		"    URL: \"%s\"\n"+
+		"    API_KEY: \"%s\"\n"+
+		"    MAX_TOKENS: %d\n"+
+		"    THINKING_BUDGET: 32768\n"+
+		"    THINKING_LEVEL: HIGH\n",
+		provider, provider, model, url, keyPath, maxTokens)
+	return sc.writeFile("configs/butler.yaml", []byte(cfg))
+}
+
+// setSelectedProviderMaxTokens sets the effective config's selected provider
+// entry MAX_TOKENS to n (round-013 Given: the configured Gemini provider entry
+// allows at most N output tokens).
+func (sc *scenarioContext) setSelectedProviderMaxTokens(n int) error {
+	p := sc.homePath("configs/butler.yaml")
+	data, err := os.ReadFile(p)
+	if err != nil {
+		return fmt.Errorf("the default configuration must exist before setting MAX_TOKENS: %w", err)
+	}
+	var cfg map[string]any
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return err
+	}
+	sel, _ := cfg["SELECTED_PROVIDER"].(string)
+	providers, _ := cfg["PROVIDERS"].(map[string]any)
+	if providers == nil {
+		return fmt.Errorf("the default configuration has no PROVIDERS registry")
+	}
+	entry, _ := providers[sel].(map[string]any)
+	if entry == nil {
+		return fmt.Errorf("the selected provider %q is not in the registry", sel)
+	}
+	entry["MAX_TOKENS"] = n
+	out, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(p, out, 0o644)
 }

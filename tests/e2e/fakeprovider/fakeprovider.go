@@ -35,7 +35,10 @@ type Provider struct {
 	script      []Reply
 	served      int
 	bodies      []string
+	auths       []string
+	paths       []string
 	usage       *usageCounts
+	vertex      bool
 	closeOnce   sync.Once
 }
 
@@ -68,6 +71,36 @@ func (p *Provider) ErrorStatus(code int) { p.mu.Lock(); p.errorStatus = code; p.
 
 // NoAnswer scripts the provider to reply with a body carrying no usable answer.
 func (p *Provider) NoAnswer() { p.mu.Lock(); p.noAnswer = true; p.mu.Unlock() }
+
+// VertexMode switches the fake to the Vertex AI `:generateContent` response shape
+// (round-013 T002). The default remains OpenAI-compatible.
+func (p *Provider) VertexMode() { p.mu.Lock(); p.vertex = true; p.mu.Unlock() }
+
+// LastAuthHeader returns the Authorization header of the most recent recorded
+// completion request ("" when none). Round 013 asserts the service-account token.
+func (p *Provider) LastAuthHeader() string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if len(p.auths) == 0 {
+		return ""
+	}
+	return p.auths[len(p.auths)-1]
+}
+
+// PathAt returns the request path of recorded completion i (i < 0 → the last).
+// Round 013 uses it to assert the Vertex model (`…/<model>:generateContent`),
+// which lives in the URL, not the body.
+func (p *Provider) PathAt(i int) string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if len(p.paths) == 0 {
+		return ""
+	}
+	if i < 0 || i >= len(p.paths) {
+		i = len(p.paths) - 1
+	}
+	return p.paths[i]
+}
 
 // ReportUsage scripts the provider to include a `usage` block on its answers
 // (round-009 T006), so the CLI's post-turn measured status line can be asserted.
@@ -177,10 +210,21 @@ func (p *Provider) MessagesAt(i int) []map[string]any {
 }
 
 func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
+	// Round-013 D4: the OAuth2 token endpoint is served WITHOUT being recorded
+	// as a provider request (recorded requests count completions only).
+	if strings.HasSuffix(r.URL.Path, "/token") {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"access_token":"fake-token","expires_in":3600,"token_type":"Bearer"}`))
+		return
+	}
+
 	raw, _ := io.ReadAll(r.Body)
+	auth := r.Header.Get("Authorization")
 	p.mu.Lock()
 	p.bodies = append(p.bodies, string(raw))
-	status, answer, noAnswer, usage := p.errorStatus, p.answer, p.noAnswer, p.usage
+	p.auths = append(p.auths, auth)
+	p.paths = append(p.paths, r.URL.Path)
+	status, answer, noAnswer, usage, vertex := p.errorStatus, p.answer, p.noAnswer, p.usage, p.vertex
 	hasScript := len(p.script) > 0
 	var reply Reply
 	if hasScript {
@@ -199,13 +243,29 @@ func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
 		_, _ = w.Write([]byte(`{"error":{"message":"scripted error"}}`))
 	case noAnswer:
-		_, _ = w.Write([]byte(`{"choices":[]}`))
+		if vertex {
+			_, _ = w.Write([]byte(`{"candidates":[]}`))
+		} else {
+			_, _ = w.Write([]byte(`{"choices":[]}`))
+		}
 	case hasScript && reply.ToolName != "":
-		_, _ = w.Write([]byte(toolCallBody(reply.ToolName, reply.Arguments)))
+		if vertex {
+			_, _ = w.Write([]byte(vertexToolCallBody(reply.ToolName, reply.Arguments)))
+		} else {
+			_, _ = w.Write([]byte(toolCallBody(reply.ToolName, reply.Arguments)))
+		}
 	case hasScript:
-		_, _ = w.Write([]byte(answerBody(reply.Answer, usage)))
+		if vertex {
+			_, _ = w.Write([]byte(vertexAnswerBody(reply.Answer, usage)))
+		} else {
+			_, _ = w.Write([]byte(answerBody(reply.Answer, usage)))
+		}
 	default:
-		_, _ = w.Write([]byte(answerBody(answer, usage)))
+		if vertex {
+			_, _ = w.Write([]byte(vertexAnswerBody(answer, usage)))
+		} else {
+			_, _ = w.Write([]byte(answerBody(answer, usage)))
+		}
 	}
 }
 
@@ -227,6 +287,25 @@ func toolCallBody(name, arguments string) string {
 func jsonString(s string) string {
 	b, _ := json.Marshal(s)
 	return string(b)
+}
+
+// vertexAnswerBody builds a Vertex `:generateContent` answer response (round-013).
+func vertexAnswerBody(text string, u *usageCounts) string {
+	usageJSON := ""
+	if u != nil {
+		usageJSON = fmt.Sprintf(`,"usageMetadata":{"promptTokenCount":%d,"candidatesTokenCount":%d,"totalTokenCount":%d}`, u.prompt, u.completion, u.total)
+	}
+	return `{"candidates":[{"content":{"role":"model","parts":[{"text":` + jsonString(text) + `}]}}]` + usageJSON + `}`
+}
+
+// vertexToolCallBody builds a Vertex functionCall response; `arguments` is a raw
+// JSON object (Vertex `args` is an object, unlike OpenAI's string form).
+func vertexToolCallBody(name, arguments string) string {
+	args := strings.TrimSpace(arguments)
+	if args == "" {
+		args = "{}"
+	}
+	return `{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"name":` + jsonString(name) + `,"args":` + args + `},"thoughtSignature":"sig-1"}]}}]}`
 }
 
 // ConfigYAML builds a resolvable default configuration (MODE: butler) that
