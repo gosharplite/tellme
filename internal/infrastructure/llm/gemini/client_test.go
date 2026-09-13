@@ -122,7 +122,7 @@ func TestRequestBody_ThinkingBudgetOnly(t *testing.T) {
 func TestRequestBody_ToolExchangeMapping(t *testing.T) {
 	prior := []llm.Message{
 		{Role: "user", Content: "read it"},
-		{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_1", Name: "read_files", Arguments: `{"name":"notes.txt"}`}}},
+		{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_1", Name: "read_files", Arguments: `{"name":"notes.txt"}`, Signature: "sig-1"}}},
 		{Role: "tool", Content: "ORANGE", ToolCallID: "call_1"},
 	}
 	body, err := requestBody("", prior, nil, 0, 0, "", "")
@@ -147,6 +147,9 @@ func TestRequestBody_ToolExchangeMapping(t *testing.T) {
 	if decoded.Contents[1].Role != "model" || decoded.Contents[1].Parts[0]["functionCall"] == nil {
 		t.Errorf("assistant tool call not mapped to model/functionCall: %+v", decoded.Contents[1])
 	}
+	if decoded.Contents[1].Parts[0]["thoughtSignature"] != "sig-1" {
+		t.Errorf("the replayed functionCall part must echo the thoughtSignature: %+v", decoded.Contents[1].Parts[0])
+	}
 	if decoded.Contents[2].Role != "user" {
 		t.Errorf("tool result role = %q, want user", decoded.Contents[2].Role)
 	}
@@ -157,7 +160,7 @@ func TestRequestBody_ToolExchangeMapping(t *testing.T) {
 }
 
 func TestParseResponse_TextToolCallUsage(t *testing.T) {
-	raw := []byte(`{"candidates":[{"content":{"role":"model","parts":[{"text":"4"},{"functionCall":{"name":"read_files","args":{"name":"notes.txt"}}}]}}],"usageMetadata":{"promptTokenCount":11,"candidatesTokenCount":2,"totalTokenCount":13}}`)
+	raw := []byte(`{"candidates":[{"content":{"role":"model","parts":[{"text":"4"},{"functionCall":{"name":"read_files","args":{"name":"notes.txt"}},"thoughtSignature":"sig-1"}]}}],"usageMetadata":{"promptTokenCount":11,"candidatesTokenCount":2,"totalTokenCount":13}}`)
 	resp, err := parseResponse(raw)
 	if err != nil {
 		t.Fatalf("parseResponse: %v", err)
@@ -167,6 +170,9 @@ func TestParseResponse_TextToolCallUsage(t *testing.T) {
 	}
 	if len(resp.ToolCalls) != 1 || resp.ToolCalls[0].Name != "read_files" || resp.ToolCalls[0].ID == "" {
 		t.Errorf("tool calls = %+v, want one named read_files with an id", resp.ToolCalls)
+	}
+	if resp.ToolCalls[0].Signature != "sig-1" {
+		t.Errorf("tool call signature = %q, want sig-1 (the thoughtSignature must be captured)", resp.ToolCalls[0].Signature)
 	}
 	if !resp.Usage.Reported || resp.Usage.PromptTokens != 11 || resp.Usage.TotalTokens != 13 {
 		t.Errorf("usage = %+v", resp.Usage)

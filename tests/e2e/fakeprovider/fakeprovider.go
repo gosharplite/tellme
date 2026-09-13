@@ -305,7 +305,7 @@ func vertexToolCallBody(name, arguments string) string {
 	if args == "" {
 		args = "{}"
 	}
-	return `{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"name":` + jsonString(name) + `,"args":` + args + `}}]}}]}`
+	return `{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"name":` + jsonString(name) + `,"args":` + args + `},"thoughtSignature":"sig-1"}]}}]}`
 }
 
 // ConfigYAML builds a resolvable default configuration (MODE: butler) that

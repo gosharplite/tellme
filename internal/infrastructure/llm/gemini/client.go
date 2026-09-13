@@ -173,7 +173,13 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 				if strings.TrimSpace(tc.Arguments) != "" {
 					_ = json.Unmarshal([]byte(tc.Arguments), &args)
 				}
-				parts = append(parts, map[string]any{"functionCall": map[string]any{"name": tc.Name, "args": args}})
+				part := map[string]any{"functionCall": map[string]any{"name": tc.Name, "args": args}}
+				// Gemini 3 requires the model's `thoughtSignature` to be echoed
+				// back on the replayed functionCall part (else HTTP 400).
+				if tc.Signature != "" {
+					part["thoughtSignature"] = tc.Signature
+				}
+				parts = append(parts, part)
 			}
 			contents = append(contents, map[string]any{"role": "model", "parts": parts})
 		case m.ToolCallID != "":
@@ -271,8 +277,9 @@ func parseResponse(raw []byte) (llm.Response, error) {
 		Candidates []struct {
 			Content struct {
 				Parts []struct {
-					Text         string `json:"text"`
-					FunctionCall *struct {
+					Text             string `json:"text"`
+					ThoughtSignature string `json:"thoughtSignature"`
+					FunctionCall     *struct {
 						Name string          `json:"name"`
 						Args json.RawMessage `json:"args"`
 					} `json:"functionCall"`
@@ -305,6 +312,7 @@ func parseResponse(raw []byte) (llm.Response, error) {
 				ID:        fmt.Sprintf("call_%d", callIdx),
 				Name:      p.FunctionCall.Name,
 				Arguments: args,
+				Signature: p.ThoughtSignature,
 			})
 			continue
 		}
