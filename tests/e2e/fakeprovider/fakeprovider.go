@@ -1,7 +1,9 @@
 // Package fakeprovider is a leaf E2E test-support package: an in-process,
 // OpenAI-compatible provider used by the chat acceptance scenarios and the
 // offline-path canary. It records every request it receives so a step can
-// assert a provider was hit exactly once — or, on the offline paths, never.
+// assert a provider was hit exactly once — or, on the offline paths, never — and
+// can serve scripted tool-call responses so the agent tool loop is exercisable
+// (round-008 T006).
 package fakeprovider
 
 import (
@@ -13,6 +15,14 @@ import (
 	"sync"
 )
 
+// Reply is one scripted provider response: a tool-call request (ToolName set) or
+// a plain answer text (otherwise). Round 008.
+type Reply struct {
+	ToolName  string
+	Arguments string
+	Answer    string
+}
+
 // Provider is a scriptable OpenAI-compatible fake.
 type Provider struct {
 	srv *httptest.Server
@@ -21,6 +31,8 @@ type Provider struct {
 	answer      string
 	errorStatus int
 	noAnswer    bool
+	script      []Reply
+	served      int
 	bodies      []string
 	closeOnce   sync.Once
 }
@@ -47,6 +59,16 @@ func (p *Provider) ErrorStatus(code int) { p.mu.Lock(); p.errorStatus = code; p.
 // NoAnswer scripts the provider to reply with a body carrying no usable answer.
 func (p *Provider) NoAnswer() { p.mu.Lock(); p.noAnswer = true; p.mu.Unlock() }
 
+// Script sets the ordered replies the provider serves. Once the sequence is
+// exhausted the final reply repeats — so a single-element script models an
+// "always" behaviour (round-008 T006).
+func (p *Provider) Script(replies ...Reply) {
+	p.mu.Lock()
+	p.script = replies
+	p.served = 0
+	p.mu.Unlock()
+}
+
 // RequestCount returns how many requests the provider has received.
 func (p *Provider) RequestCount() int {
 	p.mu.Lock()
@@ -55,13 +77,47 @@ func (p *Provider) RequestCount() int {
 }
 
 // LastBody returns the most recently received request body ("" when none).
-func (p *Provider) LastBody() string {
+func (p *Provider) LastBody() string { return p.BodyAt(-1) }
+
+// BodyAt returns the raw request body of request i (i < 0 → the last).
+func (p *Provider) BodyAt(i int) string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if len(p.bodies) == 0 {
 		return ""
 	}
-	return p.bodies[len(p.bodies)-1]
+	if i < 0 || i >= len(p.bodies) {
+		i = len(p.bodies) - 1
+	}
+	return p.bodies[i]
+}
+
+// ToolNamesAt returns the wire tool-definition names (`tools[].function.name`)
+// sent on request i (i < 0 → the last). Round-008 T006.
+func (p *Provider) ToolNamesAt(i int) []string {
+	var req struct {
+		Tools []struct {
+			Function struct {
+				Name string `json:"name"`
+			} `json:"function"`
+		} `json:"tools"`
+	}
+	_ = json.Unmarshal([]byte(p.BodyAt(i)), &req)
+	names := make([]string, 0, len(req.Tools))
+	for _, t := range req.Tools {
+		names = append(names, t.Function.Name)
+	}
+	return names
+}
+
+// MessagesAt returns the decoded `messages` array of request i (i < 0 → the
+// last). Round-008 T006.
+func (p *Provider) MessagesAt(i int) []map[string]any {
+	var req struct {
+		Messages []map[string]any `json:"messages"`
+	}
+	_ = json.Unmarshal([]byte(p.BodyAt(i)), &req)
+	return req.Messages
 }
 
 func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
@@ -69,6 +125,16 @@ func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
 	p.mu.Lock()
 	p.bodies = append(p.bodies, string(raw))
 	status, answer, noAnswer := p.errorStatus, p.answer, p.noAnswer
+	hasScript := len(p.script) > 0
+	var reply Reply
+	if hasScript {
+		idx := p.served
+		if idx >= len(p.script) {
+			idx = len(p.script) - 1
+		}
+		reply = p.script[idx]
+		p.served++
+	}
 	p.mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -78,9 +144,24 @@ func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"error":{"message":"scripted error"}}`))
 	case noAnswer:
 		_, _ = w.Write([]byte(`{"choices":[]}`))
+	case hasScript && reply.ToolName != "":
+		_, _ = w.Write([]byte(toolCallBody(reply.ToolName, reply.Arguments)))
+	case hasScript:
+		_, _ = w.Write([]byte(answerBody(reply.Answer)))
 	default:
-		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":` + jsonString(answer) + `}}]}`))
+		_, _ = w.Write([]byte(answerBody(answer)))
 	}
+}
+
+func answerBody(text string) string {
+	return `{"choices":[{"message":{"role":"assistant","content":` + jsonString(text) + `}}]}`
+}
+
+// toolCallBody builds a tool-call response; the wire call id is deterministic
+// ("call_1") so the loop pairs it with the tool result deterministically.
+func toolCallBody(name, arguments string) string {
+	call := `{"id":"call_1","type":"function","function":{"name":` + jsonString(name) + `,"arguments":` + jsonString(arguments) + `}}`
+	return `{"choices":[{"message":{"role":"assistant","content":"","tool_calls":[` + call + `]}}]}`
 }
 
 func jsonString(s string) string {

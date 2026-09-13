@@ -25,4 +25,5 @@ const (
 	EnvironmentError          = 4 // runtime home unset/unusable, workspace unusable, standard input unreadable
 	DiagnosticUnresolvedError = 5 // the -d report was produced but setup did not resolve
 	ProviderError             = 6 // the provider request (transport / status / body) failed
+	ToolError                 = 7 // the agent tool loop could not complete (unknown tool / bound reached / unrecoverable tool/protocol failure)
 )

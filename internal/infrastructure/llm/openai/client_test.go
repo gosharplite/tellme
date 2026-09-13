@@ -29,7 +29,7 @@ func TestRequestURL(t *testing.T) {
 // TestRequestBody pins the request assembly: model, single user message,
 // max_tokens only when positive, reasoning_effort only when set.
 func TestRequestBody(t *testing.T) {
-	body, err := requestBody("deepseek-v4-flash", "hello world", nil, 32768, "HIGH")
+	body, err := requestBody("deepseek-v4-flash", "hello world", nil, nil, 32768, "HIGH")
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -55,7 +55,7 @@ func TestRequestBody(t *testing.T) {
 		t.Errorf("message = %v, want user/hello world", first)
 	}
 
-	body, err = requestBody("m", "p", nil, 0, "")
+	body, err = requestBody("m", "p", nil, nil, 0, "")
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -119,18 +119,18 @@ func TestParseAnswer(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got, err := parseAnswer([]byte(c.body))
+			resp, err := parseResponse([]byte(c.body))
 			if c.wantErr {
 				if err == nil {
-					t.Fatalf("parseAnswer = %q, nil; want error", got)
+					t.Fatalf("parseResponse = %q, nil; want error", resp.Text)
 				}
 				return
 			}
 			if err != nil {
-				t.Fatalf("parseAnswer error: %v", err)
+				t.Fatalf("parseResponse error: %v", err)
 			}
-			if got != c.want {
-				t.Errorf("parseAnswer = %q, want %q", got, c.want)
+			if resp.Text != c.want {
+				t.Errorf("parseResponse.Text = %q, want %q", resp.Text, c.want)
 			}
 		})
 	}
@@ -198,7 +198,7 @@ func TestRequestBody_PriorMessages(t *testing.T) {
 		{Role: "user", Content: "my name is alice"},
 		{Role: "assistant", Content: "noted"},
 	}
-	body, err := requestBody("m", "what is my name?", prior, 0, "")
+	body, err := requestBody("m", "what is my name?", prior, nil, 0, "")
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -223,5 +223,52 @@ func TestRequestBody_PriorMessages(t *testing.T) {
 		if m.Role != want[i].role || m.Content != want[i].content {
 			t.Errorf("messages[%d] = %s/%q, want %s/%q", i, m.Role, m.Content, want[i].role, want[i].content)
 		}
+	}
+}
+
+// TestRequestBody_Tools pins the tools array assembly (round-008 research
+// Decision 2): each definition emits type/function/name/description/parameters.
+func TestRequestBody_Tools(t *testing.T) {
+	defs := []llm.ToolDef{{
+		Name:        "read_files",
+		Description: "Read a file.",
+		Parameters:  []byte(`{"type":"object","properties":{"path":{"type":"string"}}}`),
+	}}
+	body, err := requestBody("m", "read x", nil, defs, 0, "")
+	if err != nil {
+		t.Fatalf("requestBody: %v", err)
+	}
+	var decoded struct {
+		Tools []struct {
+			Type     string `json:"type"`
+			Function struct {
+				Name        string         `json:"name"`
+				Description string         `json:"description"`
+				Parameters  map[string]any `json:"parameters"`
+			} `json:"function"`
+		} `json:"tools"`
+	}
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(decoded.Tools) != 1 || decoded.Tools[0].Type != "function" || decoded.Tools[0].Function.Name != "read_files" {
+		t.Fatalf("tools = %+v, want one read_files function", decoded.Tools)
+	}
+}
+
+// TestParseResponse_ToolCalls pins structured tool-call extraction (round-008
+// research Decision 2): a tool-only response (empty content) is valid and
+// carries the id/name/arguments.
+func TestParseResponse_ToolCalls(t *testing.T) {
+	body := `{"choices":[{"message":{"content":"","tool_calls":[{"id":"call_1","type":"function","function":{"name":"read_files","arguments":"{\"path\":\"x\"}"}}]}}]}`
+	resp, err := parseResponse([]byte(body))
+	if err != nil {
+		t.Fatalf("parseResponse: %v", err)
+	}
+	if len(resp.ToolCalls) != 1 {
+		t.Fatalf("ToolCalls = %+v, want one", resp.ToolCalls)
+	}
+	if resp.ToolCalls[0].ID != "call_1" || resp.ToolCalls[0].Name != "read_files" || resp.ToolCalls[0].Arguments != `{"path":"x"}` {
+		t.Errorf("ToolCall = %+v", resp.ToolCalls[0])
 	}
 }

@@ -3,6 +3,7 @@ package history
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -25,7 +26,7 @@ func TestFileStore_AppendLoadRoundTrip(t *testing.T) {
 		t.Fatalf("Load: %v", err)
 	}
 	want := []domainhistory.Entry{{Prompt: "q1", Answer: "a1"}, {Prompt: "q2", Answer: "a2"}}
-	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+	if len(got) != len(want) || !reflect.DeepEqual(got[0], want[0]) || !reflect.DeepEqual(got[1], want[1]) {
 		t.Fatalf("Load = %+v, want %+v", got, want)
 	}
 	// One deterministic line per entry (no id/timestamp).

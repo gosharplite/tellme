@@ -60,7 +60,7 @@ func NewWithHTTPClient(cfg Config, c *http.Client) *Client {
 // the normalized answer (round-004 research Decision 3 & 4). Every failure is
 // wrapped in a *llm.ProviderError.
 func (c *Client) Complete(ctx context.Context, req llm.Request) (llm.Response, error) {
-	body, err := requestBody(c.cfg.Model, req.Prompt, req.Messages, c.cfg.MaxTokens, c.cfg.ThinkingLevel)
+	body, err := requestBody(c.cfg.Model, req.Prompt, req.Messages, req.Tools, c.cfg.MaxTokens, c.cfg.ThinkingLevel)
 	if err != nil {
 		return llm.Response{}, c.wrap(err)
 	}
@@ -88,11 +88,11 @@ func (c *Client) Complete(ctx context.Context, req llm.Request) (llm.Response, e
 		}
 		return llm.Response{}, c.wrap(fmt.Errorf("provider returned status %d", resp.StatusCode))
 	}
-	text, err := parseAnswer(raw)
+	answer, err := parseResponse(raw)
 	if err != nil {
 		return llm.Response{}, c.wrap(err)
 	}
-	return llm.Response{Text: text}, nil
+	return answer, nil
 }
 
 func (c *Client) wrap(err error) error {
@@ -105,19 +105,62 @@ func requestURL(baseURL string) string {
 }
 
 // requestBody builds the JSON request body (pure helper). The `messages` array
-// is the resumed prior conversation (when any) followed by the current user
-// prompt; with no prior messages it is exactly the single current user message,
-// byte-for-byte identical to rounds 004–006 (round-007 RF-3).
-func requestBody(model, prompt string, prior []llm.Message, maxTokens int, thinkingLevel string) ([]byte, error) {
-	messages := make([]map[string]string, 0, len(prior)+1)
+// is `prior` followed — when a non-empty prompt is given — by the current user
+// prompt as the LAST message. A prior assistant message carrying tool calls
+// emits `tool_calls`, and a prior tool result emits `tool_call_id`. An empty
+// prompt is NOT appended: the agent tool loop folds the whole active turn
+// (prompt + tool exchanges) into `prior` on its later rounds so the chronology
+// stays `user → assistant(tool_calls) → tool(result)` (review PR #25 BLOCKER-1).
+// When no tool definitions are given the body is byte-identical to rounds
+// 004–007 (round-008 research Decision 2).
+func requestBody(model, prompt string, prior []llm.Message, toolDefs []llm.ToolDef, maxTokens int, thinkingLevel string) ([]byte, error) {
+	messages := make([]map[string]any, 0, len(prior)+1)
 	for _, m := range prior {
-		messages = append(messages, map[string]string{"role": m.Role, "content": m.Content})
+		msg := map[string]any{"role": m.Role, "content": m.Content}
+		if len(m.ToolCalls) > 0 {
+			tcs := make([]map[string]any, 0, len(m.ToolCalls))
+			for _, tc := range m.ToolCalls {
+				tcs = append(tcs, map[string]any{
+					"id":   tc.ID,
+					"type": "function",
+					"function": map[string]any{
+						"name":      tc.Name,
+						"arguments": tc.Arguments,
+					},
+				})
+			}
+			msg["tool_calls"] = tcs
+		}
+		if m.ToolCallID != "" {
+			msg["tool_call_id"] = m.ToolCallID
+		}
+		messages = append(messages, msg)
 	}
-	messages = append(messages, map[string]string{"role": "user", "content": prompt})
+	if prompt != "" {
+		messages = append(messages, map[string]any{"role": "user", "content": prompt})
+	}
 
 	payload := map[string]any{
 		"model":    model,
 		"messages": messages,
+	}
+	if len(toolDefs) > 0 {
+		tools := make([]map[string]any, 0, len(toolDefs))
+		for _, td := range toolDefs {
+			params := td.Parameters
+			if len(params) == 0 {
+				params = json.RawMessage(`{"type":"object","properties":{}}`)
+			}
+			tools = append(tools, map[string]any{
+				"type": "function",
+				"function": map[string]any{
+					"name":        td.Name,
+					"description": td.Description,
+					"parameters":  params,
+				},
+			})
+		}
+		payload["tools"] = tools
 	}
 	if maxTokens > 0 {
 		payload["max_tokens"] = maxTokens
@@ -154,24 +197,44 @@ func extractErrorMessage(raw []byte) string {
 	return ""
 }
 
-// parseAnswer extracts choices[0].message.content (pure helper).
-func parseAnswer(raw []byte) (string, error) {
+// toolCall is the OpenAI wire shape for a model's tool-call request.
+type toolCall struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Function struct {
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"`
+	} `json:"function"`
+}
+
+// parseResponse extracts choices[0].message.content and
+// choices[0].message.tool_calls (pure helper). A response must carry either
+// answer text or at least one tool call; an empty response is an error.
+func parseResponse(raw []byte) (llm.Response, error) {
 	var decoded struct {
 		Choices []struct {
 			Message struct {
-				Content string `json:"content"`
+				Content   string     `json:"content"`
+				ToolCalls []toolCall `json:"tool_calls"`
 			} `json:"message"`
 		} `json:"choices"`
 	}
 	if err := json.Unmarshal(raw, &decoded); err != nil {
-		return "", fmt.Errorf("unreadable provider response: %w", err)
+		return llm.Response{}, fmt.Errorf("unreadable provider response: %w", err)
 	}
 	if len(decoded.Choices) == 0 {
-		return "", fmt.Errorf("provider response carried no usable answer")
+		return llm.Response{}, fmt.Errorf("provider response carried no usable answer")
 	}
-	text := decoded.Choices[0].Message.Content
-	if strings.TrimSpace(text) == "" {
-		return "", fmt.Errorf("provider response carried no usable answer")
+	resp := llm.Response{Text: decoded.Choices[0].Message.Content}
+	for _, tc := range decoded.Choices[0].Message.ToolCalls {
+		resp.ToolCalls = append(resp.ToolCalls, llm.ToolCall{
+			ID:        tc.ID,
+			Name:      tc.Function.Name,
+			Arguments: tc.Function.Arguments,
+		})
 	}
-	return text, nil
+	if strings.TrimSpace(resp.Text) == "" && len(resp.ToolCalls) == 0 {
+		return llm.Response{}, fmt.Errorf("provider response carried no usable answer")
+	}
+	return resp, nil
 }
