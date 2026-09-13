@@ -46,9 +46,9 @@ func (f fakeTool) Execute(context.Context, string) (string, error) { return f.re
 func TestRunNoToolCalls(t *testing.T) {
 	gw := &fakeGateway{responses: []llm.Response{{Text: "hi"}}}
 	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry()}
-	answer, steps, err := a.Run(context.Background(), "q", nil)
-	if err != nil || answer != "hi" || len(steps) != 0 {
-		t.Fatalf("Run = (%q, %v, %v), want (hi, 0 steps, nil)", answer, steps, err)
+	res, err := a.Run(context.Background(), "q", nil)
+	if err != nil || res.Answer != "hi" || len(res.Steps) != 0 {
+		t.Fatalf("Run = (%q, %v, %v), want (hi, 0 steps, nil)", res.Answer, res.Steps, err)
 	}
 	if len(gw.calls) != 1 {
 		t.Errorf("provider calls = %d, want 1", len(gw.calls))
@@ -62,12 +62,12 @@ func TestRunOneToolRound(t *testing.T) {
 		{Text: "the launch code is ORANGE"},
 	}}
 	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "the launch code is ORANGE"})}
-	answer, steps, err := a.Run(context.Background(), "read notes.txt", nil)
+	res, err := a.Run(context.Background(), "read notes.txt", nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if answer != "the launch code is ORANGE" || len(steps) != 1 || steps[0].Tool != "read_files" {
-		t.Fatalf("Run = (%q, %+v)", answer, steps)
+	if res.Answer != "the launch code is ORANGE" || len(res.Steps) != 1 || res.Steps[0].Tool != "read_files" {
+		t.Fatalf("Run = (%q, %+v)", res.Answer, res.Steps)
 	}
 }
 
@@ -78,9 +78,9 @@ func TestRunToolErrorIsFedBack(t *testing.T) {
 		{Text: "no such file"},
 	}}
 	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", err: errors.New("open missing: no such file")})}
-	answer, steps, err := a.Run(context.Background(), "read missing", nil)
-	if err != nil || answer != "no such file" || len(steps) != 1 {
-		t.Fatalf("Run = (%q, %+v, %v)", answer, steps, err)
+	res, err := a.Run(context.Background(), "read missing", nil)
+	if err != nil || res.Answer != "no such file" || len(res.Steps) != 1 {
+		t.Fatalf("Run = (%q, %+v, %v)", res.Answer, res.Steps, err)
 	}
 	if len(gw.calls) < 2 {
 		t.Fatalf("expected the error to be fed back into a second call")
@@ -92,13 +92,13 @@ func TestRunBoundReached(t *testing.T) {
 	tc := llm.ToolCall{ID: "c", Name: "read_files", Arguments: "{}"}
 	gw := &fakeGateway{responses: []llm.Response{{ToolCalls: []llm.ToolCall{tc}}, {ToolCalls: []llm.ToolCall{tc}}, {ToolCalls: []llm.ToolCall{tc}}}}
 	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "x"}), MaxLoops: 2}
-	_, steps, err := a.Run(context.Background(), "loop", nil)
+	res, err := a.Run(context.Background(), "loop", nil)
 	var inc *ErrIncomplete
 	if !errors.As(err, &inc) {
 		t.Fatalf("err = %v, want *ErrIncomplete", err)
 	}
-	if len(steps) != 2 {
-		t.Errorf("steps = %d, want 2 (the bound)", len(steps))
+	if len(res.Steps) != 2 {
+		t.Errorf("steps = %d, want 2 (the bound)", len(res.Steps))
 	}
 }
 
@@ -106,7 +106,7 @@ func TestRunBoundReached(t *testing.T) {
 func TestRunUnknownToolIsTerminal(t *testing.T) {
 	gw := &fakeGateway{responses: []llm.Response{{ToolCalls: []llm.ToolCall{{ID: "c", Name: "time_travel"}}}}}
 	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry()}
-	_, _, err := a.Run(context.Background(), "use the time-travel tool", nil)
+	_, err := a.Run(context.Background(), "use the time-travel tool", nil)
 	var inc *ErrIncomplete
 	if !errors.As(err, &inc) {
 		t.Fatalf("err = %v, want *ErrIncomplete", err)
@@ -120,7 +120,7 @@ func TestBuildMessagesReplaysToolSteps(t *testing.T) {
 		Answer: "ORANGE",
 		Steps:  []history.Step{{Tool: "read_files", Arguments: `{"path":"notes.txt"}`, Result: "ORANGE"}},
 	}}
-	msgs := buildMessages(prior)
+	msgs := BuildMessages(prior)
 	if len(msgs) != 4 {
 		t.Fatalf("messages = %d, want 4", len(msgs))
 	}

@@ -40,6 +40,18 @@ func (e *ErrIncomplete) Error() string {
 // Unwrap exposes the underlying cause for errors.Is / errors.As.
 func (e *ErrIncomplete) Unwrap() error { return e.Err }
 
+// AgentResult is the outcome of one prompt run: the final answer text, the
+// ordered tool steps performed (for persistence), and the provider's reported
+// usage of the final completion. Surfacing Usage here — rather than discarding
+// it inside the loop — is what lets the CLI render the post-turn payload status
+// line (round-009 BLOCKER-2). On a multi-step tool run it is the usage of the
+// final completion (the response that produced the answer).
+type AgentResult struct {
+	Answer string
+	Steps  []history.Step
+	Usage  llm.Usage
+}
+
 // AgentLoop drives the bounded think→act→observe cycle for one prompt run.
 type AgentLoop struct {
 	Gateway     llm.Gateway
@@ -52,10 +64,11 @@ type AgentLoop struct {
 // Run performs one prompt run. It sends the conversation (the replayed prior
 // turns followed by the current prompt), executes any tools the model requests,
 // feeds their results back, and repeats until the model returns a final answer
-// or MaxLoops tool rounds have been made. It returns the final answer text and
-// the ordered tool steps performed (for persistence). An incomplete run returns
-// *ErrIncomplete; a provider/transport failure is returned unwrapped (so the
-// caller maps it to the provider class phrase + code 6).
+// or MaxLoops tool rounds have been made. It returns the final answer text, the
+// ordered tool steps performed, and the final completion's reported usage. An
+// incomplete run returns *ErrIncomplete; a provider/transport failure is
+// returned unwrapped (so the caller maps it to the provider class phrase + code
+// 6).
 //
 // Wire chronology (review PR #25 BLOCKER-1): the active turn's user prompt is
 // ALWAYS the first message of the active turn, and each tool exchange is
@@ -64,7 +77,7 @@ type AgentLoop struct {
 // request carries the prompt via Request.Prompt (the round-004/007 shape); later
 // tool rounds fold the whole active turn into Request.Messages with an empty
 // Prompt, so the adapter never moves the prompt behind the tool activity.
-func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entry) (string, []history.Step, error) {
+func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entry) (AgentResult, error) {
 	maxLoops := a.MaxLoops
 	if maxLoops <= 0 {
 		maxLoops = 1
@@ -74,7 +87,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 		toolTimeout = DefaultToolTimeout
 	}
 
-	base := buildMessages(prior)
+	base := BuildMessages(prior)
 	// turn is the active turn's conversation: it starts with the user prompt and
 	// appends each tool exchange after it (chronological order).
 	turn := []llm.Message{{Role: "user", Content: prompt}}
@@ -90,13 +103,13 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 		}
 		resp, err := a.Gateway.Complete(ctx, req)
 		if err != nil {
-			return "", steps, err
+			return AgentResult{Steps: steps}, err
 		}
 		if len(resp.ToolCalls) == 0 {
-			return resp.Text, steps, nil
+			return AgentResult{Answer: resp.Text, Steps: steps, Usage: resp.Usage}, nil
 		}
 		if i >= maxLoops {
-			return "", steps, &ErrIncomplete{Reason: "the tool-loop bound was reached"}
+			return AgentResult{Steps: steps}, &ErrIncomplete{Reason: "the tool-loop bound was reached"}
 		}
 
 		// The model requested tools: echo the assistant tool-call message, run
@@ -104,11 +117,11 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 		turn = append(turn, llm.Message{Role: "assistant", ToolCalls: resp.ToolCalls})
 		for _, tc := range resp.ToolCalls {
 			if a.Registry == nil {
-				return "", steps, &ErrIncomplete{Reason: "no tools are registered"}
+				return AgentResult{Steps: steps}, &ErrIncomplete{Reason: "no tools are registered"}
 			}
 			tool, ok := a.Registry.Lookup(tc.Name)
 			if !ok {
-				return "", steps, &ErrIncomplete{Reason: fmt.Sprintf("tool %q is not available", tc.Name)}
+				return AgentResult{Steps: steps}, &ErrIncomplete{Reason: fmt.Sprintf("tool %q is not available", tc.Name)}
 			}
 			tctx, cancel := context.WithTimeout(ctx, toolTimeout)
 			result, terr := tool.Execute(tctx, tc.Arguments)
@@ -149,12 +162,16 @@ func (a *AgentLoop) logStep(tc llm.ToolCall, result string) {
 		tc.Name, oneLine(tc.Arguments), oneLine(truncate(result, 200)))
 }
 
-// buildMessages replays the persisted prior turns into the conversation sent to
+// BuildMessages replays the persisted prior turns into the conversation sent to
 // the provider: each turn is the user prompt, then the turn's tool steps (an
 // assistant tool-call + a tool result per step), then the assistant answer. Tool
 // steps carry no stored id, so a deterministic `call_step_<n>` id is synthesised
 // on replay (round-008 Decision 5 / TD-2).
-func buildMessages(prior []history.Entry) []llm.Message {
+//
+// It is exported so the CLI's pre-flight token estimate reuses the exact same
+// projection — including tool steps — instead of the legacy prompt/answer-only
+// projection, which would undercount a tool-using conversation (round-009 TD-1).
+func BuildMessages(prior []history.Entry) []llm.Message {
 	var msgs []llm.Message
 	for _, e := range prior {
 		msgs = append(msgs, llm.Message{Role: "user", Content: e.Prompt})

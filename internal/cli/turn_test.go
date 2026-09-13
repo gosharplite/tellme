@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gosharplite/tellme/internal/config"
 	"github.com/gosharplite/tellme/internal/domain/history"
@@ -58,15 +59,17 @@ func (s *stubRenderer) Render(string, int) (string, bool) { return s.out, s.degr
 func (s *stubRenderer) WarnDegraded(io.Writer)            { s.warned = true }
 
 // env builds a runtimeEnv over the given buffers + renderer for a unit test.
+// The clock seam is fixed so the payload status line is deterministic.
 func env(out, errOut io.Writer, r answerRenderer) runtimeEnv {
-	return runtimeEnv{stdout: out, stderr: errOut, renderer: r}
+	return runtimeEnv{stdout: out, stderr: errOut, renderer: r,
+		clock: func() time.Time { return time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC) }}
 }
 
 func TestRunTurn_PrintsRawAnswerAndPersists(t *testing.T) {
 	var out, errOut bytes.Buffer
 	fg := &fakeGateway{text: "the answer"}
 	st := &fakeStore{}
-	code := runTurn(resolution{Selected: "p"}, st, "ping", true, env(&out, &errOut, &stubRenderer{}), factoryReturning(fg, nil))
+	code := runTurn(resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}, st, "ping", true, env(&out, &errOut, &stubRenderer{}), factoryReturning(fg, nil))
 	if code != Success {
 		t.Fatalf("code = %d, want %d (success)", code, Success)
 	}
@@ -79,8 +82,8 @@ func TestRunTurn_PrintsRawAnswerAndPersists(t *testing.T) {
 	if out.String() != "the answer\n" {
 		t.Errorf("stdout = %q, want %q", out.String(), "the answer\n")
 	}
-	if errOut.Len() != 0 {
-		t.Errorf("stderr = %q, want empty", errOut.String())
+	if got, want := errOut.String(), "[12:00:00] Payload: ~5/1000000 tokens - butler - deepseek-v4-flash\n"; got != want {
+		t.Errorf("stderr = %q, want the pre-flight payload status line %q", got, want)
 	}
 	if len(st.appended) != 1 || st.appended[0].Prompt != "ping" || st.appended[0].Answer != "the answer" {
 		t.Errorf("persisted = %+v, want the completed exchange", st.appended)
@@ -122,7 +125,7 @@ func TestRunTurn_ProviderFailure(t *testing.T) {
 	if code != ProviderError {
 		t.Fatalf("code = %d, want %d (provider error)", code, ProviderError)
 	}
-	if !strings.HasPrefix(errOut.String(), "tellme: the provider request failed") {
+	if !strings.Contains(errOut.String(), "tellme: the provider request failed") {
 		t.Errorf("stderr = %q, want the frozen class phrase", errOut.String())
 	}
 	if out.Len() != 0 {
