@@ -17,6 +17,7 @@ Feature: Reporting the payload status
         | My name is Alice. | Noted. |
       When the operator starts tellme with the prompt "Summarise where we are."
       Then tellme reports the estimated payload status for the turn
+      And the estimated payload status is reported before the answer
       And the payload status measures against a budget of 1000000 tokens
       And the payload status names the active mode and model
       And tellme exits successfully
@@ -29,6 +30,7 @@ Feature: Reporting the payload status
       And a configured provider "test-model" whose endpoint answers with "all good" and reports its usage
       When the operator starts tellme with the prompt "What is two plus two?"
       Then tellme reports the measured payload status for the turn
+      And the measured payload status is reported after the answer
       And the payload status measures against a budget of 1000000 tokens
       And tellme exits successfully
 
@@ -38,6 +40,7 @@ Feature: Reporting the payload status
       And a configured provider "test-model" whose endpoint answers with "all good" and reports no usage
       When the operator starts tellme with the prompt "What is two plus two?"
       Then tellme reports the estimated payload status for the turn
+      And the estimated payload status is reported before the answer
       And tellme reports no measured payload status
       And tellme exits successfully
 

@@ -3,8 +3,11 @@ package cli
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -17,14 +20,24 @@ import (
 // fakeGateway is an in-memory llm.Gateway for runTurn tests (review finding #1:
 // the turn must be unit-testable without the concrete adapter).
 type fakeGateway struct {
-	text  string
-	usage llm.Usage
-	err   error
-	got   llm.Request
+	text   string
+	usage  llm.Usage
+	err    error
+	got    llm.Request
+	script []llm.Response // when set, responses are served in order (round-010 tool-loop test)
+	served int
 }
 
 func (f *fakeGateway) Complete(_ context.Context, req llm.Request) (llm.Response, error) {
 	f.got = req
+	if len(f.script) > 0 {
+		i := f.served
+		if i >= len(f.script) {
+			i = len(f.script) - 1
+		}
+		f.served++
+		return f.script[i], f.err
+	}
 	return llm.Response{Text: f.text, Usage: f.usage}, f.err
 }
 
@@ -184,5 +197,39 @@ func TestRunTurn_PostTurnStatusFollowsAnswer(t *testing.T) {
 	}
 	if pre >= answer || answer >= post {
 		t.Fatalf("write order = pre(%d) answer(%d) post(%d), want pre < answer < post: %q", pre, answer, post, out)
+	}
+}
+
+// TestRunTurn_ToolLoopLogPrecedesAnswer pins the round-010 tool-loop ordering at
+// the unit layer: with stdout and stderr bound to ONE interleaved buffer, the
+// live tool-loop log line (stderr, naming the tool) is written before the answer
+// (stdout).
+func TestRunTurn_ToolLoopLogPrecedesAnswer(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "notes.txt")
+	if err := os.WriteFile(file, []byte("the launch code is ORANGE"), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	args, _ := json.Marshal(map[string]string{"path": file})
+
+	var buf bytes.Buffer
+	fg := &fakeGateway{script: []llm.Response{
+		{ToolCalls: []llm.ToolCall{{ID: "call_1", Name: "read_files", Arguments: string(args)}}},
+		{Text: "ANSWER"},
+	}}
+	res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}
+	e := runtimeEnv{stdout: &buf, stderr: &buf, renderer: &stubRenderer{out: "ANSWER"},
+		clock: func() time.Time { return time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC) }}
+	if code := runTurn(res, &fakeStore{}, "ping", true, e, factoryReturning(fg, nil)); code != Success {
+		t.Fatalf("code = %d, want success", code)
+	}
+	out := buf.String()
+	tool := strings.Index(out, "read_files")
+	answer := strings.Index(out, "ANSWER")
+	if tool < 0 || answer < 0 {
+		t.Fatalf("missing markers in output: %q", out)
+	}
+	if tool >= answer {
+		t.Fatalf("write order = tool(%d) answer(%d), want tool < answer: %q", tool, answer, out)
 	}
 }

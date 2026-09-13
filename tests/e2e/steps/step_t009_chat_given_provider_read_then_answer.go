@@ -25,6 +25,9 @@ func givenProviderReadThenAnswer(ctx context.Context, provider, path, answer str
 		fakeprovider.Reply{ToolName: "read_files", Arguments: readArgs(path)},
 		fakeprovider.Reply{Answer: unescapeText(answer)},
 	)
+	sc.scriptedAnswer = unescapeText(answer)
+	sc.scriptedAnswerSet = true
+	sc.scriptedTool = "read_files"
 	sc.registerFake(provider, f)
 	return sc.writeDefaultConfig(provider, map[string]string{provider: f.URL()})
 }

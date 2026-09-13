@@ -13,4 +13,5 @@ Feature: Watching the tool loop work
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "The launch code is ORANGE"
       When the operator starts tellme with the prompt "Read notes.txt and summarise it."
       Then the run reported the tool call "read_files" on its diagnostic output
+      And the tool activity is reported before the answer
       And tellme exits successfully

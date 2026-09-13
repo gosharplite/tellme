@@ -2,6 +2,7 @@ package steps
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -39,11 +40,16 @@ type scenarioContext struct {
 
 	scriptedAnswer    string // the answer scripted on the fake provider (decoded), for the decoration check (grill Q4/Q6)
 	scriptedAnswerSet bool   // whether scriptedAnswer was recorded
+	scriptedTool      string // the tool the fake was scripted to request (round 010 ordering witness)
 
 	exitCode int    // captured process exit code
 	stdout   string // captured stdout
 	stderr   string // captured stderr
-	runErr   error  // error from starting/waiting the process (nil on clean run)
+	// merged holds the MERGED (stdout+stderr) capture of the last ordering run
+	// (round 010 cross-stream witness). It is captured lazily by the ordering
+	// Then steps and does not disturb the separate stdout/stderr fields.
+	merged string
+	runErr error // error from starting/waiting the process (nil on clean run)
 
 	wsIno uint64 // inode of a pre-existing workspace dir (reuse assertion)
 	wsSet bool   // whether wsIno was recorded
@@ -185,6 +191,91 @@ func (sc *scenarioContext) run() {
 	sc.stdout = res.Stdout
 	sc.stderr = res.Stderr
 	sc.runErr = res.Err
+	sc.merged = "" // defensive: drop any merged capture from a prior run
+}
+
+// captureMerged runs the currently arranged command with stdout and stderr
+// MERGED into one ordered buffer (the round-010 cross-stream ordering witness)
+// and stores the merged bytes in sc.merged. It deliberately does NOT disturb the
+// separate stdout/stderr/exitCode capture, so the presence assertions keep
+// working.
+//
+// To leave NO trace on the scenario state — the re-run auto-resumes and appends
+// the session history, and a future mutating tool would touch the working
+// directory — the merged run executes against COPY-ONLY copies of the home and
+// working directory, and each fake is restored to its pre-capture script cursor
+// and recorded-request count afterwards. A later Then therefore sees the same
+// history, files, and RequestCount() as before the capture.
+func (sc *scenarioContext) captureMerged() {
+	homeCopy, err := os.MkdirTemp("", "tellme-merged-home-")
+	if err != nil {
+		return
+	}
+	defer func() { _ = os.RemoveAll(homeCopy) }()
+	workCopy, err := os.MkdirTemp("", "tellme-merged-work-")
+	if err != nil {
+		return
+	}
+	defer func() { _ = os.RemoveAll(workCopy) }()
+	if err := copyTree(sc.home, homeCopy); err != nil {
+		return
+	}
+	if err := copyTree(sc.workDir, workCopy); err != nil {
+		return
+	}
+
+	// Snapshot each fake, re-arm its script cursor so the merged run replays the
+	// same scripted exchange, and restore it afterwards (no request-count leak).
+	snaps := make([]fakeSnapshot, len(sc.fakes))
+	for i, f := range sc.fakes {
+		served, requests := f.Snapshot()
+		snaps[i] = fakeSnapshot{served: served, requests: requests}
+		f.Reset()
+	}
+	defer func() {
+		for i, f := range sc.fakes {
+			f.Restore(snaps[i].served, snaps[i].requests)
+		}
+	}()
+
+	env := sc.runEnv()
+	env["TELL_ME_HOME"] = homeCopy
+	var res harness.RunResult
+	if sc.stdinSet {
+		res = harness.RunInMergedWithStdin(workCopy, sc.args, sc.stdin, env, sc.unsetNames())
+	} else {
+		res = harness.RunInMerged(workCopy, sc.args, env, sc.unsetNames())
+	}
+	sc.merged = res.Stdout
+}
+
+// fakeSnapshot is a fake provider's restorable state (round-010 merged capture).
+type fakeSnapshot struct {
+	served   int
+	requests int
+}
+
+// copyTree copies the directory tree src into dst (files + subdirectories),
+// preserving file modes. It is the isolation primitive for the merged capture.
+func copyTree(src, dst string) error {
+	return filepath.Walk(src, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, rel)
+		if info.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, info.Mode())
+	})
 }
 
 // homePath resolves a home-relative path (e.g. a {config_path}) under the home.

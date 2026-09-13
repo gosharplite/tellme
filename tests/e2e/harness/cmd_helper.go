@@ -92,7 +92,7 @@ func Run(args []string, set map[string]string, unset []string) RunResult {
 	if err != nil {
 		return RunResult{ExitCode: -1, Err: err}
 	}
-	return runExec(bin, "", args, nil, set, unset, 0)
+	return runExec(bin, "", args, nil, set, unset, 0, false)
 }
 
 // RunWithStdin is Run with a scripted standard input: the child's stdin is an
@@ -103,12 +103,12 @@ func RunWithStdin(args []string, stdin string, set map[string]string, unset []st
 	if err != nil {
 		return RunResult{ExitCode: -1, Err: err}
 	}
-	return runExec(bin, "", args, strings.NewReader(stdin), set, unset, pipedRunTimeout)
+	return runExec(bin, "", args, strings.NewReader(stdin), set, unset, pipedRunTimeout, false)
 }
 
 // RunBinary is Run against an explicit binary path.
 func RunBinary(bin string, args []string, set map[string]string, unset []string) RunResult {
-	return runExec(bin, "", args, nil, set, unset, 0)
+	return runExec(bin, "", args, nil, set, unset, 0, false)
 }
 
 // RunIn is Run with the child's working directory set to dir, so a scenario's
@@ -119,7 +119,7 @@ func RunIn(dir string, args []string, set map[string]string, unset []string) Run
 	if err != nil {
 		return RunResult{ExitCode: -1, Err: err}
 	}
-	return runExec(bin, dir, args, nil, set, unset, 0)
+	return runExec(bin, dir, args, nil, set, unset, 0, false)
 }
 
 // RunInWithStdin is RunWithStdin with the child's working directory set to dir.
@@ -128,14 +128,38 @@ func RunInWithStdin(dir string, args []string, stdin string, set map[string]stri
 	if err != nil {
 		return RunResult{ExitCode: -1, Err: err}
 	}
-	return runExec(bin, dir, args, strings.NewReader(stdin), set, unset, pipedRunTimeout)
+	return runExec(bin, dir, args, strings.NewReader(stdin), set, unset, pipedRunTimeout, false)
+}
+
+// RunInMerged is RunIn with the child's stdout and stderr MERGED into a single
+// ordered buffer — the round-010 cross-stream ordering witness. Both streams are
+// wired to the SAME comparable writer, so os/exec serializes the writes and the
+// captured bytes preserve the child's write order (the `2>&1` view a real
+// terminal shows). The merged bytes are returned in Stdout; Stderr is empty.
+func RunInMerged(dir string, args []string, set map[string]string, unset []string) RunResult {
+	bin, err := BinaryPath()
+	if err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+	return runExec(bin, dir, args, nil, set, unset, 0, true)
+}
+
+// RunInMergedWithStdin is RunInMerged with a scripted standard input.
+func RunInMergedWithStdin(dir string, args []string, stdin string, set map[string]string, unset []string) RunResult {
+	bin, err := BinaryPath()
+	if err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+	return runExec(bin, dir, args, strings.NewReader(stdin), set, unset, pipedRunTimeout, true)
 }
 
 // runExec runs bin with args, wiring stdout/stderr (and stdin when non-nil) into
-// buffers and capturing the exit code. A non-zero timeout bounds the run via
-// exec.CommandContext; on deadline expiry the process is killed and Err carries
-// an explicit deadline message (distinct from a normal non-zero exit).
-func runExec(bin, dir string, args []string, stdin io.Reader, set map[string]string, unset []string, timeout time.Duration) RunResult {
+// buffers and capturing the exit code. When merge is true, stdout and stderr
+// share one ordered buffer (the round-010 witness); otherwise they are captured
+// separately. A non-zero timeout bounds the run via exec.CommandContext; on
+// deadline expiry the process is killed and Err carries an explicit deadline
+// message (distinct from a normal non-zero exit).
+func runExec(bin, dir string, args []string, stdin io.Reader, set map[string]string, unset []string, timeout time.Duration, merge bool) RunResult {
 	var (
 		cmd *exec.Cmd
 		ctx context.Context
@@ -157,8 +181,16 @@ func runExec(bin, dir string, args []string, stdin io.Reader, set map[string]str
 	}
 
 	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	if merge {
+		// Merged witness (round 010): both streams share ONE comparable writer, so
+		// os/exec serializes the writes and `stdout` preserves the child's
+		// interleaved write order. Stderr stays empty.
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stdout
+	} else {
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+	}
 
 	err := cmd.Run()
 	res := RunResult{Stdout: stdout.String(), Stderr: stderr.String()}
