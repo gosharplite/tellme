@@ -82,6 +82,17 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
 
 ---
 
+## Decision 10: Echo the Gemini `thoughtSignature` on replayed tool calls (`f7af54f`)
+
+- **Decision**: A `functionCall` part parsed from a Vertex response captures its sibling `thoughtSignature`, and the adapter re-emits that signature on the replayed `functionCall` part on later requests. `llm.ToolCall` gains an opaque `Signature`; providers that do not use one leave it empty (the OpenAI family ignores it).
+- **Rationale**: A live tool-using run failed on the **second** request of the loop — Vertex 400: *"Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly…"*. Gemini 3 emits an opaque `thoughtSignature` per `functionCall` part and requires it echoed back verbatim when the call is replayed; the adapter had dropped it. The signature rides through the loop automatically because `AgentLoop` copies `resp.ToolCalls` into the echoed assistant message.
+- **Alternatives considered**:
+  - **Do not replay the function call** (send only the tool result) — breaks the wire chronology the loop requires — rejected.
+  - **Synthesise or omit the signature** — Vertex rejects a missing signature on a functionCall part — rejected.
+  - **Persist the signature in history** so a *resumed* session replays it — deferred (see residual).
+
+---
+
 ## Residual risks / forward links
 
 - **Exact Vertex field names (Decision 2)**: the JSON field names (`contents`/`parts`/`systemInstruction`/`generationConfig`/`thinkingConfig`/`functionDeclarations`/`functionCall`/`usageMetadata`) follow the Vertex REST reference but are **not yet verified against the live API on this host**; the implementation/DSL phase must confirm them (a `/axb-dsl-refine`/implementation determination).
@@ -90,4 +101,5 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
 - **Credential-failure class placement (Decision 4)**: exit 6 (`the provider request failed`) is chosen; revisit only if the implementation reveals a cleaner boundary with the configuration-invalid class (exit 3).
 - **Token expiry / 401 handling (Decision 5)**: the exact skew and the 401-triggered re-mint are implementation details; only "obtained once and reused within the run" is pinned.
 - **Auth seam shape**: whether the OAuth2 flow lives in the gemini adapter or a shared `internal/infrastructure/auth` helper is an implementation determination (like round-011's persona-plumbing seam); Decision 3 fixes *what it must do*, not its package shape.
+- **Resumed-session tool replay (Decision 10)**: `AgentLoop.BuildMessages` synthesises replayed tool calls from `history.jsonl` **without** a `thoughtSignature`; a **resumed** gemini session that carried prior tool steps could hit the same Vertex 400. Persisting the signature in the history record is a forward item (a data-model change).
 - **Deferred, still out of scope**: the Google Gemini API family (inline key), Application Default Credentials, Anthropic, streaming, MCP, memory, pinning, pruning, `-b`/`--retry`, `SafePath`/consent.

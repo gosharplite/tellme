@@ -276,3 +276,11 @@ Fix (in-round, post-delivery — the round is not yet merged):
 - Unit tests updated: `TestRequestBody_TextPersonaBudgetTools` (single knob) + `TestRequestBody_ThinkingBudgetOnly`.
 
 Verified **live**: the same prompt now answers (exit 0); `make verify` OK. See `research.md` Decision 9.
+
+### Second live-usage defect — Gemini `thoughtSignature` (`f7af54f`)
+
+A **tool-using** live run failed on the **second** request of the loop: Vertex 400 — *"Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly…"*. Gemini 3 emits an opaque `thoughtSignature` per `functionCall` part and requires it echoed back verbatim on replay; the adapter dropped it.
+
+Fix: `llm.ToolCall` gains an opaque `Signature`; the gemini adapter captures it on parse and re-emits it on the replayed `functionCall` part (the loop already copies `resp.ToolCalls`). The fake now emits a `thoughtSignature` so the echo path is exercised.
+
+Verified **live**: `list_files` ran, its result was fed back, and the model answered (exit 0). See `research.md` Decision 10. **Forward item**: a *resumed* session replaying prior tool steps from history still lacks a signature.
