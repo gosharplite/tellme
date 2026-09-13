@@ -1,63 +1,40 @@
 # tellme — Status
 
-**Last updated**: 2026-09-13 — **round 010 `010-stream-ordering-observability` DELIVERED / FROZEN** (session 25; PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`; see the *Round 010* section). **End-of-day closeout (session 25, cont.)**: round-010 docs finalized (`STATUS.md` + daily log), issue [#28](https://github.com/gosharplite/tellme/issues/28) closed, `tellme` binary refreshed (`go install`), propagated `dev → main`. Round 009 `009-payload-status-line` DELIVERED + PROPAGATED (session 24; see the *Round 009* section). Prior rounds' detail is in the archive. **Post-round closeout**: `STATUS.md` **split** into `docs/archives/status/2026-09-13.md` (rounds 003–008 detail), and the split procedure added to `SESSION-CLOSEOUT.md` (Rule 12 + Step 3 item 8); propagated `dev → main`. **Ordering fix**: the post-turn payload status line now trails the answer (`7bcb2d3`); the round-010 anchor opened as [#28](https://github.com/gosharplite/tellme/issues/28) (cross-stream ordering observability).
+**Last updated**: 2026-09-13 — **round 011 `011-persona-and-payload-estimate` DELIVERED / FROZEN** (session 26; PR [#30](https://github.com/gosharplite/tellme/pull/30) merged into `dev` (`fe6d229`); propagated `dev → main`; see the *Round 011* section). Prior rounds' detail is in the archives.
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
-**Active branch**: `dev` (round 010 delivered — PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`). Next round starts a fresh `011-*` off `dev`.
+**Active branch**: `dev` (round 011 delivered — PR [#30](https://github.com/gosharplite/tellme/pull/30) merged into `dev` (`fe6d229`); propagated `dev → main`). Next round starts a fresh `012-*` off `dev`.
 **Daily log**: [`docs/session-summary/2026/09/13/session-summary.md`](docs/session-summary/2026/09/13/session-summary.md)
-**Archive**: [`docs/archives/status/2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`docs/archives/status/2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–008 detail + header/review-response/propagation history).
+**Archive**: [`docs/archives/status/2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`docs/archives/status/2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–010 detail + header/review-response/propagation history).
 
-## Round 010 — `010-stream-ordering-observability` (active)
+## Round 011 — `011-persona-and-payload-estimate` (active)
 
-**Status**: ✅ **DELIVERED / FROZEN** (2026-09-13, session 25) — PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`; `make verify` OK. No product change (a **contract + oracle** round): the deliverable is the merged-stream **witness** + the **executable ordering contract**.
+**Status**: ✅ **DELIVERED / FROZEN** (2026-09-13, session 26) — PR [#30](https://github.com/gosharplite/tellme/pull/30) merged into `dev` (`fe6d229`); propagated `dev → main`; `make verify` OK.
 
-**PR**: [#29](https://github.com/gosharplite/tellme/pull/29) (base `dev`) — open, awaiting owner review/merge.
+**PR**: [#30](https://github.com/gosharplite/tellme/pull/30) (base `dev`) — **MERGED** by `thptcnec` (2026-09-13T09:15:08Z).
 
-**Review trail (round 010)**: PR [#29](https://github.com/gosharplite/tellme/pull/29#issuecomment-5652030345) — **FULL ARCHITECTURAL APPROVAL — READY TO MERGE** (no blockers); both non-blocking findings fixed in-round: **[TECHNICAL DEBT]** trace-free merged capture (the merged re-run now executes against copies of home/workdir and restores each fake via `Snapshot`/`Restore`, so no history/request-count leak) and **[REFACTOR]** defensive `sc.merged = ""` reset in `run()` → re-review [#5652056493](https://github.com/gosharplite/tellme/pull/29#issuecomment-5652056493) **FINAL APPROVAL — CERTIFIED READY TO MERGE** (commit `7ea79eb`).
+**Review trail (round 011)**: PR [#30](https://github.com/gosharplite/tellme/pull/30#issuecomment-5652346462) — **APPROVE WITH NON-BLOCKING FOLLOW-UPS** (TD-1 real-home mutation / leak-dependent example; TD-2 `FR-004` construction-only; TD-3 arrange-run trace; RF-1 duplicated tool-def projection; N-1/N-2/N-3) → all in-scope findings fixed in-round (`2015315`) → re-review [#5652372651](https://github.com/gosharplite/tellme/pull/30#issuecomment-5652372651) **FINAL APPROVAL — CERTIFIED READY TO MERGE**.
 
-**Scope**: make **cross-stream output ordering** (the interleave of the diagnostic stream `stderr` with the answer stream `stdout`) a **first-class, checkable contract** — responding to round 009's ordering defect (the post-turn payload line printed *before* the answer) that **every gate was structurally unable to see**. Required orderings: (a) the payload status brackets the answer (`pre-flight < answer < measured`); (b) the tool-loop log precedes the answer. The **witness** is a merged (`2>&1`) single-buffer capture in the E2E harness — the missing oracle. Behaviour intent **MODIFY** (contract + oracle; no content change; no new dependency).
+**Scope**: make the outbound request faithful to its configuration and the pre-flight estimate faithful to the wire. The configured `PERSON` is sent as the **leading `system` message** of every request the turn makes (empty ⇒ none; request-only), and the pre-flight estimate counts the **wire payload** (persona + tool declarations + messages), so the `~` line is comparable to the provider's measured count. Behaviour intent **MODIFY**; no new dependency.
 
-**Clarify decisions locked (Round 1)**: (Q1) required orderings = **payload-status + tool-loop** (the round-006 degrade warning is incidental); (Q2) E2E witness = **merged single-buffer capture**; (Q3) assert at **both** the unit and E2E layers.
+**Clarify decisions locked (Round 1)**: (Q1) estimate scope = **persona + tool declarations + messages**; (Q2) pin the estimate's **inputs + determinism** (no numeric-equality assertion).
 
 **Artifacts / pipeline**:
-- [x] plan package (`spec.md`, `checklists/requirements.md`, `truth-delta.md` skeleton, `features/acceptance/` ×2) — on branch `010-stream-ordering-observability`.
-- [x] `research.md` + `specs/truth/techstack.md` MODIFY (cross-stream ordering witness + layered assertions).
+- [x] plan package (`spec.md`, `checklists/requirements.md`, `research.md`, `plan.md`, `features/acceptance/` ×2, `tasks.md`, `truth-delta.md`).
+- [x] `specs/truth/techstack.md` MODIFY (Persona instruction; Request assembly; Token estimator; Payload status line; testing rows).
 - [x] `plan.md` (1 interface / 1 wave; `/axb-api-plan` + `/axb-data-plan` = NOOP).
-- [x] truth (`features/cli/chat/**` MODIFY — ordering semantics; topology audit **PASSED**, 467 steps).
-- [x] `tasks.md` (13 tasks; Setup omitted — stdlib-only; orphan sweep 0).
-- [x] implementation (merged-stream witness + 3 ordering stepdefs + unit emit-order + falsifiability witness); **all 13/13 tasks `[X]`**.
-
-**Pipeline position**: all phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → **`/axb-implement` (13/13 tasks `[X]`)**.
-
-**Verification (2026-09-13)**: `make verify` **OK** (0 lint · 0 reachable vulns · no test-sleep · offline witness) · `go test ./...` green · godog **70/70 scenarios** · topology audit **PASSED** (467 steps) · no new dependency · **falsifiability witness** confirmed (a temporarily inverted emit order failed at **both** the unit and E2E layers).
-
-**Open (non-blocking)**: research/DSL-level determinations only — merged-capture plumbing, no-final-answer ordering semantics, where the incidental-interleave note lives, and the unit emit-order helper.
-
-## Round 009 — `009-payload-status-line` (delivered / frozen)
-
-**Status**: ✅ **DELIVERED / FROZEN** (2026-09-13, session 24) — plan/truth PR [#26](https://github.com/gosharplite/tellme/pull/26) merged into `dev` (`98c0fb3`); implementation PR [#27](https://github.com/gosharplite/tellme/pull/27) merged into `009-payload-status-line` (`5b744e8`); propagated `009-payload-status-line → dev` (`d4fd911`) `→ main`; `make verify` OK.
-
-**Scope**: per-turn **payload-budget visibility** — a prompt turn reports the payload's **pre-flight estimate** (`~<est>/<max>`) before the request and the **post-turn measured** size (`<actual>/<max>`) after it, on the **diagnostic stream (`stderr`)**, against a configurable **payload budget** (`MAX_HISTORY_TOKENS`, default **1000000**). Observe-only — **no** pruning. Reproduces the reference's `[HH:MM:SS] Payload: … tokens - <mode> - <model>` line.
-
-**Clarify decisions locked (Round 1)**: (Q1) status line → **`stderr`** (`stdout` byte-exact); (Q2) **estimate + actual** (widen `llm.Response` with the provider's reported `usage`); (Q3) **always-on** (not TTY-gated, not `-r`-suppressed); (locked default) `MAX_HISTORY_TOKENS` = **1000000**.
-
-**Artifacts / pipeline**:
-- [x] plan package (`spec.md`, `checklists/requirements.md`, `research.md`, `plan.md`, `features/acceptance/` ×2, `tasks.md`, `truth-delta.md`) — merged PR [#26](https://github.com/gosharplite/tellme/pull/26).
-- [x] truth (`techstack.md` MODIFY; `features/cli/chat/reporting-the-payload-status.feature` ADD + `chat/dsl.md` rows; `features/cli/history/inspecting-the-session-history.feature` + `history/dsl.md` MODIFY; `/axb-api-plan` + `/axb-data-plan` + root `cli/dsl.md` = NOOP) — merged PR [#26](https://github.com/gosharplite/tellme/pull/26).
-- [x] implementation (`internal/domain/llm/token.go`, `internal/ui/status.go`, `internal/config` `MAX_HISTORY_TOKENS`, `llm.Usage` + adapter parse, `AgentLoop.Run` → `AgentResult`, exported `BuildMessages`, CLI `stderr` emitter) + 4 unit files + 9 step files + E2E hermeticity fix — merged PR [#27](https://github.com/gosharplite/tellme/pull/27).
-- [x] **all 23/23 tasks `[X]`**.
+- [x] truth (`features/cli/chat/**` ADD ×2 + `chat/dsl.md` MODIFY; topology audit **PASSED**, 516 steps).
+- [x] `tasks.md` (23 tasks; Setup omitted — stdlib-only; orphan sweep 0).
+- [x] implementation (transport persona + `EstimatePayload` + CLI wiring + 10 stepdefs + wire-payload unit test); **all 23/23 tasks `[X]`**.
 
 **Pipeline position**: all phases **done** — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → **`/axb-implement` (23/23 tasks `[X]`)**.
 
-**Verification (2026-09-13)**: `gofmt`/`go vet` clean · `make verify` **OK** (0 lint · 0 reachable vulns · no test-sleep · offline witness) · `go test ./...` green · Gherkin/DSL topology audit **PASSED** (463 steps) · class-phrase vocabulary **10**; `data/**` NOOP; no new dependency.
+**Verification (2026-09-13)**: `make verify` **OK** (0 lint · 0 reachable vulns · no test-sleep · offline witness) · `go test ./...` green · godog **76/76 scenarios** · topology audit **PASSED** (516 steps) · **falsifiability witness** confirmed (suppressing the persona fails the persona scenario) · no new dependency.
 
-**Review trail (round 009)**: PR [#26](https://github.com/gosharplite/tellme/pull/26) — review → **REQUEST CHANGES** (BLOCKER-1 `_TBD_`; BLOCKER-2 `AgentLoop.Run` usage seam; TD-1/TD-2; RF-1) → fixed in-round (`e8182a6`) → **CERTIFIED READY TO MERGE** → merged. PR [#27](https://github.com/gosharplite/tellme/pull/27) — **FULL ARCHITECTURAL APPROVAL — READY TO MERGE** → merged.
+**Open (non-blocking)**: estimation heuristic constants; the persona-plumbing seam shape; **N-2** (estimator ignores replayed tool-call `arguments` — a forward item). Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / no pruning / no `flock`.
 
-**Open (non-blocking)**: none new — carried items unchanged (PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / no pruning / no `flock`).
+## Delivered rounds (001–010)
 
-
-## Delivered rounds (001–008)
-
-Detail lives in the archives (003–008 in [`2026-09-13.md`](docs/archives/status/2026-09-13.md); 001–002 in [`2026-09-11.md`](docs/archives/status/2026-09-11.md)). Quick index:
+Detail lives in the archives (003–010 in [`2026-09-13.md`](docs/archives/status/2026-09-13.md); 001–002 in [`2026-09-11.md`](docs/archives/status/2026-09-11.md)). Quick index:
 
 | Round | Branch | Delivered via |
 | --- | --- | --- |
@@ -69,6 +46,8 @@ Detail lives in the archives (003–008 in [`2026-09-13.md`](docs/archives/statu
 | 006 | `006-rendered-output-and-raw-flag` | PR [#19](https://github.com/gosharplite/tellme/pull/19) |
 | 007 | `007-session-history-persistence` | PRs [#20](https://github.com/gosharplite/tellme/pull/20)/[#21](https://github.com/gosharplite/tellme/pull/21) |
 | 008 | `008-agent-tools-and-tool-call-loop` | PRs [#24](https://github.com/gosharplite/tellme/pull/24)/[#25](https://github.com/gosharplite/tellme/pull/25) |
+| 009 | `009-payload-status-line` | PRs [#26](https://github.com/gosharplite/tellme/pull/26)/[#27](https://github.com/gosharplite/tellme/pull/27) |
+| 010 | `010-stream-ordering-observability` | PR [#29](https://github.com/gosharplite/tellme/pull/29) |
 
 ## Branch model
 
@@ -86,12 +65,14 @@ Detail lives in the archives (003–008 in [`2026-09-13.md`](docs/archives/statu
 | `008-agent-tools-and-tool-call-loop` | delivered / frozen (round 008) | Round-008 branch — plan/truth PR [#24](https://github.com/gosharplite/tellme/pull/24) merged (`fb382fc`) + implementation PR [#25](https://github.com/gosharplite/tellme/pull/25) merged (`f9b5d74`); propagated `→ dev` (`d376e03`) `→ main`; frozen history (impl branch `008-implement-agent-tools-and-tool-call-loop` deleted) |
 | `009-payload-status-line` | delivered / frozen (round 009) | Round-009 branch — plan/truth PR [#26](https://github.com/gosharplite/tellme/pull/26) merged into `dev` (`98c0fb3`) + implementation PR [#27](https://github.com/gosharplite/tellme/pull/27) merged (`5b744e8`); propagated `009-payload-status-line → dev` (`d4fd911`) `→ main`; frozen history (impl branch `009-implement-payload-status-line` deleted) |
 | `010-stream-ordering-observability` | delivered / frozen (round 010) | Round-010 branch — PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`; frozen history |
+| `011-persona-and-payload-estimate` | delivered / frozen (round 011) | Round-011 branch — PR [#30](https://github.com/gosharplite/tellme/pull/30) merged into `dev` (`fe6d229`); propagated `dev → main`; frozen history |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`. Delivered round branches
 > (`001`–`009`) remain frozen history and never receive post-round commits.
 >
 > **Propagation (round 009):** `009-payload-status-line → dev` (`d4fd911`) `→ main` (`32074ed`) — DONE; closeout docs on `dev` (`43d3507`).
 > **Propagation (round 010):** `010-stream-ordering-observability → dev` (PR [#29](https://github.com/gosharplite/tellme/pull/29), `7c6d793`) `→ main` — DONE; closeout docs on `dev`.
+> **Propagation (round 011):** `011-persona-and-payload-estimate → dev` (PR [#30](https://github.com/gosharplite/tellme/pull/30), `fe6d229`) `→ main` — DONE; closeout docs on `dev`.
 > Read live heads with `git rev-parse --short main dev HEAD`.
 
 ## Roadmap — next slices
@@ -106,10 +87,11 @@ Detail lives in the archives (003–008 in [`2026-09-13.md`](docs/archives/statu
 | **008 — Agent tools & the tool-call loop** | [#23](https://github.com/gosharplite/tellme/issues/23) | Bounded agent tool-call loop (read-only `list_files`/`read_files` + LLM-backed `summarize_history`); widened history + replay; live `stderr` loop log; `the tool request failed` + exit `7`; `MAX_TOOL_LOOP` (1000). | ✅ **Delivered** (PRs [#24](https://github.com/gosharplite/tellme/pull/24)/[#25](https://github.com/gosharplite/tellme/pull/25); propagated `008 → dev → main`) |
 | **009 — Payload status line** | — | Per-turn payload status on `stderr` (pre-flight estimate `~est/max` + post-turn measured `actual/max`); `MAX_HISTORY_TOKENS` budget (default 1000000); widen `Response` with the provider's `usage`; estimator + clock seam. Observe-only (no pruning). | ✅ **Delivered** (PRs [#26](https://github.com/gosharplite/tellme/pull/26)/[#27](https://github.com/gosharplite/tellme/pull/27); propagated `009 → dev → main`) |
 | **010 — Stream-ordering observability** | [#28](https://github.com/gosharplite/tellme/issues/28) | Make cross-stream (`stdout`/`stderr`) ordering a checkable contract: pin the payload-status + tool-loop ordering in the CLI truth; add the merged-stream E2E witness; assert at unit + E2E. | ✅ **Delivered** (PR [#29](https://github.com/gosharplite/tellme/pull/29); propagated `010 → dev → main`) |
+| **011 — Persona on the wire & wire-faithful payload estimate** | — | Send the configured `PERSON` as the leading `system` message of every request; make the pre-flight estimate count the wire payload (persona + tool declarations + messages). | ✅ **Delivered** (PR [#30](https://github.com/gosharplite/tellme/pull/30); propagated `011 → dev → main`) |
 
 ## Open items (non-blocking)
 
-- **Round 010 delivered / frozen — [#28](https://github.com/gosharplite/tellme/issues/28)**: **stream-ordering observability** — make cross-stream (`stdout`/`stderr`) ordering assertable (DSL ordering semantics + a merged-stream witness in the E2E harness). PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`; issue [#28](https://github.com/gosharplite/tellme/issues/28) **closed**. **Next round starts a fresh `011-*` off `dev`.**
+- **Round 011 delivered / frozen**: **persona on the wire + wire-faithful payload estimate** — send the configured `PERSON` as the leading `system` message of every request; the pre-flight estimate counts persona + tool declarations + messages. PR [#30](https://github.com/gosharplite/tellme/pull/30) merged into `dev` (`fe6d229`); propagated `dev → main`. **Next round starts a fresh `012-*` off `dev`.**
 
 - **Round 009 delivered / frozen** — plan/truth PR [#26](https://github.com/gosharplite/tellme/pull/26) merged into `dev` (`98c0fb3`); implementation PR [#27](https://github.com/gosharplite/tellme/pull/27) merged into `009-payload-status-line` (`5b744e8`); propagated `009-payload-status-line → dev` (`d4fd911`) `→ main`. **Next round starts a fresh `010-*` off `dev`.**
 
@@ -133,7 +115,7 @@ Detail lives in the archives (003–008 in [`2026-09-13.md`](docs/archives/statu
 
 - **Dev tooling — `tellme.sh` (external; not a repo/truth artifact)**: the Niffler-style manager that drives the `tellme` binary lives at both `~/tmp/dualnets/seed/notebooks/beta-niffler/tellme.sh` and `…/mbp-johndoe-niffler/tellme.sh`. Its usage banner was made **round-agnostic** this session — the hardcoded `round-001` capability text (and the `bare boot` capability hint) were removed so it no longer needs revising each slice; the current-state pointer is this `STATUS.md`. Invoke via `source tellme.sh` (aliases `b`/`a`/`c`/`g`/`p`/`r` + optional prompt arg) or the `tm` alias in `~/.bashrc`.
 - **Host / toolchain**: Go 1.26; `golangci-lint` / `staticcheck` / `govulncheck` present in `$GOPATH/bin`; the `tellme` binary is installed at `$(go env GOPATH)/bin/tellme` via `go install ./cmd/tellme`. Sandbox: the privileged netns (`unshare -n`) is unavailable on the host, so the offline-path guard uses the unprivileged canary + hostile-env differential.
-- **Binary refresh (session 25, round 010)**: `go install ./cmd/tellme` rebuilt `$(go env GOPATH)/bin/tellme` from `dev`; `tellme --version` reports `dev` (no `-ldflags` version stamp).
+- **Binary refresh (session 26, round 011)**: `go install ./cmd/tellme` rebuilt `$(go env GOPATH)/bin/tellme` from `dev`; `tellme --version` reports `dev` (no `-ldflags` version stamp).
 - **Persistent path authorizations**: read+write for `…/beta-niffler/`, `…/mbp-johndoe-niffler/tellme.sh`, and `~/.bashrc` (the `tm` alias).
 
-- **Secret scanning (session 19)**: `mcp_github_run_secret_scanning` is **unavailable for this repo** — GitHub reports *"Repository does not have GitHub Advanced Security enabled."* Closeout secret scans are therefore **diff-level** (pattern grep over `git diff`), as run on 2026-09-12 (session 19 — clean; session 18 — clean; session 17 — clean).
+- **Secret scanning (session 19)**: `mcp_github_run_secret_scanning` is **unavailable for this repo** — GitHub reports *"Repository does not have GitHub Advanced Security enabled."* Closeout secret scans are therefore **diff-level** (pattern grep over `git diff`), as run on 2026-09-13 (session 26 — clean, round-011 diff; session 25/24 — clean).

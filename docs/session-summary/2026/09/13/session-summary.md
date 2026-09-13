@@ -397,3 +397,57 @@ A post-merge wrap-up: re-ran `SESSION-CLOSEOUT.md` on the now-merged `dev`, clos
 ### PM follow-ups
 
 - None new.
+
+---
+
+## 29. Session 26 — round 011 (`011-persona-and-payload-estimate`) delivered + propagated
+
+The full round-011 slice: bootstrap (Steps 1–8) → `/axb-specify` → Clarify Round 1 → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` → PR [#30](https://github.com/gosharplite/tellme/pull/30) → architectural review (**APPROVE WITH NON-BLOCKING FOLLOW-UPS**) → in-round fix → re-review **FINAL APPROVAL — CERTIFIED READY TO MERGE** → merge → propagation → closeout. `tellme`'s outbound request now carries the configured persona, and its pre-flight estimate reflects the wire payload.
+
+> **Motivation**: comparing `tellme` against `tell-me-go` on `deepseek-flash` showed (i) `tellme` parsed `PERSON` but never sent it, and (ii) the pre-flight estimate counted only conversation text (`~5` while the provider measured `387`).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 010 delivered/frozen; active branch `dev`) |
+| `/axb-specify` | `specs/plans/011-persona-and-payload-estimate/`; **Clarify Round 1** locked **Q1** estimate scope = persona + tool declarations + messages · **Q2** pin inputs + determinism (no numeric equality) |
+| `/axb-spec-by-example` | 2 acceptance features (`sending-the-configured-persona`, `estimating-the-payload-that-will-be-sent`) |
+| `/axb-technical-research` | `research.md` (Decisions 1–8); `specs/truth/techstack.md` MODIFY (persona + estimator inputs) |
+| `/axb-system-analysis` | `plan.md` — 1 interface / 1 wave; `/axb-api-plan` + `/axb-data-plan` = NOOP |
+| `/axb-dsl-refine` | ADD `chat/sending-the-configured-persona.feature` + `chat/estimating-the-wire-payload.feature`; MODIFY `chat/dsl.md`; root `cli/dsl.md` NOOP; topology audit **PASSED** (516 steps) |
+| `/axb-tasks` | `tasks.md` (23 tasks; Setup omitted — stdlib-only; orphan sweep 0) |
+| `/axb-implement` | 23/23 tasks `[X]`; transport persona + `EstimatePayload` + CLI wiring + 10 stepdefs + unit test; `make verify` OK |
+| Review | PR [#30](https://github.com/gosharplite/tellme/pull/30) — **APPROVE WITH NON-BLOCKING FOLLOW-UPS** → all in-scope findings fixed in-round (`2015315`) → re-review **FINAL APPROVAL — CERTIFIED READY TO MERGE** |
+| Delivery | PR [#30](https://github.com/gosharplite/tellme/pull/30) human-merged into `dev` (`fe6d229`, by `thptcnec`); propagated `dev → main` |
+
+### Decisions locked (round 011)
+
+| # | Decision |
+| --- | --- |
+| Q1 | Estimate scope = **persona + tool declarations + messages** (the three input components the provider's `prompt_tokens` covers). |
+| Q2 | Pin the estimate's **inputs + determinism**; the estimate is **not** required to equal the provider's reported count (no tolerance assertion). |
+| A1–A5 | Persona = a separate leading `system` message; empty `PERSON` ⇒ none; rides every request (incl. tool-driven completions); only request content + the pre-flight estimate change; the exact heuristic is a research detail. |
+
+### Commits (branch `011-persona-and-payload-estimate`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `eb9b021` | `feat(011)`: send the persona on the wire and estimate the wire payload |
+| `2015315` | `fix(011)`: address PR #30 review — hermetic previous-run Given, every-request assertion, shared tool projection |
+| `fe6d229` | PR [#30](https://github.com/gosharplite/tellme/pull/30) merge into `dev` (by `thptcnec`) |
+| *(this closeout)* | `docs(011)`: day close — round 011 delivered + STATUS split + daily log |
+
+### Open items (non-blocking)
+
+- Round-011 forward/held items: estimation heuristic constants; the persona-plumbing seam shape; **N-2** (estimator ignores replayed tool-call `arguments`) — a forward item.
+- Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / no `flock`.
+
+### Next steps
+
+1. Choose the `012-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance unchanged).
