@@ -485,3 +485,13 @@ The round's interactive multi-line prompt reader (`Ctrl+D`; hint to `stderr`; PO
 ### Open items
 - Round 012 awaits re-review → human merge → propagate `012-interactive-multiline-prompt → dev → main`; then STATUS split + closeout.
 - Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / no `flock`.
+
+### Amendment A8 — prompt-less `--new` archives then reads (`1fb7a0e`)
+
+After the #31 review loop closed (✅ APPROVE + closing confirmation), the operator asked why `tellme --new` (no prompt) has no input capture: it was a deliberate round-012 decision (FR-009 / edge case) — the prompt-less `--new` path returned `renderNewSession` **before** the interactive branch. Requested amendment (in-round, round not yet delivered):
+
+- **Behaviour**: a prompt-less `--new` on a **terminal** now archives the session **first**, then engages the interactive reader (empty/cancel archives + exits 0; content runs one turn on the fresh session). A **non-terminal** prompt-less `--new` keeps its round-007 archive-and-exit behaviour. `--new` with a positional prompt is unchanged.
+- **Product**: `internal/cli/cli.go` — the `opts.newSession` early-return now only fires for non-terminal stdin; the TTY branch archives first (`renderNewSession`) then reads.
+- **Truth**: `spec.md` (FR-009 amended; FR-012 + SC-007 added; edge case + US1 scenario), `chat/reading-a-multi-line-prompt.feature` (the `A prompt-less --new at the terminal starts fresh, then reads` Rule), `chat/dsl.md` (the When row), `truth-delta.md`.
+- **Tests**: unit dispatch tests (`TestRun_NewInteractive*`, `TestRun_NewNonTTYDoesNotRead`) + the E2E step/scenario.
+- **Verification**: `make verify` OK · godog **81/81** · topology audit **PASSED** (547 steps) · **falsifiability witness** reproduced (old behaviour → the new scenario fails with "no reading announcement").

@@ -8,13 +8,15 @@
 
 ## Round 012 — `012-interactive-multiline-prompt` (active)
 
-**Status**: 🔄 **IN PROGRESS** — PR [#31](https://github.com/gosharplite/tellme/pull/31) (`012-interactive-multiline-prompt → dev`); review **REQUEST CHANGES** (BLOCKER B1) at [#5652619720](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652619720) → **fixed** at `331cf88` (response [#5652672277](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652672277)).
+**Status**: 🔄 **IN PROGRESS** — PR [#31](https://github.com/gosharplite/tellme/pull/31) (`012-interactive-multiline-prompt → dev`); review **REQUEST CHANGES** → **fixed** (`331cf88`) → re-review **✅ APPROVE** ([#5652688392](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652688392)) → spec/research drift closed (`abc49f0`) → closing confirmation ✅ ([#5652709341](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652709341)). **Amendment A8** (`1fb7a0e`): a prompt-less `--new` on a terminal now archives then reads.
 
-**Scope**: the reference's interactive multi-line prompt reader (`Ctrl+D`; hint to `stderr`; POSIX-only, no Windows variant). Tasks **8/8 `[X]`**; godog **80/80**; topology audit **PASSED** (537 steps).
+**Scope**: the reference's interactive multi-line prompt reader (`Ctrl+D`; hint to `stderr`; POSIX-only, no Windows variant). Tasks **8/8 `[X]`**; godog **81/81**; topology audit **PASSED** (547 steps).
 
 **Review response (`331cf88`)**: **B1** — a **real isatty** (`golang.org/x/term.IsTerminal`, already in the module graph) replacing the `os.ModeCharDevice` heuristic, so `< /dev/null` no longer masks a config failure as exit `0` (now exit `3`); **ADR 0003** recorded. **RF1** — `TELL_ME_FORCE_STDIN_TTY` seam + an **E2E positive-read** scenario (carries acceptance Rules 1–2 executably). **RF2** — the hermetic empty-pipe stdin default kept + a **null-device** E2E scenario. **TD1** — the hint is single-sourced (`cli.MultiLineHint`). **TD2/TD3/TD4** — documented. Truth updated (`techstack.md`, `chat/dsl.md`, `reading-a-multi-line-prompt.feature`, `truth-delta.md`).
 
-**Open**: awaiting re-review → human merge → propagate `012-interactive-multiline-prompt → dev → main`; then STATUS split + daily log.
+**Amendment A8 (`1fb7a0e`)**: a prompt-less `--new` on a **terminal** now archives the session **first**, then engages the reader (unifying "start fresh and type"); a **non-terminal** prompt-less `--new` keeps its round-007 archive-and-exit behaviour. Spec `FR-009` amended + `FR-012`/`SC-007` added; `reading-a-multi-line-prompt.feature` + `chat/dsl.md` + `truth-delta.md` updated; unit + E2E (`--new` archive-then-read) added; falsifiability witness reproduced. Landed after the approval, so a fresh re-review may be requested.
+
+**Open**: human merge → propagate `012-interactive-multiline-prompt → dev → main`; then STATUS split + daily log.
 
 ## Round 011 — `011-persona-and-payload-estimate` (active)
 
