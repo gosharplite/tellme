@@ -1,14 +1,14 @@
 # tellme — Status
 
-**Last updated**: 2026-09-13 — **round 010 `010-stream-ordering-observability` IMPLEMENTED** (session 25; 13/13 tasks `[X]`; see the *Round 010* section). Round 009 `009-payload-status-line` DELIVERED + PROPAGATED (session 24; see the *Round 009* section). Prior rounds' detail is in the archive. **Post-round closeout**: `STATUS.md` **split** into `docs/archives/status/2026-09-13.md` (rounds 003–008 detail), and the split procedure added to `SESSION-CLOSEOUT.md` (Rule 12 + Step 3 item 8); propagated `dev → main`. **Ordering fix**: the post-turn payload status line now trails the answer (`7bcb2d3`); the round-010 anchor opened as [#28](https://github.com/gosharplite/tellme/issues/28) (cross-stream ordering observability).
+**Last updated**: 2026-09-13 — **round 010 `010-stream-ordering-observability` DELIVERED / FROZEN** (session 25; PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`; see the *Round 010* section). Round 009 `009-payload-status-line` DELIVERED + PROPAGATED (session 24; see the *Round 009* section). Prior rounds' detail is in the archive. **Post-round closeout**: `STATUS.md` **split** into `docs/archives/status/2026-09-13.md` (rounds 003–008 detail), and the split procedure added to `SESSION-CLOSEOUT.md` (Rule 12 + Step 3 item 8); propagated `dev → main`. **Ordering fix**: the post-turn payload status line now trails the answer (`7bcb2d3`); the round-010 anchor opened as [#28](https://github.com/gosharplite/tellme/issues/28) (cross-stream ordering observability).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
-**Active branch**: `010-stream-ordering-observability` (round 010 — branched off `dev`; round 009 is delivered/frozen — plan/truth PR [#26](https://github.com/gosharplite/tellme/pull/26) merged into `dev` (`98c0fb3`); implementation PR [#27](https://github.com/gosharplite/tellme/pull/27) merged (`5b744e8`); propagated `009-payload-status-line → dev` (`d4fd911`) `→ main`).
+**Active branch**: `dev` (round 010 delivered — PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`). Next round starts a fresh `011-*` off `dev`.
 **Daily log**: [`docs/session-summary/2026/09/13/session-summary.md`](docs/session-summary/2026/09/13/session-summary.md)
 **Archive**: [`docs/archives/status/2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`docs/archives/status/2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–008 detail + header/review-response/propagation history).
 
 ## Round 010 — `010-stream-ordering-observability` (active)
 
-**Status**: 🟡 **IMPLEMENTED** (2026-09-13, session 25) — branched off `dev`; all 13/13 tasks `[X]`; **PR open, awaiting owner merge**. No product change (a **contract + oracle** round): the deliverable is the merged-stream **witness** + the **executable ordering contract**.
+**Status**: ✅ **DELIVERED / FROZEN** (2026-09-13, session 25) — PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`; `make verify` OK. No product change (a **contract + oracle** round): the deliverable is the merged-stream **witness** + the **executable ordering contract**.
 
 **PR**: [#29](https://github.com/gosharplite/tellme/pull/29) (base `dev`) — open, awaiting owner review/merge.
 
@@ -85,12 +85,13 @@ Detail lives in the archives (003–008 in [`2026-09-13.md`](docs/archives/statu
 | `007-session-history-persistence` | delivered / frozen (round 007) | Round-007 branch — plan/truth PR [#20](https://github.com/gosharplite/tellme/pull/20) merged (`3187584`) + implementation PR [#21](https://github.com/gosharplite/tellme/pull/21) merged (`f36a83b`); propagated `→ dev` (`6f5483b`) `→ main` (`c7b9950`); frozen history (impl branch `007-implement-session-history-persistence` deleted) |
 | `008-agent-tools-and-tool-call-loop` | delivered / frozen (round 008) | Round-008 branch — plan/truth PR [#24](https://github.com/gosharplite/tellme/pull/24) merged (`fb382fc`) + implementation PR [#25](https://github.com/gosharplite/tellme/pull/25) merged (`f9b5d74`); propagated `→ dev` (`d376e03`) `→ main`; frozen history (impl branch `008-implement-agent-tools-and-tool-call-loop` deleted) |
 | `009-payload-status-line` | delivered / frozen (round 009) | Round-009 branch — plan/truth PR [#26](https://github.com/gosharplite/tellme/pull/26) merged into `dev` (`98c0fb3`) + implementation PR [#27](https://github.com/gosharplite/tellme/pull/27) merged (`5b744e8`); propagated `009-payload-status-line → dev` (`d4fd911`) `→ main`; frozen history (impl branch `009-implement-payload-status-line` deleted) |
-| `010-stream-ordering-observability` | active (round 010) | Round-010 branch — branched off `dev`; plan-side started (`/axb-specify` + Clarify Round 1 + `/axb-spec-by-example`); not yet delivered |
+| `010-stream-ordering-observability` | delivered / frozen (round 010) | Round-010 branch — PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`; frozen history |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`. Delivered round branches
 > (`001`–`009`) remain frozen history and never receive post-round commits.
 >
 > **Propagation (round 009):** `009-payload-status-line → dev` (`d4fd911`) `→ main` (`32074ed`) — DONE; closeout docs on `dev` (`43d3507`).
+> **Propagation (round 010):** `010-stream-ordering-observability → dev` (PR [#29](https://github.com/gosharplite/tellme/pull/29), `7c6d793`) `→ main` — DONE; closeout docs on `dev`.
 > Read live heads with `git rev-parse --short main dev HEAD`.
 
 ## Roadmap — next slices
@@ -104,11 +105,11 @@ Detail lives in the archives (003–008 in [`2026-09-13.md`](docs/archives/statu
 | **007 — Session history persistence** | — | Durable session history (`history.jsonl`) + auto-resume + `--new` / `-l N`. | ✅ **Delivered** (PRs [#20](https://github.com/gosharplite/tellme/pull/20)/[#21](https://github.com/gosharplite/tellme/pull/21); propagated `007 → dev → main`) |
 | **008 — Agent tools & the tool-call loop** | [#23](https://github.com/gosharplite/tellme/issues/23) | Bounded agent tool-call loop (read-only `list_files`/`read_files` + LLM-backed `summarize_history`); widened history + replay; live `stderr` loop log; `the tool request failed` + exit `7`; `MAX_TOOL_LOOP` (1000). | ✅ **Delivered** (PRs [#24](https://github.com/gosharplite/tellme/pull/24)/[#25](https://github.com/gosharplite/tellme/pull/25); propagated `008 → dev → main`) |
 | **009 — Payload status line** | — | Per-turn payload status on `stderr` (pre-flight estimate `~est/max` + post-turn measured `actual/max`); `MAX_HISTORY_TOKENS` budget (default 1000000); widen `Response` with the provider's `usage`; estimator + clock seam. Observe-only (no pruning). | ✅ **Delivered** (PRs [#26](https://github.com/gosharplite/tellme/pull/26)/[#27](https://github.com/gosharplite/tellme/pull/27); propagated `009 → dev → main`) |
-| **010 — Stream-ordering observability** | [#28](https://github.com/gosharplite/tellme/issues/28) | Make cross-stream (`stdout`/`stderr`) ordering a checkable contract: pin the payload-status + tool-loop ordering in the CLI truth; add the merged-stream E2E witness; assert at unit + E2E. | 🔵 **In progress** (branch `010-stream-ordering-observability`) |
+| **010 — Stream-ordering observability** | [#28](https://github.com/gosharplite/tellme/issues/28) | Make cross-stream (`stdout`/`stderr`) ordering a checkable contract: pin the payload-status + tool-loop ordering in the CLI truth; add the merged-stream E2E witness; assert at unit + E2E. | ✅ **Delivered** (PR [#29](https://github.com/gosharplite/tellme/pull/29); propagated `010 → dev → main`) |
 
 ## Open items (non-blocking)
 
-- **Round 010 IN PROGRESS — [#28](https://github.com/gosharplite/tellme/issues/28)**: **stream-ordering observability** — make cross-stream (`stdout`/`stderr`) ordering assertable (DSL ordering semantics + a merged-stream witness in the E2E harness). Scheduled this session (branch `010-stream-ordering-observability`); see the *Round 010* section. The verification-coverage gap exposed by round-009's post-turn ordering defect (fixed `7bcb2d3`).
+- **Round 010 delivered / frozen — [#28](https://github.com/gosharplite/tellme/issues/28)**: **stream-ordering observability** — make cross-stream (`stdout`/`stderr`) ordering assertable (DSL ordering semantics + a merged-stream witness in the E2E harness). PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`. **Next round starts a fresh `011-*` off `dev`.**
 
 - **Round 009 delivered / frozen** — plan/truth PR [#26](https://github.com/gosharplite/tellme/pull/26) merged into `dev` (`98c0fb3`); implementation PR [#27](https://github.com/gosharplite/tellme/pull/27) merged into `009-payload-status-line` (`5b744e8`); propagated `009-payload-status-line → dev` (`d4fd911`) `→ main`. **Next round starts a fresh `010-*` off `dev`.**
 

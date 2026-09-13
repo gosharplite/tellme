@@ -289,3 +289,72 @@ A post-closeout correctness fix plus the next round's anchor issue.
 ### PM follow-ups
 
 - None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
+
+
+---
+
+## 27. Session 25 — round 010 (`010-stream-ordering-observability`) delivered + propagated
+
+The full round-010 slice: bootstrap (Steps 1–8) → `/axb-specify` → Clarify Round 1 → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` → PR [#29](https://github.com/gosharplite/tellme/pull/29) → architectural review (**FULL APPROVAL**) → both findings fixed in-round → **FINAL APPROVAL — CERTIFIED READY TO MERGE** → merge → propagation → closeout. `tellme` gained a **cross-stream ordering contract** plus the merged-stream **witness** round 009 lacked.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 009 delivered/frozen; active branch `dev`) |
+| `/axb-specify` | `specs/plans/010-stream-ordering-observability/`; **Clarify Round 1** locked **Q1** ordering scope (payload-status + tool-loop; degrade warning incidental) · **Q2** merged `2>&1` witness · **Q3** assert at both layers |
+| `/axb-spec-by-example` | 2 acceptance features (`ordering-the-payload-status-around-the-answer`, `reporting-tool-activity-before-the-answer`) |
+| `/axb-technical-research` | `research.md` (Decisions 1–8); `specs/truth/techstack.md` MODIFY (merged-stream witness) |
+| `/axb-system-analysis` | `plan.md` — 1 interface / 1 wave; `/axb-api-plan` + `/axb-data-plan` = NOOP |
+| `/axb-dsl-refine` | MODIFY `chat/reporting-the-payload-status.feature` + `chat/watching-the-tool-loop.feature`; ADD 3 `chat/dsl.md` ordering rows; root `cli/dsl.md` NOOP; topology audit **PASSED** (467 steps) |
+| `/axb-tasks` | `tasks.md` (13 tasks; Setup omitted — stdlib-only; orphan sweep 0) |
+| `/axb-implement` | 13/13 tasks `[X]`; merged-stream witness; 3 ordering stepdefs; unit emit-order test; `make verify` OK |
+| Review | PR [#29](https://github.com/gosharplite/tellme/pull/29) — **FULL ARCHITECTURAL APPROVAL** (no blockers) → 2 findings fixed in-round (`7ea79eb`) → **FINAL APPROVAL — CERTIFIED READY TO MERGE** |
+| Delivery | PR [#29](https://github.com/gosharplite/tellme/pull/29) merged into `dev` (`7c6d793`); propagated `dev → main`; `make verify` OK |
+
+### Decisions locked (round 010)
+
+| # | Decision |
+| --- | --- |
+| Q1 | Required orderings = the payload-status bracketing (`pre-flight < answer < measured`) **+** the tool-loop log preceding the answer; the round-006 degrade warning is **incidental** (documented, not asserted). |
+| Q2 | E2E witness = **merged single-buffer capture** (the `2>&1` equivalent) — no product change, no dependency, no pty. |
+| Q3 | Assert at **both** layers — the `runTurn` emit order (unit) and the merged-stream interleave (E2E). |
+| D1 | Ordering pinned as **executable interface truth** (chat DSL rows + feature assertions), closing round 009's `acceptance-coverage` leak (ordering existed only as prose). |
+| D2 | **No product change** — a *contract + oracle* round (the emit order has been correct since `7bcb2d3`). |
+
+### Falsifiability witness (SC-003)
+
+A temporarily inverted emit order failed at **both** layers — unit `TestRunTurn_PostTurnStatusFollowsAnswer` (post 78 < answer 134) and E2E `the measured payload status is reported after the answer` (measured 68 < answer 138) — then reverted; tree restored green.
+
+### Review response (in-round, `7ea79eb`)
+
+- **[TECHNICAL DEBT] → fixed**: `captureMerged()` is now **trace-free** — the merged re-run executes against throwaway **copies** of home/workdir (so it never pollutes `history.jsonl` or future mutated fixtures) and restores each fake via `Snapshot()`/`Restore()` (so `RequestCount()` is unchanged).
+- **[REFACTOR] → fixed**: `sc.run()` now sets `sc.merged = ""` defensively.
+
+### Commits (round-010 branch, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `25604a0` | `docs(010)`: plan package + acceptance + anchor |
+| `b368c36` | `docs(010)`: technical research + techstack truth |
+| `d4b06e2` | `docs(010)`: system-analysis plan |
+| `0e013cc` | `docs(010)`: pin cross-stream ordering in the CLI truth |
+| `06b9911` | `docs(010)`: tasks.md |
+| `4ed7554` | `test(010)`: implementation (merged witness + ordering stepdefs + unit emit-order) |
+| `e3d8057` | `docs(010)`: record PR #29 |
+| `7ea79eb` | `fix(010)`: PR #29 review — trace-free merged capture + defensive merged reset |
+| `7c6d793` | `docs(010)`: final certification record → PR #29 merge into `dev` |
+
+### Open items (non-blocking)
+
+- **[TECHNICAL DEBT] resolved in-round**; the reviewer noted the copy-based witness approach remains a forward consideration for future **mutating-tool** slices.
+- Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / no `flock`.
+
+### Next steps
+
+1. Choose the `011-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
