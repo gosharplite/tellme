@@ -36,7 +36,12 @@ func (listFiles) Parameters() json.RawMessage {
 }
 
 // Execute lists the entries at the given path, directories suffixed with "/".
-func (listFiles) Execute(_ context.Context, arguments string) (string, error) {
+// It honours the per-tool context so a cancelled/expired run aborts rather than
+// blocking on I/O (round-008 RF-1).
+func (listFiles) Execute(ctx context.Context, arguments string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	var args struct {
 		Path string `json:"path"`
 	}
@@ -59,6 +64,9 @@ func (listFiles) Execute(_ context.Context, arguments string) (string, error) {
 		names = append(names, name)
 	}
 	sort.Strings(names)
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	return strings.Join(names, "\n"), nil
 }
 
@@ -77,8 +85,12 @@ func (readFiles) Parameters() json.RawMessage {
 }
 
 // Execute reads the file at the given path, bounded by readCap (truncated with
-// a marker if exceeded).
-func (readFiles) Execute(_ context.Context, arguments string) (string, error) {
+// a marker if exceeded). It honours the per-tool context so a cancelled/expired
+// run aborts rather than blocking on I/O (round-008 RF-1).
+func (readFiles) Execute(ctx context.Context, arguments string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	var args struct {
 		Path string `json:"path"`
 	}
@@ -96,6 +108,9 @@ func (readFiles) Execute(_ context.Context, arguments string) (string, error) {
 	data, err := io.ReadAll(io.LimitReader(f, readCap+1))
 	if err != nil {
 		return "", fmt.Errorf("read_files: %w", err)
+	}
+	if err := ctx.Err(); err != nil {
+		return "", err
 	}
 	if len(data) > readCap {
 		return string(data[:readCap]) + "\n… (truncated at 1 MiB)", nil

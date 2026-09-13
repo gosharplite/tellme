@@ -29,5 +29,8 @@ func thenReadTool(ctx context.Context, path string) error {
 	if countToolIterations(f) == 0 {
 		return fmt.Errorf("the read_files result was not fed back into the conversation")
 	}
+	if !toolExchangeChronologyOK(f) {
+		return fmt.Errorf("the wire message chronology was inverted — tool activity must follow the user prompt (PR #25 BLOCKER-1)")
+	}
 	return nil
 }

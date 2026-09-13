@@ -56,6 +56,14 @@ type AgentLoop struct {
 // the ordered tool steps performed (for persistence). An incomplete run returns
 // *ErrIncomplete; a provider/transport failure is returned unwrapped (so the
 // caller maps it to the provider class phrase + code 6).
+//
+// Wire chronology (review PR #25 BLOCKER-1): the active turn's user prompt is
+// ALWAYS the first message of the active turn, and each tool exchange is
+// appended AFTER it — so every request keeps the OpenAI-mandated order
+// `[prior…, user(prompt), assistant(tool_calls), tool(result), …]`. The first
+// request carries the prompt via Request.Prompt (the round-004/007 shape); later
+// tool rounds fold the whole active turn into Request.Messages with an empty
+// Prompt, so the adapter never moves the prompt behind the tool activity.
 func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entry) (string, []history.Step, error) {
 	maxLoops := a.MaxLoops
 	if maxLoops <= 0 {
@@ -66,15 +74,21 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 		toolTimeout = DefaultToolTimeout
 	}
 
-	messages := buildMessages(prior)
+	base := buildMessages(prior)
+	// turn is the active turn's conversation: it starts with the user prompt and
+	// appends each tool exchange after it (chronological order).
+	turn := []llm.Message{{Role: "user", Content: prompt}}
 	var steps []history.Step
 
 	for i := 0; ; i++ {
-		resp, err := a.Gateway.Complete(ctx, llm.Request{
-			Prompt:   prompt,
-			Messages: messages,
-			Tools:    a.toolDefs(),
-		})
+		req := llm.Request{Tools: a.toolDefs()}
+		if i == 0 {
+			req.Prompt = prompt
+			req.Messages = base
+		} else {
+			req.Messages = append(append(make([]llm.Message, 0, len(base)+len(turn)), base...), turn...)
+		}
+		resp, err := a.Gateway.Complete(ctx, req)
 		if err != nil {
 			return "", steps, err
 		}
@@ -86,8 +100,8 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 		}
 
 		// The model requested tools: echo the assistant tool-call message, run
-		// each tool, and feed the results back.
-		messages = append(messages, llm.Message{Role: "assistant", ToolCalls: resp.ToolCalls})
+		// each tool, and feed the results back — appended after the user prompt.
+		turn = append(turn, llm.Message{Role: "assistant", ToolCalls: resp.ToolCalls})
 		for _, tc := range resp.ToolCalls {
 			if a.Registry == nil {
 				return "", steps, &ErrIncomplete{Reason: "no tools are registered"}
@@ -104,7 +118,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 				result = "error: " + terr.Error()
 			}
 			a.logStep(tc, result)
-			messages = append(messages, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})
+			turn = append(turn, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})
 			steps = append(steps, history.Step{Tool: tc.Name, Arguments: tc.Arguments, Result: result})
 		}
 	}

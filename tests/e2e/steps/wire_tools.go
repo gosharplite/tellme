@@ -109,6 +109,38 @@ func anyToolActivity(f *fakeprovider.Provider) bool {
 	return false
 }
 
+// toolExchangeChronologyOK reports whether every recorded request that carries a
+// tool result keeps the OpenAI-mandated chronology: an assistant tool-call is
+// immediately followed by its tool result, and a user message precedes them.
+// This makes the BLOCKER-1 inversion (tool activity before the user prompt) fail
+// the E2E suite (review PR #25 TD-2).
+func toolExchangeChronologyOK(f *fakeprovider.Provider) bool {
+	for _, msgs := range toolRounds(f) {
+		for i, m := range msgs {
+			if m.Role != "tool" {
+				continue
+			}
+			if i < 1 || msgs[i-1].Role != "assistant" || len(msgs[i-1].ToolCalls) == 0 {
+				return false
+			}
+			if !hasUserBefore(msgs, i) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// hasUserBefore reports whether a user-role message precedes index idx.
+func hasUserBefore(msgs []wireToolMessage, idx int) bool {
+	for j := 0; j < idx; j++ {
+		if msgs[j].Role == "user" {
+			return true
+		}
+	}
+	return false
+}
+
 // readArgs builds the read_files tool arguments JSON for a path.
 func readArgs(path string) string {
 	b, _ := json.Marshal(map[string]string{"path": path})

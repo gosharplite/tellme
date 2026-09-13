@@ -105,10 +105,14 @@ func requestURL(baseURL string) string {
 }
 
 // requestBody builds the JSON request body (pure helper). The `messages` array
-// is the resumed prior conversation (when any) followed by the current user
-// prompt; a prior assistant message carrying tool calls emits `tool_calls`, and
-// a prior tool result emits `tool_call_id`. When no tool definitions are given
-// the body is byte-identical to rounds 004–007 (round-008 research Decision 2).
+// is `prior` followed — when a non-empty prompt is given — by the current user
+// prompt as the LAST message. A prior assistant message carrying tool calls
+// emits `tool_calls`, and a prior tool result emits `tool_call_id`. An empty
+// prompt is NOT appended: the agent tool loop folds the whole active turn
+// (prompt + tool exchanges) into `prior` on its later rounds so the chronology
+// stays `user → assistant(tool_calls) → tool(result)` (review PR #25 BLOCKER-1).
+// When no tool definitions are given the body is byte-identical to rounds
+// 004–007 (round-008 research Decision 2).
 func requestBody(model, prompt string, prior []llm.Message, toolDefs []llm.ToolDef, maxTokens int, thinkingLevel string) ([]byte, error) {
 	messages := make([]map[string]any, 0, len(prior)+1)
 	for _, m := range prior {
@@ -132,7 +136,9 @@ func requestBody(model, prompt string, prior []llm.Message, toolDefs []llm.ToolD
 		}
 		messages = append(messages, msg)
 	}
-	messages = append(messages, map[string]any{"role": "user", "content": prompt})
+	if prompt != "" {
+		messages = append(messages, map[string]any{"role": "user", "content": prompt})
+	}
 
 	payload := map[string]any{
 		"model":    model,

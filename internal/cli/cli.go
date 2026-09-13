@@ -351,7 +351,7 @@ func runTurn(res resolution, store history.Store, prompt string, raw bool, env r
 
 	loop := &agent.AgentLoop{
 		Gateway:  gw,
-		Registry: buildRegistry(store, gw),
+		Registry: newToolRegistry(store, gw),
 		MaxLoops: res.MaxToolLoop,
 		Stderr:   env.stderr,
 	}
@@ -524,10 +524,17 @@ func emitProviderError(w io.Writer, err error) int {
 	return ProviderError
 }
 
-// buildRegistry assembles the tool registry offered to the model: the two
-// read-only filesystem tools plus the LLM-backed session-summarisation tool
-// (round-008 research Decisions 4 & 10).
-func buildRegistry(store history.Store, gw llm.Gateway) domaintools.Registry {
+// toolRegistryFactory builds the tool registry offered to the model for one
+// prompt run. It is the DI seam for the tool layer (round-008 TD-1, review
+// PR #25): the presentation layer never hard-wires the concrete tool adapters
+// (mirroring gatewayFactory / historyStoreFactory), so tests can inject a fake
+// registry.
+type toolRegistryFactory func(store history.Store, gw llm.Gateway) domaintools.Registry
+
+// newToolRegistry is the production registry factory (a var so tests may
+// override it). It assembles the two read-only filesystem tools plus the
+// LLM-backed session-summarisation tool (round-008 research Decisions 4 & 10).
+var newToolRegistry toolRegistryFactory = func(store history.Store, gw llm.Gateway) domaintools.Registry {
 	ts := infratools.NewFilesystemTools()
 	ts = append(ts, infratools.NewSummarizeHistoryTool(store, gw))
 	return domaintools.NewRegistry(ts...)
