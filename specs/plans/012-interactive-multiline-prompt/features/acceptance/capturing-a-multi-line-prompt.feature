@@ -33,3 +33,15 @@ Feature: Capturing a multi-line prompt at the terminal
       When the operator pipes "What is two plus two?" into tellme
       Then no reading announcement is reported
       And the final answer is printed on standard output
+
+  Rule: Starting a fresh session at the terminal begins reading
+
+    Example: The operator starts a fresh session and then types the prompt
+      Given the operator has a runnable tellme installation
+      And the operator is working at an interactive terminal
+      And a previous conversation with "My name is Alice." and "Noted." is already stored
+      And the runtime home holds a configuration with a reachable provider "test-model" that answers directly
+      When the operator starts tellme with the new-session flag, types a prompt, then sends it
+      Then tellme announces that it is reading multi-line input
+      And the previous conversation is retained in the archive but not carried into the new request
+      And the final answer is printed on standard output

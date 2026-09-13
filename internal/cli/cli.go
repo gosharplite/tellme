@@ -215,13 +215,12 @@ func run(args []string, version string, env runtimeEnv) int {
 	if prompt != "" {
 		return renderTurn(homeDir, opts.configPath, prompt, opts.raw, opts.newSession, env)
 	}
-	if opts.newSession {
-		return renderNewSession(homeDir, env)
-	}
-	// Round 012 — a bare invocation on a terminal reads an interactive multi-line
-	// prompt: print the hint to stderr and read stdin to EOF (Ctrl+D). An empty or
-	// cancelled submission sends no request and exits success (round-012 research
-	// Decisions 1–5). POSIX-only; there is no Windows variant.
+	// Round 012 (amended, A8) — a prompt-less invocation on a terminal reads an
+	// interactive multi-line prompt: print the hint to stderr and read stdin to EOF
+	// (Ctrl+D). With --new the session is archived FIRST (so the fresh session is
+	// used, and an empty/cancel still starts fresh), then the reader engages. An
+	// empty or cancelled submission sends no request and exits success (round-012
+	// research Decisions 1–5). POSIX-only; there is no Windows variant.
 	//
 	// Ordering note (round-012 review TD3): the reader engages BEFORE setup
 	// resolution, deliberately. An empty/cancelled submission owes no request and
@@ -236,6 +235,11 @@ func run(args []string, version string, env runtimeEnv) int {
 	// context and exits success (0), matching the existing runTurn convention for
 	// an operator-initiated interruption of a prompt turn.
 	if env.isTTY(env.stdin) {
+		if opts.newSession {
+			if code := renderNewSession(homeDir, env); code != Success {
+				return code
+			}
+		}
 		ictx, icancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		text, ok := readInteractivePrompt(ictx, env.stdin, env.stderr)
 		icancel()
@@ -243,6 +247,11 @@ func run(args []string, version string, env runtimeEnv) int {
 			return Success
 		}
 		return renderTurn(homeDir, opts.configPath, text, opts.raw, false, env)
+	}
+	// A prompt-less --new on a NON-terminal keeps its round-007 behaviour: archive
+	// the session and exit (the reader never engages on a non-terminal).
+	if opts.newSession {
+		return renderNewSession(homeDir, env)
 	}
 	return renderBoot(homeDir, opts.configPath, env)
 }

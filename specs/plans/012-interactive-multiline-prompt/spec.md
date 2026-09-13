@@ -8,7 +8,7 @@
 
 **Input**: User request "tellme needs the interactive multi-line prompt capture that `tell-me-go` has" (`tell-me-go` prints `[Reading multi-line input. Press Ctrl+C to cancel, or Ctrl+D to send]`, then reads stdin to EOF). Today `tellme` has **no** interactive read: a bare `tellme` on a terminal prints the boot report, and stdin is read only when it is **not** a terminal (round 005). This round adds an interactive multi-line prompt reader: on a TTY with no prompt argument, `tellme` prints a hint and reads the operator's prompt until EOF (Ctrl+D), bounded and cancellable.
 
-This round's behaviour intent is **ADD** (a new capability) that **MODIFIES** the bare no-prompt path on a terminal. It does not change the piped/positional prompt paths, the answer stream, or the payload-status/ordering contracts. **(Review-response amendment, PR #31 BLOCKER B1):** the round originally scoped "no new dependency"; the review showed the round-005 `os.ModeCharDevice` probe is unsound as a behaviour gate — it is true for `/dev/null`, so a redirected null device engaged the reader and masked a configuration failure as exit `0`. The probe is now a **real isatty** (`golang.org/x/term.IsTerminal` — already in the module graph transitively via glamour, promoted to a direct require; `go.sum` unchanged) recorded in **ADR 0003**. See NFR-001/NFR-004/SC-006/A6 below.
+This round's behaviour intent is **ADD** (a new capability) that **MODIFIES** the bare no-prompt path on a terminal **and the prompt-less `--new` path on a terminal** (amendment A8). It does not change the piped/positional prompt paths, the answer stream, or the payload-status/ordering contracts. **(Review-response amendment, PR #31 BLOCKER B1):** the round originally scoped "no new dependency"; the review showed the round-005 `os.ModeCharDevice` probe is unsound as a behaviour gate — it is true for `/dev/null`, so a redirected null device engaged the reader and masked a configuration failure as exit `0`. The probe is now a **real isatty** (`golang.org/x/term.IsTerminal` — already in the module graph transitively via glamour, promoted to a direct require; `go.sum` unchanged) recorded in **ADR 0003**. See NFR-001/NFR-004/SC-006/A6 below.
 
 **Clarify Round 1 (2026-09-13)** resolved three high-impact decisions:
 
@@ -34,6 +34,7 @@ As an operator, I want to type a multi-line prompt at the terminal and send it w
 
 1. **Given** `tellme` is invoked with no positional prompt and stdin is a terminal, **When** the operator types one or more lines and sends EOF (`Ctrl+D`), **Then** the system prints the multi-line hint to `stderr` and performs one reasoning turn whose prompt is the typed text.
 2. **Given** the same invocation, **When** the operator types a multi-line prompt, **Then** the captured prompt preserves the line breaks (a trailing newline trimmed) and `stdout` carries only the answer.
+3. **Given** `tellme --new` is invoked with no positional prompt on a terminal, **When** the operator types a prompt and sends EOF (`Ctrl+D`), **Then** the current session is archived first and the typed text becomes the prompt of one reasoning turn on the **fresh** session (amendment A8).
 
 **Functional Requirements**:
 
@@ -79,7 +80,7 @@ As an operator, I want to cancel the reader (`Ctrl+C`) or accidentally send noth
 - When stdin is a **pipe** (not a terminal), the round-005 behaviour is unchanged — the content is combined with any positional instruction; the interactive reader does **not** engage.
 - When stdin is a **pipe with no content** and no prompt argument, the existing no-prompt **boot report** path is unchanged (the reader does not engage on a non-terminal).
 - When a **positional prompt** is given, the reader does **not** engage (the argument is the prompt).
-- When a **non-prompt dispatch path** runs (`--version`, `-d`, `-l`, a prompt-less `--new`), the reader does **not** engage; those paths are unchanged.
+- When a **non-prompt dispatch path** runs (`--version`, `-d`, `-l`, or a prompt-less `--new` on a **non-terminal**), the reader does **not** engage. A prompt-less `--new` on a **terminal** archives the session and *then* engages the reader (amendment A8).
 - When the operator types more than the 1 MiB cap, the read is truncated at the cap (matching round 005).
 - When the reader is engaged but stdin reaches EOF immediately with no content, the run cancels (FR-007), it does not fall through to the boot report.
 - **No Windows variant**: there is no Windows hint/`Ctrl+Z`+Enter branch; the interactive path is a POSIX-terminal capability.
@@ -93,7 +94,8 @@ As an operator, I want to cancel the reader (`Ctrl+C`) or accidentally send noth
 #### Functional Requirements
 
 - **FR-008**: The interactive reader MUST engage **only** when the resolved prompt is empty, there are **no positional arguments and no piped stdin**, and stdin is a terminal. The round-005 argument/pipe behaviour MUST be unchanged.
-- **FR-009**: The non-prompt dispatch paths (`--version`, `-d`, `-l`, and a prompt-less `--new`) MUST be unchanged and MUST NOT enter the reader.
+- **FR-009**: The non-prompt dispatch paths (`--version`, `-d`, `-l`) MUST be unchanged and MUST NOT enter the reader. A prompt-less `--new` on a **non-terminal** stdin MUST remain the round-007 archive-and-exit command; on a **terminal** stdin it archives first and then engages the reader (FR-012).
+- **FR-012**: A prompt-less `--new` on a terminal MUST archive the current session **first** (so the fresh session is used), then engage the interactive reader exactly as a bare terminal invocation. An empty/cancelled submission MUST archive and exit `0` with no request; non-empty content MUST run one turn on the fresh session. (`--new` with a positional prompt, and a prompt-less `--new` on a non-terminal, are unchanged — amendment A8.)
 - **FR-010**: The hint MUST NOT carry the reserved `tellme: ` class-phrase prefix; the frozen class-phrase vocabulary is unchanged.
 - **FR-011**: The round MUST NOT regress rounds 001–011; `stdout` MUST remain byte-exact and all prior acceptance scenarios MUST stay green.
 
@@ -117,6 +119,7 @@ As an operator, I want to cancel the reader (`Ctrl+C`) or accidentally send noth
 - **SC-004**: The piped-input, positional-prompt, and non-prompt dispatch paths are byte-identical to rounds 001–011; all prior acceptance scenarios remain green.
 - **SC-005**: The interactive capture is carried by at least one executable interface Rule in `specs/truth/features/cli/**`, and the Gherkin/DSL topology audit passes.
 - **SC-006**: No new *module* is introduced (`go.sum` unchanged); the terminal probe (`golang.org/x/term`) was already in the module graph and is promoted to a direct require (ADR 0003 — review-response amendment of the original "no new dependency" criterion).
+- **SC-007**: 100% of prompt-less `--new` **terminal** runs archive the session and then perform the interactive read (hint to `stderr`); an empty/cancel archives and exits `0` with no request; a **non-terminal** prompt-less `--new` stays archive-and-exit (amendment A8).
 
 ## Assumptions
 

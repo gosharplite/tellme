@@ -8,6 +8,8 @@ Feature: Reading a multi-line prompt
   # request, exit `0`) stays a unit pin (`internal/cli`). The reader never engages on a
   # non-terminal input: neither a pipe nor the null device (a character device that is not
   # a terminal — the round-012 BLOCKER B1 fix, review RF2) prints a reading announcement.
+  # Amendment A8: a prompt-less `--new` on a terminal archives the session FIRST, then engages
+  # the reader (a non-terminal prompt-less `--new` stays archive-and-exit).
 
   Rule: At a terminal, tellme reads the multi-line prompt and announces it
 
@@ -40,4 +42,20 @@ Feature: Reading a multi-line prompt
       And a well-formed configuration "configs/butler.yaml"
       When the operator starts tellme with the null device on standard input
       Then no reading announcement is reported
+      And tellme exits successfully
+
+  Rule: A prompt-less --new at the terminal starts fresh, then reads
+
+    Example: Starting a fresh session and typing the prompt
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds the exchanges:
+        | prompt            | answer |
+        | My name is Alice. | Noted. |
+      And the operator is working at an interactive terminal
+      And a configured provider "test-model" whose endpoint answers with "ok"
+      When the operator starts a fresh session with "--new" and pipes "What is two plus two?"
+      Then the reading announcement is reported on the diagnostic output
+      And the request carried no earlier exchange
+      And tellme prints the provider's answer "ok"
       And tellme exits successfully

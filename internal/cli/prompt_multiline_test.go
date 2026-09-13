@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -129,5 +130,62 @@ func TestMultiLineHintMatchesDSLLiteral(t *testing.T) {
 	const dslLiteral = "[Reading multi-line input. Press Ctrl+C to cancel, or Ctrl+D to send]"
 	if MultiLineHint != dslLiteral {
 		t.Errorf("MultiLineHint = %q, want the DSL literal %q", MultiLineHint, dslLiteral)
+	}
+}
+
+// TestRun_NewInteractivePrintsHintThenRoutesToTurn pins amendment A8: a
+// prompt-less `--new` on a terminal archives the session, then engages the
+// reader; a non-empty read is routed to the turn path.
+func TestRun_NewInteractivePrintsHintThenRoutesToTurn(t *testing.T) {
+	t.Setenv("TELL_ME_HOME", t.TempDir()) // home present so the archive step succeeds
+	var out, errOut bytes.Buffer
+	env := runtimeEnv{stdin: strings.NewReader("hello\n"), stdout: &out, stderr: &errOut,
+		isTTY: func(any) bool { return true }, renderer: &stubRenderer{}}
+	code := run([]string{"--new"}, "dev", env)
+	if code != ConfigError {
+		t.Fatalf("run(--new, tty) = %d, want ConfigError (routed to the turn path; no config)", code)
+	}
+	if !strings.Contains(errOut.String(), "Reading multi-line input") {
+		t.Errorf("stderr = %q, want the multi-line hint", errOut.String())
+	}
+}
+
+// TestRun_NewInteractiveEmptyArchivesAndSucceeds pins the empty/cancel contract
+// for a prompt-less `--new` on a terminal: the session is archived, no request is
+// made, and the run exits success.
+func TestRun_NewInteractiveEmptyArchivesAndSucceeds(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("TELL_ME_HOME", home)
+	var out, errOut bytes.Buffer
+	env := runtimeEnv{stdin: strings.NewReader(""), stdout: &out, stderr: &errOut,
+		isTTY: func(any) bool { return true }, renderer: &stubRenderer{}}
+	if code := run([]string{"--new"}, "dev", env); code != Success {
+		t.Fatalf("run(--new, tty, empty) = %d, want Success", code)
+	}
+	if !strings.Contains(errOut.String(), "Reading multi-line input") {
+		t.Errorf("stderr = %q, want the multi-line hint", errOut.String())
+	}
+	if out.Len() != 0 {
+		t.Errorf("stdout = %q, want empty", out.String())
+	}
+	// The archive step resolved/prepared the workspace (default mode "butler").
+	if _, err := os.Stat(filepath.Join(home, "output", "butler")); err != nil {
+		t.Errorf("workspace not prepared for the fresh session: %v", err)
+	}
+}
+
+// TestRun_NewNonTTYDoesNotRead pins that a prompt-less `--new` on a NON-terminal
+// (empty pipe) keeps its round-007 behaviour: archive and exit, with no
+// reader/hint.
+func TestRun_NewNonTTYDoesNotRead(t *testing.T) {
+	t.Setenv("TELL_ME_HOME", t.TempDir())
+	var out, errOut bytes.Buffer
+	env := runtimeEnv{stdin: strings.NewReader(""), stdout: &out, stderr: &errOut,
+		isTTY: func(any) bool { return false }, renderer: &stubRenderer{}}
+	if code := run([]string{"--new"}, "dev", env); code != Success {
+		t.Fatalf("run(--new, non-tty) = %d, want Success", code)
+	}
+	if strings.Contains(errOut.String(), "Reading multi-line input") {
+		t.Errorf("stderr = %q, want no reading hint on a non-terminal", errOut.String())
 	}
 }
