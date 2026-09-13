@@ -8,7 +8,9 @@
 
 ## Round 010 — `010-stream-ordering-observability` (active)
 
-**Status**: 🟡 **IMPLEMENTED** (2026-09-13, session 25) — branched off `dev`; all 13/13 tasks `[X]`; pending commit/PR. No product change (a **contract + oracle** round): the deliverable is the merged-stream **witness** + the **executable ordering contract**.
+**Status**: 🟡 **IMPLEMENTED** (2026-09-13, session 25) — branched off `dev`; all 13/13 tasks `[X]`; **PR open, awaiting owner merge**. No product change (a **contract + oracle** round): the deliverable is the merged-stream **witness** + the **executable ordering contract**.
+
+**PR**: [#29](https://github.com/gosharplite/tellme/pull/29) (base `dev`) — open, awaiting owner review/merge.
 
 **Scope**: make **cross-stream output ordering** (the interleave of the diagnostic stream `stderr` with the answer stream `stdout`) a **first-class, checkable contract** — responding to round 009's ordering defect (the post-turn payload line printed *before* the answer) that **every gate was structurally unable to see**. Required orderings: (a) the payload status brackets the answer (`pre-flight < answer < measured`); (b) the tool-loop log precedes the answer. The **witness** is a merged (`2>&1`) single-buffer capture in the E2E harness — the missing oracle. Behaviour intent **MODIFY** (contract + oracle; no content change; no new dependency).
 
