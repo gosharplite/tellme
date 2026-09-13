@@ -27,4 +27,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _TBD_ | `specs/truth/features/cli/**` | _Pending — round 010._ | _Placeholder; `/axb-dsl-refine` replaces it (expected MODIFY — ordering semantics in the chat DSL + feature)._ |
+| MODIFY | `specs/truth/features/cli/chat/reporting-the-payload-status.feature` | Added the ordering Thens `the estimated payload status is reported before the answer` (Rule 1 and the no-usage variant) and `the measured payload status is reported after the answer` (Rule 2). | Round 010 — pin the payload-status **ordering** (round 009 pinned only presence on `stderr`). |
+| MODIFY | `specs/truth/features/cli/chat/watching-the-tool-loop.feature` | Added the ordering Then `the tool activity is reported before the answer`. | Round 010 — pin the tool-loop log ordering (the same `stderr`-diagnostic class). |
+| ADD | `specs/truth/features/cli/chat/dsl.md` | Added three Then rows — `the estimated payload status is reported before the answer` / `the measured payload status is reported after the answer` / `the tool activity is reported before the answer` — plus the round-010 ordering-rows note (asserted against the merged capture). | Round 010 — the ordering facet dropped from the executable truth in round 009 (the `acceptance-coverage` leak). |
+| NOOP | `specs/truth/features/cli/dsl.md` | The interface root is unchanged — the ordering rows are `chat`-module-specific; the frozen class-phrase vocabulary stays **10**. | No cross-module row was needed. |

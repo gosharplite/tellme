@@ -24,6 +24,8 @@ module's feature must match exactly one row.
 > answer" are all scripted on that fake (and a reachable fake doubles as the recording sink for the
 > offline-path witness in the root DSL).
 
+> **Ordering rows (round 010):** the ordering Thens (`… before the answer` / `… after the answer`) are asserted against the **merged** capture — the round-010 harness witness (`stdout` and `stderr` into one ordered buffer, the `2>&1` equivalent). They pin the *position* of the diagnostic lines relative to the answer bytes — the facet round 009 pinned only as presence. The answer itself stays on `stdout`.
+
 ## Given
 
 | DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
@@ -87,3 +89,6 @@ module's feature must match exactly one row.
 | `tellme reports no measured payload status` | 無 | 不支援 | `通道`: standard error (the diagnostic stream). | `必查`: `呈現結果`: the captured standard error carries no `~`-less payload status line. `不該發生`: a provider that reports no usage must not yield a measured line. |
 | `the payload status measures against a budget of {budget} tokens` | `budget`: integer; the expected payload budget. | 不支援 | `來源`: the reported payload status line (the pre-flight or the measured line). | `必查`: `呈現結果`: the `<max>` field of the reported payload status line equals `{budget}`. `不該發生`: the budget shown must not differ from the configured value. |
 | `the payload status names the active mode and model` | 無 | 不支援 | `來源`: the reported payload status line. | `必查`: `呈現結果`: the reported payload status line ends with ` - <mode> - <model>`, naming the run's effective mode and the active provider's configured `MODEL` attribute (reference parity — **not** the registry key). `不該發生`: the mode/model suffix must not be missing. |
+| `the estimated payload status is reported before the answer` | 無 | 不支援 | `通道`: standard error (the diagnostic stream). `順序`: the estimated (`~`) line precedes the answer bytes in the **merged** (`stdout`+`stderr`) view. | `必查`: `呈現結果`: in the merged capture, the pre-flight estimated payload status line appears **before** the answer bytes. `不該發生`: the estimated line must not appear after the answer. |
+| `the measured payload status is reported after the answer` | 無 | 不支援 | `通道`: standard error. `順序`: the measured line follows the answer bytes in the **merged** view. | `必查`: `呈現結果`: in the merged capture, the measured payload status line appears **after** the answer bytes. `不該發生`: the measured line must not appear before the answer. |
+| `the tool activity is reported before the answer` | 無 | 不支援 | `通道`: standard error. `順序`: the tool-loop log line(s) precede the answer bytes in the **merged** view. | `必查`: `呈現結果`: in the merged capture, the tool-loop log line appears **before** the answer bytes. `不該發生`: the tool-loop log must not appear after the answer. |
