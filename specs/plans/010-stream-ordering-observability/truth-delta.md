@@ -9,7 +9,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _TBD_ | `specs/truth/techstack.md` | _Pending — round 010 (stream-ordering observability)._ | _Placeholder; `/axb-technical-research` replaces it (expected MODIFY — harness witness / ordering semantics)._ |
+| MODIFY | `specs/truth/techstack.md` | **Testing & Verification**: extended the `E2E runner` row with a **merged-stream capture variant** (both streams into one shared ordered buffer — the `2>&1` equivalent) and added a **Cross-stream ordering witness** row; extended the `Test strategy` and `Pure-helper unit tests` rows with the layered (unit + E2E) ordering assertions. Nothing else changed — one CLI end, no new dependency. | Round-010 research Decisions 1–8: the E2E harness could not represent an inter-stream interleave (round 009's missing oracle); ordering becomes an assertable contract at unit + E2E. |
 
 ## /axb-api-plan
 
