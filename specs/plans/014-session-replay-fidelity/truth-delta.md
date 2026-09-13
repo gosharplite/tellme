@@ -27,4 +27,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(placeholder)_ | `specs/truth/features/cli/**` | | |
+| ADD | `specs/truth/features/cli/chat/replaying-a-tool-using-conversation.feature` | New `chat` feature — two atomic rules: a resumed conversation replays the earlier tool step **carrying its provider token** (the Gemini case); a resumed conversation on a provider that needs no token is unaffected (the OpenAI-compatible case). | Round 014 — carry the acceptance `replaying-a-tool-using-conversation.feature` journey into executable interface truth. |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` | Added the round-014 note, **2 Given rows** (`the session history already holds a tool-using exchange carrying the provider token "{token}"`; `… with no provider token`) and **2 Then rows** (`the request replayed the earlier tool step "{tool}" carrying the provider token "{token}"`; `the request replayed the earlier tool step "{tool}"`). Reused existing rows (the Gemini provider Given, start-with-prompt, exit-successfully). | Round 014 — the resume-with-tools step vocabulary (the rows live in `chat` because a `chat` feature is their only user). |
+| MODIFY | `specs/truth/features/cli/history/dsl.md` | Added the round-014 note describing the persisted per-step signature on the (unchanged) history store; the `history` module's own features and rows are unchanged. | Round 014 — context note for the widened record; no history feature/row change. |
+| NOOP | `specs/truth/features/cli/dsl.md` | The interface root is unchanged — no new cross-module row; the class-phrase vocabulary is unchanged (10). | The resume-with-tools rows are `chat`-module-specific. |
