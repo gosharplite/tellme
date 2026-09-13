@@ -148,10 +148,24 @@ func Run(args []string, version string) int {
 		stdin:    os.Stdin,
 		stdout:   os.Stdout,
 		stderr:   os.Stderr,
-		isTTY:    defaultIsTerminal,
+		isTTY:    terminalDetector(),
 		renderer: newRenderer(),
 		clock:    time.Now,
 	})
+}
+
+// terminalDetector returns the process's terminal probe. When the diagnostic
+// environment seam TELL_ME_FORCE_STDIN_TTY is truthy every stream is reported as
+// a terminal, so the interactive multi-line read can be exercised end-to-end
+// against a pipe without a pty (round-012 review RF1). Otherwise the real isatty
+// probe (defaultIsTerminal) is used.
+func terminalDetector() func(any) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("TELL_ME_FORCE_STDIN_TTY"))) {
+	case "1", "true", "yes":
+		return func(any) bool { return true }
+	default:
+		return defaultIsTerminal
+	}
 }
 
 // run parses flags, then dispatches to the version path, the diagnostic
@@ -201,6 +215,45 @@ func run(args []string, version string, env runtimeEnv) int {
 	if prompt != "" {
 		return renderTurn(homeDir, opts.configPath, prompt, opts.raw, opts.newSession, env)
 	}
+	// Round 012 (amended, A8) — a prompt-less invocation on a terminal reads an
+	// interactive multi-line prompt: print the hint to stderr and read stdin to EOF
+	// (Ctrl+D). With --new the session is archived FIRST (so the fresh session is
+	// used, and an empty/cancel still starts fresh), then the reader engages. An
+	// empty or cancelled submission sends no request and exits success (round-012
+	// research Decisions 1–5). POSIX-only; there is no Windows variant.
+	//
+	// Ordering note (round-012 review TD3): the reader engages BEFORE setup
+	// resolution, deliberately. An empty/cancelled submission owes no request and
+	// therefore requires no configuration (Decision 4 / Clarify Q3), so readiness
+	// cannot gate the read without changing that contract; a misconfigured setup
+	// therefore surfaces after the read, via renderTurn. The error-masking hazard
+	// the review flagged (exit 0 on a broken config for `< /dev/null`) is fixed at
+	// its root by the real isatty probe (B1), which routes a non-terminal stdin —
+	// /dev/null included — to the boot path instead of here.
+	//
+	// SIGTERM note (round-012 review TD4): a SIGTERM during the read cancels the
+	// context and exits success (0), matching the existing runTurn convention for
+	// an operator-initiated interruption of a prompt turn.
+	if env.isTTY(env.stdin) {
+		if opts.newSession {
+			// Archive BEFORE resolving the configuration: a prompt-less --new is an
+			// archive command that works offline, so — unlike the prompt-bearing
+			// `--new "<prompt>"` form, which resolves first — a broken config still
+			// archives here and then fails when the turn resolves (round-012 review).
+			if code := renderNewSession(homeDir, env); code != Success {
+				return code
+			}
+		}
+		ictx, icancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		text, ok := readInteractivePrompt(ictx, env.stdin, env.stderr)
+		icancel()
+		if !ok || text == "" {
+			return Success
+		}
+		return renderTurn(homeDir, opts.configPath, text, opts.raw, false, env)
+	}
+	// A prompt-less --new on a NON-terminal keeps its round-007 behaviour: archive
+	// the session and exit (the reader never engages on a non-terminal).
 	if opts.newSession {
 		return renderNewSession(homeDir, env)
 	}

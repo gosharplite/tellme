@@ -451,3 +451,81 @@ The full round-011 slice: bootstrap (Steps 1–8) → `/axb-specify` → Clarify
 ### PM follow-ups
 
 - None new (spec/acceptance unchanged).
+
+---
+
+## Round 012 — `012-interactive-multiline-prompt` (implementation + PR #31 review response)
+
+The round's interactive multi-line prompt reader (`Ctrl+D`; hint to `stderr`; POSIX-only, no Windows variant) was implemented (`66924b4`) and opened as PR [#31](https://github.com/gosharplite/tellme/pull/31) (`012-interactive-multiline-prompt → dev`). An architectural review returned **REQUEST CHANGES** with one **BLOCKER B1** and six follow-ups ([#5652619720](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652619720)); the butler applied the full fix set in-round (`331cf88`, response [#5652672277](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652672277)).
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| B1 (blocker) | **Real isatty** (`golang.org/x/term.IsTerminal`, already in the module graph — no new module) replacing the `os.ModeCharDevice` heuristic; `< /dev/null` now exits **3** (was **0**) and takes the boot path. **ADR 0003** |
+| RF1 | `TELL_ME_FORCE_STDIN_TTY` seam + an **E2E positive-read** scenario (acceptance Rules 1–2 now executable) |
+| RF2 | Hermetic empty-pipe stdin default kept + a **null-device** E2E scenario |
+| TD1 | Hint single-sourced (`cli.MultiLineHint`); unit guard pins it to the DSL literal |
+| TD2/TD3/TD4 | Documented (goroutine lifetime, read-before-resolve ordering, SIGTERM→0) |
+| Truth | `techstack.md`, `chat/dsl.md`, `reading-a-multi-line-prompt.feature`, `truth-delta.md`, `docs/decisions/0003-*` (+ README index; 0002 indexed) |
+| Verification | `make verify` OK · `go test ./...` green · godog **80/80** · topology audit **PASSED** (537 steps) · **B1 falsifiability witness** reproduced |
+
+### Commits (branch `012-interactive-multiline-prompt`)
+| Commit | Note |
+| --- | --- |
+| `66924b4` | `feat(012): interactive multi-line prompt capture` (round-012 implementation) |
+| `331cf88` | `fix(012): address PR #31 review — real isatty (B1), interactive/null-device E2E pins` |
+
+### Decisions
+| # | Decision |
+| --- | --- |
+| D1 | B1 fixed via the **preferred option (a)** — a real isatty; `x/term` was already transitive, so no new module; recorded as ADR 0003 |
+| D2 | TD3 → **documented, not re-ordered** — an empty/cancel submission owes no request (Decision 4 / Q3), so readiness cannot gate the read |
+| D3 | RF2 → the empty-pipe default is **kept** (hermeticity); the char-device path is pinned by a null-device scenario |
+
+### Open items
+- Round 012 awaits re-review → human merge → propagate `012-interactive-multiline-prompt → dev → main`; then STATUS split + closeout.
+- Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / no `flock`.
+
+### Amendment A8 — prompt-less `--new` archives then reads (`1fb7a0e`)
+
+After the #31 review loop closed (✅ APPROVE + closing confirmation), the operator asked why `tellme --new` (no prompt) has no input capture: it was a deliberate round-012 decision (FR-009 / edge case) — the prompt-less `--new` path returned `renderNewSession` **before** the interactive branch. Requested amendment (in-round, round not yet delivered):
+
+- **Behaviour**: a prompt-less `--new` on a **terminal** now archives the session **first**, then engages the interactive reader (empty/cancel archives + exits 0; content runs one turn on the fresh session). A **non-terminal** prompt-less `--new` keeps its round-007 archive-and-exit behaviour. `--new` with a positional prompt is unchanged.
+- **Product**: `internal/cli/cli.go` — the `opts.newSession` early-return now only fires for non-terminal stdin; the TTY branch archives first (`renderNewSession`) then reads.
+- **Truth**: `spec.md` (FR-009 amended; FR-012 + SC-007 added; edge case + US1 scenario), `chat/reading-a-multi-line-prompt.feature` (the `A prompt-less --new at the terminal starts fresh, then reads` Rule), `chat/dsl.md` (the When row), `truth-delta.md`.
+- **Tests**: unit dispatch tests (`TestRun_NewInteractive*`, `TestRun_NewNonTTYDoesNotRead`) + the E2E step/scenario.
+- **Verification**: `make verify` OK · godog **81/81** · topology audit **PASSED** (547 steps) · **falsifiability witness** reproduced (old behaviour → the new scenario fails with "no reading announcement").
+
+### A8 re-review fix — hermetic unit tests (`b5cb61c`)
+
+The re-review of A8 (PR head `035dee4`) returned **REQUEST CHANGES** with one must-fix: `TestRun_NewInteractiveEmptyArchivesAndSucceeds` asserted `output/butler` without neutralizing ambient `TELL_ME_MODE`, so it failed wherever the shell exports `TELL_ME_MODE` (the project's own shell) — the earlier "`make verify` OK" was environment-dependent (my shell exports `TELL_ME_MODE=butler`). Fixed by adding `clearAmbientOverrides(t)` (mirrors the E2E `beforeScenario`) to the three new tests; `go test ./...` is now green under `TELL_ME_MODE=architect` and a polluted env. Also documented the 🟡 archive-order divergence (a prompt-less `--new` archives **before** the turn's config resolution, so a broken config still archives — unlike `--new "<prompt>"`) at the call site + in `FR-012`.
+
+---
+
+## Round 012 — `012-interactive-multiline-prompt` DELIVERED + propagated (closeout)
+
+PR [#31](https://github.com/gosharplite/tellme/pull/31) was **merged** by `thptcnec` into `dev` (`90c2cd0`) — the approved frozen SHA `a171bd1` → `dev`. Local `dev` synced; round 012 is now delivered / frozen; propagated `dev → main`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Approval | Final review pinned — **✅ APPROVE at `a171bd1`** ([#5652828257](https://github.com/gosharplite/tellme/pull/31#issuecomment-5652828257)) |
+| Merge | PR [#31](https://github.com/gosharplite/tellme/pull/31) merged into `dev` (`90c2cd0`, "Merge pull request #31 from gosharplite/012-interactive-multiline-prompt") by `thptcnec` (2026-09-13T10:56:11Z) |
+| Closeout gates | `make verify` **OK** · godog **81/81** · topology audit **PASSED** (547 steps) · tree clean |
+| Propagation | `012-interactive-multiline-prompt → dev` (`90c2cd0`) `→ main` — **DONE** |
+| Binary | `go install ./cmd/tellme` refreshed `$(go env GOPATH)/bin/tellme` |
+
+### Commits
+| Commit | Note |
+| --- | --- |
+| `a171bd1` | round-012 head — the **approved SHA** (B1 real isatty + ADR 0003; RF1/RF2/TD fixes; amendment A8; hermeticity fix) |
+| `90c2cd0` | PR [#31](https://github.com/gosharplite/tellme/pull/31) merge into `dev` (by `thptcnec`) |
+| *(closeout)* | `docs(012): day close — round 012 delivered (PR #31 merged) + propagation` |
+
+### Decisions / notes
+- Round 012 delivered / frozen; the round-012 branch head is the review-approved SHA `a171bd1` (any further commit would invalidate that approval — none made).
+- Carried open items unchanged: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / no pruning / no `flock`.
+
+### Next steps
+1. Choose the `013-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
