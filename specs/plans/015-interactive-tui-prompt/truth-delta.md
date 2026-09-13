@@ -15,13 +15,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/contracts/**` | _Expected NOOP — tellme authors no HTTP/OpenAPI surface of its own._ | _Round 015 changes the CLI prompt surface, not a tellme-owned API._ |
+| NOOP | `specs/truth/contracts/**` | Checked; left empty. tellme has a single CLI end and authors no HTTP/OpenAPI surface of its own; round 015 adds no tellme-owned request/response shape — the interactive prompt + shared log are a local terminal + local-file concern. | `contract-authoritative` holds vacuously — round 015 changes the CLI prompt surface and adds a local-file store, not a tellme-owned API. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/data/data-model.dbml` | _Expected MODIFY — model the shared global prompt log (`$TELL_ME_HOME/output/global_prompts.jsonl`): record shape, append-and-read lifecycle, dedupe/newest-first ordering, and compaction policy._ | _The suggestion engine must interoperate with the shared Niffler-env prompt log (a data-model addition)._ |
+| ADD | `specs/truth/data/data-model.dbml` | New table `prompt_log_entry` — the shared, append-only global prompt log at `$TELL_ME_HOME/output/global_prompts.jsonl`, one `{"timestamp":"<RFC3339>","prompt":"<text>"}` per line (both fields string). Append-only (`O_APPEND|O_CREATE`), written **only under `-i`**; read newest-first + deduped by `prompt` (bounded by the suggestion cap); best-effort async compaction keeping the newest ≤1200 unique once past ≈150 KiB. Byte-identical shape to `tell-me-go`; no cross-process `flock`. The Project Note was broadened to cover both local-state artifacts (session history + global prompt log). | Round-015 research Decision 3 + spec `FR-008`–`FR-011`/`NFR-003`/`NFR-004`: `tellme` must interoperate with the shared prompt log (a data-model addition — `data-model-covers-all-state`). |
 
 ## /axb-dsl-refine
 
