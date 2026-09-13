@@ -238,3 +238,66 @@ A third session on the same calendar day: bootstrap, confirm the upstream gate r
 ### PM follow-ups
 
 - None new (spec/acceptance are complete; no PM-owned gaps).
+
+---
+
+## 13. Session 4 (2026-09-14) — PR #38 review + round-015 `/axb-tasks` (`tasks.md` delivered)
+
+A continuation session on the same calendar day: read the PR #38 architectural review, recorded it in `STATUS.md` + this log, and generated the round's execution control plane (`tasks.md`) with the review's directives embedded. **No `specs/truth/**` change** (plan-side `tasks.md` + live/session docs only → no `truth-delta.md` update).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (rounds 001–014 delivered/frozen; active branch `015-interactive-tui-prompt`, PR #38 open) |
+| PR #38 review | Read [#5657097770](https://github.com/gosharplite/tellme/pull/38#issuecomment-5657097770); evaluated head `c66f500` (**== current HEAD**): **PLAN + TRUTH APPROVED — PROCEED WITH ARCHITECTURAL DIRECTIVES** (1 blocker + 4 directives, + 3 verdict-level notes) |
+| STATUS/daily log | Review recorded (header, round-015 section, roadmap row, open items, environment note) + this §13 |
+| `/axb-tasks` | `tasks.md` delivered — **40 tasks**; Setup = the Bubble Tea family; Phase 3 = 16 `[BDD-RED]` + 4 `[UNIT]` + review; 4 ADD Feature phases + regression; **Pre-Delivery orphan sweep 0** |
+
+### The review (verdict + directives)
+
+- **Verdict**: **PLAN + TRUTH APPROVED — PROCEED TO IMPLEMENTATION WITH ARCHITECTURAL DIRECTIVES** (head `c66f500`). Truth verified consistent (`data-model.dbml` ADD `prompt_log_entry`; `techstack.md` MODIFY; `features/cli/chat/**` ADD ×4 + 16 DSL rows; `/axb-api-plan` NOOP; root `cli/dsl.md` NOOP, vocabulary 11); topology audit PASSED (690 steps, 0 errors); `make verify` PASS.
+- **🔴 BLOCKER (implementation)** — **TUI output stream containment**: bind Bubble Tea to `env.stderr` (`tea.WithOutput`/`tea.WithInput`); `stdout` stays byte-exact (FR-015).
+- **🟡 TECHNICAL DEBT** — package/domain-boundary alignment: `plan.md`'s `internal/domain/config` and `internal/domain/ports` are stale → modify `internal/config/config.go`; put ports in focused subdomains (`internal/domain/suggestions/`, `internal/domain/history/…`); coordinator `internal/app/suggestions/`; adapter `internal/infrastructure/history/global_prompt_tracker.go`.
+- **🟡 TECHNICAL DEBT** — suggestion-engine I/O bounds: scope to `filepath.Split(query)`, chunk `ReadDir` (≤100), honour `ctx.Err()`, skip ignore-listed dirs (`.git`, `node_modules`), stop at 10 candidates.
+- **🔵 REFACTOR** — `tuiPromptRunner` DI seam in `cli.go`.
+- **🔵 REFACTOR** — optimistic concurrency / async append safety: `O_APPEND|O_CREATE|O_WRONLY`; async size-snapshot-checked compaction; `Close(ctx) error` via `sync.WaitGroup`.
+
+### `/axb-tasks` — the delivered `tasks.md`
+
+- **Setup (T001–T003)** — add `bubbletea` + `bubbles`, promote `lipgloss` to direct (`go mod tidy`); align the TUI runtime env + single-source `cli.TUIHint`; smoke-test the TTY-gated `-i` link.
+- **Foundational (T004–T010)** — landing skeletons (Zero Shared Edits): `internal/ui/tui/prompt/`; focused-subdomain ports (`internal/domain/suggestions/`, prompt-tracker); `internal/app/suggestions/service.go`; `internal/infrastructure/history/global_prompt_tracker.go`; `internal/config` `USE_TUI_PROMPT` + the `-i` flag + the `tuiPromptRunner` seam; the 16 stepdef landing files; the `[UNIT]` landing files.
+- **Phase 3 (T011–T031)** — 16 `[P]` `[BDD-RED]` (one per new DSL row: 1 Given + 5 When + 10 Then) + 4 `[P]` `[UNIT]` (suggestion engine; shared-log store; TUI model injected-I/O; gating matrix) + T031 subagent review.
+- **Phase 4A–4D (T032–T039)** — the 4 `ADD` truth features (`prompting-with-suggestions`, `using-the-interactive-prompt`, `recording-the-shared-prompt-log`, `choosing-the-interactive-prompt`), each `[BDD-GREEN] → [BDD-REFACTOR]` with a `Test Scope`.
+- **Phase 4E (T040)** — `[REGRESSION]` over `specs/truth/features/cli/**` + falsifiability witness + `make verify` + topology audit.
+- **Pre-Delivery Orphan Coverage Sweep** — 0 orphans (all non-NOOP truth-delta rows, research Decisions 1–9, and the changed `techstack.md` sections are task-`Read`-covered or directly delivered).
+
+### Decisions log
+
+| # | Decision |
+| --- | --- |
+| D1 | This session = **session 4** on 2026-09-14, continuing the round-015 branch (`c66f500`, PR #38 open). |
+| D2 | The 5 review directives are **embedded** in `tasks.md` task Boundaries/Reads (blocker → Feature Green boundary + Setup/Foundational; package layout → Foundational landing paths; suggestion I/O → T006/T027 + Feature boundary; DI seam → T008/T030; async append → T007/T028 + Feature boundary). |
+| D3 | No truth change (plan-side `tasks.md` + `STATUS.md`/daily log only) → **no `truth-delta.md` update**; only `tasks.md` is added to the plan package. |
+
+### Artifacts / commits (branch `015-interactive-tui-prompt`)
+
+- `specs/plans/015-interactive-tui-prompt/tasks.md` (NEW) — the round's execution control plane.
+- `STATUS.md` + this daily log §13.
+- (Commit/perf-out at closeout.)
+
+### Open items (non-blocking)
+
+- **Round 015 implementation** — `/axb-implement` (Setup → Foundational → Phase 3 test alignment → 4 Feature Green/Refactor → regression), carrying the review directives.
+- Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / **no `flock`**; round-011 forward items (estimation constants; persona seam; **N-2**).
+- **Propagation PENDING** — PR [#38](https://github.com/gosharplite/tellme/pull/38) open → `dev` (plan + truth only); not merged; `main` unchanged.
+
+### Next steps
+
+1. **`/axb-implement`** on `015-interactive-tui-prompt` (One-Shot over the 40 delivered tasks).
+2. When the round is deliverable and a human merges PR #38 → `dev`, propagate `dev → main` (no-ff) — human-approved.
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `015-interactive-tui-prompt`).
+
+### PM follow-ups
+
+- None new (spec/acceptance are complete; no PM-owned gaps).
