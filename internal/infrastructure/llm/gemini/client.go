@@ -96,6 +96,9 @@ func (c *Client) Complete(ctx context.Context, req llm.Request) (llm.Response, e
 		return llm.Response{}, c.wrap(err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := extractErrorMessage(raw); msg != "" {
+			return llm.Response{}, c.wrap(fmt.Errorf("provider returned status %d: %s", resp.StatusCode, msg))
+		}
 		return llm.Response{}, c.wrap(fmt.Errorf("provider returned status %d", resp.StatusCode))
 	}
 	answer, err := parseResponse(raw)
@@ -107,6 +110,24 @@ func (c *Client) Complete(ctx context.Context, req llm.Request) (llm.Response, e
 
 func (c *Client) wrap(err error) error {
 	return &llm.ProviderError{Provider: c.cfg.ProviderName, Err: err}
+}
+
+// extractErrorMessage pulls the provider's structured error message out of a
+// Vertex error body so a non-2xx detail is actionable. Vertex returns
+// {"error":{"code":...,"message":"...","status":"..."}}.
+func extractErrorMessage(raw []byte) string {
+	var decoded struct {
+		Error struct {
+			Message string `json:"message"`
+			Status  string `json:"status"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(raw, &decoded); err == nil {
+		if msg := strings.TrimSpace(decoded.Error.Message); msg != "" {
+			return msg
+		}
+	}
+	return ""
 }
 
 // requestURL appends the model + `:generateContent` to the configured base URL.
@@ -179,18 +200,21 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 }
 
 // buildGenerationConfig builds the Vertex `generationConfig` (output cap +
-// thinking config), returning nil when nothing is set.
+// thinking config), returning nil when nothing is set. Vertex rejects
+// `thinkingBudget` and `thinkingLevel` together ("thinking_budget and
+// thinking_level are not supported together"), so exactly one is sent: the level
+// when configured (the Gemini 3 knob), else the budget.
 func buildGenerationConfig(maxTokens, thinkingBudget int, thinkingLevel string) map[string]any {
 	gen := map[string]any{}
 	if maxTokens > 0 {
 		gen["maxOutputTokens"] = maxTokens
 	}
 	thinking := map[string]any{}
-	if thinkingBudget > 0 {
-		thinking["thinkingBudget"] = thinkingBudget
-	}
-	if thinkingLevel != "" {
+	switch {
+	case thinkingLevel != "":
 		thinking["thinkingLevel"] = thinkingLevel
+	case thinkingBudget > 0:
+		thinking["thinkingBudget"] = thinkingBudget
 	}
 	if len(thinking) > 0 {
 		gen["thinkingConfig"] = thinking

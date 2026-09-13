@@ -51,8 +51,13 @@ func TestRequestBody_TextPersonaBudgetTools(t *testing.T) {
 		t.Errorf("maxOutputTokens = %v, want 40960", gc["maxOutputTokens"])
 	}
 	tcfg, _ := gc["thinkingConfig"].(map[string]any)
-	if tcfg == nil || tcfg["thinkingBudget"].(float64) != 32768 || tcfg["thinkingLevel"] != "HIGH" {
-		t.Errorf("thinkingConfig = %v", gc["thinkingConfig"])
+	if tcfg == nil || tcfg["thinkingLevel"] != "HIGH" {
+		t.Errorf("thinkingConfig = %v, want thinkingLevel HIGH", gc["thinkingConfig"])
+	}
+	// Vertex rejects thinkingBudget + thinkingLevel together, so only the level
+	// is sent when both are configured.
+	if _, present := tcfg["thinkingBudget"]; present {
+		t.Errorf("thinkingConfig must not carry thinkingBudget alongside thinkingLevel: %v", tcfg)
 	}
 	tools, _ := decoded["tools"].([]any)
 	if len(tools) != 1 {
@@ -90,6 +95,27 @@ func TestRequestBody_ZeroBudgetAndThinkingOmitted(t *testing.T) {
 	}
 	if strings.Contains(string(body), `"tools"`) {
 		t.Errorf("body carries tools when none are declared: %s", body)
+	}
+}
+
+func TestRequestBody_ThinkingBudgetOnly(t *testing.T) {
+	body, err := requestBody("hi", nil, nil, 0, 32768, "", "")
+	if err != nil {
+		t.Fatalf("requestBody: %v", err)
+	}
+	var decoded struct {
+		GenerationConfig struct {
+			ThinkingConfig map[string]any `json:"thinkingConfig"`
+		} `json:"generationConfig"`
+	}
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if decoded.GenerationConfig.ThinkingConfig["thinkingBudget"].(float64) != 32768 {
+		t.Errorf("thinkingConfig = %v, want thinkingBudget 32768", decoded.GenerationConfig.ThinkingConfig)
+	}
+	if _, present := decoded.GenerationConfig.ThinkingConfig["thinkingLevel"]; present {
+		t.Errorf("thinkingConfig must not carry thinkingLevel when only a budget is set: %v", decoded.GenerationConfig.ThinkingConfig)
 	}
 }
 
