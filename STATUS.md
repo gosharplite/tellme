@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-14 — **round 014 `014-session-replay-fidelity` DELIVERED / FROZEN** (PR [#35](https://github.com/gosharplite/tellme/pull/35) merged into `dev` (`e4dac2d`, by `thptcnec`); propagated `dev → main` (`TBD014`); see the *Round 014* section). Prior rounds' detail is in the archives ([2026-09-11](docs/archives/status/2026-09-11.md), [2026-09-13](docs/archives/status/2026-09-13.md), [2026-09-14](docs/archives/status/2026-09-14.md)).
+**Last updated**: 2026-09-14 — **round 014 `014-session-replay-fidelity` DELIVERED / FROZEN** (PR [#35](https://github.com/gosharplite/tellme/pull/35) merged into `dev` (`e4dac2d`, by `thptcnec`); propagated `dev → main` (`e523c59`); see the *Round 014* section). Prior rounds' detail is in the archives ([2026-09-11](docs/archives/status/2026-09-11.md), [2026-09-13](docs/archives/status/2026-09-13.md), [2026-09-14](docs/archives/status/2026-09-14.md)).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
 **Active branch**: `dev` — round 014 delivered / frozen; the next round starts a fresh `015-*` off `dev`.
 **Daily log**: [`docs/session-summary/2026/09/14/session-summary.md`](docs/session-summary/2026/09/14/session-summary.md)
@@ -8,13 +8,13 @@
 
 ## Round 014 — `014-session-replay-fidelity` (delivered / frozen)
 
-**Status**: ✅ **DELIVERED / FROZEN** (2026-09-14) — PR [#35](https://github.com/gosharplite/tellme/pull/35) **MERGED** into `dev` (`e4dac2d`, by `thptcnec`); propagated `dev → main` (`TBD014`). Round-014 head frozen at **`e9239a8`** (the re-certified SHA). `make verify` OK · godog **90/90** · topology audit **PASSED** (609 steps).
+**Status**: ✅ **DELIVERED / FROZEN** (2026-09-14) — PR [#35](https://github.com/gosharplite/tellme/pull/35) **MERGED** into `dev` (`e4dac2d`, by `thptcnec`); propagated `dev → main` (`e523c59`). Round-014 head frozen at **`e9239a8`** (the re-certified SHA). `make verify` OK · godog **90/90** · topology audit **PASSED** (609 steps).
 
 **Scope**: make a **resumed** session replay its tool steps faithfully by persisting the per-tool-step provider **signature** (the Gemini 3 `thoughtSignature`). `history.Step` gains an optional, provider-agnostic `Signature`; `AgentLoop` records it per step and `BuildMessages` replays it into the synthesised `llm.ToolCall`. Behaviour intent **MODIFY** (the persisted tool-step record) + **ADD** (the resume-with-tools contract). Anchor issue [#34](https://github.com/gosharplite/tellme/issues/34) — the primary 014 candidate.
 
 **Clarify Round 1 (locked `1,1`)**: (Q1) a dedicated nullable, provider-agnostic **`signature`** step field (no generic metadata container); (Q2) an absent signature on resume keeps the **unchanged best-effort** replay (`the provider request failed`, exit 6) — no pre-flight detection.
 
-**Review / re-certification trail**: FULL ARCHITECTURAL APPROVAL at `cb146bf` (one non-blocking forward consideration — a name-keyed replay map in the E2E helper) → fixed in-round `e9239a8` (match replayed calls **by order**) → **RE-CERTIFIED at `e9239a8`** → merged `e4dac2d` → propagated `TBD014`.
+**Review / re-certification trail**: FULL ARCHITECTURAL APPROVAL at `cb146bf` (one non-blocking forward consideration — a name-keyed replay map in the E2E helper) → fixed in-round `e9239a8` (match replayed calls **by order**) → **RE-CERTIFIED at `e9239a8`** → merged `e4dac2d` → propagated `e523c59`.
 
 **Artifacts / pipeline** — all phases **done**:
 - [x] plan package: `spec.md`, `checklists/requirements.md`, `research.md` (Decisions 1–8), `plan.md` (CLI end + session-history store; 1 wave; `/axb-api-plan` = NOOP; `/axb-data-plan` = MODIFY; CLI end → `/axb-dsl-refine`), `features/acceptance/**` ×2, `tasks.md` (12 tasks; Setup omitted — stdlib-only; orphan sweep 0), `truth-delta.md`.
@@ -55,7 +55,7 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 | `001-*` … `014-session-replay-fidelity` | delivered / frozen | Each round's working branch — merged into `dev` via its PR, then propagated `dev → main`; frozen history (never receives post-round commits). |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`; only a human merges the PR. Propagation is the no-ff merge `dev → main`.
-> **Propagation (round 014):** `014-session-replay-fidelity → dev` (PR [#35](https://github.com/gosharplite/tellme/pull/35), `e4dac2d`) `→ main` (`TBD014`) — DONE; closeout docs on `dev`.
+> **Propagation (round 014):** `014-session-replay-fidelity → dev` (PR [#35](https://github.com/gosharplite/tellme/pull/35), `e4dac2d`) `→ main` (`e523c59`) — DONE; closeout docs on `dev`.
 > Read live heads with `git rev-parse --short main dev HEAD`.
 
 ## Roadmap — next slices
