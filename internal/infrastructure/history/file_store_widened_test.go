@@ -48,3 +48,49 @@ func TestFileStore_EntryWithoutStepsOmitsSteps(t *testing.T) {
 		t.Fatalf("file = %q, want the no-steps form (omitempty)", string(data))
 	}
 }
+
+// T007 (round 014) — the per-step provider signature round-trips, and a
+// signature-less step stays byte-identical to the round-008 shape (omitempty).
+
+func TestFileStore_SignedStepRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	s := NewFileStore(dir)
+	entry := domainhistory.Entry{
+		Prompt: "read notes.txt",
+		Answer: "ORANGE",
+		Steps:  []domainhistory.Step{{Tool: "read_files", Arguments: `{"path":"notes.txt"}`, Result: "ORANGE", Signature: "sig-abc"}},
+	}
+	if err := s.Append(entry); err != nil {
+		t.Fatalf("Append: %v", err)
+	}
+	got, err := s.Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 || len(got[0].Steps) != 1 || got[0].Steps[0].Signature != "sig-abc" {
+		t.Fatalf("Load = %+v, want the signature round-tripped", got)
+	}
+	data, _ := os.ReadFile(filepath.Join(dir, "history.jsonl"))
+	wantLine := `{"prompt":"read notes.txt","answer":"ORANGE","steps":[{"tool":"read_files","arguments":"{\"path\":\"notes.txt\"}","result":"ORANGE","signature":"sig-abc"}]}` + "\n"
+	if string(data) != wantLine {
+		t.Fatalf("file = %q, want %q", string(data), wantLine)
+	}
+}
+
+func TestFileStore_UnsignedStepOmitsSignature(t *testing.T) {
+	dir := t.TempDir()
+	s := NewFileStore(dir)
+	entry := domainhistory.Entry{
+		Prompt: "q",
+		Answer: "a",
+		Steps:  []domainhistory.Step{{Tool: "read_files", Arguments: `{}`, Result: "r"}},
+	}
+	if err := s.Append(entry); err != nil {
+		t.Fatalf("Append: %v", err)
+	}
+	data, _ := os.ReadFile(filepath.Join(dir, "history.jsonl"))
+	wantLine := `{"prompt":"q","answer":"a","steps":[{"tool":"read_files","arguments":"{}","result":"r"}]}` + "\n"
+	if string(data) != wantLine {
+		t.Fatalf("file = %q, want the signature-less shape (omitempty)", string(data))
+	}
+}
