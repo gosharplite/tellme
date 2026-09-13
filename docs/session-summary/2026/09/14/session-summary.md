@@ -113,3 +113,43 @@ Re-read `README.md`; the `tell-me-go` 8-item bootstrap (README, Makefile, the `t
 ## 10. PM follow-ups
 
 - None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
+
+
+---
+
+## 11. Session 2 (2026-09-14) — round-015 scoping (`-i` Interactive TUI Prompt) + upstream skill request + closeout
+
+A second session on the same calendar day: bootstrap, scope the next slice (`-i`), route two framework/design decisions, and close out.
+
+### Work done
+
+1. **Bootstrap (Steps 1–8)** — re-read `README.md`; the `tell-me-go` 8-item bootstrap (README, Makefile, `tell-me-go`/`quality`/`environment-management` models, `INTENTIONAL_NON_FIXES.md`, `list_skills`); the `aixbdd-tmg` domain model + README; `list_skills`; in-group peers (self `butler`; peers `architect`, `coder`, `griller`, `pm`, `rd`); `STATUS.md` (**active branch `dev` confirmed current**); last-5-days summaries (09/10–09/14). Rounds 001–014 delivered/frozen; next round a fresh `015-*` off `dev`.
+2. **Round-015 theme decided** — the **`-i` / `--interactive` Interactive TUI Prompt** (re-create `tell-me-go`'s TUI: suggestion engine, session dashboard, multi-line editor, keybindings). Studied `tell-me-go` `docs/user/tui-prompt.md`, `internal/ui/tui/prompt/**`, `internal/app/suggestions/service.go`, `internal/cli/chat_command.go`. Noted it is **distinct from round 012** (a *plain* multi-line reader) and preserves the non-TTY fallback.
+3. **Compatibility requirement surfaced** — the suggestion engine must interoperate with `$TELL_ME_HOME/output/global_prompts.jsonl` (shared Niffler env): format `{"timestamp":"<RFC3339>","prompt":"<text>"}`, append-only at the `output/` **root**, dedupe/newest-first, `LoadTopN`, compaction; source `tell-me-go`'s `globalPromptTracker` (written only on the TUI path). → a **data-model** addition (`/axb-data-plan`).
+4. **UI-plan medium decision (locked: option c)** — a rich TUI needs a plan-side UX artifact, but `axb-ui-plan`'s medium is HTML. Decision: **amend the existing `axb-ui-plan` with a terminal/TUI mode** (no HTML) — **not** a new `axb-tui-plan` sibling skill. Rationale: the skill's *role* is correct, only the *medium* is wrong; precedent = the upstream `InterfaceKind: cli` addition (aixbdd-tmg PR #2).
+5. **Upstream issue created** — [aixbdd-tmg#13](https://github.com/gosharplite/aixbdd-tmg/issues/13) — *"axb-ui-plan: add a terminal/TUI mode (no HTML)…"*: motivation, medium-by-interface-kind table, artifact shape (terminal frames + keybinding / state-transition list), rule amendments, `Prototype` domain-model amendment, cross-file coherence list, ADR 0005, open questions Q1–Q6, acceptance (`modelith lint` / `render --check` + a terminal `ui-plan.example`).
+6. **Slice-015 anchor issue created** — [tellme#37](https://github.com/gosharplite/tellme/issues/37) — theme, scope sketch, the `global_prompts.jsonl` compatibility requirement, the **gating dependency** (aixbdd-tmg#13 gates only the `/axb-ui-plan` step), and open questions (read-only vs read+write; record always vs only under `-i`; compaction parity; tool-suggestions source; round-012 relationship; platform scope).
+
+### Decisions log
+
+| # | Decision |
+| --- | --- |
+| D1 | Round 015 = the **`-i` Interactive TUI Prompt** (issue [#37](https://github.com/gosharplite/tellme/issues/37)); opens via `/axb-specify` next session. |
+| D2 | **`axb-ui-plan` gets a terminal/TUI mode (option c)** — amend the existing skill, not a new `axb-tui-plan`; routed upstream as [aixbdd-tmg#13](https://github.com/gosharplite/aixbdd-tmg/issues/13). |
+| D3 | The TUI's suggestion engine **must be compatible with** `$TELL_ME_HOME/output/global_prompts.jsonl` (shared Niffler env); a `/axb-data-plan` change. |
+| D4 | The `/axb-ui-plan` step is **gated** on aixbdd-tmg#13; the rest of the `015-*` pipeline is not. |
+
+### Open items (non-blocking)
+
+- **Round 015** — scoped ([#37](https://github.com/gosharplite/tellme/issues/37)); the `global_prompts.jsonl` sub-decisions (read/write, always vs `-i`, compaction parity) to settle in `/axb-specify` + `/axb-clarify`.
+- **Upstream** — [aixbdd-tmg#13](https://github.com/gosharplite/aixbdd-tmg/issues/13) to land (and the vendored skills refreshed) before the `/axb-ui-plan` step.
+- Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / no `flock`; round-011 forward items (estimation constants; persona seam; **N-2**).
+
+### Next steps
+
+1. User resolves **[aixbdd-tmg#13](https://github.com/gosharplite/aixbdd-tmg/issues/13)** and refreshes the vendored skills.
+2. Next session: re-read `SESSION-BOOTSTRAP.md`; re-read the updated `axb-ui-plan` skill; start `015-*` via `/axb-specify` off `dev`.
+
+### PM follow-ups
+
+- None new (spec/acceptance unchanged; PM-1..PM-4 remain closed). Note for **015**: any new acceptance rule (e.g. the TUI suggestion/dashboard contracts) is PM-owned.
