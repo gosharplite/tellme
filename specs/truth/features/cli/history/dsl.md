@@ -9,6 +9,12 @@ interface root, every step in this module's feature must match exactly one row.
 > `{home}` stands for the runtime home (`TELL_ME_HOME`), per the workspace-module path convention.
 > The store is read wholesale on resume and written one line per completed turn (round 007).
 
+## Given
+
+| DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
+| --- | --- | --- | --- | --- |
+| `the session history already holds a tool-using exchange` | 無 | 不支援 | `工作區`: writes into `$TELL_ME_HOME/output/<mode>/history.jsonl` (the effective mode's session workspace). | `怎麼做`: create the per-mode session workspace directory if absent, then append one JSON line carrying `prompt`, `answer`, and an ordered `steps` array with one step (the widened record from `specs/truth/data/data-model.dbml`). `權威狀態落地`: the active history holds a completed tool-using turn. `回寫`: the session history file. |
+
 ## When
 
 | DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
@@ -25,3 +31,4 @@ interface root, every step in this module's feature must match exactly one row.
 | `tellme lists the last {count} messages` | `count`: integer; the number of messages listed. | 不支援 | `來源`: the arranged exchanges (the `the session history already holds the exchanges:` Given). | `必查`: `呈現結果`: stdout carries the last `{count}` messages of the arranged history, in order. `不該發生`: the listing must not include exchanges older than the last `{count}`. |
 | `tellme lists no messages` | 無 | 不支援 | 無 | `必查`: `呈現結果`: stdout carries no messages. `不該發生`: nothing may be listed for a session with no persisted history. |
 | `tellme sends no request to any provider` | 無 | 不支援 | 無 | `必查`: `呈現結果` / `權威狀態`: every configured fake provider recorded zero requests. `不該發生`: a listing run must not contact a provider. |
+| `tellme lists only the operator's messages` | 無 | 不支援 | `來源`: the arranged tool-using history (the `the session history already holds a tool-using exchange` Given). | `必查`: `呈現結果`: stdout carries the stored prompt and answer and **no** tool-step text. `不該發生`: the widened tool activity must not be surfaced by `-l`. |
