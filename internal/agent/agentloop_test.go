@@ -134,3 +134,23 @@ func TestBuildMessagesReplaysToolSteps(t *testing.T) {
 		t.Fatalf("replay tool result = %+v", msgs[2])
 	}
 }
+
+// T008 (round 014) — the persisted provider token replays into the synthesised
+// tool call (the deterministic id is unchanged).
+func TestBuildMessagesReplaysSignature(t *testing.T) {
+	prior := []history.Entry{{
+		Prompt: "read notes.txt",
+		Answer: "ORANGE",
+		Steps:  []history.Step{{Tool: "read_files", Arguments: `{"path":"notes.txt"}`, Result: "ORANGE", Signature: "sig-abc"}},
+	}}
+	msgs := BuildMessages(prior)
+	if len(msgs) != 4 || len(msgs[1].ToolCalls) != 1 {
+		t.Fatalf("messages = %+v", msgs)
+	}
+	if msgs[1].ToolCalls[0].Signature != "sig-abc" {
+		t.Fatalf("replayed tool-call signature = %q, want sig-abc", msgs[1].ToolCalls[0].Signature)
+	}
+	if msgs[1].ToolCalls[0].ID != "call_step_1" {
+		t.Fatalf("replayed tool-call id = %q, want call_step_1", msgs[1].ToolCalls[0].ID)
+	}
+}

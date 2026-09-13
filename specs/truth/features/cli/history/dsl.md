@@ -9,6 +9,8 @@ interface root, every step in this module's feature must match exactly one row.
 > `{home}` stands for the runtime home (`TELL_ME_HOME`), per the workspace-module path convention.
 > The store is read wholesale on resume and written one line per completed turn (round 007).
 
+> **Round 014 (`014-session-replay-fidelity`):** the persisted tool step gains an optional, provider-agnostic `signature` — the token the model emitted for the call (for example the Gemini 3 `thoughtSignature`), persisted only when the provider supplies one (omitted when empty, so existing lines stay byte-identical) and replayed on resume so a tool-using Gemini session resumes faithfully. This module's own features are unchanged; the signed-exchange Given and the replay assertions live in the `chat` module.
+
 ## Given
 
 | DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
