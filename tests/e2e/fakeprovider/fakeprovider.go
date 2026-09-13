@@ -8,6 +8,7 @@ package fakeprovider
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -34,7 +35,16 @@ type Provider struct {
 	script      []Reply
 	served      int
 	bodies      []string
+	usage       *usageCounts
 	closeOnce   sync.Once
+}
+
+// usageCounts is a scripted `usage` block the fake reports on its answers
+// (round-009 T006).
+type usageCounts struct {
+	prompt     int
+	completion int
+	total      int
 }
 
 // Start launches the fake provider on a loopback listener.
@@ -58,6 +68,22 @@ func (p *Provider) ErrorStatus(code int) { p.mu.Lock(); p.errorStatus = code; p.
 
 // NoAnswer scripts the provider to reply with a body carrying no usable answer.
 func (p *Provider) NoAnswer() { p.mu.Lock(); p.noAnswer = true; p.mu.Unlock() }
+
+// ReportUsage scripts the provider to include a `usage` block on its answers
+// (round-009 T006), so the CLI's post-turn measured status line can be asserted.
+func (p *Provider) ReportUsage(prompt, completion int) {
+	p.mu.Lock()
+	p.usage = &usageCounts{prompt: prompt, completion: completion, total: prompt + completion}
+	p.mu.Unlock()
+}
+
+// NoUsage scripts the provider to omit the `usage` block (the default), so the
+// CLI omits the post-turn measured status line.
+func (p *Provider) NoUsage() {
+	p.mu.Lock()
+	p.usage = nil
+	p.mu.Unlock()
+}
 
 // Script sets the ordered replies the provider serves. Once the sequence is
 // exhausted the final reply repeats — so a single-element script models an
@@ -124,7 +150,7 @@ func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
 	raw, _ := io.ReadAll(r.Body)
 	p.mu.Lock()
 	p.bodies = append(p.bodies, string(raw))
-	status, answer, noAnswer := p.errorStatus, p.answer, p.noAnswer
+	status, answer, noAnswer, usage := p.errorStatus, p.answer, p.noAnswer, p.usage
 	hasScript := len(p.script) > 0
 	var reply Reply
 	if hasScript {
@@ -147,14 +173,18 @@ func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
 	case hasScript && reply.ToolName != "":
 		_, _ = w.Write([]byte(toolCallBody(reply.ToolName, reply.Arguments)))
 	case hasScript:
-		_, _ = w.Write([]byte(answerBody(reply.Answer)))
+		_, _ = w.Write([]byte(answerBody(reply.Answer, usage)))
 	default:
-		_, _ = w.Write([]byte(answerBody(answer)))
+		_, _ = w.Write([]byte(answerBody(answer, usage)))
 	}
 }
 
-func answerBody(text string) string {
-	return `{"choices":[{"message":{"role":"assistant","content":` + jsonString(text) + `}}]}`
+func answerBody(text string, u *usageCounts) string {
+	usageJSON := ""
+	if u != nil {
+		usageJSON = fmt.Sprintf(`,"usage":{"prompt_tokens":%d,"completion_tokens":%d,"total_tokens":%d}`, u.prompt, u.completion, u.total)
+	}
+	return `{"choices":[{"message":{"role":"assistant","content":` + jsonString(text) + `}}]` + usageJSON + `}`
 }
 
 // toolCallBody builds a tool-call response; the wire call id is deterministic
