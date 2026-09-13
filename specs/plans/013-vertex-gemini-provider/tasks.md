@@ -31,7 +31,7 @@
   - Read:
     - `specs/plans/013-vertex-gemini-provider/research.md` -> Decision 2, 6
     - `tests/e2e/fakeprovider/fakeprovider.go`
-  - 只做：在 fake provider 增加一個可切換的 Vertex 形狀回應（`candidates[0].content.parts` 文本／`functionCall`、`usageMetadata`）與一個 token 端點（回 `access_token`）；保留既有 OpenAI 形狀與既有 recorder。
+  - 只做：在 fake provider 增加一個可切換的 Vertex 形狀回應（`candidates[0].content.parts` 文本／`functionCall`、`usageMetadata`）與一個 token 端點（回 `access_token`），以 request path 分派（`…/token` → OAuth2 JSON；`…:generateContent` → Vertex JSON；其餘 → 既有 OpenAI handler）；保留既有 OpenAI 形狀與既有 recorder。
   - 不做：不改產品碼；不改既有 OpenAI 場景行為。
 
 - [ ] T003 新增 E2E「gemini provider + service-account key」共用 arrange helper
@@ -167,6 +167,8 @@
 - 產品碼：`internal/infrastructure/llm/gemini` 實作 `llm.Gateway`：以設定 `URL` 的 project/location/publisher 路徑 + `MODEL` 組 Vertex `:generateContent` 請求（`contents`／`systemInstruction`／`generationConfig`（`maxOutputTokens`、`thinkingConfig`）／`tools[].functionDeclarations`），並正規化 `candidates[0].content.parts`（text + `functionCall`）與 `usageMetadata`。`factory.go` 把 `gemini`/`google` 對到此 adapter；其他 family 維持既有 unsupported 失敗（不 silent 擴張）。
 - `internal/cli` 不需變更（已透過 factory seam）。
 - OpenAI-family 請求 byte 不變；`stdout` 契約不變。
+- **多輪工具交換的 Vertex wire format（review D1）**：把 `AgentLoop` 帶入的 prior messages re-map 成 Vertex `contents` — assistant 的 tool call 用 `role: "model"` + `functionCall`，tool result 用 `role: "user"` + `functionResponse`（Vertex 拒絕 `role: "tool"`）。
+- **endpoint 由設定 `URL` 直組（review D2）**：不做 hostname 驗證（以利 loopback fake）；僅驗 path 結構符合 Vertex 佈局。
 
 **Test Scope**:
 - `specs/truth/features/cli/chat/driving-a-vertex-gemini-model.feature`
@@ -187,6 +189,7 @@
 **Boundary**:
 - 產品碼：`internal/infrastructure/llm/gemini/auth.go` 讀 service-account JSON（`client_email`／`private_key`／`token_uri`），以 stdlib `crypto/*` 簽 JWT-RS256，`net/http` POST token 端點取 access token，附 `Authorization: Bearer`，並在 process 內快取重用。缺失／不可讀／非 `.json` → `the provider request failed`（exit 6），**不** silent fallback。
 - 只改 gemini auth 路徑；不改 OpenAI-family 與 `-d`／boot（不建 transport）。
+- **並發安全 token 快取（review D3）**：以 `sync.RWMutex` + double-checked locking + ~60s 到期安全邊際；到期／401 才重新 mint。
 
 **Test Scope**:
 - `specs/truth/features/cli/chat/authenticating-to-a-vertex-gemini-model.feature`
