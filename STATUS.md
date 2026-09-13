@@ -10,7 +10,7 @@
 
 **Status**: ✅ **DELIVERED / FROZEN** (2026-09-13) — PR [#33](https://github.com/gosharplite/tellme/pull/33) **MERGED** into `dev` (`6ed3bbc`, by `thptcnec`); propagated `dev → main` (`9a3587a`). Round-013 head frozen at **`6f3f83f`** (the re-certified SHA). `make verify` OK · godog **88/88** · topology audit **PASSED** (595 steps) · **live-verified against Vertex**.
 
-**Scope**: add the **Vertex AI / Gemini provider family** to the CLI end — a new `internal/infrastructure/llm/gemini` adapter (Vertex `:generateContent` request assembly + response normalization, plus a **stdlib** service-account OAuth2 flow), the factory family mapping (`gemini`/`google`), and the E2E support. Behaviour intent **ADD** (a new provider transport). Anchor issue [#32](https://github.com/gosharplite/tellme/issues/32).
+**Scope**: add the **Vertex AI / Gemini provider family** to the CLI end — a new `internal/infrastructure/llm/gemini` adapter (Vertex `:generateContent` request assembly + response normalization, plus a **stdlib** service-account OAuth2 flow), the factory family mapping (`gemini`/`google`), and the E2E support. Behaviour intent **ADD** (a new provider transport). Anchor issue [#32](https://github.com/gosharplite/tellme/issues/32) — **closed as completed** (2026-09-13, on delivery).
 
 **Clarify Round 1 (locked `1,1,1`)**: (Q1) **Vertex AI only** (Gemini API family + ADC deferred); (Q2) **`.json`-suffix service-account detection** (no schema change); (Q3) **stdlib-only OAuth2** — no new module.
 
