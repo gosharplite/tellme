@@ -19,6 +19,6 @@ func init() {
 func whenSubmitAtPrompt(ctx context.Context, prompt string) error {
 	sc := scenarioFrom(ctx)
 	sc.lastPrompt = prompt
-	launchTUI(sc, tuiKeysTypeAndSubmit(prompt))
+	launchTUI(sc, tuiKeysTypeAndSubmit(unescapeText(prompt)))
 	return nil
 }

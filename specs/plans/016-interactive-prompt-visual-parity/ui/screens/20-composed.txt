@@ -1,0 +1,14 @@
+┌────────────────────────────────────────────────────────────────────────┐
+│ deploy to staging with version 016                                     │
+│ and then run the smoke tests                                           │
+│ ▏                                                                      │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
+ Suggestions:
+ > deploy to staging with version 016
+   deploy to staging and run the smoke tests

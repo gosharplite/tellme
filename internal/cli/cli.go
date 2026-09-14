@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -145,7 +146,7 @@ var newHistoryStore historyStoreFactory = func(workspace string) history.Store {
 // It is the DI seam (PR #38 review directive ④): the -i / USE_TUI_PROMPT / non-TTY
 // dispatch matrix is unit-testable without a terminal event loop, mirroring
 // gatewayFactory / historyStoreFactory.
-type tuiPromptRunner func(ctx context.Context, res resolution, store history.Store, env runtimeEnv) (string, bool, error)
+type tuiPromptRunner func(ctx context.Context, res resolution, env runtimeEnv) (string, bool, error)
 
 // newTUIPromptRunner is the production TUI runner (a var so tests may inject a
 // fake).
@@ -155,7 +156,7 @@ var newTUIPromptRunner tuiPromptRunner = defaultRunTUIPrompt
 // on the diagnostic stream, drives the prompt bound to stderr/stdin through the
 // Bubble Tea runtime, and returns the composed prompt (ok) on submit. It never
 // writes to stdout (PR #38 review BLOCKER).
-func defaultRunTUIPrompt(ctx context.Context, res resolution, store history.Store, env runtimeEnv) (string, bool, error) {
+func defaultRunTUIPrompt(ctx context.Context, res resolution, env runtimeEnv) (string, bool, error) {
 	_, _ = fmt.Fprintln(env.stderr, TUIHint)
 
 	tracker := infrhistory.NewGlobalPromptTracker(res.Home)
@@ -166,25 +167,33 @@ func defaultRunTUIPrompt(ctx context.Context, res resolution, store history.Stor
 		appsuggestions.OSSWorkspace{},
 		appsuggestions.RegistryTools{Registry: reg},
 	)
-	prior, _ := store.Load()
-	src := tuiSource{ctx: ctx, svc: engine}
-	dash := tuiprompt.Dashboard{
-		Provider: res.Selected,
-		Budget:   res.MaxHistoryTokens,
-		Turns:    len(prior),
-	}
-	return tuiprompt.Run(ctx, env.stdin, env.stderr, src, dash)
+	src := tuiSource{svc: engine}
+	// No startup disk I/O: the dashboard header was retired (round-016 FR-004 /
+	// architect D3), so the history store is no longer read to build the prompt.
+	return tuiprompt.Run(ctx, env.stdin, env.stderr, src, tuiDebounceDuration())
 }
 
-// tuiSource adapts the suggestion engine to the prompt's text-only Source seam.
+// tuiDebounceDuration resolves the suggestion-refresh debounce. The hermetic E2E
+// sets TELL_ME_TUI_DEBOUNCE=0 so the scripted keys observe suggestions
+// synchronously (round-016); otherwise the reference ~100 ms applies.
+func tuiDebounceDuration() time.Duration {
+	if v := strings.TrimSpace(os.Getenv("TELL_ME_TUI_DEBOUNCE")); v != "" {
+		if ms, err := strconv.Atoi(v); err == nil && ms >= 0 {
+			return time.Duration(ms) * time.Millisecond
+		}
+	}
+	return tuiprompt.DefaultDebounceDuration
+}
+
+// tuiSource adapts the suggestion engine to the prompt's Source seam, carrying
+// ctx so a superseded fetch can be cancelled (round-016 architect D1).
 type tuiSource struct {
-	ctx context.Context
 	svc *appsuggestions.Service
 }
 
 // Suggest returns the engine's suggestion texts for the query.
-func (s tuiSource) Suggest(query string) []string {
-	sugg := s.svc.Suggest(s.ctx, query)
+func (s tuiSource) Suggest(ctx context.Context, query string) []string {
+	sugg := s.svc.Suggest(ctx, query)
 	out := make([]string, 0, len(sugg))
 	for _, x := range sugg {
 		out = append(out, x.Text)
@@ -214,8 +223,7 @@ func runTUIPrompt(homeDir string, opts *options, env runtimeEnv) int {
 	// (an aborted/empty submission owes no request — the round-012 ordering
 	// rationale). The resolution feeds the dashboard and the submit path.
 	res, _ := resolve(homeDir, opts.configPath)
-	store := newHistoryStore(res.Workspace)
-	text, ok, err := newTUIPromptRunner(context.Background(), res, store, env)
+	text, ok, err := newTUIPromptRunner(context.Background(), res, env)
 	if err != nil {
 		return emitProviderError(env.stderr, err)
 	}

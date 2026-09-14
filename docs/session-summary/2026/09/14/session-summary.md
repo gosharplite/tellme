@@ -367,3 +367,116 @@ The round's implementation half: completed `/axb-implement` (T011–T040), clear
 - None new (spec/acceptance unchanged).
 
 > **Propagation done (2026-09-14, session 5 closeout):** the two-step merge `015-interactive-tui-prompt → dev` (PR [#38](https://github.com/gosharplite/tellme/pull/38), `a3df102`) `→ main` (`60bbf72`) — **DONE** (no-ff); closeout docs on `dev`. Round 015 is now delivered on both lines.
+
+
+---
+
+## 15. Session 6 (2026-09-14) — round 016 (`016-interactive-prompt-visual-parity`) plan + truth half → PR #40 + review fold
+
+A session on the same calendar day: opened round **016** (make `tellme -i` a **strict visual-parity** re-creation of `tell-me-go -i`), ran the **plan + truth half**, opened **PR [#40](https://github.com/gosharplite/tellme/pull/40)**, folded the architectural review, and re-certified. **No product code** landed.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 015 delivered/frozen; active branch `dev`) |
+| Round-016 theme | strict visual parity for `-i` with `tell-me-go` ([#39](https://github.com/gosharplite/tellme/issues/39)) — bordered editor + styled suggestion list; **remove** the dashboard header |
+| `/axb-specify` | `specs/plans/016-interactive-prompt-visual-parity/`; strict parity **locked** by the operator (#39) |
+| `/axb-spec-by-example` | 3 acceptance features (chrome · settled suggestions · fit the terminal) |
+| `/axb-ui-plan` (terminal mode) | `ui/ui-plan.md` + `ui/screens/*.txt` ×4 (`entry`/`10-suggestion`/`20-composed`/`30-narrow`) |
+| `/axb-technical-research` | `research.md` (D1–8) + `specs/truth/techstack.md` MODIFY |
+| `/axb-system-analysis` | `plan.md` — 2 interfaces · 1 wave; `/axb-api-plan` = NOOP; `/axb-data-plan` = NOOP |
+| `/axb-dsl-refine` | DELETE the dashboard rule; ADD `presenting-the-interactive-prompt.feature`; MODIFY `prompting-with-suggestions.feature` + `chat/dsl.md` (+11 / −2); audit PASSED |
+| `/axb-tasks` | `tasks.md` (26 tasks; Setup omitted — no new tech) |
+| Delivery | branch `016-interactive-prompt-visual-parity`; **PR [#40](https://github.com/gosharplite/tellme/pull/40) → `dev`**; fold commit `9c12cbf` |
+
+### Work done
+
+1. **Bootstrap (Steps 1–8)** — re-read the pillars; `list_skills`; peers (self `butler`; `architect`/`coder`/`griller`/`pm`/`rd`); `STATUS.md` (active branch `dev`); last-5-days summaries (09/10–09/14). Rounds 001–015 delivered/frozen.
+2. **Round-016 theme + anchor** — the `-i` prompt's **strict visual parity** with `tell-me-go`; anchor **issue [#39](https://github.com/gosharplite/tellme/issues/39)**.
+3. **Plan half** — `/axb-specify` → `/axb-spec-by-example` → `/axb-ui-plan` (terminal) → `/axb-dsl-refine` → `/axb-tasks`.
+4. **RD half** — `/axb-technical-research` (research + `techstack.md`) → `/axb-system-analysis` → `/axb-dsl-refine`.
+5. **PR** — pushed the branch and opened **PR [#40](https://github.com/gosharplite/tellme/pull/40)** → `dev` (plan + truth only).
+6. **Review + fold** — PR #40 architecturally reviewed ([#5657665895](https://github.com/gosharplite/tellme/pull/40#issuecomment-5657665895), head `35dd2cb`) → **PLAN + TRUTH APPROVED** with F1–F3 + nits → folded in `9c12cbf` → status review ([#5657723056](https://github.com/gosharplite/tellme/pull/40#issuecomment-5657723056)) → **re-certified `9c12cbf`**.
+
+### Decisions locked (round 016)
+
+| # | Decision |
+| --- | --- |
+| D1 | **Strict parity** (#39): the `-i` prompt matches `tell-me-go` exactly (bordered editor + styled `Suggestions:` list; key hints in the placeholder). |
+| D2 | **Dashboard header removed** from the `-i` surface (supersedes round-015 US3; `FR-004`). |
+| D3 | No new dependency; POSIX-only; keybindings unchanged; class-phrase vocabulary stays **11**. |
+| D4 | F1.1 (debounce timing), F1.2 (resize/degrade), F2 (last-token) are **unit-pinned** via annotations (no pty). |
+
+### Commits (branch `016-interactive-prompt-visual-parity`)
+
+| Commit | Note |
+| --- | --- |
+| `290e580` | `docs(016): plan package and spec` |
+| `77cbfb6` | `docs(016): acceptance Gherkin for the interactive prompt parity` |
+| `97d320f` | `docs(016): terminal-mode UI plan for the interactive prompt parity` |
+| `4f748ad` | `docs(016): technical research + techstack truth` |
+| `4850648` | `docs(016): system-analysis plan` |
+| `7b9119e` | `docs(016): CLI interface truth for the interactive prompt parity` |
+| `35dd2cb` | `docs(016): tasks.md` |
+| `9c12cbf` | `docs(016): fold PR #40 review — acceptance-coverage, last-token, predicate, frames` |
+
+### Verification
+
+- Gherkin/DSL topology audit **PASSED** — **30 features · 11 root + 156 module DSL rows · 730 steps** (at `9c12cbf`; was 155 rows / 724 steps at `35dd2cb`).
+- No product code this half → `make verify` N/A.
+
+### Open items (non-blocking)
+
+- **Round 016** — `/axb-implement` (T001–T026) **pending**; PR #40 open, **not merged**.
+- Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / no pruning / **no `flock`**; round-011 forward items (estimation constants; persona seam; **N-2**).
+
+### Next steps
+
+1. **`/axb-implement`** over T001–T026 (Foundational → Phase 3 RED/REMOVE/UNIT + review → 4 Feature phases → regression with the two falsifiability witnesses).
+2. On delivery: review the implementation head → human merge PR #40 → propagate `016-interactive-prompt-visual-parity → dev → main`.
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `016-interactive-prompt-visual-parity`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+
+---
+
+## 16. Session 6 (cont.) — round 016 `/axb-implement` (T001–T026) implemented, green
+
+The implementation half of round 016 (strict `-i` visual parity): `/axb-implement` One-Shot over the 26 tasks, delivered green on-branch.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Phase 2 Foundational | T001–T003: 11 new stepdef landings + `tui_chrome.go` helpers; 2 `[UNIT]` files; the chrome-token + debounced-refresh seam |
+| Phase 3 Test Alignment | T004/T005 `[BDD-REMOVE]` (deleted the 2 dashboard stepdefs); T006–T016 `[BDD-RED]` (11 new stepdefs); T017/T018 `[UNIT]`; T019 review |
+| Phase 4 | T020–T023 GREEN/REFACTOR; T024 `[CODE-REMOVE]` (dashboard header + `store.Load`); T025/T026 REGRESSION + falsifiability witnesses |
+| Product | `internal/ui/tui/prompt/{model,textarea,suggester,run}.go` rewritten to the reference chrome; `internal/cli/cli.go` (drop `store.Load`/Dashboard; ctx-carrying `Source`; `TELL_ME_TUI_DEBOUNCE` seam) |
+| Truth | `chat/dsl.md` `marks one suggestion` row relaxed to presence (capture accumulates frames; exactness is the T017 unit pin) |
+| Commit | `08b03ad` (`feat(016): implement the strict-parity interactive prompt`) |
+
+### Verification
+
+- godog E2E **107/107 scenarios · 754 steps** green · `go test -count=1 ./...` all packages ok.
+- `make verify` **OK** (0 lint · 0 vulns · no `time.Sleep` · offline witness).
+- Topology audit **PASSED** — 30 features · 11 root + 156 module rows · 730 steps; `gofmt` clean.
+- **Falsifiability witnesses (T026)** reproduced (then reverted): (a) re-added metrics header → `shows no session metrics header` failed; (b) cycle-only `Tab` → `holds the accepted suggestion` failed.
+
+### Notes found + fixed during GREEN
+
+1. `View()` early-returned `""` after abort → the frame was never captured (round-015 had no guard) → removed.
+2. The debounce raced the instant scripted keys (no pty, no pause) → added the `TELL_ME_TUI_DEBOUNCE=0` hermetic seam (synchronous refresh).
+3. The accept assertion matched the suggestion list (vacuous) → made it editor-row-specific (`│`).
+
+### Open items (non-blocking)
+
+- Round 016 implementation `08b03ad` **needs its own review**; PR #40 not merged. Carried items unchanged (PR #16 Obs 1; round-006 Obs 3; sequential tools / no pruning / no `flock`; round-011 forward items).
+
+### Next steps
+
+1. Review the implementation commits → human merge PR #40 → propagate `016 → dev → main`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session.

@@ -6,14 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/gosharplite/tellme/internal/domain/history"
 )
 
-// TestTUIDispatchEngagesWhenEnabledOnTerminal (round-015 T030): with -i and a
-// terminal stdin, run() delegates to the tuiPromptRunner seam — the flag/TTY
-// gating is unit-testable without a terminal event loop (PR #38 review
-// directive ④).
+// TestTUIDispatchEngagesWhenEnabledOnTerminal (round-015 T030; round-016 T024):
+// with -i and a terminal stdin, run() delegates to the tuiPromptRunner seam — the
+// flag/TTY gating is unit-testable without a terminal event loop (PR #38 review
+// directive ④). Round 016 dropped the obsolete store param (architect D3).
 func TestTUIDispatchEngagesWhenEnabledOnTerminal(t *testing.T) {
 	home := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(home, "configs"), 0o755); err != nil {
@@ -28,7 +26,7 @@ func TestTUIDispatchEngagesWhenEnabledOnTerminal(t *testing.T) {
 	orig := newTUIPromptRunner
 	defer func() { newTUIPromptRunner = orig }()
 	called := false
-	newTUIPromptRunner = func(_ context.Context, _ resolution, _ history.Store, _ runtimeEnv) (string, bool, error) {
+	newTUIPromptRunner = func(_ context.Context, _ resolution, _ runtimeEnv) (string, bool, error) {
 		called = true
 		return "", false, nil
 	}
@@ -52,16 +50,16 @@ func TestTUIDispatchEngagesWhenEnabledOnTerminal(t *testing.T) {
 func TestTUIDispatchFallsBackOnNonTerminal(t *testing.T) {
 	// Hermeticity (round-015 PR #38 review): a non-terminal `-i` run reads the
 	// piped prompt and routes to the turn path. Without a cleared environment the
-	// ambient TELL_ME_HOME could resolve a real provider and dial the network
-	// (~4s + offline flakiness). Neutralize the ambient overrides and force the
-	// home unset so the turn stops at home-unset (no network).
+	// ambient TELL_ME_HOME could resolve a real provider and dial the network.
+	// Neutralize the ambient overrides and force the home unset so the turn stops
+	// at home-unset (no network).
 	clearAmbientOverrides(t)
 	t.Setenv("TELL_ME_HOME", "")
 
 	orig := newTUIPromptRunner
 	defer func() { newTUIPromptRunner = orig }()
 	called := false
-	newTUIPromptRunner = func(_ context.Context, _ resolution, _ history.Store, _ runtimeEnv) (string, bool, error) {
+	newTUIPromptRunner = func(_ context.Context, _ resolution, _ runtimeEnv) (string, bool, error) {
 		called = true
 		return "", false, nil
 	}

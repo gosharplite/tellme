@@ -16,6 +16,7 @@ package steps
 const (
 	tuiKeyAbort  = "\x03" // Ctrl+C
 	tuiKeySubmit = "\x13" // Ctrl+S
+	tuiKeyAccept = "\t"   // Tab — accept the current suggestion (round 016)
 )
 
 // launchTUI arranges the next run as `tellme -i` against the forced-terminal seam
@@ -23,6 +24,7 @@ const (
 // When steps).
 func launchTUI(sc *scenarioContext, keys string) {
 	sc.setEnv("TELL_ME_FORCE_STDIN_TTY", "1")
+	sc.setEnv("TELL_ME_TUI_DEBOUNCE", "0") // refresh synchronously (round 016)
 	sc.pipeStdin(keys)
 	sc.args = []string{"-i"}
 	sc.run()
@@ -36,6 +38,10 @@ func tuiKeysTypeAndAbort(q string) string { return q + tuiKeyAbort }
 
 // tuiKeysTypeAndSubmit opens the prompt, types text, then submits.
 func tuiKeysTypeAndSubmit(text string) string { return text + tuiKeySubmit }
+
+// tuiKeysTypeAcceptAbort opens the prompt, types q, accepts the current
+// suggestion (Tab), then aborts (round 016).
+func tuiKeysTypeAcceptAbort(q string) string { return q + tuiKeyAccept + tuiKeyAbort }
 
 // renderedOutput returns the captured output a suggestion/dashboard presence
 // assertion searches: the rendered interactive frame plus the answer stream. The
