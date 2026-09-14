@@ -119,6 +119,7 @@ func beforeScenario(ctx context.Context, _ *godog.Scenario) (context.Context, er
 			"MAX_TOOL_LOOP":             true,
 			"MAX_HISTORY_TOKENS":        true,
 			"TELL_ME_FORCE_STDIN_TTY":   true,
+			"TELL_ME_FORCE_STDERR_TTY":  true,
 			"TELL_ME_TUI_DEBOUNCE":      true,
 		},
 		args:     nil,

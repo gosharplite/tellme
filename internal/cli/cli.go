@@ -24,6 +24,7 @@ import (
 	"github.com/gosharplite/tellme/internal/home"
 	infrhistory "github.com/gosharplite/tellme/internal/infrastructure/history"
 	infrallm "github.com/gosharplite/tellme/internal/infrastructure/llm"
+	infratelemetry "github.com/gosharplite/tellme/internal/infrastructure/telemetry"
 	infratools "github.com/gosharplite/tellme/internal/infrastructure/tools"
 	"github.com/gosharplite/tellme/internal/ui"
 	tuiprompt "github.com/gosharplite/tellme/internal/ui/tui/prompt"
@@ -108,11 +109,15 @@ func (e *resolveError) Unwrap() error { return e.Err }
 // `run`/`renderTurn`/`runTurn`/`writeAnswer` with more stream primitives. The
 // renderer is built once per invocation (see `Run`) and reused across the turn.
 type runtimeEnv struct {
-	stdin    io.Reader
-	stdout   io.Writer
-	stderr   io.Writer
-	isTTY    func(any) bool
-	renderer answerRenderer
+	stdin  io.Reader
+	stdout io.Writer
+	stderr io.Writer
+	isTTY  func(any) bool
+	// stderrTTY is the diagnostic-stream (stderr) terminal probe (round 019).
+	// Nil disables the turn spinner — the gate is the stderr stream, so there is
+	// no fallback to the shared (stdin) probe.
+	stderrTTY func(any) bool
+	renderer  answerRenderer
 	// clock is the injected time seam for the payload status line (round 009);
 	// nil falls back to time.Now.
 	clock func() time.Time
@@ -262,13 +267,41 @@ func runTUIPrompt(homeDir string, opts *options, env runtimeEnv) int {
 // instead of many stream primitives).
 func Run(args []string, version string) int {
 	return run(args, version, runtimeEnv{
-		stdin:    os.Stdin,
-		stdout:   os.Stdout,
-		stderr:   os.Stderr,
-		isTTY:    terminalDetector(),
-		renderer: newRenderer(),
-		clock:    time.Now,
+		stdin:     os.Stdin,
+		stdout:    os.Stdout,
+		stderr:    os.Stderr,
+		isTTY:     terminalDetector(),
+		stderrTTY: stderrTerminalDetector(),
+		renderer:  newRenderer(),
+		clock:     time.Now,
 	})
+}
+
+// stderrTerminalDetector returns the process's diagnostic-stream (stderr)
+// terminal probe. The diagnostic environment seam TELL_ME_FORCE_STDERR_TTY forces
+// the stderr probe to report a terminal so the round-019 spinner is E2E-drivable
+// without a pty (mirroring the round-012 TELL_ME_FORCE_STDIN_TTY seam). Otherwise
+// the real isatty probe (defaultIsTerminal) is used. It does NOT wire a
+// standard-output probe — round-006 / PR #16 Obs 1 stays OPEN.
+func stderrTerminalDetector() func(any) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("TELL_ME_FORCE_STDERR_TTY"))) {
+	case "1", "true", "yes":
+		return func(any) bool { return true }
+	default:
+		return defaultIsTerminal
+	}
+}
+
+// stderrIsTerminal reports whether the diagnostic stream (stderr) is a terminal
+// via the dedicated stderr probe. It deliberately does NOT fall back to the
+// shared (stdin) probe: the round-019 gate is the *stderr* stream (FR-006), and a
+// fallback would make every `runtimeEnv{isTTY: true}` construction report a
+// terminal stderr. With no stderr probe set the spinner is off (the safe default).
+func (e runtimeEnv) stderrIsTerminal() bool {
+	if e.stderrTTY == nil {
+		return false
+	}
+	return e.stderrTTY(e.stderr)
 }
 
 // terminalDetector returns the process's terminal probe. When the diagnostic
@@ -567,6 +600,9 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// payload budget. Diagnostic only, on stderr.
 	reg := newToolRegistry(store, gw)
 	assembled := append(append(make([]llm.Message, 0, len(prior)+1), agent.BuildMessages(prior)...), llm.Message{Role: "user", Content: prompt})
+	// Round-019 elapsed epoch: the spinner's turn-scoped timer starts at prompt
+	// capture — the moment the input-capture acknowledgement fires (research D4).
+	turnStart := env.now()
 	// Round-017 turn chrome: on surfaces (A)/(B) the turn opens with the
 	// input-capture acknowledgement and the rule/header frame, wrapping the
 	// pre-flight payload line. It is false for the `-i` submit path and the
@@ -591,7 +627,22 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		MaxLoops: res.MaxToolLoop,
 		Stderr:   env.stderr,
 	}
+	// Round 019 — the live progress spinner: a diagnostic-stream-only indicator
+	// that labels / clears / restores per waiting phase. It is injected into the
+	// loop as the observer; the CLI owns its lifecycle (round-019 research D7).
+	sp := newTurnSpinner(opts, env, res.Provider.Model, turnStart)
+	if sp != nil {
+		loop.Observer = sp
+		defer sp.Stop() // panic-safe residue guard (idempotent)
+	}
 	result, err := loop.Run(ctx, prompt, prior)
+	if sp != nil {
+		// Synchronous clear before any interleaved write (the answer, the
+		// post-turn lines) so no frame survives into the completed turn. The
+		// clear leaves the cursor at column 0 of the erased line, so the answer
+		// on `stdout` (and a class phrase on `stderr`) continues on that line.
+		sp.Stop()
+	}
 	if err != nil {
 		var inc *agent.ErrIncomplete
 		if errors.As(err, &inc) {
@@ -723,6 +774,24 @@ func emitTurnOpening(env runtimeEnv, turn int, mode string) {
 // emitTurnGap writes the blank line that separates the frame from the answer.
 func emitTurnGap(env runtimeEnv) {
 	_, _ = fmt.Fprint(env.stderr, ui.FormatTurnGap())
+}
+
+// spinnerGate reports whether the turn spinner should be drawn: only on a
+// non-TUI prompt-bearing surface (chrome), when -r/--raw is off, and when the
+// diagnostic stream (stderr) is a terminal (round-019 FR-006/FR-008).
+func spinnerGate(opts turnOptions, stderrIsTerminal bool) bool {
+	return opts.chrome && !opts.raw && stderrIsTerminal
+}
+
+// newTurnSpinner builds the round-019 turn spinner when the gate permits, else
+// nil. The model label comes from the resolved provider's configured MODEL
+// (reference parity — the configured MODEL attribute, not the registry key); the
+// elapsed counts from epoch (the turn's prompt-capture time — turn-scoped).
+func newTurnSpinner(opts turnOptions, env runtimeEnv, model string, epoch time.Time) *ui.Spinner {
+	if !spinnerGate(opts, env.stderrIsTerminal()) {
+		return nil
+	}
+	return ui.NewSpinner(env.stderr, model, epoch, infratelemetry.NewSystemMetricsProvider())
 }
 
 // renderHistoryList lists the last N persisted messages (round-007 FR-007..FR-009)

@@ -94,8 +94,10 @@ Feature: Presenting the turn
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the operator is working at an interactive terminal
+      And the diagnostics are shown at a terminal
       And a configured provider "test-model" whose endpoint answers with "all good"
       When the operator submits the prompt "hi" at the interactive prompt
       Then the interactive prompt is shown
       And the run shows no turn chrome
+      And the run shows no progress spinner
       And tellme exits successfully
