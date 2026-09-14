@@ -50,6 +50,14 @@ func TestTUIDispatchEngagesWhenEnabledOnTerminal(t *testing.T) {
 // TestTUIDispatchFallsBackOnNonTerminal (round-015 T030): with -i but a
 // NON-terminal stdin, the seam is NOT invoked (the piped/plain path applies).
 func TestTUIDispatchFallsBackOnNonTerminal(t *testing.T) {
+	// Hermeticity (round-015 PR #38 review): a non-terminal `-i` run reads the
+	// piped prompt and routes to the turn path. Without a cleared environment the
+	// ambient TELL_ME_HOME could resolve a real provider and dial the network
+	// (~4s + offline flakiness). Neutralize the ambient overrides and force the
+	// home unset so the turn stops at home-unset (no network).
+	clearAmbientOverrides(t)
+	t.Setenv("TELL_ME_HOME", "")
+
 	orig := newTUIPromptRunner
 	defer func() { newTUIPromptRunner = orig }()
 	called := false
