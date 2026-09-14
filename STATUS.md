@@ -8,7 +8,7 @@
 
 ## Round 015 — `015-interactive-tui-prompt` (delivered / frozen)
 
-**Status**: ✅ **DELIVERED / FROZEN** (2026-09-14, session 5) — PR [#38](https://github.com/gosharplite/tellme/pull/38) **MERGED** into `dev` (`a3df102`, by `thptcnec`); propagated `dev → main` (`60bbf72`). Round-015 head frozen at **`511b458`** (the re-certified SHA). `make verify` OK · godog **101/101 scenarios · 714/714 steps** · topology audit **PASSED** (690 steps). Anchor issue [#37](https://github.com/gosharplite/tellme/issues/37).
+**Status**: ✅ **DELIVERED / FROZEN** (2026-09-14, session 5) — PR [#38](https://github.com/gosharplite/tellme/pull/38) **MERGED** into `dev` (`a3df102`, by `thptcnec`); propagated `dev → main` (`60bbf72`). Round-015 head frozen at **`511b458`** (the re-certified SHA). `make verify` OK · godog **101/101 scenarios · 714/714 steps** · topology audit **PASSED** (690 steps). Anchor issue [#37](https://github.com/gosharplite/tellme/issues/37) **closed (completed)** (2026-09-14).
 
 **Architectural review (2026-09-14, session 4)** — PR [#38](https://github.com/gosharplite/tellme/pull/38) review ([#5657097770](https://github.com/gosharplite/tellme/pull/38#issuecomment-5657097770]), evaluated head **`c66f500`** (== current HEAD): **PLAN + TRUTH APPROVED — PROCEED TO IMPLEMENTATION WITH ARCHITECTURAL DIRECTIVES**. Directives, embedded in `tasks.md`:
 
