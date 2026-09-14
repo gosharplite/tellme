@@ -538,3 +538,73 @@ The delivery + end-of-day closeout: PR [#40](https://github.com/gosharplite/tell
 ### PM follow-ups
 
 - None new (spec/acceptance unchanged).
+
+
+---
+
+## 18. Session 7 (2026-09-14) — round 017 (`017-turn-chrome-parity`) delivered + closeout
+
+A session on the same calendar day: opened round **017** (make `tellme`'s **non-interactive prompt turn** open like `tell-me-go`), ran the full AIxBDD pipeline, took it through **two** architectural reviews (+ folds), merged **PR [#41](https://github.com/gosharplite/tellme/pull/41)** into `dev`, and ran `SESSION-CLOSEOUT.md`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 016 delivered/frozen; active branch `dev`) |
+| Round-017 theme | non-TUI prompt-turn **operator chrome parity** (input-capture line · turn framing · spacing) — anchor [#42](https://github.com/gosharplite/tellme/issues/42) |
+| `/axb-clarify` round 1 | locked **Q1** surface scope = **A+B** · **Q2** **input-capture line only** |
+| `/axb-specify` | `specs/plans/017-turn-chrome-parity/` |
+| `/axb-spec-by-example` | 3 acceptance features |
+| `/axb-technical-research` | `research.md` D1–7 + `specs/truth/techstack.md` MODIFY (new *Turn chrome (operator)* row) |
+| `/axb-system-analysis` | `plan.md` — 1 interface · 1 wave; `/axb-api-plan` + `/axb-data-plan` = NOOP; `/axb-ui-plan` skipped |
+| `/axb-dsl-refine` | ADD `chat/presenting-the-turn.feature`; MODIFY `chat/dsl.md` (+6 rows) + root `cli/dsl.md` (+1 cross-module row) + the `diagnostics`/`history` no-chrome carriers; audit **PASSED** |
+| `/axb-tasks` | `tasks.md` (14 tasks; Setup omitted — no new tech) |
+| `/axb-implement` | 14/14 `[X]`; `internal/ui/turn.go` (formatter) + `internal/cli/cli.go` (`chrome` seam: A/B on, C off); 7 stepdefs + unit test; `make verify` OK |
+| Reviews | PLAN+TRUTH approved (`dc1a300`) → folds → **implementation review FULL APPROVAL** + nits → **Principal-Architect review MERGE READY** + findings; all folded into `d260f70` / `2aead09` |
+| Merge | PR [#41](https://github.com/gosharplite/tellme/pull/41) **merged** into `dev` (`ecf3980`, by `thptcnec`); frozen head **`2aead09`** |
+| Closeout | `make verify` OK; `STATUS.md` split (round-016 detail → archive); this §18; `dev → main` propagation |
+
+### Decisions locked (round 017)
+| # | Decision |
+| --- | --- |
+| Q1 | Surface scope = **(A) positional/piped + (B) round-012 reader**; the `-i` TUI and all non-prompt paths unchanged |
+| Q2 | **Input-capture line only** (the reference's `[Info] Starting chat...` out of scope); post-turn lines out of scope |
+| D1 | Hand-written `internal/ui` stderr formatter — no new dependency |
+| D2 | `<N>` = the session's **completed-turn count** + 1 (`len(prior)+1`) |
+| D3 | **Plain text** (no ANSI this round); the round-009 payload-line text unchanged |
+| D4 | Blank-line spacing mirrors the reference |
+| D5 | **One seam** — a `chrome` switch (surfaces A/B on; C off) |
+| D6 | Hermetic no-pty verification (clock seam + injected streams) |
+| D7 | No new dependency; POSIX-only; the three AIxBDD must-asks stay settled |
+
+### Commits (branch `017-turn-chrome-parity`, then merged)
+| Commit | Note |
+| --- | --- |
+| `bb18c8e` | `docs(017): plan package and spec` |
+| `f53fa30` | `docs(017): acceptance Gherkin for turn chrome parity` |
+| `add3194` | `docs(017): technical research + techstack truth` |
+| `57e0e10` | `docs(017): system-analysis plan` |
+| `eae3e48` | `docs(017): CLI interface truth for the turn chrome` |
+| `dc1a300` | `docs(017): tasks.md` |
+| `330d567` | `docs(017): fold PR #41 review (D1–D4 + nits)` |
+| `6220f5f` | `docs(017): align turn-number terminology on "completed-turn count"` |
+| `babeee3` | `docs(017): finish the "completed turns" terminology sweep (3 spots)` |
+| `587020a` | `feat(017): open the non-TUI turn with the reference chrome` |
+| `d260f70` | `refactor(017): fold implementation-review nits (T008 guard, env.now DRY, failure-path note)` |
+| `2aead09` | `refactor(017): fold architect-review findings (TurnOptions, memoized rule, forward note)` |
+| `ecf3980` | PR [#41](https://github.com/gosharplite/tellme/pull/41) merge into `dev` (by `thptcnec`) |
+
+### Verification
+- `make verify` **OK** (0 lint · 0 vulns · no `time.Sleep` · offline witness) · `go test -count=1 ./...` green · E2E green · topology audit **PASSED** (31 features · **12** root + **162** module rows · **793** steps).
+- **Falsifiability witnesses (a)/(b)** reproduced (then reverted): suppress the rule/header → `the turn opens with a horizontal rule` fails; leak the chrome onto the `-i` submit path → `the run shows no turn chrome` fails.
+- `stdout` byte-exact; the round-016 `-i` surface and the round-009 payload line unchanged; `go.mod`/`go.sum` untouched.
+
+### Open items (non-blocking)
+- **Round-017 forward items**: post-turn lines (out of scope); the reference's `[Info] Starting chat...` (out of scope); gray styling for the rule/header (a recorded forward item); fixed 80-column rule (no reflow); a future `history.Store.Count()` (architect finding 3).
+- Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / no `flock`; round-011 forward items.
+
+### Next steps
+1. Choose the `018-*` theme and start it via `/axb-specify` off `dev` (candidates in `STATUS.md` Open items).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance unchanged).
