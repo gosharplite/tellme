@@ -18,7 +18,7 @@ Reference: `tell-me-go` `internal/ui/capture.go` (`finalizePrompt`: `[HH:MM:SS] 
 
 ## Decision 2: The turn number is the session's persisted turn count + 1
 
-- **Decision**: `<N>` is the number of turns already persisted in the active session, plus one (the reference's `SessionTurns + 1`). It is read from the already-loaded prior history (`len(prior) + 1`); `--new` archives **before** the turn, so a fresh session shows `Turn 1`, and a resumed session continues the count. `<mode>` is the effective mode (the resolved `MODE`).
+- **Decision**: `<N>` is the count of the session's **completed turns**, plus one (the reference's `SessionTurns + 1`). tellme persists **one `history_entry` line per completed turn** in the active `history.jsonl`, so the count is the number of such lines — **not** a message count and **not** the reference's `entries/2` (whose store keeps 2 messages per turn). It is read from the already-loaded prior history (`len(prior) + 1`); `--new` archives **before** the turn, so a fresh session shows `Turn 1`, and a resumed session continues the count. (Today a session archives only on `--new`, which resets the count to 1; a future summarisation/archive path must preserve this.) `<mode>` is the effective mode (the resolved `MODE`).
 - **Rationale**: the reference numbers turns **per session**; a resumed session must continue (not restart at 1), and the history already carries the count — no new counter.
 - **Alternatives considered**:
   - **Always `Turn 1`** (per-invocation): diverges from the reference on any resumed session — rejected.
@@ -71,4 +71,4 @@ Reference: `tell-me-go` `internal/ui/capture.go` (`finalizePrompt`: `[HH:MM:SS] 
 - **Colour/styling parity (Decision 3)**: the reference's gray rule/glyph styling is a recorded forward item (a named non-goal this round).
 - **Fixed rule width (Decision 1)**: the 80-column rule is a fixed literal (reference parity); terminal-width reflow is a forward item if ever wanted.
 - **Second startup line (`A3`)**: the reference's `[Info] Starting chat...` line is out of scope this round.
-- **Anchor issue**: round 017 has no anchor GitHub issue yet (a process note; rounds 015/016 used one).
+- **Anchor issue**: [#42](https://github.com/gosharplite/tellme/issues/42) — the round-017 anchor, opened retroactively (PR #41 review nit).

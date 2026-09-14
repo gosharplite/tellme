@@ -6,7 +6,7 @@
 
 **Status**: Draft — surface scope locked (A + B; input-capture line only)
 
-**Input**: Operator request "I want `tellme` to feel and look like `tell-me-go` on: **input-capture line**, **turn framing**, **spacing**. Let's not concern on post-turn lines in this slice 017." Grounded against the reference: `tell-me-go` `internal/ui/capture.go` (`finalizePrompt`) and `internal/ui/renderer_metrics.go` (`renderTurnHeader`).
+**Input**: Operator request "I want `tellme` to feel and look like `tell-me-go` on: **input-capture line**, **turn framing**, **spacing**. Let's not concern on post-turn lines in this slice 017." Grounded against the reference: `tell-me-go` `internal/ui/capture.go` (`finalizePrompt`) and `internal/ui/renderer_metrics.go` (`renderTurnHeader`). Anchor issue: [#42](https://github.com/gosharplite/tellme/issues/42).
 
 Behaviour intent: **ADD** the reference's pre-turn operator chrome — an **input-capture acknowledgement**, a **horizontal rule + `╭─⠿ Turn <N> - <mode>` header** wrapping the existing pre-flight payload line, and the reference's **blank-line spacing** — to `tellme`'s **non-TUI** prompt surfaces: **(A)** the positional/piped prompt turn and **(B)** the round-012 interactive plain reader. **NOOP** on the `-i` TUI surface (round 016), on every non-prompt path (boot / `-d` / `-l` / `--version` / prompt-less `--new`), and on the **post-turn** surface (explicitly out of scope this round).
 
@@ -41,7 +41,7 @@ As an operator, I want `tellme` to print the reference's input-capture acknowled
 
 **Non-Functional Requirements**:
 
-- **NFR-001**: The acknowledgement text MUST be exact (no `tellme: ` prefix, so the frozen class-phrase vocabulary is untouched); its timestamp MUST come from the injected clock seam so assertions stay deterministic; when color is used it MUST be suppressed on a non-terminal diagnostic stream (reference behaviour).
+- **NFR-001**: The acknowledgement text MUST be exact (no `tellme: ` prefix, so the frozen class-phrase vocabulary is untouched); its timestamp MUST come from the injected clock seam so assertions stay deterministic. The chrome is rendered as **plain text unconditionally** this round (no ANSI); TTY-gated colour is a recorded forward item.
 
 ---
 
@@ -63,13 +63,13 @@ As an operator, I want each prompt turn framed with the reference's rule, its `T
 **Functional Requirements**:
 
 - **FR-003**: On a prompt-bearing turn, the system MUST write a leading blank line and then the reference's horizontal rule (the fixed 80-column `─` literal) to the diagnostic stream, before the header.
-- **FR-004**: Immediately after the rule, the system MUST write a header line `╭─⠿ Turn <N> - <mode>` to the diagnostic stream, where `<N>` is the session's persisted turn count + 1 and `<mode>` is the effective mode.
+- **FR-004**: Immediately after the rule, the system MUST write a header line `╭─⠿ Turn <N> - <mode>` to the diagnostic stream, where `<N>` is the count of the session's **completed turns** + 1 (tellme stores **one `history_entry` line per completed turn** in the active `history.jsonl`, so the count is the number of such lines — **not** a message count) and `<mode>` is the effective mode.
 - **FR-005**: Immediately after the header, the system MUST write the pre-flight payload status line (the round-009 format, unchanged) to the diagnostic stream.
 - **FR-006**: After the payload line the system MUST write a blank gap (one blank line), so the answer that follows is visually separated.
 
 **Non-Functional Requirements**:
 
-- **NFR-002**: The frame MUST be written to the diagnostic stream only (`stdout` stays byte-exact), MUST degrade to plain text when the diagnostic stream is not a terminal, and MUST NOT alter the pinned payload-line text (round 009).
+- **NFR-002**: The frame MUST be written to the diagnostic stream only (`stdout` stays byte-exact), MUST be rendered as **plain text unconditionally** this round (no ANSI; TTY-gated colour is a recorded forward item), and MUST NOT alter the pinned payload-line text (round 009).
 
 ---
 
@@ -139,7 +139,7 @@ As an operator, I want the new chrome limited to the non-TUI prompt surfaces, so
 - **A1 (reference)**: the parity target is `tell-me-go` `internal/ui/capture.go` (`finalizePrompt`: `[HH:MM:SS] Input captured. Processing...`, green on a TTY) and `internal/ui/renderer_metrics.go` (`renderTurnHeader`: a leading blank, the 80-column `─` rule, `╭─⠿ Turn <N>[ - <mode>]`, the payload line, a trailing blank).
 - **A2 (surface scope — locked)**: the chrome applies to (A) the positional/piped prompt turn and (B) the round-012 interactive plain reader; the `-i` TUI surface (round 016) is unchanged.
 - **A3 (startup set — locked)**: only the input-capture line is added; the reference's `[Info] Starting chat...` line is out of scope this round.
-- **A4 (turn number)**: `<N>` derives from the session's persisted turn count + 1 (the reference's `SessionTurns + 1`); `--new` archives first, so it shows `Turn 1`.
+- **A4 (turn number)**: `<N>` derives from the count of the session's **completed turns** + 1 (tellme persists **one `history_entry` line per completed turn** in `history.jsonl`; this is the reference's `SessionTurns + 1`, **not** a message count and **not** `entries/2`). A session archives only on `--new` (which resets the count, so it shows `Turn 1`); no mid-session archive path can shrink the count today — a future summarisation/archive path must preserve this.
 - **A5 (chrome tokens)**: the exact tokens (the `─` rule width, the `╭─⠿` glyph, the header/blank-line layout, the colour codes and the TTY gate) are a `/axb-technical-research` + `/axb-dsl-refine` determination; the existing pre-flight payload line's **text** format is unchanged from round 009.
 - **A6 (platform / dependency / verification)**: POSIX-only (round-012/015/016 precedent); no new dependency; verification is hermetic (injected streams + the clock seam; no pty).
 - **A7 (post-turn — out of scope)**: the post-turn lines (the measured payload line, the metrics line, the final `╰─⠿ Ready` summary) are explicitly out of scope this round.

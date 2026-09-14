@@ -13,7 +13,7 @@
 - Phase 3 `Test Alignment & Implementation` 在寫產品碼之前，先把本輪所有受影響的自動化測試對齊最新版 truth（本輪 **7 句為全新句 `ADD`**；另 1 個 `[UNIT]`）。
 - Truth 參照必須使用 `specs/truth/**` 路徑；plan 參照才使用當前 plan package 內相對路徑。
 - **本輪有產品碼變更**：`internal/ui/turn.go`（新 formatter — the input-capture acknowledgement + the 80-column `─` rule + the `╭─⠿ Turn <N> - <mode>` header + the blank-line spacing）與 `internal/cli/cli.go`（在 surfaces (A)/(B) 上發出 chrome；以 *chrome* switch 排除 `-i` submit path (C) 與非 prompt paths）。相位順序仍為「先對齊測試層（Phase 3），再於 Feature phase 補產品碼（GREEN）」。**不動** the round-009 payload-line formatter、post-turn path、keybindings、TUI surface（round 016）。
-- 本輪**無跨模組**新句：root `specs/truth/features/cli/dsl.md` 為 **NOOP**（class-phrase 詞彙維持 **11**）；所有新句皆 `chat` 模組專屬。
+- 本輪有 **1 句跨模組**新句（`the run shows no turn chrome`，落於介面根 `specs/truth/features/cli/dsl.md`，由 `chat`／`diagnostics`／`history` 共用）；其餘 **6 句**為 `chat` 模組專屬。class-phrase 詞彙維持 **11**。
 
 ## Round-017 locked decisions (implementation constraints — MUST)
 
@@ -83,9 +83,8 @@
   -> `the turn is headed "Turn {number}" for the active mode`
   -> `the turn chrome is shown before the answer`
   -> `the turn frame is separated from the answer`
-  -> `the run shows no turn chrome`
-- `specs/truth/features/cli/dsl.md` -> **NOOP**（root 詞彙不變，維持 11 片語）
-- `truth-delta.md` -> `/axb-dsl-refine` ADD（`chat/presenting-the-turn.feature`）+ MODIFY（`chat/dsl.md`，+7 rows）；NOOP（root `cli/dsl.md`、其他 `cli` 模組、`contracts/**`、`data/**`）
+- `specs/truth/features/cli/dsl.md` -> `the run shows no turn chrome`（本輪新增的跨模組 root row；class-phrase 詞彙維持 11）
+- `truth-delta.md` -> `/axb-dsl-refine` ADD（`chat/presenting-the-turn.feature`）+ MODIFY（`chat/dsl.md` +6 rows、root `cli/dsl.md` +1 row、`diagnostics/version-and-setup-diagnostic.feature`、`history/starting-a-fresh-session.feature`）；NOOP（其他 `cli` 模組、`contracts/**`、`data/**`）
 - `tests/e2e/steps/`、`tests/e2e/harness/`、`tests/e2e/fakeprovider/`
 - `internal/ui/status.go`、`internal/ui/turn.go`（T002 落點）
 
@@ -124,7 +123,7 @@
 - [ ] T007 [P] [BDD-RED] `Then: the turn chrome is shown before the answer`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the turn chrome is shown before the answer`
   - Landing: `tests/e2e/steps/step_t007_chat_then_chrome_before_answer.go`
-  - 語意：merged capture 中，the header（the rule 與 the `╭─⠿ Turn …` line）出現在 the answer bytes **之前**。
+  - 語意：merged capture 中，**整個** turn chrome（the input-capture acknowledgement、the `─` rule、the `╭─⠿ Turn …` header、the pre-flight payload line）出現在 the answer bytes **之前**。
 
 - [ ] T008 [P] [BDD-RED] `Then: the turn frame is separated from the answer`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the turn frame is separated from the answer`
@@ -132,7 +131,7 @@
   - 語意：merged capture 中，一個空行分隔 the frame 的末行（the pre-flight payload line）與 the answer bytes。
 
 - [ ] T009 [P] [BDD-RED] `Then: the run shows no turn chrome`
-  - Read: `specs/truth/features/cli/chat/dsl.md` -> `the run shows no turn chrome`
+  - Read: `specs/truth/features/cli/dsl.md`（interface root）-> `the run shows no turn chrome`
   - Landing: `tests/e2e/steps/step_t009_chat_then_no_turn_chrome.go`
   - 語意：`stdout` 與 `stderr` 皆**不**帶 the input-capture acknowledgement、the 80-column `─` rule、或 `╭─⠿ Turn …` header；用於 `-i` submit path 與 non-prompt path。
 
@@ -167,6 +166,7 @@
 - `specs/truth/features/cli/chat/dsl.md` -> `the input capture is announced for the turn`、`… before the turn frame`、`the turn opens with a horizontal rule`、`the turn is headed "Turn {number}" for the active mode`、`the turn chrome is shown before the answer`、`the turn frame is separated from the answer`、`the run shows no turn chrome`、`tellme reports the estimated payload status for the turn`（既有，被包進 frame）
 - `truth-delta.md` -> `/axb-dsl-refine` ADD（`chat/presenting-the-turn.feature`）+ MODIFY（`chat/dsl.md`）+ `/axb-technical-research` MODIFY（`techstack.md` Turn chrome）
 - `specs/plans/017-turn-chrome-parity/research.md` -> Decision 1, Decision 2, Decision 4, Decision 5
+- （the version / prompt-less `--new` non-chrome carriers now live in their own module features — see Phase 4B）
 
 **Boundary**:
 - 產品碼：`internal/ui/turn.go`（the chrome formatter — acknowledgement + 80-column rule + `╭─⠿ Turn <N> - <mode>` header + spacing；plain text）+ `internal/cli/cli.go`（在 surfaces (A)/(B) 的 turn 上發出 the acknowledgement 與 the frame，包住既有 pre-flight payload line；以 *chrome* switch 讓 `-i` submit path (C) 與 non-prompt paths 不發出）。
@@ -189,6 +189,7 @@
 
 - [ ] T014 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
+  - 亦確認新的 non-chrome carriers：`diagnostics/version-and-setup-diagnostic.feature`（`--version`）與 `history/starting-a-fresh-session.feature`（prompt-less `--new`）皆斷言 the run shows no turn chrome。
   - **可偽性見證 (a)（rule／frame；非真空）**：暫時停發 the horizontal rule（或 the header）於 (A)/(B)，確認 `presenting-the-turn.feature` 的 `the turn opens with a horizontal rule` 失敗；觀察到失敗即還原。
   - **可偽性見證 (b)（surface scope）**：暫時讓 the chrome 洩漏到 the `-i` submit path，確認 `presenting-the-turn.feature` 的 `the run shows no turn chrome` 失敗；觀察到失敗即還原。
   - 確認：`stdout` byte-exact（chrome 只寫 `stderr`）；the round-009 payload-line 文字不變；class-phrase 詞彙維持 **11**；exit-code 表 `0/2/3/4/5/6/7` 不變；offline paths（`--version`、`-d`、no-prompt boot、`-l`、prompt-less `--new`）不變；rounds 001–016 既有場景全綠；`go.mod`/`go.sum` 不變（無新相依）；Gherkin/DSL topology audit **PASSED**。
@@ -204,8 +205,8 @@
 | `truth-delta.md` -> `/axb-api-plan` NOOP（`specs/truth/contracts/**`） | 豁免（NOOP 不建任務；T014 驗證不觸及 API surface） | PASS |
 | `truth-delta.md` -> `/axb-data-plan` NOOP（`specs/truth/data/**`） | 豁免（NOOP 不建任務） | PASS |
 | `truth-delta.md` -> `/axb-dsl-refine` ADD（`chat/presenting-the-turn.feature`） | T003–T009、T012、T013 | PASS |
-| `truth-delta.md` -> `/axb-dsl-refine` MODIFY（`chat/dsl.md` — +7 rows） | T001、T003–T009、T011 | PASS |
-| `truth-delta.md` -> `/axb-dsl-refine` NOOP（root `cli/dsl.md` + 其他 `cli` 模組） | 豁免（NOOP 不建任務；T014 驗證詞彙維持 11） | PASS |
+| `truth-delta.md` -> `/axb-dsl-refine` MODIFY（`chat/dsl.md` +6 rows；root `cli/dsl.md` +1 row；`diagnostics/version-and-setup-diagnostic.feature`；`history/starting-a-fresh-session.feature`） | T001、T003–T009、T011、T014 | PASS |
+| `truth-delta.md` -> `/axb-dsl-refine` NOOP（其他 `cli` 模組） | 豁免（NOOP 不建任務；T014 驗證詞彙維持 11） | PASS |
 | `research.md` -> Decision 1（chrome 由 `internal/ui` 手寫 formatter 發出；no new dependency） | T002、T010、T012、T013 | PASS |
 | `research.md` -> Decision 2（turn number = 已持久化 turn 數 + 1） | T006、T007、T012 | PASS |
 | `research.md` -> Decision 3（plain text；the payload line 文字不變） | T005、T008、T010、T012、T013 | PASS |
