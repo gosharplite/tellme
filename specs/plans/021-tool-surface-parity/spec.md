@@ -47,7 +47,7 @@ As a developer using tellme from the terminal, I want the model to be able to **
 
 **Non-Functional Requirements**:
 
-- **NFR-001**: Every reader tool's result MUST be bounded so it cannot exhaust the model's context window (round-008 NFR-006 lineage): `read_files` by ≤50 files × ≤100000 bytes **per file** *and* an aggregate cap of **1 MiB** for the whole result; `list_files` and `get_tree` by a **1 MiB** result cap. Truncation markers: `read_files` uses `... (truncated)` per file and `... (truncated at the read budget)` for its aggregate cap; `list_files` and `get_tree` append `... (truncated)`.
+- **NFR-001**: Every reader tool's result MUST be bounded to a **fixed 1 MiB ceiling** (the round-008 constant) so it cannot exhaust the model's context window (round-008 NFR-006 lineage): `read_files` by ≤50 files × ≤100000 bytes **per file** *and* an aggregate cap of **1 MiB** for the whole result; `list_files` and `get_tree` by the same **1 MiB** result cap. Truncation markers: `read_files` uses `... (truncated)` per file and `... (truncated at the read budget)` for its aggregate cap; `list_files` and `get_tree` append `... (truncated)`.
 
 ---
 

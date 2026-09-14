@@ -154,7 +154,7 @@
 
 - [ ] T018 [P] [BDD-RED] `Then: the part of "{name}" that tellme read ends with a truncation marker`
   - Landing: `tests/e2e/steps/step_r021_t018_chat_then_truncated.go`
-  - 語意：`read_files` 對 `{name}` 的結果以 `... (truncated)` 結尾。
+  - 語意：`read_files` 對 `{name}` 的結果以 `... (truncated)` **結尾**（**suffix match** —— 用 `strings.HasSuffix`，**不得**用 `strings.Contains`：aggregate 標記 `... (truncated at the read budget)` 含此子字串，否則會與 aggregate 情況誤判）。
 
 - [ ] T019 [P] [BDD-RED] `Then: tellme reports that "{name}" is a binary file that cannot be shown as text`
   - Landing: `tests/e2e/steps/step_r021_t019_chat_then_binary.go`
@@ -219,7 +219,7 @@
     - `specs/plans/021-tool-surface-parity/research.md` -> Decision 2, 3, 5（含 D3a aggregate cap）
     - `specs/truth/techstack.md` -> CLI Application（Read-only filesystem tools）
     - `internal/infrastructure/tools/filesystem.go`、`internal/infrastructure/tools/filesystem_test.go`
-  - 撰寫：`list_files` 輸出 `Contents of <path>:` + `[d]/[f]`（含預設 path）；`read_files` 多檔 framing（`--- File: … ---`）／request 順序／100000-byte 截斷／binary／directory `ERROR:`／≤50 上限／空 args 錯誤／**整份結果 1 MiB aggregate 上限**（block 只在放得下時附加；首個超出的 block 前停止並加 `... (truncated at the read budget)`，被略過的檔案不加 header）；`get_tree` connector 輸出／預設 `max_depth` 2／不遞迴 `.git`／**1 MiB 上限**；`list_files` **1 MiB 上限**；三者 schema 皆含 required `reason`（**schema-only**，工具不額外驗證）。
+  - 撰寫：`list_files` 輸出 `Contents of <path>:` + `[d]/[f]`（含預設 path）；`read_files` 多檔 framing（`--- File: … ---`）／request 順序／100000-byte 截斷／binary／directory `ERROR:`／≤50 上限／空 args 錯誤／**整份結果 1 MiB aggregate 上限**（block 只在放得下時附加；首個超出的 block 前停止並加 `... (truncated at the read budget)`，被略過的檔案不加 header；per-file 截斷標記以 **suffix** 判定 —— 用 `strings.HasSuffix`，**不得**用 `strings.Contains`，因 aggregate 標記 `... (truncated at the read budget)` 含 per-file 標記子字串）；`get_tree` connector 輸出／預設 `max_depth` 2／不遞迴 `.git`／**1 MiB 上限**；`list_files` **1 MiB 上限**；三者 schema 皆含 required `reason`（**schema-only**，工具不額外驗證）。
   - 落點：`internal/infrastructure/tools/filesystem_test.go`、`internal/infrastructure/tools/get_tree_test.go`。
 
 - [ ] T033 [P] [UNIT] `reason` 被 echo 進 tool-loop log 行
