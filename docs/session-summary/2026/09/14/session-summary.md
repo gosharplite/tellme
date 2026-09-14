@@ -608,3 +608,75 @@ A session on the same calendar day: opened round **017** (make `tellme`'s **non-
 
 ### PM follow-ups
 - None new (spec/acceptance unchanged).
+
+
+## 19. Session 8 (2026-09-14) — round 018 (`018-post-turn-status-lines`) delivered + closeout
+
+A new session on the same calendar day: opened round **018** (the post-turn status lines the round-017 scope deferred), ran the full AIxBDD pipeline, took it through **three** review rounds, saw the **human merge** of PR [#43](https://github.com/gosharplite/tellme/pull/43), propagated `dev → main`, and ran `SESSION-CLOSEOUT.md`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 017 delivered/frozen; active branch `dev`) |
+| Round-018 theme | post-turn status: per-turn **metrics line** + **`╰─⠿ Ready`** summary with **config-only pricing** + a per-mode **`tokens.log`** |
+| `/axb-specify` | `specs/plans/018-post-turn-status-lines/`; PM decisions locked by a **5-question operator interview** + **1 clarify question** |
+| `/axb-spec-by-example` | 3 acceptance features (metrics · cost+summary · boundedness) |
+| `/axb-technical-research` | `research.md` D1–9; `specs/truth/techstack.md` MODIFY (post-turn lines + `MODELS` + `tokens.log`) |
+| `/axb-system-analysis` | `plan.md` — 2 interfaces · 1 wave; `/axb-api-plan` = NOOP; `/axb-data-plan` = ADD; `/axb-ui-plan` skipped |
+| `/axb-data-plan` | `data/data-model.dbml` ADD `usage_record` (+ `tokens.summary.json` roll-up) |
+| `/axb-dsl-refine` | ADD `chat/presenting-the-post-turn-status.feature` (9 Rules); `chat/dsl.md` **+15**; root `cli/dsl.md` **+1**; audit PASSED |
+| `/axb-tasks` | `tasks.md` (25 tasks; Setup omitted — no new dependency; orphan sweep 0) |
+| `/axb-implement` | 25/25 `[X]`; `go test -count=1 ./...` green (E2E **126/126**); `make verify` OK |
+| Reviews | PLAN+TRUTH APPROVED (`7f5f335`) → implementation APPROVED (`decc4a1`) → doc-comment fold (`a9cdcb4`) → Principal-Architect findings folded (`26257b4`) |
+| Delivery | PR [#43](https://github.com/gosharplite/tellme/pull/43) **human-merged** into `dev` (`9927287`, by `thptcnec`); frozen head `26257b4`; propagated `dev → main` |
+
+### Decisions locked (round 018)
+| # | Decision |
+| --- | --- |
+| Q1 (clarify) | Pricing is **config-only** (`MODELS: { <model>: { PRICING: { HIT, MISS, COMP } } }`); **no built-in rates**; un-priced model → `$0.0000` (`$` group still renders). |
+| interview | Line 2 `[HH:MM:SS] [<provider>] M: … H: … C: … Th: …` (cost + timing dropped); line 3 `╰─⠿ Ready ($… $… $… - M: … H: … O: … - …%)` (` - ` groups; `O` before `%`). |
+| interview | `Th` **always** shown (incl. `Th: 0`); three `$` = **last-returned call / whole turn / session**; line-2's `M/H/C/Th` + `$#1` from **the call that just returned**. |
+| interview | Storage = per-mode `output/<mode>/tokens.log` (one JSON record per call); presence = every prompt-bearing turn, `stderr`, plain text, suppressed only when the provider reports no usage; `stdout` byte-exact; vocabulary unchanged (11). |
+| research D1 | Transport exposes **disjoint** counters (`Th = reasoning`; `C = completion_tokens − reasoning_tokens`), so `O = C + Th` never double-counts. |
+| review #1 (folded) | Persisted session roll-up (`tokens.summary.json`) → **O(1)** session totals; streaming self-heal; `--new` drops it. |
+| review #2 (folded) | `max(0, completion_tokens − reasoning_tokens)` floor. |
+| review #3 (folded) | `AppendBatch` (one open/write/sync/close per turn). |
+
+### Commits (branch `018-post-turn-status-lines`, then merged)
+| Commit | Note |
+| --- | --- |
+| `e1eb110` | `docs(018)`: plan package + spec |
+| `6d1b6ec` | `docs(018)`: acceptance + technical research + techstack truth |
+| `240c6f4` | `docs(018)`: system-analysis plan + data truth (`usage_record` / `tokens.log`) |
+| `451882f` | `docs(018)`: CLI interface truth for the post-turn status lines |
+| `eee644b` | `docs(018)`: `tasks.md` |
+| `d39c996` | `docs(018)`: PR #43 review — tool-turn usage on both calls (blocker) + `C`/`Th` additivity + nits |
+| `7f5f335` | `docs(018)`: PR #43 re-review — align `C`/`Th` (inclusive wire `completion_tokens`) + FR-002 |
+| `143b395` | `feat(018)`: implement the post-turn status lines |
+| `decc4a1` | `fix(018)`: implementation review — workspace guard, drop stray `tokens.log`, format stability, best-effort log |
+| `a9cdcb4` | `docs(018)`: align `FormatMetrics` doc comment |
+| `26257b4` | `refactor(018)`: principal-architect review — persisted session roll-up, batch append, completion floor |
+| `9927287` | PR [#43](https://github.com/gosharplite/tellme/pull/43) merge into `dev` (by `thptcnec`) |
+
+### Verification
+- `make verify` **OK** (0 lint · 0 reachable vulns · no `time.Sleep` · offline witness) · `go test -count=1 ./...` green · E2E **126/126 scenarios · 907 steps** · topology audit **PASSED** (32 features · 13 root + 177 module rows · **883 steps**).
+- **Falsifiability witnesses (a)/(b)** reproduced (then reverted): misroute the metrics line → the metrics-presence Then fails; remove the no-usage suppression → `the run reports no post-turn status` fails.
+- `stdout` byte-exact; the round-009 payload line + round-017 turn chrome unchanged; vocabulary 11; no new dependency (`go.mod`/`go.sum` untouched); no stray `tokens*` files after tests.
+
+### Closeout
+- **Merge**: PR [#43](https://github.com/gosharplite/tellme/pull/43) human-merged into `dev` (`9927287`); round-018 head frozen at `26257b4`.
+- **Binary**: `go install ./cmd/tellme` refreshed `$(go env GOPATH)/bin/tellme` from `26257b4` (carries the post-turn lines).
+- **`STATUS.md`**: round 018 → DELIVERED/FROZEN; round-017 detail relocated verbatim to `docs/archives/status/2026-09-14.md` (Rule 12); header/branch-model/roadmap/open-items/env updated.
+- **Propagation**: `018-post-turn-status-lines → dev` (PR #43, `9927287`) `→ main` — **DONE (no-ff)**; closeout docs on `dev`.
+
+### Open items (non-blocking)
+- **Round-018 forward items**: gray styling for the post-turn lines (plain text this round); the `tokens.summary.json` roll-up is best-effort (crash between append + summary write can understate; a missing summary self-heals by recompute).
+- Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / no `flock`; round-011 forward items.
+- Future-slice candidates: issue [#36](https://github.com/gosharplite/tellme/issues/36) (Gemini API family / ADC / concurrent tool-call matching).
+
+### Next steps
+1. Choose the `019-*` theme and start it via `/axb-specify` off `dev` (candidates in `STATUS.md` Open items).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance unchanged).
