@@ -1,0 +1,14 @@
+┌────────────────────────────┐
+│ deploy to staging          │
+│ ▏                          │
+│                            │
+│                            │
+│                            │
+│                            │
+│                            │
+│                            │
+│                            │
+└────────────────────────────┘
+ Suggestions:
+ > deploy to staging with…
+   review the last commit

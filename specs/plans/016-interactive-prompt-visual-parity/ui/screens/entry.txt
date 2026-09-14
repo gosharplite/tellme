@@ -1,0 +1,16 @@
+┌────────────────────────────────────────────────────────────────────────┐
+│ Type your message here... (Alt+Enter or Ctrl+S to submit, Esc to abort) │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
+ Suggestions:
+ > deploy to staging with version 016
+   review the last two commits
+   summarize the last release

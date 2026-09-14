@@ -38,3 +38,29 @@ Feature: Prompting with live suggestions
       When the operator opens the interactive prompt and types "read"
       Then the interactive prompt offers the available tool "read_files"
       And tellme exits successfully
+
+  Rule: Accepting a suggestion inserts it into the editor
+
+    # [unit-pinned (round 016, PR #40 F2)] the last-token replacement (a multi-word
+    # line + a single-token suggestion) is pinned by the unit layer; this E2E Example
+    # uses a whole-line replacement (a single-word query).
+
+    Example: The operator accepts the current suggestion into the editor
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the operator is working at an interactive terminal
+      And the shared prompt log already holds "deploy to staging with version 016"
+      When the operator opens the interactive prompt, types "deploy", and accepts the current suggestion
+      Then the interactive prompt holds the accepted suggestion "deploy to staging with version 016"
+      And tellme exits successfully
+
+  Rule: An over-long suggestion is not offered
+
+    Example: A recent prompt spanning many lines is not offered
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the operator is working at an interactive terminal
+      And the shared prompt log already holds "one\ntwo\nthree\nfour"
+      When the operator opens the interactive prompt and types "one"
+      Then no suggestion offered to the operator spans more than three lines
+      And tellme exits successfully
