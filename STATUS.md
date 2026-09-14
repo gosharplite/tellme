@@ -12,9 +12,9 @@
 
 **Locked decisions (D1–D5)**: (D1) `read_files` → multi-file `filepaths: string[]`; (D2) `reason` required and echoed into the tool-loop `stderr` log; (D3) reference limits verbatim (100 KB cap, `... (truncated)`, binary marker, directory `ERROR:`, ≤50 files); (D4) no security/consent layer (settled exclusion); (D5) add `get_tree` (`{path?, max_depth?, reason*}`, default depth 2).
 
-**Pipeline**: specify ✅ → spec-by-example ⏳ · research ⏳ · analysis ⏳ · dsl-refine ⏳ · tasks ⏳ · implement ⏳.
+**Pipeline**: specify ✅ → spec-by-example ✅ · research ✅ · analysis ✅ · dsl-refine ✅ · tasks ✅ · implement ⏳.
 
-**Artifacts**: `spec.md` (US1–US4 · FR-001–016 · NFR-001 · SC-001–006), `checklists/requirements.md`, `truth-delta.md` (skeleton).
+**Artifacts**: `spec.md` (US1–US4 · FR-001–016 · NFR-001 · SC-001–006), `checklists/requirements.md`, `features/acceptance/*.feature` ×4, `research.md` (D1–D8), `plan.md` (1 interface → `/axb-dsl-refine`; api/data NOOP), `tasks.md` (T001–T043), `truth-delta.md`. Truth so far: `techstack.md` MODIFY; `chat/**` MODIFY/ADD/DELETE (audit PASSED — 36 features · 1017 steps). Next: `/axb-implement`.
 
 ## Round 020 — `020-cross-compile-gate` (delivered / frozen)
 
