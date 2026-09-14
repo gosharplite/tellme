@@ -219,7 +219,7 @@
     - `specs/plans/021-tool-surface-parity/research.md` -> Decision 2, 3, 5（含 D3a aggregate cap）
     - `specs/truth/techstack.md` -> CLI Application（Read-only filesystem tools）
     - `internal/infrastructure/tools/filesystem.go`、`internal/infrastructure/tools/filesystem_test.go`
-  - 撰寫：`list_files` 輸出 `Contents of <path>:` + `[d]/[f]`（含預設 path）；`read_files` 多檔 framing（`--- File: … ---`）／request 順序／100000-byte 截斷／binary／directory `ERROR:`／≤50 上限／空 args 錯誤／**整份結果 1 MiB aggregate 上限**；`get_tree` connector 輸出／預設 `max_depth` 2／不遞迴 `.git`／**1 MiB 上限**；`list_files` **1 MiB 上限**；三者 schema 皆含 required `reason`（**schema-only**，工具不額外驗證）。
+  - 撰寫：`list_files` 輸出 `Contents of <path>:` + `[d]/[f]`（含預設 path）；`read_files` 多檔 framing（`--- File: … ---`）／request 順序／100000-byte 截斷／binary／directory `ERROR:`／≤50 上限／空 args 錯誤／**整份結果 1 MiB aggregate 上限**（block 只在放得下時附加；首個超出的 block 前停止並加 `... (truncated at the read budget)`，被略過的檔案不加 header）；`get_tree` connector 輸出／預設 `max_depth` 2／不遞迴 `.git`／**1 MiB 上限**；`list_files` **1 MiB 上限**；三者 schema 皆含 required `reason`（**schema-only**，工具不額外驗證）。
   - 落點：`internal/infrastructure/tools/filesystem_test.go`、`internal/infrastructure/tools/get_tree_test.go`。
 
 - [ ] T033 [P] [UNIT] `reason` 被 echo 進 tool-loop log 行
