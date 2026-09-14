@@ -15,13 +15,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-|  |  |  |  |
+| NOOP | `specs/truth/contracts/**` | Checked; left empty. | Standalone CLI; no OpenAPI/HTTP surface of tellme's own. Round 018 only reads the provider's existing `usage` — it authors no request/response shape. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-|  |  |  |  |
+| ADD | `specs/truth/data/data-model.dbml` | New `usage_record` table — the per-mode API-call usage log (`output/<mode>/tokens.log`): one JSON record per provider call (cached/prompt/response/thinking/total tokens + cost), append-ordered, summed for the session totals; project Note broadened to three artifacts. | Round 018 persists per-call usage so the `╰─⠿ Ready` session summary (token totals + cost) is exact across resume and resets on `--new`. |
 
 ## /axb-dsl-refine
 
