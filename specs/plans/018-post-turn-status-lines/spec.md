@@ -45,7 +45,7 @@ As an operator, I want `tellme` to show the just-finished API call's token break
 **Functional Requirements**:
 
 - **FR-001**: On every prompt-bearing turn, after the answer, the system MUST write exactly one metrics line to the diagnostic stream: `[HH:MM:SS] [<provider>] M: <miss> H: <cached> C: <completion> Th: <thinking>`.
-- **FR-002**: The fields MUST come from the API call that just returned: `M = prompt_tokens − cached_tokens`, `H = cached_tokens`, `C = completion_tokens`, `Th = thinking_tokens`.
+- **FR-002**: The fields MUST come from the API call that just returned: `M = prompt_tokens − cached_tokens`, `H = cached_tokens`, `C = completion_tokens − reasoning_tokens` (the wire `completion_tokens` **includes** reasoning, so the transport exposes `C`/`Th` as disjoint counters), `Th = thinking_tokens`.
 - **FR-003**: The `Th:` segment MUST always be rendered, including `Th: 0`.
 - **FR-004**: `[<provider>]` MUST be the active provider's registry label.
 
