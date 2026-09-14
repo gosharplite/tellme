@@ -480,3 +480,61 @@ The implementation half of round 016 (strict `-i` visual parity): `/axb-implemen
 
 1. Review the implementation commits → human merge PR #40 → propagate `016 → dev → main`.
 2. Re-read `SESSION-BOOTSTRAP.md` next session.
+
+
+---
+
+## 17. Session 6 (cont.) — round 016 DELIVERED + closeout (PR #40 merged; propagated `dev → main`)
+
+The delivery + end-of-day closeout: PR [#40](https://github.com/gosharplite/tellme/pull/40) merged, the round frozen, `STATUS.md` split, and the day closed.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#40](https://github.com/gosharplite/tellme/pull/40) **MERGED** into `dev` (`8fef0f8`, by `thptcnec`, 2026-09-14T02:06:19Z); round-016 head frozen at **`3906b57`** (the re-certified SHA) |
+| Review trail | PLAN + TRUTH APPROVED (`35dd2cb`) → folds (`9c12cbf`) → architect directives folded (`bd8e11a`) → implementation certified (`3906b57`, **FULL ARCHITECTURAL APPROVAL**) → merged |
+| Closeout | `make verify` OK · godog **107/107 · 754 steps** · topology audit **PASSED** (730 steps); diff-level secret scan clean; `STATUS.md` split (round-015 detail → archive); this §17 |
+| Propagation | `016-interactive-prompt-visual-parity → dev` (PR #40, `8fef0f8`) `→ main` — **DONE (no-ff)** |
+| Binary | `go install ./cmd/tellme` refreshed `$(go env GOPATH)/bin/tellme` from `3906b57` |
+
+### Work done
+
+1. **Merge check** — PR #40 confirmed `merged: true` (by `thptcnec`, `8fef0f8`); `3906b57` is an ancestor of `origin/dev`; local `dev` fast-forwarded to `8fef0f8`.
+2. **Post-merge verification** — `make verify` **OK** · `go test -count=1 ./...` green · godog **107/107** · topology audit **PASSED** (730 steps).
+3. **`SESSION-CLOSEOUT.md` Steps 1–7** — clean tree; gates green + diff-level secret scan clean; `STATUS.md` refreshed + **split** (round-015 detail relocated verbatim to [`docs/archives/status/2026-09-14.md`](../../../../../docs/archives/status/2026-09-14.md) per Rule 12); this summary; reconcile; commit on `dev`; propagate.
+4. **Binary** — `go install ./cmd/tellme` from `3906b57`.
+
+### Decisions log
+
+| # | Decision |
+| --- | --- |
+| D1 | Round 016 **DELIVERED / FROZEN** on merge of PR #40 (`8fef0f8`); frozen head `3906b57`. |
+| D2 | Closeout docs land on **`dev`** (round branches frozen — session-13 D5). |
+| D3 | Per Rule 12, relocate the **round-015** detail verbatim into `docs/archives/status/2026-09-14.md` (keeps `STATUS.md` to one delivered-round detail section). |
+| D4 | Propagate `dev → main` (no-ff) — user-approved at closeout. |
+
+### Commits (branch `dev`)
+
+| Commit | Note |
+| --- | --- |
+| `8fef0f8` | PR [#40](https://github.com/gosharplite/tellme/pull/40) merge into `dev` (by `thptcnec`) |
+| *(this closeout)* | `docs(016)`: day close — round 016 delivered + STATUS split + daily summary |
+
+### Verification
+
+- `make verify` **OK** (0 lint · 0 vulns · no `time.Sleep` · offline witness) · `go test -count=1 ./...` green · godog **107/107 scenarios · 754 steps** · topology audit **PASSED** (730 steps) · diff-level secret scan clean.
+
+### Open items (non-blocking)
+
+- None new for round 016. Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / no pruning / **no `flock`**; round-011 forward items.
+- Future-slice candidates: issue [#36](https://github.com/gosharplite/tellme/issues/36) (Gemini API family / ADC / concurrent tool-call matching).
+
+### Next steps
+
+1. Choose the `017-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance unchanged).
