@@ -26,8 +26,13 @@ func FormatInputCaptured(t time.Time) string {
 	return fmt.Sprintf("[%s] Input captured. Processing...", t.Format("15:04:05"))
 }
 
+// turnRule is the reference's fixed-width horizontal rule, computed once at
+// package init (the `─` rune is a 3-byte UTF-8 sequence, so repeating it per
+// call would allocate — round-017 implementation-review finding 2).
+var turnRule = strings.Repeat("─", turnRuleWidth)
+
 // TurnRule returns the reference's fixed-width horizontal rule (80 `─`).
-func TurnRule() string { return strings.Repeat("─", turnRuleWidth) }
+func TurnRule() string { return turnRule }
 
 // FormatTurnHeader renders the reference's turn header: `╭─⠿ Turn <N> - <mode>`.
 // The ` - <mode>` suffix is omitted when mode is empty.

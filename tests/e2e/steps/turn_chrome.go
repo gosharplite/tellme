@@ -23,7 +23,10 @@ var (
 // product-side change cannot make the guard vacuous — the round-012 TD1 pattern).
 const turnRuleWidth = 80
 
-func turnRuleLiteral() string { return strings.Repeat("─", turnRuleWidth) }
+// turnRuleStr is the rule computed once (round-017 implementation-review finding 2).
+var turnRuleStr = strings.Repeat("─", turnRuleWidth)
+
+func turnRuleLiteral() string { return turnRuleStr }
 
 // hasTurnAck reports whether s carries the input-capture acknowledgement.
 func hasTurnAck(s string) bool { return reTurnAck.MatchString(harness.StripANSI(s)) }

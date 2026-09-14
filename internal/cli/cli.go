@@ -235,7 +235,7 @@ func runTUIPrompt(homeDir string, opts *options, env runtimeEnv) int {
 	tracker := infrhistory.NewGlobalPromptTracker(res.Home)
 	_ = tracker.Append(context.Background(), text)
 	_ = tracker.Close(context.Background())
-	return renderTurn(homeDir, opts.configPath, text, opts.raw, false, false, env)
+	return renderTurn(homeDir, opts.configPath, text, turnOptions{raw: opts.raw}, env)
 }
 
 // Run is the CLI entrypoint: main passes argv and the injected build version,
@@ -314,7 +314,7 @@ func run(args []string, version string, env runtimeEnv) int {
 		return EnvironmentError
 	}
 	if prompt != "" {
-		return renderTurn(homeDir, opts.configPath, prompt, opts.raw, opts.newSession, true, env)
+		return renderTurn(homeDir, opts.configPath, prompt, turnOptions{raw: opts.raw, newSession: opts.newSession, chrome: true}, env)
 	}
 	// Round 012 (amended, A8) — a prompt-less invocation on a terminal reads an
 	// interactive multi-line prompt: print the hint to stderr and read stdin to EOF
@@ -358,7 +358,7 @@ func run(args []string, version string, env runtimeEnv) int {
 		if !ok || text == "" {
 			return Success
 		}
-		return renderTurn(homeDir, opts.configPath, text, opts.raw, false, true, env)
+		return renderTurn(homeDir, opts.configPath, text, turnOptions{raw: opts.raw, chrome: true}, env)
 	}
 	// A prompt-less --new on a NON-terminal keeps its round-007 behaviour: archive
 	// the session and exit (the reader never engages on a non-terminal).
@@ -500,18 +500,27 @@ var newGateway gatewayFactory = infrallm.NewGateway
 // failure is rendered as a boot error; an unsupported family or a
 // provider/transport failure is rendered with the frozen provider class phrase
 // and exit code 6; a history failure reuses the environment class phrase.
-func renderTurn(homeDir, configPath, prompt string, raw bool, newSession bool, chrome bool, env runtimeEnv) int {
+// turnOptions carries a turn's execution flags as named fields rather than
+// positional booleans (round-017 implementation-review finding 1 — "boolean
+// blindness": renderTurn/runTurn had three consecutive positional bools).
+type turnOptions struct {
+	raw        bool
+	newSession bool
+	chrome     bool
+}
+
+func renderTurn(homeDir, configPath, prompt string, opts turnOptions, env runtimeEnv) int {
 	res, rerr := resolve(homeDir, configPath)
 	if rerr != nil {
 		return emitBootError(env.stderr, res, rerr)
 	}
 	store := newHistoryStore(res.Workspace)
-	if newSession {
+	if opts.newSession {
 		if err := store.Archive(); err != nil {
 			return emitHistoryError(env.stderr, err)
 		}
 	}
-	return runTurn(res, store, prompt, raw, env, newGateway, chrome)
+	return runTurn(res, store, prompt, opts, env, newGateway)
 }
 
 // runTurn performs one reasoning turn through an injected gateway factory and
@@ -520,7 +529,7 @@ func renderTurn(homeDir, configPath, prompt string, raw bool, newSession bool, c
 // (append-after-complete, round-007 FR-001/FR-003). The answer is written by the
 // runtimeEnv's renderer. The context is cancelled on SIGINT/SIGTERM so a stalled
 // provider can be interrupted (review finding #2).
-func runTurn(res resolution, store history.Store, prompt string, raw bool, env runtimeEnv, factory gatewayFactory, chrome bool) int {
+func runTurn(res resolution, store history.Store, prompt string, opts turnOptions, env runtimeEnv, factory gatewayFactory) int {
 	gw, err := factory(res.Provider, res.Selected, res.Person)
 	if err != nil {
 		return emitProviderError(env.stderr, err)
@@ -542,12 +551,17 @@ func runTurn(res resolution, store history.Store, prompt string, raw bool, env r
 	// input-capture acknowledgement and the rule/header frame, wrapping the
 	// pre-flight payload line. It is false for the `-i` submit path and the
 	// non-prompt paths (FR-007).
-	if chrome {
+	if opts.chrome {
 		emitInputCaptured(env)
+		// Turn <N> = the session's completed-turn count + 1, derived from the
+		// loaded active history. Forward item (round-017 review finding 3): when
+		// sliding-window summarisation/archival lands, `len(prior)` will
+		// undercount and this must use a total-lifetime count, e.g. a
+		// history.Store.Count() method.
 		emitTurnOpening(env, len(prior)+1, res.Mode)
 	}
 	emitPayloadStatus(env, res, llm.EstimatePayload(res.Person, agent.ToolDefs(reg), assembled), true)
-	if chrome {
+	if opts.chrome {
 		emitTurnGap(env)
 	}
 
@@ -568,7 +582,7 @@ func runTurn(res resolution, store history.Store, prompt string, raw bool, env r
 	if err := store.Append(history.Entry{Prompt: prompt, Answer: result.Answer, Steps: result.Steps}); err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
-	env.writeAnswer(result.Answer, raw, res.WrapWidth)
+	env.writeAnswer(result.Answer, opts.raw, res.WrapWidth)
 	// Post-turn payload status (round-009 FR-006): the provider's measured prompt
 	// tokens, written AFTER the answer so it trails the response (the pre-flight
 	// line led it). Omitted when the provider reported no usage.
