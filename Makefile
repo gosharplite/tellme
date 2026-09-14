@@ -9,7 +9,7 @@ STATICCHECK := $(shell command -v staticcheck 2>/dev/null)
 GOLANGCI := $(shell command -v golangci-lint 2>/dev/null)
 GOVULNCHECK := $(shell command -v govulncheck 2>/dev/null)
 
-.PHONY: help build fmt vet staticcheck tidy lint vulncheck test verify verify-no-test-sleep verify-no-network
+.PHONY: help build fmt vet staticcheck tidy lint vulncheck test verify verify-no-test-sleep verify-no-network verify-cross-compile
 
 help:
 	@echo "tellme development tasks:"
@@ -23,7 +23,8 @@ help:
 	@echo "  make test                 - go test ./..."
 	@echo "  make verify-no-test-sleep - forbid time.Sleep for synchronization in *_test.go (ADR-036 parity)"
 	@echo "  make verify-no-network    - build-graph capability guard: no net/net/http in ./cmd/tellme closure"
-	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + vet + lint + vulncheck"
+	@echo "  make verify-cross-compile - build + vet the module for every supported POSIX target (linux/darwin, amd64/arm64)"
+	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + verify-cross-compile + vet + lint + vulncheck"
 
 # NOTE: `VERSION ?= dev` is the local/release default ONLY.
 # The E2E harness must build explicitly with the sentinel
@@ -92,5 +93,17 @@ verify-no-network:
 	@go test -count=1 -run TestOfflinePathsDoNotContactProvider ./tests/e2e/
 	@echo "  ✓ offline paths (--version, -d, prompt-less boot) make no provider request"
 
-verify: verify-no-test-sleep verify-no-network vet lint vulncheck
+# Cross-compile gate (round 020): compile + vet the module for every supported
+# target, so build-tagged, OS-specific code (e.g.
+# internal/infrastructure/telemetry/system_metrics_{linux,darwin}.go) can never
+# silently fail to compile for a platform we ship. Host-independent: it verifies
+# the whole matrix regardless of the host GOOS/GOARCH — round 019's darwin
+# sampler shipped broken because `make verify` only builds the host target.
+CROSS_TARGETS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
+verify-cross-compile:
+	@echo "verify-cross-compile: build + vet for $(CROSS_TARGETS) ..."
+	@for target in $(CROSS_TARGETS); do os=$${target%/*}; arch=$${target#*/}; echo "  cross-build $$os/$$arch"; GOOS=$$os GOARCH=$$arch go build ./... || { echo "❌ go build failed for $$os/$$arch"; exit 1; }; GOOS=$$os GOARCH=$$arch go vet ./... || { echo "❌ go vet failed for $$os/$$arch"; exit 1; }; done
+	@echo "  ✓ cross-compiles and vets for all supported targets"
+
+verify: verify-no-test-sleep verify-no-network verify-cross-compile vet lint vulncheck
 	@echo "verify: OK"

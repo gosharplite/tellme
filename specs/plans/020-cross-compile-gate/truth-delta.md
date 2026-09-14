@@ -3,28 +3,28 @@
 **Plan Package**: `specs/plans/020-cross-compile-gate`
 **Truth Root**: `specs/truth`
 
-> Skeleton initialized by `/axb-specify`. Each truth owner replaces its placeholder row(s) with its own ADD / MODIFY / DELETE / NOOP entries during the round. Every owner must record at least one entry; a `NOOP` entry proves the area was checked.
+> Initialized by `/axb-specify`; filled by the truth owners during the round. Every owner records at least one entry; a `NOOP` entry proves the area was checked.
 
 ## /axb-technical-research
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| TBD | `specs/truth/techstack.md` | Expected MODIFY (Build & Tooling): record the cross-compile gate + the supported target matrix. | Round 020 — the gate is a build/verification technology choice (pending the RD half). |
+| MODIFY | `specs/truth/techstack.md` | Build & Tooling: add a **Cross-compile verification** row (a `Makefile` `verify-cross-compile` gate running `go build ./...` + `go vet ./...` per supported `GOOS/GOARCH` — `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64` — host-independent; a member of `make verify`; no new dependency), and extend the **Task runner** row to list the aggregate members incl. `verify-cross-compile`. | Round 020 — a host-independent cross-compile gate closes the pipeline blind spot (only the host `GOOS`/`GOARCH` was compiled; round 019's darwin sampler shipped uncompiled). research.md D1–D5. |
 
 ## /axb-api-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| TBD | `specs/truth/contracts/**` | Expected NOOP — standalone CLI; no OpenAPI/HTTP surface. | Round 020 changes only the build pipeline, not any API surface. |
+| NOOP | `specs/truth/contracts/**` | Checked; left empty. | Standalone CLI; the round changes the build pipeline only, not any OpenAPI/HTTP surface; no request/response shape is authored. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| TBD | `specs/truth/data/**` | Expected NOOP — no persisted or in-memory state. | Round 020 introduces no entity, field, index, or lifecycle. |
+| NOOP | `specs/truth/data/**` | Checked; left empty. | The gate is build-time only; no entity, field, index, key, lifecycle, or store is introduced. |
 
 ## /axb-dsl-refine
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| TBD | `specs/truth/features/cli/**` | Expected NOOP — no user-facing CLI interface behaviour changes. | Round 020 changes the build pipeline only; the CLI contract is unchanged. |
+| NOOP | `specs/truth/features/cli/**` | Checked; left empty. | No user-facing CLI interface behaviour changes — the gate's exit code is not a CLI contract; no new or changed Gherkin / DSL rows. |
