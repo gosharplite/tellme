@@ -44,7 +44,7 @@ As a maintainer, I want the quality pipeline to compile and vet the module for *
 
 **Non-Functional Requirements**:
 
-- **NFR-001**: The gate MUST be deterministic and MUST add no dependency or tool beyond the Go toolchain and `make`; it uses the same module set as a normal build and introduces no new network service.
+- **NFR-001**: The gate MUST be deterministic and MUST add no dependency or tool beyond the Go toolchain and `make`; it uses the same module set as a normal build, introduces no new network service, and pins `CGO_ENABLED=0` so cross builds are hermetic regardless of the shell environment.
 - **NFR-002**: The gate's added runtime MUST be bounded (a fixed, small number of target builds) and it MUST NOT use `time.Sleep` or depend on ambient environment for its verdict.
 
 ---

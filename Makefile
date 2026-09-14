@@ -24,7 +24,7 @@ help:
 	@echo "  make verify-no-test-sleep - forbid time.Sleep for synchronization in *_test.go (ADR-036 parity)"
 	@echo "  make verify-no-network    - build-graph capability guard: no net/net/http in ./cmd/tellme closure"
 	@echo "  make verify-cross-compile - build + vet the module for every supported POSIX target (linux/darwin, amd64/arm64)"
-	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + verify-cross-compile + vet + lint + vulncheck"
+	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + vet + verify-cross-compile + lint + vulncheck"
 
 # NOTE: `VERSION ?= dev` is the local/release default ONLY.
 # The E2E harness must build explicitly with the sentinel
@@ -99,11 +99,16 @@ verify-no-network:
 # silently fail to compile for a platform we ship. Host-independent: it verifies
 # the whole matrix regardless of the host GOOS/GOARCH — round 019's darwin
 # sampler shipped broken because `make verify` only builds the host target.
+# CGO_ENABLED=0 pins pure-Go cross-compilation so an ambient `CGO_ENABLED=1`
+# (a host shell/CI export) can never make a cross build fail by invoking the
+# host C compiler against target assembly/headers (PR #46 review — TD1).
 CROSS_TARGETS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
 verify-cross-compile:
 	@echo "verify-cross-compile: build + vet for $(CROSS_TARGETS) ..."
-	@for target in $(CROSS_TARGETS); do os=$${target%/*}; arch=$${target#*/}; echo "  cross-build $$os/$$arch"; GOOS=$$os GOARCH=$$arch go build ./... || { echo "❌ go build failed for $$os/$$arch"; exit 1; }; GOOS=$$os GOARCH=$$arch go vet ./... || { echo "❌ go vet failed for $$os/$$arch"; exit 1; }; done
+	@for target in $(CROSS_TARGETS); do os=$${target%/*}; arch=$${target#*/}; echo "  cross-build $$os/$$arch"; CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build ./... || { echo "❌ go build failed for $$os/$$arch"; exit 1; }; CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go vet ./... || { echo "❌ go vet failed for $$os/$$arch"; exit 1; }; done
 	@echo "  ✓ cross-compiles and vets for all supported targets"
 
-verify: verify-no-test-sleep verify-no-network verify-cross-compile vet lint vulncheck
+# `vet` runs before `verify-cross-compile` for fail-fast on host-local errors;
+# `verify-cross-compile` then re-covers the host target as part of the matrix.
+verify: verify-no-test-sleep verify-no-network vet verify-cross-compile lint vulncheck
 	@echo "verify: OK"

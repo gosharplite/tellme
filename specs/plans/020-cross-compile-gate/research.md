@@ -41,7 +41,7 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
 
 ## Decision 5: No new dependency; deterministic
 
-- **Decision**: the gate uses only the Go toolchain and `make`; it introduces no new dependency and no new network service; it does not use `time.Sleep` nor depend on ambient environment for its verdict. `go.mod` / `go.sum` are unchanged.
+- **Decision**: the gate uses only the Go toolchain and `make`; it introduces no new dependency and no new network service; it does not use `time.Sleep` nor depend on ambient environment for its verdict. `go.mod` / `go.sum` are unchanged. The gate pins **`CGO_ENABLED=0`** for every target so an ambient `CGO_ENABLED=1` (common in CGO-laden shell/CI environments) cannot make a cross build fail by invoking the host C compiler against target assembly/headers — the gate is hermetic regardless of the shell (PR #46 review TD1).
 - **Rationale**: a build loop needs nothing beyond `go`. Like any build, a **cold** module cache may resolve modules once, but the gate adds no new module and no new service.
 - **Alternatives considered**:
   - **A cross-compile helper library / a CI action** — needless dependency / out-of-repo coupling — rejected.
@@ -57,7 +57,7 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
 
 ## Residual risks / forward links
 
-- **cgo**: today every supported target builds pure-Go, so the gate's default `CGO_ENABLED` (host value) is fine. If a supported target later requires cgo, the gate must set `CGO_ENABLED` explicitly (a new decision).
+- **cgo**: the gate pins **`CGO_ENABLED=0`** (PR #46 review TD1), so an ambient `CGO_ENABLED=1` cannot break a cross build. If a supported target ever requires cgo, the pin must be revisited (a new decision).
 - **Cold module cache**: the first build after a clean cache resolves modules like any build; the gate adds no new module and no new network *service* (Decision 5).
 - **Runtime**: four builds + four vets add bounded time to `make verify`; acceptable for the coverage gained.
 - **Cross-target test breakage**: `go vet ./...` type-checks test files, so a test that fails to compile for a target fails the gate — desirable, but it means a host-only test that references host-only symbols would (correctly) fail the gate; such a test must be build-tagged.

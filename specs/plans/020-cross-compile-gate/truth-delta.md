@@ -9,7 +9,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| MODIFY | `specs/truth/techstack.md` | Build & Tooling: add a **Cross-compile verification** row (a `Makefile` `verify-cross-compile` gate running `go build ./...` + `go vet ./...` per supported `GOOS/GOARCH` — `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64` — host-independent; a member of `make verify`; no new dependency), and extend the **Task runner** row to list the aggregate members incl. `verify-cross-compile`. | Round 020 — a host-independent cross-compile gate closes the pipeline blind spot (only the host `GOOS`/`GOARCH` was compiled; round 019's darwin sampler shipped uncompiled). research.md D1–D5. |
+| MODIFY | `specs/truth/techstack.md` | Build & Tooling: add a **Cross-compile verification** row (a `Makefile` `verify-cross-compile` gate running `CGO_ENABLED=0 go build ./...` + `CGO_ENABLED=0 go vet ./...` per supported `GOOS/GOARCH` — `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64` — host-independent; CGO_ENABLED=0 pinned for hermeticity; a member of `make verify`; no new dependency), and extend the **Task runner** row to list the aggregate members incl. `verify-cross-compile`. | Round 020 — a host-independent cross-compile gate closes the pipeline blind spot (only the host `GOOS`/`GOARCH` was compiled; round 019's darwin sampler shipped uncompiled). research.md D1–D5. |
 
 ## /axb-api-plan
 
