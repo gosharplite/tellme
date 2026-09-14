@@ -27,4 +27,9 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-|  |  |  |  |
+| ADD | `specs/truth/features/cli/chat/presenting-the-post-turn-status.feature` | New feature carrying the post-turn status-line contract as atomic Rules: the metrics line of the request that just completed (M/H/C/Th; `Th` always), the three costs (request/turn/session), accumulation + reset, the session tokens + cache share, an un-priced model → zero, suppression when no usage, and the trailing position. | Round 018 — carry the acceptance journeys into executable interface truth (`FR-001`–`FR-013`). |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` | Add **4 Given rows** (usage-with-details; tool-turn-with-usage; config-only pricing; prior usage log), **1 When row** (`--new` + prompt), and **10 Then rows** (metrics presence + values; cost presence + the three relations; session tokens/cache share; zero cost; trailing position). | Round 018 — the post-turn status-line step vocabulary (its users are the `chat` features). |
+| MODIFY | `specs/truth/features/cli/dsl.md` | Add **1 root Then row** `the run reports no post-turn status` — the post-turn-absence predicate is used by the `chat`, `diagnostics`, and `history` modules, so it lives at the interface root (single authority). | Round 018 — the negative boundary is cross-module; no new class phrase (still 11). |
+| MODIFY | `specs/truth/features/cli/diagnostics/version-and-setup-diagnostic.feature` | Add `the run reports no post-turn status` to the version Example. | Round 018 — carry "no post-turn status on `--version`". |
+| MODIFY | `specs/truth/features/cli/history/inspecting-the-session-history.feature` | Add `the run reports no post-turn status` to the `-l` listing Example. | Round 018 — carry "no post-turn status on `-l`". |
+| MODIFY | `specs/truth/features/cli/history/starting-a-fresh-session.feature` | Add `the run reports no post-turn status` to the prompt-less `--new` Example. | Round 018 — carry "no post-turn status on a prompt-less `--new`". |

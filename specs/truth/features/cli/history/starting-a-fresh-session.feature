@@ -14,6 +14,7 @@ Feature: Starting a fresh session
       When the operator starts a fresh session with "--new"
       Then the active session history holds no exchanges
       And the run shows no turn chrome
+      And the run reports no post-turn status
       And tellme exits successfully
 
   Rule: The previous conversation is retained when a fresh session starts
