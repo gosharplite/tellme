@@ -1,10 +1,27 @@
 package prompt
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-// TestModel is the round-015 T029 landing skeleton. The injected-I/O TUI-model
-// unit assertions (seed / debounced refresh / Tab accept / submit-vs-newline-vs-
-// abort / dashboard fields / output bound to stderr) land with T029.
-func TestModel(t *testing.T) {
-	// skeleton — assertions land with the test-alignment task (T029).
+// fakeSource is a canned suggestion source.
+type fakeSource struct{ items []string }
+
+func (f fakeSource) Suggest(string) []string { return f.items }
+
+// TestModelShowsSuggestionsAndDashboard (round-015 T029): the model View renders
+// the seeded suggestion and the dashboard (active provider), driven with injected
+// I/O (no pty).
+func TestModelShowsSuggestionsAndDashboard(t *testing.T) {
+	var out strings.Builder
+	m := New(strings.NewReader(""), &out, fakeSource{items: []string{"deploy to staging"}}, Dashboard{Provider: "test-model", Tokens: 5, Budget: 100, Turns: 1})
+	_ = m.Init()
+	view := m.View()
+	if !strings.Contains(view, "deploy to staging") {
+		t.Fatalf("View() = %q, want it to show the suggestion %q", view, "deploy to staging")
+	}
+	if !strings.Contains(view, "test-model") {
+		t.Fatalf("View() = %q, want it to show the active provider %q", view, "test-model")
+	}
 }

@@ -1,21 +1,29 @@
 package prompt
 
-// suggester holds the suggestion list and the selection cursor. Behaviour —
-// seeding from the source, debounced refresh, and accept — lands with the
-// Feature phase (round-015 T032). This is the landing skeleton.
+// suggester holds the suggestion list and the selection cursor.
 type suggester struct {
 	items  []string
 	cursor int
 }
 
-// newSuggester builds an empty suggestion skeleton.
+// newSuggester builds an empty suggestion list.
 func newSuggester() suggester { return suggester{} }
 
-// top is the currently selected suggestion (empty when the list is empty or the
-// cursor is out of range). Skeleton accessor used by the model.
-func (s *suggester) top() string {
-	if s.cursor < 0 || s.cursor >= len(s.items) {
-		return ""
+// set replaces the items and clamps the cursor.
+func (s *suggester) set(items []string) {
+	s.items = items
+	if s.cursor >= len(items) {
+		s.cursor = 0
 	}
-	return s.items[s.cursor]
+	if s.cursor < 0 {
+		s.cursor = 0
+	}
+}
+
+// cycle moves the selection cursor by delta (wrapping).
+func (s *suggester) cycle(delta int) {
+	if len(s.items) == 0 {
+		return
+	}
+	s.cursor = (s.cursor + delta + len(s.items)) % len(s.items)
 }

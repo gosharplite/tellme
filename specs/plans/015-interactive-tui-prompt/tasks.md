@@ -182,89 +182,89 @@
 
 ### BDD-RED（本輪新增句型）
 
-- [ ] T011 [P] [BDD-RED] `Given: the shared prompt log already holds "{prompt}"`
+- [X] T011 [P] [BDD-RED] `Given: the shared prompt log already holds "{prompt}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the shared prompt log already holds "{prompt}"`
   - Landing: `tests/e2e/steps/step_t011_chat_given_shared_log_holds.go`
   - 語意：於 `$TELL_ME_HOME/output/`（**root**，非 `output/<mode>/`）建立 `global_prompts.jsonl`（若缺），append 一行 `{"timestamp":"<RFC3339>","prompt":"{prompt}"}`。
 
-- [ ] T012 [P] [BDD-RED] `When: the operator opens the interactive prompt`
+- [X] T012 [P] [BDD-RED] `When: the operator opens the interactive prompt`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the operator opens the interactive prompt`
   - Landing: `tests/e2e/steps/step_t012_chat_when_open_prompt.go`
   - 語意：以 `TELL_ME_FORCE_STDIN_TTY=1` 與 scripted key sequence（open → abort）跑 `tellme -i`，captured 結果：exit code、stdout、stderr、fake 記錄的請求。
 
-- [ ] T013 [P] [BDD-RED] `When: the operator opens the interactive prompt and types "{query}"`
+- [X] T013 [P] [BDD-RED] `When: the operator opens the interactive prompt and types "{query}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the operator opens the interactive prompt and types "{query}"`
   - Landing: `tests/e2e/steps/step_t013_chat_when_open_and_type.go`
   - 語意：跑 `tellme -i`（forced-terminal + scripted：open → type `{query}` → abort），captured 結果；prompt 已對 `{query}` 計算建議。
 
-- [ ] T014 [P] [BDD-RED] `When: the operator submits the prompt "{prompt}" at the interactive prompt`
+- [X] T014 [P] [BDD-RED] `When: the operator submits the prompt "{prompt}" at the interactive prompt`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the operator submits the prompt "{prompt}" at the interactive prompt`
   - Landing: `tests/e2e/steps/step_t014_chat_when_submit_at_prompt.go`
   - 語意：跑 `tellme -i`（forced-terminal + scripted：open → type `{prompt}` → submit），captured 結果 + fake 記錄的請求（提交文字成為一次推理回合的 prompt）。
 
-- [ ] T015 [P] [BDD-RED] `When: the operator aborts the interactive prompt`
+- [X] T015 [P] [BDD-RED] `When: the operator aborts the interactive prompt`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the operator aborts the interactive prompt`
   - Landing: `tests/e2e/steps/step_t015_chat_when_abort_prompt.go`
   - 語意：跑 `tellme -i`（forced-terminal + scripted：open → abort），captured 結果（無 prompt 送出）。
 
-- [ ] T016 [P] [BDD-RED] `When: the operator pipes "{content}" into tellme with the interactive prompt enabled`
+- [X] T016 [P] [BDD-RED] `When: the operator pipes "{content}" into tellme with the interactive prompt enabled`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the operator pipes "{content}" into tellme with the interactive prompt enabled`
   - Landing: `tests/e2e/steps/step_t016_chat_when_pipe_with_tui.go`
   - 語意：以 piped stdin 跑 `tellme -i`（無 positional prompt），captured 結果 + fake 記錄的請求（非終端輸入走 piped 路徑）。
 
-- [ ] T017 [P] [BDD-RED] `Then: the interactive prompt is shown`
+- [X] T017 [P] [BDD-RED] `Then: the interactive prompt is shown`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt is shown`
   - Landing: `tests/e2e/steps/step_t017_chat_then_prompt_shown.go`
   - 語意：captured stderr 帶有單一來源公告字面 `cli.TUIHint`；**不得**出現在 stdout。
 
-- [ ] T018 [P] [BDD-RED] `Then: the interactive prompt is not shown`
+- [X] T018 [P] [BDD-RED] `Then: the interactive prompt is not shown`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt is not shown`
   - Landing: `tests/e2e/steps/step_t018_chat_then_prompt_not_shown.go`
   - 語意：stdout 與 stderr 皆**不**帶 `cli.TUIHint` 字面（非終端輸入不得渲染 TUI）。
 
-- [ ] T019 [P] [BDD-RED] `Then: the interactive prompt offers the recent prompt "{prompt}"`
+- [X] T019 [P] [BDD-RED] `Then: the interactive prompt offers the recent prompt "{prompt}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt offers the recent prompt "{prompt}"`
   - Landing: `tests/e2e/steps/step_t019_chat_then_offers_recent_prompt.go`
   - 語意：captured output（rendered prompt）含 `{prompt}` 作為建議（presence）。
 
-- [ ] T020 [P] [BDD-RED] `Then: the interactive prompt offers the workspace entry "{entry}"`
+- [X] T020 [P] [BDD-RED] `Then: the interactive prompt offers the workspace entry "{entry}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt offers the workspace entry "{entry}"`
   - Landing: `tests/e2e/steps/step_t020_chat_then_offers_workspace_entry.go`
   - 語意：captured output 含 workspace entry `{entry}` 作為建議。
 
-- [ ] T021 [P] [BDD-RED] `Then: the interactive prompt offers the available tool "{tool}"`
+- [X] T021 [P] [BDD-RED] `Then: the interactive prompt offers the available tool "{tool}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt offers the available tool "{tool}"`
   - Landing: `tests/e2e/steps/step_t021_chat_then_offers_tool.go`
   - 語意：captured output 含註冊工具名 `{tool}` 作為建議。
 
-- [ ] T022 [P] [BDD-RED] `Then: the interactive prompt reports the active provider "{provider}"`
+- [X] T022 [P] [BDD-RED] `Then: the interactive prompt reports the active provider "{provider}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt reports the active provider "{provider}"`
   - Landing: `tests/e2e/steps/step_t022_chat_then_reports_provider.go`
   - 語意：captured output 含作用中 provider/model `{provider}`（dashboard）。
 
-- [ ] T023 [P] [BDD-RED] `Then: the interactive prompt reports the session's token usage and turn count`
+- [X] T023 [P] [BDD-RED] `Then: the interactive prompt reports the session's token usage and turn count`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt reports the session's token usage and turn count`
   - Landing: `tests/e2e/steps/step_t023_chat_then_reports_tokens_turns.go`
   - 語意：captured output 帶 token 用量與 turn 數兩個 figure（dashboard）。
 
-- [ ] T024 [P] [BDD-RED] `Then: the shared prompt log records the prompt "{prompt}"`
+- [X] T024 [P] [BDD-RED] `Then: the shared prompt log records the prompt "{prompt}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the shared prompt log records the prompt "{prompt}"`
   - Landing: `tests/e2e/steps/step_t024_chat_then_log_records.go`
   - 語意：讀 `$TELL_ME_HOME/output/global_prompts.jsonl`，斷言其含 `{prompt}`。
 
-- [ ] T025 [P] [BDD-RED] `Then: the shared prompt log still holds only "{prompt}"`
+- [X] T025 [P] [BDD-RED] `Then: the shared prompt log still holds only "{prompt}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the shared prompt log still holds only "{prompt}"`
   - Landing: `tests/e2e/steps/step_t025_chat_then_log_unchanged.go`
   - 語意：讀 `global_prompts.jsonl`，斷言恰只含 `{prompt}`（非 `-i` 執行未 append）。
 
-- [ ] T026 [P] [BDD-RED] `Then: tellme sends no request to the provider "{provider}"`
+- [X] T026 [P] [BDD-RED] `Then: tellme sends no request to the provider "{provider}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `tellme sends no request to the provider "{provider}"`
   - Landing: `tests/e2e/steps/step_t026_chat_then_no_request.go`
   - 語意：`{provider}` 的 fake 記錄 **0** 次請求（abort／非互動空提交不得觸及 provider）。
 
 ### UNIT（非 DSL 的單元斷言）
 
-- [ ] T027 [P] [UNIT] 建議引擎：subsequence / dedupe / cap / 空查詢 / path-like gating / ignore 目錄
+- [X] T027 [P] [UNIT] 建議引擎：subsequence / dedupe / cap / 空查詢 / path-like gating / ignore 目錄
   - Read:
     - `specs/plans/015-interactive-tui-prompt/research.md` -> Decision 2；PR #38 review directive ③
     - `specs/truth/techstack.md` -> CLI Application（Prompt suggestion engine）、Testing & Verification（Pure-helper unit tests）
@@ -272,7 +272,7 @@
   - 撰寫：空查詢回 newest recent prompts；查詢以 subsequence 命中、dedupe、≤10；path-like 查詢收斂 `filepath.Split(query)`、分批讀取、跳過 `.git`／`node_modules`、收滿 10 即停；`ctx` 取消即時讓出。
   - 落點：`internal/app/suggestions/service_test.go`。
 
-- [ ] T028 [P] [UNIT] 共享 store：append-only、newest-first dedupe 讀取、byte-identical round-trip、size-checked compaction、`Close`
+- [X] T028 [P] [UNIT] 共享 store：append-only、newest-first dedupe 讀取、byte-identical round-trip、size-checked compaction、`Close`
   - Read:
     - `specs/plans/015-interactive-tui-prompt/research.md` -> Decision 3；PR #38 review directive ⑤
     - `specs/truth/data/data-model.dbml` -> `prompt_log_entry`
@@ -280,7 +280,7 @@
   - 撰寫：`Append` 以 `O_APPEND|O_CREATE|O_WRONLY` 且不截斷；一行 `{"timestamp":"<RFC3339>","prompt":"<text>"}` byte-identical round-trip；`Recent` newest-first + dedupe；compaction 僅在 `newSize == initialSize` 才 `AtomicWrite`；`Close(ctx)` 排空背景工作。
   - 落點：`internal/infrastructure/history/global_prompt_tracker_test.go`。
 
-- [ ] T029 [P] [UNIT] TUI 模型（注入 I/O）：seed / refresh / accept / submit-vs-newline-vs-abort / dashboard / 只寫 stderr
+- [X] T029 [P] [UNIT] TUI 模型（注入 I/O）：seed / refresh / accept / submit-vs-newline-vs-abort / dashboard / 只寫 stderr
   - Read:
     - `specs/plans/015-interactive-tui-prompt/research.md` -> Decision 6；PR #38 review directive ①
     - `specs/truth/techstack.md` -> Testing & Verification（Interactive TUI prompt harness）
@@ -288,7 +288,7 @@
   - 撰寫：以 scripted key 驅動模型——初始建議 seed、輸入後（debounce）refresh、`Tab`/`Shift+Tab` 接受／循環、`Ctrl+S`/`Alt+Enter` submit vs `Enter` newline vs `Esc`/`Ctrl+C` abort、dashboard 欄位；輸出只寫**注入的 stderr writer**，stdout 保持空。
   - 落點：`internal/ui/tui/prompt/model_test.go`。
 
-- [ ] T030 [P] [UNIT] `-i`/`USE_TUI_PROMPT`/非 TTY gating 矩陣（經 `tuiPromptRunner` DI seam）
+- [X] T030 [P] [UNIT] `-i`/`USE_TUI_PROMPT`/非 TTY gating 矩陣（經 `tuiPromptRunner` DI seam）
   - Read:
     - `specs/plans/015-interactive-tui-prompt/research.md` -> Decision 4；PR #38 review directive ④
     - `specs/truth/techstack.md` -> Configuration（Interactive prompt enable）、CLI Application（Terminal detection）
@@ -298,7 +298,7 @@
 
 ### Phase Review Gate
 
-- [ ] T031 subagent review (phase quality gate)
+- [X] T031 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/prompting-with-suggestions.feature`、`using-the-interactive-prompt.feature`、`recording-the-shared-prompt-log.feature`、`choosing-the-interactive-prompt.feature`
     - `specs/truth/features/cli/chat/dsl.md`、`specs/truth/features/cli/dsl.md`
@@ -328,8 +328,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/prompting-with-suggestions.feature`
 
-- [ ] T032 [BDD-GREEN] 讓 Test Scope 全綠（並使 T027 的建議引擎 `[UNIT]` 轉綠）
-- [ ] T033 [BDD-REFACTOR] 在綠燈下整理建議來源聚合與 debounce 路徑
+- [X] T032 [BDD-GREEN] 讓 Test Scope 全綠（並使 T027 的建議引擎 `[UNIT]` 轉綠）
+- [X] T033 [BDD-REFACTOR] 在綠燈下整理建議來源聚合與 debounce 路徑
 
 ## Phase 4B: ADD Feature File - cli/chat/using-the-interactive-prompt.feature
 
@@ -350,8 +350,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/using-the-interactive-prompt.feature`
 
-- [ ] T034 [BDD-GREEN] 讓 Test Scope 全綠（並使 T029 的 TUI 模型 `[UNIT]` 轉綠）
-- [ ] T035 [BDD-REFACTOR] 在綠燈下整理 submit／abort 與 dashboard 注入路徑
+- [X] T034 [BDD-GREEN] 讓 Test Scope 全綠（並使 T029 的 TUI 模型 `[UNIT]` 轉綠）
+- [X] T035 [BDD-REFACTOR] 在綠燈下整理 submit／abort 與 dashboard 注入路徑
 
 ## Phase 4C: ADD Feature File - cli/chat/recording-the-shared-prompt-log.feature
 
@@ -371,8 +371,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/recording-the-shared-prompt-log.feature`
 
-- [ ] T036 [BDD-GREEN] 讓 Test Scope 全綠（並使 T028 的 store `[UNIT]` 轉綠）
-- [ ] T037 [BDD-REFACTOR] 在綠燈下整理 append／compaction 與 `Close` 排水路徑
+- [X] T036 [BDD-GREEN] 讓 Test Scope 全綠（並使 T028 的 store `[UNIT]` 轉綠）
+- [X] T037 [BDD-REFACTOR] 在綠燈下整理 append／compaction 與 `Close` 排水路徑
 
 ## Phase 4D: ADD Feature File - cli/chat/choosing-the-interactive-prompt.feature
 
@@ -393,8 +393,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/choosing-the-interactive-prompt.feature`
 
-- [ ] T038 [BDD-GREEN] 讓 Test Scope 全綠（並使 T030 的 gating `[UNIT]` 轉綠）
-- [ ] T039 [BDD-REFACTOR] 在綠燈下整理 `-i`／`USE_TUI_PROMPT`／isatty gating 與 fallback 路徑
+- [X] T038 [BDD-GREEN] 讓 Test Scope 全綠（並使 T030 的 gating `[UNIT]` 轉綠）
+- [X] T039 [BDD-REFACTOR] 在綠燈下整理 `-i`／`USE_TUI_PROMPT`／isatty gating 與 fallback 路徑
 
 ## Phase 4E: Regression
 
@@ -403,7 +403,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`（chat、history、configuration、workspace、diagnostics、usage 全模組）
 
-- [ ] T040 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T040 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
   - **可偽性見證 (a)（review blocker①）**：暫時讓 TUI runner 以預設 `os.Stdout` 輸出（或把 `tea.WithOutput` 指向 stdout），確認 `choosing-the-interactive-prompt`／`using-the-interactive-prompt` 的 `stdout` byte-exact 斷言（或 `the interactive prompt is not shown`）失敗；觀察到失敗即還原。
   - **可偽性見證 (b)（共享紀錄）**：暫時停用 `-i` 提交的 append，確認 `recording-the-shared-prompt-log.feature` 的 `the shared prompt log records the prompt "…"` 失敗；觀察到失敗即還原。

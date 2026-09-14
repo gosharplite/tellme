@@ -8,9 +8,9 @@ import "context"
 // table `prompt_log_entry`). Both fields are strings.
 type PromptLogEntry struct {
 	// Timestamp is the RFC3339 record time.
-	Timestamp string
+	Timestamp string `json:"timestamp"`
 	// Prompt is the recorded operator prompt text.
-	Prompt string
+	Prompt string `json:"prompt"`
 }
 
 // PromptTracker is the domain port for the shared, append-only global prompt log
