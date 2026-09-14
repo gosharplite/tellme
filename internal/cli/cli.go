@@ -647,8 +647,15 @@ func emitPostTurnStatus(env runtimeEnv, res resolution, result agent.AgentResult
 	if !result.Usage.Reported {
 		return
 	}
+	// An empty workspace has no per-mode usage log; skip persistence so a run
+	// with no resolved workspace can never write into the process cwd.
+	var prior []history.UsageRecord
 	us := newUsageStore(res.Workspace)
-	prior, _ := us.Load()
+	if res.Workspace != "" {
+		// A load failure is best-effort: the session totals then understate the
+		// true session, but the turn never breaks.
+		prior, _ = us.Load()
+	}
 
 	pricing := ui.Pricing{Hit: res.Pricing.HIT, Miss: res.Pricing.MISS, Comp: res.Pricing.COMP}
 	now := env.now()
@@ -677,9 +684,12 @@ func emitPostTurnStatus(env runtimeEnv, res resolution, result agent.AgentResult
 	if len(turnRecords) > 0 {
 		lastCost = turnRecords[len(turnRecords)-1].Cost
 	}
-	for _, rec := range turnRecords {
-		if err := us.Append(rec); err != nil {
-			return // best-effort: never break the turn over the usage log
+	// Best-effort persistence — a log I/O error must NEVER drop the
+	// operator-facing display lines (they are emitted below regardless), and an
+	// empty workspace must never write into the process cwd.
+	if res.Workspace != "" {
+		for _, rec := range turnRecords {
+			_ = us.Append(rec)
 		}
 	}
 
