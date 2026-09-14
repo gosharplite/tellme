@@ -27,6 +27,23 @@
 - **[PR #40 F2 — last-token]** — 最後一個 token 置換分支為 **unit pin**（已在 acceptance + interface 標註；E2E accept 使用整行置換）。
 - **[PR #40 F3 — negative predicate]** — `the interactive prompt shows no session metrics header` 以**具體樣式**（`provider .* | tokens .* | turns .*`）斷言；T026(a) 為非真空見證。
 
+## Round-016 architect review directives (implementation constraints — MUST)
+
+> 來自 PR [#40](https://github.com/gosharplite/tellme/pull/40) 的 Principal Software Architect 審查（[#5657823910](https://github.com/gosharplite/tellme/pull/40#issuecomment-5657823910)，evaluated head `e9f7083`，verdict **PLAN + TRUTH APPROVED WITH ARCHITECTURAL DIRECTIVES**）。以下為 `/axb-implement` 的實作約束，已寫入對應 task 的 `Read`／`Boundary`。
+
+- **[TECHNICAL DEBT 1 — cancelable refresh] `prompt.Source` carries `ctx`** — 將 `Source.Suggest(query string) []string` 改為 `Suggest(ctx context.Context, query string) []string`；`prompt.Model` 在排定 debounce fetch 時以 `context.WithCancel(parent)` 建可取消子 context，新按鍵即 `cancel()` 前一查詢；`tuiSource`（`cli.go`）把 ctx 下傳至 `appsuggestions.Service.Suggest(ctx, query)`，使 `OSSWorkspace.Entries` 於 `ctx.Err() != nil` 立即讓出。見 T003、T018、T020。
+- **[TECHNICAL DEBT 2 — event-loop fidelity] delegate editing to `textarea.Model.Update`** — 命令鍵（`Ctrl+S`/`Alt+Enter`/`Esc`/`Ctrl+C`/`Tab`/`Shift+Tab`）在外層攔截；其餘（Backspace/Delete/方向鍵/`Ctrl+A`/`Ctrl+E`/word movement）交由 `bubbles/textarea` 處理；僅在 `m.ed.value()` 變動時排 debounce。見 T003、T022。
+- **[REFACTOR 1 — remove startup disk I/O] drop `store.Load()`** — 從 `defaultRunTUIPrompt` 移除 `prior, _ := store.Load()`，並移除 `tuiprompt.Run`/`New` 的 `dash Dashboard` 參數（dashboard 退役，`FR-004`）。見 T024。
+- **[REFACTOR 2 — cursor init] `suggester.cursor` 預設 0** — 建議清單載入時游標為 `0`（不是 `-1`），對齊 Gherkin「marks one suggestion as the current choice」與 `ui/screens/entry.txt`。見 T003、T008。
+
+### Implementation gate checklist（Phase 4 完成前逐項確認）
+
+- [ ] **Context lifecycle**：取消能終止 `appsuggestions.Service` 進行中的目錄迭代（`OSSWorkspace.Entries`）。
+- [ ] **Stream containment**：TUI 渲染只寫 `env.stderr`；`stdout` 未被觸碰。
+- [ ] **Startup optimization**：`defaultRunTUIPrompt` 已無 `store.Load()`。
+- [ ] **Dual falsifiability witnesses (T026)**：(a) 暫時重繪 metrics header → `no session metrics header` 失敗；(b) 暫時讓 `Tab` 只循環 → `holds the accepted suggestion` 失敗。
+- [ ] **Quality gates**：`make verify` 乾淨（0 lint、0 test-sleep、0 vulns）。
+
 ---
 
 ## Phase 2: Foundational
@@ -67,6 +84,7 @@
     - `internal/ui/tui/prompt/{model,textarea,suggester}.go`（現況）
   - 只做：在 `internal/ui/tui/prompt/` 建立 **chrome tokens 落點**（editor border/placeholder/固定高度、root padding、`Suggestions:` 標頭 + 選中／未選中樣式的常數與套用函式殼）與 **debounced／cancelable refresh seam 骨架**（`tea.Tick` + `context` cancel 的 hook 留位、>3 行過濾掛點）。可為新檔（例如 `styles.go`、`refresh.go`）或於既有 `model.go`/`suggester.go`/`textarea.go` 留位。
   - 不做：不寫 chrome 渲染結果、不寫 debounce／insert 行為、不寫 resize 邏輯、不移除 dashboard（該動作為 T024）。
+  - 架構指令（#5657823910）：落點即帶 `Source.Suggest(ctx, query)` 簽章骨架、`editor.Update` 委派 `textarea.Model.Update` 的落點、`suggester.cursor` 預設 `0` 的落點。
 
 ---
 
@@ -144,6 +162,7 @@
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt marks one suggestion as the current choice`
   - Landing: `tests/e2e/steps/step_t008_chat_then_marks_current_choice.go`
   - 語意：captured output 恰有**一列**建議被標為當前選項（`>` cursor）。
+  - 架構指令（#5657823910）：建議載入時 `suggester.cursor` 預設 `0`（非 -1），使恰有一列被標為當前選項。
 
 - [ ] T009 [P] [BDD-RED] `Then: the interactive prompt shows no session metrics header`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt shows no session metrics header`
@@ -202,6 +221,7 @@
     - `internal/ui/tui/prompt/model.go`
   - 撰寫：查詢變更後刷新經 debounce（不每次按鍵即刷新；F1.1 unit pin）；被較新按鍵取代的 fetch 結果被丟棄（不覆寫較新清單）；>3 行的建議被過濾。
   - 落點：`internal/ui/tui/prompt/refresh_test.go`。
+  - 架構指令（#5657823910）：取消須下傳至 `appsuggestions.Service`（`OSSWorkspace.Entries` 於 `ctx.Err() != nil` 讓出），非只在 model 丟棄 stale 回傳值。
 
 ### Phase Review Gate
 
@@ -228,6 +248,7 @@
 
 **Boundary**:
 - 產品碼：`internal/ui/tui/prompt/model.go`（`Tab`/`Shift+Tab` **插入**選中建議，last-token 規則）、`internal/ui/tui/prompt/refresh.go` 或 `model.go`（debounce + cancel + >3 行 drop）、`suggester.go`（`>` cursor 套用）。
+- 架構指令（#5657823910）：debounce fetch 以 `context.WithCancel` 包裝並把 `ctx` 經 `Source.Suggest(ctx, query)` 下傳（T018/T020）；非命令鍵編輯委派 `textarea.Model.Update`（T022）。
 - 建議只斷言 **presence**；非精確 ANSI bytes；`stdout` byte-exact；class-phrase 詞彙維持 **11**；不得引入 fuzzy/glob 新相依。
 
 **Test Scope**:
@@ -249,6 +270,7 @@
 
 **Boundary**:
 - 產品碼：`internal/ui/tui/prompt/textarea.go`（`lipgloss.NormalBorder` + fg `240` + 固定高度 10 + reference placeholder + 無行號）、`model.go`（root padding；`tea.WindowSizeMsg` → 寬度 = `msg.Width - 4`；View 只組編輯器 + 建議清單）、`suggester.go`（`Suggestions:` 標頭 + 選中／未選中樣式）。
+- 架構指令（#5657823910）：`editor.Update` 委派 `textarea.Model.Update`（Backspace/Delete/方向鍵/`Ctrl+A`/`Ctrl+E` 可運作，僅攔截命令鍵 — T022）；`suggester.cursor` 載入時預設 `0`（T008）。
 - **不得**渲染 dashboard 標頭、底部 status／keybinding 列或 `?` overlay；`stdout` byte-exact（TUI 只寫注入 `stderr`）；class-phrase 詞彙維持 **11**。
 
 **Test Scope**:
@@ -269,6 +291,7 @@
 
 **Boundary**:
 - 產品碼：從 `internal/ui/tui/prompt/model.go` 移除 dashboard 標頭的渲染與 `Dashboard` 注入路徑；`internal/cli/cli.go` 移除 dashboard wiring。
+- 架構指令（#5657823910，T024）：移除 `defaultRunTUIPrompt` 的 `prior, _ := store.Load()`，並移除 `tuiprompt.Run`/`New` 的 `dash Dashboard` 參數（無啟動期磁碟 I/O）。
 - 不得改動 submit／abort、keybindings、shared log、建議來源、非 TTY fallback 或 round-012 plain reader；`stdout` byte-exact；class-phrase 詞彙維持 **11**。
 
 **Test Scope**:
@@ -321,5 +344,6 @@
 | `plan.md` -> Scope notes（api NOOP；data NOOP；UI reviewed；CLI end → `/axb-dsl-refine`） | T019、T026 | PASS |
 | `ui/ui-plan.md` + `ui/screens/*.txt`（terminal-mode PM artifact；fixed-height/width-driven frames） | T003、T022、T023 | PASS |
 | Round-016 locked decision (#39) + PR #40 folds (F1 acceptance-coverage / F2 last-token unit pin / F3 specific predicate) | chrome → T003/T017/T022/T023/T024；interaction → T003/T011–T018/T020/T021；responsive → T003/T012/T017/T023；no-regression → T023/T024/T026；F1 → T015/T017/T022（+annotations in acceptance + `chat/dsl.md`）；F2 → T017（+annotations）；F3 → T009/T026(a) | PASS |
+| PR #40 architect directives (#5657823910): ctx-cancelable `Source` · `textarea.Update` delegation · `store.Load` removal · cursor=0 · gate checklist | D1 → T003/T018/T020；D2 → T003/T022；D3 → T024；D4 → T003/T008；gate checklist → T026 | PASS |
 
 > 孤立產物件數：0。掃描通過，准予交付。
