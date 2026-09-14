@@ -15,13 +15,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | `specs/truth/contracts/**` | <filled by /axb-api-plan> | <why> |
+| NOOP | `specs/truth/contracts/**` | Checked; left empty. tellme has a single CLI end and authors no OpenAPI/HTTP surface of its own; round 017 changes only a non-TUI turn's presentation — no tellme-owned request/response shape. | `contract-authoritative` holds vacuously — the round is a local terminal-presentation change. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | `specs/truth/data/**` | <filled by /axb-data-plan> | <why> |
+| NOOP | `specs/truth/data/**` | Checked; left empty. Round 017 persists no new state — `history.jsonl` / `history.archive.jsonl` and the shared prompt log (`prompt_log_entry`) are unchanged; the turn number is derived from the already-loaded history, not stored. | `data-model-covers-all-state` is already satisfied; the round adds no state. |
 
 ## /axb-dsl-refine
 
