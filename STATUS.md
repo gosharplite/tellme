@@ -1,10 +1,28 @@
 # tellme — Status
 
-**Last updated**: 2026-09-14 (session 10) — **round 019 `019-turn-spinner` DELIVERED / FROZEN**: PR [#44](https://github.com/gosharplite/tellme/pull/44) human-**MERGED** into `dev` (`4315e59`, by `thptcnec`) and propagated `dev → main`; frozen head `fbea976`. The round-019 detail stays here as the current-round section (Rule 12 — older rounds 001–018 live in the archives).
+**Last updated**: 2026-09-14 (session 11) — **round 020 `020-cross-compile-gate` IN PROGRESS**: PR [#46](https://github.com/gosharplite/tellme/pull/46) open → `dev` (plan + truth + implementation complete; **awaiting human review**). The round-019 delivered detail is retained below as the most recent delivered round (Rule 12 — older rounds 001–018 live in the archives).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
-**Active branch**: `dev` — round 019 delivered/frozen; the next round starts a fresh `020-*` off `dev`.
+**Active branch**: `020-cross-compile-gate` — round 020 in progress; PR [#46](https://github.com/gosharplite/tellme/pull/46) open → `dev` (**awaiting review**).
 **Daily log**: [`docs/session-summary/2026/09/14/session-summary.md`](docs/session-summary/2026/09/14/session-summary.md)
 **Archive**: [`2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012) · [`2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–018).
+
+## Round 020 — `020-cross-compile-gate` (in progress — PR #46 open)
+
+**Status**: 🚧 **IN PROGRESS / AWAITING REVIEW** (2026-09-14) — PR [#46](https://github.com/gosharplite/tellme/pull/46) open → `dev` (plan + truth + implementation). **Human-only merge.** Branch head `10c7093`.
+
+**Scope**: a **host-independent cross-compile gate** in the quality pipeline — `make verify` previously compiled only the host `GOOS`/`GOARCH`, so build-tagged, OS-specific production code for any other target was invisible to every gate (round-019 review forward recommendation; the darwin sampler had shipped uncompiled).
+
+**Locked decisions**: **POSIX** target matrix `linux/amd64 · linux/arm64 · darwin/amd64 · darwin/arm64`, **host-independent** (this workspace is darwin/arm64, so the *Linux* path is the weak spot here); mechanism = a **`Makefile` `verify-cross-compile`** target wired into `make verify` (build + vet per target, fail fast naming the target); **no new dependency**; **no CLI behaviour change** (non-BDD tooling round). **Roadmap**: Gemini API family + ADC **dropped** (operator, 2026-09-14) → issue [#36](https://github.com/gosharplite/tellme/issues/36) narrows to **concurrent tool-call matching**.
+
+**Artifacts / pipeline**:
+- [x] spec: `spec.md` (US1–US2 · FR-001–008 · NFR-001–004 · SC-001–004 · A1–A5), `checklists/requirements.md`, `truth-delta.md`.
+- [x] research/plan: `research.md` (D1–6); `plan.md` (**0 interfaces**; `/axb-api-plan` = NOOP, `/axb-data-plan` = NOOP, `/axb-dsl-refine` = NOOP, `/axb-spec-by-example` + `/axb-ui-plan` skipped); `tasks.md` (T001–T004).
+- [x] truth: `techstack.md` **MODIFY** (Build & Tooling: *Cross-compile verification* row + *Task runner* aggregate); `contracts/**` NOOP; `data/**` NOOP; `features/cli/**` NOOP.
+- [x] implementation: `Makefile` `verify-cross-compile` (+ `verify` wiring, `.PHONY`, `help`); `SESSION-CLOSEOUT.md` reference (Step 2).
+
+**Verification**: `make verify-cross-compile` **green** (4/4) · `make verify` **OK** (no-test-sleep · offline witness · cross-compile · `golangci-lint` 0 issues · `govulncheck` 0 reachable vulns) · **falsifiability witness** reproduced (broken non-host `system_metrics_linux.go` → gate exit 2, naming `linux/amd64` + `…:60:9`) · `gofmt -l .` clean · `go.mod`/`go.sum` unchanged.
+
+**Commits**: `4aad98d` (spec) → `10c7093` (gate).
 
 ## Round 019 — `019-turn-spinner` (delivered / frozen)
 
@@ -47,7 +65,7 @@
 | 018 | `018-post-turn-status-lines` | PR [#43](https://github.com/gosharplite/tellme/pull/43) |
 | 019 | `019-turn-spinner` | PR [#44](https://github.com/gosharplite/tellme/pull/44) |
 
-Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/archives/status/2026-09-11.md); 003–012 in [`2026-09-13.md`](docs/archives/status/2026-09-13.md); 013–018 in [`2026-09-14.md`](docs/archives/status/2026-09-14.md); 019 stays here until the next round supersedes it).
+Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/archives/status/2026-09-11.md); 003–012 in [`2026-09-13.md`](docs/archives/status/2026-09-13.md); 013–018 in [`2026-09-14.md`](docs/archives/status/2026-09-14.md)); 019 stays here as the most recent delivered round (round 020 is in progress above it).
 
 ## Branch model
 
@@ -56,10 +74,12 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 | `main` | merged up from `dev` | Stable / released line |
 | `dev` | merged up from delivered round branches | Integration line (round work lands here before `main`) |
 | `001-*` … `019-turn-spinner` | delivered / frozen | Each round's working branch — merged into `dev` via its PR, then propagated `dev → main`; frozen history (never receives post-round commits). |
+| `020-cross-compile-gate` | **in progress** (PR [#46](https://github.com/gosharplite/tellme/pull/46)) | Round-020 working branch — plan + truth + implementation; open PR → `dev`; **not merged** (human-only). |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`; only a human merges the PR. Propagation is the no-ff merge `dev → main`.
 > **Propagation (round 018):** `018-post-turn-status-lines → dev` (PR [#43](https://github.com/gosharplite/tellme/pull/43), `9927287`) `→ main` — DONE (no-ff).
 > **Propagation (round 019):** `019-turn-spinner → dev` (PR [#44](https://github.com/gosharplite/tellme/pull/44), `4315e59`) `→ main` — DONE (no-ff); closeout docs on `dev`.
+> **Propagation (round 020):** **pending** — PR [#46](https://github.com/gosharplite/tellme/pull/46) open → `dev` (awaiting review); human merge then `dev → main`.
 > Read live heads with `git rev-parse --short main dev HEAD`.
 
 ## Roadmap — next slices
@@ -67,21 +87,23 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 | Slice | Issue | Scope | Status |
 | --- | --- | --- | --- |
 | **003–019** | — | Provider-registry completeness → … → the turn spinner. | ✅ **Delivered** (see the delivered-rounds index) |
-| **future slices (candidates)** | [#36](https://github.com/gosharplite/tellme/issues/36) | The remaining #34 candidates — the **Google Gemini API family** (inline key), **Application Default Credentials**, and **concurrent tool-call matching**; plus the carried forward items below. | ⏳ **Candidate** (not started) |
-| **cross-compile gate** | — | Add a `GOOS=darwin GOARCH=arm64 go build ./...` (+ `go vet`) cross-compile gate to the pipeline / closeout checklist — build-tagged platform code is invisible to `make verify` (round-019 review forward recommendation). | ⏳ **Candidate** (not started) |
+| **cross-compile gate** | — | Host-independent `go build ./...` + `go vet ./...` gate for the POSIX target matrix (`linux/amd64 · linux/arm64 · darwin/amd64 · darwin/arm64`), wired into `make verify` + the closeout checklist (round-019 review forward recommendation). | 🚧 **In progress** — round 020 (PR [#46](https://github.com/gosharplite/tellme/pull/46)) |
+| **future slices (candidates)** | [#36](https://github.com/gosharplite/tellme/issues/36) | The remaining #34 candidates — **concurrent tool-call matching** (the only survivor). The **Google Gemini API family** (inline key) and **Application Default Credentials** are **dropped** (operator, 2026-09-14 — Google's direction is Vertex→Agent platform; Vertex stays on the Google `.json` service-account path). Plus the carried forward items below. | ⏳ **Candidate** (not started) |
 
 ## Open items (non-blocking)
 
+- **Round-020** — PR [#46](https://github.com/gosharplite/tellme/pull/46) open → `dev`; **awaiting human review + merge**; T004 (round quality gate) = the human PR review. Then propagate `dev → main`.
 - **Round-019 forward items** — the failed-turn carrier proves *absence* (mid-wait *clear-before-the-class-phrase* deferred); the macOS **CPU** leg is pending a cgo `mach` sampler and reports `0.0%` (the memory leg uses sysctl).
-- **Round-019 review forward recommendation** — add a **cross-compile gate** to the quality pipeline (the darwin adapter shipped two folds without compiling for its own `GOOS`).
+- **Round-019 review forward recommendation** — the cross-compile gate is now **delivered in round 020** (`verify-cross-compile`; PR [#46](https://github.com/gosharplite/tellme/pull/46), awaiting review).
 - **Round-018 forward items** — the reference's **gray styling** for the post-turn lines (plain text); the `tokens.summary.json` roll-up is best-effort (self-heals by recompute).
-- **Future-slice candidates** — issue [#36](https://github.com/gosharplite/tellme/issues/36) (Gemini API family / ADC / concurrent tool-call matching); **(d)** coverage tooling [#13](https://github.com/gosharplite/tellme/issues/13); **(e)** the renderer/`-r` forward items.
+- **Future-slice candidates** — issue [#36](https://github.com/gosharplite/tellme/issues/36) (**concurrent tool-call matching** only); **(d)** coverage tooling [#13](https://github.com/gosharplite/tellme/issues/13); **(e)** the renderer/`-r` forward items.
 - **Carried forward items** — PR #16 **Obs 1** stdout TTY probe **OPEN** (round 019 did **not** close it — the spinner is a `stderr` diagnostic); round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / **no pruning** (a settled exclusion) / **no `flock`**; round-011 forward items (estimation-heuristic constants; persona seam; **N-2**); a future **`history.Store.Count()`** should replace `len(prior)+1`.
 
 ## Environment notes
 
 - **Dev tooling — `tellme.sh` (external; not a repo/truth artifact)**: the Niffler-style manager that drives the `tellme` binary lives at `~/tmp/dualnets/seed/notebooks/beta-niffler/tellme.sh` and `…/mbp-johndoe-niffler/tellme.sh`. Its usage banner is round-agnostic (the current-state pointer is this `STATUS.md`). Invoke via `source tellme.sh` (aliases `b`/`a`/`c`/`g`/`p`/`r` + optional prompt arg) or the `tm` alias in `~/.bashrc`.
 - **Host / toolchain**: Go 1.26; `golangci-lint` / `staticcheck` / `govulncheck` present in `$GOPATH/bin` (run with `$GOPATH/bin` on `PATH`); the `tellme` binary is installed at `$(go env GOPATH)/bin/tellme` via `go install ./cmd/tellme`. Sandbox: the privileged netns (`unshare -n`) is unavailable on the host, so the offline-path guard uses the unprivileged canary + hostile-env differential.
+- **Host (this workspace)**: **darwin/arm64** — this session runs on the MacBook Pro niffler env (`…/mbp-johndoe-niffler/ait-tellme`); `go env` reports `darwin/arm64`, so `make verify` compiles macOS natively and the **Linux** path is the cross-compile weak spot here (round 020). The other dev host (`…/beta-niffler/`) is Linux and mirrors the opposite.
 - **Binary refresh**: the installed `$(go env GOPATH)/bin/tellme` was rebuilt from the **round-019** tree (`fbea976`) via `go install ./cmd/tellme` — it carries the round-019 spinner (**turn-scoped elapsed**); `tellme --version` reports `dev` (no `-ldflags` for a local install).
 - **Live Vertex verification (round 013)**: the installed binary was run against the real Vertex API (`tm` → provider `dev`, `TYPE: gemini`, `gemini-3.8-flash`); the `/home/pos/tmp/dualnets/seed/notebooks/beta-niffler/ait-test/` niffler env (config + `secrets/key.json`) is the live test workspace.
 - **Persistent path authorizations**: read+write for `…/beta-niffler/`, `…/mbp-johndoe-niffler/tellme.sh`, and `~/.bashrc` (the `tm` alias); read for `$TELL_ME_HOME` (`…/beta-niffler/ait-bdd`) — the vendored skill tree.

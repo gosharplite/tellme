@@ -817,3 +817,64 @@ A new session on the same calendar day: ran the `/axb-implement` implementation 
 - None new (spec/acceptance unchanged).
 
 > **Propagation done (2026-09-14, session 10 closeout):** the two-step merge `019-turn-spinner → dev` (PR [#44](https://github.com/gosharplite/tellme/pull/44), `4315e59`) `→ main` — **DONE** (no-ff); closeout docs on `dev`. Round 019 is delivered on both lines.
+
+
+---
+
+## 22. Session 11 (2026-09-14) — round 020 (`020-cross-compile-gate`): plan + truth + implementation → PR #46
+
+Opened round **020** — the round-019 review forward recommendation (a **cross-compile gate**) — ran the **plan + truth + implementation** halves in one session, and opened **PR [#46](https://github.com/gosharplite/tellme/pull/46) → `dev`** (awaiting human review). **No product/CLI behaviour change.**
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 019 delivered/frozen; active branch `dev`) |
+| Theme | A **host-independent cross-compile gate** in the quality pipeline — build-tagged platform code was invisible to `make verify` (only the host `GOOS`/`GOARCH` was compiled) |
+| Roadmap decision | **Gemini API family + ADC dropped** (operator: Google's direction is Vertex→Agent platform; Vertex stays on the Google `.json` service-account path) → issue [#36](https://github.com/gosharplite/tellme/issues/36) narrows to **concurrent tool-call matching** |
+| `/axb-specify` | `specs/plans/020-cross-compile-gate/` (spec, checklist, truth-delta); **0 clarify questions** (scope grounded) |
+| `/axb-spec-by-example` | **skipped** (no user-facing CLI journey) |
+| `/axb-technical-research` | `research.md` **D1–6** + `specs/truth/techstack.md` **MODIFY** (Build & Tooling: *Cross-compile verification* row + *Task runner* aggregate) |
+| `/axb-system-analysis` | `plan.md` — **0 interfaces**; `/axb-api-plan` = NOOP, `/axb-data-plan` = NOOP, `/axb-dsl-refine` = NOOP, `/axb-ui-plan` skipped |
+| `/axb-tasks` | `tasks.md` (T001–T004; **orphan sweep 0**) |
+| `/axb-implement` | `Makefile` `verify-cross-compile` (+ `verify` wiring, `.PHONY`, `help`); `SESSION-CLOSEOUT.md` reference; **T001–T003 `[X]`** (T004 = the human PR review) |
+| Delivery | branch `020-cross-compile-gate`; **PR [#46](https://github.com/gosharplite/tellme/pull/46) → `dev`** (plan + truth + implementation); **not merged** (human-only) |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — round 019 delivered/frozen; active branch `dev`; peers unchanged.
+2. **Round-020 theme** — operator picked **B** (the cross-compile gate) over the capability slice, and **dropped Gemini API family + ADC**; confirmed the **POSIX four** target matrix (A1).
+3. **Plan half** — `/axb-specify` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-tasks`.
+4. **Implementation** — the `Makefile` gate + `verify` wiring + the closeout reference.
+5. **Delivery** — pushed the branch and opened **PR #46 → `dev`**; the user reviews; **human-only merge**.
+
+### Decisions locked (round 020)
+| # | Decision |
+| --- | --- |
+| D1 | **Host-independent POSIX matrix** — `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64` (research D1). |
+| D2 | Mechanism = a **`Makefile` target** wired into `make verify` (not a Go guard test; the build is the oracle; no scenario step to drift from — research D2). |
+| D3 | **build + vet** per target, fail fast naming the target (research D3). |
+| D4 | Round shape = **non-BDD tooling** — api/data/dsl-refine NOOP; the only truth change is `techstack.md` (research D6). |
+| Roadmap | **Gemini API family + ADC dropped**; #36 → **concurrent tool-call matching** only (operator, 2026-09-14). |
+
+### Commits (branch `020-cross-compile-gate`)
+| Commit | Note |
+| --- | --- |
+| `4aad98d` | `docs(020): plan package and spec for the cross-compile gate` |
+| `10c7093` | `feat(020): add the host-independent cross-compile gate` |
+| *(this closeout, on `dev`)* | `docs(020): STATUS + daily log — round 020 in progress (PR #46)` |
+
+### Verification
+- `make verify-cross-compile` **green** for all four targets · `make verify` **OK** (no-test-sleep · offline witness · cross-compile · `golangci-lint` 0 issues · `govulncheck` 0 reachable vulns).
+- **Falsifiability witness** — an injected undefined symbol in the non-host `internal/infrastructure/telemetry/system_metrics_linux.go` made the gate fail (`exit 2`) naming `linux/amd64` + `…:60:9`; reverted clean.
+- `gofmt -l .` clean · `go.mod`/`go.sum` unchanged (no new dependency).
+
+### Open items (non-blocking)
+- **Round 020** — PR [#46](https://github.com/gosharplite/tellme/pull/46) open → `dev`; **awaiting human review + merge**; T004 (round quality gate) = the human PR review.
+- Carried: PR #16 **Obs 1** OPEN; round-006 Obs 3; sequential tools / no pruning / no `flock`; round-011 forward items; round-018 gray styling; round-019 macOS CPU leg.
+- Future-slice candidate: issue [#36](https://github.com/gosharplite/tellme/issues/36) (**concurrent tool-call matching** only); coverage tooling [#13](https://github.com/gosharplite/tellme/issues/13).
+
+### Next steps
+1. Human reviews + merges PR #46 → `dev`; then propagate `dev → main` (no-ff) + closeout.
+2. Or start the next round (`021-*`) — candidate: **concurrent tool-call matching**.
+
+### PM follow-ups
+- None new (spec/acceptance unchanged).
