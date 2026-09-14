@@ -365,3 +365,5 @@ The round's implementation half: completed `/axb-implement` (T011–T040), clear
 ### PM follow-ups
 
 - None new (spec/acceptance unchanged).
+
+> **Propagation done (2026-09-14, session 5 closeout):** the two-step merge `015-interactive-tui-prompt → dev` (PR [#38](https://github.com/gosharplite/tellme/pull/38), `a3df102`) `→ main` (`60bbf72`) — **DONE** (no-ff); closeout docs on `dev`. Round 015 is now delivered on both lines.
