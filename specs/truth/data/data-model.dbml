@@ -1,17 +1,22 @@
-Project "tellme_session_history" {
-  database_type: "JSON Lines (append-only local file)"
+Project "tellme_local_state" {
+  database_type: "JSON Lines (append-only local files)"
   Note: '''
-  The persisted session-history model for tellme (rounds 007–008, 014). One conversation is a sequence of
-  completed turns, stored as append-only JSON Lines under the per-mode session workspace
-  ($TELL_ME_HOME/output/<mode>/). The active file is `history.jsonl`; `--new` moves its entries into
-  `history.archive.jsonl`. The store is read wholesale on resume and written one line per completed turn.
-  Round 008 widens a completed turn to also carry the tool activity it performed (the agent tool loop).
-  Round 014 adds an optional, provider-agnostic `signature` to each tool step (the opaque token the model
-  emitted for that call — for example the Gemini `thoughtSignature`), persisted only when the provider
-  supplies one and omitted when empty, so a resumed session replays the step faithfully. The record is
+  The persisted local-state model for tellme. Two artifacts share this model: (1) the per-mode
+  session-history store (rounds 007–008, 014) and (2) the shared global prompt log (round 015).
+  The session-history store: one conversation is a sequence of completed turns, stored as append-only
+  JSON Lines under the per-mode session workspace ($TELL_ME_HOME/output/<mode>/). The active file is
+  `history.jsonl`; `--new` moves its entries into `history.archive.jsonl`. The store is read wholesale
+  on resume and written one line per completed turn. Round 008 widens a completed turn to also carry the
+  tool activity it performed (the agent tool loop). Round 014 adds an optional, provider-agnostic
+  `signature` to each tool step (the opaque token the model emitted for that call — for example the
+  Gemini `thoughtSignature`), persisted only when the provider supplies one and omitted when empty, so a
+  resumed session replays the step faithfully. The record is
   `{prompt, answer, steps:[{tool, arguments, result, signature?}]}`.
-  It is not a relational database — this DBML pins the record shape and lifecycle so the CLI contract,
-  the interface feature truth, and the implementation share a single model.
+  The global prompt log (round 015): the shared, append-only prompt log at the `output/` root
+  ($TELL_ME_HOME/output/global_prompts.jsonl), shared across modes/personas with tell-me-go, written
+  only under `-i`, and read newest-first + deduplicated to seed interactive suggestions.
+  Neither artifact is a relational database — this DBML pins the record shapes and lifecycles so the CLI
+  contract, the interface feature truth, and the implementation share a single model.
   '''
 }
 
@@ -47,6 +52,17 @@ Table history_step {
   }
 
   Note: 'One tool execution performed during a completed turn (round 008 agent tool loop), embedded in the turn line as an element of its ordered steps array. `step` is the 1-based ordinal within the turn (which tool ran first, second, …); `tool` is the tool name (for example "list_files" or "read_files"); `arguments` is the model arguments (JSON-encoded) and `result` is the tool result or error, size-bounded (for example a file read capped at 1 MiB). Round 014 adds `signature`: the opaque, provider-agnostic token the provider emitted for this tool call (for example the Gemini 3 `thoughtSignature`), persisted only when the provider supplies one and omitted when empty (so a signature-less step serialises byte-identically to the round-008 shape). Read back and replayed VERBATIM into the conversation on resume, so a tool-using Gemini session replays the call faithfully; tellme never interprets, transforms, or expires it. Replayed as part of the synthesised tool call (no per-step id is stored — the adapter synthesises a deterministic tool-call id, `call_step_<step>`, when replaying); never surfaced by `-l`. A turn that made no tool calls has no `history_step` rows.'
+}
+
+Table prompt_log_entry {
+  timestamp varchar
+  prompt text
+
+  indexes {
+    (timestamp, prompt) [pk]
+  }
+
+  Note: 'One recorded operator prompt in the shared, append-only global prompt log (round 015) — one JSON object per line, `{"timestamp":"<RFC3339>","prompt":"<text>"}` (both fields string). The file lives at the `output/` ROOT of the runtime home (`$TELL_ME_HOME/output/global_prompts.jsonl`) — shared across modes/personas with tell-me-go (not `output/<mode>/`), so lines must round-trip byte-for-byte with that tool. Written ONLY for an `-i` interactive submission; a non-`-i` run (positional/piped/non-interactive) writes nothing. The write is append-only (`O_APPEND|O_CREATE`) and must never truncate or rewrite lines another writer added; no cross-process `flock` is taken. Reads scan backwards newest-first, deduplicating by `prompt` text and bounded by the interactive suggestion cap. A best-effort async compaction (performed inside the append lock, optimistic size-checked) rewrites the file to keep the newest ≤1200 unique prompts once it grows past ≈150 KiB. Distinct from the per-session `history_entry`/`history_step` store — this log is prompt-only and not session-scoped.'
 }
 
 Ref: history_step.(location, position) > history_entry.(location, position)

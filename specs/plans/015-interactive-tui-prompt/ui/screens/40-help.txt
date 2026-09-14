@@ -1,0 +1,11 @@
+┌─ tellme · keybindings ───────────────────────────────────────────┐
+│                                                                  │
+│  Enter               new line                                    │
+│  Tab / Shift+Tab     next / previous suggestion                  │
+│  Ctrl+S / Alt+Enter  submit the prompt                           │
+│  Esc / Ctrl+C        abort (no request)                          │
+│  ?                   toggle this help                            │
+│                                                                  │
+│  Esc closes this help and returns to the prompt                   │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
