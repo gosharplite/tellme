@@ -50,6 +50,10 @@ type AgentResult struct {
 	Answer string
 	Steps  []history.Step
 	Usage  llm.Usage
+	// Calls holds EVERY provider call's usage for the turn, in call order
+	// (round 018), so the CLI can compute the turn cost (`$#2`) and persist each
+	// call to the usage log. `Usage` remains the just-returned (final) call.
+	Calls []llm.Usage
 }
 
 // AgentLoop drives the bounded think→act→observe cycle for one prompt run.
@@ -92,6 +96,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 	// appends each tool exchange after it (chronological order).
 	turn := []llm.Message{{Role: "user", Content: prompt}}
 	var steps []history.Step
+	var calls []llm.Usage
 
 	for i := 0; ; i++ {
 		req := llm.Request{Tools: a.toolDefs()}
@@ -103,13 +108,14 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 		}
 		resp, err := a.Gateway.Complete(ctx, req)
 		if err != nil {
-			return AgentResult{Steps: steps}, err
+			return AgentResult{Steps: steps, Calls: calls}, err
 		}
+		calls = append(calls, resp.Usage)
 		if len(resp.ToolCalls) == 0 {
-			return AgentResult{Answer: resp.Text, Steps: steps, Usage: resp.Usage}, nil
+			return AgentResult{Answer: resp.Text, Steps: steps, Usage: resp.Usage, Calls: calls}, nil
 		}
 		if i >= maxLoops {
-			return AgentResult{Steps: steps}, &ErrIncomplete{Reason: "the tool-loop bound was reached"}
+			return AgentResult{Steps: steps, Calls: calls}, &ErrIncomplete{Reason: "the tool-loop bound was reached"}
 		}
 
 		// The model requested tools: echo the assistant tool-call message, run
@@ -117,11 +123,11 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 		turn = append(turn, llm.Message{Role: "assistant", ToolCalls: resp.ToolCalls})
 		for _, tc := range resp.ToolCalls {
 			if a.Registry == nil {
-				return AgentResult{Steps: steps}, &ErrIncomplete{Reason: "no tools are registered"}
+				return AgentResult{Steps: steps, Calls: calls}, &ErrIncomplete{Reason: "no tools are registered"}
 			}
 			tool, ok := a.Registry.Lookup(tc.Name)
 			if !ok {
-				return AgentResult{Steps: steps}, &ErrIncomplete{Reason: fmt.Sprintf("tool %q is not available", tc.Name)}
+				return AgentResult{Steps: steps, Calls: calls}, &ErrIncomplete{Reason: fmt.Sprintf("tool %q is not available", tc.Name)}
 			}
 			tctx, cancel := context.WithTimeout(ctx, toolTimeout)
 			result, terr := tool.Execute(tctx, tc.Arguments)
