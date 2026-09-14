@@ -8,6 +8,7 @@ Feature: Checking the build version and diagnosing setup
     Example: The operator asks which build is running
       When the operator runs tellme with "--version"
       Then tellme prints the build version
+      And the run shows no turn chrome
       And tellme exits successfully
 
   Rule: The diagnostic reports a resolved setup, offline

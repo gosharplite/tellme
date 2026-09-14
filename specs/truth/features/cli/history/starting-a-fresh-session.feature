@@ -13,6 +13,7 @@ Feature: Starting a fresh session
         | My name is Alice. | Noted. |
       When the operator starts a fresh session with "--new"
       Then the active session history holds no exchanges
+      And the run shows no turn chrome
       And tellme exits successfully
 
   Rule: The previous conversation is retained when a fresh session starts
