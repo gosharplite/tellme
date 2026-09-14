@@ -32,7 +32,7 @@
 
 **Goal**: 建立本輪測試層落點骨架（Zero Shared Edits）與產品碼落點，讓 Phase 3／Phase 4 不各自發明檔案或落點。只建立落點與載體，不寫行為。
 
-- [ ] T001 建立 16 個 stepdef 獨立檔骨架（16 新句；Zero Shared Edits）
+- [X] T001 建立 16 個 stepdef 獨立檔骨架（16 新句；Zero Shared Edits）
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（本輪 16 個新句）
     - `specs/truth/features/cli/dsl.md`（the root row）
@@ -56,7 +56,7 @@
     - `tests/e2e/steps/step_t018_chat_then_no_post_turn_status.go`
   - 不做：不寫具體 arrange／斷言邏輯；不碰既有 step 檔。
 
-- [ ] T002 落點產品碼骨架與 `[UNIT]` 落點檔骨架
+- [X] T002 落點產品碼骨架與 `[UNIT]` 落點檔骨架
   - Read:
     - `specs/plans/018-post-turn-status-lines/research.md` -> Decision 1, Decision 2, Decision 3, Decision 5, Decision 6
     - `specs/truth/techstack.md` -> CLI Application（Post-turn status lines (operator)；Session usage log）、Configuration（Model pricing）、Reasoning & Provider Transport
@@ -118,89 +118,89 @@
 
 ### BDD-RED（本輪新增句型；4 Given + 1 When + 11 Then）
 
-- [ ] T003 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint answers with "{answer}" and reports the token usage:`
+- [X] T003 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint answers with "{answer}" and reports the token usage:`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint answers with "{answer}" and reports the token usage:`
   - Landing: `tests/e2e/steps/step_t003_chat_given_provider_reports_usage.go`
   - 語意：寫 config（選 `{provider}`、endpoint 指 fake）；script fake 回 `{answer}` 並帶 JSON `usage`（`prompt_tokens`=prompt、`completion_tokens`=completion、`total_tokens`=prompt+completion+thinking、details `prompt_tokens_details.cached_tokens`=cached、`completion_tokens_details.reasoning_tokens`=thinking）。
 
-- [ ] T004 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to read "{path}" and then answers with "{answer}" and reports the token usage:`
+- [X] T004 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to read "{path}" and then answers with "{answer}" and reports the token usage:`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `… asks tellme to read "{path}" and then answers with "{answer}" and reports the token usage:`
   - Landing: `tests/e2e/steps/step_t004_chat_given_tool_provider_reports_usage.go`
   - 語意：script fake 先回 `read_files` tool-call（`{path}`）**並帶** usage block，再回 final answer `{answer}` 並帶同一 usage block（同 T003）；**兩個** response 都帶 usage，使該 turn 累積兩筆 usage-bearing call，故 `$#1 < $#2`。
 
-- [ ] T005 [P] [BDD-RED] `Given: the configuration prices the active model with hit "{hit}", miss "{miss}", and completion "{comp}" per million tokens`
+- [X] T005 [P] [BDD-RED] `Given: the configuration prices the active model with hit "{hit}", miss "{miss}", and completion "{comp}" per million tokens`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the configuration prices the active model with hit "{hit}", miss "{miss}", and completion "{comp}" per million tokens`
   - Landing: `tests/e2e/steps/step_t005_chat_given_pricing.go`
   - 語意：把 `MODELS: { <active model>: { PRICING: { HIT: {hit}, MISS: {miss}, COMP: {comp} } } }` 寫進 default config。
 
-- [ ] T006 [P] [BDD-RED] `Given: the session's usage log already records a prior call`
+- [X] T006 [P] [BDD-RED] `Given: the session's usage log already records a prior call`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the session's usage log already records a prior call`
   - Landing: `tests/e2e/steps/step_t006_chat_given_usage_log_prior_call.go`
   - 語意：在 `$TELL_ME_HOME/output/<mode>/tokens.log` append 一筆 prior call（固定 counts prompt 10 / cached 6 / completion 3 / thinking 2 + 非零 cost）。
 
-- [ ] T007 [P] [BDD-RED] `When: the operator starts a fresh session with "--new" and the prompt "{prompt}"`
+- [X] T007 [P] [BDD-RED] `When: the operator starts a fresh session with "--new" and the prompt "{prompt}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the operator starts a fresh session with "--new" and the prompt "{prompt}"`
   - Landing: `tests/e2e/steps/step_t007_chat_when_new_with_prompt.go`
   - 語意：run `tellme --new "{prompt}"`；擷取 exit code、`stdout`、`stderr`、fake 記錄的 requests。
 
-- [ ] T008 [P] [BDD-RED] `Then: the run reports the token metrics of the request that just completed`
+- [X] T008 [P] [BDD-RED] `Then: the run reports the token metrics of the request that just completed`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the run reports the token metrics of the request that just completed`
   - Landing: `tests/e2e/steps/step_t008_chat_then_metrics_reported.go`
   - 語意：`stderr` 帶一行符合 `[HH:MM:SS] [<provider>] M: <n> H: <n> C: <n> Th: <n>`（timestamp 以 pattern；`<provider>` 為 active provider key）；**不**在 `stdout`。
 
-- [ ] T009 [P] [BDD-RED] `Then: the reported metrics line shows {miss} missed, {cached} cached, {completion} completed, and {thinking} reasoning tokens`
+- [X] T009 [P] [BDD-RED] `Then: the reported metrics line shows {miss} missed, {cached} cached, {completion} completed, and {thinking} reasoning tokens`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the reported metrics line shows {miss} missed, {cached} cached, {completion} completed, and {thinking} reasoning tokens`
   - Landing: `tests/e2e/steps/step_t009_chat_then_metrics_values.go`
   - 語意：metrics line 的 `M/H/C/Th` 等於 `{miss}/{cached}/{completion}/{thinking}`（`M = prompt − cached`）；`Th` 即使為 0 仍存在。
 
-- [ ] T010 [P] [BDD-RED] `Then: the run reports the cost of the request, the turn, and the session`
+- [X] T010 [P] [BDD-RED] `Then: the run reports the cost of the request, the turn, and the session`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the run reports the cost of the request, the turn, and the session`
   - Landing: `tests/e2e/steps/step_t010_chat_then_cost_reported.go`
   - 語意：`stderr` 帶一行符合 `╰─⠿ Ready ($<a> $<b> $<c> - M: <n> H: <n> O: <n> - <pct>%)`；**不**在 `stdout`。
 
-- [ ] T011 [P] [BDD-RED] `Then: the reported request, turn, and session costs are equal`
+- [X] T011 [P] [BDD-RED] `Then: the reported request, turn, and session costs are equal`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the reported request, turn, and session costs are equal`
   - Landing: `tests/e2e/steps/step_t011_chat_then_costs_equal.go`
   - 語意：Ready line 的三個 `$` 相等（fresh session：request == turn == session）。
 
-- [ ] T012 [P] [BDD-RED] `Then: the reported turn cost is greater than the request cost`
+- [X] T012 [P] [BDD-RED] `Then: the reported turn cost is greater than the request cost`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the reported turn cost is greater than the request cost`
   - Landing: `tests/e2e/steps/step_t012_chat_then_turn_cost_gt_request.go`
   - 語意：Ready line 的第二個 `$`（turn）嚴格大於第一個 `$`（last request）。
 
-- [ ] T013 [P] [BDD-RED] `Then: the reported session summary includes the earlier call`
+- [X] T013 [P] [BDD-RED] `Then: the reported session summary includes the earlier call`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the reported session summary includes the earlier call`
   - Landing: `tests/e2e/steps/step_t013_chat_then_session_includes_earlier.go`
   - 語意：Ready line 的 session（`$` #3）與 token 總和包含 arranged prior call（嚴格大於當前 call alone）。
 
-- [ ] T014 [P] [BDD-RED] `Then: the run reports the session's missed, cached, and output tokens`
+- [X] T014 [P] [BDD-RED] `Then: the run reports the session's missed, cached, and output tokens`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the run reports the session's missed, cached, and output tokens`
   - Landing: `tests/e2e/steps/step_t014_chat_then_session_tokens.go`
   - 語意：Ready line 帶 session token totals `M: <n> H: <n> O: <n>`。
 
-- [ ] T015 [P] [BDD-RED] `Then: the run reports the share of the prompt served from cache`
+- [X] T015 [P] [BDD-RED] `Then: the run reports the share of the prompt served from cache`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the run reports the share of the prompt served from cache`
   - Landing: `tests/e2e/steps/step_t015_chat_then_cache_share.go`
   - 語意：Ready line 帶 cache-hit 百分比（`<pct>%`）。
 
-- [ ] T016 [P] [BDD-RED] `Then: the run reports a zero cost`
+- [X] T016 [P] [BDD-RED] `Then: the run reports a zero cost`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the run reports a zero cost`
   - Landing: `tests/e2e/steps/step_t016_chat_then_zero_cost.go`
   - 語意：Ready line 的 `$` 為 `$0.0000`（該 model 無 `MODELS` pricing entry）。
 
-- [ ] T017 [P] [BDD-RED] `Then: the post-turn status trails the answer`
+- [X] T017 [P] [BDD-RED] `Then: the post-turn status trails the answer`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the post-turn status trails the answer`
   - Landing: `tests/e2e/steps/step_t017_chat_then_status_trails_answer.go`
   - 語意：merged capture 中，the metrics line 與 the Ready line 皆出現在 the answer bytes **之後**。
 
-- [ ] T018 [P] [BDD-RED] `Then: the run reports no post-turn status`
+- [X] T018 [P] [BDD-RED] `Then: the run reports no post-turn status`
   - Read: `specs/truth/features/cli/dsl.md`（interface root）-> `the run reports no post-turn status`
   - Landing: `tests/e2e/steps/step_t018_chat_then_no_post_turn_status.go`
   - 語意：`stdout` 與 `stderr` 皆**不**帶 metrics line 或 `╰─⠿ Ready` line；用於 no-usage path 與 non-prompt path（`--version`、`-l`、prompt-less `--new`）。
 
 ### UNIT（非 DSL 的單元斷言）
 
-- [ ] T019 [P] [UNIT] the cost arithmetic — `M/H/C/Th` → the three costs + hit-rate
+- [X] T019 [P] [UNIT] the cost arithmetic — `M/H/C/Th` → the three costs + hit-rate
   - Read:
     - `specs/plans/018-post-turn-status-lines/research.md` -> Decision 3
     - `specs/truth/techstack.md` -> Configuration（Model pricing）
@@ -208,7 +208,7 @@
   - 撰寫：由 config `MODELS` rates 與一筆 usage 算 per-call cost（`miss·MISS + hit·HIT + (completion+thinking)·COMP`/1e6）、turn 加總、session 加總、hit-rate `H/(M+H)` `%.1f%%`；un-priced model → 0；`O = C + Th`。
   - 落點：`internal/ui/pricing_test.go`。
 
-- [ ] T020 [P] [UNIT] the two formatters — deterministic rendering
+- [X] T020 [P] [UNIT] the two formatters — deterministic rendering
   - Read:
     - `specs/plans/018-post-turn-status-lines/research.md` -> Decision 6
     - `specs/truth/techstack.md` -> CLI Application（Post-turn status lines (operator)）
@@ -216,7 +216,7 @@
   - 撰寫：斷言 the metrics line 的文字（`[HH:MM:SS] [<provider>] M: … H: … C: … Th: …`，`Th` 即使 0 仍呈現）與 the Ready line 的文字（`╰─⠿ Ready ($… $… $… - M: … H: … O: … - …%)`，costs `$%.4f`、hit `%.1f%%`），時刻由注入 clock 決定。
   - 落點：`internal/ui/metrics_test.go`。
 
-- [ ] T021 [P] [UNIT] the usage record — JSON round-trip + per-call accumulation
+- [X] T021 [P] [UNIT] the usage record — JSON round-trip + per-call accumulation
   - Read:
     - `specs/plans/018-post-turn-status-lines/research.md` -> Decision 4, Decision 5
     - `specs/truth/data/data-model.dbml` -> `usage_record`
@@ -226,7 +226,7 @@
 
 ### Phase Review Gate
 
-- [ ] T022 subagent review (phase quality gate)
+- [X] T022 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/presenting-the-post-turn-status.feature`、`presenting-the-turn.feature`、`reporting-the-payload-status.feature`、`answering-a-single-prompt.feature`、`using-a-tool.feature`
     - `specs/truth/features/cli/chat/dsl.md`、`specs/truth/features/cli/dsl.md`
@@ -258,8 +258,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/presenting-the-post-turn-status.feature`
 
-- [ ] T023 [BDD-GREEN] 讓 Test Scope 全綠（並使 T019–T021 的 `[UNIT]` 轉綠）
-- [ ] T024 [BDD-REFACTOR] 在綠燈下整理 formatter、pricing、usage-store 與 emit seam（含 `--new` rotate 與 no-usage 抑制的落點）
+- [X] T023 [BDD-GREEN] 讓 Test Scope 全綠（並使 T019–T021 的 `[UNIT]` 轉綠）
+- [X] T024 [BDD-REFACTOR] 在綠燈下整理 formatter、pricing、usage-store 與 emit seam（含 `--new` rotate 與 no-usage 抑制的落點）
 
 ## Phase 4B: Regression
 
@@ -275,7 +275,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`
 
-- [ ] T025 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T025 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
   - 亦確認新的 no-post-turn-status carriers：`diagnostics/version-and-setup-diagnostic.feature`（`--version`）、`history/inspecting-the-session-history.feature`（`-l`）、`history/starting-a-fresh-session.feature`（prompt-less `--new`）皆斷言 the run reports no post-turn status。
   - **可偽性見證 (a)（metrics line；非真空）**：暫時停發 the metrics line，確認 `presenting-the-post-turn-status.feature` 的 `the run reports the token metrics of the request that just completed` 失敗；觀察到失敗即還原。

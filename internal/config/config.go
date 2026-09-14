@@ -36,6 +36,34 @@ type Config struct {
 	MaxHistoryTokens int                 `yaml:"MAX_HISTORY_TOKENS"`
 	UseTUIPrompt     bool                `yaml:"USE_TUI_PROMPT"`
 	Providers        map[string]Provider `yaml:"PROVIDERS"`
+	// Models carries the round-018 config-only pricing table: a `MODELS` entry
+	// keyed by model name, each holding the per-million-token HIT/MISS/COMP
+	// rates the post-turn cost is computed from. It is NOT env-overrideable (the
+	// standing TELL_ME_* precedence applies to scalar keys only) and there are NO
+	// built-in rates — an un-priced model renders `$0.0000` (round-018 D2).
+	Models map[string]ModelPricing `yaml:"MODELS"`
+}
+
+// ModelPricing is one `MODELS` entry: the model's `PRICING` rates.
+type ModelPricing struct {
+	Pricing PricingRates `yaml:"PRICING"`
+}
+
+// PricingRates are the USD-per-million-token cost rates for a model (round-018).
+type PricingRates struct {
+	HIT  float64 `yaml:"HIT"`
+	MISS float64 `yaml:"MISS"`
+	COMP float64 `yaml:"COMP"`
+}
+
+// PricingFor returns the configured pricing for a model, and whether one exists
+// (round-018 D2 — config-only, no built-in rates).
+func (c *Config) PricingFor(model string) (PricingRates, bool) {
+	mp, ok := c.Models[model]
+	if !ok {
+		return PricingRates{}, false
+	}
+	return mp.Pricing, true
 }
 
 // Provider is a single entry in the PROVIDERS registry.

@@ -76,7 +76,12 @@ type resolution struct {
 	MaxHistoryTokens int
 	// Person is the resolved PERSON — the persona sent to the provider as the
 	// leading `system` message of every request (round 011).
-	Person    string
+	Person string
+	// Pricing is the active model's config-only `MODELS` rates (round 018);
+	// Priced is false when the model has no entry, so the post-turn cost renders
+	// `$0.0000` (research D2).
+	Pricing   config.PricingRates
+	Priced    bool
 	Mode      string // the effective mode (when reached)
 	Workspace string // the resolved workspace path (when reached)
 }
@@ -139,6 +144,17 @@ type historyStoreFactory func(workspace string) history.Store
 // override it).
 var newHistoryStore historyStoreFactory = func(workspace string) history.Store {
 	return infrhistory.NewFileStore(workspace)
+}
+
+// usageStoreFactory builds the per-mode usage-log store for a resolved workspace
+// (round 018). It mirrors historyStoreFactory so the presentation layer never
+// couples to the concrete file adapter.
+type usageStoreFactory func(workspace string) history.UsageStore
+
+// newUsageStore is the production usage-store factory (a var so tests may
+// override it).
+var newUsageStore usageStoreFactory = func(workspace string) history.UsageStore {
+	return infrhistory.NewUsageStore(workspace)
 }
 
 // tuiPromptRunner runs the interactive TUI prompt (round 015) for one invocation
@@ -462,6 +478,7 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 	}
 	cfg.Providers[res.Selected] = prov
 	res.Provider = prov
+	res.Pricing, res.Priced = cfg.PricingFor(prov.Model)
 
 	// Step 6 — effective mode + prepare the session workspace (FR-007/008/009).
 	res.Person = cfg.Person
@@ -517,6 +534,9 @@ func renderTurn(homeDir, configPath, prompt string, opts turnOptions, env runtim
 	store := newHistoryStore(res.Workspace)
 	if opts.newSession {
 		if err := store.Archive(); err != nil {
+			return emitHistoryError(env.stderr, err)
+		}
+		if err := newUsageStore(res.Workspace).Archive(); err != nil {
 			return emitHistoryError(env.stderr, err)
 		}
 	}
@@ -589,6 +609,10 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	if result.Usage.Reported {
 		emitPayloadStatus(env, res, result.Usage.PromptTokens, false)
 	}
+	// Round 018 — the post-turn status lines (the metrics line + the `╰─⠿ Ready`
+	// summary), written AFTER the measured payload line; suppressed when the
+	// just-returned call reports no usage (FR-012).
+	emitPostTurnStatus(env, res, result)
 	return Success
 }
 
@@ -608,6 +632,80 @@ func (e runtimeEnv) now() time.Time {
 		return e.clock()
 	}
 	return time.Now()
+}
+
+// emitPostTurnStatus writes the round-018 post-turn status to the diagnostic
+// stream and persists the turn's per-call usage to the per-mode usage log. It is
+// a no-op when the just-returned call reports no usage (FR-012); otherwise it:
+//   - loads the session's prior usage, appends one record per reported call, and
+//     emits the metrics line (`M/H/C/Th` of the just-returned call) and the
+//     `╰─⠿ Ready` summary (three costs + the session token totals + hit-rate).
+//
+// The usage-log write is best-effort: a log failure never breaks a completed
+// turn (the answer is already on stdout).
+func emitPostTurnStatus(env runtimeEnv, res resolution, result agent.AgentResult) {
+	if !result.Usage.Reported {
+		return
+	}
+	us := newUsageStore(res.Workspace)
+	prior, _ := us.Load()
+
+	pricing := ui.Pricing{Hit: res.Pricing.HIT, Miss: res.Pricing.MISS, Comp: res.Pricing.COMP}
+	now := env.now()
+
+	var turnCost, lastCost float64
+	turnRecords := make([]history.UsageRecord, 0, len(result.Calls))
+	for _, c := range result.Calls {
+		if !c.Reported {
+			continue
+		}
+		miss := c.PromptTokens - c.CachedTokens
+		cost := ui.ComputeCost(pricing, miss, c.CachedTokens, c.CompletionTokens, c.ThinkingTokens)
+		turnCost += cost
+		turnRecords = append(turnRecords, history.UsageRecord{
+			Timestamp:      now.Format(time.RFC3339),
+			Provider:       res.Selected,
+			Model:          res.Provider.Model,
+			CachedTokens:   c.CachedTokens,
+			PromptTokens:   c.PromptTokens,
+			ResponseTokens: c.CompletionTokens,
+			TotalTokens:    c.PromptTokens + c.CompletionTokens + c.ThinkingTokens,
+			ThinkingTokens: c.ThinkingTokens,
+			Cost:           cost,
+		})
+	}
+	if len(turnRecords) > 0 {
+		lastCost = turnRecords[len(turnRecords)-1].Cost
+	}
+	for _, rec := range turnRecords {
+		if err := us.Append(rec); err != nil {
+			return // best-effort: never break the turn over the usage log
+		}
+	}
+
+	sMiss, sHit, sOut := 0, 0, 0
+	sessionCost := 0.0
+	add := func(r history.UsageRecord) {
+		sMiss += r.PromptTokens - r.CachedTokens
+		sHit += r.CachedTokens
+		sOut += r.ResponseTokens + r.ThinkingTokens
+		sessionCost += r.Cost
+	}
+	for _, r := range prior {
+		add(r)
+	}
+	for _, r := range turnRecords {
+		add(r)
+	}
+
+	last := result.Usage
+	_, _ = fmt.Fprintln(env.stderr, ui.FormatMetrics(env.now(), res.Selected, ui.UsageCounts{
+		Miss:       last.PromptTokens - last.CachedTokens,
+		Hit:        last.CachedTokens,
+		Completion: last.CompletionTokens,
+		Thinking:   last.ThinkingTokens,
+	}))
+	_, _ = fmt.Fprintln(env.stderr, ui.FormatReady(lastCost, turnCost, sessionCost, sMiss, sHit, sOut, ui.HitRate(sHit, sMiss)))
 }
 
 // emitInputCaptured writes the round-017 input-capture acknowledgement to the
@@ -658,6 +756,9 @@ func renderNewSession(homeDir string, env runtimeEnv) int {
 		return emitBootError(env.stderr, resolution{Home: homeDir, Workspace: ws}, rerr)
 	}
 	if err := newHistoryStore(ws).Archive(); err != nil {
+		return emitHistoryError(env.stderr, err)
+	}
+	if err := newUsageStore(ws).Archive(); err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
 	return Success

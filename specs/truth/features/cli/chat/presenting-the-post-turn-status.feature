@@ -7,6 +7,9 @@ Feature: Presenting the post-turn status
   # usage, and `stdout` stays byte-exact. Acceptance journeys:
   # features/acceptance/reporting-the-metrics-of-the-request.feature,
   # reporting-the-cost-and-session-summary.feature, keeping-the-post-turn-lines-bounded.feature.
+  #
+  # The token counts are deliberately large (a real turn's magnitude) so the `$%.4f` costs are
+  # observable at four decimals against the per-million-token `MODELS` rates.
 
   Rule: The run reports the metrics of the request that just completed
 
@@ -15,10 +18,10 @@ Feature: Presenting the post-turn status
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint answers with "all good" and reports the token usage:
         | prompt | cached | completion | thinking |
-        | 10     | 6      | 3          | 2        |
+        | 100000 | 60000  | 3000       | 2000     |
       When the operator starts tellme with the prompt "hi"
       Then the run reports the token metrics of the request that just completed
-      And the reported metrics line shows 4 missed, 6 cached, 3 completed, and 2 reasoning tokens
+      And the reported metrics line shows 40000 missed, 60000 cached, 3000 completed, and 2000 reasoning tokens
       And tellme exits successfully
 
     Example: The provider reports no reasoning tokens
@@ -26,10 +29,10 @@ Feature: Presenting the post-turn status
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint answers with "all good" and reports the token usage:
         | prompt | cached | completion | thinking |
-        | 10     | 6      | 3          | 0        |
+        | 100000 | 60000  | 3000       | 0        |
       When the operator starts tellme with the prompt "hi"
       Then the run reports the token metrics of the request that just completed
-      And the reported metrics line shows 4 missed, 6 cached, 3 completed, and 0 reasoning tokens
+      And the reported metrics line shows 40000 missed, 60000 cached, 3000 completed, and 0 reasoning tokens
       And tellme exits successfully
 
   Rule: The metrics reflect the last request of a tool-using turn
@@ -40,10 +43,10 @@ Feature: Presenting the post-turn status
       And the working directory contains a file "notes.txt" whose text is "hello"
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good" and reports the token usage:
         | prompt | cached | completion | thinking |
-        | 10     | 6      | 3          | 2        |
+        | 100000 | 60000  | 3000       | 2000     |
       When the operator starts tellme with the prompt "read the notes"
       Then the run reports the token metrics of the request that just completed
-      And the reported metrics line shows 4 missed, 6 cached, 3 completed, and 2 reasoning tokens
+      And the reported metrics line shows 40000 missed, 60000 cached, 3000 completed, and 2000 reasoning tokens
       And tellme exits successfully
 
   Rule: The run reports the cost of the last request, the turn, and the session
@@ -53,7 +56,7 @@ Feature: Presenting the post-turn status
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint answers with "all good" and reports the token usage:
         | prompt | cached | completion | thinking |
-        | 10     | 6      | 3          | 2        |
+        | 100000 | 60000  | 3000       | 2000     |
       And the configuration prices the active model with hit "0.0028", miss "0.14", and completion "0.28" per million tokens
       When the operator starts tellme with the prompt "hi"
       Then the run reports the cost of the request, the turn, and the session
@@ -68,7 +71,7 @@ Feature: Presenting the post-turn status
       And the working directory contains a file "notes.txt" whose text is "hello"
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good" and reports the token usage:
         | prompt | cached | completion | thinking |
-        | 10     | 6      | 3          | 2        |
+        | 100000 | 60000  | 3000       | 2000     |
       And the configuration prices the active model with hit "0.0028", miss "0.14", and completion "0.28" per million tokens
       When the operator starts tellme with the prompt "read the notes"
       Then the run reports the cost of the request, the turn, and the session
@@ -83,7 +86,7 @@ Feature: Presenting the post-turn status
       And the session's usage log already records a prior call
       And a configured provider "test-model" whose endpoint answers with "all good" and reports the token usage:
         | prompt | cached | completion | thinking |
-        | 10     | 6      | 3          | 2        |
+        | 100000 | 60000  | 3000       | 2000     |
       And the configuration prices the active model with hit "0.0028", miss "0.14", and completion "0.28" per million tokens
       When the operator starts tellme with the prompt "carry on"
       Then the run reports the cost of the request, the turn, and the session
@@ -98,7 +101,7 @@ Feature: Presenting the post-turn status
       And the session's usage log already records a prior call
       And a configured provider "test-model" whose endpoint answers with "all good" and reports the token usage:
         | prompt | cached | completion | thinking |
-        | 10     | 6      | 3          | 2        |
+        | 100000 | 60000  | 3000       | 2000     |
       And the configuration prices the active model with hit "0.0028", miss "0.14", and completion "0.28" per million tokens
       When the operator starts a fresh session with "--new" and the prompt "hi"
       Then the run reports the cost of the request, the turn, and the session
@@ -112,7 +115,7 @@ Feature: Presenting the post-turn status
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint answers with "all good" and reports the token usage:
         | prompt | cached | completion | thinking |
-        | 10     | 6      | 3          | 2        |
+        | 100000 | 60000  | 3000       | 2000     |
       And the configuration prices the active model with hit "0.0028", miss "0.14", and completion "0.28" per million tokens
       When the operator starts tellme with the prompt "hi"
       Then the run reports the session's missed, cached, and output tokens
@@ -126,7 +129,7 @@ Feature: Presenting the post-turn status
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint answers with "all good" and reports the token usage:
         | prompt | cached | completion | thinking |
-        | 10     | 6      | 3          | 2        |
+        | 100000 | 60000  | 3000       | 2000     |
       When the operator starts tellme with the prompt "hi"
       Then the run reports the cost of the request, the turn, and the session
       And the run reports a zero cost
@@ -151,7 +154,7 @@ Feature: Presenting the post-turn status
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint answers with "all good" and reports the token usage:
         | prompt | cached | completion | thinking |
-        | 10     | 6      | 3          | 2        |
+        | 100000 | 60000  | 3000       | 2000     |
       When the operator pipes "summarise the notes" into tellme
       Then the post-turn status trails the answer
       And tellme prints the provider's answer "all good"

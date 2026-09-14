@@ -228,6 +228,12 @@ func parseResponse(raw []byte) (llm.Response, error) {
 			PromptTokens     int `json:"prompt_tokens"`
 			CompletionTokens int `json:"completion_tokens"`
 			TotalTokens      int `json:"total_tokens"`
+			PromptDetails    *struct {
+				CachedTokens int `json:"cached_tokens"`
+			} `json:"prompt_tokens_details"`
+			CompletionDetails *struct {
+				ReasoningTokens int `json:"reasoning_tokens"`
+			} `json:"completion_tokens_details"`
 		} `json:"usage"`
 	}
 	if err := json.Unmarshal(raw, &decoded); err != nil {
@@ -238,10 +244,22 @@ func parseResponse(raw []byte) (llm.Response, error) {
 	}
 	resp := llm.Response{Text: decoded.Choices[0].Message.Content}
 	if decoded.Usage != nil {
+		reasoning := 0
+		if decoded.Usage.CompletionDetails != nil {
+			reasoning = decoded.Usage.CompletionDetails.ReasoningTokens
+		}
+		cached := 0
+		if decoded.Usage.PromptDetails != nil {
+			cached = decoded.Usage.PromptDetails.CachedTokens
+		}
 		resp.Usage = llm.Usage{
-			Reported:         true,
-			PromptTokens:     decoded.Usage.PromptTokens,
-			CompletionTokens: decoded.Usage.CompletionTokens,
+			Reported:     true,
+			PromptTokens: decoded.Usage.PromptTokens,
+			CachedTokens: cached,
+			// Round 018 FR-002: the wire `completion_tokens` INCLUDES reasoning,
+			// so store the EXCLUSIVE completion (disjoint from ThinkingTokens).
+			CompletionTokens: decoded.Usage.CompletionTokens - reasoning,
+			ThinkingTokens:   reasoning,
 			TotalTokens:      decoded.Usage.TotalTokens,
 		}
 	}
