@@ -153,3 +153,151 @@ A second session on the same calendar day: bootstrap, scope the next slice (`-i`
 ### PM follow-ups
 
 - None new (spec/acceptance unchanged; PM-1..PM-4 remain closed). Note for **015**: any new acceptance rule (e.g. the TUI suggestion/dashboard contracts) is PM-owned.
+
+
+---
+
+## 12. Session 3 (2026-09-14) — round 015 (`015-interactive-tui-prompt`) plan + truth half → PR #38
+
+A third session on the same calendar day: bootstrap, confirm the upstream gate resolved, open round 015, run the **plan + truth half** of the AIxBDD pipeline, and open **PR [#38](https://github.com/gosharplite/tellme/pull/38) → `dev`**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 014 delivered/frozen; active branch `dev`) |
+| Upstream gate | [aixbdd-tmg#13](https://github.com/gosharplite/aixbdd-tmg/issues/13) **RESOLVED** by [PR #14](https://github.com/gosharplite/aixbdd-tmg/pull/14) (merged) — `/axb-ui-plan` **terminal mode**; vendored skills synced |
+| `/axb-specify` | created `specs/plans/015-interactive-tui-prompt/`; **Clarify Round 1 locked `1,1,1`** |
+| `/axb-spec-by-example` | 4 acceptance features |
+| `/axb-ui-plan` (terminal mode) | `ui/ui-plan.md` + `ui/screens/*.txt` ×5 (entry / 10-suggestion / 20-dashboard / 30-error / 40-help) |
+| `/axb-technical-research` | `research.md` (Decisions 1–9) + `specs/truth/techstack.md` MODIFY |
+| `/axb-system-analysis` | `plan.md` — 3 interfaces (CLI end · TUI UX surface · shared prompt log), 1 wave; `/axb-api-plan` = NOOP |
+| `/axb-data-plan` | `specs/truth/data/data-model.dbml` ADD `prompt_log_entry` (project → `tellme_local_state`) |
+| `/axb-dsl-refine` | 4 `chat` features + `chat/dsl.md` (+16 rows); topology audit **PASSED** (690 steps) |
+| Delivery | 6 commits on `015-interactive-tui-prompt` (pushed); PR [#38](https://github.com/gosharplite/tellme/pull/38) **open → `dev`** (plan + truth only) |
+
+### Work done
+
+1. **Bootstrap (Steps 1–8)** — re-read `README.md`; the `tell-me-go` 8-item bootstrap; the `aixbdd-tmg` domain model (now with `PrototypeMedium` + `Prototype.medium`) + README; `list_skills`; in-group peers (self `butler`; peers `architect`, `coder`, `griller`, `pm`, `rd`); `STATUS.md` (**active branch `dev`** confirmed current); the last-5-days summaries (09/10–09/14). Rounds 001–014 delivered/frozen.
+2. **Upstream gate confirmed** — read [aixbdd-tmg#13](https://github.com/gosharplite/aixbdd-tmg/issues/13) + [PR #14](https://github.com/gosharplite/aixbdd-tmg/pull/14): `axb-ui-plan` gained a **terminal mode** (`ui/screens/*.txt`, no HTML) selected by interface surface; verified the session's loaded skills already reflect it — the `/axb-ui-plan` step is **un-gated**.
+3. **`/axb-specify`** — created the plan package; **Clarify Round 1 (locked `1,1,1`)**: shared log read+write **only under `-i`**; the TUI **coexists** with the round-012 plain reader; **POSIX-only**. 4 stories (rich prompt · shared log · dashboard · coexist/fallback).
+4. **`/axb-spec-by-example`** — 4 acceptance features (`composing-a-prompt-with-live-suggestions`, `sharing-the-prompt-log`, `seeing-the-session-dashboard`, `choosing-between-the-interactive-prompt-and-plain-input`).
+5. **`/axb-ui-plan` (terminal mode)** — `ui/ui-plan.md` (control plane) + 5 rendered frames.
+6. **`/axb-technical-research`** — Decisions 1–9 (Bubble Tea family; multi-source suggestion engine; the shared append-only log; opt-in gating; reused dashboard state; hermetic no-pty verification; dependency footprint; POSIX-only; must-asks unchanged); `techstack.md` MODIFY.
+7. **`/axb-system-analysis`** — `plan.md` (3 interfaces, 1 wave; the TUI `ui/**` reviewed, not re-planned) → delegated `/axb-api-plan` (NOOP) and `/axb-data-plan`.
+8. **`/axb-data-plan`** — `data-model.dbml` ADD `prompt_log_entry` + broadened the project Note.
+9. **`/axb-dsl-refine`** — 4 new `chat` features + `chat/dsl.md` (+1 Given, +5 When, +10 Then); root `cli/dsl.md` NOOP; topology audit **PASSED** (29 features · 690 steps).
+10. **Branch + PR** — created `015-interactive-tui-prompt` off `dev`, committed per phase (6 commits), pushed, and opened **PR [#38](https://github.com/gosharplite/tellme/pull/38) → `dev`**.
+
+### Decisions locked (round 015)
+
+| # | Decision |
+| --- | --- |
+| Q1 | The shared `output/global_prompts.jsonl` is **read + written**, and recorded **only under `-i`** (mirrors `tell-me-go`). |
+| Q2 | The TUI **coexists** with the round-012 plain reader — the default interactive surface is unchanged; `-i`/`USE_TUI_PROMPT` opts in. |
+| Q3 | The interactive prompt is **POSIX-only** this round (no Windows variant). |
+| D1 | TUI layer = **Bubble Tea family** (`bubbletea` + `bubbles/textarea`; `lipgloss` promoted to direct) — tellme's **first TUI dependency**. |
+| D2 | Suggestion engine = multi-source (shared log + session + workspace + tools), subsequence, deduped, ≤10, ~100 ms debounce. |
+| D3 | Shared log = append-only JSONL `{timestamp, prompt}` at the `output/` root; read newest-first + deduped; written only under `-i`; compaction ≈150 KiB / ≤1200 unique; no `flock`. |
+| D4 | Opt-in gating via the existing `golang.org/x/term` real-isatty seam; non-TTY fallback preserved. |
+| D5 | The dashboard reuses the round-009 token figures + provider/model + history turn count (no new accounting). |
+| D6 | Hermetic verification via injected I/O + a fake suggestion source (no pty); E2E through the `TELL_ME_FORCE_STDIN_TTY` seam + scripted keys. |
+| D7 | Dependency footprint confined to the TUI family (no other new module). |
+| D8 | POSIX-only. |
+| D9 | The three AIxBDD must-ask questions remain settled (single CLI end; `godog`; E2E + units). |
+
+### Commits (branch `015-interactive-tui-prompt`)
+
+| Commit | Note |
+| --- | --- |
+| `ce52a16` | `docs(015): plan package and spec for the interactive TUI prompt` |
+| `ab5c2fb` | `docs(015): acceptance Gherkin for the interactive TUI prompt` |
+| `b099f64` | `docs(015): terminal-mode UI plan for the interactive prompt` |
+| `97bcbc4` | `docs(015): technical research + techstack truth` |
+| `27cd8bd` | `docs(015): system-analysis plan + data truth for the shared prompt log` |
+| `a2bc5ba` | `docs(015): CLI interface truth for the interactive prompt` |
+
+### Verification
+
+- Gherkin/DSL topology audit **PASSED** — 29 features · 11 root + 147 module DSL rows · **690 steps**, 0 errors.
+- No product code this half → `make verify` not applicable.
+- Diff-level secret scan clean; all referenced links resolve.
+
+### Open items (non-blocking)
+
+- **Round 015 implementation** — `/axb-tasks` → `/axb-implement` remain (the TUI package layout; the exact injected-I/O + suggestion-source seams).
+- Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / **no `flock`**; round-011 forward items (estimation constants; persona seam; **N-2**).
+- **Propagation PENDING** — PR [#38](https://github.com/gosharplite/tellme/pull/38) open → `dev` (plan + truth only); not merged; `main` unchanged.
+
+### Next steps
+
+1. **`/axb-tasks`** → **`/axb-implement`** on `015-interactive-tui-prompt` (Setup/Foundational → test alignment → green/refactor).
+2. When the round is deliverable and a human merges PR #38 → `dev`, propagate `dev → main` (no-ff) — human-approved.
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `015-interactive-tui-prompt`; `STATUS.md` current).
+
+### PM follow-ups
+
+- None new (spec/acceptance are complete; no PM-owned gaps).
+
+---
+
+## 13. Session 4 (2026-09-14) — PR #38 review + round-015 `/axb-tasks` (`tasks.md` delivered)
+
+A continuation session on the same calendar day: read the PR #38 architectural review, recorded it in `STATUS.md` + this log, and generated the round's execution control plane (`tasks.md`) with the review's directives embedded. **No `specs/truth/**` change** (plan-side `tasks.md` + live/session docs only → no `truth-delta.md` update).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (rounds 001–014 delivered/frozen; active branch `015-interactive-tui-prompt`, PR #38 open) |
+| PR #38 review | Read [#5657097770](https://github.com/gosharplite/tellme/pull/38#issuecomment-5657097770); evaluated head `c66f500` (**== current HEAD**): **PLAN + TRUTH APPROVED — PROCEED WITH ARCHITECTURAL DIRECTIVES** (1 blocker + 4 directives, + 3 verdict-level notes) |
+| STATUS/daily log | Review recorded (header, round-015 section, roadmap row, open items, environment note) + this §13 |
+| `/axb-tasks` | `tasks.md` delivered — **40 tasks**; Setup = the Bubble Tea family; Phase 3 = 16 `[BDD-RED]` + 4 `[UNIT]` + review; 4 ADD Feature phases + regression; **Pre-Delivery orphan sweep 0** |
+
+### The review (verdict + directives)
+
+- **Verdict**: **PLAN + TRUTH APPROVED — PROCEED TO IMPLEMENTATION WITH ARCHITECTURAL DIRECTIVES** (head `c66f500`). Truth verified consistent (`data-model.dbml` ADD `prompt_log_entry`; `techstack.md` MODIFY; `features/cli/chat/**` ADD ×4 + 16 DSL rows; `/axb-api-plan` NOOP; root `cli/dsl.md` NOOP, vocabulary 11); topology audit PASSED (690 steps, 0 errors); `make verify` PASS.
+- **🔴 BLOCKER (implementation)** — **TUI output stream containment**: bind Bubble Tea to `env.stderr` (`tea.WithOutput`/`tea.WithInput`); `stdout` stays byte-exact (FR-015).
+- **🟡 TECHNICAL DEBT** — package/domain-boundary alignment: `plan.md`'s `internal/domain/config` and `internal/domain/ports` are stale → modify `internal/config/config.go`; put ports in focused subdomains (`internal/domain/suggestions/`, `internal/domain/history/…`); coordinator `internal/app/suggestions/`; adapter `internal/infrastructure/history/global_prompt_tracker.go`.
+- **🟡 TECHNICAL DEBT** — suggestion-engine I/O bounds: scope to `filepath.Split(query)`, chunk `ReadDir` (≤100), honour `ctx.Err()`, skip ignore-listed dirs (`.git`, `node_modules`), stop at 10 candidates.
+- **🔵 REFACTOR** — `tuiPromptRunner` DI seam in `cli.go`.
+- **🔵 REFACTOR** — optimistic concurrency / async append safety: `O_APPEND|O_CREATE|O_WRONLY`; async size-snapshot-checked compaction; `Close(ctx) error` via `sync.WaitGroup`.
+
+### `/axb-tasks` — the delivered `tasks.md`
+
+- **Setup (T001–T003)** — add `bubbletea` + `bubbles`, promote `lipgloss` to direct (`go mod tidy`); align the TUI runtime env + single-source `cli.TUIHint`; smoke-test the TTY-gated `-i` link.
+- **Foundational (T004–T010)** — landing skeletons (Zero Shared Edits): `internal/ui/tui/prompt/`; focused-subdomain ports (`internal/domain/suggestions/`, prompt-tracker); `internal/app/suggestions/service.go`; `internal/infrastructure/history/global_prompt_tracker.go`; `internal/config` `USE_TUI_PROMPT` + the `-i` flag + the `tuiPromptRunner` seam; the 16 stepdef landing files; the `[UNIT]` landing files.
+- **Phase 3 (T011–T031)** — 16 `[P]` `[BDD-RED]` (one per new DSL row: 1 Given + 5 When + 10 Then) + 4 `[P]` `[UNIT]` (suggestion engine; shared-log store; TUI model injected-I/O; gating matrix) + T031 subagent review.
+- **Phase 4A–4D (T032–T039)** — the 4 `ADD` truth features (`prompting-with-suggestions`, `using-the-interactive-prompt`, `recording-the-shared-prompt-log`, `choosing-the-interactive-prompt`), each `[BDD-GREEN] → [BDD-REFACTOR]` with a `Test Scope`.
+- **Phase 4E (T040)** — `[REGRESSION]` over `specs/truth/features/cli/**` + falsifiability witness + `make verify` + topology audit.
+- **Pre-Delivery Orphan Coverage Sweep** — 0 orphans (all non-NOOP truth-delta rows, research Decisions 1–9, and the changed `techstack.md` sections are task-`Read`-covered or directly delivered).
+
+### Decisions log
+
+| # | Decision |
+| --- | --- |
+| D1 | This session = **session 4** on 2026-09-14, continuing the round-015 branch (`c66f500`, PR #38 open). |
+| D2 | The 5 review directives are **embedded** in `tasks.md` task Boundaries/Reads (blocker → Feature Green boundary + Setup/Foundational; package layout → Foundational landing paths; suggestion I/O → T006/T027 + Feature boundary; DI seam → T008/T030; async append → T007/T028 + Feature boundary). |
+| D3 | No truth change (plan-side `tasks.md` + `STATUS.md`/daily log only) → **no `truth-delta.md` update**; only `tasks.md` is added to the plan package. |
+
+### Artifacts / commits (branch `015-interactive-tui-prompt`)
+
+- `specs/plans/015-interactive-tui-prompt/tasks.md` (NEW) — the round's execution control plane.
+- `STATUS.md` + this daily log §13.
+- (Commit/perf-out at closeout.)
+
+### Open items (non-blocking)
+
+- **Round 015 implementation** — `/axb-implement` (Setup → Foundational → Phase 3 test alignment → 4 Feature Green/Refactor → regression), carrying the review directives.
+- Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / **no `flock`**; round-011 forward items (estimation constants; persona seam; **N-2**).
+- **Propagation PENDING** — PR [#38](https://github.com/gosharplite/tellme/pull/38) open → `dev` (plan + truth only); not merged; `main` unchanged.
+
+### Next steps
+
+1. **`/axb-implement`** on `015-interactive-tui-prompt` (One-Shot over the 40 delivered tasks).
+2. When the round is deliverable and a human merges PR #38 → `dev`, propagate `dev → main` (no-ff) — human-approved.
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `015-interactive-tui-prompt`).
+
+### PM follow-ups
+
+- None new (spec/acceptance are complete; no PM-owned gaps).

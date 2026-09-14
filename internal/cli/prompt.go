@@ -21,6 +21,15 @@ const maxStdinBytes = 1 << 20 // 1 MiB
 // vocabulary is unchanged.
 const MultiLineHint = "[Reading multi-line input. Press Ctrl+C to cancel, or Ctrl+D to send]"
 
+// TUIHint is the POSIX-terminal announcement printed to the diagnostic stream
+// (stderr) when the interactive TUI prompt (round 015, `-i`/`USE_TUI_PROMPT`)
+// engages. It is exported so the E2E step oracle can single-source the literal
+// (specs/truth/features/cli/chat/dsl.md — `the interactive prompt is shown`)
+// instead of duplicating it, so a product-side text change cannot make the guard
+// vacuous (mirroring MultiLineHint). It carries no `tellme: ` prefix, so the
+// frozen class-phrase vocabulary is unchanged (still 11).
+const TUIHint = "[Interactive prompt. Type a prompt; Tab accepts a suggestion, Ctrl+S sends, Esc cancels]"
+
 // defaultIsTerminal reports whether v is connected to a terminal.
 //
 // It performs a real isatty query (golang.org/x/term.IsTerminal), NOT a bare

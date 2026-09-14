@@ -1,0 +1,14 @@
+┌─ tellme · interactive prompt ────────────────────────────────────┐
+│ provider  vertex-flash · gemini-3.8-flash                        │
+│ tokens    12,048 / 1,000,000        turns  3                     │
+│                                                                  │
+│  input                                            [editing]      │
+│  deploy to staging                                               │
+│  ▏                                                               │
+│                                                                  │
+│  suggestions                                                     │
+│  ▸ deploy to staging with version 015                           │
+│    review the last two commits                                   │
+│                                                                  │
+│  Enter newline · Tab accept · Ctrl+S submit · Esc cancel · ? help│
+└──────────────────────────────────────────────────────────────────┘

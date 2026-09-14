@@ -1,0 +1,11 @@
+┌─ tellme · interactive prompt ────────────────────────────────────┐
+│ provider  vertex-flash · gemini-3.8-flash                        │
+│ tokens    12,341 / 1,000,000        turns  4                     │
+│                                                                  │
+│  input                                            [editing]      │
+│  ▏                                                               │
+│                                                                  │
+│  error   input must not be empty — type a prompt and submit again│
+│                                                                  │
+│  Enter newline · Tab accept · Ctrl+S submit · Esc cancel · ? help│
+└──────────────────────────────────────────────────────────────────┘

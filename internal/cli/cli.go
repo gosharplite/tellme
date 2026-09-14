@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/gosharplite/tellme/internal/agent"
+	appsuggestions "github.com/gosharplite/tellme/internal/app/suggestions"
 	"github.com/gosharplite/tellme/internal/config"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
@@ -24,6 +25,7 @@ import (
 	infrallm "github.com/gosharplite/tellme/internal/infrastructure/llm"
 	infratools "github.com/gosharplite/tellme/internal/infrastructure/tools"
 	"github.com/gosharplite/tellme/internal/ui"
+	tuiprompt "github.com/gosharplite/tellme/internal/ui/tui/prompt"
 )
 
 // The pinned unresolved reason categories
@@ -39,13 +41,14 @@ const (
 
 // options are the parsed CLI flags.
 type options struct {
-	configPath string
-	diagnostic bool
-	version    bool
-	raw        bool
-	newSession bool
-	list       int
-	listSet    bool
+	configPath  string
+	diagnostic  bool
+	version     bool
+	raw         bool
+	newSession  bool
+	list        int
+	listSet     bool
+	interactive bool
 }
 
 // resolution is the outcome of resolving home → configuration → workspace. On a
@@ -135,6 +138,96 @@ type historyStoreFactory func(workspace string) history.Store
 // override it).
 var newHistoryStore historyStoreFactory = func(workspace string) history.Store {
 	return infrhistory.NewFileStore(workspace)
+}
+
+// tuiPromptRunner runs the interactive TUI prompt (round 015) for one invocation
+// and returns the composed prompt text plus whether a prompt was submitted (ok).
+// It is the DI seam (PR #38 review directive ④): the -i / USE_TUI_PROMPT / non-TTY
+// dispatch matrix is unit-testable without a terminal event loop, mirroring
+// gatewayFactory / historyStoreFactory.
+type tuiPromptRunner func(ctx context.Context, res resolution, store history.Store, env runtimeEnv) (string, bool, error)
+
+// newTUIPromptRunner is the production TUI runner (a var so tests may inject a
+// fake).
+var newTUIPromptRunner tuiPromptRunner = defaultRunTUIPrompt
+
+// defaultRunTUIPrompt runs the interactive TUI prompt (round 015): it announces
+// on the diagnostic stream, drives the prompt bound to stderr/stdin through the
+// Bubble Tea runtime, and returns the composed prompt (ok) on submit. It never
+// writes to stdout (PR #38 review BLOCKER).
+func defaultRunTUIPrompt(ctx context.Context, res resolution, store history.Store, env runtimeEnv) (string, bool, error) {
+	_, _ = fmt.Fprintln(env.stderr, TUIHint)
+
+	tracker := infrhistory.NewGlobalPromptTracker(res.Home)
+	defer func() { _ = tracker.Close(context.Background()) }()
+	reg := domaintools.NewRegistry(infratools.NewFilesystemTools()...)
+	engine := appsuggestions.New(
+		appsuggestions.TrackerPrompts{Tracker: tracker},
+		appsuggestions.OSSWorkspace{},
+		appsuggestions.RegistryTools{Registry: reg},
+	)
+	prior, _ := store.Load()
+	src := tuiSource{ctx: ctx, svc: engine}
+	dash := tuiprompt.Dashboard{
+		Provider: res.Selected,
+		Budget:   res.MaxHistoryTokens,
+		Turns:    len(prior),
+	}
+	return tuiprompt.Run(ctx, env.stdin, env.stderr, src, dash)
+}
+
+// tuiSource adapts the suggestion engine to the prompt's text-only Source seam.
+type tuiSource struct {
+	ctx context.Context
+	svc *appsuggestions.Service
+}
+
+// Suggest returns the engine's suggestion texts for the query.
+func (s tuiSource) Suggest(query string) []string {
+	sugg := s.svc.Suggest(s.ctx, query)
+	out := make([]string, 0, len(sugg))
+	for _, x := range sugg {
+		out = append(out, x.Text)
+	}
+	return out
+}
+
+// tuiRequested reports whether the opt-in interactive prompt is enabled: the
+// `-i`/`--interactive` flag, or the config `USE_TUI_PROMPT` key (round-015
+// FR-001). The terminal-stdin requirement is enforced separately by the caller.
+func tuiRequested(homeDir string, opts *options) bool {
+	if opts.interactive {
+		return true
+	}
+	if cfg, err := config.Load(defaultConfigPath(homeDir)); err == nil {
+		return cfg.UseTUIPrompt
+	}
+	return false
+}
+
+// runTUIPrompt resolves the setup and runs the interactive TUI prompt (round
+// 015). A submitted prompt is recorded in the shared log — only for the
+// interactive prompt — and then runs exactly one reasoning turn; an
+// aborted/empty submission sends no request and exits success.
+func runTUIPrompt(homeDir string, opts *options, env runtimeEnv) int {
+	// Best-effort resolution: the TUI engages even when the setup is unresolved
+	// (an aborted/empty submission owes no request — the round-012 ordering
+	// rationale). The resolution feeds the dashboard and the submit path.
+	res, _ := resolve(homeDir, opts.configPath)
+	store := newHistoryStore(res.Workspace)
+	text, ok, err := newTUIPromptRunner(context.Background(), res, store, env)
+	if err != nil {
+		return emitProviderError(env.stderr, err)
+	}
+	if !ok || text == "" {
+		return Success
+	}
+	// Record in the shared log (round-015 FR-009) — only the interactive prompt
+	// writes it.
+	tracker := infrhistory.NewGlobalPromptTracker(res.Home)
+	_ = tracker.Append(context.Background(), text)
+	_ = tracker.Close(context.Background())
+	return renderTurn(homeDir, opts.configPath, text, opts.raw, false, env)
 }
 
 // Run is the CLI entrypoint: main passes argv and the injected build version,
@@ -235,6 +328,13 @@ func run(args []string, version string, env runtimeEnv) int {
 	// context and exits success (0), matching the existing runTurn convention for
 	// an operator-initiated interruption of a prompt turn.
 	if env.isTTY(env.stdin) {
+		// Round 015 — the opt-in interactive TUI prompt engages here (only when
+		// enabled AND stdin is a terminal); the plain reader below stays the
+		// default. The dispatch delegates to the tuiPromptRunner seam so the
+		// matrix is unit-testable (PR #38 review directive ④).
+		if tuiRequested(homeDir, opts) {
+			return runTUIPrompt(homeDir, opts, env)
+		}
 		if opts.newSession {
 			// Archive BEFORE resolving the configuration: a prompt-less --new is an
 			// archive command that works offline, so — unlike the prompt-bearing
@@ -274,6 +374,7 @@ func parseFlags(args []string, stderr io.Writer) (opts *options, flagArgs []stri
 	fs.BoolVarP(&o.raw, "raw", "r", false, "Print the answer as raw text (no Markdown rendering).")
 	fs.BoolVar(&o.newSession, "new", false, "Start a fresh session, archiving the current session history.")
 	fs.IntVarP(&o.list, "list", "l", 0, "List the last N messages of the session history and exit.")
+	fs.BoolVarP(&o.interactive, "interactive", "i", false, "Open the interactive TUI prompt (requires a terminal).")
 	if err := fs.Parse(args); err != nil {
 		return nil, nil, false
 	}
