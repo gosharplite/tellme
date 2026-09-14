@@ -35,6 +35,9 @@ func thenTurnFrameSeparated(ctx context.Context) error {
 	if nl < 0 {
 		return fmt.Errorf("the payload line was not newline-terminated; merged=%q", m)
 	}
+	if p+nl+1 > ans {
+		return fmt.Errorf("the payload line (end %d) did not precede the answer (idx %d); merged=%q", p+nl+1, ans, m)
+	}
 	// The bytes between the payload line's newline and the answer must open with
 	// a newline — i.e. a blank line separates the frame from the answer.
 	seg := m[p+nl+1 : ans]

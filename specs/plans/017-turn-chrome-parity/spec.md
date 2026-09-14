@@ -99,7 +99,7 @@ As an operator, I want the new chrome limited to the non-TUI prompt surfaces, so
 - **`-r` / `--raw`**: the frame still renders on the diagnostic stream (reference behaviour), uncoloured; the answer stays raw on `stdout`.
 - **Non-terminal diagnostic stream** (piped `stderr`, `-r`): the frame renders plain (no ANSI); the payload line's text is unchanged.
 - **Resumed session**: the header's `<N>` reflects the completed-turn count + 1 (a resumed session does not restart at 1).
-- **Resolve failure** (bad config/home): the acknowledgement may precede the boot error (the reference captures input before setup resolution); the error path and its class phrase are unchanged.
+- **Resolve/history failure** (bad config/home, or an unreadable session history): the turn chrome is emitted only **after** setup resolution and the history load, so a failure on either shows the error with **no** acknowledgement — the reference acks *before* setup resolution, so this is an **accepted** failure-path parity gap (the resolve/history error paths and their class phrases are unchanged).
 - **`-i` on a non-terminal stdin**: the round-016 fallback applies unchanged — no frame.
 - **Very narrow terminal**: the rule is a fixed 80-column literal (reference parity); it does not reflow and MUST NOT panic.
 

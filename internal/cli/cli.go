@@ -584,11 +584,7 @@ func runTurn(res resolution, store history.Store, prompt string, raw bool, env r
 // line carries no `tellme: ` prefix (FR-014) and names the effective mode and the
 // provider's configured MODEL (TD-2).
 func emitPayloadStatus(env runtimeEnv, res resolution, tokens int, estimated bool) {
-	clock := env.clock
-	if clock == nil {
-		clock = time.Now
-	}
-	_, _ = fmt.Fprintln(env.stderr, ui.FormatPayloadStatus(clock(), tokens, res.MaxHistoryTokens, res.Mode, res.Provider.Model, estimated))
+	_, _ = fmt.Fprintln(env.stderr, ui.FormatPayloadStatus(env.now(), tokens, res.MaxHistoryTokens, res.Mode, res.Provider.Model, estimated))
 }
 
 // now returns the current time from the injected clock seam (falling back to
