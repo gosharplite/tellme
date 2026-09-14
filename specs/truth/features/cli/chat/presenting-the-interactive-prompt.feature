@@ -31,15 +31,25 @@ Feature: Presenting the interactive prompt
       Then the interactive prompt shows no session metrics header
       And tellme exits successfully
 
-  Rule: The editor advertises the submit and abort keys and keeps what the operator types
+  Rule: The editor advertises the submit and abort keys
 
-    Example: The prompt keeps the typed text and advertises the keys
+    Example: The prompt advertises the keys in its placeholder
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the operator is working at an interactive terminal
-      When the operator opens the interactive prompt and types "deploy to staging"
+      When the operator opens the interactive prompt
       Then the interactive prompt advertises the submit and abort keys
-      And the interactive prompt keeps the typed text "deploy to staging"
+      And tellme exits successfully
+
+  Rule: The editor keeps a multi-line prompt and shows no line numbers
+
+    Example: The operator composes a prompt across several lines
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the operator is working at an interactive terminal
+      When the operator opens the interactive prompt and types "line one\nline two"
+      Then the interactive prompt keeps the typed text "line one\nline two"
+      And the interactive prompt shows no line numbers
       And tellme exits successfully
 
   Rule: The interactive prompt draws the editor within a frame bounded by the terminal width

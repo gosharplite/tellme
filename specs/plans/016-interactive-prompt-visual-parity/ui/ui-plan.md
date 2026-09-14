@@ -15,6 +15,7 @@
 - Conclusion: the prompt is two stacked blocks — the editor inside a square-corner border, then the suggestion list — with padding around the whole block.
 - Visual focus: the editor border, the placeholder hint, the suggestion list's selected row (a `>` cursor), and the deliberate absence of any metrics header.
 - Aesthetic principle: each frame must look like the real terminal render. The keybinding table and the state-transition list live **in this plan**, never inside a frame.
+- Frame fidelity: the frames show the reference chrome at the editor's **fixed height** (`lipgloss` editor height 10) and a representative terminal width; the live render sets the width from the terminal (`tea.WindowSizeMsg` → `width - 4`) and clamps on a narrow terminal — `30-narrow` illustrates the clamped form.
 
 ## Screens and flow
 

@@ -41,6 +41,10 @@ Feature: Prompting with live suggestions
 
   Rule: Accepting a suggestion inserts it into the editor
 
+    # [unit-pinned (round 016, PR #40 F2)] the last-token replacement (a multi-word
+    # line + a single-token suggestion) is pinned by the unit layer; this E2E Example
+    # uses a whole-line replacement (a single-word query).
+
     Example: The operator accepts the current suggestion into the editor
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"

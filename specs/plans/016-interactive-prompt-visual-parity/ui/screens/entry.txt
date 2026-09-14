@@ -8,8 +8,9 @@
 │                                                                        │
 │                                                                        │
 │                                                                        │
+│                                                                        │
 └────────────────────────────────────────────────────────────────────────┘
  Suggestions:
- > deploy to staging with version 015
+ > deploy to staging with version 016
    review the last two commits
    summarize the last release

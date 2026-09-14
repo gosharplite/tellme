@@ -3,6 +3,15 @@ Feature: Composing with settled suggestions
   # Acceptance only: as the operator types, the prompt settles its suggestions
   # after a short pause, accepts a suggestion into the editor, and never offers
   # an over-long suggestion.
+  #
+  # [unit-pinned (round 016, PR #40 F1/F2)] two facets are pinned by the unit
+  # layer rather than E2E (no pty):
+  #   - the *timing* of the settle ("after a short pause" / debounce) — the
+  #     "offers suggestions for the typed text" facet is carried by
+  #     specs/truth/features/cli/chat/prompting-with-suggestions.feature
+  #     ("suggests a recent prompt that matches what the operator types");
+  #   - the last-token replacement (a multi-word line + a single-token
+  #     suggestion) — the E2E accepts use a whole-line replacement.
 
   Rule: Suggestions settle after the operator pauses typing
 
