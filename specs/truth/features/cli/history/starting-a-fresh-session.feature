@@ -15,6 +15,7 @@ Feature: Starting a fresh session
       Then the active session history holds no exchanges
       And the run shows no turn chrome
       And the run reports no post-turn status
+      And the run shows no progress spinner
       And tellme exits successfully
 
   Rule: The previous conversation is retained when a fresh session starts

@@ -10,6 +10,7 @@ Feature: Checking the build version and diagnosing setup
       Then tellme prints the build version
       And the run shows no turn chrome
       And the run reports no post-turn status
+      And the run shows no progress spinner
       And tellme exits successfully
 
   Rule: The diagnostic reports a resolved setup, offline

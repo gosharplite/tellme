@@ -16,6 +16,7 @@ Feature: Inspecting the session history
       Then tellme lists the last 2 messages
       And tellme sends no request to any provider
       And the run reports no post-turn status
+      And the run shows no progress spinner
       And tellme exits successfully
 
   Rule: Listing a session with no persisted history lists nothing

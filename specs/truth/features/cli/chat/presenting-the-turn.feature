@@ -98,4 +98,5 @@ Feature: Presenting the turn
       When the operator submits the prompt "hi" at the interactive prompt
       Then the interactive prompt is shown
       And the run shows no turn chrome
+      And the run shows no progress spinner
       And tellme exits successfully
