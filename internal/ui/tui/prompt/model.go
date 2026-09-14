@@ -61,11 +61,16 @@ type Model struct {
 type debounceMsg struct{ value string }
 
 // New builds the prompt model over the injected streams and suggestion source.
-// The caller binds out to env.stderr (round-015 PR #38 review BLOCKER). The
-// initial suggestions are seeded for the empty query.
-func New(in io.Reader, out io.Writer, src Source) *Model {
+// parent is the run context: the model derives its cancelable fetch contexts
+// from it, so cancelling the run (or Destroy) aborts an in-flight fetch
+// (round-016 architect TD1). The caller binds out to env.stderr (round-015 PR #38
+// review BLOCKER). The initial suggestions are seeded for the empty query.
+func New(parent context.Context, in io.Reader, out io.Writer, src Source) *Model {
+	if parent == nil {
+		parent = context.Background()
+	}
 	m := &Model{in: in, out: out, src: src, ed: newEditor(), sug: newSuggester(), debounce: DefaultDebounceDuration}
-	m.parent = context.Background()
+	m.parent = parent
 	m.ctx, m.cancel = context.WithCancel(m.parent)
 	m.computeSuggestions()
 	return m

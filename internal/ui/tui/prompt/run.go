@@ -16,7 +16,8 @@ import (
 // debounce is the suggestion-refresh debounce (<=0 refreshes synchronously — the
 // TELL_ME_TUI_DEBOUNCE=0 hermetic seam).
 func Run(ctx context.Context, in io.Reader, out io.Writer, src Source, debounce time.Duration) (string, bool, error) {
-	m := New(in, out, src)
+	m := New(ctx, in, out, src)
+	defer m.Destroy() // cancel any in-flight fetch on exit (round-016 architect TD1)
 	m.SetDebounce(debounce)
 	rin, rout := m.Streams()
 	p := tea.NewProgram(m, tea.WithInput(rin), tea.WithOutput(rout), tea.WithContext(ctx))

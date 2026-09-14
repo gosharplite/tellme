@@ -10,6 +10,7 @@
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
 | MODIFY | `specs/truth/techstack.md` | **Interactive TUI prompt (`-i`)**: strict-parity chrome — a **bordered** editor (`NormalBorder`, fg `240`, height 10, width from the terminal, the reference placeholder) over a **styled suggestion list** (`Suggestions:` header; selected bold fg `205`/bg `235`, unselected fg `245`); **no** dashboard header / status line / `?` overlay. **Session dashboard**: the prompt header is **removed** from the `-i` surface (the figures stay on the round-009 status line). **Prompt suggestion engine**: the refresh is debounced + async + cancelable; over-3-line entries dropped; `Tab`/`Shift+Tab` **insert** the selection (last-token heuristic). **Testing & Verification**: the harness adds style/state assertions (no pty). No new dependency; POSIX-only. | Round-016 research Decisions 1–8: reproduce the reference chrome on the existing Bubble Tea family, debounce/cancel the suggestion refresh, insert-on-`Tab`, and retire the round-015 dashboard header (strict parity, issue #39). |
+| MODIFY | `specs/truth/techstack.md` | **Interactive TUI prompt harness**: documents the `TELL_ME_TUI_DEBOUNCE=0` diagnostic seam (synchronous suggestion refresh for the hermetic E2E), alongside `TELL_ME_FORCE_STDIN_TTY`. | Round-016 implementation-review **TD2** — the seam gates real behaviour and must be recorded in truth. |
 
 ## /axb-api-plan
 
