@@ -207,6 +207,22 @@ func TestAppendBoundedReservesMarker(t *testing.T) {
 	}
 }
 
+// TestTruncateToCapDropsSplitRune makes the cap cut land MID-rune, so the
+// ToValidUTF8 guard — not mere arithmetic — is what keeps the result valid UTF-8
+// (round-021 review micro-note). The input is a run of 4-byte runes; the cut is
+// at readAggregateCap - len(capMarker) = 1048559 ≡ 3 (mod 4), i.e. three bytes
+// into a rune. Deleting strings.ToValidUTF8 would therefore fail this test.
+func TestTruncateToCapDropsSplitRune(t *testing.T) {
+	big := strings.Repeat("\U0001F600", readAggregateCap) // 4-byte rune, ≫ cap
+	got := truncateToCap(big)
+	if len(got) > readAggregateCap {
+		t.Fatalf("truncateToCap result %d bytes exceeds the %d cap", len(got), readAggregateCap)
+	}
+	if !utf8.ValidString(got) {
+		t.Fatal("truncateToCap left a split rune — the ToValidUTF8 guard is missing")
+	}
+}
+
 func TestToolSchemasRequireReason(t *testing.T) {
 	for _, params := range []json.RawMessage{listFiles{}.Parameters(), readFiles{}.Parameters(), getTree{}.Parameters()} {
 		var s struct {
