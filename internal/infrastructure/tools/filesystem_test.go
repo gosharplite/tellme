@@ -8,13 +8,14 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 // Round 021: the filesystem tools take the reference contracts — list_files emits
 // `Contents of <path>:` with `[d]`/`[f]` lines; read_files takes a multi-file
 // `filepaths` array with per-file framing and the reference limits (100000 B/file,
 // binary/directory/≤50 handling) plus tellme's aggregate 1 MiB result cap. These
-// assertions are the T032 pins (they fail RED until the Phase 4 implementations).
+// assertions are the T032 pins.
 
 func TestListFilesShape(t *testing.T) {
 	dir := t.TempDir()
@@ -157,11 +158,52 @@ func TestReadFilesAggregateCap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read_files: %v", err)
 	}
-	if len(got) > (1<<20)+200 {
-		t.Errorf("the aggregate result %d bytes exceeds the 1 MiB cap", len(got))
+	// Exact ceiling: the whole result — blocks plus the aggregate marker — stays
+	// within readAggregateCap (round-021 TD2).
+	if len(got) > readAggregateCap {
+		t.Errorf("the aggregate result %d bytes exceeds the %d cap", len(got), readAggregateCap)
 	}
 	if !strings.Contains(got, "truncated at the read budget") {
 		t.Errorf("the aggregate cap marker is missing; tail=%q", tail(got, 60))
+	}
+}
+
+// TestTruncateToCapIsBoundedAndUTF8Safe witnesses the round-021 TD2 fix on the
+// list_files/get_tree cap path: a multi-byte-heavy over-cap result is truncated
+// to within the exact 1 MiB ceiling AND remains valid UTF-8 (no split rune).
+func TestTruncateToCapIsBoundedAndUTF8Safe(t *testing.T) {
+	// 3-byte box-drawing glyphs, far larger than the cap, so a naive byte cut
+	// would land mid-rune.
+	big := strings.Repeat("├── x\n", readAggregateCap)
+	got := truncateToCap(big)
+	if len(got) > readAggregateCap {
+		t.Fatalf("truncateToCap result %d bytes exceeds the %d cap", len(got), readAggregateCap)
+	}
+	if !utf8.ValidString(got) {
+		t.Fatal("truncateToCap split a UTF-8 rune")
+	}
+	if !strings.HasSuffix(strings.TrimRight(got, "\n"), "... (truncated)") {
+		t.Fatalf("truncateToCap is missing the cap marker; tail=%q", tail(got, 40))
+	}
+
+	if small := "short"; truncateToCap(small) != small {
+		t.Fatalf("truncateToCap(%q) = %q; want unchanged", small, truncateToCap(small))
+	}
+}
+
+// TestAppendBoundedReservesMarker witnesses the read_files aggregate path: a
+// block larger than the remaining budget is dropped, the budget marker is
+// written, and the accumulated result stays within the cap.
+func TestAppendBoundedReservesMarker(t *testing.T) {
+	var sb strings.Builder
+	if appendBounded(&sb, strings.Repeat("x", readAggregateCap)) {
+		t.Fatal("appendBounded admitted a block larger than the cap")
+	}
+	if sb.Len() > readAggregateCap {
+		t.Fatalf("appendBounded result %d bytes exceeds the %d cap", sb.Len(), readAggregateCap)
+	}
+	if !strings.Contains(sb.String(), "truncated at the read budget") {
+		t.Fatalf("appendBounded did not write the budget marker; got %q", sb.String())
 	}
 }
 
