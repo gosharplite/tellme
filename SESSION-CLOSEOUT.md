@@ -49,6 +49,7 @@ Immediately return to the step table above and execute **Step 1 → Step 2 → S
 Run the gates the project currently owns — no more, no less:
 
 - **Code rounds**: `gofmt -l .` clean, `go vet ./...` clean (research D7 — `golangci-lint` is deferred until adopted). Once the round-001 implementation exists, this widens to the `make`-style pipeline (build, vet, tests, coverage) referenced by `tell-me-go`'s Makefile — adapted, never copied blindly.
+- **Platform builds**: `make verify` includes the **cross-compile gate** (`make verify-cross-compile`) — it builds and vets the module for every supported POSIX target (`linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`), host-independent, so build-tagged platform code never silently fails to compile for a platform we ship (round 020).
 - **Docs / pre-implementation rounds**: verify Markdown links resolve, artifact cross-references agree (`STATUS.md` ↔ daily log ↔ `truth-delta.md`), and run a **secret scan** over the diff before committing.
 - **Always**: confirm no secrets, credentials, or `secrets/`-style files are staged.
 
