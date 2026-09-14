@@ -51,7 +51,7 @@ As an operator, I want each prompt turn framed with the reference's rule, its `T
 
 **Why this priority**: the frame is the round's central request ("turn framing" + "spacing"); it is what makes the turn *look* the same.
 
-**Independent verification**: run a prompt turn hermetically; assert the diagnostic-stream sequence (leading blank → rule → `╭─⠿ Turn <N> - <mode>` → payload line → blank gap) precedes the answer, that `<N>` equals the session's persisted turn count + 1, and that the answer on `stdout` follows the gap.
+**Independent verification**: run a prompt turn hermetically; assert the diagnostic-stream sequence (leading blank → rule → `╭─⠿ Turn <N> - <mode>` → payload line → blank gap) precedes the answer, that `<N>` equals the session's completed-turn count + 1, and that the answer on `stdout` follows the gap.
 
 **Acceptance Scenarios**:
 
@@ -98,7 +98,7 @@ As an operator, I want the new chrome limited to the non-TUI prompt surfaces, so
 - **No prompt**: an empty positional prompt, an empty pipe, or an aborted/empty reader submission sends no request — no acknowledgement line and no frame (no turn).
 - **`-r` / `--raw`**: the frame still renders on the diagnostic stream (reference behaviour), uncoloured; the answer stays raw on `stdout`.
 - **Non-terminal diagnostic stream** (piped `stderr`, `-r`): the frame renders plain (no ANSI); the payload line's text is unchanged.
-- **Resumed session**: the header's `<N>` reflects the persisted turn count + 1 (a resumed session does not restart at 1).
+- **Resumed session**: the header's `<N>` reflects the completed-turn count + 1 (a resumed session does not restart at 1).
 - **Resolve failure** (bad config/home): the acknowledgement may precede the boot error (the reference captures input before setup resolution); the error path and its class phrase are unchanged.
 - **`-i` on a non-terminal stdin**: the round-016 fallback applies unchanged — no frame.
 - **Very narrow terminal**: the rule is a fixed 80-column literal (reference parity); it does not reflow and MUST NOT panic.
@@ -121,7 +121,7 @@ As an operator, I want the new chrome limited to the non-TUI prompt surfaces, so
 
 - **Input-capture acknowledgement**: the `[HH:MM:SS] Input captured. Processing...` line written to the diagnostic stream once a non-empty prompt is captured.
 - **Turn frame**: the reference chrome around a prompt turn — a leading blank line, the 80-column `─` rule, the `╭─⠿ Turn <N> - <mode>` header, the (unchanged) pre-flight payload line, and a trailing blank gap.
-- **Turn number (`<N>`)**: the session's persisted turn count + 1 (the reference's `SessionTurns + 1`); `--new` → 1.
+- **Turn number (`<N>`)**: the session's **completed-turn count** + 1 (one `history_entry` line per completed turn; the reference's `SessionTurns + 1`); `--new` → 1.
 - **Reference chrome tokens**: the exact character/color tokens the surface must reproduce (the `─` rule width, the `╭─⠿` glyph, the header/blank-line layout, the colour codes and the TTY gate) — a `/axb-technical-research` + `/axb-dsl-refine` determination.
 
 ## Success Criteria *(mandatory)*
@@ -129,7 +129,7 @@ As an operator, I want the new chrome limited to the non-TUI prompt surfaces, so
 ### Measurable Outcomes
 
 - **SC-001**: An operator running `tellme "hi"` (or a piped prompt, or the round-012 reader) sees the reference turn opening — `[HH:MM:SS] Input captured. Processing...`, the rule, `╭─⠿ Turn 1 - <mode>`, the payload line, and a gap before the answer — verified hermetically (covers FR-001–FR-006).
-- **SC-002**: The frame's turn number equals the session's persisted turn count + 1 (`Turn 1` on `--new`; `Turn <prior+1>` on a resumed session).
+- **SC-002**: The frame's turn number equals the session's completed-turn count + 1 (`Turn 1` on `--new`; `Turn <prior+1>` on a resumed session).
 - **SC-003**: On the `-i` TUI and on every non-prompt path, none of the new lines appear, and the round-016 surface plus every prior output are unchanged (SC-003 covers FR-007–FR-008).
 - **SC-004**: `stdout` is byte-exact on every path (the chrome lives on the diagnostic stream), the frozen class-phrase vocabulary is unchanged, and the round-009 payload-line text is unchanged.
 - **SC-005**: The behaviour is carried by at least one executable interface Rule in `specs/truth/features/cli/**`, and the Gherkin/DSL topology audit passes.

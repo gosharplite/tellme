@@ -16,7 +16,7 @@ Reference: `tell-me-go` `internal/ui/capture.go` (`finalizePrompt`: `[HH:MM:SS] 
   - **Style the chrome with `lipgloss`** (already present via the TUI family): the chrome is a plain glyph block on a non-TUI stream, so a styling library adds nothing — rejected.
   - **Route the chrome through the glamour renderer**: glamour renders the *answer*, not operator chrome — rejected.
 
-## Decision 2: The turn number is the session's persisted turn count + 1
+## Decision 2: The turn number is the session's completed-turn count + 1
 
 - **Decision**: `<N>` is the count of the session's **completed turns**, plus one (the reference's `SessionTurns + 1`). tellme persists **one `history_entry` line per completed turn** in the active `history.jsonl`, so the count is the number of such lines — **not** a message count and **not** the reference's `entries/2` (whose store keeps 2 messages per turn). It is read from the already-loaded prior history (`len(prior) + 1`); `--new` archives **before** the turn, so a fresh session shows `Turn 1`, and a resumed session continues the count. (Today a session archives only on `--new`, which resets the count to 1; a future summarisation/archive path must preserve this.) `<mode>` is the effective mode (the resolved `MODE`).
 - **Rationale**: the reference numbers turns **per session**; a resumed session must continue (not restart at 1), and the history already carries the count — no new counter.

@@ -30,7 +30,7 @@ Feature: Presenting the turn
       And the input capture is announced before the turn frame
       And tellme exits successfully
 
-    Example: The operator composes the prompt at the terminal
+    Example: A prompt supplied at the interactive terminal is read and captured
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the operator is working at an interactive terminal

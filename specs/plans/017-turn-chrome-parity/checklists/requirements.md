@@ -53,7 +53,7 @@
 ### Folded assumptions (accepted, not asked — low risk)
 
 - **A1** — the reference is `tell-me-go`'s `internal/ui/capture.go` + `internal/ui/renderer_metrics.go`.
-- **A4** — `<N>` = persisted turn count + 1 (reference `SessionTurns + 1`); `--new` → `Turn 1`.
+- **A4** — `<N>` = the session's **completed-turn count** + 1 (one `history_entry` line per turn; reference `SessionTurns + 1`); `--new` → `Turn 1`.
 - **A5** — the exact chrome tokens are a `/axb-technical-research` + `/axb-dsl-refine` determination; the round-009 payload-line text is unchanged.
 - **A6** — POSIX-only; no new dependency; hermetic verification.
 - **A7** — post-turn lines are explicitly out of scope this round.

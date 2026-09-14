@@ -21,7 +21,7 @@
 
 - **[SURFACE SCOPE = A+B]** — the chrome 只發在 the **positional/piped prompt turn (A)** 與 the **round-012 plain reader (B)**；the `-i` TUI surface (round 016) 與 every non-prompt path (boot / `-d` / `-l` / `--version` / prompt-less `--new`) **不得**出現 chrome（`FR-007`）。見 T002、T009、T012。
 - **[STARTUP SET = input-capture line only]** — 只加 `[HH:MM:SS] Input captured. Processing...`；the reference 的第二行 `[Info] Starting chat...` **out of scope**（`A3`）。見 T003、T004。
-- **[TURN NUMBER = persisted + 1]** — `<N>` = the session's persisted turn count + 1（`len(prior)+1`；`--new` → `Turn 1`），`<mode>` = the run's effective mode（`FR-004`）。見 T006、T007、T010。
+- **[TURN NUMBER = completed-turn count + 1]** — `<N>` = the session's **completed-turn count** + 1（one `history_entry` line per completed turn；`len(prior)+1`；`--new` → `Turn 1`），`<mode>` = the run's effective mode（`FR-004`）。見 T006、T007、T010。
 - **[PLAIN TEXT]** — 結構化 chrome 以 plain text 呈現（**no ANSI** this round；research D3）；the round-009 payload line text **不變**，僅被包進 frame。見 T005、T008、T010、T013。
 - **[SPACING]** — 一個 leading blank line before the rule、一個 trailing blank line after the payload line（research D4）。見 T007、T008、T010。
 - **[NO REGRESSION]** — `stdout` 維持 byte-exact（chrome 只寫 `stderr`）；class-phrase 詞彙維持 **11**；the payload line format、post-turn lines、exit-code 表、offline paths 不變。見 T012、T014。
@@ -170,7 +170,7 @@
 
 **Boundary**:
 - 產品碼：`internal/ui/turn.go`（the chrome formatter — acknowledgement + 80-column rule + `╭─⠿ Turn <N> - <mode>` header + spacing；plain text）+ `internal/cli/cli.go`（在 surfaces (A)/(B) 的 turn 上發出 the acknowledgement 與 the frame，包住既有 pre-flight payload line；以 *chrome* switch 讓 `-i` submit path (C) 與 non-prompt paths 不發出）。
-- `<N>` = the session's persisted turn count + 1（`len(prior)+1`）；`<mode>` = the resolved effective mode。
+- `<N>` = the session's **completed-turn count** + 1（one `history_entry` line per completed turn；`len(prior)+1`）；`<mode>` = the resolved effective mode。
 - **不動** the round-009 payload-line formatter（其文字不變，僅被包進 frame）、the post-turn path、the keybindings、the round-016 TUI surface；`stdout` 維持 byte-exact（chrome 只寫 `stderr`）；class-phrase 詞彙維持 **11**；plain text（**no ANSI**）；不加相依。
 - 落點採零共用編輯；the emission seam 只加在 the turn entry，不複製到多處。
 
