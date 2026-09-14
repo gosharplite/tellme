@@ -39,7 +39,7 @@
 ## Verifiability & success criteria
 
 - [x] Acceptance scenarios are sufficient to verify the main success paths (capture line present/once; frame order + turn number; scope boundary/absence)
-- [x] Success criteria are measurable, verifiable, and technology-neutral (line presence/absence + ordering; `Turn N` = persisted turns + 1; byte-exact stdout; prior rounds green)
+- [x] Success criteria are measurable, verifiable, and technology-neutral (line presence/absence + ordering; `Turn N` = completed turns + 1; byte-exact stdout; prior rounds green)
 - [x] Assumptions state premises and boundaries only — no smuggled requirements
 - [x] Requirements, edge cases, key entities, and success criteria are mutually consistent
 

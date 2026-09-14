@@ -85,7 +85,7 @@ This requirement inventories **1** interface. Round 017 introduces **no** new sy
 - Analysis focus:
   - **API** → **`NOOP`**: no OpenAPI/HTTP surface of tellme's own.
   - **Data** → **`NOOP`**: no state change.
-  - **CLI end** → handoff to contract owner **`/axb-dsl-refine`**: pin the non-TUI turn-chrome contract as mechanically assertable interface Rules — the capture acknowledgement, the 80-column rule, the `Turn <N> - <mode>` header (N = persisted turns + 1), the pre-flight payload line inside the frame, the blank-line spacing, and the **negative boundary** (no chrome on the `-i` TUI surface or on any non-prompt path) — while `stdout` stays byte-exact and the class-phrase vocabulary is unchanged.
+  - **CLI end** → handoff to contract owner **`/axb-dsl-refine`**: pin the non-TUI turn-chrome contract as mechanically assertable interface Rules — the capture acknowledgement, the 80-column rule, the `Turn <N> - <mode>` header (N = completed turns + 1), the pre-flight payload line inside the frame, the blank-line spacing, and the **negative boundary** (no chrome on the `-i` TUI surface or on any non-prompt path) — while `stdout` stays byte-exact and the class-phrase vocabulary is unchanged.
 - Scheduling rationale: a single interface with no dependency on any other interface's conclusions; there is nothing to sequence, so the round runs in one wave.
 
 ---
