@@ -235,7 +235,7 @@ func runTUIPrompt(homeDir string, opts *options, env runtimeEnv) int {
 	tracker := infrhistory.NewGlobalPromptTracker(res.Home)
 	_ = tracker.Append(context.Background(), text)
 	_ = tracker.Close(context.Background())
-	return renderTurn(homeDir, opts.configPath, text, opts.raw, false, env)
+	return renderTurn(homeDir, opts.configPath, text, opts.raw, false, false, env)
 }
 
 // Run is the CLI entrypoint: main passes argv and the injected build version,
@@ -314,7 +314,7 @@ func run(args []string, version string, env runtimeEnv) int {
 		return EnvironmentError
 	}
 	if prompt != "" {
-		return renderTurn(homeDir, opts.configPath, prompt, opts.raw, opts.newSession, env)
+		return renderTurn(homeDir, opts.configPath, prompt, opts.raw, opts.newSession, true, env)
 	}
 	// Round 012 (amended, A8) — a prompt-less invocation on a terminal reads an
 	// interactive multi-line prompt: print the hint to stderr and read stdin to EOF
@@ -358,7 +358,7 @@ func run(args []string, version string, env runtimeEnv) int {
 		if !ok || text == "" {
 			return Success
 		}
-		return renderTurn(homeDir, opts.configPath, text, opts.raw, false, env)
+		return renderTurn(homeDir, opts.configPath, text, opts.raw, false, true, env)
 	}
 	// A prompt-less --new on a NON-terminal keeps its round-007 behaviour: archive
 	// the session and exit (the reader never engages on a non-terminal).
@@ -500,7 +500,7 @@ var newGateway gatewayFactory = infrallm.NewGateway
 // failure is rendered as a boot error; an unsupported family or a
 // provider/transport failure is rendered with the frozen provider class phrase
 // and exit code 6; a history failure reuses the environment class phrase.
-func renderTurn(homeDir, configPath, prompt string, raw bool, newSession bool, env runtimeEnv) int {
+func renderTurn(homeDir, configPath, prompt string, raw bool, newSession bool, chrome bool, env runtimeEnv) int {
 	res, rerr := resolve(homeDir, configPath)
 	if rerr != nil {
 		return emitBootError(env.stderr, res, rerr)
@@ -511,7 +511,7 @@ func renderTurn(homeDir, configPath, prompt string, raw bool, newSession bool, e
 			return emitHistoryError(env.stderr, err)
 		}
 	}
-	return runTurn(res, store, prompt, raw, env, newGateway)
+	return runTurn(res, store, prompt, raw, env, newGateway, chrome)
 }
 
 // runTurn performs one reasoning turn through an injected gateway factory and
@@ -520,7 +520,7 @@ func renderTurn(homeDir, configPath, prompt string, raw bool, newSession bool, e
 // (append-after-complete, round-007 FR-001/FR-003). The answer is written by the
 // runtimeEnv's renderer. The context is cancelled on SIGINT/SIGTERM so a stalled
 // provider can be interrupted (review finding #2).
-func runTurn(res resolution, store history.Store, prompt string, raw bool, env runtimeEnv, factory gatewayFactory) int {
+func runTurn(res resolution, store history.Store, prompt string, raw bool, env runtimeEnv, factory gatewayFactory, chrome bool) int {
 	gw, err := factory(res.Provider, res.Selected, res.Person)
 	if err != nil {
 		return emitProviderError(env.stderr, err)
@@ -538,7 +538,18 @@ func runTurn(res resolution, store history.Store, prompt string, raw bool, env r
 	// payload budget. Diagnostic only, on stderr.
 	reg := newToolRegistry(store, gw)
 	assembled := append(append(make([]llm.Message, 0, len(prior)+1), agent.BuildMessages(prior)...), llm.Message{Role: "user", Content: prompt})
+	// Round-017 turn chrome: on surfaces (A)/(B) the turn opens with the
+	// input-capture acknowledgement and the rule/header frame, wrapping the
+	// pre-flight payload line. It is false for the `-i` submit path and the
+	// non-prompt paths (FR-007).
+	if chrome {
+		emitInputCaptured(env)
+		emitTurnOpening(env, len(prior)+1, res.Mode)
+	}
 	emitPayloadStatus(env, res, llm.EstimatePayload(res.Person, agent.ToolDefs(reg), assembled), true)
+	if chrome {
+		emitTurnGap(env)
+	}
 
 	loop := &agent.AgentLoop{
 		Gateway:  gw,
@@ -578,6 +589,32 @@ func emitPayloadStatus(env runtimeEnv, res resolution, tokens int, estimated boo
 		clock = time.Now
 	}
 	_, _ = fmt.Fprintln(env.stderr, ui.FormatPayloadStatus(clock(), tokens, res.MaxHistoryTokens, res.Mode, res.Provider.Model, estimated))
+}
+
+// now returns the current time from the injected clock seam (falling back to
+// time.Now) — the shared round-009/017 clock seam.
+func (e runtimeEnv) now() time.Time {
+	if e.clock != nil {
+		return e.clock()
+	}
+	return time.Now()
+}
+
+// emitInputCaptured writes the round-017 input-capture acknowledgement to the
+// diagnostic stream (the reference's `[HH:MM:SS] Input captured. Processing...`).
+func emitInputCaptured(env runtimeEnv) {
+	_, _ = fmt.Fprintln(env.stderr, ui.FormatInputCaptured(env.now()))
+}
+
+// emitTurnOpening writes the round-017 frame opening (a leading blank line, the
+// 80-column rule, and the `╭─⠿ Turn <N> - <mode>` header) to the diagnostic stream.
+func emitTurnOpening(env runtimeEnv, turn int, mode string) {
+	_, _ = fmt.Fprint(env.stderr, ui.FormatTurnOpening(turn, mode))
+}
+
+// emitTurnGap writes the blank line that separates the frame from the answer.
+func emitTurnGap(env runtimeEnv) {
+	_, _ = fmt.Fprint(env.stderr, ui.FormatTurnGap())
 }
 
 // renderHistoryList lists the last N persisted messages (round-007 FR-007..FR-009)

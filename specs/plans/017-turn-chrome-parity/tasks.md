@@ -32,7 +32,7 @@
 
 **Goal**: 建立本輪測試層落點骨架（Zero Shared Edits）與產品碼落點（the chrome formatter），讓 Phase 3／Phase 4 不各自發明檔案或落點。只建立落點與載體，不寫 chrome 行為。
 
-- [ ] T001 建立 7 個 stepdef 獨立檔骨架（7 新句；Zero Shared Edits）
+- [X] T001 建立 7 個 stepdef 獨立檔骨架（7 新句；Zero Shared Edits）
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（本輪 7 個新句）
     - `tests/e2e/steps/register.go`、`tests/e2e/harness/`（the merged-stream witness + the subprocess runner）
@@ -46,7 +46,7 @@
     - `tests/e2e/steps/step_t009_chat_then_no_turn_chrome.go`
   - 不做：不寫具體 arrange／斷言邏輯；不碰既有 step 檔。
 
-- [ ] T002 落點 the turn-chrome formatter 與其 `[UNIT]` 落點檔骨架
+- [X] T002 落點 the turn-chrome formatter 與其 `[UNIT]` 落點檔骨架
   - Read:
     - `specs/plans/017-turn-chrome-parity/research.md` -> Decision 1, Decision 3, Decision 4
     - `specs/truth/techstack.md` -> CLI Application（Turn chrome (operator)）
@@ -100,44 +100,44 @@
 
 ### BDD-RED（本輪新增句型）
 
-- [ ] T003 [P] [BDD-RED] `Then: the input capture is announced for the turn`
+- [X] T003 [P] [BDD-RED] `Then: the input capture is announced for the turn`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the input capture is announced for the turn`
   - Landing: `tests/e2e/steps/step_t003_chat_then_input_capture_announced.go`
   - 語意：captured `stderr` 帶一行符合 `[HH:MM:SS] Input captured. Processing...`（timestamp 以 pattern 比對）；**不**在 `stdout`。
 
-- [ ] T004 [P] [BDD-RED] `Then: the input capture is announced before the turn frame`
+- [X] T004 [P] [BDD-RED] `Then: the input capture is announced before the turn frame`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the input capture is announced before the turn frame`
   - Landing: `tests/e2e/steps/step_t004_chat_then_input_capture_before_frame.go`
   - 語意：merged capture 中，the acknowledgement 出現在 the horizontal rule **之前**。
 
-- [ ] T005 [P] [BDD-RED] `Then: the turn opens with a horizontal rule`
+- [X] T005 [P] [BDD-RED] `Then: the turn opens with a horizontal rule`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the turn opens with a horizontal rule`
   - Landing: `tests/e2e/steps/step_t005_chat_then_opens_with_rule.go`
   - 語意：captured `stderr` 帶一行，其可見內容為 the reference 的 **80 欄** `─` rule。
 
-- [ ] T006 [P] [BDD-RED] `Then: the turn is headed "Turn {number}" for the active mode`
+- [X] T006 [P] [BDD-RED] `Then: the turn is headed "Turn {number}" for the active mode`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the turn is headed "Turn {number}" for the active mode`
   - Landing: `tests/e2e/steps/step_t006_chat_then_headed_turn_number.go`
   - 語意：captured `stderr` 帶一行符合 `╭─⠿ Turn {number} - <mode>`，`<mode>` 為該次執行 effective mode；**不**在 `stdout`，且 number 不得不同。
 
-- [ ] T007 [P] [BDD-RED] `Then: the turn chrome is shown before the answer`
+- [X] T007 [P] [BDD-RED] `Then: the turn chrome is shown before the answer`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the turn chrome is shown before the answer`
   - Landing: `tests/e2e/steps/step_t007_chat_then_chrome_before_answer.go`
   - 語意：merged capture 中，**整個** turn chrome（the input-capture acknowledgement、the `─` rule、the `╭─⠿ Turn …` header、the pre-flight payload line）出現在 the answer bytes **之前**。
 
-- [ ] T008 [P] [BDD-RED] `Then: the turn frame is separated from the answer`
+- [X] T008 [P] [BDD-RED] `Then: the turn frame is separated from the answer`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the turn frame is separated from the answer`
   - Landing: `tests/e2e/steps/step_t008_chat_then_frame_separated.go`
   - 語意：merged capture 中，一個空行分隔 the frame 的末行（the pre-flight payload line）與 the answer bytes。
 
-- [ ] T009 [P] [BDD-RED] `Then: the run shows no turn chrome`
+- [X] T009 [P] [BDD-RED] `Then: the run shows no turn chrome`
   - Read: `specs/truth/features/cli/dsl.md`（interface root）-> `the run shows no turn chrome`
   - Landing: `tests/e2e/steps/step_t009_chat_then_no_turn_chrome.go`
   - 語意：`stdout` 與 `stderr` 皆**不**帶 the input-capture acknowledgement、the 80-column `─` rule、或 `╭─⠿ Turn …` header；用於 `-i` submit path 與 non-prompt path。
 
 ### UNIT（非 DSL 的單元斷言）
 
-- [ ] T010 [P] [UNIT] the turn-chrome formatter — deterministic formatting
+- [X] T010 [P] [UNIT] the turn-chrome formatter — deterministic formatting
   - Read:
     - `specs/plans/017-turn-chrome-parity/research.md` -> Decision 1, Decision 3, Decision 4
     - `specs/truth/techstack.md` -> CLI Application（Turn chrome (operator)）
@@ -147,7 +147,7 @@
 
 ### Phase Review Gate
 
-- [ ] T011 subagent review (phase quality gate)
+- [X] T011 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/presenting-the-turn.feature`、`reporting-the-payload-status.feature`、`using-the-interactive-prompt.feature`、`reading-a-multi-line-prompt.feature`
     - `specs/truth/features/cli/chat/dsl.md`、`specs/truth/features/cli/dsl.md`
@@ -177,8 +177,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/presenting-the-turn.feature`
 
-- [ ] T012 [BDD-GREEN] 讓 Test Scope 全綠（並使 T010 的 `[UNIT]` 轉綠）
-- [ ] T013 [BDD-REFACTOR] 在綠燈下整理 formatter 與 emission seam（含 *chrome* switch 的落點）
+- [X] T012 [BDD-GREEN] 讓 Test Scope 全綠（並使 T010 的 `[UNIT]` 轉綠）
+- [X] T013 [BDD-REFACTOR] 在綠燈下整理 formatter 與 emission seam（含 *chrome* switch 的落點）
 
 ## Phase 4B: Regression
 
@@ -187,7 +187,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`（chat、history、configuration、workspace、diagnostics、usage 全模組）
 
-- [ ] T014 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T014 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
   - 亦確認新的 non-chrome carriers：`diagnostics/version-and-setup-diagnostic.feature`（`--version`）與 `history/starting-a-fresh-session.feature`（prompt-less `--new`）皆斷言 the run shows no turn chrome。
   - **可偽性見證 (a)（rule／frame；非真空）**：暫時停發 the horizontal rule（或 the header）於 (A)/(B)，確認 `presenting-the-turn.feature` 的 `the turn opens with a horizontal rule` 失敗；觀察到失敗即還原。
