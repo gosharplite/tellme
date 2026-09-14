@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/domain/tools"
@@ -63,6 +64,10 @@ type AgentLoop struct {
 	MaxLoops    int
 	ToolTimeout time.Duration
 	Stderr      io.Writer
+	// Observer, when set, is notified of each waiting phase (round 019) so a
+	// presenter (the CLI-injected spinner) can label / clear / restore the
+	// indicator per phase (round-019 research Decision 7).
+	Observer agentport.LoopObserver
 }
 
 // Run performs one prompt run. It sends the conversation (the replayed prior
@@ -106,7 +111,9 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 		} else {
 			req.Messages = append(append(make([]llm.Message, 0, len(base)+len(turn)), base...), turn...)
 		}
+		a.notifyInferenceStart()
 		resp, err := a.Gateway.Complete(ctx, req)
+		a.notifyInferenceEnd()
 		if err != nil {
 			return AgentResult{Steps: steps, Calls: calls}, err
 		}
@@ -120,6 +127,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 
 		// The model requested tools: echo the assistant tool-call message, run
 		// each tool, and feed the results back — appended after the user prompt.
+		a.notifyToolsStart(toolNames(resp.ToolCalls))
 		turn = append(turn, llm.Message{Role: "assistant", ToolCalls: resp.ToolCalls})
 		for _, tc := range resp.ToolCalls {
 			if a.Registry == nil {
@@ -140,6 +148,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 			turn = append(turn, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})
 			steps = append(steps, history.Step{Tool: tc.Name, Arguments: tc.Arguments, Result: result, Signature: tc.Signature})
 		}
+		a.notifyToolsEnd()
 	}
 }
 
@@ -162,6 +171,34 @@ func ToolDefs(reg tools.Registry) []llm.ToolDef {
 	return defs
 }
 
+// notifyInferenceStart / notifyInferenceEnd / notifyToolsStart / notifyToolsEnd
+// forward the loop's waiting-phase transitions to the observer when one is set
+// (round 019). Keeping the nil guard here holds Run's cyclomatic complexity below
+// the cyclop gate (max 15).
+func (a *AgentLoop) notifyInferenceStart() {
+	if a.Observer != nil {
+		a.Observer.OnInferenceStart()
+	}
+}
+
+func (a *AgentLoop) notifyInferenceEnd() {
+	if a.Observer != nil {
+		a.Observer.OnInferenceEnd()
+	}
+}
+
+func (a *AgentLoop) notifyToolsStart(names []string) {
+	if a.Observer != nil {
+		a.Observer.OnToolsStart(names)
+	}
+}
+
+func (a *AgentLoop) notifyToolsEnd() {
+	if a.Observer != nil {
+		a.Observer.OnToolsEnd()
+	}
+}
+
 // logStep emits one discrete tool-loop log line to the diagnostic stream
 // (round-008 Decision 7): the tool name, its arguments, and its result. This is
 // NOT token streaming.
@@ -169,8 +206,24 @@ func (a *AgentLoop) logStep(tc llm.ToolCall, result string) {
 	if a.Stderr == nil {
 		return
 	}
+	if a.Observer != nil {
+		a.Observer.BeforeToolLog()
+	}
 	_, _ = fmt.Fprintf(a.Stderr, "[tool] %s arguments=%s result=%s\n",
 		tc.Name, oneLine(tc.Arguments), oneLine(truncate(result, 200)))
+	if a.Observer != nil {
+		a.Observer.AfterToolLog()
+	}
+}
+
+// toolNames extracts the requested tool names in call order, for the observer's
+// tool-phase label (round 019).
+func toolNames(calls []llm.ToolCall) []string {
+	names := make([]string, 0, len(calls))
+	for _, tc := range calls {
+		names = append(names, tc.Name)
+	}
+	return names
 }
 
 // BuildMessages replays the persisted prior turns into the conversation sent to

@@ -33,7 +33,7 @@
 
 **Goal**: 建立本輪測試層落點骨架（Zero Shared Edits）與產品碼落點，讓 Phase 3／Phase 4 不各自發明檔案或落點。只建立落點與載體，不寫行為。
 
-- [ ] T001 建立 10 個 stepdef 獨立檔骨架（10 新句；Zero Shared Edits）
+- [X] T001 建立 10 個 stepdef 獨立檔骨架（10 新句；Zero Shared Edits）
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（本輪 9 個新句）
     - `specs/truth/features/cli/dsl.md`（the root row）
@@ -51,7 +51,7 @@
     - `tests/e2e/steps/step_t012_chat_then_no_spinner.go`
   - 不做：不寫具體 arrange／斷言邏輯；不碰既有 step 檔。
 
-- [ ] T002 落點產品碼骨架與 `[UNIT]` 落點檔骨架
+- [X] T002 落點產品碼骨架與 `[UNIT]` 落點檔骨架
   - Read:
     - `specs/plans/019-turn-spinner/research.md` -> Decision 1, Decision 2, Decision 5, Decision 6, Decision 7, Decision 10
     - `specs/truth/techstack.md` -> CLI Application（Turn progress spinner (operator)；Terminal detection；Agent tool loop）
@@ -109,59 +109,59 @@
 
 ### BDD-RED（本輪新增句型；2 Given + 7 Then + 1 root Then）
 
-- [ ] T003 [P] [BDD-RED] `Given: the diagnostics are shown at a terminal`
+- [X] T003 [P] [BDD-RED] `Given: the diagnostics are shown at a terminal`
   - Read: `specs/truth/features/cli/dsl.md`（interface root）-> `the diagnostics are shown at a terminal`
   - Landing: `tests/e2e/steps/step_t003_given_watching_terminal.go`
   - 語意：把 `TELL_ME_FORCE_STDERR_TTY=1` 設進 subprocess 環境，使 tellme 的 **standard-error (`stderr`)** terminal probe 回報該 stream 為 terminal（round-019 seam）。
 
-- [ ] T004 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to read "{path_a}" and "{path_b}" and then answers with "{answer}"`
+- [X] T004 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to read "{path_a}" and "{path_b}" and then answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint asks tellme to read "{path_a}" and "{path_b}" and then answers with "{answer}"`
   - Landing: `tests/e2e/steps/step_t004_chat_given_two_tool_provider.go`
   - 語意：寫 config（選 `{provider}`、endpoint 指 fake）；script fake 回 **一個** response 帶 **兩個** `read_files` tool call（`{path_a}`、`{path_b}`），下一 request 回 final answer `{answer}`（one-round two-tool exchange）。
 
-- [ ] T005 [P] [BDD-RED] `Then: the run shows the progress spinner while it waits`
+- [X] T005 [P] [BDD-RED] `Then: the run shows the progress spinner while it waits`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the run shows the progress spinner while it waits`
   - Landing: `tests/e2e/steps/step_t005_chat_then_spinner_shown.go`
   - 語意：`stderr` 帶一行 spinner line — 一個 braille frame（`⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏`）後接 phase status 與 `(<n>s)` elapsed segment（容忍 `\r` redraw）；**不**在 `stdout`。
 
-- [ ] T006 [P] [BDD-RED] `Then: the progress spinner names the model it is waiting for`
+- [X] T006 [P] [BDD-RED] `Then: the progress spinner names the model it is waiting for`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the progress spinner names the model it is waiting for`
   - Landing: `tests/e2e/steps/step_t006_chat_then_names_model.go`
   - 語意：spinner line 的 status 為 `Thinking [<model>]...`，`<model>` = active provider 的 configured `MODEL` attribute。
 
-- [ ] T007 [P] [BDD-RED] `Then: the progress spinner shows how long it has waited`
+- [X] T007 [P] [BDD-RED] `Then: the progress spinner shows how long it has waited`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the progress spinner shows how long it has waited`
   - Landing: `tests/e2e/steps/step_t007_chat_then_shows_elapsed.go`
   - 語意：spinner line 帶 `(<n>s)` elapsed segment（whole seconds）。
 
-- [ ] T008 [P] [BDD-RED] `Then: the progress spinner names the tool it is running`
+- [X] T008 [P] [BDD-RED] `Then: the progress spinner names the tool it is running`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the progress spinner names the tool it is running`
   - Landing: `tests/e2e/steps/step_t008_chat_then_names_tool.go`
   - 語意：spinner line 的 status 為 single-tool 形式 `Executing [<tool>]...`，named tool = the run 正在執行的 tool。
 
-- [ ] T009 [P] [BDD-RED] `Then: the progress spinner names every tool it is running`
+- [X] T009 [P] [BDD-RED] `Then: the progress spinner names every tool it is running`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the progress spinner names every tool it is running`
   - Landing: `tests/e2e/steps/step_t009_chat_then_names_tools.go`
   - 語意：spinner line 的 status 為 several-tool 形式 `Executing tools [<a>, <b>]...`，命名 every tool（不得 collapse 成 single-tool 形式或漏一個）。
 
-- [ ] T010 [P] [BDD-RED] `Then: the progress spinner reports the machine's resource usage`
+- [X] T010 [P] [BDD-RED] `Then: the progress spinner reports the machine's resource usage`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the progress spinner reports the machine's resource usage`
   - Landing: `tests/e2e/steps/step_t010_chat_then_reports_resources.go`
   - 語意：spinner line 的 tool-execution status 另帶一個 resource segment — 一個 `CPU` 百分比與一個 `MEM` 百分比（各一位小數）；**不**在 model-phase spinner 出現。
 
-- [ ] T011 [P] [BDD-RED] `Then: the progress spinner no longer appears once the answer is written`
+- [X] T011 [P] [BDD-RED] `Then: the progress spinner no longer appears once the answer is written`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the progress spinner no longer appears once the answer is written`
   - Landing: `tests/e2e/steps/step_t011_chat_then_spinner_cleared.go`
   - 語意：**merged** capture 中，answer bytes **之後** 不再出現任何 braille frame（多帶 phase status）。依 round-010 merged-stream witness。
 
-- [ ] T012 [P] [BDD-RED] `Then: the run shows no progress spinner`
+- [X] T012 [P] [BDD-RED] `Then: the run shows no progress spinner`
   - Read: `specs/truth/features/cli/dsl.md`（interface root）-> `the run shows no progress spinner`
   - Landing: `tests/e2e/steps/step_t012_chat_then_no_spinner.go`
   - 語意：`stdout` 與 `stderr` 皆**不**帶 spinner frame。用於 non-terminal `stderr`、`-r`、`--version`、`-l`、prompt-less `--new`、`-i` submit path。
 
 ### UNIT（非 DSL 的單元斷言）
 
-- [ ] T013 [P] [UNIT] the spinner formatter + frame advancement
+- [X] T013 [P] [UNIT] the spinner formatter + frame advancement
   - Read:
     - `specs/plans/019-turn-spinner/research.md` -> Decision 1, Decision 2, Decision 3, Decision 4
     - `specs/truth/techstack.md` -> CLI Application（Turn progress spinner (operator)）
@@ -169,14 +169,14 @@
   - 撰寫：斷言 the spinner line 的文字（`{frame}{status} ({elapsed}s)`，label 為 ` Thinking [<model>]...`，model 空時省略 bracket）、the frame 隨每個 tick 前進（注入 clock/ticker，**無** `time.Sleep`）、the elapsed 為 whole seconds 且 in-place label update 不歸零；`Stop()`/`Clear()` 為同步（回傳時已無 in-flight frame、且 clear frame 已寫出），且 frame 更新與 `stderr` 寫入共用同一 I/O mutex（R1）。
   - 落點：`internal/ui/spinner_test.go`。
 
-- [ ] T014 [P] [UNIT] the machine-wide CPU/memory samplers + the resource segment
+- [X] T014 [P] [UNIT] the machine-wide CPU/memory samplers + the resource segment
   - Read:
     - `specs/plans/019-turn-spinner/research.md` -> Decision 5
     - `specs/truth/techstack.md` -> CLI Application（Turn progress spinner (operator)；System metrics provider (telemetry)）
   - 撰寫：以注入的 readings 驅動 machine-wide sampler parser（Linux `/proc/stat` host `cpu ` 線 + `/proc/meminfo` 的固定取樣；macOS `sysctl`/mach 的固定取樣）→ 機器 CPU 百分比（Δ of `Σcpu − idle`）與 MEM 百分比（各 `%.1f`），以及 the resource segment 的字串；darwin cgo/nocgo 以 build tag 隔離。
   - 落點：`internal/infrastructure/telemetry/system_metrics_test.go`。
 
-- [ ] T015 [P] [UNIT] the spinner gate resolution (forced stderr seam + `-r`)
+- [X] T015 [P] [UNIT] the spinner gate resolution (forced stderr seam + `-r`)
   - Read:
     - `specs/plans/019-turn-spinner/research.md` -> Decision 6
     - `specs/truth/techstack.md` -> CLI Terminal detection（the diagnostic-stream gate）
@@ -186,7 +186,7 @@
 
 ### Phase Review Gate
 
-- [ ] T016 subagent review (phase quality gate)
+- [X] T016 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/presenting-the-progress-spinner.feature`、`presenting-the-turn.feature`、`diagnostics/version-and-setup-diagnostic.feature`、`history/inspecting-the-session-history.feature`、`history/starting-a-fresh-session.feature`
     - `specs/truth/features/cli/chat/dsl.md`、`specs/truth/features/cli/dsl.md`
@@ -217,8 +217,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/presenting-the-progress-spinner.feature`
 
-- [ ] T017 [BDD-GREEN] 讓 Test Scope 全綠（並使 T013–T015 的 `[UNIT]` 轉綠）
-- [ ] T018 [BDD-REFACTOR] 在綠燈下整理 the presenter／the sampler／the gate seam 與 the lifecycle 落點
+- [X] T017 [BDD-GREEN] 讓 Test Scope 全綠（並使 T013–T015 的 `[UNIT]` 轉綠）
+- [X] T018 [BDD-REFACTOR] 在綠燈下整理 the presenter／the sampler／the gate seam 與 the lifecycle 落點
 
 ## Phase 4B: MODIFY Feature Files - the boundary carriers
 
@@ -243,8 +243,8 @@
 - `specs/truth/features/cli/history/inspecting-the-session-history.feature`
 - `specs/truth/features/cli/history/starting-a-fresh-session.feature`
 
-- [ ] T019 [BDD-GREEN] 讓本 phase 的 Test Scope 全綠
-- [ ] T020 [BDD-REFACTOR] 在綠燈下整理 gate／surface／lifecycle 落點
+- [X] T019 [BDD-GREEN] 讓本 phase 的 Test Scope 全綠
+- [X] T020 [BDD-REFACTOR] 在綠燈下整理 gate／surface／lifecycle 落點
 
 ## Phase 4C: Regression
 
@@ -260,7 +260,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`
 
-- [ ] T021 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T021 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
   - 亦確認新的 no-spinner carriers：`diagnostics/version-and-setup-diagnostic.feature`（`--version`）、`history/inspecting-the-session-history.feature`（`-l`）、`history/starting-a-fresh-session.feature`（prompt-less `--new`）、`chat/presenting-the-turn.feature`（`-i`）、以及 `chat/reporting-a-failed-provider-request.feature`（failed turn）皆斷言 `the run shows no progress spinner`。
   - **可偽性見證 (a)（spinner presence；非真空）**：暫時停畫 the spinner，確認 `presenting-the-progress-spinner.feature` 的 `the run shows the progress spinner while it waits` 失敗；觀察到失敗即還原。
