@@ -105,7 +105,7 @@ CLI end's prompt-turn output and adds one piece of persisted local state.
   - `CLI end (operator terminal interface)`
   - `Session usage log (per-mode API-call usage)`
 - Analysis focus:
-  - **CLI end** → handoff to contract owner **`/axb-dsl-refine`**: pin the post-turn status-line contract as mechanically assertable interface Rules — the metrics line (M/H/C/Th, `Th` always), the Ready line (three costs + session totals + hit-rate), the presence/suppression rule (emit on every prompt-bearing turn unless the provider reports no usage), and the boundary (`stderr` only, `stdout` byte-exact, no new class phrase) — while `$<call> < $<turn> ≤ $<session>` holds.
+  - **CLI end** → handoff to contract owner **`/axb-dsl-refine`**: pin the post-turn status-line contract as mechanically assertable interface Rules — the metrics line (M/H/C/Th, `Th` always), the Ready line (three costs + session totals + hit-rate), the presence/suppression rule (emit on every prompt-bearing turn unless the provider reports no usage), and the boundary (`stderr` only, `stdout` byte-exact, no new class phrase) — while `$<call> ≤ $<turn> ≤ $<session>` holds (strict `$<call> < $<turn>` on a tool-using turn).
   - **Session usage log** → **`/axb-data-plan`**: model the per-call usage record, its per-mode append lifecycle, the session-total read, and the `--new` rotation (reusing the existing session-directory layout).
   - **API** → **`NOOP`**; **UI** → **skipped**.
 - Scheduling rationale: the CLI contract and the usage-log data model have **no dependency on each other's conclusions** (the log is a self-contained per-mode file; the lines are its reader), so they are analysed together in one wave.

@@ -154,4 +154,5 @@ Feature: Presenting the post-turn status
         | 10     | 6      | 3          | 2        |
       When the operator pipes "summarise the notes" into tellme
       Then the post-turn status trails the answer
+      And tellme prints the provider's answer "all good"
       And tellme exits successfully

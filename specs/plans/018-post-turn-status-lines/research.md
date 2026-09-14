@@ -2,7 +2,7 @@
 
 ## Decision 1: Capture cached and reasoning tokens from the provider usage block
 
-- **Decision**: Widen `llm.Usage` with `CachedTokens` and `ThinkingTokens` and parse them from the OpenAI-compatible usage details (`prompt_tokens_details.cached_tokens`, `completion_tokens_details.reasoning_tokens`); the metrics line's `M` is derived as `prompt − cached`.
+- **Decision**: Widen `llm.Usage` with `CachedTokens` and `ThinkingTokens` and parse them from the OpenAI-compatible usage details (`prompt_tokens_details.cached_tokens`, `completion_tokens_details.reasoning_tokens`); the metrics line's `M` is derived as `prompt − cached`. The transport exposes **disjoint, additive** counters — `Th = completion_tokens_details.reasoning_tokens` and `C = completion_tokens − reasoning_tokens` (the OpenAI-compatible wire `completion_tokens` **includes** reasoning) — so `C`/`Th` never double-count and `O = C + Th = completion_tokens`.
 - **Rationale**: the metrics line's `H`/`Th` and the cache-hit rate need the provider's cached/reasoning counts, which the round-009 `Usage` (prompt/completion/total only) does not carry; the reference's `tokens.log` records exactly these fields.
 - **Alternatives considered**:
   - Estimate cached/thinking locally — impossible: they are provider-side facts.
@@ -18,7 +18,7 @@
 
 ## Decision 3: Per-call cost formula and the three-cost semantics
 
-- **Decision**: a call's cost = `(miss·MISS + hit·HIT + (completion + thinking)·COMP) / 1,000,000` USD; `$#1` = the last-returned call; `$#2` = the summed cost of every call in the turn (the prompt completion plus each tool-loop call); `$#3` = the session's cumulative cost.
+- **Decision**: a call's cost = `(miss·MISS + hit·HIT + (completion + thinking)·COMP) / 1,000,000` USD; `$#1` = the last-returned call; `$#2` = the summed cost of every call in the turn (the prompt completion plus each tool-loop call); `$#3` = the session's cumulative cost. `completion` and `thinking` are the **disjoint** counters from D1 (reasoning billed at the `COMP` rate, matching the reference's separate `response_tokens`/`thinking_tokens`).
 - **Rationale**: matches the reference's cached/miss/output billing and the operator's three-slot definition; reasoning is billed as output (the reference convention).
 - **Alternatives considered**:
   - Bill reasoning at the MISS rate — rejected: reasoning is output-side.

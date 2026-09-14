@@ -21,7 +21,7 @@
 
 - **[LINE 2 = metrics of the call that just returned]** — `[HH:MM:SS] [<provider>] M: <miss> H: <cached> C: <completion> Th: <thinking>`（`M = prompt − cached`；`H = cached`；`C = completion`；`Th = thinking`），來源是 **the API call that just returned**（the last completion in a tool loop）。`Th:` **always** 呈現（含 `Th: 0`）。參考/見 T004/T009/T010/T012（research D1/D4/D6）。
 - **[LINE 3 = Ready summary]** — `╰─⠿ Ready ($<lastCall> $<turn> $<session> - M: <sM> H: <sH> O: <sO> - <hit%>%)`（costs `$%.4f`、hit `%.1f%%`）。`O = C + Th`；`M/H/O` 為 **session-cumulative**；hit% = `H/(M+H)`。參考/見 T011–T016（research D3/D6/D7）。
-- **[THREE COSTS]** — `$#1` = the just-returned call；`$#2` = the **whole turn**（prompt completion + each tool-loop call）；`$#3` = the **session**。`$#1 ≤ $#2 ≤ $#3`。見 T011/T012/T013（research D3/D4）。
+- **[THREE COSTS]** — `$#1` = the just-returned call；`$#2` = the **whole turn**（prompt completion + each tool-loop call）；`$#3` = the **session**。`$#1 ≤ $#2 ≤ $#3`（**tool turn 為嚴格 `$#1 < $#2`**）。見 T011/T012/T013（research D3/D4）。
 - **[PRICING = CONFIG-ONLY]** — 只有 config `MODELS: { <model>: { PRICING: { HIT, MISS, COMP } } }`；**沒有 built-in rates**；un-priced model → `$0.0000`（`$` group 仍呈現）。見 T005/T016（research D2）。
 - **[STORAGE = per-mode `tokens.log`]** — 每次 API call 後 append 一筆 JSON record（`{timestamp, provider, model, cached_tokens, prompt_tokens, response_tokens, total_tokens, thinking_tokens, cost}`）；session 總和讀整檔；`--new` rotate/archive。見 T006/T014/T015/T023（research D5/D7）。
 - **[PRESENCE]** — 兩行皆寫 `stderr`；出現在 **every prompt-bearing turn**（positional/piped、round-012 reader、`-i` submit）；**只在 the provider reports no usage 時抑制**；`stdout` byte-exact；plain text（no ANSI）；class-phrase 詞彙維持 **11**。見 T008/T018/T025。
@@ -126,7 +126,7 @@
 - [ ] T004 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to read "{path}" and then answers with "{answer}" and reports the token usage:`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `… asks tellme to read "{path}" and then answers with "{answer}" and reports the token usage:`
   - Landing: `tests/e2e/steps/step_t004_chat_given_tool_provider_reports_usage.go`
-  - 語意：script fake 先回 `read_files` tool-call（`{path}`），再回 final answer `{answer}` 並帶 usage block（同 T003）。
+  - 語意：script fake 先回 `read_files` tool-call（`{path}`）**並帶** usage block，再回 final answer `{answer}` 並帶同一 usage block（同 T003）；**兩個** response 都帶 usage，使該 turn 累積兩筆 usage-bearing call，故 `$#1 < $#2`。
 
 - [ ] T005 [P] [BDD-RED] `Given: the configuration prices the active model with hit "{hit}", miss "{miss}", and completion "{comp}" per million tokens`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the configuration prices the active model with hit "{hit}", miss "{miss}", and completion "{comp}" per million tokens`

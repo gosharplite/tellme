@@ -46,7 +46,7 @@
 ## Issues & Corrections
 
 - The PM-level decisions were settled by the five-question operator interview (lines, fields, three `$` semantics, line-2 source, `tokens.log` storage, presence) plus one pricing clarify question (config `MODELS` only; un-priced → `$0.0000`). The clarify budget is considered spent for this session.
-- Remaining open details are **technical**, not requirement-level: the `tokens.log` lifecycle on `--new` (A4) and the exact config keys / env name (A8). Both are disclosed and **non-blocking** — they are `/axb-data-plan` and `/axb-technical-research` determinations.
+- The two former `NEEDS CLARIFICATION` items are now **resolved** by the RD half: **A4** → `--new` archives/rotates `tokens.log` into `tokens.archive.jsonl`; **A8** → config-only `MODELS` (`{HIT, MISS, COMP}`), **not** env-overrideable.
 
 ## Ready Determination
 

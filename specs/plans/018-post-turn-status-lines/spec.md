@@ -76,7 +76,7 @@ As an operator, I want a closing `╰─⠿ Ready` line that shows the cost of t
 - **FR-005**: After the metrics line, the system MUST write exactly one summary line to the diagnostic stream: `╰─⠿ Ready ($<call> $<turn> $<session> - M: <sM> H: <sH> O: <sO> - <hit%>%)`.
 - **FR-006**: `$<call>` MUST be the cost of the API call that just returned; `$<turn>` the summed cost of every API call in the current turn (the prompt completion and each tool-loop call); `$<session>` the cumulative cost of the current session.
 - **FR-007**: `M/H/O` MUST be the session-cumulative miss / cached / output token totals (`O = C + Th`), and `<hit%>` the session cache-hit rate `H / (M + H)` formatted `%.1f%%`.
-- **FR-008**: Costs MUST be computed from a **config-supplied** pricing table (`MODELS: { <model>: { PRICING: { HIT, MISS, COMP } } }`, env-over-file); the system MUST NOT ship built-in pricing rates.
+- **FR-008**: Costs MUST be computed from a **config-supplied** pricing table (`MODELS: { <model>: { PRICING: { HIT, MISS, COMP } } }`, config-only — **not** env-overrideable); the system MUST NOT ship built-in pricing rates.
 - **FR-009**: When the active model has no pricing entry, the `$` figures MUST render `$0.0000` (the `$` group MUST still render).
 - **FR-010**: Per-API-call usage (tokens + cost) MUST be persisted to a per-mode `tokens.log` after each call; the session total reads it; `--new` MUST reset the session's usage totals.
 
@@ -141,7 +141,7 @@ As an operator, I want the post-turn lines limited to the prompt surfaces and of
 ### Key Entities *(include if feature involves data)*
 
 - **Usage record** (`output/<mode>/tokens.log`): one JSON line per API call — timestamp, provider, model, cached / prompt / response / thinking / total tokens, and the computed cost.
-- **Pricing table** (`MODELS` config): per-model `HIT` / `MISS` / `COMP` rates (USD per million tokens), env-over-file; no built-in defaults.
+- **Pricing table** (`MODELS` config): per-model `HIT` / `MISS` / `COMP` rates (USD per million tokens), config-only (not env-overrideable); no built-in defaults.
 - **Turn metrics line**: the per-call `[HH:MM:SS] [<provider>] M: … H: … C: … Th: …` line.
 - **Session summary (Ready) line**: the `╰─⠿ Ready (…)` line — three costs, the session token totals, and the cache-hit rate.
 
@@ -160,10 +160,10 @@ As an operator, I want the post-turn lines limited to the prompt surfaces and of
 - **A1 (reference)**: the parity target is `tell-me-go` `renderer_metrics.go` (metrics line) + `renderer.go` (`formatFinalCost` / `renderFinalSummary`), with the two locked deltas (line 2 drops the `($cost)` and `[timing]` segments; line 3 groups with ` - ` and puts `O` before the `%`).
 - **A2 (surfaces)**: lines 2–3 share the round-009 payload line's surfaces — every prompt-bearing turn (positional / piped / the round-012 reader / the `-i` submit path); `stderr`; plain text (no ANSI).
 - **A3 (pricing source)**: config `MODELS` override only, **no built-in defaults** (operator decision); an un-priced model renders `$0.0000`, group rendered.
-- **A4 (storage)**: per-call usage lives in `output/<mode>/tokens.log` (the reference mechanism); `--new` resets the session totals; a resumed session accumulates. [NEEDS CLARIFICATION: whether `--new` archives/rotates `tokens.log` exactly as it archives `history.jsonl` — an `/axb-data-plan` determination]
+- **A4 (storage)**: per-call usage lives in `output/<mode>/tokens.log` (the reference mechanism); `--new` archives/rotates it into `tokens.archive.jsonl` exactly as it archives `history.jsonl`, so the session totals reset; a resumed session accumulates.
 - **A5 (Th)**: always rendered, including 0 (operator decision; a deviation from the reference).
 - **A6 (fallbacks)**: when the provider omits cached/thinking tokens, `H = 0` (so `M = prompt`) and `Th: 0`.
 - **A7 (derived)**: `O = C + Th`; hit-rate = `H / (M + H)`; costs `$%.4f`; token counts are integers.
-- **A8 (config shape)**: `MODELS: { <model>: { PRICING: { HIT, MISS, COMP } } }`, env-over-file; the exact keys / env name are a `/axb-technical-research` determination. [NEEDS CLARIFICATION: exact config key names / env override variable]
+- **A8 (config shape)**: `MODELS: { <model>: { PRICING: { HIT, MISS, COMP } } }` — **config-only** (the nested table is **not** env-overrideable; the standing `TELL_ME_*` precedence applies to scalar keys only), resolved by `/axb-technical-research`.
 - **A9 (platform / verification)**: POSIX-only; no new dependency; verification is hermetic (injected clock + streams; no pty).
 - **A10 (format stability)**: the `$` group is always rendered (never omitted), even at `$0.0000`.
