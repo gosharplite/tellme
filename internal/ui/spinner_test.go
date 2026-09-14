@@ -9,7 +9,7 @@ import (
 
 // Round-019 spinner unit tests (T013): the label/elapsed/resource formatters, the
 // frame advancement over injected ticks (no time.Sleep — a signalling writer plus
-// a bounded select), and the synchronous clear.
+// a bounded select), the turn-scoped elapsed counter, and the synchronous clear.
 
 func TestSpinnerLabels(t *testing.T) {
 	tests := []struct {
@@ -83,12 +83,12 @@ func awaitWrite(t *testing.T, w *signalWriter) {
 
 func TestSpinnerAdvancesFramesAndClearsSynchronously(t *testing.T) {
 	w := newSignalWriter()
-	s := NewSpinner(w, "m", nil)
+	fixed := time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC)
+	s := NewSpinner(w, "m", fixed, nil)
 
 	tick := make(chan time.Time, 8)
 	stopped := false
 	s.newTicker = func() (<-chan time.Time, func()) { return tick, func() { stopped = true } }
-	fixed := time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC)
 	s.now = func() time.Time { return fixed }
 
 	// The first frame is drawn synchronously on start.
@@ -125,10 +125,49 @@ func TestSpinnerAdvancesFramesAndClearsSynchronously(t *testing.T) {
 
 func TestSpinnerStopIdempotentAndNoopWhenUnstarted(t *testing.T) {
 	w := newSignalWriter()
-	s := NewSpinner(w, "m", nil)
-	s.now = func() time.Time { return time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC) }
+	s := NewSpinner(w, "m", time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC), nil)
 	s.Stop() // never started → no write
 	if w.String() != "" {
 		t.Errorf("Stop on an unstarted spinner wrote %q, want nothing", w.String())
 	}
+}
+
+// TestSpinnerElapsedIsTurnScoped pins round-019 research D4: the elapsed counter
+// counts from the turn's prompt-capture epoch and is NEVER reset — a phase
+// relabel and a clear→resume around interleaved output both keep counting from
+// that same epoch.
+func TestSpinnerElapsedIsTurnScoped(t *testing.T) {
+	w := newSignalWriter()
+	base := time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC)
+	nowV := base
+	s := NewSpinner(w, "m", base, nil)
+	s.newTicker = func() (<-chan time.Time, func()) { return make(chan time.Time), func() {} }
+	s.now = func() time.Time { return nowV }
+
+	s.OnInferenceStart() // (0s)
+	awaitWrite(t, w)
+	if !strings.Contains(w.String(), "Thinking [m]... (0s)") {
+		t.Fatalf("first frame = %q, want (0s)", w.String())
+	}
+
+	// A relabel while waiting preserves the turn-scoped counter (5s).
+	nowV = base.Add(5 * time.Second)
+	s.OnToolsStart([]string{"read_files"})
+	awaitWrite(t, w)
+	if !strings.Contains(w.String(), "Executing [read_files]... (5s)") {
+		t.Fatalf("relabel = %q, want the turn-scoped (5s)", w.String())
+	}
+
+	// Interleaved output: clear, then resume. The counter continues from the turn
+	// epoch (7s), NOT from 0 — this is the pin for research D4.
+	nowV = base.Add(6 * time.Second)
+	s.BeforeToolLog()
+	awaitWrite(t, w) // the clear write
+	nowV = base.Add(7 * time.Second)
+	s.AfterToolLog()
+	awaitWrite(t, w)
+	if !strings.Contains(w.String(), "Executing [read_files]... (7s)") {
+		t.Fatalf("resume = %q, want the turn-scoped (7s), not a reset to (0s)", w.String())
+	}
+	s.Stop()
 }

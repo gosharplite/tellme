@@ -26,10 +26,10 @@
 
 ## Decision 4: The elapsed counter
 
-- **Decision**: the line renders `({n}s)` with `n` = whole seconds since the current spinner started; when a phase transition updates only the label in place, the counter is **not** reset; a fresh waiting interval after interleaved output restarts it.
-- **Rationale**: matches the reference (a per-spinner `startTime`; `UpdateSpinnerStatus` preserves it); keeps a single wait's counter monotonic while the phase changes.
+- **Decision**: the line renders `({n}s)` with `n` = whole seconds since the turn's **prompt capture** — the elapsed is **turn-scoped** and is **never** reset: an in-place phase relabel and a clear→resume around interleaved output both keep counting from the same capture epoch. The CLI stamps the epoch at prompt capture and hands it to the presenter.
+- **Rationale**: the round's headline intent is "from the moment my input is captured until I regain terminal control" (spec US1); the reference likewise keeps a single per-turn `startTime` (`UpdateSpinnerStatus` preserves it), so turn-scoping is the parity-faithful reading.
 - **Alternatives considered**:
-  - Reset on every label change — a single wait would look like it restarts, which reads as a hang reset.
+  - Per-interval reset (restart after each interleaved wait) — rejected: it reads as a hang reset within one operator-visible turn and diverges from US1/the reference.
   - Milliseconds — noise on a terminal line.
 
 ## Decision 5: Host CPU / memory sampling (machine-wide, dependency-free, POSIX-only)

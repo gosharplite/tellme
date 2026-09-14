@@ -600,6 +600,9 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// payload budget. Diagnostic only, on stderr.
 	reg := newToolRegistry(store, gw)
 	assembled := append(append(make([]llm.Message, 0, len(prior)+1), agent.BuildMessages(prior)...), llm.Message{Role: "user", Content: prompt})
+	// Round-019 elapsed epoch: the spinner's turn-scoped timer starts at prompt
+	// capture — the moment the input-capture acknowledgement fires (research D4).
+	turnStart := env.now()
 	// Round-017 turn chrome: on surfaces (A)/(B) the turn opens with the
 	// input-capture acknowledgement and the rule/header frame, wrapping the
 	// pre-flight payload line. It is false for the `-i` submit path and the
@@ -627,7 +630,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// Round 019 — the live progress spinner: a diagnostic-stream-only indicator
 	// that labels / clears / restores per waiting phase. It is injected into the
 	// loop as the observer; the CLI owns its lifecycle (round-019 research D7).
-	sp := newTurnSpinner(opts, env, res.Provider.Model)
+	sp := newTurnSpinner(opts, env, res.Provider.Model, turnStart)
 	if sp != nil {
 		loop.Observer = sp
 		defer sp.Stop() // panic-safe residue guard (idempotent)
@@ -782,12 +785,13 @@ func spinnerGate(opts turnOptions, stderrIsTerminal bool) bool {
 
 // newTurnSpinner builds the round-019 turn spinner when the gate permits, else
 // nil. The model label comes from the resolved provider's configured MODEL
-// (reference parity — the configured MODEL attribute, not the registry key).
-func newTurnSpinner(opts turnOptions, env runtimeEnv, model string) *ui.Spinner {
+// (reference parity — the configured MODEL attribute, not the registry key); the
+// elapsed counts from epoch (the turn's prompt-capture time — turn-scoped).
+func newTurnSpinner(opts turnOptions, env runtimeEnv, model string, epoch time.Time) *ui.Spinner {
 	if !spinnerGate(opts, env.stderrIsTerminal()) {
 		return nil
 	}
-	return ui.NewSpinner(env.stderr, model, infratelemetry.NewSystemMetricsProvider())
+	return ui.NewSpinner(env.stderr, model, epoch, infratelemetry.NewSystemMetricsProvider())
 }
 
 // renderHistoryList lists the last N persisted messages (round-007 FR-007..FR-009)

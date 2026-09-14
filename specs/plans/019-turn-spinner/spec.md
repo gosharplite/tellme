@@ -135,6 +135,6 @@ As an operator, I want the spinner limited to the interactive terminal surfaces 
 - **A5 (gate)**: drawn only when the **`stderr`** is a terminal and `-r` is off — mirroring the reference's `IsTerminalContext()` (which reads `ui.stderr`), driven in E2E by a `TELL_ME_FORCE_STDERR_TTY` seam (mirroring the round-012 stdin seam). This does **not** wire a standard-output probe; round-006 / PR #16 **Obs 1** stays **OPEN**.
 - **A6 (surfaces)**: positional, piped, and the round-012 reader; **not** the `-i` TUI; **not** the non-prompt paths.
 - **A7 (streams)**: `stderr` only; `stdout` byte-exact; plain text (no ANSI).
-- **A8 (elapsed)**: whole seconds for the current waiting interval; a fresh interval after interleaved output restarts the counter. The exact reset behaviour across a phase transition is pinned by `/axb-technical-research` (the reference updates the status in place within a turn).
+- **A8 (elapsed)**: the elapsed is **turn-scoped** — whole seconds since the turn's prompt capture, never reset across a phase transition or an interleaved wait. The epoch is stamped at prompt capture and pinned by `/axb-technical-research` (research D4).
 - **A9 (platform / verification)**: POSIX-only (Linux/macOS); no new third-party dependency; verification is hermetic (injected clock + streams; no pty).
 - **A10 (scope-bound)**: the round closes the deferred standard-output terminal probe (Obs 1) but changes no other behaviour; the class-phrase vocabulary stays unchanged.

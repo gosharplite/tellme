@@ -18,6 +18,10 @@ import (
 // hand-written (no dependency) and its frame updates share one I/O mutex, so
 // Stop()/Clear() are synchronous and no in-flight frame survives a clear
 // (round-019 research Decisions 1, 2, 4, 10).
+//
+// The elapsed counter is TURN-scoped (research D4): it counts from the turn's
+// prompt-capture epoch and is NEVER reset — an in-place relabel, or a clear +
+// resume around interleaved output, keeps counting from that same epoch.
 
 // SpinnerFrames is the reference's braille frame set.
 var SpinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
@@ -75,6 +79,10 @@ type Spinner struct {
 	model   string
 	metrics metrics.SystemMetricsProvider
 
+	// epoch is the turn's prompt-capture time: the elapsed counter measures
+	// now − epoch for the WHOLE turn and is never reset (research D4).
+	epoch time.Time
+
 	// now and newTicker are the injected time seams (round-019 research D8); a
 	// nil newTicker falls back to the real ~200 ms ticker.
 	now       func() time.Time
@@ -85,19 +93,20 @@ type Spinner struct {
 	toolPhase  bool
 	frameIdx   int
 	status     string
-	start      time.Time
 	stopCh     chan struct{}
 	doneCh     chan struct{}
 	stopTicker func()
 }
 
-// NewSpinner builds a spinner writing to w, labelling the model, and sampling
-// machine resources from m (nil disables the resource segment).
-func NewSpinner(w io.Writer, model string, m metrics.SystemMetricsProvider) *Spinner {
+// NewSpinner builds a spinner writing to w, labelling the model, counting the
+// elapsed from epoch (the turn's prompt-capture time), and sampling machine
+// resources from m (nil disables the resource segment).
+func NewSpinner(w io.Writer, model string, epoch time.Time, m metrics.SystemMetricsProvider) *Spinner {
 	return &Spinner{
 		w:       w,
 		model:   model,
 		metrics: m,
+		epoch:   epoch,
 		now:     time.Now,
 		newTicker: func() (<-chan time.Time, func()) {
 			t := time.NewTicker(SpinnerInterval)
@@ -108,8 +117,8 @@ func NewSpinner(w io.Writer, model string, m metrics.SystemMetricsProvider) *Spi
 
 // OnInferenceStart starts (or relabels) the model-phase indicator. The first
 // frame is drawn synchronously; an in-place relabel preserves the elapsed counter
-// (round-019 research D4).
-func (s *Spinner) OnInferenceStart() { s.activate(ThinkingLabel(s.model), false, false) }
+// (which is turn-scoped — research D4).
+func (s *Spinner) OnInferenceStart() { s.activate(ThinkingLabel(s.model), false) }
 
 // OnInferenceEnd leaves the indicator running until the next phase or the final
 // clear (the CLI calls Stop before any interleaved write).
@@ -118,7 +127,7 @@ func (s *Spinner) OnInferenceEnd() {}
 // OnToolsStart starts (or relabels) the tool-phase indicator, which also reports
 // the machine's resource usage.
 func (s *Spinner) OnToolsStart(names []string) {
-	s.activate(ExecutingToolsLabel(names), false, true)
+	s.activate(ExecutingToolsLabel(names), true)
 }
 
 // OnToolsEnd leaves the indicator running until the next phase.
@@ -127,31 +136,26 @@ func (s *Spinner) OnToolsEnd() {}
 // BeforeToolLog yields the line to a tool-loop log write (a synchronous clear).
 func (s *Spinner) BeforeToolLog() { s.deactivate() }
 
-// AfterToolLog restores the indicator after a tool-loop log write, restarting the
-// elapsed counter (a fresh waiting interval — round-019 research D4).
+// AfterToolLog restores the indicator after a tool-loop log write. The elapsed
+// counter is turn-scoped, so it continues from the turn epoch (it does NOT reset
+// — research D4).
 func (s *Spinner) AfterToolLog() { s.resume() }
 
 // Stop synchronously clears the indicator and stops its redraw. It is idempotent.
 func (s *Spinner) Stop() { s.deactivate() }
 
 // activate starts the redraw (drawing the first frame synchronously) or relabels
-// a running indicator. restart resets the elapsed counter.
-func (s *Spinner) activate(status string, restart, toolPhase bool) {
+// a running indicator. The elapsed epoch is turn-scoped and never reset.
+func (s *Spinner) activate(status string, toolPhase bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.toolPhase = toolPhase
+	s.status = status
 	if s.running {
-		s.status = status
-		if restart {
-			s.start = s.now()
-			s.frameIdx = 0
-		}
 		s.renderLocked()
 		return
 	}
 	s.running = true
-	s.status = status
-	s.start = s.now()
 	s.frameIdx = 0
 	s.stopCh = make(chan struct{})
 	s.doneCh = make(chan struct{})
@@ -161,7 +165,8 @@ func (s *Spinner) activate(status string, restart, toolPhase bool) {
 	go s.loop(tick, s.stopCh, s.doneCh)
 }
 
-// resume restores the indicator after interleaved output (a fresh interval).
+// resume restores the indicator after interleaved output. The turn-scoped epoch
+// is kept, so the counter continues rather than restarting.
 func (s *Spinner) resume() {
 	s.mu.Lock()
 	status, toolPhase := s.status, s.toolPhase
@@ -169,7 +174,7 @@ func (s *Spinner) resume() {
 	if status == "" {
 		return
 	}
-	s.activate(status, true, toolPhase)
+	s.activate(status, toolPhase)
 }
 
 // deactivate stops the redraw goroutine, waits for it to exit, and writes the
@@ -219,13 +224,14 @@ func (s *Spinner) loop(tick <-chan time.Time, stop, done chan struct{}) {
 	}
 }
 
-// renderLocked writes one redrawn frame (the mutex must be held).
+// renderLocked writes one redrawn frame (the mutex must be held). The elapsed is
+// measured from the turn epoch (turn-scoped — research D4).
 func (s *Spinner) renderLocked() {
 	if s.w == nil {
 		return
 	}
 	frame := SpinnerFrames[s.frameIdx%len(SpinnerFrames)]
-	elapsed := int(s.now().Sub(s.start) / time.Second)
+	elapsed := int(s.now().Sub(s.epoch) / time.Second)
 	if elapsed < 0 {
 		elapsed = 0
 	}
