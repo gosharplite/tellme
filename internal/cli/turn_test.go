@@ -182,7 +182,7 @@ func TestParseFlagsHistorySurfaces(t *testing.T) {
 func TestRunTurn_PostTurnStatusFollowsAnswer(t *testing.T) {
 	var buf bytes.Buffer
 	fg := &fakeGateway{text: "ANSWER", usage: llm.Usage{Reported: true, PromptTokens: 42}}
-	res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}
+	res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Workspace: t.TempDir(), Provider: config.Provider{Model: "deepseek-v4-flash"}}
 	e := runtimeEnv{stdout: &buf, stderr: &buf, renderer: &stubRenderer{out: "ANSWER"},
 		clock: func() time.Time { return time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC) }}
 	if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, e, factoryReturning(fg, nil)); code != Success {

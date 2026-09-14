@@ -1,7 +1,7 @@
 Project "tellme_local_state" {
   database_type: "JSON Lines (append-only local files)"
   Note: '''
-  The persisted local-state model for tellme. Two artifacts share this model: (1) the per-mode
+  The persisted local-state model for tellme. Three artifacts share this model: (1) the per-mode
   session-history store (rounds 007–008, 014) and (2) the shared global prompt log (round 015).
   The session-history store: one conversation is a sequence of completed turns, stored as append-only
   JSON Lines under the per-mode session workspace ($TELL_ME_HOME/output/<mode>/). The active file is
@@ -15,6 +15,9 @@ Project "tellme_local_state" {
   The global prompt log (round 015): the shared, append-only prompt log at the `output/` root
   ($TELL_ME_HOME/output/global_prompts.jsonl), shared across modes/personas with tell-me-go, written
   only under `-i`, and read newest-first + deduplicated to seed interactive suggestions.
+  The per-mode API-call usage log (round 018): one JSON record per provider call at
+  $TELL_ME_HOME/output/<mode>/tokens.log, appended after every call in a turn and summed to give the
+  session's token totals + cost for the post-turn status lines; `--new` archives/rotates it.
   Neither artifact is a relational database — this DBML pins the record shapes and lifecycles so the CLI
   contract, the interface feature truth, and the implementation share a single model.
   '''
@@ -63,6 +66,26 @@ Table prompt_log_entry {
   }
 
   Note: 'One recorded operator prompt in the shared, append-only global prompt log (round 015) — one JSON object per line, `{"timestamp":"<RFC3339>","prompt":"<text>"}` (both fields string). The file lives at the `output/` ROOT of the runtime home (`$TELL_ME_HOME/output/global_prompts.jsonl`) — shared across modes/personas with tell-me-go (not `output/<mode>/`), so lines must round-trip byte-for-byte with that tool. Written ONLY for an `-i` interactive submission; a non-`-i` run (positional/piped/non-interactive) writes nothing. The write is append-only (`O_APPEND|O_CREATE`) and must never truncate or rewrite lines another writer added; no cross-process `flock` is taken. Reads scan backwards newest-first, deduplicating by `prompt` text and bounded by the interactive suggestion cap. A best-effort async compaction (performed inside the append lock, optimistic size-checked) rewrites the file to keep the newest ≤1200 unique prompts once it grows past ≈150 KiB. Distinct from the per-session `history_entry`/`history_step` store — this log is prompt-only and not session-scoped.'
+}
+
+Table usage_record {
+  location history_location
+  position int
+  timestamp varchar
+  provider varchar
+  model varchar
+  cached_tokens int
+  prompt_tokens int
+  response_tokens int
+  thinking_tokens int
+  total_tokens int
+  cost decimal
+
+  indexes {
+    (location, position) [pk]
+  }
+
+  Note: 'One provider call''s recorded usage in the per-mode API-call usage log (round 018) — a single JSON object per line, `{"timestamp","provider","model","cached_tokens","prompt_tokens","response_tokens","total_tokens","thinking_tokens","cost"}`, appended to `$TELL_ME_HOME/output/<mode>/tokens.log` (the same per-mode workspace as `history.jsonl`). Append-only and ordered: `position` is the 1-based line ordinal (the record identity — no id is stored) and row order is call order. Written after EVERY provider call in a turn — the prompt completion and each tool-loop call — so the just-returned call is the last line. `cached_tokens` and `thinking_tokens` are the provider-reported cache-hit and reasoning counts (0 when the provider omits them); `prompt_tokens` INCLUDES the cached portion (so miss = prompt − cached); `total_tokens = prompt + response + thinking`; `cost` is the call cost computed from the config `MODELS` pricing table (0 when the model is un-priced). The session summary (`╰─⠿ Ready`, emitted on `stderr`) sums the whole file — session miss/cached/output token totals, session cost, and the cache-hit rate `cached/(miss+cached)`; the metrics line reports the last line. `--new` moves active records to `archived` (the archived file `tokens.archive.jsonl`, alongside `history.archive.jsonl`), so a fresh session starts with an empty active log. (Forward note: the per-mode directory now rotates two files — `history.jsonl` and `tokens.log` — with no cross-file atomicity and no `flock`; acceptable single-process, revisited if concurrent writers arrive.) Distinct from `history_entry`/`history_step` (the conversation) and `prompt_log_entry` (the shared prompt log). The log is a local audit/roll-up only — it never feeds the request payload. A companion `tokens.summary.json` in the same directory holds the incremental cumulative roll-up (session miss/hit/out + cost) the summary line reads in O(1) instead of re-parsing the log; `--new` drops it.'
 }
 
 Ref: history_step.(location, position) > history_entry.(location, position)

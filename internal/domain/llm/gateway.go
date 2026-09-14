@@ -58,10 +58,18 @@ type Request struct {
 // Usage is the provider's reported token usage for a completion (round-009
 // research Decision 2). Reported is false when the provider response carried no
 // usage block, so the caller omits the post-turn payload status line.
+//
+// Round 018 widens it with the call's cached (H) and reasoning (Th) token counts
+// for the post-turn metrics line. `CompletionTokens` is the EXCLUSIVE completion
+// count — the OpenAI-compatible wire `completion_tokens` MINUS `reasoning_tokens`
+// — so `C`/`Th` are disjoint and additive (`O = C + Th` never double-counts)
+// (round-018 research Decision 1 / FR-002).
 type Usage struct {
 	Reported         bool
 	PromptTokens     int
+	CachedTokens     int
 	CompletionTokens int
+	ThinkingTokens   int
 	TotalTokens      int
 }
 

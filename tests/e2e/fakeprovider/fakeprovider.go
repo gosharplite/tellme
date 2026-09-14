@@ -43,11 +43,16 @@ type Provider struct {
 }
 
 // usageCounts is a scripted `usage` block the fake reports on its answers
-// (round-009 T006).
+// (round-009 T006). Round 018 adds the cached/reasoning DETAILS and a `detailed`
+// flag; when detailed the wire `completion_tokens` is the INCLUSIVE value
+// (completion + thinking), matching the OpenAI-compatible transport.
 type usageCounts struct {
 	prompt     int
+	cached     int
 	completion int
+	thinking   int
 	total      int
+	detailed   bool
 }
 
 // Start launches the fake provider on a loopback listener.
@@ -108,6 +113,40 @@ func (p *Provider) ReportUsage(prompt, completion int) {
 	p.mu.Lock()
 	p.usage = &usageCounts{prompt: prompt, completion: completion, total: prompt + completion}
 	p.mu.Unlock()
+}
+
+// ReportUsageDetails scripts the provider to include a `usage` block carrying
+// the cached and reasoning token DETAILS on EVERY response it serves — the
+// answer AND any scripted tool-call response — so a tool turn accumulates TWO
+// usage-bearing calls (round-018: `$#1 < $#2`). The wire `completion_tokens` is
+// the INCLUSIVE value (completion + thinking), from which the CLI derives the
+// exclusive completion (round-018 FR-002 / research D1).
+func (p *Provider) ReportUsageDetails(prompt, cached, completion, thinking int) {
+	p.mu.Lock()
+	p.usage = &usageCounts{
+		prompt:     prompt,
+		cached:     cached,
+		completion: completion,
+		thinking:   thinking,
+		total:      prompt + completion + thinking,
+		detailed:   true,
+	}
+	p.mu.Unlock()
+}
+
+// usageBlock renders the JSON `usage` fragment (including the leading `,`) for a
+// scripted usage, or "" when none. When detailed, `completion_tokens` = completion
+// + thinking (inclusive) with the reasoning count in the details.
+func usageBlock(u *usageCounts) string {
+	if u == nil {
+		return ""
+	}
+	if !u.detailed {
+		return fmt.Sprintf(`,"usage":{"prompt_tokens":%d,"completion_tokens":%d,"total_tokens":%d}`,
+			u.prompt, u.completion, u.total)
+	}
+	return fmt.Sprintf(`,"usage":{"prompt_tokens":%d,"completion_tokens":%d,"total_tokens":%d,"prompt_tokens_details":{"cached_tokens":%d},"completion_tokens_details":{"reasoning_tokens":%d}}`,
+		u.prompt, u.completion+u.thinking, u.total, u.cached, u.thinking)
 }
 
 // NoUsage scripts the provider to omit the `usage` block (the default), so the
@@ -252,7 +291,7 @@ func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
 		if vertex {
 			_, _ = w.Write([]byte(vertexToolCallBody(reply.ToolName, reply.Arguments)))
 		} else {
-			_, _ = w.Write([]byte(toolCallBody(reply.ToolName, reply.Arguments)))
+			_, _ = w.Write([]byte(toolCallBody(reply.ToolName, reply.Arguments, usage)))
 		}
 	case hasScript:
 		if vertex {
@@ -270,18 +309,16 @@ func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func answerBody(text string, u *usageCounts) string {
-	usageJSON := ""
-	if u != nil {
-		usageJSON = fmt.Sprintf(`,"usage":{"prompt_tokens":%d,"completion_tokens":%d,"total_tokens":%d}`, u.prompt, u.completion, u.total)
-	}
-	return `{"choices":[{"message":{"role":"assistant","content":` + jsonString(text) + `}}]` + usageJSON + `}`
+	return `{"choices":[{"message":{"role":"assistant","content":` + jsonString(text) + `}}]` + usageBlock(u) + `}`
 }
 
 // toolCallBody builds a tool-call response; the wire call id is deterministic
-// ("call_1") so the loop pairs it with the tool result deterministically.
-func toolCallBody(name, arguments string) string {
+// ("call_1") so the loop pairs it with the tool result deterministically. Round
+// 018 also attaches the scripted `usage` block (so a tool turn's first call
+// reports usage too).
+func toolCallBody(name, arguments string, u *usageCounts) string {
 	call := `{"id":"call_1","type":"function","function":{"name":` + jsonString(name) + `,"arguments":` + jsonString(arguments) + `}}`
-	return `{"choices":[{"message":{"role":"assistant","content":"","tool_calls":[` + call + `]}}]}`
+	return `{"choices":[{"message":{"role":"assistant","content":"","tool_calls":[` + call + `]}}]` + usageBlock(u) + `}`
 }
 
 func jsonString(s string) string {

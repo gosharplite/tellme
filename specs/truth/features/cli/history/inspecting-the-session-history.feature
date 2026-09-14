@@ -15,6 +15,7 @@ Feature: Inspecting the session history
       When the operator asks tellme to list the last 2 messages
       Then tellme lists the last 2 messages
       And tellme sends no request to any provider
+      And the run reports no post-turn status
       And tellme exits successfully
 
   Rule: Listing a session with no persisted history lists nothing
