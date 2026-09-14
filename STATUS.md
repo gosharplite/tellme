@@ -1,10 +1,20 @@
 # tellme — Status
 
-**Last updated**: 2026-09-14 (session 11) — **round 020 `020-cross-compile-gate` DELIVERED / FROZEN**: PR [#46](https://github.com/gosharplite/tellme/pull/46) human-**MERGED** into `dev` (`642583b`, by `gosharplite`) and propagated `dev → main`; frozen head `57a3a05`. The round-020 detail stays here as the current-round section (Rule 12 — older rounds 001–019 live in the archives).
+**Last updated**: 2026-09-14 (session 12) — **round 021 `021-tool-surface-parity` IN PROGRESS**: plan package created (spec + checklist + truth-delta; operator-locked D1–D5). Round 020 stays delivered/frozen (detail below; Rule 12 — older rounds 001–019 live in the archives).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
-**Active branch**: `dev` — round 020 delivered/frozen; the next round starts a fresh `021-*` off `dev`.
+**Active branch**: `021-tool-surface-parity` (off `dev`) — round 021 plan package in progress.
 **Daily log**: [`docs/session-summary/2026/09/14/session-summary.md`](docs/session-summary/2026/09/14/session-summary.md)
 **Archive**: [`2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012) · [`2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–019).
+
+## Round 021 — `021-tool-surface-parity` (in progress)
+
+**Status**: 🚧 **IN PROGRESS** (2026-09-14) — plan package created. **Scope**: align tellme's agent tool surface with `tell-me-go` — **DELETE** `summarize_history`; **MODIFY** `list_files` + `read_files` (add required `reason`; mirror the reference params/functionality); **ADD** `get_tree`.
+
+**Locked decisions (D1–D5)**: (D1) `read_files` → multi-file `filepaths: string[]`; (D2) `reason` required and echoed into the tool-loop `stderr` log; (D3) reference limits verbatim (100 KB cap, `... (truncated)`, binary marker, directory `ERROR:`, ≤50 files); (D4) no security/consent layer (settled exclusion); (D5) add `get_tree` (`{path?, max_depth?, reason*}`, default depth 2).
+
+**Pipeline**: specify ✅ → spec-by-example ⏳ · research ⏳ · analysis ⏳ · dsl-refine ⏳ · tasks ⏳ · implement ⏳.
+
+**Artifacts**: `spec.md` (US1–US4 · FR-001–016 · NFR-001 · SC-001–006), `checklists/requirements.md`, `truth-delta.md` (skeleton).
 
 ## Round 020 — `020-cross-compile-gate` (delivered / frozen)
 
