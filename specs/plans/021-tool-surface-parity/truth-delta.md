@@ -9,7 +9,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _TBD_ | `specs/truth/techstack.md` | Expected `MODIFY` — desktop tool contracts for `list_files`/`read_files`/`get_tree` (multi-file `filepaths[]`, required `reason`, 100 KB cap, ≤50 files, default `max_depth` 2) and removal of the summarisation tool row. | Round-021 aligned tool surface (D1–D5). |
+| MODIFY | `specs/truth/techstack.md` | **CLI Application**: reshaped `Read-only filesystem tools` to **three** tools (`list_files` — `Contents of <path>:` + `[d]/[f]` lines, optional `path` default `.`; `read_files` — multi-file `filepaths: string[]`, `--- File: <path> ---` framing, 100000-byte cap + `... (truncated)`, binary/directory/≤50 handling; `get_tree` — connector tree, default `max_depth` 2, `.git` not recursed) all **requiring `reason`**; **removed** the `Session-summarisation tool` row; **Agent tool loop** row notes the `reason` echo into the `[tool] …` `stderr` line; **Testing & Verification** (pure-helper unit tests) extended for the three tool contracts + the `reason` echo; **Not Introduced Yet** records history summarisation as removed in round 021. | Round-021 research Decisions 1–8; operator-locked D1–D5. |
 
 ## /axb-api-plan
 
