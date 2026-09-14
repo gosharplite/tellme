@@ -440,3 +440,43 @@ A session on the same calendar day: opened round **016** (make `tellme -i` a **s
 ### PM follow-ups
 
 - None new (spec/acceptance complete; no PM-owned gaps).
+
+
+---
+
+## 16. Session 6 (cont.) — round 016 `/axb-implement` (T001–T026) implemented, green
+
+The implementation half of round 016 (strict `-i` visual parity): `/axb-implement` One-Shot over the 26 tasks, delivered green on-branch.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Phase 2 Foundational | T001–T003: 11 new stepdef landings + `tui_chrome.go` helpers; 2 `[UNIT]` files; the chrome-token + debounced-refresh seam |
+| Phase 3 Test Alignment | T004/T005 `[BDD-REMOVE]` (deleted the 2 dashboard stepdefs); T006–T016 `[BDD-RED]` (11 new stepdefs); T017/T018 `[UNIT]`; T019 review |
+| Phase 4 | T020–T023 GREEN/REFACTOR; T024 `[CODE-REMOVE]` (dashboard header + `store.Load`); T025/T026 REGRESSION + falsifiability witnesses |
+| Product | `internal/ui/tui/prompt/{model,textarea,suggester,run}.go` rewritten to the reference chrome; `internal/cli/cli.go` (drop `store.Load`/Dashboard; ctx-carrying `Source`; `TELL_ME_TUI_DEBOUNCE` seam) |
+| Truth | `chat/dsl.md` `marks one suggestion` row relaxed to presence (capture accumulates frames; exactness is the T017 unit pin) |
+| Commit | `08b03ad` (`feat(016): implement the strict-parity interactive prompt`) |
+
+### Verification
+
+- godog E2E **107/107 scenarios · 754 steps** green · `go test -count=1 ./...` all packages ok.
+- `make verify` **OK** (0 lint · 0 vulns · no `time.Sleep` · offline witness).
+- Topology audit **PASSED** — 30 features · 11 root + 156 module rows · 730 steps; `gofmt` clean.
+- **Falsifiability witnesses (T026)** reproduced (then reverted): (a) re-added metrics header → `shows no session metrics header` failed; (b) cycle-only `Tab` → `holds the accepted suggestion` failed.
+
+### Notes found + fixed during GREEN
+
+1. `View()` early-returned `""` after abort → the frame was never captured (round-015 had no guard) → removed.
+2. The debounce raced the instant scripted keys (no pty, no pause) → added the `TELL_ME_TUI_DEBOUNCE=0` hermetic seam (synchronous refresh).
+3. The accept assertion matched the suggestion list (vacuous) → made it editor-row-specific (`│`).
+
+### Open items (non-blocking)
+
+- Round 016 implementation `08b03ad` **needs its own review**; PR #40 not merged. Carried items unchanged (PR #16 Obs 1; round-006 Obs 3; sequential tools / no pruning / no `flock`; round-011 forward items).
+
+### Next steps
+
+1. Review the implementation commits → human merge PR #40 → propagate `016 → dev → main`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session.
