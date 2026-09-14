@@ -15,13 +15,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _TBD_ | `specs/truth/contracts/**` | Expected `NOOP` — tellme has a single CLI end and no OpenAPI surface of its own. | `contract-authoritative` holds vacuously. |
+| NOOP | `specs/truth/contracts/**` | Checked — tellme has a single CLI end and no OpenAPI/HTTP surface; the agent tool surface authors no request/response contract. | `contract-authoritative` holds vacuously. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _TBD_ | `specs/truth/data/data-model.dbml` | Expected `NOOP` — the persisted tool step shape (`{tool, arguments, result[, signature]}`) is unchanged; only the `read_files` argument content now carries `filepaths[]`. | FR-015; no record-shape change. |
+| NOOP | `specs/truth/data/data-model.dbml` | Checked — the persisted tool-step shape (`{tool, arguments, result[, signature]}`) is unchanged; only the `read_files` argument **content** now carries `filepaths[]` (stored as an opaque string, as today). | FR-015; no record-shape change. |
 
 ## /axb-dsl-refine
 
