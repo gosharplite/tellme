@@ -959,12 +959,10 @@ func emitProviderError(w io.Writer, err error) int {
 type toolRegistryFactory func(store history.Store, gw llm.Gateway) domaintools.Registry
 
 // newToolRegistry is the production registry factory (a var so tests may
-// override it). It assembles the two read-only filesystem tools plus the
-// LLM-backed session-summarisation tool (round-008 research Decisions 4 & 10).
-var newToolRegistry toolRegistryFactory = func(store history.Store, gw llm.Gateway) domaintools.Registry {
-	ts := infratools.NewFilesystemTools()
-	ts = append(ts, infratools.NewSummarizeHistoryTool(store, gw))
-	return domaintools.NewRegistry(ts...)
+// override it). It assembles exactly the read-only filesystem reader tools —
+// list_files, read_files, get_tree (round 021 Decision 6) — and no others.
+var newToolRegistry toolRegistryFactory = func(_ history.Store, _ llm.Gateway) domaintools.Registry {
+	return domaintools.NewRegistry(infratools.NewFilesystemTools()...)
 }
 
 // emitToolError maps an incomplete tool loop to the frozen tool class phrase and

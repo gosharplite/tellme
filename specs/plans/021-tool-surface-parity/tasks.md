@@ -22,14 +22,14 @@
 
 **Goal**: 建立本輪 stepdef／`[UNIT]` 與產品碼落點骨架（Zero Shared Edits 原則），讓 Phase 3 / Phase 4 不各自發明檔案或 seam。只建立落點與載體，不寫工具行為。
 
-- [ ] T001 建立 25 個新句 stepdef 獨立檔骨架
+- [X] T001 建立 25 個新句 stepdef 獨立檔骨架
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（本輪 25 個新句）
     - `tests/e2e/steps/register.go`、`tests/e2e/steps/scenario_context.go`
   - 只做：建立 25 個獨立 stepdef 檔（命名 `tests/e2e/steps/step_r021_t0NN_<slug>.go`，各自 `init()` 自我註冊空白 registrar），對到 T007–T031。
   - 不做：不寫具體 arrange／斷言邏輯；不碰既有 step 檔。
 
-- [ ] T002 建立 `[UNIT]` 落點與產品碼骨架 seam
+- [X] T002 建立 `[UNIT]` 落點與產品碼骨架 seam
   - Read:
     - `specs/plans/021-tool-surface-parity/research.md` -> Decision 3, 5, 7
     - `internal/infrastructure/tools/filesystem.go`、`internal/infrastructure/tools/filesystem_test.go`、`internal/agent/agentloop.go`
@@ -71,150 +71,150 @@
 
 ### BDD-REMOVE（退場工具的步驟）
 
-- [ ] T003 [BDD-REMOVE] 移除 Given `a configured provider "{provider}" whose endpoint asks tellme to summarise the conversation and then answers with "{answer}"`
+- [X] T003 [BDD-REMOVE] 移除 Given `a configured provider "{provider}" whose endpoint asks tellme to summarise the conversation and then answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md`（該句已刪除）；`tests/e2e/steps/step_t013_chat_given_provider_summarise_then_answer.go`
   - 動作：刪除該 stepdef 檔。
   - 不做：不動讀檔／清單／樹狀工具步驟。
 
-- [ ] T004 [BDD-REMOVE] 移除 Then `tellme summarised the earlier conversation using its summarise tool` 與 Then `the earlier conversation records are unchanged`
+- [X] T004 [BDD-REMOVE] 移除 Then `tellme summarised the earlier conversation using its summarise tool` 與 Then `the earlier conversation records are unchanged`
   - Read: `tests/e2e/steps/step_t020_chat_then_summarised.go`、`tests/e2e/steps/step_t021_chat_then_records_unchanged.go`
   - 動作：刪除這兩個 stepdef 檔。
   - 不做：不動其他 Then。
 
 ### BDD-ALIGN（既有 `read_files` 句對齊多檔 `filepaths`）
 
-- [ ] T005 [BDD-ALIGN] 既有 fake-scriing Givens 改送 `filepaths: ["…"]`
+- [X] T005 [BDD-ALIGN] 既有 fake-scriing Givens 改送 `filepaths: ["…"]`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "…" whose endpoint asks tellme to read "…" and then answers with "…"`、`… always asks tellme to read "…"`、`a configured Gemini provider "…" whose endpoint asks tellme to read "…" and then answers with "…"`
   - Landing: `step_t009_chat_given_provider_read_then_answer.go`、`step_t010_chat_given_provider_always_read.go`、`step_t007_config_given_gemini_read_then_answer.go`、`step_t004_chat_given_two_tool_provider.go`
   - 動作：讓這些 Given 對 fake 腳本化的 `read_files` 呼叫改用新參數 `{"filepaths":["…"]}`（單檔仍為長度 1 的陣列）。
 
-- [ ] T006 [BDD-ALIGN] 既有 read-result Thens 對齊 `filepaths`
+- [X] T006 [BDD-ALIGN] 既有 read-result Thens 對齊 `filepaths`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `tellme read "{path}" using its read_files tool`、`the request carried the read-tool error for "{path}"`
   - Landing: `step_t014_chat_then_read_tool.go`、`step_t017_chat_then_read_tool_error.go`
   - 動作：讓斷言以 `filepaths` 內的 `{path}` 判定 `read_files` 呼叫與其結果回饋。
 
 ### BDD-RED（本輪新增句型 — Given）
 
-- [ ] T007 [P] [BDD-RED] `Given: the working directory contains a sub-folder "{name}"`
+- [X] T007 [P] [BDD-RED] `Given: the working directory contains a sub-folder "{name}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Given
   - Landing: `tests/e2e/steps/step_r021_t007_chat_given_workdir_subfolder.go`
   - 語意：在工作目錄建立空的子資料夾 `{name}`（支援巢狀如 `src/pkg`、`.git`）。
 
-- [ ] T008 [P] [BDD-RED] `Given: the working directory contains a file "{name}" whose text is longer than the read limit`
+- [X] T008 [P] [BDD-RED] `Given: the working directory contains a file "{name}" whose text is longer than the read limit`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Given
   - Landing: `tests/e2e/steps/step_r021_t008_chat_given_workdir_large_file.go`
   - 語意：建立 `{name}`，內容超過 100000 bytes。
 
-- [ ] T009 [P] [BDD-RED] `Given: the working directory contains a binary file "{name}"`
+- [X] T009 [P] [BDD-RED] `Given: the working directory contains a binary file "{name}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Given
   - Landing: `tests/e2e/steps/step_r021_t009_chat_given_workdir_binary_file.go`
   - 語意：建立含 NUL byte 的 `{name}`（非 UTF-8 文字）。
 
-- [ ] T010 [P] [BDD-RED] `Given: the working directory contains more files than tellme reads in one request`
+- [X] T010 [P] [BDD-RED] `Given: the working directory contains more files than tellme reads in one request`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Given
   - Landing: `tests/e2e/steps/step_r021_t010_chat_given_workdir_too_many_files.go`
   - 語意：建立 >50 個檔案於工作目錄。
 
-- [ ] T011 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to read "{path_a}" and "{path_b}" in one request and then answers with "{answer}"`
+- [X] T011 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to read "{path_a}" and "{path_b}" in one request and then answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Given
   - Landing: `tests/e2e/steps/step_r021_t011_chat_given_provider_read_two_one_request.go`
   - 語意：fake 一次回應帶一個 `read_files` 呼叫，`filepaths` = [`{path_a}`, `{path_b}`]，次回覆答案 `{answer}`。
 
-- [ ] T012 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to read more files than one request allows and then answers with "{answer}"`
+- [X] T012 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to read more files than one request allows and then answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Given
   - Landing: `tests/e2e/steps/step_r021_t012_chat_given_provider_read_too_many.go`
   - 語意：fake 回應一個 `read_files` 呼叫，`filepaths` 列出工作目錄全部（>50）檔案。
 
-- [ ] T013 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to read "{path}" with the reason "{reason}" and then answers with "{answer}"`
+- [X] T013 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to read "{path}" with the reason "{reason}" and then answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Given
   - Landing: `tests/e2e/steps/step_r021_t013_chat_given_provider_read_with_reason.go`
   - 語意：fake 回應 `read_files` 呼叫，args 帶 `filepaths` = [`{path}`] 與 `reason` = `{reason}`。
 
-- [ ] T014 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint lists the current directory and then answers with "{answer}"`
+- [X] T014 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint lists the current directory and then answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Given
   - Landing: `tests/e2e/steps/step_r021_t014_chat_given_provider_lists_dir.go`
   - 語意：fake 回應 `list_files` 呼叫（無 path），次回覆答案 `{answer}`。
 
-- [ ] T015 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint shows the folder tree and then answers with "{answer}"`
+- [X] T015 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint shows the folder tree and then answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Given
   - Landing: `tests/e2e/steps/step_r021_t015_chat_given_provider_shows_tree.go`
   - 語意：fake 回應 `get_tree` 呼叫，次回覆答案 `{answer}`。
 
-- [ ] T016 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint reports the offered tools and then answers with "{answer}"`
+- [X] T016 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint reports the offered tools and then answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Given
   - Landing: `tests/e2e/steps/step_r021_t016_chat_given_provider_reports_tools.go`
   - 語意：fake 記錄請求帶的工具定義並回覆答案 `{answer}`。
 
 ### BDD-RED（本輪新增句型 — Then）
 
-- [ ] T017 [P] [BDD-RED] `Then: the run made a single read_files request carrying "{path_a}" and "{path_b}"`
+- [X] T017 [P] [BDD-RED] `Then: the run made a single read_files request carrying "{path_a}" and "{path_b}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then
   - Landing: `tests/e2e/steps/step_r021_t017_chat_then_single_read_two.go`
   - 語意：fake 恰記錄一次請求，其 `read_files` 呼叫 `filepaths` = [`{path_a}`, `{path_b}`]。
 
-- [ ] T018 [P] [BDD-RED] `Then: the part of "{name}" that tellme read ends with a truncation marker`
+- [X] T018 [P] [BDD-RED] `Then: the part of "{name}" that tellme read ends with a truncation marker`
   - Landing: `tests/e2e/steps/step_r021_t018_chat_then_truncated.go`
   - 語意：`read_files` 對 `{name}` 的結果以 `... (truncated)` **結尾**（**suffix match** —— 用 `strings.HasSuffix`，**不得**用 `strings.Contains`：aggregate 標記 `... (truncated at the read budget)` 含此子字串，否則會與 aggregate 情況誤判）。
 
-- [ ] T019 [P] [BDD-RED] `Then: tellme reports that "{name}" is a binary file that cannot be shown as text`
+- [X] T019 [P] [BDD-RED] `Then: tellme reports that "{name}" is a binary file that cannot be shown as text`
   - Landing: `tests/e2e/steps/step_r021_t019_chat_then_binary.go`
   - 語意：`read_files` 結果帶 `(Binary file, cannot display as text)`。
 
-- [ ] T020 [P] [BDD-RED] `Then: tellme reports that too many files were requested`
+- [X] T020 [P] [BDD-RED] `Then: tellme reports that too many files were requested`
   - Landing: `tests/e2e/steps/step_r021_t020_chat_then_too_many.go`
   - 語意：`read_files` 結果帶 too-many-files 訊息。
 
-- [ ] T021 [P] [BDD-RED] `Then: tellme listed the directory using its list_files tool`
+- [X] T021 [P] [BDD-RED] `Then: tellme listed the directory using its list_files tool`
   - Landing: `tests/e2e/steps/step_r021_t021_chat_then_listed.go`
   - 語意：fake 記錄 `list_files` 呼叫且結果回饋。
 
-- [ ] T022 [P] [BDD-RED] `Then: the listing shows "{name}" as a file`
+- [X] T022 [P] [BDD-RED] `Then: the listing shows "{name}" as a file`
   - Landing: `tests/e2e/steps/step_r021_t022_chat_then_listing_file.go`
   - 語意：`list_files` 結果帶 `[f] {name}` 行。
 
-- [ ] T023 [P] [BDD-RED] `Then: the listing shows "{name}" as a folder`
+- [X] T023 [P] [BDD-RED] `Then: the listing shows "{name}" as a folder`
   - Landing: `tests/e2e/steps/step_r021_t023_chat_then_listing_folder.go`
   - 語意：`list_files` 結果帶 `[d] {name}` 行。
 
-- [ ] T024 [P] [BDD-RED] `Then: tellme showed the folder tree using its get_tree tool`
+- [X] T024 [P] [BDD-RED] `Then: tellme showed the folder tree using its get_tree tool`
   - Landing: `tests/e2e/steps/step_r021_t024_chat_then_tree.go`
   - 語意：fake 記錄 `get_tree` 呼叫且結果回饋。
 
-- [ ] T025 [P] [BDD-RED] `Then: the tree shows "{entry}"`
+- [X] T025 [P] [BDD-RED] `Then: the tree shows "{entry}"`
   - Landing: `tests/e2e/steps/step_r021_t025_chat_then_tree_entry.go`
   - 語意：`get_tree` 結果帶一條 connector 行，其 entry 名為 `{entry}`。
 
-- [ ] T026 [P] [BDD-RED] `Then: the request offered exactly the reader tools`
+- [X] T026 [P] [BDD-RED] `Then: the request offered exactly the reader tools`
   - Landing: `tests/e2e/steps/step_r021_t026_chat_then_offered_tools.go`
   - 語意：記錄的請求恰提供 `list_files`／`read_files`／`get_tree` 三者，無其他。
 
-- [ ] T027 [P] [BDD-RED] `Then: the run reported the reason "{reason}" for the tool call "{tool}"`
+- [X] T027 [P] [BDD-RED] `Then: the run reported the reason "{reason}" for the tool call "{tool}"`
   - Landing: `tests/e2e/steps/step_r021_t027_chat_then_reason_echo.go`
   - 語意：`stderr` 的 tool-loop log 行命名 `{tool}` 且帶 `reason={reason}`。
 
-- [ ] T028 [P] [BDD-RED] `Then: the tree does not show "{entry}"`
+- [X] T028 [P] [BDD-RED] `Then: the tree does not show "{entry}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then (B1)
   - Landing: `tests/e2e/steps/step_r021_t028_chat_then_tree_absent.go`
   - 語意：`get_tree` 結果**沒有**任何 entry 名為 `{entry}` 的 connector 行（超深度的 entry 不得出現）。
 
-- [ ] T029 [P] [BDD-RED] `Then: the tree does not descend into "{name}"`
+- [X] T029 [P] [BDD-RED] `Then: the tree does not descend into "{name}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then (B1)
   - Landing: `tests/e2e/steps/step_r021_t029_chat_then_tree_no_descend.go`
   - 語意：`get_tree` 結果列出 `{name}`，但**沒有**其任何子項的 connector 行（`.git` 列出但不遞迴）。
 
-- [ ] T030 [P] [BDD-RED] `Then: tellme reports that "{path}" is a directory`
+- [X] T030 [P] [BDD-RED] `Then: tellme reports that "{path}" is a directory`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then (TD2)
   - Landing: `tests/e2e/steps/step_r021_t030_chat_then_reports_directory.go`
   - 語意：`read_files` 對 `{path}` 的結果帶 `ERROR: path is a directory, use list_files instead`。
 
-- [ ] T031 [P] [BDD-RED] `Then: the read result frames "{name}"`
+- [X] T031 [P] [BDD-RED] `Then: the read result frames "{name}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then (R1)
   - Landing: `tests/e2e/steps/step_r021_t031_chat_then_read_framed.go`
   - 語意：`read_files` 結果帶一行 `--- File: {name} ---`。
 
 ### UNIT（非 DSL 的單元斷言）
 
-- [ ] T032 [P] [UNIT] 三個工具的 schema、輸出格式與結果上限
+- [X] T032 [P] [UNIT] 三個工具的 schema、輸出格式與結果上限
   - Read:
     - `specs/plans/021-tool-surface-parity/research.md` -> Decision 2, 3, 5（含 D3a aggregate cap）
     - `specs/truth/techstack.md` -> CLI Application（Read-only filesystem tools）
@@ -222,19 +222,19 @@
   - 撰寫：`list_files` 輸出 `Contents of <path>:` + `[d]/[f]`（含預設 path）；`read_files` 多檔 framing（`--- File: … ---`）／request 順序／100000-byte 截斷／binary／directory `ERROR:`／≤50 上限／空 args 錯誤／**整份結果 1 MiB aggregate 上限**（block 只在放得下時附加；首個超出的 block 前停止並加 `... (truncated at the read budget)`，被略過的檔案不加 header；per-file 截斷標記以 **suffix** 判定 —— 用 `strings.HasSuffix`，**不得**用 `strings.Contains`，因 aggregate 標記 `... (truncated at the read budget)` 含 per-file 標記子字串）；`get_tree` connector 輸出／預設 `max_depth` 2／不遞迴 `.git`／**1 MiB 上限**；`list_files` **1 MiB 上限**；三者 schema 皆含 required `reason`（**schema-only**，工具不額外驗證）。
   - 落點：`internal/infrastructure/tools/filesystem_test.go`、`internal/infrastructure/tools/get_tree_test.go`。
 
-- [ ] T033 [P] [UNIT] `reason` 被 echo 進 tool-loop log 行
+- [X] T033 [P] [UNIT] `reason` 被 echo 進 tool-loop log 行
   - Read: `specs/plans/021-tool-surface-parity/research.md` -> Decision 4；`internal/agent/agentloop.go`
   - 撰寫：`AgentLoop` 的 `logStep` 從工具 args JSON 取頂層 `reason` 並使 log 行帶 `reason=<value>`；無 `reason` 時省略。
   - 落點：`internal/agent/agentloop_reason_test.go`。
 
-- [ ] T034 [P] [UNIT] registry factory 只提供三個檔案工具
+- [X] T034 [P] [UNIT] registry factory 只提供三個檔案工具
   - Read: `specs/plans/021-tool-surface-parity/research.md` -> Decision 6；`internal/cli/cli.go`
   - 撰寫：`newToolRegistry` 回應的工具名集合恰為 `{list_files, read_files, get_tree}`（無 `summarize_history`）。
   - 落點：`internal/cli/tool_registry_test.go`。
 
 ### Phase Review Gate
 
-- [ ] T035 subagent review (phase quality gate)
+- [X] T035 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/**`、`specs/truth/features/cli/dsl.md`
     - `tests/e2e/steps/*.go`、`tests/e2e/fakeprovider/fakeprovider.go`
@@ -260,8 +260,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/watching-the-tool-loop.feature`
 
-- [ ] T036 [BDD-GREEN] 讓 Test Scope 全綠（並使 T033 的 `[UNIT]` 轉綠）
-- [ ] T037 [BDD-REFACTOR] 在綠燈下整理 `logStep` 的 reason 擷取
+- [X] T036 [BDD-GREEN] 讓 Test Scope 全綠（並使 T033 的 `[UNIT]` 轉綠）
+- [X] T037 [BDD-REFACTOR] 在綠燈下整理 `logStep` 的 reason 擷取
 
 ## Phase 4B: ADD Feature File - cli/chat/reading-several-files.feature
 
@@ -280,8 +280,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/reading-several-files.feature`
 
-- [ ] T038 [BDD-GREEN] 讓 Test Scope 全綠（並使 T032 的 read 部分 `[UNIT]` 轉綠）
-- [ ] T039 [BDD-REFACTOR] 在綠燈下整理 `read_files` 的 framing 與邊界處理
+- [X] T038 [BDD-GREEN] 讓 Test Scope 全綠（並使 T032 的 read 部分 `[UNIT]` 轉綠）
+- [X] T039 [BDD-REFACTOR] 在綠燈下整理 `read_files` 的 framing 與邊界處理
 
 ## Phase 4C: ADD Feature File - cli/chat/listing-a-directory.feature
 
@@ -299,8 +299,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/listing-a-directory.feature`
 
-- [ ] T040 [BDD-GREEN] 讓 Test Scope 全綠（並使 T032 的 list 部分 `[UNIT]` 轉綠）
-- [ ] T041 [BDD-REFACTOR] 在綠燈下整理 `list_files` 的輸出構造
+- [X] T040 [BDD-GREEN] 讓 Test Scope 全綠（並使 T032 的 list 部分 `[UNIT]` 轉綠）
+- [X] T041 [BDD-REFACTOR] 在綠燈下整理 `list_files` 的輸出構造
 
 ## Phase 4D: ADD Feature File - cli/chat/surveying-a-folder-tree.feature
 
@@ -319,8 +319,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/surveying-a-folder-tree.feature`
 
-- [ ] T042 [BDD-GREEN] 讓 Test Scope 全綠（並使 T032 的 tree 部分 `[UNIT]` 轉綠）
-- [ ] T043 [BDD-REFACTOR] 在綠燈下整理 `get_tree` 的樹狀構造
+- [X] T042 [BDD-GREEN] 讓 Test Scope 全綠（並使 T032 的 tree 部分 `[UNIT]` 轉綠）
+- [X] T043 [BDD-REFACTOR] 在綠燈下整理 `get_tree` 的樹狀構造
 
 ## Phase 4E: ADD Feature File - cli/chat/offering-the-reader-tools.feature
 
@@ -338,8 +338,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/offering-the-reader-tools.feature`
 
-- [ ] T044 [BDD-GREEN] 讓 Test Scope 全綠（並使 T034 的 `[UNIT]` 轉綠）
-- [ ] T045 [BDD-REFACTOR] 在綠燈下整理 registry factory
+- [X] T044 [BDD-GREEN] 讓 Test Scope 全綠（並使 T034 的 `[UNIT]` 轉綠）
+- [X] T045 [BDD-REFACTOR] 在綠燈下整理 registry factory
 
 ## Phase 4F: CODE-REMOVE — retire `summarize_history`
 
@@ -357,7 +357,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/offering-the-reader-tools.feature`（reader-tool 集合 + 退場工具請求）
 
-- [ ] T046 [CODE-REMOVE] 移除 `summarize_history` 產品碼與其註冊
+- [X] T046 [CODE-REMOVE] 移除 `summarize_history` 產品碼與其註冊
 
 ## Phase 4G: Regression
 
@@ -366,7 +366,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`（chat、history、configuration、workspace、diagnostics、usage 全模組）
 
-- [ ] T047 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T047 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
   - **可偽性見證**（各觀察失敗後還原）：
     1. 讓 `read_files` 只讀 `filepaths` 的第一個路徑 → `chat/reading-several-files.feature` 的雙檔場景失敗。

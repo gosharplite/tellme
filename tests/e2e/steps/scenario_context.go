@@ -405,7 +405,11 @@ func (sc *scenarioContext) blockedRun() harness.RunResult {
 // file for the read_files tool). The name is relative to the child's working
 // directory.
 func (sc *scenarioContext) writeWorkFile(name, content string) error {
-	return os.WriteFile(filepath.Join(sc.workDir, filepath.FromSlash(name)), []byte(content), 0o644)
+	p := filepath.Join(sc.workDir, filepath.FromSlash(name))
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(p, []byte(content), 0o644)
 }
 
 // historyDir returns the session workspace directory the session commands

@@ -10,16 +10,20 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
 	"strings"
 
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
-// readCap bounds a single read_files result so it cannot exhaust the model's
-// context window — token-budget pruning is out of scope, so the read tool must
-// not inject unbounded input (round-008 research Decision 4 / NFR-006).
-const readCap = 1 << 20 // 1 MiB
+// read_files limits (round 021 Decision 5 + D3a): the reference 100000-byte
+// per-file cap, the per-call ≤50 cap, and tellme's aggregate 1 MiB result cap
+// (restoring the round-008 "cannot exhaust the context window" property, which
+// the per-file/≤50 bounds alone would lose).
+const (
+	readMaxPerFile   = 100000
+	readMaxPerCall   = 50
+	readAggregateCap = 1 << 20 // 1 MiB
+)
 
 // listFiles enumerates a directory's entries (read-only).
 type listFiles struct{}
@@ -32,42 +36,56 @@ func (listFiles) Description() string { return "List the entries of a directory.
 
 // Parameters is the JSON-schema for the tool's arguments.
 func (listFiles) Parameters() json.RawMessage {
-	return json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Directory path to list."}},"required":["path"]}`)
+	return json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"The directory path to list (defaults to the current directory '.')."},"reason":{"type":"string","description":"Reason for listing files."}},"required":["reason"]}`)
 }
 
-// Execute lists the entries at the given path, directories suffixed with "/".
-// It honours the per-tool context so a cancelled/expired run aborts rather than
+// Execute lists the entries at the given path (defaulting to "."), one `[d]` or
+// `[f]` line per entry under a `Contents of <path>:` header, in os.ReadDir order.
+// The result is bounded by the aggregate cap (round 021 Decision 2 / D3a). It
+// honours the per-tool context so a cancelled/expired run aborts rather than
 // blocking on I/O (round-008 RF-1).
 func (listFiles) Execute(ctx context.Context, arguments string) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	var args struct {
-		Path string `json:"path"`
+		Path   string `json:"path"`
+		Reason string `json:"reason"`
 	}
 	if err := json.Unmarshal([]byte(arguments), &args); err != nil {
 		return "", fmt.Errorf("list_files: invalid arguments: %w", err)
 	}
-	if args.Path == "" {
-		return "", fmt.Errorf("list_files: missing path")
+	path := args.Path
+	if path == "" {
+		path = "."
 	}
-	entries, err := os.ReadDir(args.Path)
+	entries, err := os.ReadDir(path)
 	if err != nil {
-		return "", fmt.Errorf("list_files: %w", err)
+		return "", fmt.Errorf("list_files: failed to list directory: %w", err)
 	}
-	names := make([]string, 0, len(entries))
-	for _, e := range entries {
-		name := e.Name()
-		if e.IsDir() {
-			name += "/"
-		}
-		names = append(names, name)
-	}
-	sort.Strings(names)
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
-	return strings.Join(names, "\n"), nil
+	lines := make([]string, 0, len(entries)+1)
+	lines = append(lines, fmt.Sprintf("Contents of %s:", path))
+	for _, e := range entries {
+		kind := "f"
+		if e.IsDir() {
+			kind = "d"
+		}
+		lines = append(lines, fmt.Sprintf("[%s] %s", kind, e.Name()))
+	}
+	out := strings.Join(lines, "\n") + "\n"
+	return truncateToCap(out), nil
+}
+
+// truncateToCap bounds a tool result to the aggregate result cap, appending the
+// truncation marker when the content exceeds it (round 021 D3a).
+func truncateToCap(out string) string {
+	if len(out) <= readAggregateCap {
+		return out
+	}
+	return out[:readAggregateCap] + "\n... (truncated)\n"
 }
 
 // readFiles returns a file's contents (read-only), size-bounded.
@@ -79,47 +97,101 @@ func (readFiles) Name() string { return "read_files" }
 // Description is the model-facing summary.
 func (readFiles) Description() string { return "Read a file's contents." }
 
-// Parameters is the JSON-schema for the tool's arguments.
+// Parameters is the JSON-schema for the tool's arguments (round 021: the
+// multi-file `filepaths` array; `reason` is required by schema but not validated).
 func (readFiles) Parameters() json.RawMessage {
-	return json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"File path to read."}},"required":["path"]}`)
+	return json.RawMessage(`{"type":"object","properties":{"filepaths":{"type":"array","items":{"type":"string"},"description":"The list of file paths to read."},"reason":{"type":"string","description":"Reason for reading these files."}},"required":["filepaths","reason"]}`)
 }
 
-// Execute reads the file at the given path, bounded by readCap (truncated with
-// a marker if exceeded). It honours the per-tool context so a cancelled/expired
-// run aborts rather than blocking on I/O (round-008 RF-1).
+// Execute reads each requested file in order, framing each block with a header
+// line, and bounds the whole result (round 021 Decision 5 / D3a): a 100000-byte
+// per-file cap with a truncation marker, inline ERROR/binary/directory handling,
+// a ≤50 per-call cap, and a 1 MiB aggregate cap. It honours the per-tool context
+// so a cancelled/expired run aborts rather than blocking on I/O (round-008 RF-1).
 func (readFiles) Execute(ctx context.Context, arguments string) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	var args struct {
-		Path string `json:"path"`
+		FilePaths []string `json:"filepaths"`
+		Reason    string   `json:"reason"`
 	}
 	if err := json.Unmarshal([]byte(arguments), &args); err != nil {
 		return "", fmt.Errorf("read_files: invalid arguments: %w", err)
 	}
-	if args.Path == "" {
-		return "", fmt.Errorf("read_files: missing path")
+	if len(args.FilePaths) == 0 {
+		return "", fmt.Errorf("read_files: filepaths argument is required and cannot be empty")
 	}
-	f, err := os.Open(args.Path)
-	if err != nil {
-		return "", fmt.Errorf("read_files: %w", err)
+	if len(args.FilePaths) > readMaxPerCall {
+		return fmt.Sprintf("Error: requested too many files (%d). Maximum is %d files per call.", len(args.FilePaths), readMaxPerCall), nil
 	}
-	defer func() { _ = f.Close() }()
-	data, err := io.ReadAll(io.LimitReader(f, readCap+1))
-	if err != nil {
-		return "", fmt.Errorf("read_files: %w", err)
+	var sb strings.Builder
+	for _, path := range args.FilePaths {
+		if err := ctx.Err(); err != nil {
+			return "", err
+		}
+		if !appendBounded(&sb, readOneFile(path)) {
+			break
+		}
 	}
-	if err := ctx.Err(); err != nil {
-		return "", err
-	}
-	if len(data) > readCap {
-		return string(data[:readCap]) + "\n… (truncated at 1 MiB)", nil
-	}
-	return string(data), nil
+	return sb.String(), nil
 }
 
-// NewFilesystemTools returns the two read-only filesystem agent tools in offer
-// order (round-008 research Decision 4).
+// appendBounded appends block to sb while it fits within the aggregate result
+// cap (round 021 D3a). It returns false — having written the budget marker — when
+// the block would exceed the cap, so the caller stops (the omitted file gets no
+// header).
+func appendBounded(sb *strings.Builder, block string) bool {
+	if sb.Len()+len(block) > readAggregateCap {
+		sb.WriteString("\n... (truncated at the read budget)\n")
+		return false
+	}
+	sb.WriteString(block)
+	return true
+}
+
+// readOneFile renders one read_files block: a `--- File: <path> ---` header
+// followed by the file's bounded body (`\n\n`-terminated), or an inline ERROR /
+// binary / directory message (a recoverable, non-fatal outcome).
+func readOneFile(path string) string {
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "--- File: %s ---\n", path)
+	info, err := os.Stat(path)
+	if err != nil {
+		fmt.Fprintf(&sb, "ERROR: failed to read file: %v\n\n", err)
+		return sb.String()
+	}
+	if info.IsDir() {
+		sb.WriteString("ERROR: path is a directory, use list_files instead\n\n")
+		return sb.String()
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		fmt.Fprintf(&sb, "ERROR: failed to read file: %v\n\n", err)
+		return sb.String()
+	}
+	defer func() { _ = f.Close() }()
+	data, err := io.ReadAll(io.LimitReader(f, readMaxPerFile+1))
+	if err != nil {
+		fmt.Fprintf(&sb, "ERROR: failed to read file: %v\n\n", err)
+		return sb.String()
+	}
+	if isBinary(data) {
+		sb.WriteString("(Binary file, cannot display as text)\n\n")
+		return sb.String()
+	}
+	if len(data) > readMaxPerFile {
+		sb.WriteString(strings.ToValidUTF8(string(data[:readMaxPerFile]), ""))
+		sb.WriteString("\n... (truncated)\n\n")
+		return sb.String()
+	}
+	sb.Write(data)
+	sb.WriteString("\n\n")
+	return sb.String()
+}
+
+// NewFilesystemTools returns the read-only filesystem agent tools in offer order
+// (round 021: list_files, read_files, get_tree — the reference reader trio).
 func NewFilesystemTools() []domaintools.Tool {
-	return []domaintools.Tool{listFiles{}, readFiles{}}
+	return []domaintools.Tool{listFiles{}, readFiles{}, getTree{}}
 }
