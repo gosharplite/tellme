@@ -5,9 +5,9 @@ Feature: Reading several files in one request
   # reported inside the result. Acceptance journey:
   # features/acceptance/answering-from-several-files.feature.
 
-  Rule: One request reads several files
+  Rule: One request reads several files, each framed by a header
 
-    Example: Two files are read in a single request
+    Example: Two files are read in a single framed request
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the working directory contains a file "left.txt" whose text is "the code is ORANGE"
@@ -15,6 +15,8 @@ Feature: Reading several files in one request
       And a configured provider "test-model" whose endpoint asks tellme to read "left.txt" and "right.txt" in one request and then answers with "the code is ORANGE"
       When the operator starts tellme with the prompt "Compare left.txt and right.txt."
       Then the run made a single read_files request carrying "left.txt" and "right.txt"
+      And the read result frames "left.txt"
+      And the read result frames "right.txt"
       And tellme prints the provider's answer "the code is ORANGE"
       And tellme exits successfully
 
@@ -29,7 +31,7 @@ Feature: Reading several files in one request
       Then the part of "big.txt" that tellme read ends with a truncation marker
       And tellme exits successfully
 
-  Rule: A file that cannot be shown is reported, not fatal
+  Rule: A path that cannot be shown is reported, not fatal
 
     Example: A binary file is reported inside the result
       Given the operator has a runnable tellme installation
@@ -38,6 +40,15 @@ Feature: Reading several files in one request
       And a configured provider "test-model" whose endpoint asks tellme to read "logo.png" and then answers with "done"
       When the operator starts tellme with the prompt "Read logo.png and describe it."
       Then tellme reports that "logo.png" is a binary file that cannot be shown as text
+      And tellme exits successfully
+
+    Example: A directory is reported, not read
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a sub-folder "src"
+      And a configured provider "test-model" whose endpoint asks tellme to read "src" and then answers with "done"
+      When the operator starts tellme with the prompt "Read src."
+      Then tellme reports that "src" is a directory
       And tellme exits successfully
 
     Example: Too many files in one request are reported

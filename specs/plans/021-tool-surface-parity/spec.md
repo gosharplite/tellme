@@ -13,6 +13,7 @@
 - **D1 — `read_files` is multi-file**: adopt the reference signature `filepaths: string[]` (not a single `path`). The round-008 single-`path` contract is rewritten in place.
 - **D2 — `reason` is required and echoed**: every filesystem tool requires `reason`; its value is accepted and **echoed into the tool-loop diagnostic (`stderr`) log line**. tellme has **no consent layer** (below), so `reason` is the reference's audit parameter surfaced as an operator-visible tail, not a consent trigger.
 - **D3 — reference limits/edge handling verbatim**: per-file cap **100000 bytes** → `... (truncated)`; binary files → `(Binary file, cannot display as text)`; a directory given to `read_files` → `ERROR: path is a directory, use list_files instead`; **≤50** files per call; unreadable/unsafe paths render an **inline `ERROR: …`** result (the loop continues, it is not a tool failure).
+- **D3a — bounded results (tellme-specific)**: while the per-file/≤50 limits match the reference, tellme additionally caps **each** reader tool's whole result at **1 MiB** (NFR-001) so the round-008 "a read cannot exhaust the context window" property holds. This is a **deliberate, recorded divergence** — the reference has no aggregate cap and tellme has no in-session overflow recovery (no pruning/summarisation).
 - **D4 — no security/consent layer**: `SafePath` / `UserInteractor` consent remain **settled exclusions** (round-008 Clarify Q3). The tools read whatever path the model gives; no `IsPathSafe` gate, no new failure class.
 - **D5 — add `get_tree`**: the reference bundles a third reader tool, `get_tree`; this round **adds** it (`{path?, max_depth?, reason*}`), so the surface is exactly the reference's read trio.
 
@@ -42,11 +43,11 @@ As a developer using tellme from the terminal, I want the model to be able to **
 - **FR-002**: The system MUST return each requested file's content prefixed by a `--- File: <path> ---` header line, with a blank line separating file blocks.
 - **FR-003**: A file whose content exceeds **100000 bytes** MUST be truncated to that bound and terminated with a `... (truncated)` marker.
 - **FR-004**: A binary file MUST render `(Binary file, cannot display as text)`; a directory path MUST render `ERROR: path is a directory, use list_files instead`; an unreadable path MUST render an inline `ERROR: …` result. These render **inside the tool result** (not as a tool/process failure); the loop continues.
-- **FR-005**: A request MUST carry between **1 and 50** file paths; an empty/omitted `filepaths` is a tool argument error; more than 50 paths MUST return `Error: requested too many files (N). Maximum is 50 files per call.`
+- **FR-005**: A request MUST carry between **1 and 50** file paths; an empty/omitted `filepaths` is a tool argument error; more than 50 paths MUST return `Error: requested too many files (N). Maximum is 50 files per call.` The **whole** result MUST additionally be capped at **1 MiB** — once the accumulated result reaches the cap it is truncated with a marker.
 
 **Non-Functional Requirements**:
 
-- **NFR-001**: A `read_files` result MUST be bounded (≤50 files × ≤100000 bytes) so it cannot exhaust the model's context window (round-008 NFR-006 lineage).
+- **NFR-001**: Every reader tool's result MUST be bounded so it cannot exhaust the model's context window (round-008 NFR-006 lineage): `read_files` by ≤50 files × ≤100000 bytes **per file** *and* an aggregate cap of **1 MiB** for the whole result; `list_files` and `get_tree` by a **1 MiB** result cap. A result that reaches its cap is truncated with a marker.
 
 ---
 
@@ -132,7 +133,7 @@ As an operator, I want tellme's tool surface to be exactly the reference's read 
 
 ### Global requirements
 
-- **FR-012**: Every filesystem tool (`list_files`, `read_files`, `get_tree`) MUST require a `reason` argument, and the system MUST echo that value into the tool-loop diagnostic (`stderr`) log line for the call.
+- **FR-012**: Every filesystem tool (`list_files`, `read_files`, `get_tree`) MUST declare `reason` as a **required** argument in its tool schema, and the system MUST echo that value into the tool-loop diagnostic (`stderr`) log line for the call. The tools do **not** otherwise validate `reason` at runtime (a **schema-only** requirement, matching the reference); a missing `reason` is therefore a schema matter and not a distinct runtime failure class.
 - **FR-013**: The filesystem tools MUST have **no** path/safety boundary — no `SafePath` check, no consent prompt, no new failure class (settled exclusion, D4).
 - **FR-014**: The tool-loop bounds and failure contract MUST be unchanged — `MAX_TOOL_LOOP` (default 1000, env/config) and the frozen class phrase `tellme: the tool request failed` with exit code `7`.
 - **FR-015**: A completed tool-using turn MUST persist its steps as today (`{tool, arguments, result[, signature]}`), with `read_files` arguments now carrying `filepaths[]`.
@@ -141,7 +142,7 @@ As an operator, I want tellme's tool surface to be exactly the reference's read 
 ### Success criteria
 
 - **SC-001**: The provider request for a prompt-bearing run declares exactly `list_files`, `read_files`, `get_tree` (three tools; no `summarize_history`).
-- **SC-002**: A multi-file `read_files` returns each file framed by `--- File: <path> ---`, with the 100 KB truncation, binary marker, directory `ERROR:`, and ≤50-file behaviours all observable.
+- **SC-002**: A multi-file `read_files` returns each file framed by `--- File: <path> ---`, with the 100 KB per-file truncation, the 1 MiB aggregate cap, the binary marker, the directory `ERROR:`, and the ≤50-file behaviours all observable.
 - **SC-003**: `list_files` returns `Contents of <path>:` with `[d]`/`[f]` prefixes and defaults `path` to `.` when omitted.
 - **SC-004**: `get_tree` returns a connector tree honouring a default `max_depth` of 2 and skipping `.git` recursion.
 - **SC-005**: Every filesystem tool call records its `reason` in the `stderr` tool-loop log and no `stdout` byte changes.

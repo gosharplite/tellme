@@ -25,7 +25,7 @@ Feature: Answering from several files at once
       Then the part of "big.txt" that tellme reads ends with a note that it was truncated
       And tellme exits successfully
 
-  Rule: A file that cannot be shown is reported, not fatal
+  Rule: A path that cannot be shown is reported, not fatal
 
     Example: A file that is not text
       Given the operator has a runnable tellme installation
@@ -33,6 +33,14 @@ Feature: Answering from several files at once
       And the working directory contains a binary file "logo.png"
       When the operator asks tellme "Read logo.png and describe it."
       Then tellme reports that "logo.png" is a binary file that cannot be shown as text
+      And tellme exits successfully
+
+    Example: A folder given to a read is reported
+      Given the operator has a runnable tellme installation
+      And the runtime home holds a configuration with a reachable provider "test-model" that reads the file it is asked for before answering
+      And the working directory contains a sub-folder "src"
+      When the operator asks tellme "Read src and tell me what is in it."
+      Then tellme reports that "src" is a directory, not a file
       And tellme exits successfully
 
     Example: Too many files in one request
