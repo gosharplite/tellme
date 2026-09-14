@@ -4,16 +4,17 @@ Feature: The progress indicator stays bounded
   # terminal, only on a prompt-bearing run, and it never changes the answer or
   # the other commands.
 
-  Rule: The indicator appears only when the operator is watching a terminal
+  Rule: The indicator is shown only when the diagnostics reach a terminal
 
-    Example: The operator sends the answer to another program
+    Example: The operator is not watching the diagnostics at a terminal
       Given the operator has a runnable tellme installation
-      When the operator pipes "summarise the notes" into tellme
+      When the operator runs tellme with the prompt "hi"
       Then the run shows no progress indicator
       And the answer is unchanged by the progress indicator
 
-    Example: The operator asks for the raw answer
+    Example: The operator asks for the raw answer at a terminal
       Given the operator has a runnable tellme installation
+      And the operator is watching a terminal
       And the operator asks for the raw answer
       When the operator runs tellme with the prompt "hi"
       Then the run shows no progress indicator

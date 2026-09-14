@@ -65,16 +65,16 @@ As an operator, I want the spinner limited to the interactive terminal surfaces 
 
 **Acceptance Scenarios**:
 
-1. **Given** a run whose standard output is **not** a terminal, or a `-r`/`--raw` run, **When** the turn runs, **Then** no spinner is drawn and `stdout` is byte-exact.
+1. **Given** a run whose **diagnostic stream (`stderr`)** is **not** a terminal, or a `-r`/`--raw` run, **When** the turn runs, **Then** no spinner is drawn and `stdout` is byte-exact.
 2. **Given** `--version`, `-d`, `-l N`, the boot path, or a prompt-less `--new`, **When** it runs, **Then** no spinner is drawn.
 3. **Given** the `-i` TUI, **When** the turn runs, **Then** the `-i` surface is unchanged (out of scope).
 4. **Given** a turn that fails (provider / tool / history), **When** it fails, **Then** the spinner is cleared before the class phrase and the class phrase + exit code are unchanged.
 
 **Functional Requirements**:
 
-- **FR-006**: The spinner MUST be drawn only when standard output is a terminal and `-r`/`--raw` is NOT set; when standard output is not a terminal, or `-r` is set, the system MUST draw no spinner. *(This wires `tellme`'s own standard-output terminal probe — closing round-006 / PR #16 **Obs 1**.)*
+- **FR-006**: The spinner MUST be drawn only when the **diagnostic stream (`stderr`) is a terminal** and `-r`/`--raw` is NOT set; when `stderr` is not a terminal, or `-r` is set, the system MUST draw no spinner. *(Mirrors the reference — its `stderr` spinner is gated on `stderr` terminality (`ui.stderr`), never on `stdout`; a `stdout` gate would both write `\r` frames into a redirected diagnostic and drop feedback when only `stdout` is redirected. This does **not** wire a standard-output probe — round-006 / PR #16 **Obs 1** stays **OPEN**.)*
 - **FR-007**: The spinner MUST be written to `stderr` only; `stdout` MUST remain byte-exact.
-- **FR-008**: The spinner MUST appear only on prompt-bearing non-TUI turns (positional, piped, and the round-012 interactive reader). It MUST NOT appear on `--version`, `-d`, `-l N`, the boot path, a prompt-less `--new`, or the `-i` TUI.
+- **FR-008**: The spinner MUST appear only when **both** hold: (a) the prompt surface is a non-TUI prompt-bearing turn (positional, piped, or the round-012 interactive reader), **and** (b) the FR-006 gate is satisfied (`stderr` is a terminal and `-r` is not set). It MUST NOT appear on `--version`, `-d`, `-l N`, the boot path, a prompt-less `--new`, or the `-i` TUI — the surface exclusion is a designed constraint, not merely an emergent consequence of the gate.
 - **FR-009**: On any turn failure (provider / tool / history), the system MUST clear the spinner before writing the class phrase; the class phrase and the exit code MUST be unchanged.
 - **FR-010**: The round MUST NOT introduce a new frozen class phrase, and the class-phrase vocabulary MUST remain unchanged.
 
@@ -122,7 +122,7 @@ As an operator, I want the spinner limited to the interactive terminal surfaces 
 
 - **SC-001**: A hermetically-run prompt turn on a forced-terminal stream shows an animated spinner whose label tracks the phase (awaiting the model / executing tools), while `stdout` stays byte-exact (covers FR-001–FR-004, FR-007).
 - **SC-002**: The tool-execution spinner carries the ` [CPU: … | MEM: …]` segment and the awaiting-the-model spinner does not (covers FR-005).
-- **SC-003**: No spinner is emitted when standard output is not a terminal, when `-r` is set, on any non-prompt path, or on the `-i` TUI (covers FR-006–FR-008).
+- **SC-003**: No spinner is emitted when the diagnostic stream (`stderr`) is not a terminal, when `-r` is set, on any non-prompt path, or on the `-i` TUI (covers FR-006–FR-008).
 - **SC-004**: On failure the spinner is cleared and the class phrase + exit code are unchanged; the class-phrase vocabulary is unchanged (covers FR-009, FR-010).
 - **SC-005**: The behaviour is carried by at least one executable interface Rule in `specs/truth/features/cli/**`, and the Gherkin/DSL topology audit passes.
 
@@ -130,9 +130,9 @@ As an operator, I want the spinner limited to the interactive terminal surfaces 
 
 - **A1 (reference)**: the parity target is the reference's `renderer_spinner.go` (frames, `{status} ({elapsed}s)`, the metrics variant) + `spinner.go` (phase lifecycle), with the phase labels from `internal/domain/events/types.go`.
 - **A2 (labels)**: `<model>` = the active provider's configured model; the bracket is omitted when empty; tool names come from the tool call(s) in the current phase, joined `[a, b]` when several.
-- **A3 (metrics)**: the ` [CPU: <cpu>% | MEM: <mem>%]` segment is sampled from the host process by a dependency-free, POSIX-only mechanism (Linux `/proc`, macOS `sysctl`/host statistics) — pinned by `/axb-technical-research`.
+- **A3 (metrics)**: the ` [CPU: <cpu>% | MEM: <mem>%]` segment reports **machine-wide** CPU and memory (host CPU = Δ of `Σcpu − idle`; host memory percent), sampled by a dependency-free, POSIX-only mechanism (Linux `/proc/stat` + `/proc/meminfo`; macOS `sysctl`/mach — cgo and nocgo variants) behind a domain port — pinned by `/axb-technical-research`.
 - **A4 (frames / cadence)**: a single-character braille frame advancing over time (the reference's frame set and tick cadence are the parity target) — pinned by `/axb-technical-research`.
-- **A5 (gate)**: drawn only when standard output is a terminal and `-r` is off (round-005 FR-007 / round-006 FR-003); this wires the standard-output terminal probe and closes round-006 / PR #16 **Obs 1**.
+- **A5 (gate)**: drawn only when the **`stderr`** is a terminal and `-r` is off — mirroring the reference's `IsTerminalContext()` (which reads `ui.stderr`), driven in E2E by a `TELL_ME_FORCE_STDERR_TTY` seam (mirroring the round-012 stdin seam). This does **not** wire a standard-output probe; round-006 / PR #16 **Obs 1** stays **OPEN**.
 - **A6 (surfaces)**: positional, piped, and the round-012 reader; **not** the `-i` TUI; **not** the non-prompt paths.
 - **A7 (streams)**: `stderr` only; `stdout` byte-exact; plain text (no ANSI).
 - **A8 (elapsed)**: whole seconds for the current waiting interval; a fresh interval after interleaved output restarts the counter. The exact reset behaviour across a phase transition is pinned by `/axb-technical-research` (the reference updates the status in place within a turn).

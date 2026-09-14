@@ -4,8 +4,8 @@ Feature: Presenting the progress spinner
   # waiting (awaiting the model, or running tools) the run shows a live progress spinner on the
   # diagnostic stream (`stderr`): a braille frame, a phase label naming the model or the tool(s), and a
   # whole-seconds elapsed counter; while tools run the line also reports the machine's CPU/memory. The
-  # spinner is drawn only when standard output is a terminal and `-r` is off (`the operator is watching a
-  # terminal` arranges the round-019 standard-output terminal seam); it yields the line to the answer. The
+  # spinner is drawn only when the diagnostic stream (`stderr`) is a terminal and `-r` is off (`the operator
+  # is watching a terminal` arranges the round-019 `stderr` terminal seam); it yields the line to the answer. The
   # negatives are carried by the interface root (`the run shows no progress spinner`) on the `diagnostics`
   # and `history` modules and the `-i` surface. Acceptance journeys:
   # features/acceptance/showing-a-progress-indicator.feature, labelling-the-progress-indicator.feature,
@@ -76,17 +76,17 @@ Feature: Presenting the progress spinner
       Then the progress spinner no longer appears once the answer is written
       And tellme exits successfully
 
-  Rule: The spinner is drawn only when the operator is watching a terminal
+  Rule: The spinner is drawn only when the diagnostics are shown at a terminal
 
-    Example: The operator sends the answer to another program
+    Example: The diagnostics are not shown at a terminal
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint answers with "all good"
-      When the operator pipes "list the open issues" into tellme
+      When the operator starts tellme with the prompt "hi"
       Then the run shows no progress spinner
       And tellme exits successfully
 
-    Example: The operator asks for the raw answer
+    Example: The operator asks for the raw answer at a terminal
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the operator is watching a terminal

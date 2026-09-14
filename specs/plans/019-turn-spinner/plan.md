@@ -20,7 +20,7 @@ specs/plans/019-turn-spinner/
 └── tasks.md                       # produced later by /axb-tasks
 
 specs/truth/
-├── techstack.md                   # /axb-technical-research — MODIFY (spinner row + wired stdout probe) ✓ done
+├── techstack.md                   # /axb-technical-research — MODIFY (spinner row + stderr gate + telemetry row) ✓ done
 └── features/                      # executable CLI Gherkin + DSL — /axb-dsl-refine
     └── cli/…                      # ADD/MODIFY — the turn-spinner contract + DSL rows
 ```
@@ -37,16 +37,16 @@ internal/
 │   ├── spinner.go                 # NEW — the round-019 spinner: the braille frame set, the phase-label
 │   │                              #   + elapsed formatter (`{frame}{status} ({n}s)`), and a dependency-free
 │   │                              #   ticker-driven presenter over the injected clock + stderr seams
-│   ├── metrics_proc.go            # NEW — dependency-free POSIX CPU/memory sampling for the tool-execution
-│   │                              #   ` [CPU: … | MEM: …]` segment (Linux /proc, macOS sysctl/mach),
-│   │                              #   behind an injectable seam
 │   ├── turn.go                    # unchanged — the round-017 turn chrome
 │   ├── status.go                  # unchanged — the round-009 payload status formatter
 │   ├── metrics.go                 # unchanged — the round-018 post-turn metrics/summary formatters
 │   └── tui/prompt/…               # unchanged — the `-i` TUI (out of scope)
-└── cli/cli.go                     # CHANGED — own the spinner lifecycle around each waiting phase; wire the
-                                   #   standard-output terminal probe (`isatty(stdout) && !-r`, closing
-                                   #   round-006 / PR #16 Obs 1) + the `TELL_ME_FORCE_STDOUT_TTY` seam
+├── domain/metrics/…               # NEW — the SystemMetricsProvider port (machine-wide CPU/memory percentages)
+├── infrastructure/telemetry/      # NEW — the POSIX adapters: system_metrics_linux.go,
+│                                  #   system_metrics_darwin_cgo.go, system_metrics_darwin_nocgo.go
+└── cli/cli.go                     # CHANGED — own the spinner lifecycle around each waiting phase; gate on the
+                                   #   diagnostic stream (`isatty(stderr) && !-r`) + the `TELL_ME_FORCE_STDERR_TTY`
+                                   #   seam (no stdout probe — round-006 / PR #16 Obs 1 stays OPEN)
 ```
 
 ```text
@@ -58,9 +58,9 @@ Makefile                            # unchanged (no new gate)
 reference's **live progress spinner** to the non-TUI prompt surfaces so a run is never silently waiting —
 brailled frames advancing on a ticker, a phase label (` Thinking [<model>]...` /
 ` Executing [<tool>]...` / ` Executing tools [<a>, <b>]...`), and, while tools run, the host CPU/memory
-segment. It is gated by the **standard-output terminal probe** (`isatty(stdout) && !-r`) — which **wires
-the probe round 006 left as a named pin** (PR #16 **Obs 1**) — and is written to `stderr` with `stdout`
-kept byte-exact. There is **no** new endpoint, **no** new persisted state, and **no** new dependency,
+segment. It is written to `stderr` and gated on the **diagnostic stream** (`isatty(stderr) && !-r`) — mirroring the
+reference's `IsTerminalContext()` (`ui.stderr`) — leaving `stdout` byte-exact; no standard-output probe is
+wired, so round-006 / PR #16 **Obs 1** stays **OPEN**. There is **no** new endpoint, **no** new persisted state, and **no** new dependency,
 consistent with `research.md` Decisions 1–9. The **executable contract** is pinned in
 `specs/truth/features/cli/**` by `/axb-dsl-refine`; the spinner lives in a new `internal/ui/spinner.go`
 beside the existing `internal/ui` formatters; `specs/truth/contracts/**`, `specs/truth/data/**`, and
@@ -77,7 +77,7 @@ CLI end's prompt-turn output only, and persists nothing.
 
 1. `CLI end (operator terminal interface)`
    - Endpoint type: `CLI / terminal endpoint`
-   - Primary interface: the **prompt-bearing turn** (positional / piped / the round-012 reader) — while the run is waiting (awaiting the model, or executing tools) show a **live progress spinner** on the **diagnostic stream (`stderr`)**: a braille frame advancing on a ~200 ms ticker, a **phase label** (` Thinking [<model>]...` while awaiting the model; ` Executing [<tool>]...` / ` Executing tools [<a>, <b>]...` while tools run), and the whole-seconds elapsed counter `({n}s)`; the **tool-execution** state also shows the host CPU/memory segment (` [CPU: <c>% | MEM: <m>%]`). The spinner is drawn **only when standard output is a terminal and `-r` is off**, cleared before any interleaved write, absent on non-prompt paths and the `-i` TUI, and `stdout` stays byte-exact; the class-phrase vocabulary is unchanged.
+   - Primary interface: the **prompt-bearing turn** (positional / piped / the round-012 reader) — while the run is waiting (awaiting the model, or executing tools) show a **live progress spinner** on the **diagnostic stream (`stderr`)**: a braille frame advancing on a ~200 ms ticker, a **phase label** (` Thinking [<model>]...` while awaiting the model; ` Executing [<tool>]...` / ` Executing tools [<a>, <b>]...` while tools run), and the whole-seconds elapsed counter `({n}s)`; the **tool-execution** state also shows the host CPU/memory segment (` [CPU: <c>% | MEM: <m>%]`). The spinner is drawn **only when the diagnostic stream (`stderr`) is a terminal and `-r` is off**, cleared before any interleaved write, absent on non-prompt paths and the `-i` TUI, and `stdout` stays byte-exact; the class-phrase vocabulary is unchanged.
    - Requirement evidence: `FR-001`–`FR-011`, `NFR-001`–`NFR-005`; acceptance features `showing-a-progress-indicator.feature`, `labelling-the-progress-indicator.feature`, `keeping-the-progress-indicator-bounded.feature`.
    - Planner: **none** — terminal endpoints have no analysis planner. Its **contract owner** is **`/axb-dsl-refine`**, which updates the executable Gherkin features and DSL rows under `specs/truth/features/cli/**` at delivery (carried forward per `wave-covers-interfaces`).
 
@@ -85,7 +85,7 @@ CLI end's prompt-turn output only, and persists nothing.
 > - `/axb-api-plan` = **`NOOP`** (standalone CLI; no OpenAPI/HTTP surface of tellme's own; the spinner authors no request/response shape).
 > - `/axb-data-plan` = **`NOOP`** — the spinner is **ephemeral runtime presentation** (no persisted state); it reads only the active model name (config) and the current tool-call names. No entity / field / lifecycle / store.
 > - `/axb-ui-plan` = **skipped** — the round changes no user-facing UX surface; the `-i` TUI (terminal-mode UI, round 015/016) is explicitly out of scope (`-i` precedes prompt capture). No plan-side `ui/**` artifact.
-> - **Truth amendment carried to `/axb-dsl-refine`**: **ADD** `specs/truth/features/cli/chat/**` — the turn-spinner contract as executable Rules; **MODIFY** `chat/dsl.md` (spinner step rows); **MODIFY** the interface-root `cli/dsl.md` (**+1 cross-module Then row** for the cross-module negative, e.g. `the run shows no progress indicator`, used by `chat` + `diagnostics` + `history`); **MODIFY** the `diagnostics` / `history` carrier features. No new class phrase; the root vocabulary is unchanged.
+> - **Truth amendment carried to `/axb-dsl-refine`**: **ADD** `specs/truth/features/cli/chat/**` — the turn-spinner contract as executable Rules; **MODIFY** `chat/dsl.md` (spinner step rows); **MODIFY** the interface-root `cli/dsl.md` (**+1 cross-module Then row** for the cross-module negative, e.g. `the run shows no progress indicator`, used by `chat` + `diagnostics` + `history`); **MODIFY** the `diagnostics` / `history` / `presenting-the-turn` carrier features and **MODIFY** `chat/reporting-a-failed-provider-request.feature` (the failed-turn spinner-clear carrier). No new class phrase; the root vocabulary is unchanged.
 
 ---
 
@@ -96,7 +96,7 @@ CLI end's prompt-turn output only, and persists nothing.
 - Parallel-analyzed interfaces:
   - `CLI end (operator terminal interface)`
 - Analysis focus:
-  - **CLI end** → handoff to contract owner **`/axb-dsl-refine`**: pin the turn-spinner contract as mechanically assertable interface Rules — the spinner is present while the run waits (and animates), the phase label names the model / tools, the tool-execution state carries the resources segment, the spinner yields to interleaved output and clears before completion, it is drawn **only when standard output is a terminal and `-r` is off**, and `stdout` stays byte-exact with the class-phrase vocabulary unchanged.
+  - **CLI end** → handoff to contract owner **`/axb-dsl-refine`**: pin the turn-spinner contract as mechanically assertable interface Rules — the spinner is present while the run waits (and animates), the phase label names the model / tools, the tool-execution state carries the resources segment, the spinner yields to interleaved output and clears before completion, it is drawn **only when the diagnostic stream (`stderr`) is a terminal and `-r` is off** (a `stderr` diagnostic, gated like the reference), and `stdout` stays byte-exact with the class-phrase vocabulary unchanged.
   - **API** → **`NOOP`**; **Data** → **`NOOP`**; **UI** → **skipped**.
 - Scheduling rationale: the round has a **single interface**; there is no second end to order against, so the whole analysis is one wave, carried forward to the CLI contract owner at delivery.
 
@@ -117,4 +117,4 @@ Not delegated:
 
 ### Gating blockers
 
-*(none — the operator locked the spinner's visible form + labels (clarify Q1=2), the tool-execution metrics segment (Q2=2), the stop/resume behaviour (A), the `-i`-excluded / POSIX-only scope, and `research.md` Decisions 1–9 settled the frames/cadence, the label derivation, the elapsed semantics, the CPU/memory sampling, the gate + the forced stdout seam, the lifecycle placement, the verification, and the dependency footprint. **Open (non-blocking):** the exact DSL step vocabulary (`/axb-dsl-refine`) and the exact presenter/sampling layout (implementation). None gate this round.)*
+*(none — the operator locked the spinner's visible form + labels (clarify Q1=2), the tool-execution metrics segment (Q2=2), the stop/resume behaviour (A), the `-i`-excluded / POSIX-only scope, and `research.md` Decisions 1–9 settled the frames/cadence, the label derivation, the elapsed semantics, the CPU/memory sampling, the gate + the forced stderr seam, the lifecycle placement, the verification, and the dependency footprint. **Open (non-blocking):** the exact DSL step vocabulary (`/axb-dsl-refine`) and the exact presenter/sampling layout (implementation). None gate this round.)*

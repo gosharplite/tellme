@@ -34,3 +34,14 @@ Feature: Reporting a failed provider request
       Then tellme refuses to proceed
       And tellme explains on stderr that "the provider request failed"
       And tellme exits with the provider error code
+
+  Rule: A failed turn still reports the failure and leaves no progress indicator
+
+    Example: The provider cannot be reached while the operator watches the terminal
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the operator is watching a terminal
+      And a configured provider "dead-model" whose endpoint is unreachable
+      When the operator starts tellme with the prompt "Hello"
+      Then the run shows no progress spinner
+      And tellme explains on stderr that "the provider request failed"
