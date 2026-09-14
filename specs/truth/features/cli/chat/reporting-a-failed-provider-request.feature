@@ -37,8 +37,9 @@ Feature: Reporting a failed provider request
 
   Rule: A failed turn still reports the failure and leaves no progress indicator
 
-    # Proves the absence of any indicator residue (the unreachable endpoint fails before a frame is drawn);
-    # the mid-wait clear-before-the-class-phrase case is a recorded forward item.
+    # Proves the absence of any indicator residue: the spinner draws one frame and then synchronously clears
+    # it (AgentLoop calls the observer before the request), so the terminal-visible stream shows none.
+    # The affirmative mid-wait clear-before-the-class-phrase proof is a recorded forward item.
     Example: The provider cannot be reached while the operator watches the terminal
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"

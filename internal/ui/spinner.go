@@ -174,26 +174,28 @@ func (s *Spinner) resume() {
 
 // deactivate stops the redraw goroutine, waits for it to exit, and writes the
 // final clear frame — all synchronously, so no in-flight frame survives the
-// clear (round-019 research D10). Idempotent.
+// clear (round-019 research D10).
+//
+// It claims the stop by clearing `running` UNDER the mutex before closing
+// `stopCh`, so two concurrent Stop()s cannot both pass the guard and double-close
+// the channel (a panic). It is idempotent.
 func (s *Spinner) deactivate() {
 	s.mu.Lock()
 	if !s.running {
 		s.mu.Unlock()
 		return
 	}
-	stop, done := s.stopCh, s.doneCh
+	s.running = false
+	stop, done, stopTicker := s.stopCh, s.doneCh, s.stopTicker
+	s.stopTicker = nil
 	s.mu.Unlock()
 	close(stop)
 	<-done
-	s.mu.Lock()
-	if s.running {
-		s.running = false
-		if s.stopTicker != nil {
-			s.stopTicker()
-			s.stopTicker = nil
-		}
-		s.clearLocked()
+	if stopTicker != nil {
+		stopTicker()
 	}
+	s.mu.Lock()
+	s.clearLocked()
 	s.mu.Unlock()
 }
 

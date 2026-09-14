@@ -114,7 +114,8 @@ type runtimeEnv struct {
 	stderr io.Writer
 	isTTY  func(any) bool
 	// stderrTTY is the diagnostic-stream (stderr) terminal probe (round 019).
-	// Nil falls back to isTTY so existing constructions stay valid.
+	// Nil disables the turn spinner — the gate is the stderr stream, so there is
+	// no fallback to the shared (stdin) probe.
 	stderrTTY func(any) bool
 	renderer  answerRenderer
 	// clock is the injected time seam for the payload status line (round 009);
@@ -291,18 +292,16 @@ func stderrTerminalDetector() func(any) bool {
 	}
 }
 
-// stderrIsTerminal reports whether the diagnostic stream (stderr) is a terminal,
-// using the stderr probe when supplied (falling back to the shared probe). It is
-// the round-019 diagnostic-stream gate (round-019 FR-006).
+// stderrIsTerminal reports whether the diagnostic stream (stderr) is a terminal
+// via the dedicated stderr probe. It deliberately does NOT fall back to the
+// shared (stdin) probe: the round-019 gate is the *stderr* stream (FR-006), and a
+// fallback would make every `runtimeEnv{isTTY: true}` construction report a
+// terminal stderr. With no stderr probe set the spinner is off (the safe default).
 func (e runtimeEnv) stderrIsTerminal() bool {
-	probe := e.stderrTTY
-	if probe == nil {
-		probe = e.isTTY
-	}
-	if probe == nil {
+	if e.stderrTTY == nil {
 		return false
 	}
-	return probe(e.stderr)
+	return e.stderrTTY(e.stderr)
 }
 
 // terminalDetector returns the process's terminal probe. When the diagnostic
@@ -637,15 +636,11 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	if sp != nil {
 		// Synchronous clear before any interleaved write (the answer, the
 		// post-turn lines) so no frame survives into the completed turn. The
-		// clear leaves the cursor mid-line for the answer on `stdout` (the
-		// reference parity: the answer continues on the cleared line).
+		// clear leaves the cursor at column 0 of the erased line, so the answer
+		// on `stdout` (and a class phrase on `stderr`) continues on that line.
 		sp.Stop()
 	}
 	if err != nil {
-		// The class phrase is a line-oriented stderr contract, so a spinner that
-		// left the diagnostic cursor mid-line must be closed first (round-019
-		// failing-turn carrier: the frozen `tellme: {phrase}` line stays intact).
-		closeSpinnerLine(sp, env)
 		var inc *agent.ErrIncomplete
 		if errors.As(err, &inc) {
 			return emitToolError(env.stderr, inc)
@@ -653,7 +648,6 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		return emitProviderError(env.stderr, err)
 	}
 	if err := store.Append(history.Entry{Prompt: prompt, Answer: result.Answer, Steps: result.Steps}); err != nil {
-		closeSpinnerLine(sp, env)
 		return emitHistoryError(env.stderr, err)
 	}
 	env.writeAnswer(result.Answer, opts.raw, res.WrapWidth)
@@ -794,16 +788,6 @@ func newTurnSpinner(opts turnOptions, env runtimeEnv, model string) *ui.Spinner 
 		return nil
 	}
 	return ui.NewSpinner(env.stderr, model, infratelemetry.NewSystemMetricsProvider())
-}
-
-// closeSpinnerLine terminates the diagnostic line a spinner left mid-line, so a
-// following class phrase starts its own `tellme: ` line. A nil spinner is a
-// no-op (no spinner was drawn).
-func closeSpinnerLine(sp *ui.Spinner, env runtimeEnv) {
-	if sp == nil {
-		return
-	}
-	_, _ = fmt.Fprint(env.stderr, "\n")
 }
 
 // renderHistoryList lists the last N persisted messages (round-007 FR-007..FR-009)

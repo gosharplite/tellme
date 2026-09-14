@@ -44,18 +44,19 @@ func TestStderrTerminalDetectorForcedSeam(t *testing.T) {
 }
 
 func TestRuntimeEnvStderrIsTerminal(t *testing.T) {
-	// Falls back to the shared probe when no stderr probe is supplied.
+	// No dedicated stderr probe → off, even when the shared probe says terminal
+	// (the gate is the stderr stream — no fallback to the stdin probe).
 	e := runtimeEnv{stderr: io.Discard, isTTY: func(any) bool { return true }}
-	if !e.stderrIsTerminal() {
-		t.Error("stderrIsTerminal did not fall back to the shared probe")
+	if e.stderrIsTerminal() {
+		t.Error("stderrIsTerminal fell back to the shared (stdin) probe")
 	}
-	// Prefers the dedicated stderr probe when supplied.
-	e2 := runtimeEnv{stderr: io.Discard, isTTY: func(any) bool { return false }, stderrTTY: func(any) bool { return true }}
+	// The dedicated stderr probe drives the gate.
+	e2 := runtimeEnv{stderr: io.Discard, stderrTTY: func(any) bool { return true }}
 	if !e2.stderrIsTerminal() {
 		t.Error("stderrIsTerminal did not use the dedicated stderr probe")
 	}
-	// No probes at all → not a terminal.
-	if (runtimeEnv{stderr: io.Discard}).stderrIsTerminal() {
-		t.Error("stderrIsTerminal with no probe reported a terminal")
+	e3 := runtimeEnv{stderr: io.Discard, stderrTTY: func(any) bool { return false }}
+	if e3.stderrIsTerminal() {
+		t.Error("stderrIsTerminal reported a terminal from a false stderr probe")
 	}
 }

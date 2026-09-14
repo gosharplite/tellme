@@ -17,7 +17,8 @@ type procCPUTicks struct {
 }
 
 // parseProcStatHostCPU parses the aggregate host `cpu ` line of /proc/stat: the
-// total is the sum of every tick column and the idle is idle + iowait.
+// total is the sum of every tick column and the idle is the `idle` column ONLY
+// (reference parity — iowait is not counted as idle).
 func parseProcStatHostCPU(data string) (procCPUTicks, bool) {
 	for _, line := range strings.Split(data, "\n") {
 		if !strings.HasPrefix(line, "cpu ") {
@@ -40,10 +41,7 @@ func parseProcStatHostCPU(data string) (procCPUTicks, bool) {
 			total += v
 		}
 		if len(ticks) > 3 {
-			idle += ticks[3] // idle
-		}
-		if len(ticks) > 4 {
-			idle += ticks[4] // iowait
+			idle = ticks[3] // idle only
 		}
 		return procCPUTicks{total: total, idle: idle}, true
 	}

@@ -2,10 +2,30 @@
 
 package telemetry
 
-import "syscall"
+import (
+	"syscall"
 
-// Round-019 macOS machine-wide sampling helpers (research Decision 5). Shared by
-// the cgo and nocgo provider variants.
+	"github.com/gosharplite/tellme/internal/domain/metrics"
+)
+
+// Round-019 macOS machine-wide sampler (research Decision 5).
+//
+// Memory is read via sysctl. macOS host CPU requires mach host statistics
+// (host_statistics64), which needs cgo; until that lands the CPU is reported as
+// 0.0 so the resource segment still renders. This is a recorded forward item —
+// research.md D5 / specs/truth/techstack.md (System metrics provider (telemetry)).
+
+// darwinMetricsProvider samples the machine's CPU and memory.
+type darwinMetricsProvider struct{}
+
+// NewSystemMetricsProvider builds the macOS machine-wide metrics provider.
+func NewSystemMetricsProvider() metrics.SystemMetricsProvider { return &darwinMetricsProvider{} }
+
+// Sample returns the machine-wide CPU (0.0 pending a cgo mach sampler) and
+// memory usage percentages.
+func (p *darwinMetricsProvider) Sample() (cpuPercent, memPercent float64) {
+	return 0, darwinMemPercent()
+}
 
 // darwinMemPercent reads the machine-wide used-memory percentage via sysctl
 // (hw.memsize total, hw.pagesize × vm.page_free_count free). It degrades to 0
