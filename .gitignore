@@ -13,3 +13,4 @@ coverage.out
 # Round-018 per-mode usage logs (written under output/<mode>/; never commit a stray one)
 tokens.log
 tokens.archive.jsonl
+tokens.summary.json

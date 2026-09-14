@@ -647,14 +647,16 @@ func emitPostTurnStatus(env runtimeEnv, res resolution, result agent.AgentResult
 	if !result.Usage.Reported {
 		return
 	}
-	// An empty workspace has no per-mode usage log; skip persistence so a run
-	// with no resolved workspace can never write into the process cwd.
-	var prior []history.UsageRecord
+	// The session roll-up: read the persisted cumulative summary (O(1)) instead
+	// of re-parsing the whole log each turn (round-018 review #1). An empty
+	// workspace has no log; persistence is also skipped so such a run never
+	// writes into the process cwd.
+	var session history.UsageSummary
 	us := newUsageStore(res.Workspace)
 	if res.Workspace != "" {
-		// A load failure is best-effort: the session totals then understate the
-		// true session, but the turn never breaks.
-		prior, _ = us.Load()
+		// A summary failure is best-effort: the session totals then understate
+		// the true session, but the turn never breaks.
+		session, _ = us.Totals()
 	}
 
 	pricing := ui.Pricing{Hit: res.Pricing.HIT, Miss: res.Pricing.MISS, Comp: res.Pricing.COMP}
@@ -688,24 +690,12 @@ func emitPostTurnStatus(env runtimeEnv, res resolution, result agent.AgentResult
 	// operator-facing display lines (they are emitted below regardless), and an
 	// empty workspace must never write into the process cwd.
 	if res.Workspace != "" {
-		for _, rec := range turnRecords {
-			_ = us.Append(rec)
-		}
+		_ = us.AppendBatch(turnRecords)
 	}
-
-	sMiss, sHit, sOut := 0, 0, 0
-	sessionCost := 0.0
-	add := func(r history.UsageRecord) {
-		sMiss += r.PromptTokens - r.CachedTokens
-		sHit += r.CachedTokens
-		sOut += r.ResponseTokens + r.ThinkingTokens
-		sessionCost += r.Cost
-	}
-	for _, r := range prior {
-		add(r)
-	}
-	for _, r := range turnRecords {
-		add(r)
+	// Fold this turn's records into the session roll-up (the persisted summary
+	// read above already carries the prior turns).
+	for _, rec := range turnRecords {
+		session.Add(rec)
 	}
 
 	last := result.Usage
@@ -715,7 +705,7 @@ func emitPostTurnStatus(env runtimeEnv, res resolution, result agent.AgentResult
 		Completion: last.CompletionTokens,
 		Thinking:   last.ThinkingTokens,
 	}))
-	_, _ = fmt.Fprintln(env.stderr, ui.FormatReady(lastCost, turnCost, sessionCost, sMiss, sHit, sOut, ui.HitRate(sHit, sMiss)))
+	_, _ = fmt.Fprintln(env.stderr, ui.FormatReady(lastCost, turnCost, session.Cost, session.Miss, session.Hit, session.Out, ui.HitRate(session.Hit, session.Miss)))
 }
 
 // emitInputCaptured writes the round-017 input-capture acknowledgement to the

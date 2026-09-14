@@ -258,7 +258,9 @@ func parseResponse(raw []byte) (llm.Response, error) {
 			CachedTokens: cached,
 			// Round 018 FR-002: the wire `completion_tokens` INCLUDES reasoning,
 			// so store the EXCLUSIVE completion (disjoint from ThinkingTokens).
-			CompletionTokens: decoded.Usage.CompletionTokens - reasoning,
+			// Floor at zero: a rogue/exclusive proxy could report a malformed
+			// count (round-018 review #2).
+			CompletionTokens: max(0, decoded.Usage.CompletionTokens-reasoning),
 			ThinkingTokens:   reasoning,
 			TotalTokens:      decoded.Usage.TotalTokens,
 		}
