@@ -9,7 +9,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/techstack.md` | _pending_ | _pending_ |
+| MODIFY | `specs/truth/techstack.md` | Add the **Turn progress spinner (operator)** row (CLI Application): a hand-written `internal/ui` live spinner on `stderr` (`{frame}{status} ({n}s)`, ~200 ms braille frames), phase labels (` Thinking [<model>]...` / ` Executing [<tool>]...` / ` Executing tools [<a>, <b>]...`) + the tool-execution ` [CPU: … \| MEM: …]` segment. **Wire the standard-output terminal probe** in the Terminal detection row (the spinner is tellme's first own presentation chrome — closing round-006 / PR #16 Obs 1) and add the `TELL_ME_FORCE_STDOUT_TTY` seam. Extend the Testing & Verification rows (round-019 spinner formatter + CPU/mem samplers; E2E via the forced stdout seam) and the pty bullet under Not Introduced Yet. | Round-019 research D1–D9: reproduce the reference's spinner as a dependency-free hand-written presenter (labels + host CPU/mem), gated by the newly-wired standard-output probe. |
 
 ## /axb-api-plan
 
