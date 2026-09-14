@@ -17,11 +17,21 @@ import (
 )
 
 // Reply is one scripted provider response: a tool-call request (ToolName set) or
-// a plain answer text (otherwise). Round 008.
+// a plain answer text (otherwise). Round 008. Round 019 adds Tools: a single
+// response carrying several tool-call requests (the several-tool spinner case).
 type Reply struct {
 	ToolName  string
 	Arguments string
 	Answer    string
+	// Tools, when non-empty, scripts ONE response carrying every listed tool-call
+	// request (round 019). Mutually exclusive with ToolName.
+	Tools []ToolRequest
+}
+
+// ToolRequest is one tool call in a multi-tool scripted reply (round 019).
+type ToolRequest struct {
+	Name      string
+	Arguments string
 }
 
 // Provider is a scriptable OpenAI-compatible fake.
@@ -282,29 +292,49 @@ func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
 		_, _ = w.Write([]byte(`{"error":{"message":"scripted error"}}`))
 	case noAnswer:
-		if vertex {
-			_, _ = w.Write([]byte(`{"candidates":[]}`))
-		} else {
-			_, _ = w.Write([]byte(`{"choices":[]}`))
-		}
-	case hasScript && reply.ToolName != "":
-		if vertex {
-			_, _ = w.Write([]byte(vertexToolCallBody(reply.ToolName, reply.Arguments)))
-		} else {
-			_, _ = w.Write([]byte(toolCallBody(reply.ToolName, reply.Arguments, usage)))
-		}
+		_, _ = w.Write([]byte(noAnswerBody(vertex)))
 	case hasScript:
+		_, _ = w.Write([]byte(scriptedBody(reply, vertex, usage)))
+	default:
+		_, _ = w.Write([]byte(plainAnswerBody(answer, vertex, usage)))
+	}
+}
+
+// noAnswerBody is the body for a provider answer with no usable content.
+func noAnswerBody(vertex bool) string {
+	if vertex {
+		return `{"candidates":[]}`
+	}
+	return `{"choices":[]}`
+}
+
+// plainAnswerBody is the body for the default (unscripted) answer.
+func plainAnswerBody(answer string, vertex bool, u *usageCounts) string {
+	if vertex {
+		return vertexAnswerBody(answer, u)
+	}
+	return answerBody(answer, u)
+}
+
+// scriptedBody picks the scripted reply's wire body, family-aware. Extracted so
+// the handler's switch stays below the cyclop gate (round 019).
+func scriptedBody(reply Reply, vertex bool, u *usageCounts) string {
+	switch {
+	case len(reply.Tools) > 0:
 		if vertex {
-			_, _ = w.Write([]byte(vertexAnswerBody(reply.Answer, usage)))
-		} else {
-			_, _ = w.Write([]byte(answerBody(reply.Answer, usage)))
+			return vertexMultiToolCallBody(reply.Tools)
 		}
+		return multiToolCallBody(reply.Tools, u)
+	case reply.ToolName != "":
+		if vertex {
+			return vertexToolCallBody(reply.ToolName, reply.Arguments)
+		}
+		return toolCallBody(reply.ToolName, reply.Arguments, u)
 	default:
 		if vertex {
-			_, _ = w.Write([]byte(vertexAnswerBody(answer, usage)))
-		} else {
-			_, _ = w.Write([]byte(answerBody(answer, usage)))
+			return vertexAnswerBody(reply.Answer, u)
 		}
+		return answerBody(reply.Answer, u)
 	}
 }
 
@@ -324,6 +354,33 @@ func toolCallBody(name, arguments string, u *usageCounts) string {
 func jsonString(s string) string {
 	b, _ := json.Marshal(s)
 	return string(b)
+}
+
+// multiToolCallBody builds a single OpenAI-compatible response carrying every
+// listed tool call (deterministic ids call_1..call_N). Round 019.
+func multiToolCallBody(tools []ToolRequest, u *usageCounts) string {
+	calls := make([]string, 0, len(tools))
+	for i, t := range tools {
+		calls = append(calls, fmt.Sprintf(
+			`{"id":"call_%d","type":"function","function":{"name":%s,"arguments":%s}}`,
+			i+1, jsonString(t.Name), jsonString(t.Arguments)))
+	}
+	return `{"choices":[{"message":{"role":"assistant","content":"","tool_calls":[` +
+		strings.Join(calls, ",") + `]}}]` + usageBlock(u) + `}`
+}
+
+// vertexMultiToolCallBody builds a single Vertex response carrying every listed
+// functionCall part. Round 019.
+func vertexMultiToolCallBody(tools []ToolRequest) string {
+	parts := make([]string, 0, len(tools))
+	for _, t := range tools {
+		args := strings.TrimSpace(t.Arguments)
+		if args == "" {
+			args = "{}"
+		}
+		parts = append(parts, `{"functionCall":{"name":`+jsonString(t.Name)+`,"args":`+args+`},"thoughtSignature":"sig-1"}`)
+	}
+	return `{"candidates":[{"content":{"role":"model","parts":[` + strings.Join(parts, ",") + `]}}]}`
 }
 
 // vertexAnswerBody builds a Vertex `:generateContent` answer response (round-013).

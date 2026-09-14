@@ -680,3 +680,140 @@ A new session on the same calendar day: opened round **018** (the post-turn stat
 
 ### PM follow-ups
 - None new (spec/acceptance unchanged).
+
+
+## 20. Session 9 (2026-09-14) — round 019 (`019-turn-spinner`): plan + truth certified; `/axb-implement` started + paused
+
+A session on the same calendar day: opened round **019** (the reference's **live progress spinner**), ran the **plan + truth half** through **four** architectural review rounds on PR [#44](https://github.com/gosharplite/tellme/pull/44), and started `/axb-implement` — **paused after Phase-1 reconnaissance at the operator's request; no product code yet**.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 018 delivered/frozen; active branch `dev`) |
+| Round-019 theme | a live **progress spinner** on the non-TUI prompt surfaces (between prompt capture and terminal-control regain) |
+| `/axb-specify` | `specs/plans/019-turn-spinner/`; Clarify **Q1 → 2** (reference-parity labels with identifiers), **Q2 → 2** (keep the tool-exec CPU/MEM segment) |
+| `/axb-spec-by-example` | 3 acceptance features (showing / labelling / bounded) |
+| `/axb-technical-research` | `research.md` **D1–10** + `specs/truth/techstack.md` MODIFY |
+| `/axb-system-analysis` | `plan.md` — 1 interface · 1 wave; `/axb-api-plan` = NOOP; `/axb-data-plan` = NOOP; `/axb-ui-plan` skipped |
+| `/axb-dsl-refine` | ADD `chat/presenting-the-progress-spinner.feature` (5 Rules); `chat/dsl.md` **+8**; root `cli/dsl.md` **+2**; failure + boundary carriers; audit PASSED |
+| `/axb-tasks` | `tasks.md` (**21 tasks**; Setup omitted — no new dependency) |
+| Reviews (PR #44) | **4 rounds** — all findings folded; **FULL APPROVAL — CERTIFIED READY FOR IMPLEMENTATION** |
+| `/axb-implement` | **started, PAUSED after Phase-1 reconnaissance** — no product code written |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — round 018 delivered/frozen; active branch `dev`; peers unchanged.
+2. **Round-019 scope** — the spinner; operator locked stop/resume + full reference-parity labels with identifiers + the metrics segment + `-i`-excluded + Linux/macOS-only.
+3. **Plan half** — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks`.
+4. **PR [#44](https://github.com/gosharplite/tellme/pull/44)** opened → `dev` (plan + truth only).
+5. **Four review rounds**, all folded (`a5d950b`, `80525c7`, `1638ecc`, `be5171b`).
+6. **`/axb-implement` started** (harness/product reconnaissance) and **paused** — the operator called the day.
+
+### Decisions locked (round 019)
+| # | Decision |
+| --- | --- |
+| Q1 | **full reference-parity labels with identifiers**: `⠋ Thinking [<model>]... (3s)` / `⠋ Executing [<tool>]... (3s)` / `⠋ Executing tools [<a>, <b>]... (3s)` |
+| Q2 | **keep** the tool-execution CPU/MEM segment |
+| — | **stop/resume** (reference parity A); **`-i` TUI out of scope**; **Linux/macOS only** |
+| B1 (rev) | gate = **`isatty(stderr) && !-r`** (the `stderr` spinner gated on `stderr`); **Obs 1 stays OPEN**; `TELL_ME_FORCE_STDERR_TTY` seam |
+| B2 (rev) | **machine-wide** CPU (`Δ of Σcpu − idle`) + memory percent |
+| TD1 (rev) | sampler behind a domain port (`internal/domain/metrics`) + `internal/infrastructure/telemetry` adapters (linux/darwin_cgo/darwin_nocgo) |
+| TD2 (rev) | failure carrier added; sweep-table cleanup |
+| R1 (rev) | synchronous `Stop()`/`Clear()` + one I/O mutex (`research.md` **D10**) |
+| B1 (impl rev) | **`LoopObserver`** seam on `AgentLoop` (`research.md` **D7**) — the CLI-injected spinner labels / clears / restores per phase |
+
+### Commits (branch `019-turn-spinner`, then pushed)
+| Commit | Note |
+| --- | --- |
+| `ef0a3a1` | `docs(019)`: plan package and spec |
+| `ac1f63b` | `docs(019)`: acceptance Gherkin |
+| `c5775bf` | `docs(019)`: technical research + techstack truth |
+| `53558ad` | `docs(019)`: system-analysis plan |
+| `6b41975` | `docs(019)`: CLI interface truth |
+| `be8a77f` | `docs(019)`: tasks.md |
+| `a5d950b` | `docs(019)`: fold PR #44 review — B1 (stderr gate), B2 (machine-wide), TD1/TD2, R1–R3 |
+| `80525c7` | `docs(019)`: FR-008(a) falsifiability + promote the gate Given to the interface root |
+| `1638ecc` | `docs(019)`: re-review nits — gate Given name + carrier ledger |
+| `be5171b` | `docs(019)`: impl-half review — `LoopObserver` seam, machine-wide terminology, sweep cleanup, I/O contract |
+
+### Verification
+- Topology audit **PASSED** — 33 features · **15 root + 185 module rows** · **956 steps**.
+- `gofmt` clean · `go vet ./...` OK · diff-level secret scan clean.
+- No product code yet → `make verify` / E2E **pending implementation**.
+
+### Open items (non-blocking)
+- **`/axb-implement`** (21 tasks) is the next step — **paused after recon; no product code**.
+- PR [#44](https://github.com/gosharplite/tellme/pull/44) plan+truth approved; **human merge pending**.
+- **Round-019 forward items** — the failed-turn carrier proves *absence* (mid-wait *clear-before-the-class-phrase* deferred); the `-i`/non-prompt carriers now force a terminal (`FR-008(a)` falsifiable).
+- **Round-018 forward items** — gray styling for the post-turn lines; `tokens.summary.json` best-effort.
+- **Carried forward** — PR #16 **Obs 1** stdout TTY probe OPEN (this round did **not** close it); round-006 Obs 3; sequential tools / no pruning / no `flock`; round-011 forward items; future `history.Store.Count()`.
+
+### Next steps
+1. **Resume `/axb-implement`** on `019-turn-spinner` over the 21 tasks (Foundational → Phase 3 → 4A → 4B → 4C), then the implementation review.
+2. On delivery: review the implementation head → **human merge** PR #44 → propagate `019-turn-spinner → dev → main`.
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `019-turn-spinner`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+---
+
+## 21. Session 10 (2026-09-14) — round 019 (`019-turn-spinner`) implementation delivered; PR #44 reviewed, merged + propagated; closeout
+
+A new session on the same calendar day: ran the `/axb-implement` implementation half of round 019, took it through the implementation review + folds on PR [#44](https://github.com/gosharplite/tellme/pull/44), made an **operator-directed** change (turn-scoped elapsed), saw the human **merge**, propagated `dev → main`, and ran `SESSION-CLOSEOUT.md`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 018 delivered/frozen; active branch `019-turn-spinner`) |
+| `/axb-implement` | One-Shot over the 21 tasks (T001–T021) — all `[X]`; the round-019 spinner implemented |
+| Product | `internal/ui/spinner.go`; `internal/domain/metrics` + `internal/domain/agent` ports; `internal/infrastructure/telemetry` POSIX samplers; `internal/agent/agentloop.go` observer hooks; `internal/cli/cli.go` gate/lifecycle |
+| Reviews (PR #44) | impl review **REQUEST CHANGES** (B1 truth=oracle · TD1 darwin · TD2 fallback · R1–R3) → folded `be6ec0a` → APPROVE + B1′ `38f5436` |
+| Operator-directed change | **turn-scoped elapsed** (from prompt capture, never reset) — `fbea976`, re-certified |
+| Merge | PR [#44](https://github.com/gosharplite/tellme/pull/44) human-**MERGED** into `dev` (`4315e59`, by `thptcnec`); propagated `dev → main` |
+| Closeout | `STATUS.md` refreshed (round 019 → DELIVERED/FROZEN); this §21 |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — round 018 delivered/frozen; active branch `019-turn-spinner` (matches STATUS).
+2. **`/axb-implement` One-Shot (T001–T021, all `[X]`)** — Foundational skeletons → Phase 3 (10 `[BDD-RED]` stepdefs + 3 `[UNIT]` + fake-provider multi-tool + hermetic stderr seam; T016 review PASS) → Feature green/refactor (T017–T020) → regression + falsifiability witnesses (T021).
+3. **Implementation review folds** — PR #44 impl review ([#5661307574](https://github.com/gosharplite/tellme/pull/44#issuecomment-5661307574)) → folded `be6ec0a` (B1 truth=oracle residue predicate; TD1 macOS + split collapse; TD2 no `stderrTTY` fallback; R1 reentrancy-safe `deactivate`; R2 drop `closeSpinnerLine` + terminal-read class-phrase oracle; R3 idle-only CPU) → fold review APPROVE + **B1′** (`38f5436`, class-phrase row) — also fixed a **latent darwin build break** (`syscall.SysctlUint64` undefined on darwin → `syscall.Sysctl` + native decode).
+4. **Operator-directed change** — the elapsed counter was made **turn-scoped** (counts from prompt capture, never reset): `research.md` D4 + `spec.md` A8 rewritten, `techstack.md` + `truth-delta.md` updated, `internal/ui/spinner.go` epochs + `internal/cli/cli.go` stamps `turnStart`, unit pin `TestSpinnerElapsedIsTurnScoped`. Re-review → **FULL APPROVAL** ([#5662153775](https://github.com/gosharplite/tellme/pull/44#issuecomment-5662153775)).
+5. **Merge + propagation** — PR #44 merged into `dev` (`4315e59`, by `thptcnec`, 2026-09-14T09:58:02Z); propagated `dev → main`.
+6. **`SESSION-CLOSEOUT.md`** — Steps 1–7 (clean tree; gates green; `STATUS.md` refreshed; this §21; commit on `dev`; propagate).
+
+### Decisions log
+| # | Decision |
+| --- | --- |
+| D1 | Round 019 **DELIVERED / FROZEN** on merge of PR #44 (`4315e59`); frozen head `fbea976`. |
+| D2 | The spinner's elapsed counter is **turn-scoped** (from prompt capture, never reset) — operator-directed; supersedes the per-interval reset in `research.md` D4 / `spec.md` A8. |
+| D3 | Closeout docs land on **`dev`** (round branches frozen). |
+
+### Commits
+| Commit | Note |
+| --- | --- |
+| `6eb7c17` | `feat(019)`: implement the live progress spinner (T001–T021) |
+| `be6ec0a` | `fix(019)`: fold PR #44 impl review (B1, TD1, TD2, R1–R3) |
+| `38f5436` | `fix(019)`: fold PR #44 fold review (B1′ + macOS) |
+| `fbea976` | `feat(019)`: make the spinner elapsed turn-scoped from prompt capture |
+| `4315e59` | PR [#44](https://github.com/gosharplite/tellme/pull/44) merge into `dev` (by `thptcnec`) |
+| *(this closeout)* | `docs(019)`: day close — round 019 delivered + `dev → main` |
+
+### Verification
+- `make verify` **OK** · `gofmt`/`go vet`/`staticcheck` clean · `golangci-lint` 0 issues.
+- `go test ./...` green · **E2E 135/135 scenarios · 980/980 steps**.
+- Topology audit **PASSED** (33 features · 15 root + 185 module rows · **956 steps**).
+- Falsifiability witnesses (a)/(b) reproduced · `go.mod`/`go.sum` unchanged · darwin `amd64`/`arm64` cross-build + vet OK.
+
+### Open items (non-blocking)
+- Round-019 forward items — failed-turn carrier proves *absence*; the macOS **CPU** leg is pending a cgo `mach` sampler (`0.0%`; memory via sysctl).
+- Round-019 review forward recommendation — add a **cross-compile gate** to the quality pipeline.
+- Carried: PR #16 **Obs 1** OPEN; round-006 Obs 3; sequential tools / no pruning / no `flock`; round-011 forward items; future `history.Store.Count()`.
+- Future-slice candidates: issue [#36](https://github.com/gosharplite/tellme/issues/36) (Gemini API family / ADC / concurrent tool-call matching); coverage tooling [#13](https://github.com/gosharplite/tellme/issues/13).
+
+### Next steps
+1. Choose the `020-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance unchanged).
+
+> **Propagation done (2026-09-14, session 10 closeout):** the two-step merge `019-turn-spinner → dev` (PR [#44](https://github.com/gosharplite/tellme/pull/44), `4315e59`) `→ main` — **DONE** (no-ff); closeout docs on `dev`. Round 019 is delivered on both lines.

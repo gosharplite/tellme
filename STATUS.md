@@ -1,29 +1,27 @@
 # tellme — Status
 
-**Last updated**: 2026-09-14 (session 8, day close) — **round 018 DELIVERED / FROZEN** (`018-post-turn-status-lines`); PR [#43](https://github.com/gosharplite/tellme/pull/43) **MERGED** into `dev` (`9927287`, by `thptcnec`); round-018 head frozen at **`26257b4`**; **propagated `dev → main`**. `make verify` OK · `go test ./...` green · E2E green · topology audit **PASSED** (883 steps). PR #43 review trail: PLAN + TRUTH APPROVED (`7f5f335`, #5659599275) → implementation APPROVED (`decc4a1`, #5659712977) → doc-comment fold (`a9cdcb4`, #5659733926) → Principal-Architect findings folded (`26257b4`, #5659960243) → merged `9927287`. Round 017 detail relocated to the archive ([`docs/archives/status/2026-09-14.md`](docs/archives/status/2026-09-14.md)).
-**Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation in this phase)
-**Active branch**: `dev` — round 018 **DELIVERED / FROZEN**; propagated `dev → main`; the next round starts a fresh `019-*` off `dev`.
+**Last updated**: 2026-09-14 (session 10) — **round 019 `019-turn-spinner` DELIVERED / FROZEN**: PR [#44](https://github.com/gosharplite/tellme/pull/44) human-**MERGED** into `dev` (`4315e59`, by `thptcnec`) and propagated `dev → main`; frozen head `fbea976`. The round-019 detail stays here as the current-round section (Rule 12 — older rounds 001–018 live in the archives).
+**Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
+**Active branch**: `dev` — round 019 delivered/frozen; the next round starts a fresh `020-*` off `dev`.
 **Daily log**: [`docs/session-summary/2026/09/14/session-summary.md`](docs/session-summary/2026/09/14/session-summary.md)
-**Archive**: [`docs/archives/status/2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`docs/archives/status/2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012 detail) · [`docs/archives/status/2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–017 detail).
+**Archive**: [`2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012) · [`2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–018).
 
-## Round 018 — `018-post-turn-status-lines` (delivered / frozen)
+## Round 019 — `019-turn-spinner` (delivered / frozen)
 
-**Status**: ✅ **DELIVERED / FROZEN** (2026-09-14, session 8) — PR [#43](https://github.com/gosharplite/tellme/pull/43) **MERGED** into `dev` (`9927287`, by `thptcnec`); propagated `dev → main`. Round-018 head frozen at **`26257b4`**. `make verify` OK · `go test ./...` green · E2E green · topology audit **PASSED** (883 steps).
+**Status**: ✅ **DELIVERED / FROZEN** (2026-09-14) — PR [#44](https://github.com/gosharplite/tellme/pull/44) **MERGED** into `dev` (`4315e59`, by `thptcnec`, 2026-09-14T09:58:02Z); propagated `dev → main`. Round-019 head frozen at **`fbea976`**. `make verify` OK · `go test ./...` green · **E2E 135/135 scenarios · 980/980 steps** · topology audit **PASSED** (33 features · 15 root + 185 module rows · **956 steps**) · `go.mod`/`go.sum` unchanged.
 
-**Scope**: add `tellme`'s **post-turn status** to the prompt surfaces (the counterpart round 017 deliberately deferred) — a per-turn **metrics line** `[HH:MM:SS] [<provider>] M: <miss> H: <cached> C: <completion> Th: <thinking>` (from the API call that just returned; `Th` always shown) and a **`╰─⠿ Ready`** session summary `($<lastCall> $<turn> $<session> - M: … H: … O: … - <hit%>%)` — backed by a **config-only `MODELS` pricing table** and a **per-mode API-call usage log**.
+**Scope**: a live **progress spinner** on the **non-TUI** prompt surfaces — between prompt capture and terminal-control regain, so a run is never silently waiting.
 
-**Locked decisions (operator interview + clarify Q1)**: `Th` **always** shown (incl. `Th: 0`); three `$` = **last-returned call / whole turn / session**; line-2's `M/H/C/Th` + `$#1` from **the call that just returned**; **pricing config-only** (no built-in rates; un-priced → `$0.0000`, `$` group still renders); storage = per-mode `output/<mode>/tokens.log` (one JSON record per call); presence = **every prompt-bearing turn**, `stderr`, plain text, suppressed only when the provider reports no usage; `stdout` byte-exact; vocabulary unchanged (11).
-
-**Review trail**: PLAN + TRUTH APPROVED at `7f5f335` ([#5659599275](https://github.com/gosharplite/tellme/pull/43#issuecomment-5659599275)) → implementation APPROVED at `decc4a1` ([#5659712977](https://github.com/gosharplite/tellme/pull/43#issuecomment-5659712977)) → doc-comment fold `a9cdcb4` ([#5659733926](https://github.com/gosharplite/tellme/pull/43#issuecomment-5659733926)) → Principal-Architect findings folded `26257b4` ([#5659960243](https://github.com/gosharplite/tellme/pull/43#issuecomment-5659960243)) → merged `9927287`.
+**Locked decisions**: reference-parity **stop/resume**; **full reference-parity labels with identifiers** (`⠋ Thinking [<model>]...` / `⠋ Executing [<tool>]...` / `⠋ Executing tools [<a>, <b>]...`); the tool-execution **CPU/MEM** segment (**machine-wide**, `idle` column only — reference parity); gate = **`isatty(stderr) && !-r`** (the `stderr` spinner gated on `stderr` — the stdout probe is **NOT** wired, so **Obs 1 stays OPEN**); `-i` TUI out of scope; **Linux/macOS only**; **no new dependency**; a **`LoopObserver`** seam on `AgentLoop`; synchronous `Stop()`/`Clear()` + one I/O mutex; the elapsed counter is **turn-scoped** (from prompt capture, never reset — operator-directed).
 
 **Artifacts / pipeline** — all phases **done**:
-- [x] plan package: `spec.md` (FR-001–014 · NFR-001–004 · SC-001–005 · A1–A10), `checklists/requirements.md`, `features/acceptance/**` ×3, `research.md` (D1–9), `plan.md` (2 interfaces / 1 wave; `/axb-api-plan` = NOOP, `/axb-data-plan` = ADD, `/axb-ui-plan` skipped), `truth-delta.md`, `tasks.md` (25 tasks; Setup omitted — no new dependency).
-- [x] truth: `specs/truth/techstack.md` MODIFY (post-turn status-lines + `MODELS` pricing + `tokens.log` rows); ADD `specs/truth/data/data-model.dbml` `usage_record` (+ `tokens.summary.json` roll-up companion); ADD `specs/truth/features/cli/chat/presenting-the-post-turn-status.feature` (9 Rules); MODIFY `chat/dsl.md` (**+15 rows**), root `cli/dsl.md` (**+1 cross-module row** `the run reports no post-turn status`), `diagnostics`/`history` features (boundary carriers); `contracts/**` NOOP.
-- [x] implementation (`/axb-implement` T001–T025): `internal/domain/llm` (`Usage` widened with cached/reasoning; exclusive `C`), `internal/infrastructure/llm/openai` (usage details + `max(0,…)` floor), `internal/config` (config-only `MODELS`), `internal/ui/{pricing,metrics}.go`, `internal/domain/history` + `internal/infrastructure/history/usage_store.go` (per-mode `tokens.log` + `tokens.summary.json` O(1) roll-up + batch append), `internal/agent/agentloop.go` (per-call accumulate), `internal/cli/cli.go` (emit + `--new` rotate); 16 stepdefs + 3 UNIT files; both falsifiability witnesses reproduced.
+- [x] plan package: `spec.md` (FR-001–011 · NFR-001–005 · SC-001–005 · A1–A10), `checklists/requirements.md`, `features/acceptance/**` ×3, `research.md` (D1–10), `plan.md` (1 interface / 1 wave; `/axb-api-plan` = NOOP, `/axb-data-plan` = NOOP, `/axb-ui-plan` skipped), `truth-delta.md`, `tasks.md` (**21 tasks**; Setup omitted — no new dependency).
+- [x] truth: `techstack.md` MODIFY (spinner row + `stderr` gate + *System metrics provider (telemetry)* row + `LoopObserver` seam + turn-scoped elapsed); ADD `chat/presenting-the-progress-spinner.feature` (5 Rules); MODIFY `chat/dsl.md` (**+8 rows**), root `cli/dsl.md` (**+2 rows**), the failure + boundary carriers; `contracts/**` NOOP; `data/**` NOOP.
+- [x] implementation (`/axb-implement` T001–T021): `internal/ui/spinner.go`; `internal/domain/metrics` (port) + `internal/domain/agent` (`LoopObserver`); `internal/infrastructure/telemetry` POSIX samplers; `internal/agent/agentloop.go` observer hooks; `internal/cli/cli.go` gate/lifecycle; 10 stepdefs + 3 `[UNIT]`.
 
-**Verification (2026-09-14)**: `make verify` **OK** (0 lint · 0 vulns · no `time.Sleep` · offline witness) · `go test -count=1 ./...` green · E2E **126/126 scenarios · 907 steps** · topology audit **PASSED** (32 features · 13 root + 177 module rows · **883 steps**) · falsifiability witnesses (a)/(b) reproduced · **no new dependency**.
+**Review trail (PR #44)**: PLAN+TRUTH **REQUEST CHANGES** (B1 `stderr` gate · B2 machine-wide · TD1 port · TD2 failure carrier · R1–R3) → `a5d950b` → APPROVE + residual `80525c7` → `1638ecc` → impl-half `be5171b` → FULL APPROVAL ([#5660991544](https://github.com/gosharplite/tellme/pull/44#issuecomment-5660991544)) → implementation `6eb7c17` → impl review **REQUEST CHANGES** (B1 truth=oracle · TD1 darwin · TD2 no-fallback · R1–R3) → `be6ec0a` → APPROVE + B1′ `38f5436` → final **FULL APPROVAL** ([#5661566198](https://github.com/gosharplite/tellme/pull/44#issuecomment-5661566198)) → **operator-directed turn-scoped elapsed** `fbea976` → re-review **FULL APPROVAL** ([#5662153775](https://github.com/gosharplite/tellme/pull/44#issuecomment-5662153775)) → **MERGED** `4315e59`.
 
-**Open (non-blocking)**: none for the round — the next round starts a fresh `019-*` off `dev` (candidates in Open items below).
+**Verification (2026-09-14)**: `make verify` OK · `gofmt`/`go vet`/`staticcheck` clean · `golangci-lint` 0 issues · `go test ./...` green · E2E **135/135 · 980/980** · topology audit **PASSED** (956 steps) · falsifiability witnesses (a)/(b) reproduced · `go.mod`/`go.sum` unchanged · darwin `amd64`/`arm64` cross-build + vet OK.
 
 ## Delivered rounds (index)
 
@@ -47,8 +45,9 @@
 | 016 | `016-interactive-prompt-visual-parity` | PR [#40](https://github.com/gosharplite/tellme/pull/40) |
 | 017 | `017-turn-chrome-parity` | PR [#41](https://github.com/gosharplite/tellme/pull/41) |
 | 018 | `018-post-turn-status-lines` | PR [#43](https://github.com/gosharplite/tellme/pull/43) |
+| 019 | `019-turn-spinner` | PR [#44](https://github.com/gosharplite/tellme/pull/44) |
 
-Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/archives/status/2026-09-11.md); 003–012 in [`2026-09-13.md`](docs/archives/status/2026-09-13.md); 013–017 in [`2026-09-14.md`](docs/archives/status/2026-09-14.md)).
+Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/archives/status/2026-09-11.md); 003–012 in [`2026-09-13.md`](docs/archives/status/2026-09-13.md); 013–018 in [`2026-09-14.md`](docs/archives/status/2026-09-14.md); 019 stays here until the next round supersedes it).
 
 ## Branch model
 
@@ -56,36 +55,35 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 | --- | --- | --- |
 | `main` | merged up from `dev` | Stable / released line |
 | `dev` | merged up from delivered round branches | Integration line (round work lands here before `main`) |
-| `001-*` … `018-post-turn-status-lines` | delivered / frozen | Each round's working branch — merged into `dev` via its PR, then propagated `dev → main`; frozen history (never receives post-round commits). |
-| `018-post-turn-status-lines` | delivered / frozen | Round-018 working branch — merged into `dev` via PR [#43](https://github.com/gosharplite/tellme/pull/43) (`9927287`); head frozen at `26257b4`. |
+| `001-*` … `019-turn-spinner` | delivered / frozen | Each round's working branch — merged into `dev` via its PR, then propagated `dev → main`; frozen history (never receives post-round commits). |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`; only a human merges the PR. Propagation is the no-ff merge `dev → main`.
-> **Propagation (round 017):** `017-turn-chrome-parity → dev` (PR [#41](https://github.com/gosharplite/tellme/pull/41), `ecf3980`) `→ main` — DONE (no-ff).
-> **Propagation (round 018):** `018-post-turn-status-lines → dev` (PR [#43](https://github.com/gosharplite/tellme/pull/43), `9927287`) `→ main` — DONE (no-ff); closeout docs on `dev`.
+> **Propagation (round 018):** `018-post-turn-status-lines → dev` (PR [#43](https://github.com/gosharplite/tellme/pull/43), `9927287`) `→ main` — DONE (no-ff).
+> **Propagation (round 019):** `019-turn-spinner → dev` (PR [#44](https://github.com/gosharplite/tellme/pull/44), `4315e59`) `→ main` — DONE (no-ff); closeout docs on `dev`.
 > Read live heads with `git rev-parse --short main dev HEAD`.
 
 ## Roadmap — next slices
 
 | Slice | Issue | Scope | Status |
 | --- | --- | --- | --- |
-| **003–017** | — | Provider-registry completeness → … → non-TUI turn chrome parity. | ✅ **Delivered** (see the delivered-rounds index) |
-| **018 — post-turn status lines** | — | Non-TUI post-turn status: metrics line + `╰─⠿ Ready` summary with config-only pricing + per-mode `tokens.log`. | ✅ **Delivered** (PR [#43](https://github.com/gosharplite/tellme/pull/43), `9927287`; propagated `dev → main`) |
+| **003–019** | — | Provider-registry completeness → … → the turn spinner. | ✅ **Delivered** (see the delivered-rounds index) |
 | **future slices (candidates)** | [#36](https://github.com/gosharplite/tellme/issues/36) | The remaining #34 candidates — the **Google Gemini API family** (inline key), **Application Default Credentials**, and **concurrent tool-call matching**; plus the carried forward items below. | ⏳ **Candidate** (not started) |
+| **cross-compile gate** | — | Add a `GOOS=darwin GOARCH=arm64 go build ./...` (+ `go vet`) cross-compile gate to the pipeline / closeout checklist — build-tagged platform code is invisible to `make verify` (round-019 review forward recommendation). | ⏳ **Candidate** (not started) |
 
 ## Open items (non-blocking)
 
-- **Round 018 (`018-post-turn-status-lines`)** — **DELIVERED / FROZEN**; PR [#43](https://github.com/gosharplite/tellme/pull/43) **MERGED** into `dev` (`9927287`, by `thptcnec`); frozen head `26257b4`; `make verify` OK · E2E 126/126 · topology audit PASSED (883 steps). **Propagated `dev → main`** — the next round starts a fresh `019-*` off `dev`.
-- **Round-018 forward items** — the reference's **gray styling** for the post-turn lines is a recorded forward item (plain text this round); the session roll-up (`tokens.summary.json`) is best-effort (a crash between append and the atomic summary write can understate; a missing summary self-heals by recompute).
-- **Future-slice candidates** — issue [#36](https://github.com/gosharplite/tellme/issues/36): the Google Gemini API family (`generativelanguage.googleapis.com`, inline key), Application Default Credentials for Vertex, and concurrent tool-call matching (the round-014 E2E helper matches replayed calls by **order** — ready for it).
-- **Carried forward items** — PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3** renderer lifecycle deferred to multi-turn; sequential tool execution / **no pruning** (a settled exclusion) / **no `flock`**; round-011 forward items (**estimation-heuristic constants**; the persona-plumbing seam; **N-2** estimator ignores replayed tool-call `arguments`); a future **`history.Store.Count()`** should replace `len(prior)+1` once summarisation/archival lands.
-- **Future-package candidates**: **(d) coverage tooling** — [#13](https://github.com/gosharplite/tellme/issues/13) (low-priority tooling); **(e)** the renderer/`-r` forward items (PR #16 Obs 1/2). (`make verify` in a pipeline platform — [#15](https://github.com/gosharplite/tellme/issues/15) withdrawn `not_planned`, gate stays manual.)
+- **Round-019 forward items** — the failed-turn carrier proves *absence* (mid-wait *clear-before-the-class-phrase* deferred); the macOS **CPU** leg is pending a cgo `mach` sampler and reports `0.0%` (the memory leg uses sysctl).
+- **Round-019 review forward recommendation** — add a **cross-compile gate** to the quality pipeline (the darwin adapter shipped two folds without compiling for its own `GOOS`).
+- **Round-018 forward items** — the reference's **gray styling** for the post-turn lines (plain text); the `tokens.summary.json` roll-up is best-effort (self-heals by recompute).
+- **Future-slice candidates** — issue [#36](https://github.com/gosharplite/tellme/issues/36) (Gemini API family / ADC / concurrent tool-call matching); **(d)** coverage tooling [#13](https://github.com/gosharplite/tellme/issues/13); **(e)** the renderer/`-r` forward items.
+- **Carried forward items** — PR #16 **Obs 1** stdout TTY probe **OPEN** (round 019 did **not** close it — the spinner is a `stderr` diagnostic); round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / **no pruning** (a settled exclusion) / **no `flock`**; round-011 forward items (estimation-heuristic constants; persona seam; **N-2**); a future **`history.Store.Count()`** should replace `len(prior)+1`.
 
 ## Environment notes
 
 - **Dev tooling — `tellme.sh` (external; not a repo/truth artifact)**: the Niffler-style manager that drives the `tellme` binary lives at `~/tmp/dualnets/seed/notebooks/beta-niffler/tellme.sh` and `…/mbp-johndoe-niffler/tellme.sh`. Its usage banner is round-agnostic (the current-state pointer is this `STATUS.md`). Invoke via `source tellme.sh` (aliases `b`/`a`/`c`/`g`/`p`/`r` + optional prompt arg) or the `tm` alias in `~/.bashrc`.
-- **Host / toolchain**: Go 1.26; `golangci-lint` / `staticcheck` / `govulncheck` present in `$GOPATH/bin`; the `tellme` binary is installed at `$(go env GOPATH)/bin/tellme` via `go install ./cmd/tellme`. Sandbox: the privileged netns (`unshare -n`) is unavailable on the host, so the offline-path guard uses the unprivileged canary + hostile-env differential.
-- **Binary refresh (round 018)**: `go install ./cmd/tellme` rebuilt `$(go env GOPATH)/bin/tellme` from the round-018 tree (`26257b4`) — it carries the post-turn status lines; `tellme --version` reports `dev` (no `-ldflags` version stamp). The `tm` alias invokes the same binary.
-- **Live Vertex verification (round 013)**: the installed binary was run against the real Vertex API (`tm` → provider `dev`, `TYPE: gemini`, `gemini-3.8-flash`) — single-prompt and tool-loop turns green; the `/home/pos/tmp/dualnets/seed/notebooks/beta-niffler/ait-test/` niffler env (config + `secrets/key.json`) is the live test workspace.
+- **Host / toolchain**: Go 1.26; `golangci-lint` / `staticcheck` / `govulncheck` present in `$GOPATH/bin` (run with `$GOPATH/bin` on `PATH`); the `tellme` binary is installed at `$(go env GOPATH)/bin/tellme` via `go install ./cmd/tellme`. Sandbox: the privileged netns (`unshare -n`) is unavailable on the host, so the offline-path guard uses the unprivileged canary + hostile-env differential.
+- **Binary refresh**: the installed `$(go env GOPATH)/bin/tellme` was rebuilt from the **round-019** tree (`fbea976`) via `go install ./cmd/tellme` — it carries the round-019 spinner (**turn-scoped elapsed**); `tellme --version` reports `dev` (no `-ldflags` for a local install).
+- **Live Vertex verification (round 013)**: the installed binary was run against the real Vertex API (`tm` → provider `dev`, `TYPE: gemini`, `gemini-3.8-flash`); the `/home/pos/tmp/dualnets/seed/notebooks/beta-niffler/ait-test/` niffler env (config + `secrets/key.json`) is the live test workspace.
 - **Persistent path authorizations**: read+write for `…/beta-niffler/`, `…/mbp-johndoe-niffler/tellme.sh`, and `~/.bashrc` (the `tm` alias); read for `$TELL_ME_HOME` (`…/beta-niffler/ait-bdd`) — the vendored skill tree.
-- **Secret scanning**: `mcp_github_run_secret_scanning` is **unavailable for this repo** (no GitHub Advanced Security). Closeout secret scans are **diff-level** (pattern grep over `git diff`) — clean through round 018.
-- **Round-018 delivery + closeout (2026-09-14, session 8)**: `/axb-implement` delivered all 25 tasks (the post-turn status lines); PR [#43](https://github.com/gosharplite/tellme/pull/43) **merged** into `dev` (`9927287`); three review rounds certified the head, with all directives/nits/findings folded (`d39c996`, `decc4a1`, `a9cdcb4`, `26257b4`). `make verify` OK · E2E 126/126 · topology audit PASSED (883 steps). Propagated `dev → main`.
+- **Secret scanning**: `mcp_github_run_secret_scanning` is **unavailable for this repo** (no GitHub Advanced Security). Closeout secret scans are **diff-level** (pattern grep over `git diff`) — clean through round 019.
+- **Round-019 implementation closeout (2026-09-14, session 10)**: PR [#44](https://github.com/gosharplite/tellme/pull/44) was taken through the implementation folds (`6eb7c17` → `be6ec0a` → `38f5436`) plus the **operator-directed turn-scoped elapsed** change (`fbea976`) — all re-certified (**FULL APPROVAL** [#5662153775](https://github.com/gosharplite/tellme/pull/44#issuecomment-5662153775)); **MERGED** into `dev` (`4315e59`); propagated `dev → main`. `gofmt`/`go vet` clean · `staticcheck` clean · `go.mod`/`go.sum` unchanged · topology audit **PASSED** (956 steps). A latent darwin build break (`syscall.SysctlUint64` undefined on darwin) was found and fixed in-round.
