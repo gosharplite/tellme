@@ -301,3 +301,67 @@ A continuation session on the same calendar day: read the PR #38 architectural r
 ### PM follow-ups
 
 - None new (spec/acceptance are complete; no PM-owned gaps).
+
+---
+
+## 14. Session 5 (2026-09-14) — round 015 `/axb-implement` delivered, reviewed, merged + closeout
+
+The round's implementation half: completed `/axb-implement` (T011–T040), cleared the PR #38 architectural review through re-certification, saw PR #38 merged into `dev`, and ran `SESSION-CLOSEOUT.md`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| `/axb-implement` Phase 3 | 16 `[P] [BDD-RED]` stepdefs + 4 `[P] [UNIT]` suites + review gate (0 undefined steps) |
+| `/axb-implement` Phase 4 | 4 Feature green/refactor cycles + regression + **2 falsifiability witnesses** |
+| Product | Bubble Tea TUI (`internal/ui/tui/prompt`), suggestion engine + adapters (`internal/app/suggestions`), shared prompt-log store (`internal/infrastructure/history`), `-i` gating + `tuiPromptRunner` seam (`internal/cli`) |
+| Review | PR #38 — APPROVE with 1 non-blocking hermeticity finding → fixed (`511b458`) → **RE-CERTIFIED READY TO MERGE** |
+| Merge | PR [#38](https://github.com/gosharplite/tellme/pull/38) **merged** into `dev` (`a3df102`, by `thptcnec`) |
+| Closeout | `STATUS.md` updated + round-014 detail relocated to the archive; this §14; commit on `dev`; propagation `dev → main` **pending** |
+
+### Work done
+
+1. **`/axb-implement` One-Shot (T001–T040, all `[X]`)** — Setup (Bubble Tea family), Foundational (landing skeletons), Phase 3 (test alignment), Phase 4A–4E (features + regression). godog **101/101 scenarios · 714/714 steps**; `make verify` OK; topology audit PASSED (690 steps).
+2. **Two real defects found + fixed during GREEN** — `tea.KeySpace` (spaces in composed prompts); `PromptLogEntry` JSON tags (frozen lowercase `{timestamp,prompt}`).
+3. **PR #38 review loop** — implementation delivery reviewed → one non-blocking hermeticity finding (`TestTUIDispatchFallsBackOnNonTerminal` ambient `TELL_ME_HOME` network dial, ~4 s) → fixed (`clearAmbientOverrides(t)` + `t.Setenv("TELL_ME_HOME","")`, now 0.00s) → **RE-CERTIFIED** ([#5657439886](https://github.com/gosharplite/tellme/pull/38#issuecomment-5657439886)).
+4. **PR #38 merged** into `dev` (`a3df102`) — round 015 delivered.
+5. **`SESSION-CLOSEOUT.md`** — Step 1 tree clean; Step 2 `make verify` OK + diff-level secret scan clean; Step 3 `STATUS.md` (round 015 → DELIVERED/FROZEN; round-014 detail relocated to `docs/archives/status/2026-09-14.md` per Rule 12; header/branch-model/roadmap/open-items/index/env updated); Step 4 this §14; Step 5 status ↔ summary reconciled; Step 6 commit + push on `dev`; Step 7 propagation **pending** (approval).
+
+### Decisions log
+
+| # | Decision |
+| --- | --- |
+| D1 | Round 015 **DELIVERED / FROZEN** on merge of PR #38 (`a3df102`); frozen head `511b458`. |
+| D2 | Closeout docs land on **`dev`** (round branches frozen — session-13 D5). |
+| D3 | Per Rule 12, relocate the **round-014** detail verbatim into `docs/archives/status/2026-09-14.md` (keeps `STATUS.md` to one delivered-round detail section). |
+| D4 | Propagation `dev → main` is **PENDING user approval** (recorded in `STATUS.md`). |
+
+### Commits
+
+| Commit | Note |
+| --- | --- |
+| `21e761d` | `feat(015)`: Setup + Foundational (T001–T010) |
+| `285802b` | `feat(015)`: implement the interactive TUI prompt (T011–T040) |
+| `511b458` | `fix(015)`: hermeticity for `TestTUIDispatchFallsBackOnNonTerminal` (PR #38 review) |
+| `a3df102` | PR [#38](https://github.com/gosharplite/tellme/pull/38) merge into `dev` (by thptcnec) |
+| *(this closeout)* | `docs(015)`: day close — round 015 delivered + STATUS split + daily log |
+
+### Verification
+
+- `make verify` **OK** (0 test-sleep · offline witness · 0 lint · 0 vulns) · `go test ./...` green · godog **101/101 · 714/714** · topology audit **PASSED** (690 steps) · `gofmt` clean · diff-level secret scan clean.
+
+### Open items (non-blocking)
+
+- **Propagation `dev → main` PENDING** (user approval).
+- Carried: PR #16 **Obs 1** (stdout TTY probe) OPEN; round-006 **Obs 3** (renderer lifecycle) deferred; sequential tool execution / no pruning / **no `flock`**; round-011 forward items (estimation constants; persona seam; **N-2**).
+- Future-slice candidates: issue [#36](https://github.com/gosharplite/tellme/issues/36) (Gemini API family / ADC / concurrent tool-call matching).
+
+### Next steps
+
+1. On approval, propagate `dev → main` (no-ff).
+2. Choose the `016-*` theme and start it via `/axb-specify` off `dev`.
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance unchanged).
