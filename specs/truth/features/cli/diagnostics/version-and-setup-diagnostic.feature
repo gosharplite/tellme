@@ -6,7 +6,7 @@ Feature: Checking the build version and diagnosing setup
   Rule: tellme reports its build version
 
     Example: The operator asks which build is running
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       When the operator runs tellme with "--version"
       Then tellme prints the build version
       And the run shows no turn chrome

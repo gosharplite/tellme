@@ -15,7 +15,7 @@ Feature: The progress indicator stays bounded
 
     Example: The operator asks for the raw answer at a terminal
       Given the operator has a runnable tellme installation
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       And the operator asks for the raw answer
       When the operator runs tellme with the prompt "hi"
       Then the run shows no progress indicator
@@ -43,7 +43,7 @@ Feature: The progress indicator stays bounded
 
     Example: The provider request fails
       Given the operator has a runnable tellme installation
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       And the provider is unavailable
       When the operator runs tellme with the prompt "hi"
       Then the run reports the failure

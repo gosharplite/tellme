@@ -42,7 +42,7 @@ Feature: Reporting a failed provider request
     Example: The provider cannot be reached while the operator watches the terminal
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       And a configured provider "dead-model" whose endpoint is unreachable
       When the operator starts tellme with the prompt "Hello"
       Then the run shows no progress spinner

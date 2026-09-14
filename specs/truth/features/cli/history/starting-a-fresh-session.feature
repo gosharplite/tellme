@@ -8,7 +8,7 @@ Feature: Starting a fresh session
     Example: Starting fresh empties the active session
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       And the session history already holds the exchanges:
         | prompt            | answer |
         | My name is Alice. | Noted. |

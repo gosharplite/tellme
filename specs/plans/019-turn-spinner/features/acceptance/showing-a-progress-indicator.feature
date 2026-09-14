@@ -8,7 +8,7 @@ Feature: Showing a progress indicator while the run works
 
     Example: The operator runs a prompt at a terminal
       Given the operator has a runnable tellme installation
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       When the operator runs tellme with the prompt "hi"
       Then the run shows a progress indicator while it works
       And the progress indicator keeps changing while the run waits
@@ -16,7 +16,7 @@ Feature: Showing a progress indicator while the run works
 
     Example: The operator's turn takes a while to answer
       Given the operator has a runnable tellme installation
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       And the model takes a while to answer
       When the operator runs tellme with the prompt "hi"
       Then the run shows a progress indicator for as long as it waits
@@ -25,7 +25,7 @@ Feature: Showing a progress indicator while the run works
 
     Example: The operator's turn runs a tool before answering
       Given the operator has a runnable tellme installation
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       And the model asks for a tool before answering
       When the operator runs tellme with the prompt "read the notes"
       Then the answer appears without the progress indicator covering it

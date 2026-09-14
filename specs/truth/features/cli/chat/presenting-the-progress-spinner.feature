@@ -16,7 +16,7 @@ Feature: Presenting the progress spinner
     Example: The operator runs a prompt at a terminal
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       And a configured provider "test-model" whose endpoint answers with "all good"
       When the operator starts tellme with the prompt "summarise the changelog"
       Then the run shows the progress spinner while it waits
@@ -25,7 +25,7 @@ Feature: Presenting the progress spinner
     Example: The operator pipes the prompt in at a terminal
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       And a configured provider "test-model" whose endpoint answers with "all good"
       When the operator pipes "list the open issues" into tellme
       Then the run shows the progress spinner while it waits
@@ -36,7 +36,7 @@ Feature: Presenting the progress spinner
     Example: The operator waits for the model
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       And a configured provider "test-model" whose endpoint answers with "all good"
       When the operator starts tellme with the prompt "hi"
       Then the progress spinner names the model it is waiting for
@@ -48,7 +48,7 @@ Feature: Presenting the progress spinner
     Example: The turn runs a single tool
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good"
       When the operator starts tellme with the prompt "read the notes"
       Then the progress spinner names the tool it is running
@@ -58,7 +58,7 @@ Feature: Presenting the progress spinner
     Example: The turn runs several tools at once
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and "todo.txt" and then answers with "all good"
       When the operator starts tellme with the prompt "read the notes and the todo"
       Then the progress spinner names every tool it is running
@@ -70,7 +70,7 @@ Feature: Presenting the progress spinner
     Example: The turn runs a tool before answering
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good"
       When the operator starts tellme with the prompt "read the notes"
       Then the progress spinner no longer appears once the answer is written
@@ -89,7 +89,7 @@ Feature: Presenting the progress spinner
     Example: The operator asks for the raw answer at a terminal
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And the operator is watching a terminal
+      And the diagnostics are shown at a terminal
       And a configured provider "test-model" whose endpoint answers with "all good"
       When the operator starts tellme with the prompt "hi" and the raw flag
       Then the run shows no progress spinner

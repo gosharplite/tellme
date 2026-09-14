@@ -70,7 +70,7 @@
 
 **DSL 參照**:
 - 每一句只屬於一個權威 `dsl.md`：同模組 `specs/truth/features/cli/chat/dsl.md`，或介面根 `specs/truth/features/cli/dsl.md`。不得掃其他模組。
-- 本輪 **8 句**在 `specs/truth/features/cli/chat/dsl.md`；**2 句**（`the operator is watching a terminal`、`the run shows no progress spinner`）在介面根 `specs/truth/features/cli/dsl.md`。
+- 本輪 **8 句**在 `specs/truth/features/cli/chat/dsl.md`；**2 句**（`the diagnostics are shown at a terminal`、`the run shows no progress spinner`）在介面根 `specs/truth/features/cli/dsl.md`。
 - 讀法：用 task title 的句型對到該檔那一列，以 `StepDef 實作語意` 當作測試程式碼語意。Given / When 讀 `怎麼做`、`權威狀態落地`、`回寫`；Then 讀 `必查`（`呈現結果`）。
 - `truth-delta.md` 只告訴這句是 ADD。語意以 `dsl.md` 那一列為準，不得用 feature 措辭或舊 stepdef 自行發明。
 - 本輪斷言形式：the spinner line 於 `stderr` 的 **presence + label + elapsed + resources**（frame 以 set 比對，容忍 `\r` redraw）；clearing 的 **merged ordering**（answer 之後無 frame）；the negative Then 對 `stdout`+`stderr` 的 **absence**。**frame advancement over ticks** 為 `[UNIT]`（無 pty；a fast turn may render a single synchronous frame）。
@@ -92,7 +92,7 @@
   -> `the progress spinner names every tool it is running`
   -> `the progress spinner reports the machine's resource usage`
   -> `the progress spinner no longer appears once the answer is written`
-- `specs/truth/features/cli/dsl.md`（interface root）-> `the operator is watching a terminal`、`the run shows no progress spinner`（本輪新增的跨模組 root rows；class-phrase 詞彙維持 11）
+- `specs/truth/features/cli/dsl.md`（interface root）-> `the diagnostics are shown at a terminal`、`the run shows no progress spinner`（本輪新增的跨模組 root rows；class-phrase 詞彙維持 11）
 - `truth-delta.md` -> `/axb-dsl-refine` ADD（`chat/presenting-the-progress-spinner.feature`）+ MODIFY（`chat/dsl.md` +8 rows、root `cli/dsl.md` +2 rows、`diagnostics/version-and-setup-diagnostic.feature`、`history/inspecting-the-session-history.feature`、`history/starting-a-fresh-session.feature`、`chat/presenting-the-turn.feature`）；`/axb-api-plan` NOOP（`contracts/**`）；`/axb-data-plan` NOOP（`data/**`）；`/axb-technical-research` MODIFY（`techstack.md`）
 - `tests/e2e/steps/`、`tests/e2e/harness/`、`tests/e2e/fakeprovider/`
 - `internal/ui/turn.go`、`internal/ui/spinner.go`、`internal/domain/metrics/**`、`internal/infrastructure/telemetry/system_metrics_*.go`（T002 落點）
@@ -109,8 +109,8 @@
 
 ### BDD-RED（本輪新增句型；2 Given + 7 Then + 1 root Then）
 
-- [ ] T003 [P] [BDD-RED] `Given: the operator is watching a terminal`
-  - Read: `specs/truth/features/cli/dsl.md`（interface root）-> `the operator is watching a terminal`
+- [ ] T003 [P] [BDD-RED] `Given: the diagnostics are shown at a terminal`
+  - Read: `specs/truth/features/cli/dsl.md`（interface root）-> `the diagnostics are shown at a terminal`
   - Landing: `tests/e2e/steps/step_t003_given_watching_terminal.go`
   - 語意：把 `TELL_ME_FORCE_STDERR_TTY=1` 設進 subprocess 環境，使 tellme 的 **standard-error (`stderr`)** terminal probe 回報該 stream 為 terminal（round-019 seam）。
 
