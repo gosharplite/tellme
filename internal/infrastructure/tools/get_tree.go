@@ -30,8 +30,10 @@ func (getTree) Parameters() json.RawMessage {
 }
 
 // Execute renders the folder tree of the given path (default ".") down to
-// max_depth (default 2 — the entries at max_depth levels below the root), never
-// recursing into `.git`; the result is bounded by the aggregate cap.
+// max_depth (default 2), never recursing into `.git`; the result is bounded by
+// the aggregate cap. A directory sitting at depth == max_depth still has its
+// child names listed — recursion stops only once depth exceeds max_depth (the
+// reference's `depth > maxDepth` cut).
 func (getTree) Execute(ctx context.Context, arguments string) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
@@ -59,8 +61,11 @@ func (getTree) Execute(ctx context.Context, arguments string) (string, error) {
 	return truncateToCap(sb.String()), nil
 }
 
-// buildTree writes the connector lines for dir at the given depth, stopping when
-// depth exceeds maxDepth.
+// buildTree writes the connector lines for dir at the given depth. Recursion
+// stops once depth exceeds maxDepth — so the children of a directory sitting at
+// depth == maxDepth are still listed, and only entries more than maxDepth levels
+// below the root are omitted (the reference's `depth > maxDepth` cut, round-021
+// Decision 3).
 func buildTree(ctx context.Context, dir, indent string, depth, maxDepth int, sb *strings.Builder) error {
 	if depth > maxDepth {
 		return nil

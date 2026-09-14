@@ -1,7 +1,8 @@
 // Package tools holds the concrete agent-tool adapters behind
-// internal/domain/tools. Round 008 ships two read-only filesystem tools
-// (list_files, read_files); there is no path/safety boundary — the tools read
-// whatever path the model gives (round-008 research Decision 4; Clarify Q3).
+// internal/domain/tools. Round 021 ships three read-only reader tools —
+// list_files, read_files, get_tree — each requiring `reason`; there is no
+// path/safety boundary — the tools read whatever path the model gives
+// (round-021 Decision 8; round-008 Decision 4 / Clarify Q3).
 package tools
 
 import (
@@ -23,6 +24,14 @@ const (
 	readMaxPerFile   = 100000
 	readMaxPerCall   = 50
 	readAggregateCap = 1 << 20 // 1 MiB
+)
+
+// The aggregate truncation markers (round 021 NFR-001): readBudgetMarker
+// terminates a read_files result cut by the aggregate cap; capMarker terminates
+// a list_files / get_tree result cut by the same cap.
+const (
+	readBudgetMarker = "\n... (truncated at the read budget)\n"
+	capMarker        = "\n... (truncated)\n"
 )
 
 // listFiles enumerates a directory's entries (read-only).
@@ -79,13 +88,17 @@ func (listFiles) Execute(ctx context.Context, arguments string) (string, error) 
 	return truncateToCap(out), nil
 }
 
-// truncateToCap bounds a tool result to the aggregate result cap, appending the
-// truncation marker when the content exceeds it (round 021 D3a).
+// truncateToCap bounds a tool result to the aggregate result cap. The retained
+// content is cut at a rune boundary (so a mid-rune cut cannot emit invalid UTF-8
+// — get_tree's box-drawing glyphs are 3 bytes each), and the marker is counted
+// toward the ceiling, so the whole result — content plus terminator — stays
+// within readAggregateCap (round 021 D3a / NFR-001).
 func truncateToCap(out string) string {
 	if len(out) <= readAggregateCap {
 		return out
 	}
-	return out[:readAggregateCap] + "\n... (truncated)\n"
+	out = strings.ToValidUTF8(out[:readAggregateCap-len(capMarker)], "")
+	return out + capMarker
 }
 
 // readFiles returns a file's contents (read-only), size-bounded.
@@ -130,6 +143,12 @@ func (readFiles) Execute(ctx context.Context, arguments string) (string, error) 
 		if err := ctx.Err(); err != nil {
 			return "", err
 		}
+		// Stop before reading (or opening) the next file once the budget is spent,
+		// so the block that trips the cap is not wastefully read (round-021 review NIT).
+		if sb.Len() >= readAggregateCap-len(readBudgetMarker) {
+			sb.WriteString(readBudgetMarker)
+			break
+		}
 		if !appendBounded(&sb, readOneFile(path)) {
 			break
 		}
@@ -138,12 +157,12 @@ func (readFiles) Execute(ctx context.Context, arguments string) (string, error) 
 }
 
 // appendBounded appends block to sb while it fits within the aggregate result
-// cap (round 021 D3a). It returns false — having written the budget marker — when
-// the block would exceed the cap, so the caller stops (the omitted file gets no
-// header).
+// cap, counting the terminator toward the ceiling (round 021 D3a). It returns
+// false — having written readBudgetMarker — when the block would exceed the cap,
+// so the caller stops (the omitted file gets no header).
 func appendBounded(sb *strings.Builder, block string) bool {
-	if sb.Len()+len(block) > readAggregateCap {
-		sb.WriteString("\n... (truncated at the read budget)\n")
+	if sb.Len()+len(block) > readAggregateCap-len(readBudgetMarker) {
+		sb.WriteString(readBudgetMarker)
 		return false
 	}
 	sb.WriteString(block)

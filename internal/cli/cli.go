@@ -598,7 +598,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// assembled conversation — the resumed turns (via the shared projection,
 	// including tool steps — TD-1) plus the current prompt — measured against the
 	// payload budget. Diagnostic only, on stderr.
-	reg := newToolRegistry(store, gw)
+	reg := newToolRegistry()
 	assembled := append(append(make([]llm.Message, 0, len(prior)+1), agent.BuildMessages(prior)...), llm.Message{Role: "user", Content: prompt})
 	// Round-019 elapsed epoch: the spinner's turn-scoped timer starts at prompt
 	// capture — the moment the input-capture acknowledgement fires (research D4).
@@ -956,12 +956,14 @@ func emitProviderError(w io.Writer, err error) int {
 // PR #25): the presentation layer never hard-wires the concrete tool adapters
 // (mirroring gatewayFactory / historyStoreFactory), so tests can inject a fake
 // registry.
-type toolRegistryFactory func(store history.Store, gw llm.Gateway) domaintools.Registry
+type toolRegistryFactory func() domaintools.Registry
 
 // newToolRegistry is the production registry factory (a var so tests may
 // override it). It assembles exactly the read-only filesystem reader tools —
 // list_files, read_files, get_tree (round 021 Decision 6) — and no others.
-var newToolRegistry toolRegistryFactory = func(_ history.Store, _ llm.Gateway) domaintools.Registry {
+// It takes no arguments: with summarize_history removed, the reader tools need
+// no store/gateway, so the old seam is dropped (round-021 review R1).
+var newToolRegistry toolRegistryFactory = func() domaintools.Registry {
 	return domaintools.NewRegistry(infratools.NewFilesystemTools()...)
 }
 

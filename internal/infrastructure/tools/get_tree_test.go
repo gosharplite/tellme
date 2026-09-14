@@ -9,8 +9,10 @@ import (
 )
 
 // Round 021 T032: get_tree emits a connector tree, defaults max_depth to 2, and
-// lists `.git` without recursing into it (RED until Phase 4D). The default-depth
-// assertion pins the reference's depth cut (entries down to max_depth levels).
+// lists `.git` without recursing into it. The boundary is pinned BOTH ways
+// (round-021 review TD1): `deep` sits at depth == max_depth and MUST be shown
+// (parity with the reference's `depth > maxDepth` cut), while `leaf.go` sits
+// beyond it and must NOT.
 
 func TestGetTreeShape(t *testing.T) {
 	dir := t.TempDir()
@@ -30,11 +32,13 @@ func TestGetTreeShape(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get_tree: %v", err)
 	}
-	for _, want := range []string{"src", "main.go", "pkg"} {
+	// `deep` (at depth == max_depth) MUST be listed — the near boundary.
+	for _, want := range []string{"src", "main.go", "pkg", "deep"} {
 		if !strings.Contains(got, want) {
-			t.Errorf("get_tree missing %q; got %q", want, got)
+			t.Errorf("get_tree missing %q (near-boundary entries at depth == max_depth must appear); got %q", want, got)
 		}
 	}
+	// `leaf.go` (beyond max_depth) MUST be absent — the far boundary.
 	if strings.Contains(got, "leaf.go") {
 		t.Errorf("get_tree reached beyond the default depth to leaf.go; got %q", got)
 	}

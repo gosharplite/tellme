@@ -19,6 +19,7 @@ Feature: Surveying a folder tree
       And the tree shows "src"
       And the tree shows "main.go"
       And the tree shows "pkg"
+      And the tree shows "deep"
       And the tree does not show "leaf.go"
       And tellme exits successfully
 

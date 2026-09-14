@@ -7,7 +7,7 @@ import "testing"
 // summarize_history (RED until Phase 4E/4F).
 
 func TestNewToolRegistryOffersReaderToolsOnly(t *testing.T) {
-	reg := newToolRegistry(nil, nil)
+	reg := newToolRegistry()
 	got := map[string]bool{}
 	for _, tl := range reg.Tools() {
 		got[tl.Name()] = true
