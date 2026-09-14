@@ -21,8 +21,8 @@ type UsageCounts struct {
 //
 // The `Th:` segment is ALWAYS rendered, including `Th: 0` (operator decision — a
 // deviation from the reference's suppress-when-0). The `[<provider>]` bracket is
-// omitted when provider is empty. The timestamp comes from the caller's injected
-// clock seam.
+// rendered unconditionally (format stability). The timestamp comes from the
+// caller's injected clock seam.
 func FormatMetrics(t time.Time, provider string, u UsageCounts) string {
 	return fmt.Sprintf("[%s] [%s] M: %d H: %d C: %d Th: %d",
 		t.Format("15:04:05"), provider, u.Miss, u.Hit, u.Completion, u.Thinking)
