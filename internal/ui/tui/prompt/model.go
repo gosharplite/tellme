@@ -1,61 +1,73 @@
 // Package prompt implements tellme's opt-in interactive TUI prompt (round 015,
-// `-i`/`USE_TUI_PROMPT`). It is a Bubble Tea model: a multi-line editor, a live
-// suggestion list with a selection cursor, and a session dashboard header.
+// `-i`/`USE_TUI_PROMPT`). Round 016 aligns it to tell-me-go's surface (strict
+// parity): a bordered multi-line editor above a styled suggestion list, with the
+// keybinding hints in the placeholder and NO session metrics header.
 //
 // The package is deliberately stream-injected: the caller binds output to the
 // diagnostic stream (env.stderr) so `stdout` stays byte-exact for piping
 // (round-015 PR #38 review BLOCKER), and input comes from the terminal. That
-// makes the model unit-testable with scripted keys and no real pty (research
-// Decision 6).
+// makes the model unit-testable with scripted keys and no real pty.
 package prompt
 
 import (
-	"fmt"
+	"context"
 	"io"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Source yields the candidate suggestions for the current query. It is the
-// injection seam: production wires the multi-source engine
-// (internal/app/suggestions); unit tests inject a fake (round-015 T027/T029).
-type Source interface {
-	Suggest(query string) []string
-}
+// DefaultDebounceDuration is the suggestion-refresh debounce, matching the
+// reference (round-016 research Decision 2).
+const DefaultDebounceDuration = 100 * time.Millisecond
 
-// Dashboard carries the header values shown above the editor: the active
-// provider/model, the payload token usage vs the budget, and the turn count
-// (round-015 research Decision 5 — reused state, no new accounting).
-type Dashboard struct {
-	Provider string
-	Tokens   int
-	Budget   int
-	Turns    int
+// maxSuggestionLines is the drop threshold: an entry with more than three lines
+// is not offered (round-016 FR-006).
+const maxSuggestionLines = 3
+
+// modelStyle pads the whole prompt block (reference root style).
+var modelStyle = lipgloss.NewStyle().Padding(1, 1)
+
+// Source yields the candidate suggestions for the current query. It carries ctx
+// so a superseded fetch can be cancelled (round-016 architect D1). It is the
+// injection seam: production wires the multi-source engine
+// (internal/app/suggestions); unit tests inject a fake.
+type Source interface {
+	Suggest(ctx context.Context, query string) []string
 }
 
 // Model is the Bubble Tea model for the interactive prompt. Input and output are
 // injected; the caller binds output to the diagnostic stream so stdout is
 // untouched.
 type Model struct {
-	in   io.Reader
-	out  io.Writer
-	src  Source
-	dash Dashboard
-	ed   editor
-	sug  suggester
+	in  io.Reader
+	out io.Writer
+	src Source
+	ed  editor
+	sug suggester
+
+	debounce time.Duration
+	parent   context.Context
+	ctx      context.Context
+	cancel   context.CancelFunc
 
 	submitted bool
 	aborted   bool
 }
 
+// debounceMsg is delivered after the debounce delay to (re)compute suggestions.
+type debounceMsg struct{ value string }
+
 // New builds the prompt model over the injected streams and suggestion source.
 // The caller binds out to env.stderr (round-015 PR #38 review BLOCKER). The
 // initial suggestions are seeded for the empty query.
-func New(in io.Reader, out io.Writer, src Source, dash Dashboard) *Model {
-	m := &Model{in: in, out: out, src: src, dash: dash, ed: newEditor(), sug: newSuggester()}
-	m.refresh()
+func New(in io.Reader, out io.Writer, src Source) *Model {
+	m := &Model{in: in, out: out, src: src, ed: newEditor(), sug: newSuggester(), debounce: DefaultDebounceDuration}
+	m.parent = context.Background()
+	m.ctx, m.cancel = context.WithCancel(m.parent)
+	m.computeSuggestions()
 	return m
 }
 
@@ -63,86 +75,123 @@ func New(in io.Reader, out io.Writer, src Source, dash Dashboard) *Model {
 // Bubble Tea program (Run).
 func (m *Model) Streams() (io.Reader, io.Writer) { return m.in, m.out }
 
-// baseStyle is the root style (terminal visual direction from ui/ui-plan.md).
-var baseStyle = lipgloss.NewStyle()
-
 // Init implements tea.Model.
 func (m *Model) Init() tea.Cmd { return nil }
 
-// Update implements tea.Model: the terminal keybindings — Ctrl+S/Alt+Enter
-// submit, Enter inserts a newline, Tab/Shift+Tab cycle the suggestions,
-// Esc/Ctrl+C abort, and typing refreshes the suggestions.
-func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	key, ok := msg.(tea.KeyMsg)
-	if !ok {
-		return m, nil
+// Destroy cancels any in-flight suggestion fetch (round-016 architect D1).
+func (m *Model) Destroy() {
+	if m.cancel != nil {
+		m.cancel()
 	}
-	switch key.Type {
-	case tea.KeyCtrlC, tea.KeyEsc:
-		m.aborted = true
-		return m, tea.Quit
-	case tea.KeyCtrlS:
-		m.submitted = strings.TrimSpace(m.ed.value()) != ""
-		return m, tea.Quit
-	case tea.KeyEnter:
-		if key.Alt {
-			m.submitted = strings.TrimSpace(m.ed.value()) != ""
-			return m, tea.Quit
+}
+
+// Update implements tea.Model. Command keys are intercepted here; every editing
+// key is delegated to the textarea (round-016 architect D2), and a value change
+// schedules a debounced, cancelable refresh.
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		return m.handleKey(msg)
+	case tea.WindowSizeMsg:
+		m.ed.setWidth(msg.Width - 4)
+		return m, nil
+	case debounceMsg:
+		if msg.value == m.ed.value() {
+			m.computeSuggestions()
 		}
-		m.ed.insert("\n")
-		return m, nil
-	case tea.KeyTab:
-		m.sug.cycle(1)
-		return m, nil
-	case tea.KeyShiftTab:
-		m.sug.cycle(-1)
-		return m, nil
-	case tea.KeyRunes:
-		m.ed.insert(string(key.Runes))
-		m.refresh()
-		return m, nil
-	case tea.KeySpace:
-		// Bubble Tea reports a space as its own key type, not a rune.
-		m.ed.insert(" ")
-		m.refresh()
 		return m, nil
 	}
 	return m, nil
 }
 
-// View implements tea.Model: the dashboard header, the editor, and the
-// suggestion list (the selection cursor is `>`), styled for the terminal.
-func (m *Model) View() string {
-	var b strings.Builder
-	b.WriteString(m.dashboardLine())
-	b.WriteString("\n")
-	b.WriteString(m.ed.value())
-	b.WriteString("\n")
-	for i, it := range m.sug.items {
-		if i == m.sug.cursor {
-			b.WriteString("> " + it + "\n")
-		} else {
-			b.WriteString("  " + it + "\n")
-		}
+func (m *Model) handleKey(key tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Type == tea.KeyCtrlC || key.Type == tea.KeyEsc:
+		m.aborted = true
+		return m, tea.Quit
+	case key.Type == tea.KeyCtrlS:
+		m.submitted = strings.TrimSpace(m.ed.value()) != ""
+		return m, tea.Quit
+	case key.Type == tea.KeyEnter && key.Alt:
+		m.submitted = strings.TrimSpace(m.ed.value()) != ""
+		return m, tea.Quit
+	case key.Type == tea.KeyTab:
+		m.accept(1)
+		return m, nil
+	case key.Type == tea.KeyShiftTab:
+		m.accept(-1)
+		return m, nil
 	}
-	return baseStyle.Render(b.String())
+	// Delegate every editing key to the bubbles textarea (D2). Enter inserts a
+	// newline; backspace/arrows/word movement all work.
+	old := m.ed.value()
+	cmd := m.ed.update(key)
+	if m.ed.value() != old {
+		m.cancel() // abort the in-flight fetch (D1) before scheduling the next
+		m.ctx, m.cancel = context.WithCancel(m.parent)
+		if m.debounce <= 0 {
+			m.computeSuggestions() // synchronous refresh (the hermetic E2E seam)
+			return m, cmd
+		}
+		return m, tea.Batch(cmd, m.scheduleDebounce())
+	}
+	return m, cmd
 }
 
-// dashboardLine renders the session dashboard header (provider + token usage +
-// turn count).
-func (m *Model) dashboardLine() string {
-	return fmt.Sprintf("provider: %s | tokens: %d/%d | turns: %d",
-		m.dash.Provider, m.dash.Tokens, m.dash.Budget, m.dash.Turns)
+// SetDebounce overrides the refresh debounce. A non-positive value refreshes
+// synchronously on each change — the hermetic E2E seam (TELL_ME_TUI_DEBOUNCE=0),
+// so the scripted keys observe suggestions without a timing pause (round-016).
+func (m *Model) SetDebounce(d time.Duration) { m.debounce = d }
+
+// accept inserts the current choice into the editor: it replaces only the last
+// token when the line is multi-word and the suggestion is a single token,
+// otherwise the whole line (round-016 FR-007 / last-token heuristic).
+func (m *Model) accept(delta int) {
+	if len(m.sug.items) == 0 {
+		return
+	}
+	m.sug.cycle(delta)
+	sel := m.sug.selected()
+	if sel == "" {
+		return
+	}
+	cur := m.ed.value()
+	if i := strings.LastIndex(cur, " "); i != -1 && !strings.Contains(sel, " ") {
+		m.ed.setValue(cur[:i+1] + sel)
+	} else {
+		m.ed.setValue(sel)
+	}
 }
 
-// refresh recomputes the suggestions for the current editor content. An empty
-// query yields the seeds from the source.
-func (m *Model) refresh() {
+// scheduleDebounce returns a command that fires debounceMsg after the delay.
+func (m *Model) scheduleDebounce() tea.Cmd {
+	return tea.Tick(m.debounce, func(time.Time) tea.Msg { return debounceMsg{value: m.ed.value()} })
+}
+
+// computeSuggestions refreshes the list for the current editor value using the
+// cancelable fetch context; entries spanning more than three lines are dropped
+// (FR-006).
+func (m *Model) computeSuggestions() {
 	if m.src == nil {
 		m.sug.set(nil)
 		return
 	}
-	m.sug.set(m.src.Suggest(m.ed.value()))
+	raw := m.src.Suggest(m.ctx, m.ed.value())
+	filtered := make([]string, 0, len(raw))
+	for _, s := range raw {
+		if strings.Count(strings.TrimSpace(s), "\n") < maxSuggestionLines {
+			filtered = append(filtered, s)
+		}
+	}
+	m.sug.set(filtered)
+}
+
+// View implements tea.Model: the bordered editor above the styled suggestion
+// list. There is NO dashboard header and NO status line (round-016 strict
+// parity with tell-me-go). The frame is always rendered (no submit/abort clear),
+// so the final rendered frame is captured by the E2E harness.
+func (m *Model) View() string {
+	return modelStyle.Render(lipgloss.JoinVertical(lipgloss.Left, m.ed.view(), "\n", m.sug.view()))
 }
 
 // Submitted is the composed (trimmed) prompt; valid when WasSubmitted.
@@ -151,5 +200,5 @@ func (m *Model) Submitted() string { return strings.TrimSpace(m.ed.value()) }
 // WasSubmitted reports whether the operator submitted (Ctrl+S / Alt+Enter).
 func (m *Model) WasSubmitted() bool { return m.submitted }
 
-// WasAborted reports whether the operator aborted (Ctrl+C / Esc).
+// WasAborted reports whether the operator aborted (Esc / Ctrl+C).
 func (m *Model) WasAborted() bool { return m.aborted }

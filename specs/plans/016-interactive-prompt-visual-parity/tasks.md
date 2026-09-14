@@ -38,11 +38,11 @@
 
 ### Implementation gate checklist（Phase 4 完成前逐項確認）
 
-- [ ] **Context lifecycle**：取消能終止 `appsuggestions.Service` 進行中的目錄迭代（`OSSWorkspace.Entries`）。
-- [ ] **Stream containment**：TUI 渲染只寫 `env.stderr`；`stdout` 未被觸碰。
-- [ ] **Startup optimization**：`defaultRunTUIPrompt` 已無 `store.Load()`。
-- [ ] **Dual falsifiability witnesses (T026)**：(a) 暫時重繪 metrics header → `no session metrics header` 失敗；(b) 暫時讓 `Tab` 只循環 → `holds the accepted suggestion` 失敗。
-- [ ] **Quality gates**：`make verify` 乾淨（0 lint、0 test-sleep、0 vulns）。
+- [X] **Context lifecycle**：取消能終止 `appsuggestions.Service` 進行中的目錄迭代（`OSSWorkspace.Entries`）。
+- [X] **Stream containment**：TUI 渲染只寫 `env.stderr`；`stdout` 未被觸碰。
+- [X] **Startup optimization**：`defaultRunTUIPrompt` 已無 `store.Load()`。
+- [X] **Dual falsifiability witnesses (T026)**：(a) 暫時重繪 metrics header → `no session metrics header` 失敗；(b) 暫時讓 `Tab` 只循環 → `holds the accepted suggestion` 失敗。
+- [X] **Quality gates**：`make verify` 乾淨（0 lint、0 test-sleep、0 vulns）。
 
 ---
 
@@ -50,7 +50,7 @@
 
 **Goal**: 建立本輪測試層落點骨架（Zero Shared Edits）與產品碼落點（reference chrome tokens + debounced refresh seam），讓 Phase 3／Phase 4 不各自發明檔案或落點。只建立落點與載體，不寫 chrome／debounce／insert 行為。
 
-- [ ] T001 建立 13 個 stepdef 獨立檔骨架（11 新句 + 2 退役句；Zero Shared Edits）
+- [X] T001 建立 13 個 stepdef 獨立檔骨架（11 新句 + 2 退役句；Zero Shared Edits）
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（本輪 11 個新句 + 2 個退役句）
     - `tests/e2e/steps/register.go`、`tests/e2e/harness/`（`TELL_ME_FORCE_STDIN_TTY` seam + scripted stdin）
@@ -70,14 +70,14 @@
     - `tests/e2e/steps/step_t016_chat_when_accept_suggestion.go`
   - 不做：不寫具體 arrange／斷言邏輯；不碰既有 step 檔。
 
-- [ ] T002 建立 2 個 `[UNIT]` 落點檔骨架
+- [X] T002 建立 2 個 `[UNIT]` 落點檔骨架
   - Read:
     - `specs/plans/016-interactive-prompt-visual-parity/research.md` -> Decision 1, Decision 2, Decision 5, Decision 6
     - `specs/truth/techstack.md` -> Testing & Verification（Interactive TUI prompt harness）
   - 只做：預留 2 個 `[UNIT]` 空殼——`internal/ui/tui/prompt/model_chrome_test.go`（chrome 存在／dashboard 不存在／resize 寬度／`Tab` 插入含 last-token）、`internal/ui/tui/prompt/refresh_test.go`（debounce + cancel + >3 行 drop）。採 stdlib `testing`。
   - 不做：不寫任何斷言或 fixture 語意。
 
-- [ ] T003 落點 `internal/ui/tui/prompt/` 的 reference chrome tokens 與 debounced refresh seam 骨架
+- [X] T003 落點 `internal/ui/tui/prompt/` 的 reference chrome tokens 與 debounced refresh seam 骨架
   - Read:
     - `specs/plans/016-interactive-prompt-visual-parity/research.md` -> Decision 1, Decision 2, Decision 3, Decision 5
     - `specs/plans/016-interactive-prompt-visual-parity/ui/ui-plan.md`（terminal 視覺方向；frame fidelity；`entry` / `10-suggestion` / `20-composed` / `30-narrow` frames）
@@ -136,77 +136,77 @@
 
 ### BDD-REMOVE（退役句型）
 
-- [ ] T004 [P] [BDD-REMOVE] `Then: the interactive prompt reports the active provider "{provider}"`
+- [X] T004 [P] [BDD-REMOVE] `Then: the interactive prompt reports the active provider "{provider}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該列已刪（退役）
   - Landing: `tests/e2e/steps/step_t004_chat_remove_reports_provider.go`
   - 語意：移除綁這句的既有 stepdef／assertion（若其註冊於既有共用檔，改寫為不再註冊此句），不得留下保護 dashboard 的測試。
 
-- [ ] T005 [P] [BDD-REMOVE] `Then: the interactive prompt reports the session's token usage and turn count`
+- [X] T005 [P] [BDD-REMOVE] `Then: the interactive prompt reports the session's token usage and turn count`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該列已刪（退役）
   - Landing: `tests/e2e/steps/step_t005_chat_remove_reports_tokens_turns.go`
   - 語意：同上——移除綁這句的既有 stepdef／assertion。
 
 ### BDD-RED（本輪新增句型）
 
-- [ ] T006 [P] [BDD-RED] `Then: the interactive prompt is framed around a multi-line editor`
+- [X] T006 [P] [BDD-RED] `Then: the interactive prompt is framed around a multi-line editor`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt is framed around a multi-line editor`
   - Landing: `tests/e2e/steps/step_t006_chat_then_framed_editor.go`
   - 語意：captured output 於編輯器外畫出框線（存在編輯器 frame 的水平邊框線）。
 
-- [ ] T007 [P] [BDD-RED] `Then: the interactive prompt lists suggestions beneath the editor`
+- [X] T007 [P] [BDD-RED] `Then: the interactive prompt lists suggestions beneath the editor`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt lists suggestions beneath the editor`
   - Landing: `tests/e2e/steps/step_t007_chat_then_suggestions_beneath.go`
   - 語意：captured output 在編輯器 frame **下方**帶 `Suggestions:` 標頭。
 
-- [ ] T008 [P] [BDD-RED] `Then: the interactive prompt marks one suggestion as the current choice`
+- [X] T008 [P] [BDD-RED] `Then: the interactive prompt marks one suggestion as the current choice`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt marks one suggestion as the current choice`
   - Landing: `tests/e2e/steps/step_t008_chat_then_marks_current_choice.go`
   - 語意：captured output 恰有**一列**建議被標為當前選項（`>` cursor）。
   - 架構指令（#5657823910）：建議載入時 `suggester.cursor` 預設 `0`（非 -1），使恰有一列被標為當前選項。
 
-- [ ] T009 [P] [BDD-RED] `Then: the interactive prompt shows no session metrics header`
+- [X] T009 [P] [BDD-RED] `Then: the interactive prompt shows no session metrics header`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt shows no session metrics header`
   - Landing: `tests/e2e/steps/step_t009_chat_then_no_metrics_header.go`
   - 語意：captured output **不**帶 session metrics 標頭——即**無**符合具體樣式 `provider .* | tokens .* | turns .*` 的列（round-015 dashboard 格式）——strict parity；**不**用裸 `tokens`／`turns` substring。
 
-- [ ] T010 [P] [BDD-RED] `Then: the interactive prompt advertises the submit and abort keys`
+- [X] T010 [P] [BDD-RED] `Then: the interactive prompt advertises the submit and abort keys`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt advertises the submit and abort keys`
   - Landing: `tests/e2e/steps/step_t010_chat_then_advertises_keys.go`
   - 語意：captured output 帶編輯器 placeholder，命名 submit key（`Ctrl+S`）與 abort key（`Esc`）。
 
-- [ ] T011 [P] [BDD-RED] `Then: the interactive prompt keeps the typed text "{text}"`
+- [X] T011 [P] [BDD-RED] `Then: the interactive prompt keeps the typed text "{text}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt keeps the typed text "{text}"`
   - Landing: `tests/e2e/steps/step_t011_chat_then_keeps_typed_text.go`
   - 語意：captured output 於編輯器內帶所打字串 `{text}`（多行值以 `\n` escape 表示）。
 
-- [ ] T012 [P] [BDD-RED] `Then: the interactive prompt frames the editor within the terminal width`
+- [X] T012 [P] [BDD-RED] `Then: the interactive prompt frames the editor within the terminal width`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt frames the editor within the terminal width`
   - Landing: `tests/e2e/steps/step_t012_chat_then_frames_within_width.go`
   - 語意：captured output 的編輯器 frame 落在終端寬度內（邊框不超出該次執行寬度）。
 
-- [ ] T013 [P] [BDD-RED] `Then: the interactive prompt holds the accepted suggestion "{text}"`
+- [X] T013 [P] [BDD-RED] `Then: the interactive prompt holds the accepted suggestion "{text}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt holds the accepted suggestion "{text}"`
   - Landing: `tests/e2e/steps/step_t013_chat_then_holds_accepted.go`
   - 語意：captured output 於編輯器內帶 `{text}`（接受的建議已插入）。
 
-- [ ] T014 [P] [BDD-RED] `Then: no suggestion offered to the operator spans more than three lines`
+- [X] T014 [P] [BDD-RED] `Then: no suggestion offered to the operator spans more than three lines`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `no suggestion offered to the operator spans more than three lines`
   - Landing: `tests/e2e/steps/step_t014_chat_then_no_overlong_suggestion.go`
   - 語意：captured output 每一列建議至多三行。
 
-- [ ] T015 [P] [BDD-RED] `Then: the interactive prompt shows no line numbers`
+- [X] T015 [P] [BDD-RED] `Then: the interactive prompt shows no line numbers`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the interactive prompt shows no line numbers`
   - Landing: `tests/e2e/steps/step_t015_chat_then_no_line_numbers.go`
   - 語意：captured output 的編輯器**不**繪出逐行行號欄（無前導行號欄）。
 
-- [ ] T016 [P] [BDD-RED] `When: the operator opens the interactive prompt, types "{query}", and accepts the current suggestion`
+- [X] T016 [P] [BDD-RED] `When: the operator opens the interactive prompt, types "{query}", and accepts the current suggestion`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the operator opens the interactive prompt, types "{query}", and accepts the current suggestion`
   - Landing: `tests/e2e/steps/step_t016_chat_when_accept_suggestion.go`
   - 語意：以 `TELL_ME_FORCE_STDIN_TTY=1` 與 scripted key（open → type `{query}` → `Tab` accept → abort）跑 `tellme -i`，captured 結果。
 
 ### UNIT（非 DSL 的單元斷言）
 
-- [ ] T017 [P] [UNIT] TUI 模型：chrome 存在／無 dashboard／resize 寬度／`Tab` 插入（含 last-token）
+- [X] T017 [P] [UNIT] TUI 模型：chrome 存在／無 dashboard／resize 寬度／`Tab` 插入（含 last-token）
   - Read:
     - `specs/plans/016-interactive-prompt-visual-parity/research.md` -> Decision 1, Decision 3, Decision 5, Decision 6
     - `specs/truth/techstack.md` -> CLI Application（Interactive TUI prompt (`-i`)；Session dashboard — removed）、Testing & Verification（Interactive TUI prompt harness）
@@ -214,7 +214,7 @@
   - 撰寫：以注入 I/O 直接驅動模型，斷言——渲染含 editor 框線／placeholder／`Suggestions:` 標頭／`>` cursor；渲染**不含** dashboard 列、**不含**行號欄；`tea.WindowSizeMsg` 設編輯器寬度為 `msg.Width - 4`；`Tab`/`Shift+Tab` **插入**選中建議，且多詞輸入 + 單一 token 建議只換最後一個 token（F2 unit pin）。
   - 落點：`internal/ui/tui/prompt/model_chrome_test.go`。
 
-- [ ] T018 [P] [UNIT] 建議刷新：debounce + cancel（stale 丟棄）+ >3 行 drop
+- [X] T018 [P] [UNIT] 建議刷新：debounce + cancel（stale 丟棄）+ >3 行 drop
   - Read:
     - `specs/plans/016-interactive-prompt-visual-parity/research.md` -> Decision 2, Decision 6
     - `specs/truth/techstack.md` -> CLI Application（Prompt suggestion engine）
@@ -225,7 +225,7 @@
 
 ### Phase Review Gate
 
-- [ ] T019 subagent review (phase quality gate)
+- [X] T019 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/presenting-the-interactive-prompt.feature`、`prompting-with-suggestions.feature`、`using-the-interactive-prompt.feature`
     - `specs/truth/features/cli/chat/dsl.md`、`specs/truth/features/cli/dsl.md`
@@ -254,8 +254,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/prompting-with-suggestions.feature`
 
-- [ ] T020 [BDD-GREEN] 讓 Test Scope 全綠（並使 T018 的刷新 `[UNIT]` 轉綠）
-- [ ] T021 [BDD-REFACTOR] 在綠燈下整理建議插入與 debounce／cancel 路徑
+- [X] T020 [BDD-GREEN] 讓 Test Scope 全綠（並使 T018 的刷新 `[UNIT]` 轉綠）
+- [X] T021 [BDD-REFACTOR] 在綠燈下整理建議插入與 debounce／cancel 路徑
 
 ## Phase 4B: ADD Feature File - cli/chat/presenting-the-interactive-prompt.feature
 
@@ -276,8 +276,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/presenting-the-interactive-prompt.feature`
 
-- [ ] T022 [BDD-GREEN] 讓 Test Scope 全綠（並使 T017 的 chrome `[UNIT]` 轉綠）
-- [ ] T023 [BDD-REFACTOR] 在綠燈下整理 chrome tokens 與 resize 路徑
+- [X] T022 [BDD-GREEN] 讓 Test Scope 全綠（並使 T017 的 chrome `[UNIT]` 轉綠）
+- [X] T023 [BDD-REFACTOR] 在綠燈下整理 chrome tokens 與 resize 路徑
 
 ## Phase 4C: DELETE DSL Truth - retire the `-i` session dashboard rule
 
@@ -297,8 +297,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/using-the-interactive-prompt.feature`
 
-- [ ] T024 [CODE-REMOVE] 移除 dashboard 標頭的產品分支與 `Dashboard` 注入路徑
-- [ ] T025 [REGRESSION] 跑 Test Scope，確認新版 truth 成立（無 dashboard）且 submit／abort 不受影響
+- [X] T024 [CODE-REMOVE] 移除 dashboard 標頭的產品分支與 `Dashboard` 注入路徑
+- [X] T025 [REGRESSION] 跑 Test Scope，確認新版 truth 成立（無 dashboard）且 submit／abort 不受影響
 
 ## Phase 4D: Regression
 
@@ -307,7 +307,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`（chat、history、configuration、workspace、diagnostics、usage 全模組）
 
-- [ ] T026 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T026 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`）與 `go test -count=1 ./...`（含 godog）。
   - **可偽性見證 (a)（chrome／dashboard；非真空）**：暫時讓 `model.go` 的 View 再次渲染 dashboard 標頭列（`provider … | tokens … | turns …`），確認 `presenting-the-interactive-prompt.feature` 的 `the interactive prompt shows no session metrics header` 失敗；觀察到失敗即還原（證明此 Then 非真空）。
   - **可偽性見證 (b)（`Tab` 插入）**：暫時讓 `Tab` 只循環不插入，確認 `prompting-with-suggestions.feature` 的 `the interactive prompt holds the accepted suggestion "…"` 失敗；觀察到失敗即還原。
