@@ -46,7 +46,7 @@ As an operator, I want a live spinner on the diagnostic stream for the whole tim
 - **FR-002**: The system MUST clear the spinner before writing any interleaved output (a tool-trace line, the answer, or the post-turn status lines) and MUST restore the spinner if waiting resumes within the same turn; the spinner MUST NOT persist into the completed turn.
 - **FR-003**: The spinner MUST render `{frame}{status} ({elapsed}s)` — a single braille spinner frame that advances over time, the phase status label, and the whole-seconds elapsed counter — and MUST be animated.
 - **FR-004**: The status label MUST track the waiting phase: awaiting the model → ` Thinking [<model>]...` (the `[<model>]` bracket omitted when the active provider names no model); executing tools → ` Executing [<tool>]...` for one tool, ` Executing tools [<a>, <b>]...` for several, or ` Executing tools...` when tool names are unavailable. Each label carries a leading space.
-- **FR-005**: The tool-execution spinner MUST additionally render ` [CPU: <cpu>% | MEM: <mem>%]` (host-process CPU and memory percentages, one decimal place); the awaiting-the-model spinner MUST NOT render that segment.
+- **FR-005**: The tool-execution spinner MUST additionally render ` [CPU: <cpu>% | MEM: <mem>%]` (machine-wide CPU and memory percentages, one decimal place); the awaiting-the-model spinner MUST NOT render that segment.
 
 **Non-Functional Requirements**:
 
@@ -114,7 +114,7 @@ As an operator, I want the spinner limited to the interactive terminal surfaces 
 
 - **Spinner state**: the current waiting phase's frame index, status label, and elapsed counter — recreated for each waiting interval, cleared when the interval ends.
 - **Phase status label**: the text derived from the waiting phase (awaiting the model vs. executing tools), with the interpolated model / tool identifier(s) and the leading space.
-- **Resource segment**: the ` [CPU: … | MEM: …]` host-process CPU/memory percentages shown only during tool execution.
+- **Resource segment**: the ` [CPU: … | MEM: …]` machine-wide CPU/memory percentages shown only during tool execution.
 
 ## Success Criteria *(mandatory)*
 

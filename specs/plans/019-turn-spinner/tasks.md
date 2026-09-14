@@ -53,12 +53,12 @@
 
 - [ ] T002 落點產品碼骨架與 `[UNIT]` 落點檔骨架
   - Read:
-    - `specs/plans/019-turn-spinner/research.md` -> Decision 1, Decision 2, Decision 5, Decision 6, Decision 7
-    - `specs/truth/techstack.md` -> CLI Application（Turn progress spinner (operator)；Terminal detection）
+    - `specs/plans/019-turn-spinner/research.md` -> Decision 1, Decision 2, Decision 5, Decision 6, Decision 7, Decision 10
+    - `specs/truth/techstack.md` -> CLI Application（Turn progress spinner (operator)；Terminal detection；Agent tool loop）
     - `internal/ui/turn.go`（the sibling round-017 helper — same package/home）
     - `internal/cli/cli.go`（the turn flow + the existing stdin probe seam）
   - 只做：
-    - 產品碼骨架（簽名 stub，空輸出/未接線）：`internal/ui/spinner.go`（the spinner presenter 簽名 + the frame set 常數 + the label/elapsed formatter 簽名）、`internal/domain/metrics/**`（the `SystemMetricsProvider` port 簽名）、`internal/infrastructure/telemetry/system_metrics_linux.go`、`system_metrics_darwin_cgo.go`、`system_metrics_darwin_nocgo.go`（the machine-wide CPU/memory sampler 簽名，behind the port seam）、`internal/cli/cli.go`（the spinner start/stop seam + the diagnostic-stream gate hook + the `TELL_ME_FORCE_STDERR_TTY` read）。
+    - 產品碼骨架（簽名 stub，空輸出/未接線）：`internal/ui/spinner.go`（the spinner presenter 簽名 + the frame set 常數 + the label/elapsed formatter 簽名 + the I/O mutex + the synchronous `Stop()`/`Clear()` 簽名）、`internal/domain/metrics/**`（the `SystemMetricsProvider` port 簽名）、`internal/infrastructure/telemetry/system_metrics_linux.go`、`system_metrics_darwin_cgo.go`、`system_metrics_darwin_nocgo.go`（the machine-wide CPU/memory sampler 簽名，behind the port seam）、`internal/domain/agent/**`（the `LoopObserver` port 簽名）、`internal/agent/agentloop.go`（invoke the `LoopObserver` hooks around `Complete` + `logStep` — 簽名 stub）、`internal/cli/cli.go`（the spinner start/stop seam + the diagnostic-stream gate hook + the `TELL_ME_FORCE_STDERR_TTY` read + inject the observer into the loop）。
     - 測試落點骨架：`internal/ui/spinner_test.go`、`internal/infrastructure/telemetry/system_metrics_test.go`（stdlib `testing` 空殼）。
   - 不做：不畫任何 frame、不算 elapsed、不 sample CPU/mem、不接線 the turn flow、不改 the round-009/017/018 formatters、不引入任何相依。
 
@@ -95,7 +95,7 @@
 - `specs/truth/features/cli/dsl.md`（interface root）-> `the diagnostics are shown at a terminal`、`the run shows no progress spinner`（本輪新增的跨模組 root rows；class-phrase 詞彙維持 11）
 - `truth-delta.md` -> `/axb-dsl-refine` ADD（`chat/presenting-the-progress-spinner.feature`）+ MODIFY（`chat/dsl.md` +8 rows、root `cli/dsl.md` +2 rows、`diagnostics/version-and-setup-diagnostic.feature`、`history/inspecting-the-session-history.feature`、`history/starting-a-fresh-session.feature`、`chat/presenting-the-turn.feature`）；`/axb-api-plan` NOOP（`contracts/**`）；`/axb-data-plan` NOOP（`data/**`）；`/axb-technical-research` MODIFY（`techstack.md`）
 - `tests/e2e/steps/`、`tests/e2e/harness/`、`tests/e2e/fakeprovider/`
-- `internal/ui/turn.go`、`internal/ui/spinner.go`、`internal/domain/metrics/**`、`internal/infrastructure/telemetry/system_metrics_*.go`（T002 落點）
+- `internal/ui/turn.go`、`internal/ui/spinner.go`、`internal/domain/metrics/**`、`internal/domain/agent/**`、`internal/agent/agentloop.go`、`internal/infrastructure/telemetry/system_metrics_*.go`（T002 落點）
 
 **Boundary**:
 - 一條 DSL 一個 task；落入獨立單一檔案（檔案 `init()` 自我註冊）。
@@ -166,7 +166,7 @@
     - `specs/plans/019-turn-spinner/research.md` -> Decision 1, Decision 2, Decision 3, Decision 4
     - `specs/truth/techstack.md` -> CLI Application（Turn progress spinner (operator)）
     - `internal/ui/turn.go`（the sibling formatter — same package/home）
-  - 撰寫：斷言 the spinner line 的文字（`{frame}{status} ({elapsed}s)`，label 為 ` Thinking [<model>]...`，model 空時省略 bracket）、the frame 隨每個 tick 前進（注入 clock/ticker，**無** `time.Sleep`）、the elapsed 為 whole seconds 且 in-place label update 不歸零。
+  - 撰寫：斷言 the spinner line 的文字（`{frame}{status} ({elapsed}s)`，label 為 ` Thinking [<model>]...`，model 空時省略 bracket）、the frame 隨每個 tick 前進（注入 clock/ticker，**無** `time.Sleep`）、the elapsed 為 whole seconds 且 in-place label update 不歸零；`Stop()`/`Clear()` 為同步（回傳時已無 in-flight frame、且 clear frame 已寫出），且 frame 更新與 `stderr` 寫入共用同一 I/O mutex（R1）。
   - 落點：`internal/ui/spinner_test.go`。
 
 - [ ] T014 [P] [UNIT] the machine-wide CPU/memory samplers + the resource segment
@@ -205,11 +205,11 @@
 - `specs/truth/features/cli/chat/dsl.md` -> the 9 round-019 `chat` rows
 - `specs/truth/features/cli/dsl.md` -> `the run shows no progress spinner`
 - `truth-delta.md` -> `/axb-dsl-refine` ADD + MODIFY；`/axb-technical-research` MODIFY
-- `specs/plans/019-turn-spinner/research.md` -> Decision 1, Decision 2, Decision 3, Decision 4, Decision 5, Decision 6, Decision 7
+- `specs/plans/019-turn-spinner/research.md` -> Decision 1, Decision 2, Decision 3, Decision 4, Decision 5, Decision 6, Decision 7, Decision 10
 - `specs/truth/techstack.md` -> CLI Application（Turn progress spinner (operator)；Terminal detection）
 
 **Boundary**:
-- 產品碼：`internal/ui/spinner.go`（the presenter + the frame set + the label/elapsed formatter）、`internal/domain/metrics/**` + `internal/infrastructure/telemetry/system_metrics_{linux,darwin_cgo,darwin_nocgo}.go`（the dependency-free machine-wide POSIX CPU/memory sampler）、`internal/cli/cli.go`（own the lifecycle：每個 waiting phase 啟動、interleaved output 前停止、deferred stop；接線 the diagnostic-stream gate + `TELL_ME_FORCE_STDERR_TTY`）。
+- 產品碼：`internal/ui/spinner.go`（the presenter + the frame set + the label/elapsed formatter + the I/O mutex）、`internal/domain/metrics/**` + `internal/infrastructure/telemetry/system_metrics_{linux,darwin_cgo,darwin_nocgo}.go`（the dependency-free machine-wide POSIX CPU/memory sampler）、`internal/domain/agent/**` + `internal/agent/agentloop.go`（the `LoopObserver` port + the loop invoking its hooks around `Complete`/`logStep`；the spinner 於 `Before/AfterToolLog` 讓位）、`internal/cli/cli.go`（construct the spinner as the observer and inject it；own the deferred stop；gate on the diagnostic stream + `TELL_ME_FORCE_STDERR_TTY`）。
 - 依 `research.md` Decisions 1–9；labels 具 leading space；elapsed 為 whole seconds；resources `%.1f`；gate `isatty(stderr) && !-r`；surface 需符合 FR-008 的 conjunction。
 - **不動** `stdout` bytes、the round-009 payload line 文字、the round-017 turn chrome、the round-018 post-turn lines、the class-phrase 詞彙（維持 **11**）、the `-i` TUI surface；plain text（no ANSI）；**不加相依**。
 - 落點採零共用編輯；the presenter 與 the gate seam 各自獨立檔。
@@ -275,31 +275,32 @@
 |:---|:---|:---:|
 | `specs/truth/techstack.md` -> CLI Application（Turn progress spinner (operator)） | T002、T013、T014、T017、T018 | PASS |
 | `specs/truth/techstack.md` -> CLI Application（Terminal detection — the diagnostic-stream gate + the forced stderr seam） | T002、T015、T017 | PASS |
-| `specs/truth/techstack.md` -> Testing & Verification（spinner assertions + samplers） | T001、T013、T014、T019 | PASS |
+| `specs/truth/techstack.md` -> Testing & Verification（spinner assertions + samplers） | T001、T013、T014、T021 | PASS |
 | `truth-delta.md` -> `/axb-technical-research` MODIFY（`techstack.md`） | T002、T013、T014、T015、T017 | PASS |
-| `truth-delta.md` -> `/axb-api-plan` NOOP（`specs/truth/contracts/**`） | 豁免（NOOP 不建任務；T019 驗證不觸及 API surface） | PASS |
+| `truth-delta.md` -> `/axb-api-plan` NOOP（`specs/truth/contracts/**`） | 豁免（NOOP 不建任務；T021 驗證不觸及 API surface） | PASS |
 | `truth-delta.md` -> `/axb-data-plan` NOOP（`specs/truth/data/**`） | 豁免（NOOP 不建任務；無資料變更） | PASS |
 | `truth-delta.md` -> `/axb-dsl-refine` ADD（`chat/presenting-the-progress-spinner.feature`） | T003–T012、T017、T018 | PASS |
-| `truth-delta.md` -> `/axb-dsl-refine` MODIFY（`chat/dsl.md` +8 rows；root `cli/dsl.md` +2 rows；`diagnostics`/`history`/`presenting-the-turn` features） | T001、T003–T012、T016、T019 | PASS |
+| `truth-delta.md` -> `/axb-dsl-refine` MODIFY（`chat/dsl.md` +8 rows；root `cli/dsl.md` +2 rows；`diagnostics`/`history`/`presenting-the-turn` features） | T001、T003–T012、T016、T021 | PASS |
 | `research.md` -> Decision 1（hand-written `internal/ui` spinner） | T002、T013、T017 | PASS |
 | `research.md` -> Decision 2（frames / cadence / the drawing primitive） | T002、T013、T017 | PASS |
 | `research.md` -> Decision 3（phase labels with identifiers） | T006、T008、T009、T013、T017 | PASS |
 | `research.md` -> Decision 4（the elapsed counter） | T007、T013、T017 | PASS |
 | `research.md` -> Decision 5（dependency-free POSIX CPU/memory sampling） | T002、T010、T014、T017 | PASS |
-| `research.md` -> Decision 6（the standard-output gate + the forced seam） | T003、T012、T015、T017、T019 | PASS |
-| `research.md` -> Decision 7（the lifecycle placement） | T011、T017 | PASS |
-| `research.md` -> Decision 8（unit + E2E；no pty） | T001、T013–T015、T019 | PASS |
-| `research.md` -> Decision 9（POSIX-only；no new dependency） | T002、T014、T019 | PASS |
-| `research.md` -> Must-ask questions（BDD techstack godog；E2E + units；single CLI end） | T001、T019（既有 truth 未改） | PASS |
-| `spec.md` -> US1–US2、`FR-001`–`FR-011`、`NFR-001`–`NFR-005` | T003–T015（對齊）、T017–T019（交付） | PASS |
-| `spec.md` -> A1–A4、A6–A9、A10 | A3/A4 → T013/T014；A6 → T003/T012；A7 → T005；A8 → T007/T013；A9 → T014/T019 | PASS |
-| `plan.md` -> Source-code structure（`internal/ui/spinner.go`、`internal/domain/metrics/**`、`internal/infrastructure/telemetry/system_metrics_*.go`、`internal/cli/cli.go`；no new module） | T002、T017、T018 | PASS |
-| `plan.md` -> Scope notes（api NOOP；data NOOP；`/axb-ui-plan` skipped；CLI end → `/axb-dsl-refine`） | T016、T018、T019 | PASS |
+| `research.md` -> Decision 7（the `LoopObserver` lifecycle placement） | T002、T011、T017、T018 | PASS |
+| `research.md` -> Decision 8（unit + E2E；no pty） | T001、T013–T015、T021 | PASS |
+| `research.md` -> Decision 9（POSIX-only；no new dependency） | T002、T014、T021 | PASS |
+| `research.md` -> Must-ask questions（BDD techstack godog；E2E + units；single CLI end） | T001、T021（既有 truth 未改） | PASS |
+| `spec.md` -> US1–US2、`FR-001`–`FR-011`、`NFR-001`–`NFR-005` | T003–T015（對齊）、T017–T021（交付） | PASS |
+| `spec.md` -> A1–A4、A6–A9、A10 | A3/A4 → T013/T014；A6 → T003/T012；A7 → T005；A8 → T007/T013；A9 → T014/T021 | PASS |
+| `plan.md` -> Source-code structure（`internal/ui/spinner.go`、`internal/domain/metrics/**`、`internal/domain/agent/**`、`internal/agent/agentloop.go`、`internal/infrastructure/telemetry/system_metrics_*.go`、`internal/cli/cli.go`；no new module） | T002、T017、T018 | PASS |
+| `plan.md` -> Scope notes（api NOOP；data NOOP；`/axb-ui-plan` skipped；CLI end → `/axb-dsl-refine`） | T016、T018、T021 | PASS |
 | `/axb-clarify` Q1 拍板（full reference-parity label with identifiers） | T006、T008、T009、T013 | PASS |
 | `/axb-clarify` Q2 拍板（keep the tool-execution CPU/MEM segment） | T010、T014 | PASS |
 | operator 拍板（stop/resume A；`-i` out of scope；POSIX-only） | A → T011/T017；scope → T012/T021；POSIX → T014/T021 | PASS |
 | `specs/truth/techstack.md` -> CLI Application（System metrics provider (telemetry)） | T002、T014、T017、T018 | PASS |
 | `truth-delta.md` -> `/axb-dsl-refine` MODIFY（`chat/reporting-a-failed-provider-request.feature` failure carrier） | T011、T019、T021 | PASS |
 | `research.md` -> Decision 6（the `stderr` diagnostic gate + the forced `stderr` seam; no stdout probe; Obs 1 open） | T003、T012、T015、T017、T021 | PASS |
+| `research.md` -> Decision 10（synchronous clear + serialized `stderr` writes） | T002、T013、T017 | PASS |
+| `specs/truth/techstack.md` -> CLI Application（Agent tool loop — the `LoopObserver` seam） | T002、T017、T018 | PASS |
 
 > 孤立產物件數：0。掃描通過，准予交付。

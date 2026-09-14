@@ -51,11 +51,12 @@
   - Also require `isatty(stdout)` as an *additional* constraint — unnecessary; the surface conjunction (spec FR-008) plus the `stderr` gate already cover it, and adding it would re-introduce the feedback loss.
   - A pty harness — forsworn (round 005 grill Q6 / round 006 Q2); the forced `stderr` seam covers the branch.
 
-## Decision 7: Lifecycle placement
+## Decision 7: Lifecycle placement — a `LoopObserver` seam on `AgentLoop`
 
-- **Decision**: the turn layer owns the spinner lifecycle — start on entering a waiting phase (awaiting the model; executing tools), stop before any interleaved write (a tool-trace line, the answer, the post-turn lines), resume if waiting resumes, and always stop before the turn completes or a failure class phrase is written (a deferred stop guard). Phase labels are passed in per phase; the presenter is a value on the runtime environment so tests inject a recording `stderr` + a fake clock/ticker.
-- **Rationale**: one owner avoids double-starts; the deferred stop guarantees no residue on any exit path, including panics.
+- **Decision**: the turn is a single blocking `AgentLoop.Run(ctx, prompt, prior)` call (`internal/cli/cli.go`), and inside it inference, tool execution, and the tool-trace log (`internal/agent/agentloop.go` `logStep` → `a.Stderr`) all happen — so `cli.go` cannot observe phase transitions from outside. Add a **`LoopObserver` port** (`internal/domain/agent/`) and make `AgentLoop` invoke it: `OnInferenceStart(model)` / `OnInferenceEnd()` around each `Gateway.Complete`, `OnToolsStart(names)` / `OnToolsEnd()` around the tool batch, and `BeforeToolLog()` / `AfterToolLog()` **around `logStep`** so the spinner is cleared before the trace line and restored after. The `internal/ui` spinner presenter implements the port; `cli.go` constructs it and injects it into the loop — the CLI *owns* the lifecycle (it builds/injects the observer), the loop *invokes* it. A deferred stop guarantees no residue on any exit path (incl. panics/failure).
+- **Rationale**: without a seam on the loop, `cli.go` cannot switch the label to ` Executing tools …` nor clear the spinner before `logStep` writes to `stderr` — `FR-002` would be unimplementable within the task boundary (review B1). The observer keeps a single owner (the CLI) while letting the loop emit the timing.
 - **Alternatives considered**:
+  - Edit `cli.go` only, treating `loop.Run` as a black box — impossible: the phase transitions and the `logStep` write happen inside the loop.
   - Event-bus/actor lifecycle (the reference's `uiBridge` actor) — overkill for a single CLI turn with no concurrent producers.
   - A per-call spinner owned inside the agent loop — splits the lifecycle across layers.
 
@@ -72,6 +73,14 @@
 - **Decision**: POSIX-only (Linux/macOS); **no** new third-party dependency (`go.mod`/`go.sum` unchanged).
 - **Rationale**: the operator locked Linux/macOS only; the spinner, the sampling, and the probe all reuse already-present facilities.
 - **Alternatives considered**: a Windows branch — out of scope.
+
+## Decision 10: Synchronous clear + serialized `stderr` writes
+
+- **Decision**: the spinner presenter owns one I/O mutex; every spinner frame update **and** every `stderr` write during an active turn are serialized through it, and `Stop()`/`Clear()` are **synchronous** — they block until the ticker goroutine has terminated and the final clear frame (`\r` + clear-line) has been written. This mirrors the reference (`renderer_spinner.go`'s `ioMu`).
+- **Rationale**: a ~200 ms background redraw can otherwise interleave with a `logStep`/answer write and wipe part of it (review R1); a synchronous clear guarantees the following line starts from a clean column.
+- **Alternatives considered**:
+  - Fire-and-forget stop (cancel a context, return) — rejected: a final in-flight frame could land *after* the following write.
+  - Leaving serialization to the caller — rejected: multiple writers (the spinner + the round-017/018 emitters) → one owner is safer.
 
 ## Must-ask questions (settled by existing truth — unchanged this round)
 

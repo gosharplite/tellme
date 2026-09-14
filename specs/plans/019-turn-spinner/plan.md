@@ -42,6 +42,8 @@ internal/
 │   ├── metrics.go                 # unchanged — the round-018 post-turn metrics/summary formatters
 │   └── tui/prompt/…               # unchanged — the `-i` TUI (out of scope)
 ├── domain/metrics/…               # NEW — the SystemMetricsProvider port (machine-wide CPU/memory percentages)
+├── domain/agent/…                 # NEW — the LoopObserver port (phase hooks; clear-before / restore-after the tool log)
+├── agent/agentloop.go             # CHANGED — invoke the LoopObserver hooks around Complete + logStep
 ├── infrastructure/telemetry/      # NEW — the POSIX adapters: system_metrics_linux.go,
 │                                  #   system_metrics_darwin_cgo.go, system_metrics_darwin_nocgo.go
 └── cli/cli.go                     # CHANGED — own the spinner lifecycle around each waiting phase; gate on the
@@ -61,9 +63,11 @@ brailled frames advancing on a ticker, a phase label (` Thinking [<model>]...` /
 segment. It is written to `stderr` and gated on the **diagnostic stream** (`isatty(stderr) && !-r`) — mirroring the
 reference's `IsTerminalContext()` (`ui.stderr`) — leaving `stdout` byte-exact; no standard-output probe is
 wired, so round-006 / PR #16 **Obs 1** stays **OPEN**. There is **no** new endpoint, **no** new persisted state, and **no** new dependency,
-consistent with `research.md` Decisions 1–9. The **executable contract** is pinned in
+consistent with `research.md` Decisions 1–10. The **executable contract** is pinned in
 `specs/truth/features/cli/**` by `/axb-dsl-refine`; the spinner lives in a new `internal/ui/spinner.go`
-beside the existing `internal/ui` formatters; `specs/truth/contracts/**`, `specs/truth/data/**`, and
+beside the existing `internal/ui` formatters, and the agent loop gains a **`LoopObserver` hook seam**
+(`internal/domain/agent/` port + `internal/agent/agentloop.go`) so the CLI-injected spinner can label /
+clear / restore per phase; `specs/truth/contracts/**`, `specs/truth/data/**`, and
 `ui/**` are untouched.
 
 ---
