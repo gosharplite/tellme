@@ -7,6 +7,7 @@ Feature: The progress indicator stays bounded
   Rule: The indicator is shown only when the diagnostics reach a terminal
 
     Example: The operator is not watching the diagnostics at a terminal
+      # the diagnostics are not attached to a terminal in this scenario
       Given the operator has a runnable tellme installation
       When the operator runs tellme with the prompt "hi"
       Then the run shows no progress indicator

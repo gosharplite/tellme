@@ -39,7 +39,7 @@
     - `specs/truth/features/cli/dsl.md`（the root row）
     - `tests/e2e/steps/register.go`、`tests/e2e/harness/`（the merged-stream witness + the subprocess runner）
   - 只做：建立 10 個獨立 stepdef 檔（各自 `init()` 自我註冊空白 registrar），檔名對應 Phase 3 task id：
-    - `tests/e2e/steps/step_t003_chat_given_watching_terminal.go`
+    - `tests/e2e/steps/step_t003_given_watching_terminal.go`
     - `tests/e2e/steps/step_t004_chat_given_two_tool_provider.go`
     - `tests/e2e/steps/step_t005_chat_then_spinner_shown.go`
     - `tests/e2e/steps/step_t006_chat_then_names_model.go`
@@ -70,7 +70,7 @@
 
 **DSL 參照**:
 - 每一句只屬於一個權威 `dsl.md`：同模組 `specs/truth/features/cli/chat/dsl.md`，或介面根 `specs/truth/features/cli/dsl.md`。不得掃其他模組。
-- 本輪 **9 句**在 `specs/truth/features/cli/chat/dsl.md`；**1 句**（`the run shows no progress spinner`）在介面根 `specs/truth/features/cli/dsl.md`。
+- 本輪 **8 句**在 `specs/truth/features/cli/chat/dsl.md`；**2 句**（`the operator is watching a terminal`、`the run shows no progress spinner`）在介面根 `specs/truth/features/cli/dsl.md`。
 - 讀法：用 task title 的句型對到該檔那一列，以 `StepDef 實作語意` 當作測試程式碼語意。Given / When 讀 `怎麼做`、`權威狀態落地`、`回寫`；Then 讀 `必查`（`呈現結果`）。
 - `truth-delta.md` 只告訴這句是 ADD。語意以 `dsl.md` 那一列為準，不得用 feature 措辭或舊 stepdef 自行發明。
 - 本輪斷言形式：the spinner line 於 `stderr` 的 **presence + label + elapsed + resources**（frame 以 set 比對，容忍 `\r` redraw）；clearing 的 **merged ordering**（answer 之後無 frame）；the negative Then 對 `stdout`+`stderr` 的 **absence**。**frame advancement over ticks** 為 `[UNIT]`（無 pty；a fast turn may render a single synchronous frame）。
@@ -84,7 +84,6 @@
 
 **Shared Must Read**:
 - `specs/truth/features/cli/chat/dsl.md`
-  -> `the operator is watching a terminal`
   -> `a configured provider "{provider}" whose endpoint asks tellme to read "{path_a}" and "{path_b}" and then answers with "{answer}"`
   -> `the run shows the progress spinner while it waits`
   -> `the progress spinner names the model it is waiting for`
@@ -93,8 +92,8 @@
   -> `the progress spinner names every tool it is running`
   -> `the progress spinner reports the machine's resource usage`
   -> `the progress spinner no longer appears once the answer is written`
-- `specs/truth/features/cli/dsl.md` -> `the run shows no progress spinner`（本輪新增的跨模組 root row；class-phrase 詞彙維持 11）
-- `truth-delta.md` -> `/axb-dsl-refine` ADD（`chat/presenting-the-progress-spinner.feature`）+ MODIFY（`chat/dsl.md` +9 rows、root `cli/dsl.md` +1 row、`diagnostics/version-and-setup-diagnostic.feature`、`history/inspecting-the-session-history.feature`、`history/starting-a-fresh-session.feature`、`chat/presenting-the-turn.feature`）；`/axb-api-plan` NOOP（`contracts/**`）；`/axb-data-plan` NOOP（`data/**`）；`/axb-technical-research` MODIFY（`techstack.md`）
+- `specs/truth/features/cli/dsl.md`（interface root）-> `the operator is watching a terminal`、`the run shows no progress spinner`（本輪新增的跨模組 root rows；class-phrase 詞彙維持 11）
+- `truth-delta.md` -> `/axb-dsl-refine` ADD（`chat/presenting-the-progress-spinner.feature`）+ MODIFY（`chat/dsl.md` +8 rows、root `cli/dsl.md` +2 rows、`diagnostics/version-and-setup-diagnostic.feature`、`history/inspecting-the-session-history.feature`、`history/starting-a-fresh-session.feature`、`chat/presenting-the-turn.feature`）；`/axb-api-plan` NOOP（`contracts/**`）；`/axb-data-plan` NOOP（`data/**`）；`/axb-technical-research` MODIFY（`techstack.md`）
 - `tests/e2e/steps/`、`tests/e2e/harness/`、`tests/e2e/fakeprovider/`
 - `internal/ui/turn.go`、`internal/ui/spinner.go`、`internal/domain/metrics/**`、`internal/infrastructure/telemetry/system_metrics_*.go`（T002 落點）
 
@@ -111,8 +110,8 @@
 ### BDD-RED（本輪新增句型；2 Given + 7 Then + 1 root Then）
 
 - [ ] T003 [P] [BDD-RED] `Given: the operator is watching a terminal`
-  - Read: `specs/truth/features/cli/chat/dsl.md` -> `the operator is watching a terminal`
-  - Landing: `tests/e2e/steps/step_t003_chat_given_watching_terminal.go`
+  - Read: `specs/truth/features/cli/dsl.md`（interface root）-> `the operator is watching a terminal`
+  - Landing: `tests/e2e/steps/step_t003_given_watching_terminal.go`
   - 語意：把 `TELL_ME_FORCE_STDERR_TTY=1` 設進 subprocess 環境，使 tellme 的 **standard-error (`stderr`)** terminal probe 回報該 stream 為 terminal（round-019 seam）。
 
 - [ ] T004 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to read "{path_a}" and "{path_b}" and then answers with "{answer}"`
@@ -281,7 +280,7 @@
 | `truth-delta.md` -> `/axb-api-plan` NOOP（`specs/truth/contracts/**`） | 豁免（NOOP 不建任務；T019 驗證不觸及 API surface） | PASS |
 | `truth-delta.md` -> `/axb-data-plan` NOOP（`specs/truth/data/**`） | 豁免（NOOP 不建任務；無資料變更） | PASS |
 | `truth-delta.md` -> `/axb-dsl-refine` ADD（`chat/presenting-the-progress-spinner.feature`） | T003–T012、T017、T018 | PASS |
-| `truth-delta.md` -> `/axb-dsl-refine` MODIFY（`chat/dsl.md` +9 rows；root `cli/dsl.md` +1 row；`diagnostics`/`history`/`presenting-the-turn` features） | T001、T003–T012、T016、T019 | PASS |
+| `truth-delta.md` -> `/axb-dsl-refine` MODIFY（`chat/dsl.md` +8 rows；root `cli/dsl.md` +2 rows；`diagnostics`/`history`/`presenting-the-turn` features） | T001、T003–T012、T016、T019 | PASS |
 | `research.md` -> Decision 1（hand-written `internal/ui` spinner） | T002、T013、T017 | PASS |
 | `research.md` -> Decision 2（frames / cadence / the drawing primitive） | T002、T013、T017 | PASS |
 | `research.md` -> Decision 3（phase labels with identifiers） | T006、T008、T009、T013、T017 | PASS |

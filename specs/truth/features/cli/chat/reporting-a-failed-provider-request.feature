@@ -37,6 +37,8 @@ Feature: Reporting a failed provider request
 
   Rule: A failed turn still reports the failure and leaves no progress indicator
 
+    # Proves the absence of any indicator residue (the unreachable endpoint fails before a frame is drawn);
+    # the mid-wait clear-before-the-class-phrase case is a recorded forward item.
     Example: The provider cannot be reached while the operator watches the terminal
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
