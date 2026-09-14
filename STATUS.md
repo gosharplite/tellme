@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-14 (session 12) — **round 021 `021-tool-surface-parity` IN PROGRESS**: plan package created (spec + checklist + truth-delta; operator-locked D1–D5). Round 020 stays delivered/frozen (detail below; Rule 12 — older rounds 001–019 live in the archives).
+**Last updated**: 2026-09-14 (session 12, day close) — **round 021 `021-tool-surface-parity` IN PROGRESS**: plan+truth half complete and **review-APPROVED** (PR [#48](https://github.com/gosharplite/tellme/pull/48), **awaiting human merge**); `/axb-implement` (T001–T047) is next. Round 020 stays delivered/frozen (detail below; Rule 12 — older rounds 001–019 live in the archives).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
 **Active branch**: `021-tool-surface-parity` (off `dev`) — round 021 plan package in progress.
 **Daily log**: [`docs/session-summary/2026/09/14/session-summary.md`](docs/session-summary/2026/09/14/session-summary.md)
@@ -8,13 +8,17 @@
 
 ## Round 021 — `021-tool-surface-parity` (in progress)
 
-**Status**: 🚧 **IN PROGRESS** (2026-09-14) — plan package created. **Scope**: align tellme's agent tool surface with `tell-me-go` — **DELETE** `summarize_history`; **MODIFY** `list_files` + `read_files` (add required `reason`; mirror the reference params/functionality); **ADD** `get_tree`.
+**Status**: 🚧 **IN PROGRESS** (2026-09-14) — **plan + truth half complete & review-APPROVED**; **PR [#48](https://github.com/gosharplite/tellme/pull/48)** open → `dev`, **awaiting human merge**; `/axb-implement` (T001–T047) next. **No product code yet.** **Scope**: align tellme's agent tool surface with `tell-me-go` — **DELETE** `summarize_history`; **MODIFY** `list_files` + `read_files` (add required `reason`; mirror the reference params/functionality); **ADD** `get_tree`.
 
-**Locked decisions (D1–D5)**: (D1) `read_files` → multi-file `filepaths: string[]`; (D2) `reason` required and echoed into the tool-loop `stderr` log; (D3) reference limits verbatim (100 KB cap, `... (truncated)`, binary marker, directory `ERROR:`, ≤50 files); (D4) no security/consent layer (settled exclusion); (D5) add `get_tree` (`{path?, max_depth?, reason*}`, default depth 2).
+**Locked decisions (D1–D5 + D3a)**: (D1) `read_files` → multi-file `filepaths: string[]`; (D2) `reason` required (schema-only) and echoed into the tool-loop `stderr` log; (D3) reference limits verbatim (100 KB/file, `... (truncated)`, binary marker, directory `ERROR:`, ≤50 files); (D3a) **each reader tool's whole result capped at 1 MiB** (aggregate; deterministic marker `... (truncated at the read budget)`; over-cap blocks dropped, omitted file gets no header); (D4) no security/consent layer (settled exclusion); (D5) add `get_tree` (`{path?, max_depth?, reason*}`, default depth 2, `.git` not recursed).
 
-**Pipeline**: specify ✅ → spec-by-example ✅ · research ✅ · analysis ✅ · dsl-refine ✅ · tasks ✅ · implement ⏳.
+**Pipeline**: specify ✅ · spec-by-example ✅ · research ✅ · analysis ✅ · dsl-refine ✅ · tasks ✅ · **implement ⏳ (next)**.
 
-**Artifacts**: `spec.md` (US1–US4 · FR-001–016 · NFR-001 · SC-001–006), `checklists/requirements.md`, `features/acceptance/*.feature` ×4, `research.md` (D1–D8), `plan.md` (1 interface → `/axb-dsl-refine`; api/data NOOP), `tasks.md` (T001–T043), `truth-delta.md`. Truth so far: `techstack.md` MODIFY; `chat/**` MODIFY/ADD/DELETE (audit PASSED — 36 features · 1017 steps). Next: `/axb-implement`.
+**Artifacts**: `spec.md` (US1–US4 · FR-001–016 · NFR-001 · SC-001–006), `checklists/requirements.md`, `features/acceptance/*.feature` ×4, `research.md` (D1–D8 + D3a), `plan.md` (1 interface → `/axb-dsl-refine`; api/data NOOP), `tasks.md` (T001–T047; orphan sweep 0), `truth-delta.md`. Truth: `techstack.md` MODIFY; `chat/**` MODIFY/ADD/DELETE (audit PASSED — 36 features · 15 root + **207** module rows · **1041** steps).
+
+**Review trail (PR #48)**: plan+truth **APPROVED** → fold `0963130` (B1/B2/TD1/TD2/TD3/R1/R3) → re-review + residual `[REFACTOR]`/nits → fold `dc89677` → final re-review + guard/nit → fold `5d14599` → **APPROVED — plan + truth half, review loop closed** (no objection to the human-only merge). Carried forward → issue [#49](https://github.com/gosharplite/tellme/issues/49).
+
+**Propagation**: **PENDING** — PR #48 is not merged; `dev`/`main` unaffected.
 
 ## Round 020 — `020-cross-compile-gate` (delivered / frozen)
 
@@ -73,6 +77,7 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 > **Propagation (round 018):** `018-post-turn-status-lines → dev` (PR [#43](https://github.com/gosharplite/tellme/pull/43), `9927287`) `→ main` — DONE (no-ff).
 > **Propagation (round 019):** `019-turn-spinner → dev` (PR [#44](https://github.com/gosharplite/tellme/pull/44), `4315e59`) `→ main` — DONE (no-ff).
 > **Propagation (round 020):** `020-cross-compile-gate → dev` (PR [#46](https://github.com/gosharplite/tellme/pull/46), `642583b`) `→ main` — DONE (no-ff); closeout docs on `dev`.
+> **In progress (round 021):** `021-tool-surface-parity` (off `dev`) — plan+truth on PR [#48](https://github.com/gosharplite/tellme/pull/48) (**APPROVED, awaiting human merge**); implementation (`/axb-implement`) pending. **No propagation yet.**
 > Read live heads with `git rev-parse --short main dev HEAD`.
 
 ## Roadmap — next slices
@@ -81,6 +86,7 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 | --- | --- | --- | --- |
 | **003–020** | — | Provider-registry completeness → … → the cross-compile gate. | ✅ **Delivered** (see the delivered-rounds index) |
 | **cross-compile gate** | — | Host-independent `go build ./...` + `go vet ./...` gate for the POSIX target matrix (`linux/amd64 · linux/arm64 · darwin/amd64 · darwin/arm64`), wired into `make verify` + the closeout checklist (round-019 review forward recommendation). | ✅ **Delivered** — round 020 (PR [#46](https://github.com/gosharplite/tellme/pull/46)) |
+| **021 tool surface parity** | [#48](https://github.com/gosharplite/tellme/pull/48) | Align the agent tool surface with `tell-me-go` — delete `summarize_history`; multi-file `read_files` + `reason`; add `get_tree`; bound reader results (1 MiB). | 🚧 **Plan+truth APPROVED (PR [#48](https://github.com/gosharplite/tellme/pull/48), awaiting human merge); `/axb-implement` next** |
 | **future slices (candidates)** | [#47](https://github.com/gosharplite/tellme/issues/47) | **Concurrent tool-call matching** — parallel tool execution in the agent loop (`MAX_CONCURRENT_TOOLS`-bounded), one-batch feedback; the survivor of [#36](https://github.com/gosharplite/tellme/issues/36) (closed — Gemini API family + ADC dropped). Plus the carried forward items below. | ⏳ **Candidate** (not started) |
 
 ## Open items (non-blocking)
@@ -89,6 +95,7 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 - **Round-019 forward items** — the failed-turn carrier proves *absence* (mid-wait *clear-before-the-class-phrase* deferred); the macOS **CPU** leg is pending a cgo `mach` sampler and reports `0.0%` (the memory leg uses sysctl).
 - **Round-018 forward items** — the reference's **gray styling** for the post-turn lines (plain text); the `tokens.summary.json` roll-up is best-effort (self-heals by recompute).
 - **Future-slice candidates** — issue [#47](https://github.com/gosharplite/tellme/issues/47) (**concurrent tool-call matching**); **(d)** coverage tooling [#13](https://github.com/gosharplite/tellme/issues/13); **(e)** the renderer/`-r` forward items.
+- **Round-021 forward item** — issue [#49](https://github.com/gosharplite/tellme/issues/49): tie the fixed 1 MiB reader-result cap to the resolved `MAX_HISTORY_TOKENS` budget (PR #48 final-sign-off carried-forward item).
 - **Carried forward items** — PR #16 **Obs 1** stdout TTY probe **OPEN** (round 019 did **not** close it — the spinner is a `stderr` diagnostic); round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / **no pruning** (a settled exclusion) / **no `flock`**; round-011 forward items (estimation-heuristic constants; persona seam; **N-2**); a future **`history.Store.Count()`** should replace `len(prior)+1`.
 
 ## Environment notes
