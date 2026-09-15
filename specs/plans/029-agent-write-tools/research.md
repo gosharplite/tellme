@@ -25,7 +25,7 @@
   - **`replace_text`**: the destination already exists, so the move is a `rename` (which atomically replaces the destination) — read → replace in memory → temp → `rename`.
   - **`write_file`**: the move is **atomic create-only** — `os.Link(tmp, dest)` (an `os.Link` fails with `EEXIST` if the destination exists, giving create-only **with no stat/TOCTOU window**) followed by removing the temp; `O_CREAT|O_EXCL|O_WRONLY` on the destination directly is the alternative. No `Stat`-then-`Rename` guard.
   - The temp file is removed on any failure.
-- **Rationale**: the destination is never observed partial (**FR-009, both tools**) **and** an existing file is never silently overwritten (**FR-007**) — one atomic step each, no TOCTOU. This removed the round's worst-ordered risk: the *edit* tool (no undo) would otherwise have been the only torn-write path while the *create* tool was crash-safe. Setting mode `0644` on the temp file avoids the `0600` that `os.CreateTemp` would otherwise leave on a renamed temp (which would make every created file owner-only, unlike a shell `>` / `os.WriteFile(…, 0644)`).
+- **Rationale**: the destination is never observed partial (**FR-009, both tools**) **and** an existing file is never silently overwritten (**FR-007**) — one atomic step each, no TOCTOU. This removed the round's worst-ordered risk: the *edit* tool (no undo) would otherwise have been the only torn-write path while the *create* tool was crash-safe. Setting mode to `0644` on the temp file avoids the `0600` that `os.CreateTemp` would otherwise leave on a renamed temp (which would make every created file owner-only, unlike a shell `>` / `os.WriteFile(…, 0644)`). Missing parent directories are created with mode **`0755`**; an explicit empty `content` (`""`) creates an empty file while a **missing** `content` key is rejected — see *Recorded refinements* below.
 - **Alternatives considered**:
   - **In-place `os.WriteFile` (reference parity)** — rejected: a crash/interruption mid-write leaves a truncated file (unacceptable for the no-undo P1 edit tool).
   - **`Stat`-then-`rename` for create-only** — rejected: POSIX `rename(2)` clobbers an existing destination, so create-only would rest on a non-atomic check (TOCTOU).
@@ -75,6 +75,15 @@
   - **A third-party atomic-write library** — rejected: a dependency for `CreateTemp` + `Link`/`Rename`.
   - **An E2E atomicity Example** — rejected (review finding 4): atomicity is not observable end-to-end without fault injection; a vacuous E2E Example would imply a contract the acceptance layer cannot execute. The guarantee is unit-tier.
   - **A pty harness** — rejected: `TELL_ME_FORCE_STDIN_TTY`/scripted tool calls already cover the paths; the project forswore a pty.
+
+## Recorded refinements (PR #61 reference cross-check)
+
+- **R2 — missing vs explicit-empty `content`**: a **missing** `content` key is rejected (recoverable tool error); only an explicit `""` writes an empty file (`FR-010`). Mirrors the reference's `write_file` key-presence guard and closes a silent-0-byte-write path. **Partial mitigation only** — it does not catch a mid-string truncation (see R1).
+- **R3 — directory mode**: missing parent directories are created with mode **`0755`** (`FR-008`).
+
+## Forward item (R1) — provider transports can silently truncate large tool-call arguments
+
+Round 029 is the first round with multi-KB tool arguments (`write_file.content`, `replace_text.new_text` — the largest, last-emitted keys). tellme's transports surface **no** finish reason (`grep finish` → 0 transport hits; `maxOutputTokens`/`max_tokens` emitted only when `MAX_TOKENS` is set), so a `MAX_TOKENS`/`length` truncation mid-tool-call is indistinguishable from a complete one and can yield a silently truncated/empty write. The reference learned this the hard way (Anthropic's 4096 default burning retry dollars; Gemini's `FinishReasonMaxTokens`). **Recorded as a deliberate forward item — tracked in issue #62** — because the guard (surface a mid-tool-call `MAX_TOKENS` finish as a **terminal** provider error in both adapters + `Classify`) is a **transport-layer** change and belongs in its own round, not the write-tools round. Silent omission is not acceptable; deliberate deferral is.
 
 ## Truth impact (for the truth-owner skills)
 

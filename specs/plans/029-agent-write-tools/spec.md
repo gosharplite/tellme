@@ -55,9 +55,9 @@ As an operator driving tellme on its own repository, I want the agent to create 
 
 - **FR-006**: `write_file(filepath, content, reason)` MUST create the file at `filepath` with **exactly** `content` (byte-for-byte) and mode **`0644`**.
 - **FR-007**: If `filepath` already **exists**, the tool MUST fail with an error and MUST NOT modify or truncate the existing file (**create-only**; there is no overwrite, and no `overwrite` parameter). The create-only guard MUST be **atomic** (see FR-009) — an existing destination MUST fail, never be silently overwritten.
-- **FR-008**: The tool MUST create any missing **parent directories** (`MkdirAll`-equivalent) before creating the file.
+- **FR-008**: The tool MUST create any missing **parent directories** (`MkdirAll`-equivalent, mode **`0755`**) before creating the file.
 - *(the atomic-write requirement **FR-009** is a global requirement — see Global requirements; it governs this story's create too).*
-- **FR-010**: An **empty** `content` MUST be accepted (it creates an empty file) — the create-only rule (FR-007) still applies.
+- **FR-010**: An **explicitly empty** `content` (the key present with `""`) MUST be accepted (it creates an empty file) — the create-only rule (FR-007) still applies. A **missing** `content` key MUST be rejected with an error and MUST NOT be treated as an empty write.
 
 ---
 
@@ -88,6 +88,7 @@ As an operator driving tellme on its own repository, I want the agent to create 
 
 - **`old_text` spans a line boundary / contains newlines**: MUST be matched byte-for-byte (the block may be multi-line) — no trimming or normalisation.
 - **`new_text` equals `old_text`**: a **no-op** replace MUST short-circuit to the success confirmation **without** rewriting the file (nothing to change; no reason to take a write risk under the no-undo posture).
+- **A missing `content` argument** (the key absent): MUST be rejected with an error — it MUST NOT be silently treated as an empty write (only an explicit `""` creates an empty file; see FR-010).
 - **`write_file` where a parent path component is a regular file**: MUST fail with an error (the directory cannot be created); no partial file is left (FR-009).
 - **`write_file`/`replace_text` observing their effective timeout**: returns the nil-error timeout result (FR-013); no partial/torn destination (FR-009 governs **both** tools).
 - **`replace_text` on a very large file**: `replace_text` reads the whole file to locate the unique block; an unbounded **input** read is a **recorded hazard** for this round (a future input bound is a forward item) — the tool bounds its **result**, not its input.

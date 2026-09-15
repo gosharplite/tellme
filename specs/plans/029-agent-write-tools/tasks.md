@@ -124,6 +124,7 @@
   - 必查：create-only（既有檔 → error 且內容不變）；atomicity（同一 atomic-write helper：`write_file` 用 `os.Link`/`EEXIST` atomic create-only、`replace_text` 用 `rename`；失敗不留半檔；temp 與 dest 同目錄）；`replace_text` strict-unique（0 → error、>1 → error、恰好 1 → 替換）；empty `old_text` → error；missing file → error（不建立）；missing parent → `MkdirAll`。
   - 並以 **atomicity witness**（review finding 4）取證：注入一個 `Write` 在第 N byte 失敗的 writer，斷言 destination **不存在或 byte-identical**，且**無 `*.tmp` 殘留**（atomicity 為 unit-tier，E2E 無 fault injection）。
   - 另 pin：建立檔案的 mode 為 **`0644`**（review finding 3）；create-only 以 **atomic move**（`os.Link`/`EEXIST`）成立、**非** `Stat`/`rename` TOCTOU，且既有檔出現時不被 clobber（review finding 2）。
+  - 另 pin（PR #61 reference cross-check **R2/R3**）：**missing** `content` key → error（只有**顯式** `""` 才寫空檔；`FR-010`）；建立父目錄 mode **`0755`**（`FR-008`）。
 - [ ] T023 subagent review (phase quality gate)
 
 ## Phase 4A: ADD Feature File - cli/chat/creating-and-editing-files.feature
