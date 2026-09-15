@@ -27,4 +27,9 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending — round 024)_ | `specs/truth/features/cli/chat/**` | Expected **ADD** an `execute_command` interface feature; **MODIFY** the reader features (`reading-several-files`, `listing-a-directory`, `surveying-a-folder-tree`) + `chat/dsl.md` to carry the token-bound/timeout params and the new truncation/skip markers. | FR-001..FR-017. |
+| ADD | `specs/truth/features/cli/chat/running-a-shell-command.feature` | New interface feature — the `execute_command` tool: offered; runs; a non-zero exit is reported, not fatal; a command that exceeds its time is stopped; output captured to a file. | FR-001..FR-007. |
+| ADD | `specs/truth/features/cli/chat/offering-the-agent-tools.feature` | The offered tool set is now the four agent tools (readers + `execute_command`). | FR-013. |
+| DELETE | `specs/truth/features/cli/chat/offering-the-reader-tools.feature` | Superseded by `offering-the-agent-tools.feature` (the surface now includes `execute_command`). | FR-013. |
+| MODIFY | `specs/truth/features/cli/chat/reading-several-files.feature` | The read bound is the parameterized `max_output_tokens` (whole-file reads; the fixed 100000-byte cap retired); added a Rule for a request that cannot return every file (skip marker). | FR-008..FR-012. |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` | +4 Given (execute_command scripting) +5 Then (command ran / exit status / stopped / output target / file not read); the offering row → `the request offered exactly the agent tools`; the read-limit Given → `longer than the read bound`; a round-024 note. | FR-001..FR-017. |
+| NOOP | `specs/truth/features/cli/chat/listing-a-directory.feature`, `surveying-a-folder-tree.feature` | Checked — `list_files`/`get_tree` keep their documented output shape; only the shared result bound changed (a loop concern, no new step). | The listing/tree output is unchanged. |
