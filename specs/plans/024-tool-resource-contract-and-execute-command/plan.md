@@ -12,7 +12,7 @@ specs/plans/024-tool-resource-contract-and-execute-command/
 ├── truth-delta.md
 ├── checklists/
 │   └── requirements.md
-├── features/acceptance/*.feature  # /axb-spec-by-example ✓ done (2 journeys: US1–US2)
+├── features/acceptance/*.feature  # /axb-spec-by-example ✓ done (3 journeys: US1–US2 + the offered-tool set)
 └── tasks.md                       # produced by /axb-tasks
 
 specs/truth/
