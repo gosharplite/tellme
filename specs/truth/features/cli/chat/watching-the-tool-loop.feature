@@ -90,14 +90,16 @@ Feature: Watching the tool loop work
 
   Rule: A run that used no tool adds no separating blank line
 
-    # Carried on the non-chrome `-i` submit surface, where no round-017 frame gap exists — so this
-    # pins round-022's blank line specifically, not the frame gap (PR #50 review B1).
+    # Round 023: the `-i` submit surface is now a CHROME surface, so the round-017 frame gap supplies the
+    # single blank before the answer. The negative is re-anchored (PR #50 review B1): on a non-tool turn
+    # exactly ONE blank line separates the pre-flight payload line from the answer (the frame gap,
+    # undoubled) — a stray round-022 blank would make it two.
 
-    Example: An interactive-prompt run that used no tool adds no separating blank
+    Example: An interactive-prompt run that used no tool adds no second separating blank
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the operator is working at an interactive terminal
       And a configured provider "test-model" whose endpoint answers with "The launch code is ORANGE"
       When the operator submits the prompt "Say the launch code." at the interactive prompt
-      Then the tool loop added no blank line before the answer
+      Then the pre-flight payload line is separated from the answer by a single blank line
       And tellme exits successfully

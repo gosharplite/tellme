@@ -7,7 +7,8 @@ Feature: Presenting the progress spinner
   # spinner is drawn only when the diagnostic stream (`stderr`) is a terminal and `-r` is off (`the operator
   # is watching a terminal` arranges the round-019 `stderr` terminal seam); it yields the line to the answer. The
   # negatives are carried by the interface root (`the run shows no progress spinner`) on the `diagnostics`
-  # and `history` modules and the `-i` surface. Acceptance journeys:
+  # and `history` modules (round 023 removes the `-i` surface from the negatives — the `-i` submit now
+  # draws the spinner). Acceptance journeys:
   # features/acceptance/showing-a-progress-indicator.feature, labelling-the-progress-indicator.feature,
   # and keeping-the-progress-indicator-bounded.feature.
 

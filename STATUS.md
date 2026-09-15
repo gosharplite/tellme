@@ -1,10 +1,22 @@
 # tellme — Status
 
-**Last updated**: 2026-09-15 (day close) — **round 022 `022-tool-loop-log-line` DELIVERED / FROZEN**: PR [#50](https://github.com/gosharplite/tellme/pull/50) **MERGED** into `dev` (`05278a5`, by `thptcnec`, 2026-09-15T01:26:27Z); propagated `dev → main` (no-ff); head frozen at **`fcbc958`**. Round 021 stays delivered/frozen (detail in the archive; Rule 12 — older rounds 001–020 also live in the archives).
+**Last updated**: 2026-09-15 (plan half) — **round 023 `023-interactive-prompt-teardown` IN PROGRESS** (plan half complete); round 022 `022-tool-loop-log-line` DELIVERED / FROZEN**: PR [#50](https://github.com/gosharplite/tellme/pull/50) **MERGED** into `dev` (`05278a5`, by `thptcnec`, 2026-09-15T01:26:27Z); propagated `dev → main` (no-ff); head frozen at **`fcbc958`**. Round 021 stays delivered/frozen (detail in the archive; Rule 12 — older rounds 001–020 also live in the archives).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
-**Active branch**: `dev`
+**Active branch**: `023-interactive-prompt-teardown` (off `dev`)
 **Daily log**: [`docs/session-summary/2026/09/15/session-summary.md`](docs/session-summary/2026/09/15/session-summary.md)
 **Archive**: [`2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012) · [`2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–019) · [`2026-09-15.md`](docs/archives/status/2026-09-15.md) (rounds 020–021).
+
+## Round 023 — `023-interactive-prompt-teardown` (in progress)
+
+**Status**: 🔄 **IN PROGRESS** — plan half complete (2026-09-15). Pipeline: specify ✅ · spec-by-example ✅ · research ✅ · analysis ✅ · ui-plan (terminal) ✅ · dsl-refine ✅ · tasks ✅ · **implement ⏳**. Branch `023-interactive-prompt-teardown` (off `dev`).
+
+**Scope**: after the operator submits (or aborts) the `-i` interactive prompt, the editor frame must **clear** (reference parity) and the run must continue on the **standard turn surface** — the submitted prompt **echoed** (on `stderr`), then the input-capture acknowledgement, the `─` rule + `╭─⠿ Turn N - <mode>` header, the live spinner, and the post-turn status. Reverses the round-016 always-render, the round-017 "no turn chrome", and the round-019 "`-i` excluded" rules.
+
+**Locked decisions**: Q1 → 1a (clear the frame on submit/abort) · Q2 → 2a (resume the standard surface) · Q3 → A′ (echo the prompt **and** keep tellme's single captured line, echo before it). **Round-022 ripple (Option 1)**: the round-022 negative is re-anchored to `the pre-flight payload line is separated from the answer by a single blank line` (the `-i` submit is now a chrome surface).
+
+**Truth**: `techstack.md` MODIFY (6 rows) · `chat/continuing-the-interactive-prompt.feature` ADD · `presenting-the-turn.feature` MODIFY (delete the `-i` no-chrome rule) · `watching-the-tool-loop.feature` / `presenting-the-progress-spinner.feature` MODIFY · `chat/dsl.md` (+4 / −1 rows + notes) · root `cli/dsl.md` (2 rows re-scoped). Topology audit **PASSED** (37 features · 15 root + **216** module rows · **1116** steps).
+
+---
 
 ## Round 022 — `022-tool-loop-log-line` (delivered / frozen)
 

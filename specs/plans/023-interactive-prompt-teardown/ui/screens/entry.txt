@@ -1,0 +1,16 @@
+┌────────────────────────────────────────────────────────────────────────┐
+│ Type your message here... (Alt+Enter or Ctrl+S to submit, Esc to abort) │
+│ hi                                                                     │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
+ Suggestions:
+ > hi
+   review the last two commits
+   summarize the last release
