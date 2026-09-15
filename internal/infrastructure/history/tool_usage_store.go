@@ -34,7 +34,7 @@ type ToolUsageStore struct {
 	mkdirErr  error
 }
 
-var _ domainhistory.ToolUsageSink = (*ToolUsageStore)(nil)
+var _ domainhistory.ToolUsageStore = (*ToolUsageStore)(nil)
 
 // NewToolUsageStore returns a tool-usage store rooted at the user home resolved
 // by homeDir (typically os.UserHomeDir). The home is resolved per call, so a
@@ -106,8 +106,8 @@ func (s *ToolUsageStore) ensureDir(dir string) error {
 // failure (e.g. a permission error) is RETURNED so the caller can diagnose it
 // rather than silently reporting all-zero — "unreadable" must be distinguishable
 // from "never used" (implementation review C/D).
-func (s *ToolUsageStore) Aggregate() (map[string]ToolUsageCounts, error) {
-	counts := map[string]ToolUsageCounts{}
+func (s *ToolUsageStore) Aggregate() (map[string]domainhistory.ToolUsageCounts, error) {
+	counts := map[string]domainhistory.ToolUsageCounts{}
 	p, err := s.path()
 	if err != nil {
 		return counts, nil
@@ -127,16 +127,23 @@ func (s *ToolUsageStore) Aggregate() (map[string]ToolUsageCounts, error) {
 		if trimmed := strings.TrimSpace(line); trimmed != "" {
 			var rec domainhistory.ToolUsageRecord
 			if jerr := json.Unmarshal([]byte(trimmed), &rec); jerr == nil && rec.Tool != "" {
-				c := counts[rec.Tool]
+				// Allocate the map key ONLY for a classified outcome, so a record
+				// with an unknown outcome allocates no entry (PR #57 review — the
+				// map holds exactly the tools with a valid classified outcome).
 				switch rec.Outcome {
 				case domainhistory.ToolOutcomeOK:
+					c := counts[rec.Tool]
 					c.OK++
+					counts[rec.Tool] = c
 				case domainhistory.ToolOutcomeError:
+					c := counts[rec.Tool]
 					c.Error++
+					counts[rec.Tool] = c
 				case domainhistory.ToolOutcomeTimeout:
+					c := counts[rec.Tool]
 					c.Timeout++
+					counts[rec.Tool] = c
 				}
-				counts[rec.Tool] = c
 			}
 			// A malformed line (or unknown outcome) is skipped best-effort.
 		}
@@ -184,12 +191,5 @@ func (s *ToolUsageStore) Load() ([]domainhistory.ToolUsageRecord, error) {
 	return recs, nil
 }
 
-// ToolUsageCounts is a tool's tally by outcome (round 026).
-type ToolUsageCounts struct {
-	OK      int
-	Error   int
-	Timeout int
-}
-
-// Total is the tool's total invocation count.
-func (c ToolUsageCounts) Total() int { return c.OK + c.Error + c.Timeout }
+// ToolUsageCounts / Total live in the domain port
+// (internal/domain/history/tool_usage.go) so Aggregate returns a domain type.

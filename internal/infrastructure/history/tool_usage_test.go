@@ -136,3 +136,31 @@ func TestToolUsageStoreAggregateReadError(t *testing.T) {
 		t.Errorf("counts = %v, want empty on a read error", counts)
 	}
 }
+
+// TestToolUsageStoreAggregateUnknownOutcomeAllocatesNoKey pins the round-026
+// principal-architect review (REFACTOR): a record whose outcome is unknown must
+// NOT allocate an aggregate key — the map holds exactly the tools with a valid
+// classified outcome (a zero-count key would read as a "used" tool the log never
+// classified).
+func TestToolUsageStoreAggregateUnknownOutcomeAllocatesNoKey(t *testing.T) {
+	s, home := toolStore(t)
+	dir := filepath.Join(home, ".tellme")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	content := `{"timestamp":"t","tool":"ghost_tool","outcome":"bogus"}` + "\n" +
+		`{"timestamp":"t","tool":"read_files","outcome":"ok"}` + "\n"
+	if err := os.WriteFile(filepath.Join(dir, "tools-count.jsonl"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	counts, err := s.Aggregate()
+	if err != nil {
+		t.Fatalf("Aggregate: %v", err)
+	}
+	if _, ok := counts["ghost_tool"]; ok {
+		t.Errorf("an unknown-outcome record must not allocate a key, got %+v", counts["ghost_tool"])
+	}
+	if counts["read_files"].OK != 1 {
+		t.Errorf("read_files = %+v, want ok 1", counts["read_files"])
+	}
+}

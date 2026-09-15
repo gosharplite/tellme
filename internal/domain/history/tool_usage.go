@@ -32,3 +32,34 @@ type ToolUsageRecord struct {
 type ToolUsageSink interface {
 	Record(tool string, outcome ToolOutcome) error
 }
+
+// ToolUsageCounts is a tool's tally by outcome (round 026) — the domain shape the
+// streaming reader returns per tool and the report renders.
+type ToolUsageCounts struct {
+	OK      int
+	Error   int
+	Timeout int
+}
+
+// Total is the tool's total invocation count.
+func (c ToolUsageCounts) Total() int { return c.OK + c.Error + c.Timeout }
+
+// ToolUsageReader streams the user-global tool-usage log into per-tool counts
+// (round 026). The offline `--tool-usage` report consumes it; the agent loop
+// consumes only the write side (ToolUsageSink). Keeping the read capability on a
+// domain interface lets the CLI stay free of the concrete adapter (PR #57
+// principal-architect review — composition-root port asymmetry).
+type ToolUsageReader interface {
+	// Aggregate streams the log in ONE pass into per-tool counts — O(tools)
+	// memory, never materialising every record. A missing log is an empty map; a
+	// malformed/torn line is skipped best-effort; a genuine read failure is
+	// returned so the caller can diagnose it ("unreadable" ≠ "never used").
+	Aggregate() (map[string]ToolUsageCounts, error)
+}
+
+// ToolUsageStore is the full read+write tool-usage port: the loop's write sink
+// and the report's streaming reader.
+type ToolUsageStore interface {
+	ToolUsageSink
+	ToolUsageReader
+}

@@ -34,7 +34,7 @@ measurement slice: `/axb-ui-plan` is skipped.)*
 internal/
 ├── domain/
 │   └── history/
-│       └── tool_usage.go          # NEW — the ToolUsageSink port + the ToolUsageRecord / outcome types (nil = no-op);
+│       └── tool_usage.go          # NEW — the ToolUsageSink port (+ ToolUsageReader / ToolUsageStore read+write port) + the ToolUsageRecord / counts / outcome types (nil = no-op);
 │                                  #   NEW file (usage.go untouched) — adapter co-location w/ the round-018 UsageStore
 ├── agent/
 │   └── agentloop.go               # CHANGED — classify each executed call ok/error/timeout (err + per-call deadline)
@@ -63,7 +63,9 @@ tool's error and the per-call deadline) and records it through an **injected `To
 `internal/infrastructure/history` adapter, **streaming-aggregated** for the report), modelled by
 `/axb-data-plan`. The `ToolUsageSink` port lives in a **new** `internal/domain/history/tool_usage.go`
 (leaving `usage.go` untouched) — chosen for **adapter co-location with the round-018 `UsageStore`**
-(research D3). There is **no** new endpoint,
+(research D3). The report's read side is exposed as a `ToolUsageReader` domain interface
+(`ToolUsageStore` = sink + reader), so the CLI couples only to domain types at the composition root
+(PR #57 principal-architect review). There is **no** new endpoint,
 **no** new dependency, and **no** change to the tool semantics/ set or the round-018 token store. The
 **executable contract** is pinned in `specs/truth/features/cli/**` by `/axb-dsl-refine`;
 `specs/truth/contracts/**` and `ui/**` are untouched.

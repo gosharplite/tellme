@@ -176,15 +176,16 @@ var newUsageStore usageStoreFactory = func(workspace string) history.UsageStore 
 var userHomeDir = os.UserHomeDir
 
 // toolUsageStoreFactory builds the user-global tool-usage log adapter (round
-// 026). Unlike historyStoreFactory/usageStoreFactory it returns the CONCRETE
-// adapter rather than a domain interface: the offline report needs Aggregate()
-// (the streaming reader), which is not on the sink port (the loop only needs
-// Record) — implementation review E records the reason at the seam.
-type toolUsageStoreFactory func() *infrhistory.ToolUsageStore
+// 026). It returns the DOMAIN read+write port (history.ToolUsageStore), mirroring
+// historyStoreFactory/usageStoreFactory, so the presentation layer couples only to
+// domain types: the loop consumes Record (ToolUsageSink) and the offline report
+// consumes Aggregate (ToolUsageReader) — PR #57 principal-architect review
+// resolved the earlier concrete-adapter return.
+type toolUsageStoreFactory func() history.ToolUsageStore
 
 // newToolUsageStore is the production tool-usage-store factory (a var so tests
 // may override it).
-var newToolUsageStore toolUsageStoreFactory = func() *infrhistory.ToolUsageStore {
+var newToolUsageStore toolUsageStoreFactory = func() history.ToolUsageStore {
 	return infrhistory.NewToolUsageStore(userHomeDir)
 }
 
