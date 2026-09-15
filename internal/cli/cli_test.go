@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -105,5 +107,31 @@ func TestResolveCarriesExpandedProvider(t *testing.T) {
 	}
 	if res.Provider.APIKey != "secret-xyz" {
 		t.Errorf("carried APIKey = %q, want secret-xyz (expansion not applied to carried provider)", res.Provider.APIKey)
+	}
+}
+
+// TestRenderToolUsageDiagnosesReadError pins the round-026 implementation-review
+// C/D behaviour: a GENUINE log read failure is diagnosed on stderr (the report
+// path is offline, so stderr is free) while the all-zero report still prints and
+// the command succeeds. It arranges an ENOTDIR failure (the log's parent
+// `~/.tellme` is a regular file) via the user-home seam.
+func TestRenderToolUsageDiagnosesReadError(t *testing.T) {
+	home := t.TempDir()
+	if err := os.WriteFile(filepath.Join(home, ".tellme"), []byte("not a directory"), 0o644); err != nil {
+		t.Fatalf("arrange the ENOTDIR failure: %v", err)
+	}
+	old := userHomeDir
+	userHomeDir = func() (string, error) { return home, nil }
+	defer func() { userHomeDir = old }()
+
+	var out, errBuf bytes.Buffer
+	if code := renderToolUsage(runtimeEnv{stdout: &out, stderr: &errBuf}); code != Success {
+		t.Fatalf("renderToolUsage = %d, want %d (success)", code, Success)
+	}
+	if !strings.Contains(errBuf.String(), "[tool-usage]") {
+		t.Errorf("the diagnostic stderr = %q, want a [tool-usage] line", errBuf.String())
+	}
+	if !strings.Contains(out.String(), "list_files: total=0 ok=0 error=0 timeout=0") {
+		t.Errorf("the report must still print the all-zero roll-up, got %q", out.String())
 	}
 }

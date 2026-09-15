@@ -117,3 +117,22 @@ func TestToolUsageStoreUnresolvableHomeIsBestEffort(t *testing.T) {
 		t.Fatalf("Aggregate = (%v, %v), want an empty map and nil error", counts, err)
 	}
 }
+
+// TestToolUsageStoreAggregateReadError pins the round-026 implementation-review
+// C/D behaviour: a GENUINE open failure is RETURNED (not silently emptied), so
+// "unreadable" is distinguishable from "never used". It arranges an ENOTDIR
+// failure (the log's parent `~/.tellme` is a regular file) — deterministic and
+// independent of file permissions / the test user.
+func TestToolUsageStoreAggregateReadError(t *testing.T) {
+	s, home := toolStore(t)
+	if err := os.WriteFile(filepath.Join(home, ".tellme"), []byte("not a directory"), 0o644); err != nil {
+		t.Fatalf("arrange the ENOTDIR failure: %v", err)
+	}
+	counts, err := s.Aggregate()
+	if err == nil {
+		t.Fatalf("Aggregate must return a genuine read error, got nil (which would read as never-used)")
+	}
+	if len(counts) != 0 {
+		t.Errorf("counts = %v, want empty on a read error", counts)
+	}
+}
