@@ -115,6 +115,12 @@ func (a *AgentLoop) callTimeout(tool tools.Tool, arguments string) time.Duration
 // callByteBudget resolves one call's effective BYTE budget (round-024 FR-015):
 // the token bound (param -> clamped to the ceiling -> else the default), times
 // the contract-owned bytes-per-token factor.
+//
+// The divisors here — the ceiling `eb/2` and the default `eb/4` — are MIRRORED by
+// the `max_output_tokens` description strings in `readerSchema`
+// (internal/infrastructure/tools) and the command schema. If these divisors ever
+// change, update those two description strings with them (review nit 3: makes the
+// drift greppable without a shared constant).
 func (a *AgentLoop) callByteBudget(arguments string) int {
 	eb := a.EffectiveBudget
 	if eb <= 0 {
