@@ -863,7 +863,22 @@ func newTurnSpinner(opts turnOptions, env runtimeEnv, model string, epoch time.T
 	if !spinnerGate(opts, env.stderrIsTerminal()) {
 		return nil
 	}
-	return ui.NewSpinner(env.stderr, model, epoch, infratelemetry.NewSystemMetricsProvider())
+	return ui.NewSpinner(env.stderr, model, epoch, infratelemetry.NewSystemMetricsProvider(), stderrColumns(env))
+}
+
+// stderrColumns reports the terminal width for the spinner's row-aware clear
+// (round 025). The diagnostic environment seam TELL_ME_FORCE_STDERR_COLS overrides
+// the real stderr-width probe so the row-aware clear is drivable in E2E/unit
+// without a pty (mirroring TELL_ME_FORCE_STDERR_TTY); 0 means the width is unknown,
+// so the presenter degrades to a single-row best-effort clear.
+func stderrColumns(env runtimeEnv) func() int {
+	// Resolve the override ONCE at construction (mirroring the stderrTTY / clock
+	// seams), so the seam does not re-read the environment on every frame; the
+	// real probe is still re-issued per call so a mid-turn resize is observed.
+	if n, err := strconv.Atoi(strings.TrimSpace(os.Getenv("TELL_ME_FORCE_STDERR_COLS"))); err == nil && n > 0 {
+		return func() int { return n }
+	}
+	return func() int { return terminalColumns(env.stderr) }
 }
 
 // renderHistoryList lists the last N persisted messages (round-007 FR-007..FR-009)

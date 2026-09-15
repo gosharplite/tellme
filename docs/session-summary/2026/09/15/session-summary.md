@@ -419,3 +419,55 @@ A full delivery session on round **024** (`024-tool-resource-contract-and-execut
 
 ### PM follow-ups
 - None new (spec/acceptance complete; no PM-owned gaps).
+
+---
+
+## 15. Session 6 (2026-09-15) — round 025 DELIVERED (PR #56 merged) + SESSION-CLOSEOUT Step 8 + closeout
+
+A closeout session on the same calendar day: confirmed the merge of **PR [#56](https://github.com/gosharplite/tellme/pull/56)** (`025-spinner-width-safety` → `dev`), added a new **open-issue reconciliation** step to `SESSION-CLOSEOUT.md`, and ran the closeout (Steps 1–8).
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Round-025 theme | spinner **width safety** — bound the several-tool label + a **row-aware clear** |
+| Merge | PR [#56](https://github.com/gosharplite/tellme/pull/56) **MERGED** into `dev` (`a6fb921`, by `thptcnec`, 2026-09-15T08:16:45Z); round-025 head frozen at **`91a281f`** |
+| Review trail | APPROVE (no blockers) → fold `91a281f` (TD-1/TD-2/TD-3, R-1/R-3) → re-review **APPROVED — fold accepted** → merged |
+| Process | `SESSION-CLOSEOUT.md` gains **Step 8 — Reconcile the issue tracker** (+ `Step 8 Details` + **Rule 13**) — commit `c6113c3` on `dev` |
+| Step 8 run | issue **[#55](https://github.com/gosharplite/tellme/issues/55)** (spinner over-width) **closed (completed)**; [#53](https://github.com/gosharplite/tellme/issues/53) already renamed; [#47](https://github.com/gosharplite/tellme/issues/47) / [#13](https://github.com/gosharplite/tellme/issues/13) still accurate |
+| Verification | `make verify` **OK** · `go test ./...` green · godog **167/167** (1226 steps, 0 undefined) · topology audit PASSED |
+| Closeout | `STATUS.md` refreshed + split (round-024 detail → `docs/archives/status/2026-09-15.md`); `go install ./cmd/tellme`; propagation `dev → main` |
+
+### Work done
+1. **Merge check** — PR #56 confirmed `merged: true` (by `thptcnec`, base `dev`); local `dev` fast-forwarded to `a6fb921`.
+2. **`SESSION-CLOSEOUT.md` Step 8** — added the open-issue reconciliation step (list all open issues; close the done/superseded with a linking comment; revise stale ones — e.g. renumbered slice prefixes; leave the accurate ones) + Closeout Rule 13. Committed `c6113c3` on `dev`.
+3. **Closeout (Steps 1–8)** — clean tree; gates green; `STATUS.md` refreshed + split; day summary §15; **Step 8**: closed #55 (delivered in PR #56); propagation `dev → main`.
+
+### Decisions log
+| # | Decision |
+| --- | --- |
+| D1 | `SESSION-CLOSEOUT.md` gains **Step 8 (open-issue reconciliation)** + Rule 13 — the tracker is reconciled against the delivered state at every closeout. |
+| D2 | Round 025 **DELIVERED / FROZEN** on merge of PR #56 (`a6fb921`); frozen head `91a281f`; propagated `dev → main` (no-ff). |
+| D3 | Closeout docs land on **`dev`** (round branches frozen). |
+| D4 | Per Rule 12, relocate the **round-024** detail verbatim into `docs/archives/status/2026-09-15.md` (keeps `STATUS.md` to one delivered-round detail section). |
+
+### Commits (branch `dev`)
+| Commit | Note |
+| --- | --- |
+| `a6fb921` | PR [#56](https://github.com/gosharplite/tellme/pull/56) merge into `dev` (by `thptcnec`) |
+| `c6113c3` | `docs(closeout)`: add Step 8 — reconcile open issues |
+| *(this closeout)* | `docs(025)`: day close — round 025 delivered + STATUS split + daily summary |
+
+### Verification
+- `gofmt -l .` clean · `make verify` **OK** (no test-sleep · offline witness · cross-compile 4/4 · `golangci-lint` 0 issues · `govulncheck` clean) · `go test ./...` green · godog **167/167 · 1226/1226 steps** (0 undefined) · topology audit **PASSED** (38 features · 15 root + 237 module rows · 1202 steps).
+
+### Open items (non-blocking)
+- **Round-025 forward item** — the mid-frame-resize over-erase bound (TD-3) is recorded; **FD-1**: the narrow-terminal residue witness depends on the tool-phase frame wrapping at the forced width (fails loudly); a wider scripted batch is the durable fix.
+- Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 Obs 3; sequential tools / no pruning / no `flock`; round-011 forward items.
+- Next slice: **tool-usage accounting** ([#53](https://github.com/gosharplite/tellme/issues/53)).
+
+### Next steps
+1. Open the next slice — **tool-usage accounting** ([#53](https://github.com/gosharplite/tellme/issues/53)) — via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).

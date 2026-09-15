@@ -52,6 +52,21 @@ func defaultIsTerminal(v any) bool {
 	return term.IsTerminal(int(f.Fd()))
 }
 
+// terminalColumns reports the terminal width in columns for an *os.File stream,
+// or 0 when v is not a terminal (round 025). It mirrors defaultIsTerminal's
+// *os.File requirement and backs the spinner's row-aware clear.
+func terminalColumns(v any) int {
+	f, ok := v.(*os.File)
+	if !ok {
+		return 0
+	}
+	cols, _, err := term.GetSize(int(f.Fd()))
+	if err != nil || cols <= 0 {
+		return 0
+	}
+	return cols
+}
+
 // combinePrompt assembles the prompt from the positional argument(s) and the
 // piped standard-input content: the arguments joined by single spaces, then a
 // newline and the piped content when it is non-empty, then trimmed (round-005

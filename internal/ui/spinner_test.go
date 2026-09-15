@@ -20,7 +20,7 @@ func TestSpinnerLabels(t *testing.T) {
 		{"thinking with model", ThinkingLabel("gpt"), " Thinking [gpt]..."},
 		{"thinking without model", ThinkingLabel(""), " Thinking..."},
 		{"executing one tool", ExecutingLabel("read_files"), " Executing [read_files]..."},
-		{"executing several tools", ExecutingToolsLabel([]string{"a", "b"}), " Executing tools [a, b]..."},
+		{"executing several tools (round 025: bounded)", ExecutingToolsLabel([]string{"a", "b"}), " Executing tools [a and 1 more]..."},
 		{"executing one name", ExecutingToolsLabel([]string{"a"}), " Executing [a]..."},
 		{"executing no names", ExecutingToolsLabel(nil), " Executing tools..."},
 	}
@@ -84,7 +84,7 @@ func awaitWrite(t *testing.T, w *signalWriter) {
 func TestSpinnerAdvancesFramesAndClearsSynchronously(t *testing.T) {
 	w := newSignalWriter()
 	fixed := time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC)
-	s := NewSpinner(w, "m", fixed, nil)
+	s := NewSpinner(w, "m", fixed, nil, nil)
 
 	tick := make(chan time.Time, 8)
 	stopped := false
@@ -125,7 +125,7 @@ func TestSpinnerAdvancesFramesAndClearsSynchronously(t *testing.T) {
 
 func TestSpinnerStopIdempotentAndNoopWhenUnstarted(t *testing.T) {
 	w := newSignalWriter()
-	s := NewSpinner(w, "m", time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC), nil)
+	s := NewSpinner(w, "m", time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC), nil, nil)
 	s.Stop() // never started → no write
 	if w.String() != "" {
 		t.Errorf("Stop on an unstarted spinner wrote %q, want nothing", w.String())
@@ -140,7 +140,7 @@ func TestSpinnerElapsedIsTurnScoped(t *testing.T) {
 	w := newSignalWriter()
 	base := time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC)
 	nowV := base
-	s := NewSpinner(w, "m", base, nil)
+	s := NewSpinner(w, "m", base, nil, nil)
 	s.newTicker = func() (<-chan time.Time, func()) { return make(chan time.Time), func() {} }
 	s.now = func() time.Time { return nowV }
 
