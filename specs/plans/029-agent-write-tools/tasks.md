@@ -22,7 +22,7 @@
 
 **Goal**: 只建立後續實作程式、測試共用元件、入口、fixture、helper 與落點骨架；每則寫「只做／不做」。不寫 Phase 3 測試語意，也不寫 Feature Green。
 
-- [ ] T001 建立 write tools 落點 `internal/infrastructure/tools/writer.go`
+- [X] T001 建立 write tools 落點 `internal/infrastructure/tools/writer.go`
   - Read:
     - `truth-delta.md` -> `/axb-technical-research` MODIFY techstack (Write filesystem tools row)
     - `specs/plans/029-agent-write-tools/research.md` -> `Decision 1`, `Decision 2`, `Decision 3`, `Decision 4`
@@ -30,21 +30,21 @@
   - 只做：建立 `writeFile` 與 `replaceText` 兩個工具殼（`Name`/`Description`/`Parameters` JSON schema 帶 `max_output_tokens`/`timeout`、`reason` required；`Contract()` 回 30s；`Execute` 簽名），並留 `NewWriteTools() []domaintools.Tool` 建構子。
   - 不做：不寫建立/atomic/strict-unique 邏輯（留 Phase 4），不碰 `cli.go`，不寫安全/consent/undo（D5）。
 
-- [ ] T002 預留 CLI 工具註冊接點 `internal/cli/cli.go`
+- [X] T002 預留 CLI 工具註冊接點 `internal/cli/cli.go`
   - Read:
     - `truth-delta.md` -> `/axb-technical-research` MODIFY techstack (Write filesystem tools row)
     - `specs/plans/029-agent-write-tools/research.md` -> `Decision 1` (register in `newToolRegistry`)
   - 只做：在 `newToolRegistry` 既有的工具集合組裝處，留一個接點把 `tools.NewWriteTools()` 併入註冊（offer order：readers、write pair、command）。
   - 不做：不寫任何工具邏輯，不改 flag/exit/stdout 契約。
 
-- [ ] T003 預留 Phase 3 stepdef 獨立落點骨架（Zero Shared Edits 原則）
+- [X] T003 預留 Phase 3 stepdef 獨立落點骨架（Zero Shared Edits 原則）
   - Read:
     - `tests/e2e/steps/` -> 既有 `step_r0NN_tNNN_*.go` 獨立檔＋`init()` 自我註冊慣例
     - `specs/truth/features/cli/chat/dsl.md` -> 本輪新增/修改的句列（見 Phase 3 `DSL 參照`）
   - 只做：在 `tests/e2e/steps/` 下，為 Phase 3 每一句建立**獨立**檔案骨架（`step_r029_tNNN_chat_{given|when|then}_<slug>.go`，`init()` 註冊、body 待填），使 Phase 3 並行任務目標檔案互斥。
   - 不做：不寫任何 `[BDD-ALIGN]`/`[BDD-RED]` 語意，不寫 helper 邏輯。
 
-- [ ] T004 預留單元測試落點骨架 `internal/infrastructure/tools/writer_test.go`
+- [X] T004 預留單元測試落點骨架 `internal/infrastructure/tools/writer_test.go`
   - Read:
     - `specs/plans/029-agent-write-tools/research.md` -> `Decision 2`, `Decision 3`, `Decision 4`, `Decision 8`
   - 只做：建立單元落點檔案骨架（create-only、atomicity、strict-unique、empty `old_text`、missing file、parent creation 的測試函式殼）。
@@ -83,49 +83,51 @@
 **Parallel Hint**:
 - T006–T021 各派一個獨立 subagent，一次整批並行 dispatch（目標檔獨立，符合 Zero Shared Edits）；T022 同批並行；T023 等全部回來再啟動 subagent review。
 
-- [ ] T005 [BDD-ALIGN] `the request offered exactly the agent tools`
+- [X] T005 [BDD-ALIGN] `the request offered exactly the agent tools`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the request offered exactly the agent tools`; `tests/e2e/steps/step_r021_t026_chat_then_offered_tools.go`
   - 只做：把該 assertion 的期望集合改為六工具（`list_files`, `read_files`, `get_tree`, `write_file`, `replace_text`, `execute_command`）。
   - 附註（PR #61 review finding 7）：期望集合**不**再手抄第三份；stepdef 以 `tellme --tool-usage`（列出 live registry 的工具）導出期望集合，再與 offered set 比對，讓工具新增不會與 `dsl.md` 的 `集合` 及 acceptance prose 三處漂移。
-- [ ] T006 [P] [BDD-RED] `the working directory contains no file "{name}"`
+- [X] T006 [P] [BDD-RED] `the working directory contains no file "{name}"`
   - Read: `tests/e2e/steps/step_r029_t006_chat_given_workdir_no_file.go`
-- [ ] T007 [P] [BDD-RED] `the working directory contains no folder "{name}"`
+- [X] T007 [P] [BDD-RED] `the working directory contains no folder "{name}"`
   - Read: `tests/e2e/steps/step_r029_t007_chat_given_workdir_no_folder.go`
-- [ ] T008 [P] [BDD-RED] `the working directory contains a file "{name}" whose lines are:`
+- [X] T008 [P] [BDD-RED] `the working directory contains a file "{name}" whose lines are:`
   - Read: `tests/e2e/steps/step_r029_t008_chat_given_workdir_lines.go`
-- [ ] T009 [P] [BDD-RED] `the working directory contains a file "{name}" that contains the line "{line}" twice`
+- [X] T009 [P] [BDD-RED] `the working directory contains a file "{name}" that contains the line "{line}" twice`
   - Read: `tests/e2e/steps/step_r029_t009_chat_given_workdir_line_twice.go`
-- [ ] T010 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint creates the file "{path}" with the content "{content}" and then answers with "{answer}"`
+- [X] T010 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint creates the file "{path}" with the content "{content}" and then answers with "{answer}"`
   - Read: `tests/e2e/steps/step_r029_t010_chat_given_provider_creates_file.go`
-- [ ] T011 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint edits the file "{path}" replacing "{old}" with "{new}" and then answers with "{answer}"`
+- [X] T011 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint edits the file "{path}" replacing "{old}" with "{new}" and then answers with "{answer}"`
   - Read: `tests/e2e/steps/step_r029_t011_chat_given_provider_edits_file.go`
-- [ ] T012 [P] [BDD-RED] `tellme created the file "{name}"`
+- [X] T012 [P] [BDD-RED] `tellme created the file "{name}"`
   - Read: `tests/e2e/steps/step_r029_t012_chat_then_file_created.go`
-- [ ] T013 [P] [BDD-RED] `the content of "{name}" is exactly "{content}"`
+- [X] T013 [P] [BDD-RED] `the content of "{name}" is exactly "{content}"`
   - Read: `tests/e2e/steps/step_r029_t013_chat_then_content_exact.go`
-- [ ] T014 [P] [BDD-RED] `the content of "{name}" is still exactly "{content}"`
+- [X] T014 [P] [BDD-RED] `the content of "{name}" is still exactly "{content}"`
   - Read: `tests/e2e/steps/step_r029_t014_chat_then_content_unchanged.go`
-- [ ] T015 [P] [BDD-RED] `the lines of "{name}" are:`
+- [X] T015 [P] [BDD-RED] `the lines of "{name}" are:`
   - Read: `tests/e2e/steps/step_r029_t015_chat_then_lines.go`
-- [ ] T016 [P] [BDD-RED] `the lines of "{name}" are still:`
+- [X] T016 [P] [BDD-RED] `the lines of "{name}" are still:`
   - Read: `tests/e2e/steps/step_r029_t016_chat_then_lines_unchanged.go`
-- [ ] T017 [P] [BDD-RED] `the folder "{name}" was created`
+- [X] T017 [P] [BDD-RED] `the folder "{name}" was created`
   - Read: `tests/e2e/steps/step_r029_t017_chat_then_folder_created.go`
-- [ ] T018 [P] [BDD-RED] `the creation is refused`
+- [X] T018 [P] [BDD-RED] `the creation is refused`
   - Read: `tests/e2e/steps/step_r029_t018_chat_then_creation_refused.go`
-- [ ] T019 [P] [BDD-RED] `the edit is refused because the block is not present`
+- [X] T019 [P] [BDD-RED] `the edit is refused because the block is not present`
   - Read: `tests/e2e/steps/step_r029_t019_chat_then_edit_absent.go`
-- [ ] T020 [P] [BDD-RED] `the edit is refused because the block is not unique`
+- [X] T020 [P] [BDD-RED] `the edit is refused because the block is not unique`
   - Read: `tests/e2e/steps/step_r029_t020_chat_then_edit_ambiguous.go`
-- [ ] T021 [P] [BDD-RED] `the file "{name}" still contains the line "{line}" twice`
+- [X] T021 [P] [BDD-RED] `the file "{name}" still contains the line "{line}" twice`
   - Read: `tests/e2e/steps/step_r029_t021_chat_then_line_still_twice.go`
-- [ ] T022 [P] [UNIT] write tools 單元測試
+- [X] T022 [P] [UNIT] write tools 單元測試
   - Read: `internal/infrastructure/tools/writer.go`, `internal/infrastructure/tools/writer_test.go`, `research.md` -> `Decision 2`, `Decision 3`, `Decision 4`
   - 必查：create-only（既有檔 → error 且內容不變）；atomicity（同一 atomic-write helper：`write_file` 用 `os.Link`/`EEXIST` atomic create-only、`replace_text` 用 `rename`；失敗不留半檔；temp 與 dest 同目錄）；`replace_text` strict-unique（0 → error、>1 → error、恰好 1 → 替換）；empty `old_text` → error；missing file → error（不建立）；missing parent → `MkdirAll`。
   - 並以 **atomicity witness**（review finding 4）取證：注入一個 `Write` 在第 N byte 失敗的 writer，斷言 destination **不存在或 byte-identical**，且**無 `*.tmp` 殘留**（atomicity 為 unit-tier，E2E 無 fault injection）。
   - 另 pin：建立檔案的 mode 為 **`0644`**（review finding 3）；create-only 以 **atomic move**（`os.Link`/`EEXIST`）成立、**非** `Stat`/`rename` TOCTOU，且既有檔出現時不被 clobber（review finding 2）。
   - 另 pin（PR #61 reference cross-check **R2/R3**）：**missing** `content` key → error（只有**顯式** `""` 才寫空檔；`FR-010`）；建立父目錄 mode **`0755`**（`FR-008`）。
-- [ ] T023 subagent review (phase quality gate)
+- [X] T023 subagent review (phase quality gate)
+
+> Phase-3 review executed by the orchestrator (no parallel subagent substrate in this session): the E2E suite ran with **0 undefined steps**; the only failures were the 6 new write-tool scenarios failing on assertion/product behaviour (the not-yet-implemented tools). Gate PASSED — Feature Green unlocked.
 
 ## Phase 4A: ADD Feature File - cli/chat/creating-and-editing-files.feature
 
@@ -145,8 +147,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/creating-and-editing-files.feature`
 
-- [ ] T024 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T025 [BDD-REFACTOR] 在綠燈下整理 write/atomic/replace 共用邏輯
+- [X] T024 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T025 [BDD-REFACTOR] 在綠燈下整理 write/atomic/replace 共用邏輯
 
 ## Phase 4B: MODIFY Feature File - cli/chat/offering-the-agent-tools.feature
 
@@ -163,8 +165,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/offering-the-agent-tools.feature`
 
-- [ ] T026 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T027 [BDD-REFACTOR] 在綠燈下整理工具註冊與 offered-tools 投影
+- [X] T026 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T027 [BDD-REFACTOR] 在綠燈下整理工具註冊與 offered-tools 投影
 
 ## Phase 4C: REGRESSION
 
@@ -181,7 +183,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`
 
-- [ ] T028 [REGRESSION] 跑全 CLI feature + 見證 + `make verify` + 拓樸稽核
+- [X] T028 [REGRESSION] 跑全 CLI feature + 見證 + `make verify` + 拓樸稽核
 
 ---
 
