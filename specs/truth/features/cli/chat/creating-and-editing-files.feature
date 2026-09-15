@@ -6,6 +6,12 @@ Feature: Creating and editing files
   # **uniquely** present, and refuses (leaving the file untouched) on 0 or >1 matches. There is no
   # security/consent gate and no undo. Acceptance journeys:
   # features/acceptance/creating-a-file.feature and features/acceptance/editing-a-file.feature.
+  #
+  # Atomicity (both tools): every write goes to a temp file in the target folder and is moved into
+  # place — `write_file` via an atomic create-only move (`os.Link`/`EEXIST`; an existing file is never
+  # clobbered), `replace_text` via `rename` — so a destination is never partial. The created file is
+  # mode 0644. This invariant is verified at the **unit** tier (no E2E fault injection exists); the
+  # Examples below assert the observable outcomes only.
 
   Rule: A new file is created with exactly the requested content
 

@@ -1,14 +1,14 @@
 Feature: Offering the agent tools
 
-  # Interface truth (CLI end, `chat` module) — a prompt run offers exactly the agent tools: the three
-  # filesystem readers (`list_files`, `read_files`, `get_tree`) and the command tool
-  # (`execute_command`). The round-008 summarisation tool is removed, so a request for it fails under
-  # the existing unknown-tool contract. Acceptance journey:
-  # features/acceptance/offering-the-agent-tools.feature.
+  # Interface truth (CLI end, `chat` module) — a prompt run offers exactly the **six** agent tools:
+  # the three filesystem readers (`list_files`, `read_files`, `get_tree`), the two write tools
+  # (`write_file`, `replace_text` — round 029), and the command tool (`execute_command`). The round-008
+  # summarisation tool is removed, so a request for it fails under the existing unknown-tool contract.
+  # Acceptance journey: features/acceptance/offering-the-agent-tools.feature.
 
   Rule: tellme offers exactly its agent tools
 
-    Example: The offered tool set is the readers and the command tool
+    Example: The offered tool set is the readers, the write tools, and the command tool
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint reports the offered tools and then answers with "done"

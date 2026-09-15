@@ -35,11 +35,3 @@ Feature: Creating a file with exact content
       Then the creation is refused
       And the content of "notes.txt" is still exactly "original"
       And tellme exits successfully
-
-    Example: A failed or interrupted creation never leaves a half-written file
-      Given the operator has a runnable tellme installation
-      And the runtime home holds a configuration with a reachable provider "test-model" that creates a large file before answering
-      And the working directory contains no file "big.txt"
-      When the operator asks tellme "Create big.txt with a large amount of content."
-      Then "big.txt", if it exists, holds the complete content and is never a partial file
-      And tellme exits successfully

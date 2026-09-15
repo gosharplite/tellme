@@ -86,6 +86,7 @@
 - [ ] T005 [BDD-ALIGN] `the request offered exactly the agent tools`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the request offered exactly the agent tools`; `tests/e2e/steps/step_r021_t026_chat_then_offered_tools.go`
   - 只做：把該 assertion 的期望集合改為六工具（`list_files`, `read_files`, `get_tree`, `write_file`, `replace_text`, `execute_command`）。
+  - 附註（PR #61 review finding 7）：期望集合**不**再手抄第三份；stepdef 以 `tellme --tool-usage`（列出 live registry 的工具）導出期望集合，再與 offered set 比對，讓工具新增不會與 `dsl.md` 的 `集合` 及 acceptance prose 三處漂移。
 - [ ] T006 [P] [BDD-RED] `the working directory contains no file "{name}"`
   - Read: `tests/e2e/steps/step_r029_t006_chat_given_workdir_no_file.go`
 - [ ] T007 [P] [BDD-RED] `the working directory contains no folder "{name}"`
@@ -121,6 +122,8 @@
 - [ ] T022 [P] [UNIT] write tools 單元測試
   - Read: `internal/infrastructure/tools/writer.go`, `internal/infrastructure/tools/writer_test.go`, `research.md` -> `Decision 2`, `Decision 3`, `Decision 4`
   - 必查：create-only（既有檔 → error 且內容不變）；atomicity（temp+rename；失敗不留半檔；同目錄 rename）；`replace_text` strict-unique（0 → error、>1 → error、恰好 1 → 替換）；empty `old_text` → error；missing file → error（不建立）；missing parent → `MkdirAll`。
+  - 並以 **atomicity witness**（review finding 4）取證：注入一個 `Write` 在第 N byte 失敗的 writer，斷言 destination **不存在或 byte-identical**，且**無 `*.tmp` 殘留**（atomicity 為 unit-tier，E2E 無 fault injection）。
+  - 另 pin：建立檔案的 mode 為 **`0644`**（review finding 3）；create-only 以 **atomic move**（`os.Link`/`EEXIST`）成立、**非** `Stat`/`rename` TOCTOU，且既有檔出現時不被 clobber（review finding 2）。
 - [ ] T023 subagent review (phase quality gate)
 
 ## Phase 4A: ADD Feature File - cli/chat/creating-and-editing-files.feature
@@ -146,15 +149,15 @@
 
 ## Phase 4B: MODIFY Feature File - cli/chat/offering-the-agent-tools.feature
 
-**Goal**: 讓 offer set 成為六工具（三 reader + write pair + command），且不提供 `pipe_commands`/summarisation。
+**Goal**: 讓 offer set 成為六工具（三 reader + write pair + command），且不提供 `pipe_commands`/summarisation。**本 phase 只做產品層的註冊與轉綠** — truth feature 的 prose（header comment + Example 標題）已在 **truth half** 由 `/axb-dsl-refine` 更新，此處不再改 truth 文字。
 
 **Shared Must Read**:
 - `specs/truth/features/cli/chat/offering-the-agent-tools.feature` -> `Feature: Offering the agent tools`
 - `specs/truth/features/cli/chat/dsl.md` -> `the request offered exactly the agent tools`
-- `truth-delta.md` -> `/axb-dsl-refine` MODIFY `chat/dsl.md`（offered 集合）
+- `truth-delta.md` -> `/axb-dsl-refine` MODIFY `offering-the-agent-tools.feature`（prose → 六工具）+ MODIFY `chat/dsl.md`（offered 集合）
 
 **Boundary**:
-- 只改工具集合的組成；不新增 `pipe_commands`、不引入安全/consent（D5）。
+- 只做**產品層**的工具註冊/轉綠；不新增 `pipe_commands`、不引入安全/consent（D5）；**不改** truth feature 的 prose（已於 truth half 完成）。
 
 **Test Scope**:
 - `specs/truth/features/cli/chat/offering-the-agent-tools.feature`
