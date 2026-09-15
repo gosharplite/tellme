@@ -175,7 +175,13 @@ func appendBounded(sb *strings.Builder, block string) bool {
 func readOneFile(path string) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "--- File: %s ---\n", path)
-	info, err := os.Stat(path)
+	f, err := os.Open(path)
+	if err != nil {
+		fmt.Fprintf(&sb, "ERROR: failed to read file: %v\n\n", err)
+		return sb.String()
+	}
+	defer func() { _ = f.Close() }()
+	info, err := f.Stat()
 	if err != nil {
 		fmt.Fprintf(&sb, "ERROR: failed to read file: %v\n\n", err)
 		return sb.String()
@@ -184,12 +190,6 @@ func readOneFile(path string) string {
 		sb.WriteString("ERROR: path is a directory, use list_files instead\n\n")
 		return sb.String()
 	}
-	f, err := os.Open(path)
-	if err != nil {
-		fmt.Fprintf(&sb, "ERROR: failed to read file: %v\n\n", err)
-		return sb.String()
-	}
-	defer func() { _ = f.Close() }()
 	data, err := io.ReadAll(io.LimitReader(f, readMaxPerFile+1))
 	if err != nil {
 		fmt.Fprintf(&sb, "ERROR: failed to read file: %v\n\n", err)
