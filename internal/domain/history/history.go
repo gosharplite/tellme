@@ -34,6 +34,24 @@ type Entry struct {
 	Steps []Step `json:"steps,omitempty"`
 }
 
+// TotalCalls is the domain reading of the persisted call counts (round 027): the
+// total number of AI-endpoint calls (provider inference rounds) the given
+// completed turns made. Each entry contributes its persisted Calls count; an
+// entry without one (a legacy or arranged plain line, Calls <= 0) contributes 1.
+// It is the basis of the turn-header number (Σ + 1), so the legacy fallback and
+// the accumulation live with the record, not the presentation layer.
+func TotalCalls(entries []Entry) int {
+	total := 0
+	for _, e := range entries {
+		if e.Calls > 0 {
+			total += e.Calls
+		} else {
+			total++
+		}
+	}
+	return total
+}
+
 // Store is the network-free session-history port: load the whole conversation,
 // append one completed exchange, and archive the active history into the
 // archive file (round-007 research Decisions 1 & 3).

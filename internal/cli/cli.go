@@ -868,21 +868,12 @@ func emitTurnGap(env runtimeEnv) {
 
 // turnNumber is the round-017/027 turn-header number: the session's running
 // AI-endpoint-call index — one more than the total number of provider calls
-// (inference rounds) the prior completed turns made. It sums each prior entry's
-// persisted call count; an entry without one (a legacy or arranged plain line)
-// counts as one (round-027 Decision 5). The header is emitted before the turn,
-// so this is the index of this prompt's FIRST call — the value tell-me-go prints
-// at that prompt's first call.
+// (inference rounds) the prior completed turns made (`history.TotalCalls`, which
+// treats an entry without a count as one — round-027 Decision 5). The header is
+// emitted before the turn, so this is the index of this prompt's FIRST call —
+// the value tell-me-go prints at that prompt's first call.
 func turnNumber(prior []history.Entry) int {
-	n := 1
-	for _, e := range prior {
-		if e.Calls > 0 {
-			n += e.Calls
-		} else {
-			n++
-		}
-	}
-	return n
+	return history.TotalCalls(prior) + 1
 }
 
 // spinnerGate reports whether the turn spinner should be drawn: only on a

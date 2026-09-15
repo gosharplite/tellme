@@ -102,6 +102,9 @@ func TestRunTurn_PrintsRawAnswerAndPersists(t *testing.T) {
 	if len(st.appended) != 1 || st.appended[0].Prompt != "ping" || st.appended[0].Answer != "the answer" {
 		t.Errorf("persisted = %+v, want the completed exchange", st.appended)
 	}
+	if len(st.appended) == 1 && st.appended[0].Calls != 1 {
+		t.Errorf("persisted Calls = %d, want 1 (a tool-less turn made one call)", st.appended[0].Calls)
+	}
 }
 
 func TestRunTurn_CarriesPriorMessages(t *testing.T) {
@@ -220,8 +223,12 @@ func TestRunTurn_ToolLoopLogPrecedesAnswer(t *testing.T) {
 	res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}
 	e := runtimeEnv{stdout: &buf, stderr: &buf, renderer: &stubRenderer{out: "ANSWER"},
 		clock: func() time.Time { return time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC) }}
-	if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, e, factoryReturning(fg, nil)); code != Success {
+	st := &fakeStore{}
+	if code := runTurn(res, st, "ping", turnOptions{raw: true}, e, factoryReturning(fg, nil)); code != Success {
 		t.Fatalf("code = %d, want success", code)
+	}
+	if len(st.appended) == 1 && st.appended[0].Calls != 2 {
+		t.Errorf("persisted Calls = %d, want 2 (the tool round + the answer)", st.appended[0].Calls)
 	}
 	out := buf.String()
 	tool := strings.Index(out, "read_files")
@@ -231,5 +238,21 @@ func TestRunTurn_ToolLoopLogPrecedesAnswer(t *testing.T) {
 	}
 	if tool >= answer {
 		t.Fatalf("write order = tool(%d) answer(%d), want tool < answer: %q", tool, answer, out)
+	}
+}
+
+// TestRunTurn_ChromeHeaderCountsCalls pins the round-027 header at the runTurn
+// composition level: with chrome on and a prior turn that made two inference
+// rounds, the turn opens at `Turn 3` (Σ calls + 1) on the diagnostic stream.
+func TestRunTurn_ChromeHeaderCountsCalls(t *testing.T) {
+	var out, errOut bytes.Buffer
+	fg := &fakeGateway{text: "the answer"}
+	st := &fakeStore{entries: []history.Entry{{Prompt: "q1", Answer: "a1", Calls: 2}}}
+	code := runTurn(resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}, st, "ping", turnOptions{raw: true, chrome: true}, env(&out, &errOut, &stubRenderer{}), factoryReturning(fg, nil))
+	if code != Success {
+		t.Fatalf("code = %d, want success", code)
+	}
+	if !strings.Contains(errOut.String(), "╭─⠿ Turn 3 - butler") {
+		t.Errorf("stderr = %q, want the `╭─⠿ Turn 3 - butler` header (Σ calls + 1)", errOut.String())
 	}
 }

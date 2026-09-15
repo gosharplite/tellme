@@ -86,6 +86,15 @@ Feature: Presenting the turn
       Then the turn is headed "Turn 3" for the active mode
       And tellme exits successfully
 
+    Example: The operator starts a fresh session after an earlier tool-using turn
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured provider "test-model" whose endpoint answers with "all good"
+      And the session history already holds a tool-using exchange with no provider token
+      When the operator starts a fresh session with "--new" and the prompt "hi"
+      Then the turn is headed "Turn 1" for the active mode
+      And tellme exits successfully
+
   Rule: The turn frame is separated from the answer
 
     Example: The operator runs a turn on a fresh session
