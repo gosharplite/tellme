@@ -32,6 +32,7 @@
   - Adopt the reference's two-line `Input captured:` form — rejected: Q3 A′ chose tellme's uniform single captured line.
   - Emit no echo — rejected: the operator would lose sight of the prompt (the round-021 style defect the operator raised).
   - Echo on every prompt surface — rejected: the other surfaces already show the text; double-printing is noise.
+- **Reserved-prefix note (PR #51 implementation-review NIT)**: the echoed prompt is written verbatim with **no** `tellme: ` prefix. The frozen reservation (`exactly one stderr line begins with `tellme: ``) binds the **class-phrase** line, which the echo never carries; a submitted prompt that itself begins with `tellme: ` would nonetheless read like a class phrase on that stream — a recorded, accepted residual (very low likelihood).
 
 ## Decision 5: E2E witness rework — assert the frame is gone and the chrome is present
 

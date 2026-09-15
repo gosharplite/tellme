@@ -44,11 +44,11 @@ type scenarioContext struct {
 
 	stdin    string // scripted standard input for the next run (round 005)
 	stdinSet bool   // whether a scripted stdin should be piped to the child
-	// pacedStdin, when pacedSet, delivers the scripted input in two chunks with a
-	// pause between (round 023) so bubbletea paints the editor frame into the
-	// capture before the terminal key clears it (the -i witness).
-	pacedStdin [2]string
-	pacedSet   bool
+	// syncedStdin, when syncedSet, delivers the scripted input in two chunks: the
+	// compose keys, then — once the child's stderr shows the editor frame (the
+	// `┌` marker) — the terminal key (round 023; output-synchronized, not a sleep).
+	syncedStdin [2]string
+	syncedSet   bool
 	// stdinDevNull wires the next run's stdin to the null device — a
 	// non-terminal character device (the round-012 review B1 E2E pin).
 	stdinDevNull bool
@@ -214,8 +214,8 @@ func (sc *scenarioContext) run() {
 	switch {
 	case sc.stdinDevNull:
 		res = harness.RunInWithDevNull(sc.workDir, sc.args, sc.runEnv(), sc.unsetNames())
-	case sc.pacedSet:
-		res = harness.RunInWithPacedStdin(sc.workDir, sc.args, sc.pacedStdin[0], sc.pacedStdin[1], sc.runEnv(), sc.unsetNames())
+	case sc.syncedSet:
+		res = harness.RunInWithSyncedStdin(sc.workDir, sc.args, sc.syncedStdin[0], sc.syncedStdin[1], "┌", sc.runEnv(), sc.unsetNames())
 	case sc.stdinSet:
 		res = harness.RunInWithStdin(sc.workDir, sc.args, sc.stdin, sc.runEnv(), sc.unsetNames())
 	default:

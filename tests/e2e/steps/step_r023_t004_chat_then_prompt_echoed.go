@@ -19,6 +19,11 @@ func init() {
 // prompt AFTER the editor frame's last border rune (the frame was cleared on
 // submit) and BEFORE the input-capture acknowledgement. It must not be written to
 // standard output.
+//
+// The `└` anchor is a deliberate heuristic: it assumes the editor's bottom border
+// is the LAST `└` in the stream — true today, since the frame is the only
+// box-drawing block and it is rendered before the echo. If a future surface draws
+// a later `└`, switch to the reduced final screen (`reduceTerminal`) instead.
 func thenPromptEchoed(ctx context.Context, prompt string) error {
 	sc := scenarioFrom(ctx)
 	p := unescapeText(prompt)

@@ -132,56 +132,111 @@ func RunInWithStdin(dir string, args []string, stdin string, set map[string]stri
 	return runExec(bin, dir, args, strings.NewReader(stdin), set, unset, pipedRunTimeout, false)
 }
 
-// RunInWithPacedStdin is RunInWithStdin with the scripted input delivered in two
-// chunks — `first`, a short pause, then `last` (round 023). bubbletea COALESCES
-// frames when all keys are available at once, so with an instantaneous stdin only
-// the final frame renders and the editor box would never reach the captured
-// stream; a paced delivery lets the editor paint (the round-016/015 presence
-// assertions keep seeing the frame) before the terminal key clears it. It is
-// input pacing, not synchronization (tests/e2e is exempt from verify-no-test-sleep).
-func RunInWithPacedStdin(dir string, args []string, first, last string, set map[string]string, unset []string) RunResult {
+// markerDeadline bounds the wait for the editor frame to paint, so a child that
+// never paints still terminates (a generous falsification ceiling, not a
+// synchronization sleep).
+const markerDeadline = 10 * time.Second
+
+// RunInWithSyncedStdin runs the child with a scripted stdin delivered in two
+// chunks, but the second chunk (the terminal key) is written only AFTER the
+// child's stderr shows `marker` (the editor frame painted) — an
+// output-synchronized handshake instead of a wall-clock sleep (PR #51
+// implementation-review TD1; the ADR-036 determinism discipline). bubbletea
+// COALESCES frames when all keys are available at once, so without the handshake
+// only the final frame would render and the editor box would never reach the
+// capture (the round-016/015 presence assertions + the teardown witness).
+func RunInWithSyncedStdin(dir string, args []string, compose, key, marker string, set map[string]string, unset []string) RunResult {
 	bin, err := BinaryPath()
 	if err != nil {
 		return RunResult{ExitCode: -1, Err: err}
 	}
-	return runExec(bin, dir, args, &pacedReader{data: []byte(first + last), split: len(first), gap: pacedKeyGap}, set, unset, pipedRunTimeout, false)
+	return runExecSynced(bin, dir, args, compose, key, marker, set, unset, pipedRunTimeout)
 }
 
-// pacedKeyGap is the pause between the compose keys and the terminal key.
-const pacedKeyGap = 200 * time.Millisecond
-
-// pacedReader yields the bytes before `split`, then blocks for `gap` since the
-// first read, then the rest, then EOF. It never crosses the split in one Read, so
-// the pause is always observed at the boundary.
-type pacedReader struct {
-	data   []byte
-	split  int
-	gap    time.Duration
-	start  time.Time
-	pos    int
-	waited bool
-}
-
-func (r *pacedReader) Read(p []byte) (int, error) {
-	if r.start.IsZero() {
-		r.start = time.Now()
+// runExecSynced is runExec with the output-synchronized stdin handshake: it
+// drains stderr concurrently, writes `compose`, waits until the stream carries
+// `marker` (bounded by markerDeadline), then writes `key` and closes stdin.
+func runExecSynced(bin, dir string, args []string, compose, key, marker string, set map[string]string, unset []string, timeout time.Duration) RunResult {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bin, args...)
+	if dir != "" {
+		cmd.Dir = dir
 	}
-	if r.pos >= len(r.data) {
-		return 0, io.EOF
+	cmd.Env = buildEnv(set, unset)
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return RunResult{ExitCode: -1, Err: err}
 	}
-	if !r.waited && r.pos >= r.split {
-		if d := r.gap - time.Since(r.start); d > 0 {
-			time.Sleep(d)
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	if err := cmd.Start(); err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+
+	// Drain stderr concurrently, signalling once the marker appears.
+	painted := make(chan struct{})
+	var once sync.Once
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		buf := make([]byte, 4096)
+		for {
+			n, rerr := stderrPipe.Read(buf)
+			if n > 0 {
+				stderr.Write(buf[:n])
+				if marker != "" && strings.Contains(stderr.String(), marker) {
+					once.Do(func() { close(painted) })
+				}
+			}
+			if rerr != nil {
+				once.Do(func() { close(painted) })
+				return
+			}
 		}
-		r.waited = true
+	}()
+
+	go func() {
+		_, _ = io.WriteString(stdin, compose)
+		select {
+		case <-painted:
+		case <-time.After(markerDeadline):
+		case <-ctx.Done():
+		}
+		_, _ = io.WriteString(stdin, key)
+		_ = stdin.Close()
+	}()
+
+	err = cmd.Wait()
+	<-done
+	return finishResult(RunResult{Stdout: stdout.String(), Stderr: stderr.String()}, err, ctx, timeout)
+}
+
+// finishResult maps a cmd.Wait error to a RunResult (shared by runExec and
+// runExecSynced): nil → success, a context deadline → an explicit hang message,
+// an ExitError → its code, otherwise the raw error.
+func finishResult(res RunResult, err error, ctx context.Context, timeout time.Duration) RunResult {
+	if err == nil {
+		return res
 	}
-	end := len(r.data)
-	if !r.waited && r.split > r.pos {
-		end = r.split
+	if ctx != nil && ctx.Err() == context.DeadlineExceeded {
+		res.ExitCode = -1
+		res.Err = fmt.Errorf("tellme did not finish within %s (possible hang awaiting input)", timeout)
+		return res
 	}
-	n := copy(p, r.data[r.pos:end])
-	r.pos += n
-	return n, nil
+	var ee *exec.ExitError
+	if errors.As(err, &ee) {
+		res.ExitCode = ee.ExitCode()
+		return res
+	}
+	res.ExitCode = -1
+	res.Err = err
+	return res
 }
 
 // RunInWithDevNull is RunIn with the child's stdin wired to the null device
