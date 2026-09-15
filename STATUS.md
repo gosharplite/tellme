@@ -15,7 +15,7 @@
 
 **Locked decisions**: D1 no security · D2 no Windows · D3 bash-first · D4 small surface · D5 three-tier contract · D6 one aggregate bound · D7 scope; clarify Q1 (non-zero exit = success result) · Q2 (`output_file`/`append` in scope) · Q3 (mechanism locked, numbers in research).
 
-**Pipeline**: specify ✅ · spec-by-example ✅ · research ✅ · system-analysis ✅ · dsl-refine ✅ · **tasks ⏳ next** · implement ⏳.
+**Pipeline**: specify ✅ · spec-by-example ✅ · research ✅ · system-analysis ✅ · dsl-refine ✅ · **tasks ✅ (T001–T049; orphan sweep 0)** · implement ⏳ next.
 
 **Artifacts**: `spec.md` (US1–US2 · FR-001–**018** · SC-001–006), `checklists/requirements.md` (ready), `features/acceptance/*.feature` ×3, `research.md` (D1–D8 + D1a), `plan.md` (1 interface → `/axb-dsl-refine`; api/data NOOP), `truth-delta.md`. Truth: `techstack.md` MODIFY (Tool resource contract + Agent command tool + `CONTEXT_WINDOW` row; reader caps retired; grill/review folds); `chat/running-a-shell-command.feature` ADD (+ a process-tree Rule); `chat/offering-the-reader-tools.feature` → `offering-the-agent-tools.feature`; `chat/reading-several-files.feature` + `chat/listing-a-directory.feature` + `chat/surveying-a-folder-tree.feature` MODIFY (byte wording + the list/tree bound witnesses); `chat/dsl.md` (command + bound/process-tree rows + note).
 
