@@ -639,3 +639,74 @@ Docs-only round → `gofmt -l .` clean · diff-level secret scan clean · refere
 
 ### Issue tracker (closeout Step 8)
 Reconciled against the current state: **[#47](https://github.com/gosharplite/tellme/issues/47) closed (`not_planned`, this session)** — concurrent tool-call matching declined, decision recorded in `techstack.md`; **[#13](https://github.com/gosharplite/tellme/issues/13)** left open (coverage tooling, still accurate). No revisions.
+
+
+---
+
+## 19. Session 10 (2026-09-15) — round 027 `027-ai-call-turn-counter` delivered (full pipeline → PR #58 → merge + propagation + closeout)
+
+A session on the same calendar day: opened round **027** from an operator request (make the `╭─⠿ Turn` counter count **AI-endpoint calls** like `tell-me-go`, keeping tellme's chrome as-is), ran the full AIxBDD pipeline, took **PR #58** through a review fold and an operator-reported defect fold, saw the **human merge**, propagated `dev → main`, refreshed the binary, and ran `SESSION-CLOSEOUT.md`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 026 delivered/frozen; active branch `dev`) |
+| Round-027 theme | the `╭─⠿ Turn <N> - <mode>` header's `<N>` counts the session's **AI-endpoint calls** (inference rounds) — matching `tell-me-go` — while tellme keeps **one** header + one `╰─⠿ Ready` per prompt (the reference emits a pair **per call**) |
+| Operator-locked | keep tellme's chrome **as-is**; `<N>` = **Σ prior-turn calls + 1** (a call = an inference round; retries excluded); `--new` resets to `Turn 1` |
+| `/axb-specify` | `specs/plans/027-ai-call-turn-counter/`; **0** clarify questions (semantics settled in-session) |
+| Pipeline | specify ✅ · spec-by-example ✅ · research ✅ · system-analysis ✅ · data-plan ✅ · dsl-refine ✅ · tasks ✅ · implement ✅ · **delivered** |
+| Reviews (PR #58) | plan+truth **APPROVED WITH REQUIRED FOLDS** → fold `88342be` → **FINAL ARCHITECTURAL APPROVAL**; operator defect (`--new -i` → `Turn 2`) → fold `87643d2` → **RE-CERTIFIED — CERTIFIED READY TO MERGE** → **MERGED** |
+| Merge | PR [#58](https://github.com/gosharplite/tellme/pull/58) **MERGED** into `dev` (`ecd4d44`, by `gosharplite`, 2026-09-15T13:35:59Z); round-027 head frozen at **`87643d2`** |
+| Propagation | `027-ai-call-turn-counter → dev` (`ecd4d44`) `→ main` — **DONE (no-ff)** |
+| Closeout | `make verify` OK · godog **179** scenarios · topology audit PASSED (246 module rows · 1284 steps); `STATUS.md` split (round-026 detail → `docs/archives/status/2026-09-15.md`); `go install ./cmd/tellme` refreshed |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — round 026 delivered/frozen; active branch `dev`; peers unchanged (`butler` + `architect`/`coder`/`griller`/`pm`/`rd`).
+2. **Round-027 scope** — the operator noticed the counter differed from `tell-me-go` (`Turn 55` vs a per-call count) and chose: keep tellme's chrome **as-is**, but make `<N>` count AI-endpoint calls. A grilling-style exchange fixed the semantics (unit = inference round; retries excluded; `--new` resets).
+3. **Plan + truth half** — `/axb-specify` → `/axb-spec-by-example` (2 journeys) → `/axb-technical-research` (`research.md` D1–D6) → `/axb-system-analysis` (`plan.md`; 2 interfaces; api NOOP) → `/axb-data-plan` (`history_entry.calls`) → `/axb-dsl-refine` (the counting Rule reshaped + a new tool-using Example; the header `Then` row + 2 arrange Givens + the `history` Given) → `/axb-tasks` (T001–T011; orphan sweep 0).
+4. **Implementation** — `internal/domain/history` (`Entry.Calls` + `TotalCalls`), the history store (serialize `calls`), `internal/cli/cli.go` (`turnNumber` = `history.TotalCalls(prior)+1`; persist `Calls: len(result.Calls)`); `internal/ui/turn.go` + `internal/agent/agentloop.go` **untouched**; unit pins + stepdef alignment.
+5. **PR #58 review** — plan+truth **APPROVED WITH REQUIRED FOLDS** (blocker: carry the `--new` reset acceptance rule into interface truth; debt: `runTurn` `Calls` assertions + a chrome-header unit test; refactor: move the tally to `history.TotalCalls`) → fold `88342be` → **FINAL ARCHITECTURAL APPROVAL**.
+6. **Operator defect** — `tellme --new -i` on a populated session opened at `Turn 2`: the `-i` TUI path **dropped `--new`** (no archive), so the header counted the prior history. Fold `87643d2`: `--new` archives **before** the interactive read for **both** terminal readers (A8 semantics); new `-i` When row + stepdef (`launchTUIFresh`) + Example; witness. → **RE-CERTIFIED READY TO MERGE**.
+7. **Merge + propagation + closeout** — PR #58 merged (`ecd4d44`); `dev → main` (no-ff); `go install ./cmd/tellme`; `STATUS.md` split + this §19.
+
+### Decisions locked (round 027)
+| # | Decision |
+| --- | --- |
+| scope | keep tellme's chrome **as-is** (one header + one `Ready` per prompt); change only the counter's **unit** |
+| unit | `<N>` = **Σ prior-turn AI-endpoint calls + 1**; a call = one inference round (a tool-less turn = 1; a tool turn = 1 + rounds); a retry does **not** count |
+| persistence | `history_entry` gains `calls`; a legacy/field-less line counts as 1; `--new` restarts at `Turn 1` |
+| fold (review) | `history.TotalCalls` (domain) + `runTurn` call assertions + the `--new` acceptance Example |
+| fold (operator) | `--new` archives before **both** terminal readers (the `-i` surface previously dropped it) |
+
+### Commits (branch `027-ai-call-turn-counter`, then merged)
+| Commit | Note |
+| --- | --- |
+| `75f925c` | `docs(027)`: plan package + spec + acceptance Gherkin |
+| `20cef97` | `docs(027)`: technical research + techstack truth |
+| `b3ecb75` | `docs(027)`: system-analysis plan |
+| `b57abe8` | `docs(027)`: data truth — persist the per-turn AI-call count |
+| `b348ea5` | `docs(027)`: CLI interface truth for the call-based turn counter |
+| `8a0e74b` | `docs(027)`: tasks.md |
+| `f089c03` | `feat(027)`: count AI-endpoint calls in the turn header |
+| `88342be` | `fix(027)`: fold PR #58 review — `--new` acceptance Example, `runTurn` call assertions, domain `TotalCalls` |
+| `87643d2` | `fix(027)`: honor `--new` on the `-i` interactive prompt |
+| `ecd4d44` | PR [#58](https://github.com/gosharplite/tellme/pull/58) merge into `dev` (by `gosharplite`) |
+
+### Verification
+- `make verify` **OK** (no test-sleep · offline witness · cross-compile 4/4 · `golangci-lint` 0 issues · `govulncheck` clean) · `go test -count=1 ./...` green · godog **179 scenarios** · topology audit **PASSED** (39 features · 16 root + **246** module rows · **1284** steps) · `gofmt` clean · `go.mod`/`go.sum` unchanged (stdlib only).
+- **Falsifiability witnesses** reproduced then reverted — (a) call-vs-turn counter (`Turn 3`/`Turn 2`) · (b) `--new` reset (archive) · (c) `-i` `--new` reset.
+
+### Open items (non-blocking)
+- **Round-027 forward items** — (a) legacy entries count as 1 (a pre-027 resumed session may undercount a tool-using turn); (b) a future summarisation/archive path must preserve the counter; (c) the reference's per-call chrome cadence remains a recorded divergence (only the number's unit is aligned).
+- Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items.
+- Future-slice candidate: coverage tooling [#13](https://github.com/gosharplite/tellme/issues/13).
+
+### Next steps
+1. Choose the `028-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled against the delivered state: **#13** left open (future candidate, still accurate); **#47** `not_planned` and **#53** completed (closed earlier today). **No changes this session.**

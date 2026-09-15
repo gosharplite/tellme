@@ -2,7 +2,7 @@ Project "tellme_local_state" {
   database_type: "JSON Lines (append-only local files)"
   Note: '''
   The persisted local-state model for tellme. Three artifacts share this model: (1) the per-mode
-  session-history store (rounds 007–008, 014) and (2) the shared global prompt log (round 015).
+  session-history store (rounds 007–008, 014, 027) and (2) the shared global prompt log (round 015).
   The session-history store: one conversation is a sequence of completed turns, stored as append-only
   JSON Lines under the per-mode session workspace ($TELL_ME_HOME/output/<mode>/). The active file is
   `history.jsonl`; `--new` moves its entries into `history.archive.jsonl`. The store is read wholesale
@@ -10,8 +10,9 @@ Project "tellme_local_state" {
   tool activity it performed (the agent tool loop). Round 014 adds an optional, provider-agnostic
   `signature` to each tool step (the opaque token the model emitted for that call — for example the
   Gemini `thoughtSignature`), persisted only when the provider supplies one and omitted when empty, so a
-  resumed session replays the step faithfully. The record is
-  `{prompt, answer, steps:[{tool, arguments, result, signature?}]}`.
+  resumed session replays the step faithfully. Round 027 adds `calls`: the turn's AI-endpoint-call count
+  (provider inference rounds), summed across the active session to number the round-017 turn header. The record is
+  `{prompt, answer, calls, steps:[{tool, arguments, result, signature?}]}`.
   The global prompt log (round 015): the shared, append-only prompt log at the `output/` root
   ($TELL_ME_HOME/output/global_prompts.jsonl), shared across modes/personas with tell-me-go, written
   only under `-i`, and read newest-first + deduplicated to seed interactive suggestions.
@@ -43,12 +44,13 @@ Table history_entry {
   position int
   prompt text
   answer text
+  calls int
 
   indexes {
     (location, position) [pk]
   }
 
-  Note: 'One completed exchange — the operator prompt and the provider answer — persisted as a single JSON line. Entries are append-only and ordered: within a file, `position` is the 1-based line ordinal (the record identity, since no ID or timestamp is stored) and the row order is the conversation order. `location` is `active` in `history.jsonl` and `archived` in `history.archive.jsonl`; `--new` moves every active entry to `archived` (entries from successive archived conversations append in order). An interrupted turn is never written, so no partial entry exists. Round 008: the entry ALSO embeds its ordered tool steps (see `history_step`), each optionally carrying a provider `signature` (round 014); `-l N` still surfaces only `prompt` and `answer`.'
+  Note: 'One completed exchange — the operator prompt and the provider answer — persisted as a single JSON line. Entries are append-only and ordered: within a file, `position` is the 1-based line ordinal (the record identity, since no ID or timestamp is stored) and the row order is the conversation order. `location` is `active` in `history.jsonl` and `archived` in `history.archive.jsonl`; `--new` moves every active entry to `archived` (entries from successive archived conversations append in order). An interrupted turn is never written, so no partial entry exists. Round 008: the entry ALSO embeds its ordered tool steps (see `history_step`), each optionally carrying a provider `signature` (round 014); `-l N` still surfaces only `prompt` and `answer`. Round 027 adds `calls` (int, always ≥ 1): the number of AI-endpoint calls — provider inference rounds — the turn made (1 for a tool-less turn, 1 + the number of tool rounds otherwise; an internal retry does not count). The value is summed across the ACTIVE session (`Σ calls`) and the round-017 turn header shows `Σ calls + 1`; a legacy line without the field counts as 1.'
 }
 
 Table history_step {

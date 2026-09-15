@@ -20,6 +20,7 @@ func init() {
 type widenedEntry struct {
 	Prompt string        `json:"prompt"`
 	Answer string        `json:"answer"`
+	Calls  int           `json:"calls"`
 	Steps  []widenedStep `json:"steps"`
 }
 
@@ -43,6 +44,7 @@ func givenHistoryToolUsingExchange(ctx context.Context) error {
 	entry := widenedEntry{
 		Prompt: prompt,
 		Answer: answer,
+		Calls:  2,
 		Steps: []widenedStep{{
 			Tool:      "read_files",
 			Arguments: readArgs("notes.txt"),
