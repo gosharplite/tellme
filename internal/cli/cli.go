@@ -402,21 +402,25 @@ func run(args []string, version string, env runtimeEnv) int {
 	// context and exits success (0), matching the existing runTurn convention for
 	// an operator-initiated interruption of a prompt turn.
 	if env.isTTY(env.stdin) {
+		// `--new` archives BEFORE the interactive read for BOTH terminal reader
+		// surfaces — the `-i` TUI prompt and the plain reader — so a fresh session
+		// starts regardless of the submission (round 027: the `-i` surface
+		// previously dropped `--new`, so the header counted the prior history). It
+		// archives before resolving the configuration: a prompt-less `--new` is an
+		// archive command that works offline, so — unlike the prompt-bearing
+		// `--new "<prompt>"` form, which resolves first — a broken config still
+		// archives here and then fails when the turn resolves (round-012 review).
+		if opts.newSession {
+			if code := renderNewSession(homeDir, env); code != Success {
+				return code
+			}
+		}
 		// Round 015 — the opt-in interactive TUI prompt engages here (only when
 		// enabled AND stdin is a terminal); the plain reader below stays the
 		// default. The dispatch delegates to the tuiPromptRunner seam so the
 		// matrix is unit-testable (PR #38 review directive ④).
 		if tuiRequested(homeDir, opts) {
 			return runTUIPrompt(homeDir, opts, env)
-		}
-		if opts.newSession {
-			// Archive BEFORE resolving the configuration: a prompt-less --new is an
-			// archive command that works offline, so — unlike the prompt-bearing
-			// `--new "<prompt>"` form, which resolves first — a broken config still
-			// archives here and then fails when the turn resolves (round-012 review).
-			if code := renderNewSession(homeDir, env); code != Success {
-				return code
-			}
 		}
 		ictx, icancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		text, ok := readInteractivePrompt(ictx, env.stdin, env.stderr)

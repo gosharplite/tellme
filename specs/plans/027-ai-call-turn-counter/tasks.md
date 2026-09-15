@@ -208,3 +208,22 @@
 | acceptance -> `counting-how-often-the-model-is-asked.feature`、`starting-the-count-over-on-a-fresh-session.feature` | T005、T006、T009（carried by the reshaped interface Rule） | PASS |
 
 > 孤立產物件數：0。掃描通過，准予交付。
+
+
+---
+
+## Folds — operator-reported `--new -i` defect (PR #58 review/re-review follow-on)
+
+> The operator reported that `tellme --new -i` on a populated session opened at `Turn 2` instead of `Turn 1`. Root cause: the `-i` (TUI) submit path **dropped `--new`**, so the session was never archived and the header counted the prior history. Folded into round 027 (it violates the round's `--new`-reset contract on the `-i` surface).
+
+- [X] T012 [BDD-RED] `When: the operator starts a fresh session at the interactive prompt and submits the prompt "{prompt}"` (new row in `specs/truth/features/cli/chat/dsl.md`)
+  - Landing: `tests/e2e/steps/step_r027_chat_when_fresh_submit_at_prompt.go` + `launchTUIFresh` (`tests/e2e/steps/tui_keys.go` — runs `tellme --new -i`).
+
+- [X] T013 [BDD-GREEN] `--new` honored on the `-i` surface + the interface Example
+  - `internal/cli/cli.go`: `--new` now archives **before** the interactive read for **both** terminal readers (moved above the `tuiRequested` branch).
+  - `specs/truth/features/cli/chat/continuing-the-interactive-prompt.feature`: Example `The operator starts a fresh session at the interactive prompt` (arranged tool-using history → `Turn 1`).
+
+- [X] T014 [REGRESSION] witness + gates
+  - Witness: restoring the pre-fix ordering makes the new Example fail — `the header carried Turn 3, want 1`.
+  - `make verify` + `go test -count=1 ./...` + topology audit green.
+  - Forward note (recorded): `--new` on the `-i` surface archives **before** the prompt (A8-style, matching the plain reader), so an aborted/empty `--new -i` still starts a fresh session.

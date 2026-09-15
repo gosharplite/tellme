@@ -44,6 +44,16 @@ Feature: Continuing the interactive prompt
       And tellme prints the provider's answer "all good"
       And tellme exits successfully
 
+    Example: The operator starts a fresh session at the interactive prompt
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the operator is working at an interactive terminal
+      And a configured provider "test-model" whose endpoint answers with "all good"
+      And the session history already holds a tool-using exchange with no provider token
+      When the operator starts a fresh session at the interactive prompt and submits the prompt "hi"
+      Then the turn is headed "Turn 1" for the active mode
+      And tellme exits successfully
+
   Rule: The other prompt surfaces do not echo the prompt
 
     Example: A prompt entered positionally is not echoed back

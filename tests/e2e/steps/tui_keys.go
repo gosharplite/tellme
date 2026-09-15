@@ -22,7 +22,17 @@ const (
 // launchTUI arranges the next run as `tellme -i` against the forced-terminal seam
 // with a scripted key sequence, then runs it (怎麼做 for the interactive-prompt
 // When steps).
-func launchTUI(sc *scenarioContext, keys string) {
+func launchTUI(sc *scenarioContext, keys string) { launchTUIArgs(sc, keys, []string{"-i"}) }
+
+// launchTUIFresh arranges the next run as `tellme --new -i` (round 027): the same
+// forced-terminal + scripted-key arrangement, but the run starts a fresh session
+// first — so `--new` on the `-i` surface archives the active history before the
+// submitted turn.
+func launchTUIFresh(sc *scenarioContext, keys string) {
+	launchTUIArgs(sc, keys, []string{"--new", "-i"})
+}
+
+func launchTUIArgs(sc *scenarioContext, keys string, args []string) {
 	sc.setEnv("TELL_ME_FORCE_STDIN_TTY", "1")
 	sc.setEnv("TELL_ME_TUI_DEBOUNCE", "0") // refresh synchronously (round 016)
 	sc.pipeStdin(keys)                     // keep the plain stdin (the merged capture reruns it)
@@ -38,7 +48,7 @@ func launchTUI(sc *scenarioContext, keys string) {
 	}
 	sc.syncedStdin = [2]string{compose, final}
 	sc.syncedSet = true
-	sc.args = []string{"-i"}
+	sc.args = args
 	sc.run()
 }
 
