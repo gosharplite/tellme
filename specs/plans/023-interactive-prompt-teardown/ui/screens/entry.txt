@@ -1,0 +1,17 @@
+[Interactive prompt. Type a prompt; Tab accepts a suggestion, Ctrl+S sends, Esc cancels]
+┌────────────────────────────────────────────────────────────────────────┐
+│ Type your message here... (Alt+Enter or Ctrl+S to submit, Esc to abort) │
+│ hi                                                                     │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
+ Suggestions:
+ > hi
+   review the last two commits
+   summarize the last release

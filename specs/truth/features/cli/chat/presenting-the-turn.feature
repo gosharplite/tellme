@@ -3,8 +3,8 @@ Feature: Presenting the turn
   # Interface truth (CLI end, `chat` module) — a prompt-bearing turn on the non-TUI surfaces opens the
   # way tell-me-go does: an input-capture acknowledgement, an 80-column rule, a `╭─⠿ Turn N - <mode>`
   # header over the pre-flight payload line, and a blank gap before the answer. The chrome is emitted on
-  # the positional/piped prompt turn and the round-012 plain reader; the `-i` interactive prompt shows
-  # no chrome (`the run shows no turn chrome`, interface root). The non-prompt paths (`--version`, a
+  # the positional/piped prompt turn, the round-012 plain reader, and — round 023 — the `-i` submit
+  # surface (which first clears its editor frame). The non-prompt paths (`--version`, a
   # prompt-less `--new`) are carried by the `diagnostics` and `history` modules respectively. `stdout`
   # stays byte-exact. Acceptance journeys:
   # features/acceptance/announcing-the-captured-input.feature, framing-the-turn.feature, and
@@ -88,16 +88,3 @@ Feature: Presenting the turn
       And the turn frame is separated from the answer
       And tellme exits successfully
 
-  Rule: The interactive prompt shows no turn chrome
-
-    Example: The operator sends a prompt through the interactive prompt
-      Given the operator has a runnable tellme installation
-      And the runtime home is "ait-tmg"
-      And the operator is working at an interactive terminal
-      And the diagnostics are shown at a terminal
-      And a configured provider "test-model" whose endpoint answers with "all good"
-      When the operator submits the prompt "hi" at the interactive prompt
-      Then the interactive prompt is shown
-      And the run shows no turn chrome
-      And the run shows no progress spinner
-      And tellme exits successfully

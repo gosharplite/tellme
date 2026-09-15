@@ -1,0 +1,13 @@
+[Interactive prompt. Type a prompt; Tab accepts a suggestion, Ctrl+S sends, Esc cancels]
+hi
+[09:38:52] Input captured. Processing...
+
+────────────────────────────────────────────────────────────────────────────────
+╭─⠿ Turn 1 - butler
+[09:38:52] Payload: ~283/1000000 tokens - butler - deepseek-flash
+
+  Hi! How can I help you today?
+
+[09:38:52] Payload: 536/1000000 tokens - butler - deepseek-flash
+[09:38:52] [deepseek-flash] M: 152 H: 384 C: 10 Th: 0
+╰─⠿ Ready ($0.0001 $0.0001 $0.0001 - M: 152 H: 384 O: 10 - 71.6%)

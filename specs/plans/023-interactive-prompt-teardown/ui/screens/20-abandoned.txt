@@ -1,0 +1,2 @@
+[Interactive prompt. Type a prompt; Tab accepts a suggestion, Ctrl+S sends, Esc cancels]
+                                                                       (editor cleared on Esc; no request)
