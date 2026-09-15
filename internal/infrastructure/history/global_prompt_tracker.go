@@ -40,7 +40,12 @@ type GlobalPromptTracker struct {
 	// root (round 028). It is injected so CLI unit tests stay hermetic.
 	userHome func() (string, error)
 	mu       sync.Mutex
-	wg       sync.WaitGroup
+	// wg is a RESERVED drain hook for a future asynchronous background compaction
+	// (round-015 research Decision 3 / PR #38 review directive ⑤). It is NOT
+	// incremented today — the adapter's writes are synchronous — so Close's
+	// wg.Wait() is a deliberate no-op drain that keeps the lifecycle contract
+	// stable for a future async compactor (PR #59 architect review TD-2).
+	wg sync.WaitGroup
 }
 
 var _ domainhistory.PromptTracker = (*GlobalPromptTracker)(nil)
@@ -202,7 +207,10 @@ func (t *GlobalPromptTracker) Recent(ctx context.Context, n int) ([]domainhistor
 }
 
 // Close drains any background writes/compaction before the process exits
-// (round-015 research Decision 3 / PR #38 review directive ⑤).
+// (round-015 research Decision 3 / PR #38 review directive ⑤). Today the adapter
+// runs NO background work — `wg` is a reserved hook (see the struct) — so this is
+// a no-op drain that keeps the lifecycle contract stable for a future async
+// compactor (PR #59 architect review TD-2).
 func (t *GlobalPromptTracker) Close(ctx context.Context) error {
 	t.wg.Wait()
 	return nil

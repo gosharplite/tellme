@@ -111,7 +111,11 @@ Topic: relocate tellme's round-015 `-i` **shared prompt log** from the environme
 
 - **Unbounded `~/.tellme/` growth** — the user-global root now hosts two append-only logs (the round-026
   `tools-count.jsonl` and this prompt log); compaction/rotation for the user-global root remains a shared
-  forward item (the prompt log keeps its round-015 in-file compaction policy, unchanged here).
+  forward item (the prompt log keeps its round-015 in-file compaction policy, unchanged here). `Recent()`
+  reads the whole file in one `os.ReadFile` and scans backwards, so monotonic growth over months of usage
+  raises `-i` startup latency; a future compaction must take an advisory **`flock`** (a
+  `Compact(maxEntries)` rotate-and-prune) so it cannot truncate lines a concurrent tellme process is
+  appending (PR #59 architect review TD-1).
 - **Cross-process contention (escalated by the relocation, TD-3)** — the round-015 log was per-`TELL_ME_HOME`
   (one writer per environment); after the relocation **every** environment/process on the machine shares
   one file, while the adapter still takes **no `flock`**. `O_APPEND` keeps single-line appends safe, but two

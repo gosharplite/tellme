@@ -40,3 +40,15 @@ type PromptTracker interface {
 	// Decision 3 / PR #38 review directive ⑤) before the process exits.
 	Close(ctx context.Context) error
 }
+
+// Seeder is the optional, segregated lifecycle capability that performs the
+// shared prompt log's first-use seed migration (round 028). It is deliberately
+// NOT part of PromptTracker: the read/append consumers (the suggestion engine)
+// must not depend on seeding, while the CLI composition root type-asserts it and
+// invokes Seed once (before the first suggestion read). It is the interface-
+// segregation counterpart of the round-026 tool-usage port split.
+type Seeder interface {
+	// Seed migrates the environment-scoped log into the user-global file when the
+	// latter is absent (copy, not move; never overwrite; best-effort).
+	Seed(ctx context.Context) error
+}

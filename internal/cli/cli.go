@@ -207,12 +207,16 @@ var newTUIPromptRunner tuiPromptRunner = defaultRunTUIPrompt
 func defaultRunTUIPrompt(ctx context.Context, res resolution, env runtimeEnv) (string, bool, error) {
 	_, _ = fmt.Fprintln(env.stderr, TUIHint)
 
-	tracker := infrhistory.NewGlobalPromptTracker(res.Home, userHomeDir)
+	var tracker history.PromptTracker = infrhistory.NewGlobalPromptTracker(res.Home, userHomeDir)
 	defer func() { _ = tracker.Close(context.Background()) }()
 	// Round 028: the first-use seed runs once, here, before the first suggestion
-	// read. Construction stays pure (the tracker is built twice per `-i` run, so
-	// the seed is not a constructor side effect — TD-2); the seed is best-effort.
-	_ = tracker.Seed(ctx)
+	// read. It is the segregated Seeder capability (NOT part of PromptTracker —
+	// interface segregation, matching the round-026 port split); construction stays
+	// pure (the tracker is built twice per `-i` run, so the seed is not a
+	// constructor side effect — TD-2); the seed is best-effort.
+	if seeder, ok := tracker.(history.Seeder); ok {
+		_ = seeder.Seed(ctx)
+	}
 	reg := domaintools.NewRegistry(infratools.NewFilesystemTools()...)
 	engine := appsuggestions.New(
 		appsuggestions.TrackerPrompts{Tracker: tracker},
@@ -284,7 +288,7 @@ func runTUIPrompt(homeDir string, opts *options, env runtimeEnv) int {
 	}
 	// Record in the shared log (round-015 FR-009) — only the interactive prompt
 	// writes it.
-	tracker := infrhistory.NewGlobalPromptTracker(res.Home, userHomeDir)
+	var tracker history.PromptTracker = infrhistory.NewGlobalPromptTracker(res.Home, userHomeDir)
 	_ = tracker.Append(context.Background(), text)
 	_ = tracker.Close(context.Background())
 	return renderTurn(homeDir, opts.configPath, text, turnOptions{raw: opts.raw, chrome: true, echo: true}, env)
