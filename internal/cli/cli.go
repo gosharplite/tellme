@@ -256,7 +256,7 @@ func runTUIPrompt(homeDir string, opts *options, env runtimeEnv) int {
 	tracker := infrhistory.NewGlobalPromptTracker(res.Home)
 	_ = tracker.Append(context.Background(), text)
 	_ = tracker.Close(context.Background())
-	return renderTurn(homeDir, opts.configPath, text, turnOptions{raw: opts.raw}, env)
+	return renderTurn(homeDir, opts.configPath, text, turnOptions{raw: opts.raw, chrome: true, echo: true}, env)
 }
 
 // Run is the CLI entrypoint: main passes argv and the injected build version,
@@ -557,6 +557,12 @@ type turnOptions struct {
 	raw        bool
 	newSession bool
 	chrome     bool
+	// echo is true exclusively for the -i interactive-prompt submission: the
+	// submitted prompt is echoed on stderr before the input-capture
+	// acknowledgement, because the editor box that held it was cleared
+	// (round 023; FR-007/FR-009). It is false for the positional / Ctrl+D
+	// surfaces (they already show the typed text).
+	echo bool
 }
 
 func renderTurn(homeDir, configPath, prompt string, opts turnOptions, env runtimeEnv) int {
@@ -603,11 +609,19 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// Round-019 elapsed epoch: the spinner's turn-scoped timer starts at prompt
 	// capture — the moment the input-capture acknowledgement fires (research D4).
 	turnStart := env.now()
-	// Round-017 turn chrome: on surfaces (A)/(B) the turn opens with the
-	// input-capture acknowledgement and the rule/header frame, wrapping the
-	// pre-flight payload line. It is false for the `-i` submit path and the
-	// non-prompt paths (FR-007).
+	// Round-017 turn chrome: a prompt-bearing turn opens with the input-capture
+	// acknowledgement and the rule/header frame, wrapping the pre-flight payload
+	// line. It is true for the positional / piped / Ctrl+D reader surfaces and —
+	// round 023 — the `-i` submit path; it is false for the non-prompt paths
+	// (FR-007).
 	if opts.chrome {
+		// Round 023: the `-i` submit echoes the submitted prompt as its own
+		// diagnostic block before the acknowledgement (the editor box that held it
+		// was cleared), so the operator still sees what they sent. Written verbatim
+		// — embedded newlines preserved (FR-007/FR-009).
+		if opts.echo {
+			_, _ = fmt.Fprintln(env.stderr, prompt)
+		}
 		emitInputCaptured(env)
 		// Turn <N> = the session's completed-turn count + 1, derived from the
 		// loaded active history. Forward item (round-017 review finding 3): when
@@ -659,8 +673,8 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	}
 	// Round 022: on a tool-using turn, one blank line separates the tool-log block
 	// from the answer. It is ungated — it follows the tool-log lines, so it appears
-	// on every tool-using surface (including the `-i` submit path and the non-chrome
-	// path). It is written after the spinner has stopped (the observer's Stop above)
+	// on every tool-using surface (including the `-i` submit path). It is written
+	// after the spinner has stopped (the observer's Stop above)
 	// and after the turn is persisted, immediately before the answer, so the
 	// round-019 clear cannot swallow it (review PR #50 directive 2).
 	if len(result.Steps) > 0 {

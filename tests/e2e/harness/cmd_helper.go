@@ -132,6 +132,117 @@ func RunInWithStdin(dir string, args []string, stdin string, set map[string]stri
 	return runExec(bin, dir, args, strings.NewReader(stdin), set, unset, pipedRunTimeout, false)
 }
 
+// markerDeadline bounds the wait for the editor frame to paint, so a child that
+// never paints still terminates (a generous falsification ceiling, not a
+// synchronization sleep).
+const markerDeadline = 10 * time.Second
+
+// RunInWithSyncedStdin runs the child with a scripted stdin delivered in two
+// chunks, but the second chunk (the terminal key) is written only AFTER the
+// child's stderr shows `marker` (the editor frame painted) — an
+// output-synchronized handshake instead of a wall-clock sleep (PR #51
+// implementation-review TD1; the ADR-036 determinism discipline). bubbletea
+// COALESCES frames when all keys are available at once, so without the handshake
+// only the final frame would render and the editor box would never reach the
+// capture (the round-016/015 presence assertions + the teardown witness).
+func RunInWithSyncedStdin(dir string, args []string, compose, key, marker string, set map[string]string, unset []string) RunResult {
+	bin, err := BinaryPath()
+	if err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+	return runExecSynced(bin, dir, args, compose, key, marker, set, unset, pipedRunTimeout)
+}
+
+// runExecSynced is runExec with the output-synchronized stdin handshake: it
+// drains stderr concurrently, writes `compose`, waits until the stream carries
+// `marker` (bounded by markerDeadline), then writes `key` and closes stdin.
+func runExecSynced(bin, dir string, args []string, compose, key, marker string, set map[string]string, unset []string, timeout time.Duration) RunResult {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bin, args...)
+	if dir != "" {
+		cmd.Dir = dir
+	}
+	cmd.Env = buildEnv(set, unset)
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	if err := cmd.Start(); err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+
+	// Drain stderr concurrently, signalling once the marker appears.
+	painted := make(chan struct{})
+	var once sync.Once
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		buf := make([]byte, 4096)
+		for {
+			n, rerr := stderrPipe.Read(buf)
+			if n > 0 {
+				stderr.Write(buf[:n])
+				if marker != "" && strings.Contains(stderr.String(), marker) {
+					once.Do(func() { close(painted) })
+				}
+			}
+			if rerr != nil {
+				once.Do(func() { close(painted) })
+				return
+			}
+		}
+	}()
+
+	go func() {
+		_, _ = io.WriteString(stdin, compose)
+		select {
+		case <-painted:
+		case <-time.After(markerDeadline):
+		case <-ctx.Done():
+		}
+		_, _ = io.WriteString(stdin, key)
+		_ = stdin.Close()
+	}()
+
+	// Drain stderr to EOF BEFORE Wait. Per os/exec, Wait closes the StderrPipe, so
+	// reading it concurrently could drop a trailing chunk (PR #51
+	// implementation-review note). The child's exit — or the ctx timeout killing
+	// it — closes stderr, so the drain reaches EOF and Wait then reaps immediately.
+	<-done
+	err = cmd.Wait()
+	return finishResult(RunResult{Stdout: stdout.String(), Stderr: stderr.String()}, err, ctx, timeout)
+}
+
+// finishResult maps a cmd.Wait error to a RunResult (shared by runExec and
+// runExecSynced): nil → success, a context deadline → an explicit hang message,
+// an ExitError → its code, otherwise the raw error.
+func finishResult(res RunResult, err error, ctx context.Context, timeout time.Duration) RunResult {
+	if err == nil {
+		return res
+	}
+	if ctx != nil && ctx.Err() == context.DeadlineExceeded {
+		res.ExitCode = -1
+		res.Err = fmt.Errorf("tellme did not finish within %s (possible hang awaiting input)", timeout)
+		return res
+	}
+	var ee *exec.ExitError
+	if errors.As(err, &ee) {
+		res.ExitCode = ee.ExitCode()
+		return res
+	}
+	res.ExitCode = -1
+	res.Err = err
+	return res
+}
+
 // RunInWithDevNull is RunIn with the child's stdin wired to the null device
 // (os.DevNull) — a *character device* that is NOT a terminal. It pins the
 // round-012 review BLOCKER B1 fix at the E2E layer: a real isatty probe must

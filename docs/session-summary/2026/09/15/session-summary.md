@@ -176,3 +176,65 @@ A second session on the same calendar day: opened round **022** (reshape the too
 ### PM follow-ups
 
 - None new (spec/acceptance complete; no PM-owned gaps).
+
+---
+
+## 11. Session 3 (2026-09-15) — round 023 (`023-interactive-prompt-teardown`) delivered + closeout
+
+A third session on the same calendar day: opened round **023** (make `tellme -i` release the terminal on submit), ran the full AIxBDD pipeline, took it through **four review rounds** (two plan+truth, two implementation), saw the **human merge** of PR [#51](https://github.com/gosharplite/tellme/pull/51), propagated `dev → main`, and ran `SESSION-CLOSEOUT.md`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 022 delivered/frozen; active branch `dev`) |
+| Round-023 theme | the `-i` editor **tears down** on submit/abort (reference parity) and the run **resumes the standard turn surface** (echoed prompt + chrome + spinner + post-turn status) |
+| Operator-locked | Q1 → 1a (clear on submit/abort) · Q2 → 2a (resume the standard surface) · Q3 → A′ (echo the prompt + keep the single captured line) · round-022 ripple → Option 1 |
+| Pipeline | specify ✅ · spec-by-example ✅ · research ✅ · analysis ✅ · ui-plan (terminal) ✅ · dsl-refine ✅ · tasks ✅ · implement ✅ · **delivered** |
+| Reviews (PR #51) | plan+truth **APPROVED** (+verified folds) → principal **ARCHITECTURALLY APPROVED** → implementation **APPROVED** (+2 folds) → **FINAL ARCHITECTURAL APPROVAL** |
+| Merge | PR [#51](https://github.com/gosharplite/tellme/pull/51) **MERGED** into `dev` (`97e36c6`, by `thptcnec`, 2026-09-15T03:05:19Z); round-023 head frozen at `14d7567` |
+| Closeout | `go install ./cmd/tellme`; `make verify` OK · godog 156/156 · audit PASSED (1124 steps); STATUS split (round-022 detail → `docs/archives/status/2026-09-15.md`); propagation `dev → main` |
+
+### Decisions locked (round 023)
+
+| # | Decision |
+| --- | --- |
+| Q1 | clear the editor frame on submit (`Ctrl+S`/`Alt+Enter`) and abort (`Esc`/`Ctrl+C`) |
+| Q2 | the `-i` submit resumes the standard turn surface (chrome + spinner + post-turn status) |
+| Q3 | echo the submitted prompt **verbatim** (a diagnostic block) before the input-capture line; keep tellme's single captured line |
+| ripple | the round-022 negative re-anchored to `the pre-flight payload line is separated from the answer by a single blank line` |
+| harness | E2E TUI key delivery is **output-synchronized** (`RunInWithSyncedStdin` — the terminal key only after the frame paints), replacing a wall-clock pacing sleep |
+| impl-review | drain stderr to EOF **before** `cmd.Wait()` (the `os/exec` `StderrPipe` contract) |
+
+### Commits (branch `023-interactive-prompt-teardown`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `530206a` | `docs(023)`: plan package, truth, and tasks for the interactive prompt teardown |
+| `98b9a3a` | `docs(023)`: fold PR #51 review — block-echo wording, reader no-echo witness, plan/tree polish |
+| `67e077f` | `docs(023)`: fold PR #51 residual nit — round-022 note chrome-surface wording |
+| `491800a` | `docs(023)`: fold PR #51 principal review — multi-line echo phrasing + T006/T002 guidance |
+| `ebc5dbf` | `feat(023)`: tear down the `-i` prompt on submit and resume the standard surface |
+| `5a4f4a8` | `refactor(023)`: fold PR #51 implementation review — deterministic teardown witness + ledger/notes |
+| `14d7567` | `refactor(023)`: drain stderr to EOF before Wait in the synced harness |
+| `97e36c6` | PR [#51](https://github.com/gosharplite/tellme/pull/51) merge into `dev` (by `thptcnec`) |
+| *(this closeout, on `dev`)* | `docs(023)`: day close — round 023 delivered + STATUS split + daily summary |
+
+### Verification (2026-09-15)
+
+`make verify` **OK** (no test-sleep · offline witness · cross-compile 4/4 · `golangci-lint` 0 issues · `govulncheck` clean) · `go test ./...` green · godog **156/156** (0 undefined) · `go test -count=2 ./tests/e2e/...` stable (no flake) · topology audit **PASSED** (37 features · 15 root + **216** module rows · **1124** steps) · `gofmt` clean · `go.mod`/`go.sum` unchanged · diff-level secret scan clean.
+
+### Open items (non-blocking)
+
+- **Round-023 forward item** — none new (the reference's two-line `Input captured:` echo form vs tellme's single line + verbatim echo block is a recorded divergence; the `tellme: `-leading-prompt residual is recorded in `research.md` + the echo DSL row).
+- Carried: issue [#49](https://github.com/gosharplite/tellme/issues/49) (1 MiB reader cap ↔ `MAX_HISTORY_TOKENS`); PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items; round-018 gray styling; round-019 macOS CPU leg.
+- Future-slice candidates: [#47](https://github.com/gosharplite/tellme/issues/47) (**concurrent tool-call matching**); coverage tooling [#13](https://github.com/gosharplite/tellme/issues/13).
+
+### Next steps
+
+1. Choose the `024-*` theme and start it via `/axb-specify` off `dev` (candidate: issue [#47](https://github.com/gosharplite/tellme/issues/47)).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; no PM-owned gaps).
