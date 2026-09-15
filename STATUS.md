@@ -1,10 +1,24 @@
 # tellme — Status
 
-**Last updated**: 2026-09-15 (day close) — **round 024 `024-tool-resource-contract-and-execute-command` DELIVERED / FROZEN**: PR [#54](https://github.com/gosharplite/tellme/pull/54) **MERGED** into `dev` (`a59ccad`, by `thptcnec`, 2026-09-15T07:31:25Z); round-024 head frozen at **`2f1dd84`**; propagated `dev → main` (no-ff). Round 023 detail relocated to the archive (Rule 12 — older rounds 001–022 also live in the archives).
+**Last updated**: 2026-09-15 (**round 025 `025-spinner-width-safety` in progress** — plan + truth half complete) — **round 024 `024-tool-resource-contract-and-execute-command` DELIVERED / FROZEN**: PR [#54](https://github.com/gosharplite/tellme/pull/54) **MERGED** into `dev` (`a59ccad`, by `thptcnec`, 2026-09-15T07:31:25Z); round-024 head frozen at **`2f1dd84`**; propagated `dev → main` (no-ff). Round 023 detail relocated to the archive (Rule 12 — older rounds 001–022 also live in the archives).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
-**Active branch**: `dev`
+**Active branch**: `025-spinner-width-safety` (round 025 in progress)
 **Daily log**: [`docs/session-summary/2026/09/15/session-summary.md`](docs/session-summary/2026/09/15/session-summary.md)
 **Archive**: [`2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012) · [`2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–019) · [`2026-09-15.md`](docs/archives/status/2026-09-15.md) (rounds 020–023).
+
+## Round 025 — `025-spinner-width-safety` (in progress)
+
+**Status**: 🚧 **IN PROGRESS** — plan + truth half complete. Branch `025-spinner-width-safety` off `dev`. Anchor issue [#55](https://github.com/gosharplite/tellme/issues/55) — the spinner tool-phase label enumerates every tool name → over-wide line (clipped CPU/MEM; wrap defeats the teardown clear).
+
+**Scope**: a defect fix on the round-019 spinner (**both** defects): (1) **bound** the several-tool label (` Executing tools [<first> and <N-1> more]...`; the single-tool / no-names forms unchanged); (2) **width-safe clear** — track the last frame's rendered-row count and erase **every** occupied row. Operator-locked: **Q1 → 1** (fix both) · **Q2 → 1** (row-tracking erase). Reference finding: `tell-me-go` has the same two defects — no upstream fix to port; both are deliberate divergences.
+
+**Pipeline**: specify ✅ · spec-by-example ✅ · research ✅ · system-analysis ✅ · dsl-refine ✅ · tasks ✅ · **implement ⏳** (T001–T011 pending).
+
+**Artifacts**: `spec.md` (US1–US2 · FR-001–007 · NFR-001–003), `checklists/requirements.md` (ready), `features/acceptance/keeping-the-spinner-width-safe.feature`, `research.md` (D1–D4), `plan.md` (1 interface → `/axb-dsl-refine`; api/data NOOP; ui skipped), `tasks.md` (T001–T011), `truth-delta.md`. **Truth**: `techstack.md` MODIFY (spinner row + `TELL_ME_FORCE_STDERR_COLS` seam + unit-tests row); `chat/presenting-the-progress-spinner.feature` MODIFY (several-tool Then bounded + a residue Rule); `chat/dsl.md` MODIFY (+2 / −1 / round-025 note); root `cli/dsl.md` NOOP.
+
+**Verification**: topology audit **PASSED** (38 features · 15 root + **237** module rows · **1202** steps). No product code yet → `make verify` / E2E **pending implementation**.
+
+---
 
 ## Round 024 — `024-tool-resource-contract-and-execute-command` (delivered / frozen)
 
