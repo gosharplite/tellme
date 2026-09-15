@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-15
 
-**Status**: Draft — operator-locked decisions D1–D7 + clarify Q1–Q3 (session 2026-09-15)
+**Status**: Draft — operator-locked decisions D1–D7 + clarify Q1–Q3 (session 2026-09-15); **folded after the PR #54 grill round** — Q1 (byte-budget wording) · Q4 (timeout-as-result, FR-005a narrowed, FR-018 added) (session 2026-09-15)
 
 **Input**: Operator direction: *"`tellme` will target bash shell with no security overhead … no security and no windows"*; *"rewrite `tell-me-go` with better methods (bdd/sdd/tdd)"*; *"`token bound` and `timeout` should both be params of agent tools … the current 3 read tools are limited by 1 Mb; this should be a param which can be altered by AI … same goes to timeout"*; *"024 `execute_command` is such an important tool, we should get it correct right away"*; *"Let's have 024 do `execute_command` and the 3 read tools together."*
 
@@ -44,13 +44,13 @@ As a developer using `tellme` from a terminal, I want the model to be able to **
 
 - **FR-001**: `execute_command` MUST accept `{ "command": string (required), "timeout": number (optional), "max_output_tokens": integer (optional), "output_file": string (optional), "append": boolean (optional), "reason": string (required) }` and run the command through `bash -c`.
 - **FR-002**: The tool result MUST be bounded to the effective `max_output_tokens` (global contract), with an explicit truncation marker when cut.
-- **FR-003**: A command that exceeds the effective `timeout` MUST be terminated (its process tree) and surfaced as a timeout result; the run MUST continue (the loop is not failed).
+- **FR-003**: A command that exceeds the effective `timeout` MUST be terminated (**its process tree** — see FR-018) and surfaced as a **timeout result** — a **nil-error** tool result carrying a fixed "stopped at its time limit" marker (never the loop's `error: ` path); the run MUST continue (the loop is not failed).
 - **FR-004**: `reason` MUST be a required schema field and MUST be echoed into the tool-loop diagnostic (`stderr`) line for the call.
 - **FR-005**: `execute_command` MUST NOT sit behind any security/consent gate, and `pipe_commands` MUST NOT be registered (D1/D3).
 - **FR-006**: The command's output is a **tool result fed to the model**; the child's `stdout`/`stderr` MUST be bound to the tool's own buffers — **never** inherited from tellme's `os.Stdout`/`os.Stderr` — so `execute_command` never alters the operator `stdout` (byte-exact; NFR-002).
 - **FR-007**: `execute_command` MUST run on POSIX only (no Windows branch).
 
-- **FR-005a — non-zero-exit semantics (resolved, clarify Q1→1)**: a command that exits non-zero MUST yield a **successful tool result carrying the exit code** (with its bounded output); the loop MUST continue. A **tool failure** is reserved for a timeout (FR-003) and for a tool/argument error — **not** for a normal non-zero exit.
+- **FR-005a — non-zero-exit semantics (resolved, clarify Q1→1)**: a command that exits non-zero MUST yield a **successful tool result carrying the exit code** (with its bounded output); the loop MUST continue. A **tool failure** — a **non-nil tool error** — is reserved for a **tool/argument error** only (e.g. a missing `command`): **neither** a normal non-zero exit **nor** a timeout (FR-003/FR-018) is a failure.
 - **FR-005b — output capture (clarify Q2→1)**: `execute_command` MUST accept an optional `output_file` (string) and `append` (boolean). When `output_file` is set, the child's output — **both `stdout` and `stderr`** — MUST be bound to that file handle (streamed to disk — **never** routed through the tool's memory; `append: true` appends, otherwise it truncates), and the tool result MUST report the exit status and the capture target **with no inline preview** (a preview is obtained by a subsequent bounded `read_files`). **Recorded:** because both streams are redirected, a failing command with `output_file` set surfaces only the exit status + target (no inline error text). `output_file` is the sanctioned **large-output escape hatch**: capture to a file, then read it back in bounded slices (`read_files` / the shell). No path gate applies (D1).
 
 ---
@@ -97,6 +97,7 @@ As a developer, I want the reader tools to honour a **single context-budget boun
 - **Tool resource contract** — the uniform `max_output_tokens` + `timeout` parameters (default/param/ceiling) enforced centrally for every agent tool.
 - **Effective budget / bound / ceiling** — `effectiveBudget` = `min(configured MAX_HISTORY_TOKENS, the active model's context window)`; the per-call result bound (param or `effectiveBudget ÷ 4`) and its hard clamp (`effectiveBudget ÷ 2`).
 - **Command result** — the `execute_command` tool result: bounded output plus exit status (semantics per FR-005a).
+- **Timeout result** — a **nil-error** tool result carrying a fixed "stopped at its time limit" marker, emitted when any tool observes its effective `timeout` (FR-003/FR-018); distinct from a truncation (the byte-budget cut) and from a tool failure (a non-nil error).
 - **Tool step** — the persisted record of a tool execution; `execute_command` adds `{tool:"execute_command", arguments, result}`.
 
 ---
@@ -111,9 +112,10 @@ As a developer, I want the reader tools to honour a **single context-budget boun
 
 - **FR-013**: **Every** agent tool (`list_files`, `read_files`, `get_tree`, `execute_command`) MUST accept an optional `max_output_tokens` (integer) and an optional `timeout` (number, seconds).
 - **FR-014**: Enforcement MUST be **centralised** — a single execution path applies the timeout (`context.WithTimeout`) and clamps/truncates the result to the effective bound. A param above the ceiling MUST be **clamped, never rejected**.
-- **FR-015**: The tool bound MUST derive from the **effective budget** = `min(configured MAX_HISTORY_TOKENS, the active model's configured context window)`, where the window is an optional per-model `MODELS.<model>.CONTEXT_WINDOW` (absent → the configured `MAX_HISTORY_TOKENS`). The **default** `max_output_tokens` MUST be `effectiveBudget ÷ 4` (retiring the fixed 1 MiB; the cap tracks the effective budget — issue #49), and the **ceiling** MUST be `effectiveBudget ÷ 2` (a headroom reservation so one tool result cannot fill the window).
+- **FR-015**: The tool bound MUST derive from the **effective budget** = `min(configured MAX_HISTORY_TOKENS, the active model's configured context window)`, where the window is an optional per-model `MODELS.<model>.CONTEXT_WINDOW` (absent → the configured `MAX_HISTORY_TOKENS`). The **default** `max_output_tokens` MUST be `effectiveBudget ÷ 4` (retiring the fixed 1 MiB; the cap tracks the effective budget — issue #49), and the **ceiling** MUST be `effectiveBudget ÷ 2` (a headroom reservation so one tool result cannot fill the window). The resolved token bound MUST be realised as a single **byte budget** via one **contract-owned** conversion — `byteBudget = resolvedTokenBound × bytesPerToken`, with `bytesPerToken = 4` a **new, separately-named contract constant** (deliberately **not** the token estimator's heuristic ratio, whose "not a contract term" stance is unchanged) — so a tool bounds its output **at the source** and the loop's backstop clamps on **raw byte length** (`len(result) > byteBudget`), **never** on the estimator (which would double-trim via its `+4` per-message overhead). At the shipped default (`MAX_HISTORY_TOKENS = 1000000`, no window) the default **byte** budget is `1000000 B` (≈ 0.95 MiB), replacing the round-021 fixed `1 MiB` (`1048576 B`).
 - **FR-016**: The `timeout` default MUST be per-tool (**`execute_command` 300 s; the readers 30 s**) with a hard **ceiling of 7200 s**; a param above the ceiling is clamped.
 - **FR-017**: No new failure class MUST be introduced and the frozen class-phrase vocabulary MUST stay unchanged (11); the tool-loop contract (`MAX_TOOL_LOOP`, the frozen phrase, exit codes) is otherwise unchanged (a non-zero exit is a success result — FR-005a).
+- **FR-018 (timeout is a result — uniform across every agent tool)**: A tool that observes its effective `timeout` MUST yield a **nil-error tool result** carrying a fixed "stopped at its time limit" marker — **never** the loop's `error: ` path — on **both** `execute_command` (FR-003, a process-group kill) **and** the readers (FR-016's 30 s default; their current `ctx.Err()` → error path is retired). A returned **non-nil tool error** therefore means a genuine **tool/argument error** (FR-005a). A tool honours the deadline only when it **observes** it (a blocked `io.ReadAll` notices it when the read returns). The frozen class-phrase vocabulary is unchanged (FR-017).
 
 #### Non-Functional Requirements
 
@@ -138,7 +140,7 @@ As a developer, I want the reader tools to honour a **single context-budget boun
 
 ## Assumptions
 
-- **Numbers (per `research.md` D5).** The default `max_output_tokens` is `effectiveBudget ÷ 4` and the ceiling `effectiveBudget ÷ 2`; the shell `timeout` default is **300 s** (aligning with the agent loop's existing per-tool timeout), the readers' **30 s**, ceiling **7200 s**. (The reference's ~15 s figure is a starting point, not the chosen value.)
+- **Numbers (per `research.md` D5).** The default `max_output_tokens` is `effectiveBudget ÷ 4` and the ceiling `effectiveBudget ÷ 2`; the shell `timeout` default is **300 s** (aligning with the agent loop's existing per-tool timeout), the readers' **30 s**, ceiling **7200 s**. (The reference's ~15 s figure is a starting point, not the chosen value.) The token bound is realised as a **byte** budget via the contract-owned `bytesPerToken = 4` conversion — default **`1000000 B`** at the shipped 1 M budget (FR-015).
 - **No security, no Windows, bash-first** (D1–D3) are inherited from `README.md` → *Design Intent & Direction*; the destructive-command risk is an accepted decision.
 - **`output_file`/`append` on `execute_command`** are **in** this round (clarify Q2→1); the sanctioned "large output" path is capture-to-file then a bounded `read_files`.
 - This round **rewrites in place** the round-021 fixed caps in `specs/truth/features/cli/chat/**` and `chat/dsl.md`; the round-021 plan package stays frozen (`fresh-package-per-round`).

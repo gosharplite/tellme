@@ -59,3 +59,20 @@ Feature: Running a shell command
       Then the command result reported that its output went to "out.txt"
       And tellme read "out.txt" using its read_files tool
       And tellme exits successfully
+
+
+  Rule: A timed-out command takes its descendants with it
+
+    # Grill Q6 — the process-group kill is falsifiable: the command must create a descendant that
+    # outlives the direct child (bash execs a single simple command, so `sleep 60` alone has no
+    # descendant to survive). Both the bounded deadline (WaitDelay) and the descendant-gone check
+    # are asserted.
+
+    Example: A command that spawns a long-lived descendant is stopped with its descendants
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured provider "test-model" whose endpoint runs a command that spawns a long-lived descendant and then answers with "stopped"
+      When the operator starts tellme with the prompt "Run a command that leaves a background process."
+      Then the command result recorded that the command was stopped
+      And the command's descendant process is no longer running
+      And tellme exits successfully

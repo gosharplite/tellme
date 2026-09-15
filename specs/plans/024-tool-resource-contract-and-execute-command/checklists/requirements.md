@@ -54,7 +54,7 @@
 
 ### Resolved (clarify Q1–Q3, session 2026-09-15)
 
-- **Q1 → 1 — non-zero-exit semantics** (`FR-005a`): a non-zero exit is a **successful tool result carrying the exit code**; the loop continues. A tool failure is reserved for a timeout / argument error. (Reference parity.)
+- **Q1 → 1 — non-zero-exit semantics** (`FR-005a`): a non-zero exit is a **successful tool result carrying the exit code**; the loop continues. A **tool failure** (a **non-nil error**) is reserved for a **tool/argument error** only — a **timeout** is a **result**, not a failure (`FR-018`). (Reference parity.)
 - **Q2 → 1 — `output_file`/`append` in scope** (`FR-005b`): `execute_command` accepts `output_file` + `append`, capturing large output to disk (the escape hatch for output bigger than the bound).
 - **Q3 → 1 — mechanism only**: the default/ceiling *mechanism* (default derived from the resolved budget) is locked; the concrete numbers are a `/axb-technical-research` decision.
 

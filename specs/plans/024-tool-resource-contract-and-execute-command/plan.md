@@ -26,12 +26,13 @@ and no `ui/**` artifact — the tool surface is model-facing, not operator-facin
 ### Repository structure (root)
 
 ```text
-internal/infrastructure/tools/filesystem.go   # CHANGED — retire the fixed 100000-byte / 1 MiB caps; whole-file reads + one aggregate bound + skip marker
-internal/infrastructure/tools/get_tree.go      # CHANGED — bound by the shared max_output_tokens
-internal/infrastructure/tools/command.go       # ADDED   — the bash-first execute_command tool (os/exec `bash -c`; output_file/append)
-internal/domain/tools/tools.go                  # CHANGED — the resolved-bound carrier passed to tools (for early-stop)
-internal/agent/agentloop.go                     # CHANGED — the single tool-resource-contract enforcement point (resolve default→param→ceiling; clamp + timeout)
-internal/cli/cli.go                             # CHANGED — register execute_command; wire the budget/timeout defaults
+internal/infrastructure/tools/filesystem.go   # CHANGED — retire the fixed 100000-byte / 1 MiB caps; whole-file reads + one aggregate BYTE bound + skip marker
+internal/infrastructure/tools/get_tree.go      # CHANGED — bound by the shared bound (byte budget)
+internal/infrastructure/tools/command.go       # ADDED   — the bash-first execute_command tool (os/exec `bash -c`; bounded StdoutPipe/StderrPipe; output_file/append; process-group timeout)
+internal/domain/tools/tools.go                  # CHANGED — widen the Tool port TWO-WAY: an upward per-tool contract descriptor (default timeout) + the downward resolved BYTE budget on Execute (grill Q2)
+internal/agent/agentloop.go                     # CHANGED — the single tool-resource-contract enforcement point (resolve default→param→ceiling; convert tokens→the byte budget; clamp on raw byte length + timeout)
+internal/config/config.go                       # CHANGED — add `ModelPricing.ContextWindow` (yaml `CONTEXT_WINDOW`) + a `ContextWindowFor(model)` accessor (mirrors `PricingFor`) (grill Q7)
+internal/cli/cli.go                             # CHANGED — register execute_command; extend `resolution` with the run-static effective budget and compute it (min of MAX_HISTORY_TOKENS and the window) in `resolve()`; thread it into the AgentLoop literal (≈L638)
 internal/**  (tests)                            # CHANGED — unit tests for the contract resolution, execute_command, and the reader bound
 tests/e2e/steps/*, suite                        # CHANGED — execute_command steps + bounded-reader steps (fake provider records the request)
 specs/truth/techstack.md                        # MODIFY  — Tool resource contract + Agent command tool ✓ done
@@ -43,8 +44,7 @@ go.mod / go.sum                                 # unchanged — stdlib-only (no 
 `bash -c`) and the retrofitted readers live in `internal/infrastructure/tools` behind the unchanged
 `internal/domain/tools` port; the **agent loop** becomes the single place the contract is resolved and
 enforced (it already owns the per-tool timeout, round-008 FR-009). There is **no** new endpoint, **no**
-persisted-state change (the tool-step record is unchanged), **no** CLI flag/config change beyond the tool
-registration, and **no** new dependency — consistent with `research.md` Decisions 1–8. The one truth
+persisted-state change (the tool-step record is unchanged), and **no** new dependency — consistent with `research.md` Decisions 1–8. It **does** add a config surface: an optional per-model `MODELS.<model>.CONTEXT_WINDOW` read by `internal/config/config.go` and resolved into the run-static effective budget in `internal/cli/cli.go`'s `resolve()` (grill Q7 — replacing an earlier "no config change" claim). The one truth
 change beyond `techstack.md` (`/axb-technical-research`) is the **CLI interface truth** under
 `specs/truth/features/cli/chat/**`, owned by the CLI end's contract owner `/axb-dsl-refine`.
 
@@ -67,7 +67,7 @@ There is **no** analysis planner for the CLI end (per the CLI-streamlined model)
 > **Scope notes**:
 > - `/axb-api-plan` = **`NOOP`** (standalone CLI; no OpenAPI/HTTP surface; the tool surface authors no request/response shape).
 > - `/axb-data-plan` = **`NOOP`** (the persisted tool-step shape `{tool, arguments, result[, signature]}` is unchanged; `execute_command` steps store opaquely as today).
-> - `/axb-dsl-refine` = **contract owner** (ADD an `execute_command` interface feature + rows; MODIFY the reader features + `chat/dsl.md` for the token-bound/timeout params and the new truncation/skip markers).
+> - `/axb-dsl-refine` = **contract owner** (ADD an `execute_command` interface feature + rows, incl. a **process-tree stop** witness; MODIFY `reading-several-files` + `chat/dsl.md` for the token-bound/timeout params — the bound stated in **bytes** — and the new truncation/skip markers; `listing-a-directory`/`surveying-a-folder-tree` keep their shape but gain an **ADD** bound witness).
 > - `/axb-ui-plan` = **skipped** (no UX surface change; the tool surface is model-facing, and the operator `stderr` chrome is unchanged).
 > - `/axb-spec-by-example` = **done** (2 acceptance journeys: US1 run a shell command · US2 bounded reader results).
 
@@ -80,7 +80,7 @@ wave; the round's contract-owner handoff (`/axb-dsl-refine`) happens at delivery
 
 1. **`/axb-api-plan`** — `NOOP` (no OpenAPI contract).
 2. **`/axb-data-plan`** — `NOOP` (no persisted-state change).
-3. **`/axb-dsl-refine`** — **contract owner**: ADD `specs/truth/features/cli/chat/running-a-shell-command.feature` (+ `chat/dsl.md` rows: the command tool offered, an exited command, a non-zero exit as a success result, a timed-out command, output captured to a file, and the `reason` echo); MODIFY the reader features (`reading-several-files`, `listing-a-directory`, `surveying-a-folder-tree`) + `chat/dsl.md` for the `max_output_tokens`/`timeout` params, the whole-file read, and the truncation/skip markers.
+3. **`/axb-dsl-refine`** — **contract owner**: ADD `specs/truth/features/cli/chat/running-a-shell-command.feature` (+ `chat/dsl.md` rows: the command tool offered, an exited command, a non-zero exit as a success result, a timed-out command — a **nil-error result**, not an `error: ` render — output captured to a file, a **process-tree stop** witness, and the `reason` echo); MODIFY `reading-several-files` + `chat/dsl.md` for the `max_output_tokens`/`timeout` params, the whole-file read, and the truncation/skip markers (the bound stated in **bytes**). `listing-a-directory` / `surveying-a-folder-tree` keep their **output shape** (NOOP) but gain an **ADD** bound witness (a scripted small `max_output_tokens` trips the truncation marker) — grill Q5, since FR-011 must be falsifiable.
 
 Not delegated:
 - `/axb-ui-plan` — **skipped** (no UX surface change).
