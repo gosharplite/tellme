@@ -348,3 +348,74 @@ Topology audit **PASSED** — 38 features · 15 root + **229** module rows · **
 
 ### PM follow-ups
 - None new (spec/acceptance complete; no PM-owned gaps).
+
+## 14. Session 5 (2026-09-15) — round 024 delivered end-to-end (grill → folds → `/axb-tasks` → `/axb-implement` → two reviews → nits → merge + closeout)
+
+A full delivery session on round **024** (`024-tool-resource-contract-and-execute-command`): an adversarial **grill round** on PR #54, the plan+truth fold, an **architecture review** fold, `/axb-tasks` (`tasks.md`), `/axb-implement` (T001–T049), an **implementation review** fold, re-review nits, a new bug issue, then the **merge** and closeout.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Grill round | `architect` ⚔️ `griller` on PR [#54](https://github.com/gosharplite/tellme/pull/54) (both bootstrap'd via `SESSION-BOOTSTRAP.md`); **8 questions** → **PROCEED WITH CHANGES** (8 shipped-half defects) → fold **`7bdeede`** ([gist](https://gist.github.com/gosharplite/451f259997b6a438d19d97a12d66ff1e) · [#5675684245](https://github.com/gosharplite/tellme/pull/54#issuecomment-5675684245)) |
+| Architecture review (plan+truth) | on `7bdeede` → *approved with required folds* (T1 trim lifecycle · T2 process-tree witness · T3 displayed budget · T4 reader timeout-result · R1–R5) → fold **`c6d0366`** → re-review **APPROVED** → nit **`9e68598`** |
+| `/axb-tasks` | `tasks.md` **T001–T049** (no Setup — stdlib-only; Phase 3 with 2 ALIGN + 19 RED + 5 UNIT + review; Phase 4A–4F); orphan sweep **0** — commit **`b66f76f`** |
+| `/axb-implement` | One-Shot **T001–T049** all `[X]` — commit **`d55e0fa`** (product + unit + E2E) |
+| Implementation review | `d55e0fa` → **REQUEST CHANGES** (B1 `output_file` timeout · B2 close read-ends/bounded drain · B3 reader schemas · TD1–TD3) → fold **`cfa005c`** → re-review **APPROVED** → nits **`1e3167a`** (portable drain witness · `ESRCH` swallow · field drop) → nit-3 note **`2f1dd84`** |
+| New issue | **[#55](https://github.com/gosharplite/tellme/issues/55)** — spinner tool-phase label enumerates every tool → over-wide line (clipped CPU/MEM + wrap defeats the teardown clear) |
+| Merge | PR [#54](https://github.com/gosharplite/tellme/pull/54) **MERGED** into `dev` (`a59ccad`, by `thptcnec`, 2026-09-15T07:31:25Z); round-024 head frozen at **`2f1dd84`**; propagated `dev → main` (no-ff) |
+| Issues closed | [#52](https://github.com/gosharplite/tellme/issues/52) (round 024 tracking) + [#49](https://github.com/gosharplite/tellme/issues/49) (reader cap → `MAX_HISTORY_TOKENS`) — both **completed** |
+| Closeout | `make verify` OK · godog **166/166** (0 undefined) · topology audit PASSED · `STATUS.md` split (round-023 detail → `docs/archives/status/2026-09-15.md`) · this §14 |
+
+### Work done
+
+1. **Grill round (PR #54).** Ran a structured grill between the `architect` (subject) and `griller` per `tmg-grill-round` — both seeded with `SESSION-BOOTSTRAP.md`, all relays verbatim, `gist`-published ([transcript](https://gist.github.com/gosharplite/451f259997b6a438d19d97a12d66ff1e)). **8 defects** in the *shipped* half → **PROCEED WITH CHANGES**: Q1 token↔byte conversion · Q2 two-way `Tool` port · Q3 the self-contradicting `MAX_HISTORY_TOKENS` scalar · Q4 timeout-as-result + **FR-018** · Q5 list/tree bound witness · Q6 process-tree witness · Q7 `plan.md` `config.go`/`resolve()` + the false "no config change" · Q8 bounded-pipe capture. Posted the detailed findings comment.
+2. **Plan+truth fold `7bdeede`** — the eight corrections across owners (`spec.md` → FR-018; `research.md` D2/D4/D5/D7/D8; `techstack.md` requalify; `plan.md`; `chat/dsl.md` + features; `truth-delta.md`; checklist).
+3. **Architecture review fold `c6d0366`** (+ nit `9e68598`) — T1 pinned the byte-trim lifecycle *(stop → close read-ends → kill-pgid → Wait)* + the exit-status rule; T2 the deterministic process-tree fixture; T3 the payload-line displays the **effective** budget; T4 the readers' FR-018 path (unit-pinned); R1–R5 hygiene.
+4. **`/axb-tasks` → `tasks.md`** — 49 tasks (no Setup; Foundational T001–T010; Phase 3 T011–T037; Phase 4A–4F T038–T049); Pre-Delivery orphan sweep 0.
+5. **`/axb-implement`** — the pure resolver, two-way port, `ModelPricing.ContextWindow`, the bash-first `execute_command`, the reader retrofit, the loop/CLI wiring; unit + E2E stepdefs. Two GREEN fixes: a `time.Sleep` (replaced with an already-lapsed deadline) and a command-buffer marker reservation.
+6. **Implementation review fold `cfa005c`** — B1 `output_file` honours the timeout (`exec.CommandContext` + group `Cancel`); B2 `abortCapture` closes the read ends + bounds the drain; B3 the three readers declare `max_output_tokens`/`timeout`; TD1 dead field removed; TD2 skip reserve from actual paths; TD3 single-sourced `TruncationMarker`. Nits `1e3167a` (portable bounded-drain witness · `ESRCH` swallow · unused field) + nit-3 note `2f1dd84`.
+7. **Issue #55** — filed the spinner over-width bug (the observed `MEM: 68.` clip + the wrap-defeats-clear risk); single-tool form kept as `Executing [<name>]...`, several-tool → `Executing tools [<first> and N more]...`.
+8. **Merge + closeout** — PR #54 merged (`a59ccad`); closed #52/#49; `STATUS.md` refreshed + split (round-023 → archive); this §14; propagated `dev → main`.
+
+### Decisions locked
+
+| # | Decision |
+| --- | --- |
+| Q1–Q8 (grill fold) | the eight shipped-half corrections above — all folded into the plan+truth half (`7bdeede`) |
+| T1–T4 (review fold) | trim lifecycle + exit-status · deterministic process-tree fixture · payload-line = effective budget · reader timeout-result (unit-pinned) |
+| B1–B3 (impl fold) | `exec.CommandContext` + group `Cancel` · `abortCapture` (close read-ends + bounded drain) · reader schemas declare the two params |
+| nit policy | schema ÷4/÷2 prose stays a description string (not a constant); the divisors are noted to be mirrored from `callByteBudget` |
+
+### Round 024 commits (branch `024-tool-resource-contract-and-execute-command`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `7bdeede` | `docs(024)`: grill fold (Q1–Q8) |
+| `c6d0366` | `docs(024)`: architecture-review fold (T1–T4, R1–R5) |
+| `9e68598` | `docs(024)`: payload-line `<budget>` pointer (review nit) |
+| `14bbc2b` | `docs(024)`: STATUS → head 9e68598 (resync) |
+| `b66f76f` | `docs(024)`: `tasks.md` (T001–T049) |
+| `d55e0fa` | `feat(024)`: implement the contract + `execute_command` + reader retrofit |
+| `cfa005c` | `fix(024)`: implementation-review fold (B1–B3, TD1–TD3) |
+| `1e3167a` | `fix(024)`: re-review nits (1, 2, 4) |
+| `2f1dd84` | `docs(024)`: nit-3 note (schema divisors mirror `callByteBudget`) |
+| `a59ccad` | PR [#54](https://github.com/gosharplite/tellme/pull/54) merge into `dev` (by `thptcnec`) |
+
+### Verification (2026-09-15)
+
+`make verify` **OK** (no test-sleep · offline witness · cross-compile **4/4** · `golangci-lint` 0 issues · `govulncheck` clean) · `go test ./...` green · godog **166/166** (0 undefined) · topology audit **PASSED** (38 features · 15 root + **235** module rows · **1194** steps) · `gofmt`/`go vet` clean · `go.mod`/`go.sum` unchanged.
+
+### Open items (non-blocking)
+
+- **Round-024 forward items** — config-gated `CONTEXT_WINDOW` (model-blind without a window); `output_file` redirects both streams; the sequential-tools worst-case wall-clock; the `ProcessRunner` port extraction trigger. New bug/candidate: [#55](https://github.com/gosharplite/tellme/issues/55) (spinner label over-width).
+- Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items.
+- Future-slice candidates: [#53](https://github.com/gosharplite/tellme/issues/53) (025 — tool-usage accounting), [#47](https://github.com/gosharplite/tellme/issues/47) (concurrent tool-call matching), [#55](https://github.com/gosharplite/tellme/issues/55), [#13](https://github.com/gosharplite/tellme/issues/13).
+
+### Next steps
+
+1. Choose the `025-*` theme (`025 — tool-usage accounting`, [#53](https://github.com/gosharplite/tellme/issues/53)) and open it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
