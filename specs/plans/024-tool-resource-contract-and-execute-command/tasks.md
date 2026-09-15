@@ -22,28 +22,28 @@
 
 **Goal**: 只建立後續實作程式、測試共用元件、入口、fixture、helper 與落點骨架；每則寫「只做／不做」。不寫 Phase 3 測試語意，也不寫 Feature Green。
 
-- [ ] T001 建立純契約解析器落點 `internal/agent/tool_contract.go`
+- [x] T001 建立純契約解析器落點 `internal/agent/tool_contract.go`
   - Read:
     - `truth-delta.md` -> `/axb-technical-research` MODIFY techstack (Tool resource contract row)
     - `specs/plans/024-tool-resource-contract-and-execute-command/research.md` -> `Decision 4` (loop enforcement + pure resolver)
   - 只做：建立檔案與未實作的函式簽名 `resolveBound(param, ceiling, def int) int` 與 `clampBytes(result string, byteBudget int) string`，讓 `internal/agent` 之後可呼叫。
   - 不做：不寫解析/夾取/裁剪邏輯（留 Phase 4），不碰 `agentloop.go`，不寫任何 DSL 語意。
 
-- [ ] T002 建立視窗設定落點 `internal/config/config.go`
+- [x] T002 建立視窗設定落點 `internal/config/config.go`
   - Read:
     - `truth-delta.md` -> `/axb-technical-research` MODIFY techstack (Model pricing & context window row)
     - `specs/plans/024-tool-resource-contract-and-execute-command/research.md` -> `Decision 5` (effective budget)
   - 只做：在 `ModelPricing` 加 `ContextWindow int`（yaml `CONTEXT_WINDOW`）欄位，並留 `ContextWindowFor(model string) (int, bool)` 的函式殼（與 `PricingFor` 分開）。
   - 不做：不接進 `resolve()`，不寫讀取/解析邏輯（留 Phase 4），不改 env 覆寫面。
 
-- [ ] T003 預留 `Tool` port 兩向加寬 `internal/domain/tools/tools.go`
+- [x] T003 預留 `Tool` port 兩向加寬 `internal/domain/tools/tools.go`
   - Read:
     - `truth-delta.md` -> `/axb-technical-research` MODIFY techstack (Agent tool loop row)
     - `specs/plans/024-tool-resource-contract-and-execute-command/research.md` -> `Decision 4` (two-way port; upward default descriptor + downward byte budget)
   - 只做：加一個向上契約描述元（如 `Contract() ToolContract{ DefaultTimeout time.Duration }`）與把 `Execute` 改成 `Execute(ctx, arguments string, budget ByteBudget)`；同步更新兩個既有 test double（`internal/agent/agentloop_test.go` 的 `fakeTool`、`internal/domain/tools/tools_test.go` 的 `stubTool`）使其可編譯。
   - 不做：不實作任何工具的 `Contract`/`Execute` 邏輯，不改 registry 行為。
 
-- [ ] T004 建立命令工具落點 `internal/infrastructure/tools/command.go`
+- [x] T004 建立命令工具落點 `internal/infrastructure/tools/command.go`
   - Read:
     - `truth-delta.md` -> `/axb-dsl-refine` ADD `chat/running-a-shell-command.feature`
     - `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint runs a command and then answers with "{answer}"`
@@ -51,41 +51,41 @@
   - 只做：建立 `execute_command` 工具殼（`Name`/`Description`/`Parameters` JSON schema + `Contract`），註冊入口留給 `cli.go`。
   - 不做：不寫 `os/exec`/process-group/pipe 擷取邏輯（留 Phase 4），不寫安全/consent（D1）。
 
-- [ ] T005 預留 reader retrofit 落點 `internal/infrastructure/tools/filesystem.go` + `get_tree.go`
+- [x] T005 預留 reader retrofit 落點 `internal/infrastructure/tools/filesystem.go` + `get_tree.go`
   - Read:
     - `truth-delta.md` -> `/axb-dsl-refine` MODIFY `chat/reading-several-files.feature`
     - `specs/plans/024-tool-resource-contract-and-execute-command/research.md` -> `Decision 6` (one aggregate bound; retire fixed caps)
   - 只做：把 `readMaxPerFile`/`readAggregateCap` 固定常數換成可傳入的 aggregate **byte** bound 之介面接點，讓後續能以參數化 bound 讀取。
   - 不做：不寫增量讀取/skip marker/truncation marker 語意（留 Phase 4）。
 
-- [ ] T006 預留 loop 契約 enforcement seam `internal/agent/agentloop.go`
+- [x] T006 預留 loop 契約 enforcement seam `internal/agent/agentloop.go`
   - Read:
     - `truth-delta.md` -> `/axb-technical-research` MODIFY techstack (Agent tool loop row)
     - `specs/plans/024-tool-resource-contract-and-execute-command/research.md` -> `Decision 4`
   - 只做：在 `Run` 的工具執行處留呼叫 T001 純解析器與 `Execute(ctx, arguments, byteBudget)` 的接點（單一解析/強制點）。
   - 不做：不寫解析/夾取/裁剪邏輯，不改 wire 時序或 observer hooks。
 
-- [ ] T007 預留 CLI resolution 與工具註冊接點 `internal/cli/cli.go`
+- [x] T007 預留 CLI resolution 與工具註冊接點 `internal/cli/cli.go`
   - Read:
     - `truth-delta.md` -> `/axb-technical-research` MODIFY techstack (Payload budget / Payload status line rows)
     - `specs/plans/024-tool-resource-contract-and-execute-command/research.md` -> `Decision 5` (default/ceiling) + `Decision 5` forward (payload-line displays the effective budget)
   - 只做：`resolution` 加 `EffectiveBudget int` 欄位並在 `resolve()` 留計算接點；`newToolRegistry` 留 `execute_command` 註冊接點；留一次性「無視窗」log 接點；把 loop literal 指向帶 `EffectiveBudget` 的接點。
   - 不做：不寫 `min(...)`/÷4/÷2 與 log 邏輯（留 Phase 4），不改 flag/exit/stdout 契約。
 
-- [ ] T008 預留 Phase 3 stepdef 獨立落點骨架（Zero Shared Edits 原則）
+- [x] T008 預留 Phase 3 stepdef 獨立落點骨架（Zero Shared Edits 原則）
   - Read:
     - `tests/e2e/steps/` -> 既有 `step_r0NN_tNNN_*.go` 的獨立檔＋`init()` 自我註冊慣例
     - `specs/truth/features/cli/chat/dsl.md` -> 本輪新增/修改的句列（見 Phase 3 `DSL 參照`）
   - 只做：在 `tests/e2e/steps/` 下，為 Phase 3 每一句建立**獨立**檔案骨架（`step_r024_tNNN_chat_{given|when|then}_<slug>.go`，`init()` 註冊、body 待填），使 Phase 3 並行任務目標檔案互斥。
   - 不做：不寫任何 `[BDD-ALIGN]`/`[BDD-REMOVE]`/`[BDD-RED]` 語意，不寫 helper 邏輯。
 
-- [ ] T009 預留單元測試落點骨架 `internal/**`（contract/config/command/reader）
+- [x] T009 預留單元測試落點骨架 `internal/**`（contract/config/command/reader）
   - Read:
     - `specs/plans/024-tool-resource-contract-and-execute-command/research.md` -> `Decision 4`, `Decision 5`, `Decision 8`
   - 只做：建立單元落點檔案骨架（契約解析器、視窗解析、命令工具、reader bound、reader timeout-result）。
   - 不做：不寫斷言（留 Phase 3 `[UNIT]`）。
 
-- [ ] T010 建立 process-tree witness 的量測 helper 落點
+- [x] T010 建立 process-tree witness 的量測 helper 落點
   - Read:
     - `specs/truth/features/cli/chat/dsl.md` -> `the command's descendant process is no longer running`
     - `tests/e2e/harness/` -> 既有 E2E helper 掛載點
@@ -127,62 +127,62 @@
 **Parallel Hint**:
 - T011–T031 各派一個獨立 subagent，一次整批並行 dispatch（目標檔獨立，符合 Zero Shared Edits）；T032–T036 同批並行；T037 等全部回來再啟動 subagent review。
 
-- [ ] T011 [P] [BDD-ALIGN] `the working directory contains a file "{name}" whose text is longer than the read bound`
+- [x] T011 [P] [BDD-ALIGN] `the working directory contains a file "{name}" whose text is longer than the read bound`
   - Read: `tests/e2e/steps/step_r021_t008_chat_given_workdir_large_file.go`
-- [ ] T012 [P] [BDD-ALIGN] `the request offered exactly the agent tools`
+- [x] T012 [P] [BDD-ALIGN] `the request offered exactly the agent tools`
   - Read: `tests/e2e/steps/step_r021_t026_chat_then_offered_tools.go`（舊句 `the request offered exactly the reader tools`）
-- [ ] T013 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint runs a command and then answers with "{answer}"`
+- [x] T013 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint runs a command and then answers with "{answer}"`
   - Read: `tests/e2e/steps/step_r024_t013_chat_given_provider_runs_command.go`
-- [ ] T014 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint runs a command that exits non-zero and then answers with "{answer}"`
+- [x] T014 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint runs a command that exits non-zero and then answers with "{answer}"`
   - Read: `tests/e2e/steps/step_r024_t014_chat_given_provider_command_nonzero.go`
-- [ ] T015 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint runs a command that never returns and then answers with "{answer}"`
+- [x] T015 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint runs a command that never returns and then answers with "{answer}"`
   - Read: `tests/e2e/steps/step_r024_t015_chat_given_provider_command_hangs.go`
-- [ ] T016 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint runs a command that spawns a long-lived descendant and then answers with "{answer}"`
+- [x] T016 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint runs a command that spawns a long-lived descendant and then answers with "{answer}"`
   - Read: `tests/e2e/steps/step_r024_t016_chat_given_provider_command_descendant.go`
-- [ ] T017 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint runs a command producing a great deal of output and then answers with "{answer}"`
+- [x] T017 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint runs a command producing a great deal of output and then answers with "{answer}"`
   - Read: `tests/e2e/steps/step_r024_t017_chat_given_provider_command_output.go`
-- [ ] T018 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint runs a command that writes its output to a file and then reads it and then answers with "{answer}"`
+- [x] T018 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint runs a command that writes its output to a file and then reads it and then answers with "{answer}"`
   - Read: `tests/e2e/steps/step_r024_t018_chat_given_provider_command_outputfile.go`
-- [ ] T019 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint lists the current directory with a small result budget and then answers with "{answer}"`
+- [x] T019 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint lists the current directory with a small result budget and then answers with "{answer}"`
   - Read: `tests/e2e/steps/step_r024_t019_chat_given_provider_list_smallbudget.go`
-- [ ] T020 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint shows the folder tree with a small result budget and then answers with "{answer}"`
+- [x] T020 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint shows the folder tree with a small result budget and then answers with "{answer}"`
   - Read: `tests/e2e/steps/step_r024_t020_chat_given_provider_tree_smallbudget.go`
-- [ ] T021 [P] [BDD-RED] `the working directory contains a file "{name}" whose text is longer than the old per-file cap`
+- [x] T021 [P] [BDD-RED] `the working directory contains a file "{name}" whose text is longer than the old per-file cap`
   - Read: `tests/e2e/steps/step_r024_t021_chat_given_workdir_oldcap_file.go`
-- [ ] T022 [P] [BDD-RED] `tellme ran the command using its execute_command tool`
+- [x] T022 [P] [BDD-RED] `tellme ran the command using its execute_command tool`
   - Read: `tests/e2e/steps/step_r024_t022_chat_then_ran_command.go`
-- [ ] T023 [P] [BDD-RED] `the command result carried the exit status "{code}"`
+- [x] T023 [P] [BDD-RED] `the command result carried the exit status "{code}"`
   - Read: `tests/e2e/steps/step_r024_t023_chat_then_command_exit.go`
-- [ ] T024 [P] [BDD-RED] `the command result recorded that the command was stopped`
+- [x] T024 [P] [BDD-RED] `the command result recorded that the command was stopped`
   - Read: `tests/e2e/steps/step_r024_t024_chat_then_command_stopped.go`
-- [ ] T025 [P] [BDD-RED] `the command's descendant process is no longer running`
+- [x] T025 [P] [BDD-RED] `the command's descendant process is no longer running`
   - Read: `tests/e2e/steps/step_r024_t025_chat_then_descendant_gone.go`
-- [ ] T026 [P] [BDD-RED] `the command result was trimmed to what the run can hold`
+- [x] T026 [P] [BDD-RED] `the command result was trimmed to what the run can hold`
   - Read: `tests/e2e/steps/step_r024_t026_chat_then_command_trimmed.go`
-- [ ] T027 [P] [BDD-RED] `the command result reported that its output went to "{path}"`
+- [x] T027 [P] [BDD-RED] `the command result reported that its output went to "{path}"`
   - Read: `tests/e2e/steps/step_r024_t027_chat_then_command_output_target.go`
-- [ ] T028 [P] [BDD-RED] `the listing was trimmed to what the run can hold`
+- [x] T028 [P] [BDD-RED] `the listing was trimmed to what the run can hold`
   - Read: `tests/e2e/steps/step_r024_t028_chat_then_listing_trimmed.go`
-- [ ] T029 [P] [BDD-RED] `the tree was trimmed to what the run can hold`
+- [x] T029 [P] [BDD-RED] `the tree was trimmed to what the run can hold`
   - Read: `tests/e2e/steps/step_r024_t029_chat_then_tree_trimmed.go`
-- [ ] T030 [P] [BDD-RED] `the read result reports that "{name}" was not read`
+- [x] T030 [P] [BDD-RED] `the read result reports that "{name}" was not read`
   - Read: `tests/e2e/steps/step_r024_t030_chat_then_read_skipped.go`
-- [ ] T031 [P] [BDD-RED] `the part of "{name}" that tellme read does not end with a truncation marker`
+- [x] T031 [P] [BDD-RED] `the part of "{name}" that tellme read does not end with a truncation marker`
   - Read: `tests/e2e/steps/step_r024_t031_chat_then_read_not_truncated.go`
-- [ ] T032 [P] [UNIT] 純契約解析器 `resolveBound` + `clampBytes`
+- [x] T032 [P] [UNIT] 純契約解析器 `resolveBound` + `clampBytes`
   - Read: `internal/agent/tool_contract.go`, `specs/plans/024-tool-resource-contract-and-execute-command/research.md` -> `Decision 4`
   - 必查：param→ceiling→default 與「恰好在 bound / 超出一個 byte」邊界；loop clamp 用 raw `len`，不呼叫 estimator。
-- [ ] T033 [P] [UNIT] 視窗解析 `ContextWindowFor` + `effectiveBudget` + 一次性無視窗 log
+- [x] T033 [P] [UNIT] 視窗解析 `ContextWindowFor` + `effectiveBudget` + 一次性無視窗 log
   - Read: `internal/config/config.go`, `internal/cli/cli.go`, `research.md` -> `Decision 5`
-- [ ] T034 [P] [UNIT] reader timeout-as-nil-error-result（FR-018 / T4）
+- [x] T034 [P] [UNIT] reader timeout-as-nil-error-result（FR-018 / T4）
   - Read: `internal/infrastructure/tools/filesystem.go`, `spec.md` -> `FR-018`
   - 必查：reader 觀察到 deadline 時回 nil-error 的 timeout result（不再 `ctx.Err()`→error）。此為 FR-018 reader 路徑的**錄定 witness**（Gherkin `Then` 無法實用腳本化 30s 預設）。
-- [ ] T035 [P] [UNIT] 命令工具：byte-trim 生命週期、exit-status、process group
+- [x] T035 [P] [UNIT] 命令工具：byte-trim 生命週期、exit-status、process group
   - Read: `internal/infrastructure/tools/command.go`, `research.md` -> `Decision 1a`, `Decision 8`（T1 lifecycle）
   - 必查：stop→close read-ends→kill(-pgid) if alive→Wait；trimmed 不把 141/137 當命令 exit status。
-- [ ] T036 [P] [UNIT] reader aggregate byte bound + skip marker + 固定 cap 退場
+- [x] T036 [P] [UNIT] reader aggregate byte bound + skip marker + 固定 cap 退場
   - Read: `internal/infrastructure/tools/filesystem.go`, `get_tree.go`, `research.md` -> `Decision 6`
-- [ ] T037 subagent review (phase quality gate)
+- [x] T037 subagent review (phase quality gate)
 
 ## Phase 4A: ADD Feature File - cli/chat/running-a-shell-command.feature
 
@@ -201,8 +201,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/running-a-shell-command.feature`
 
-- [ ] T038 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T039 [BDD-REFACTOR] 在綠燈下整理命令擷取與 process-group 生命週期共用邏輯
+- [x] T038 [BDD-GREEN] 讓 Test Scope 全綠
+- [x] T039 [BDD-REFACTOR] 在綠燈下整理命令擷取與 process-group 生命週期共用邏輯
 
 ## Phase 4B: MODIFY Feature File - cli/chat/reading-several-files.feature
 
@@ -220,8 +220,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/reading-several-files.feature`
 
-- [ ] T040 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T041 [BDD-REFACTOR] 在綠燈下整理聚合 byte bound 與 skip marker 共用邏輯
+- [x] T040 [BDD-GREEN] 讓 Test Scope 全綠
+- [x] T041 [BDD-REFACTOR] 在綠燈下整理聚合 byte bound 與 skip marker 共用邏輯
 
 ## Phase 4C: ADD Feature File - cli/chat/offering-the-agent-tools.feature
 
@@ -238,8 +238,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/offering-the-agent-tools.feature`
 
-- [ ] T042 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T043 [BDD-REFACTOR] 在綠燈下整理工具註冊與 offered-tools 投影
+- [x] T042 [BDD-GREEN] 讓 Test Scope 全綠
+- [x] T043 [BDD-REFACTOR] 在綠燈下整理工具註冊與 offered-tools 投影
 
 ## Phase 4D: DELETE Feature / DSL Truth - cli/chat/offering-the-reader-tools.feature
 
@@ -257,8 +257,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/offering-the-agent-tools.feature`
 
-- [ ] T044 [CODE-REMOVE] 移除舊 reader-only 提供面的斷言/產品分支
-- [ ] T045 [REGRESSION] 跑 Test Scope，確認新版 truth（四工具）成立
+- [x] T044 [CODE-REMOVE] 移除舊 reader-only 提供面的斷言/產品分支
+- [x] T045 [REGRESSION] 跑 Test Scope，確認新版 truth（四工具）成立
 
 ## Phase 4E: MODIFY Feature File - cli/chat/listing-a-directory.feature
 
@@ -276,8 +276,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/listing-a-directory.feature`
 
-- [ ] T046 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T047 [BDD-REFACTOR] 在綠燈下整理共享 truncateToCap 路徑
+- [x] T046 [BDD-GREEN] 讓 Test Scope 全綠
+- [x] T047 [BDD-REFACTOR] 在綠燈下整理共享 truncateToCap 路徑
 
 ## Phase 4F: MODIFY Feature File - cli/chat/surveying-a-folder-tree.feature
 
@@ -295,8 +295,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/surveying-a-folder-tree.feature`
 
-- [ ] T048 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T049 [BDD-REFACTOR] 在綠燈下整理樹狀輸出與共享 bound
+- [x] T048 [BDD-GREEN] 讓 Test Scope 全綠
+- [x] T049 [BDD-REFACTOR] 在綠燈下整理樹狀輸出與共享 bound
 
 ---
 

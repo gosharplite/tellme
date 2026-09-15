@@ -44,9 +44,15 @@ type Config struct {
 	Models map[string]ModelPricing `yaml:"MODELS"`
 }
 
-// ModelPricing is one `MODELS` entry: the model's `PRICING` rates.
+// ModelPricing is one `MODELS` entry: the model's optional `CONTEXT_WINDOW`
+// (round-024) and its `PRICING` rates.
 type ModelPricing struct {
-	Pricing PricingRates `yaml:"PRICING"`
+	// ContextWindow is the model's token window (round-024), used — capped by
+	// MAX_HISTORY_TOKENS — as the effective budget for the tool resource
+	// contract. 0/absent → no configured window (the effective budget falls back
+	// to MAX_HISTORY_TOKENS).
+	ContextWindow int          `yaml:"CONTEXT_WINDOW"`
+	Pricing       PricingRates `yaml:"PRICING"`
 }
 
 // PricingRates are the USD-per-million-token cost rates for a model (round-018).
@@ -64,6 +70,19 @@ func (c *Config) PricingFor(model string) (PricingRates, bool) {
 		return PricingRates{}, false
 	}
 	return mp.Pricing, true
+}
+
+// ContextWindowFor returns the configured context window for a model, and
+// whether one is set (> 0). It is deliberately SEPARATE from PricingFor (a model
+// may set a window without PRICING, or vice versa); the nested table stays
+// file-only — the TELL_ME_* env-over-file precedence is not extended to it
+// (round-024 FR-015).
+func (c *Config) ContextWindowFor(model string) (int, bool) {
+	mp, ok := c.Models[model]
+	if !ok || mp.ContextWindow <= 0 {
+		return 0, false
+	}
+	return mp.ContextWindow, true
 }
 
 // Provider is a single entry in the PROVIDERS registry.

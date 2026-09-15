@@ -1,38 +1,64 @@
 // Package tools holds the concrete agent-tool adapters behind
-// internal/domain/tools. Round 021 ships three read-only reader tools —
-// list_files, read_files, get_tree — each requiring `reason`; there is no
-// path/safety boundary — the tools read whatever path the model gives
-// (round-021 Decision 8; round-008 Decision 4 / Clarify Q3).
+// internal/domain/tools. Round 024 retrofits the read-only reader tools —
+// list_files, read_files, get_tree — onto the tool resource contract: each takes
+// the resolved BYTE budget and bounds its own output at the source, and each
+// returns a NIL-ERROR timeout result when it observes its deadline (FR-018)
+// rather than the retired ctx.Err() -> error path. There is still no
+// path/safety boundary (round-021 Decision 8).
 package tools
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
-// read_files limits (round 021 Decision 5 + D3a): the reference 100000-byte
-// per-file cap, the per-call ≤50 cap, and tellme's aggregate 1 MiB result cap
-// (restoring the round-008 "cannot exhaust the context window" property, which
-// the per-file/≤50 bounds alone would lose).
+// Reader bounds (round 024): the per-call ≤50 cap is kept (degenerate-input
+// guard); the former fixed 100000-byte per-file cap and 1 MiB aggregate constant
+// are RETIRED — the bound is now the resolved byte budget.
+const readMaxPerCall = 50
+
+// readerDefaultTimeout is the readers' protective per-call timeout default
+// (round-024 FR-016), declared upward via Contract().
+const readerDefaultTimeout = 30 * time.Second
+
+// The result markers (round 024; wording fixed at the step-definition layer).
 const (
-	readMaxPerFile   = 100000
-	readMaxPerCall   = 50
-	readAggregateCap = 1 << 20 // 1 MiB
+	capMarker        = "\n... (truncated)\n"                       // list/tree/read cut at the byte budget
+	readBudgetMarker = "\n... (truncated at the read budget)\n"    // read_files aggregate cut
+	skipMarkerPrefix = "\n... (not read: result budget reached): " // read_files files not returned
+	timeoutMarker    = "\n... (stopped at the time limit)\n"       // FR-018 nil-error timeout result
 )
 
-// The aggregate truncation markers (round 021 NFR-001): readBudgetMarker
-// terminates a read_files result cut by the aggregate cap; capMarker terminates
-// a list_files / get_tree result cut by the same cap.
-const (
-	readBudgetMarker = "\n... (truncated at the read budget)\n"
-	capMarker        = "\n... (truncated)\n"
-)
+// timedOut reports whether ctx has passed its deadline (the FR-018 trigger).
+func timedOut(ctx context.Context) bool {
+	return errors.Is(ctx.Err(), context.DeadlineExceeded)
+}
+
+// truncateToBudget bounds a tool result to the resolved byte budget; the marker
+// is counted toward the ceiling and the retained content is cut at a rune
+// boundary (get_tree's box-drawing glyphs are 3 bytes each), so the whole result
+// — content plus terminator — stays within the budget (round-024 NFR-001).
+func truncateToBudget(out string, budget int) string {
+	if budget < 1 {
+		budget = 1
+	}
+	if len(out) <= budget {
+		return out
+	}
+	keep := budget - len(capMarker)
+	if keep < 0 {
+		keep = 0
+	}
+	return strings.ToValidUTF8(out[:keep], "") + capMarker
+}
 
 // listFiles enumerates a directory's entries (read-only).
 type listFiles struct{}
@@ -43,6 +69,11 @@ func (listFiles) Name() string { return "list_files" }
 // Description is the model-facing summary.
 func (listFiles) Description() string { return "List the entries of a directory." }
 
+// Contract declares the reader's per-tool default timeout (round-024 Q2).
+func (listFiles) Contract() domaintools.ToolContract {
+	return domaintools.ToolContract{DefaultTimeout: readerDefaultTimeout}
+}
+
 // Parameters is the JSON-schema for the tool's arguments.
 func (listFiles) Parameters() json.RawMessage {
 	return json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"The directory path to list (defaults to the current directory '.')."},"reason":{"type":"string","description":"Reason for listing files."}},"required":["reason"]}`)
@@ -50,12 +81,12 @@ func (listFiles) Parameters() json.RawMessage {
 
 // Execute lists the entries at the given path (defaulting to "."), one `[d]` or
 // `[f]` line per entry under a `Contents of <path>:` header, in os.ReadDir order.
-// The result is bounded by the aggregate cap (round 021 Decision 2 / D3a). It
-// honours the per-tool context so a cancelled/expired run aborts rather than
-// blocking on I/O (round-008 RF-1).
-func (listFiles) Execute(ctx context.Context, arguments string) (string, error) {
-	if err := ctx.Err(); err != nil {
-		return "", err
+// The result is bounded by the resolved byte budget (round-024 FR-011); a
+// deadline observed before or after the read returns a nil-error timeout result
+// (FR-018).
+func (listFiles) Execute(ctx context.Context, arguments string, budget domaintools.ByteBudget) (string, error) {
+	if timedOut(ctx) {
+		return timeoutMarker, nil
 	}
 	var args struct {
 		Path   string `json:"path"`
@@ -72,8 +103,8 @@ func (listFiles) Execute(ctx context.Context, arguments string) (string, error) 
 	if err != nil {
 		return "", fmt.Errorf("list_files: failed to list directory: %w", err)
 	}
-	if err := ctx.Err(); err != nil {
-		return "", err
+	if timedOut(ctx) {
+		return timeoutMarker, nil
 	}
 	lines := make([]string, 0, len(entries)+1)
 	lines = append(lines, fmt.Sprintf("Contents of %s:", path))
@@ -85,23 +116,10 @@ func (listFiles) Execute(ctx context.Context, arguments string) (string, error) 
 		lines = append(lines, fmt.Sprintf("[%s] %s", kind, e.Name()))
 	}
 	out := strings.Join(lines, "\n") + "\n"
-	return truncateToCap(out), nil
+	return truncateToBudget(out, int(budget)), nil
 }
 
-// truncateToCap bounds a tool result to the aggregate result cap. The retained
-// content is cut at a rune boundary (so a mid-rune cut cannot emit invalid UTF-8
-// — get_tree's box-drawing glyphs are 3 bytes each), and the marker is counted
-// toward the ceiling, so the whole result — content plus terminator — stays
-// within readAggregateCap (round 021 D3a / NFR-001).
-func truncateToCap(out string) string {
-	if len(out) <= readAggregateCap {
-		return out
-	}
-	out = strings.ToValidUTF8(out[:readAggregateCap-len(capMarker)], "")
-	return out + capMarker
-}
-
-// readFiles returns a file's contents (read-only), size-bounded.
+// readFiles returns files' contents (read-only), budget-bounded.
 type readFiles struct{}
 
 // Name is the wire-valid canonical identifier (round-008 BLOCKER-1).
@@ -110,20 +128,26 @@ func (readFiles) Name() string { return "read_files" }
 // Description is the model-facing summary.
 func (readFiles) Description() string { return "Read a file's contents." }
 
+// Contract declares the reader's per-tool default timeout (round-024 Q2).
+func (readFiles) Contract() domaintools.ToolContract {
+	return domaintools.ToolContract{DefaultTimeout: readerDefaultTimeout}
+}
+
 // Parameters is the JSON-schema for the tool's arguments (round 021: the
 // multi-file `filepaths` array; `reason` is required by schema but not validated).
 func (readFiles) Parameters() json.RawMessage {
 	return json.RawMessage(`{"type":"object","properties":{"filepaths":{"type":"array","items":{"type":"string"},"description":"The list of file paths to read."},"reason":{"type":"string","description":"Reason for reading these files."}},"required":["filepaths","reason"]}`)
 }
 
-// Execute reads each requested file in order, framing each block with a header
-// line, and bounds the whole result (round 021 Decision 5 / D3a): a 100000-byte
-// per-file cap with a truncation marker, inline ERROR/binary/directory handling,
-// a ≤50 per-call cap, and a 1 MiB aggregate cap. It honours the per-tool context
-// so a cancelled/expired run aborts rather than blocking on I/O (round-008 RF-1).
-func (readFiles) Execute(ctx context.Context, arguments string) (string, error) {
-	if err := ctx.Err(); err != nil {
-		return "", err
+// Execute reads each requested file WHOLE, in request order, stopping at the
+// aggregate BYTE budget (round-024 D6 / FR-009): files that fit are returned
+// framed; a file that alone exceeds the budget is truncated at the bound with a
+// truncation marker; a request that cannot return every file names the ones it
+// did not (a skip marker); the ≤50 per-call cap is kept. A deadline observed
+// returns a nil-error timeout result (FR-018).
+func (readFiles) Execute(ctx context.Context, arguments string, budget domaintools.ByteBudget) (string, error) {
+	if timedOut(ctx) {
+		return timeoutMarker, nil
 	}
 	var args struct {
 		FilePaths []string `json:"filepaths"`
@@ -138,79 +162,100 @@ func (readFiles) Execute(ctx context.Context, arguments string) (string, error) 
 	if len(args.FilePaths) > readMaxPerCall {
 		return fmt.Sprintf("Error: requested too many files (%d). Maximum is %d files per call.", len(args.FilePaths), readMaxPerCall), nil
 	}
+	b := int(budget)
+	if b < 1 {
+		b = 1
+	}
+	// Reserve room for the aggregate + skip markers so the whole result stays
+	// within the budget (round-024 D4: the tool bounds to the exact byte budget so
+	// the loop's backstop stays inert).
+	limit := b - len(readBudgetMarker) - len(skipMarkerPrefix) - 64
+	if limit < 1 {
+		limit = 1
+	}
 	var sb strings.Builder
-	for _, path := range args.FilePaths {
-		if err := ctx.Err(); err != nil {
-			return "", err
+	var skipped []string
+	for i, path := range args.FilePaths {
+		if timedOut(ctx) {
+			return timeoutMarker, nil
 		}
-		// Stop before reading (or opening) the next file once the budget is spent,
-		// so the block that trips the cap is not wastefully read (round-021 review NIT).
-		if sb.Len() >= readAggregateCap-len(readBudgetMarker) {
-			sb.WriteString(readBudgetMarker)
-			break
+		room := limit - sb.Len()
+		block, oversized := renderFile(path, room)
+		if !oversized {
+			sb.WriteString(block)
+			continue
 		}
-		if !appendBounded(&sb, readOneFile(path)) {
-			break
+		// The file does not fit in the remaining room.
+		if sb.Len() == 0 {
+			// A single file larger than the bound is truncated at the bound
+			// (round-024 FR-010); the remaining files are not read.
+			sb.WriteString(block)
+			skipped = append(skipped, args.FilePaths[i+1:]...)
+		} else {
+			// A request that cannot return every file names the rest (FR-009); an
+			// omitted file gets no header.
+			skipped = append(skipped, args.FilePaths[i:]...)
 		}
+		break
+	}
+	if len(skipped) > 0 {
+		sb.WriteString(readBudgetMarker)
+		sb.WriteString(skipMarkerPrefix + strings.Join(skipped, ", ") + "\n")
 	}
 	return sb.String(), nil
 }
 
-// appendBounded appends block to sb while it fits within the aggregate result
-// cap, counting the terminator toward the ceiling (round 021 D3a). It returns
-// false — having written readBudgetMarker — when the block would exceed the cap,
-// so the caller stops (the omitted file gets no header).
-func appendBounded(sb *strings.Builder, block string) bool {
-	if sb.Len()+len(block) > readAggregateCap-len(readBudgetMarker) {
-		sb.WriteString(readBudgetMarker)
-		return false
+// renderFile renders one read_files block — a `--- File: <path> ---` header
+// followed by the file's body (`\n\n`-terminated), or an inline ERROR / binary /
+// directory message — bounded to room bytes. It reports truncation when the file
+// does not fit within room (so the caller stops and names the rest).
+func renderFile(path string, room int) (block string, truncated bool) {
+	if room < 1 {
+		room = 1
 	}
-	sb.WriteString(block)
-	return true
-}
-
-// readOneFile renders one read_files block: a `--- File: <path> ---` header
-// followed by the file's bounded body (`\n\n`-terminated), or an inline ERROR /
-// binary / directory message (a recoverable, non-fatal outcome).
-func readOneFile(path string) string {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "--- File: %s ---\n", path)
+	header := fmt.Sprintf("--- File: %s ---\n", path)
+	sb.WriteString(header)
 	f, err := os.Open(path)
 	if err != nil {
 		fmt.Fprintf(&sb, "ERROR: failed to read file: %v\n\n", err)
-		return sb.String()
+		return sb.String(), false
 	}
 	defer func() { _ = f.Close() }()
 	info, err := f.Stat()
 	if err != nil {
 		fmt.Fprintf(&sb, "ERROR: failed to read file: %v\n\n", err)
-		return sb.String()
+		return sb.String(), false
 	}
 	if info.IsDir() {
 		sb.WriteString("ERROR: path is a directory, use list_files instead\n\n")
-		return sb.String()
+		return sb.String(), false
 	}
-	data, err := io.ReadAll(io.LimitReader(f, readMaxPerFile+1))
+	contentRoom := room - len(header) - len(capMarker)
+	if contentRoom < 1 {
+		contentRoom = 1
+	}
+	data, err := io.ReadAll(io.LimitReader(f, int64(contentRoom)+1))
 	if err != nil {
 		fmt.Fprintf(&sb, "ERROR: failed to read file: %v\n\n", err)
-		return sb.String()
+		return sb.String(), false
 	}
 	if isBinary(data) {
 		sb.WriteString("(Binary file, cannot display as text)\n\n")
-		return sb.String()
+		return sb.String(), false
 	}
-	if len(data) > readMaxPerFile {
-		sb.WriteString(strings.ToValidUTF8(string(data[:readMaxPerFile]), ""))
-		sb.WriteString("\n... (truncated)\n\n")
-		return sb.String()
+	if len(data) > contentRoom {
+		sb.WriteString(strings.ToValidUTF8(string(data[:contentRoom]), ""))
+		sb.WriteString(capMarker)
+		return sb.String(), true
 	}
 	sb.Write(data)
 	sb.WriteString("\n\n")
-	return sb.String()
+	return sb.String(), false
 }
 
-// NewFilesystemTools returns the read-only filesystem agent tools in offer order
-// (round 021: list_files, read_files, get_tree — the reference reader trio).
+// NewFilesystemTools returns the read-only filesystem reader tools in offer order
+// (round 021: list_files, read_files, get_tree).
 func NewFilesystemTools() []domaintools.Tool {
 	return []domaintools.Tool{listFiles{}, readFiles{}, getTree{}}
 }

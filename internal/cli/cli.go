@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -75,6 +77,11 @@ type resolution struct {
 	// MaxHistoryTokens is the resolved payload budget (round 009): the value the
 	// payload status line measures against (MAX_HISTORY_TOKENS, default 1000000).
 	MaxHistoryTokens int
+	// EffectiveBudget is the run-static tool resource budget (round 024 D5,
+	// FR-015): min(MaxHistoryTokens, the active model's configured
+	// MODELS.<model>.CONTEXT_WINDOW) — the value the tool-result bound derives
+	// from, and the value the payload status line now renders.
+	EffectiveBudget int
 	// Person is the resolved PERSON — the persona sent to the provider as the
 	// leading `system` message of every request (round 011).
 	Person string
@@ -513,6 +520,20 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 	res.Provider = prov
 	res.Pricing, res.Priced = cfg.PricingFor(prov.Model)
 
+	// Step 5c — the run-static effective budget (round 024 FR-015): the tool
+	// resource bound cap, min(MAX_HISTORY_TOKENS, the model's configured context
+	// window). With no window configured it is MAX_HISTORY_TOKENS (so the payload
+	// line and the bound are byte-identical to the model-blind default). The
+	// window is the optional per-model MODELS.<model>.CONTEXT_WINDOW.
+	res.EffectiveBudget = res.MaxHistoryTokens
+	if window, ok := cfg.ContextWindowFor(prov.Model); ok {
+		if window < res.EffectiveBudget {
+			res.EffectiveBudget = window
+		}
+	} else {
+		logNoWindowOnce(prov.Model)
+	}
+
 	// Step 6 — effective mode + prepare the session workspace (FR-007/008/009).
 	res.Person = cfg.Person
 	res.Mode = cfg.EffectiveMode(os.Getenv("TELL_ME_MODE"))
@@ -636,10 +657,11 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	}
 
 	loop := &agent.AgentLoop{
-		Gateway:  gw,
-		Registry: reg,
-		MaxLoops: res.MaxToolLoop,
-		Stderr:   env.stderr,
+		Gateway:         gw,
+		Registry:        reg,
+		MaxLoops:        res.MaxToolLoop,
+		EffectiveBudget: res.EffectiveBudget,
+		Stderr:          env.stderr,
 		// Round 022: share the CLI clock seam so the tool-log line and the
 		// chrome/payload lines use one clock (the loop falls back to time.Now when
 		// unset).
@@ -699,8 +721,31 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 // `estimated` selects the pre-flight `~` form; the measured form omits it. The
 // line carries no `tellme: ` prefix (FR-014) and names the effective mode and the
 // provider's configured MODEL (TD-2).
+// effectiveBudget returns the budget the payload status line renders: the
+// run-static EffectiveBudget when set (the resolve() path), else MaxHistoryTokens
+// (directly-constructed resolutions in unit tests).
+func (r resolution) effectiveBudget() int {
+	if r.EffectiveBudget > 0 {
+		return r.EffectiveBudget
+	}
+	return r.MaxHistoryTokens
+}
+
 func emitPayloadStatus(env runtimeEnv, res resolution, tokens int, estimated bool) {
-	_, _ = fmt.Fprintln(env.stderr, ui.FormatPayloadStatus(env.now(), tokens, res.MaxHistoryTokens, res.Mode, res.Provider.Model, estimated))
+	_, _ = fmt.Fprintln(env.stderr, ui.FormatPayloadStatus(env.now(), tokens, res.effectiveBudget(), res.Mode, res.Provider.Model, estimated))
+}
+
+// logNoWindowOnce emits a one-time debug log when the active model has no
+// configured CONTEXT_WINDOW, so the operator knows the tool bound tracks
+// MAX_HISTORY_TOKENS (round-024 research D5; the recorded implementation note).
+// It goes to the debug log — never to the operator streams — so byte-exact
+// stderr assertions are unaffected.
+var noWindowOnce sync.Once
+
+func logNoWindowOnce(model string) {
+	noWindowOnce.Do(func() {
+		slog.Debug("tool resource contract: active model has no configured context window; the bound tracks MAX_HISTORY_TOKENS", "model", model)
+	})
 }
 
 // now returns the current time from the injected clock seam (falling back to
@@ -986,12 +1031,12 @@ func emitProviderError(w io.Writer, err error) int {
 type toolRegistryFactory func() domaintools.Registry
 
 // newToolRegistry is the production registry factory (a var so tests may
-// override it). It assembles exactly the read-only filesystem reader tools —
-// list_files, read_files, get_tree (round 021 Decision 6) — and no others.
-// It takes no arguments: with summarize_history removed, the reader tools need
-// no store/gateway, so the old seam is dropped (round-021 review R1).
+// override it). It assembles exactly the four agent tools — the read-only
+// filesystem readers (list_files, read_files, get_tree) and the bash-first
+// command tool (execute_command) — and no others (round-024 FR-013; no
+// pipe_commands, no security tooling).
 var newToolRegistry toolRegistryFactory = func() domaintools.Registry {
-	return domaintools.NewRegistry(infratools.NewFilesystemTools()...)
+	return domaintools.NewRegistry(append(infratools.NewFilesystemTools(), infratools.NewCommandTool())...)
 }
 
 // emitToolError maps an incomplete tool loop to the frozen tool class phrase and
