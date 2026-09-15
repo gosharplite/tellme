@@ -16,7 +16,7 @@ func init() {
 
 // thenSharedLogStillOnly (必查 權威狀態): the shared log holds exactly the arranged
 // prompt {prompt} and nothing more — a non-`-i` run appended nothing. 工作區:
-// reads $TELL_ME_HOME/output/global_prompts.jsonl.
+// reads ~/.tellme/global_prompts.jsonl.
 func thenSharedLogStillOnly(ctx context.Context, prompt string) error {
 	sc := scenarioFrom(ctx)
 	prompts, err := readPromptLog(sc)

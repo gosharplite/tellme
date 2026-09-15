@@ -13,8 +13,9 @@ func init() {
 	})
 }
 
-// givenSharedLogHolds appends one {timestamp,prompt} record to the shared log at
-// the output/ ROOT of the runtime home (怎麼做 / 權威狀態落地 / 回寫).
+// givenSharedLogHolds appends one {timestamp,prompt} record to the user-global
+// shared log at ~/.tellme/global_prompts.jsonl (round 028 relocated it out of the
+// runtime home; 怎麼做 / 權威狀態落地 / 回寫).
 func givenSharedLogHolds(ctx context.Context, prompt string) error {
 	return appendPromptLog(scenarioFrom(ctx), prompt)
 }
