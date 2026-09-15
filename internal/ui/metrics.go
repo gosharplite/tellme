@@ -25,7 +25,7 @@ type UsageCounts struct {
 // caller's injected clock seam.
 func FormatMetrics(t time.Time, provider string, u UsageCounts) string {
 	return fmt.Sprintf("[%s] [%s] M: %d H: %d C: %d Th: %d",
-		t.Format("15:04:05"), provider, u.Miss, u.Hit, u.Completion, u.Thinking)
+		formatClock(t), provider, u.Miss, u.Hit, u.Completion, u.Thinking)
 }
 
 // FormatReady renders the round-018 `╰─⠿ Ready` session summary:
