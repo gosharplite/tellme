@@ -286,3 +286,65 @@ A **design + planning** session (no product code). Settled the **tool resource c
 ### PM follow-ups
 
 - None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
+
+
+---
+
+## 13. Session 4 (cont., 2026-09-15) — round 024 `024-tool-resource-contract-and-execute-command`: plan + truth half certified (PR #54)
+
+Continuation of session 4: after recording the direction + scoping 024/025 (§12), the round-024 pipeline ran end to end for the **plan + truth half**, and PR [#54](https://github.com/gosharplite/tellme/pull/54) was opened, reviewed twice, folded, and **certified ready to merge**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | `024-tool-resource-contract-and-execute-command` (off `dev`; the two commits first landed on `dev` were relocated here — `dev` restored to `eb2feb1`) |
+| `/axb-specify` | `spec.md` (US1–US2 · FR-001–017 · SC-001–006), `checklists/requirements.md` (ready), `truth-delta.md`; clarify **Q1→1** (non-zero exit = success result) · **Q2→1** (`output_file`/`append` in scope) · **Q3→1** (mechanism locked, numbers in research) |
+| `/axb-spec-by-example` | 2 → **3** acceptance journeys (`running-a-shell-command`, `reading-a-large-file`, + `offering-the-agent-tools` added in the fold) |
+| `/axb-technical-research` | `research.md` (D1–D8 + **D1a**) + `specs/truth/techstack.md` MODIFY |
+| `/axb-system-analysis` | `plan.md` — 1 interface (CLI end → `/axb-dsl-refine`); api/data NOOP; ui skipped |
+| `/axb-dsl-refine` | `chat/running-a-shell-command.feature` **ADD**; `chat/offering-the-reader-tools.feature` → `offering-the-agent-tools.feature`; `chat/reading-several-files.feature` **MODIFY**; `chat/dsl.md` (+4 / −3 + note); audit PASSED |
+| PR | [#54](https://github.com/gosharplite/tellme/pull/54) → `dev`; **REQUEST CHANGES** → fold `124f345` → certified → residual fold `2fe29cf` → **FINAL APPROVAL — CERTIFIED READY TO MERGE** |
+
+### Decisions locked (round 024)
+
+| # | Decision |
+| --- | --- |
+| D1 | **No security layer** (destructive-command risk accepted). |
+| D2 | **No Windows** (POSIX/bash only). |
+| D3 | **Bash-first** — `execute_command` via `bash -c`; no `pipe_commands`. |
+| D4 | **Small surface** — beat bash on boundedness / determinism / reliability. |
+| D5 | **Tool resource contract** — uniform `max_output_tokens` + `timeout`; **default → param → ceiling**; loop-enforced; **every** tool bounds at the source; bound from the **effective budget** = `min(MAX_HISTORY_TOKENS, model CONTEXT_WINDOW)` → default `÷4`, ceiling `÷2`. |
+| D6 | **One aggregate reader bound** — no per-file cap / fair-share / paging; a **skip** marker names unread files. |
+| D7 | **Scope** — contract + `execute_command` + reader retrofit. |
+| Q1 | Non-zero exit = **success result** carrying the exit status (loop continues). |
+| Q2 | `output_file`/`append` in scope — **both stdout and stderr** bound to the file; **no inline preview**. |
+| Q3 | Numbers in research (D5). |
+| D1a | Timeout terminates the **process group** (`Setpgid` + `kill(-pgid, SIGKILL)` + `cmd.WaitDelay`). |
+
+### Commits (branch `024-tool-resource-contract-and-execute-command`)
+
+| Commit | Note |
+| --- | --- |
+| `13496bc` | `docs(024)`: plan package and spec |
+| `f13d77f` | `docs(024)`: acceptance Gherkin |
+| `c9a261b` | `docs(024)`: technical research + techstack truth |
+| `3b67cc2` | `docs(024)`: system-analysis plan |
+| `3089294` | `docs(024)`: CLI interface truth |
+| `124f345` | `docs(024)`: fold PR #54 review — model-derived bound (B1), process-group (B2), D1–D4, coverage |
+| `2fe29cf` | `docs(024)`: fold PR #54 re-review residuals — window opt-in note, stdout+stderr redirect, wording |
+
+### Verification
+Topology audit **PASSED** — 38 features · 15 root + **229** module rows · **1173 steps** · 0 errors. No product code (plan + truth half) → `make verify` not applicable. Diff-level secret scan clean.
+
+### Open items (non-blocking)
+- **Round-024 forward item** — the `ProcessRunner` port extraction trigger recorded ("the first *write* tool, or any second managed-process consumer").
+- **Round-024 implementation seams** (review carry-forward) — loop seam (resolve default→param→ceiling + clamp); the `CONTEXT_WINDOW` resolver + one-time no-window log; the command tool (process group, bounded capture, direct file binding); readers (incremental `io.LimitReader`); boundary + falsifiability witnesses.
+- Carried: issue [#49](https://github.com/gosharplite/tellme/issues/49) (resolved **config-gated** in 024); PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items.
+
+### Next steps
+1. **Implementation half**: `/axb-tasks` → `/axb-implement` on `024-tool-resource-contract-and-execute-command`.
+2. Human merges PR [#54](https://github.com/gosharplite/tellme/pull/54) when ready; then propagate `024-… → dev → main`.
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).

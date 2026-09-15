@@ -1,11 +1,27 @@
 # tellme — Status
 
 **Last updated**: 2026-09-15 (day close) — **round 023 `023-interactive-prompt-teardown` DELIVERED / FROZEN**: PR [#51](https://github.com/gosharplite/tellme/pull/51) **MERGED** into `dev` (`97e36c6`, by `thptcnec`, 2026-09-15T03:05:19Z); round-023 head frozen at **`14d7567`**; propagated `dev → main` (no-ff). Round 022 stays delivered/frozen (detail in the archive; Rule 12 — older rounds 001–021 also live in the archives).
-**Planning (2026-09-15, session 4)**: slices **024** ([#52](https://github.com/gosharplite/tellme/issues/52) — tool resource contract + `execute_command` + reader retrofit) and **025** ([#53](https://github.com/gosharplite/tellme/issues/53) — tool-usage accounting) scoped; direction (*no security · no Windows · **bash-first** · small tool surface*) recorded in [`README.md`](README.md#-design-intent--direction-operator-declared).
+**Planning + round 024 (2026-09-15, session 4)**: the design direction (*no security · no Windows · **bash-first** · small surface*) is recorded in [`README.md`](README.md#-design-intent--direction-operator-declared); slices **024** ([#52](https://github.com/gosharplite/tellme/issues/52) — tool resource contract + `execute_command` + reader retrofit) and **025** ([#53](https://github.com/gosharplite/tellme/issues/53) — tool-usage accounting) scoped. **Round 024 plan + truth half COMPLETE and certified mergeable** — PR [#54](https://github.com/gosharplite/tellme/pull/54) open → `dev` (spec → acceptance → research/techstack → plan → interface truth; two review folds; final **APPROVED / CERTIFIED READY TO MERGE**); implementation (`/axb-tasks` → `/axb-implement`) pending.
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
-**Active branch**: `dev`
+**Active branch**: `024-tool-resource-contract-and-execute-command`
 **Daily log**: [`docs/session-summary/2026/09/15/session-summary.md`](docs/session-summary/2026/09/15/session-summary.md)
 **Archive**: [`2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012) · [`2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–019) · [`2026-09-15.md`](docs/archives/status/2026-09-15.md) (rounds 020–022).
+
+## Round 024 — `024-tool-resource-contract-and-execute-command` (plan + truth half — in progress)
+
+**Status**: 🔵 **PLAN + TRUTH COMPLETE / CERTIFIED MERGEABLE — IMPLEMENTATION PENDING** (2026-09-15). PR [#54](https://github.com/gosharplite/tellme/pull/54) open → `dev` (branch head **`2fe29cf`**): spec → acceptance → research/techstack → plan → interface truth, then two review folds → **FINAL ARCHITECTURAL APPROVAL — CERTIFIED READY TO MERGE** ([#5675433575](https://github.com/gosharplite/tellme/pull/54#issuecomment-5675433575)). Topology audit PASSED (38 features · 15 root + **229** module rows · **1173** steps) · no product code yet · `go.mod`/`go.sum` unchanged.
+
+**Scope**: the tool resource contract + a bash-first `execute_command` + a reader retrofit. `execute_command` runs `bash -c` (no `pipe_commands`, no security/consent, no Windows); a non-zero exit is a **successful result** carrying the exit status; a timed-out command is terminated as a **process group** (`Setpgid` + `kill(-pgid)` + `WaitDelay`); optional `output_file`/`append` binds stdout **and** stderr directly to the file. Every agent tool takes uniform `max_output_tokens` + `timeout` (default → param → ceiling), loop-enforced, bounding at the source. The bound derives from the **effective budget** = `min(MAX_HISTORY_TOKENS, the model's configured MODELS.<model>.CONTEXT_WINDOW)` → default `÷4`, ceiling `÷2` (issue #49, config-gated). Readers read files **whole** up to the aggregate bound (fixed 100000 B / 1 MiB retired); a skip marker names unread files.
+
+**Locked decisions**: D1 no security · D2 no Windows · D3 bash-first · D4 small surface · D5 three-tier contract · D6 one aggregate bound · D7 scope; clarify Q1 (non-zero exit = success result) · Q2 (`output_file`/`append` in scope) · Q3 (mechanism locked, numbers in research).
+
+**Pipeline**: specify ✅ · spec-by-example ✅ · research ✅ · system-analysis ✅ · dsl-refine ✅ · **tasks ⏳ next** · implement ⏳.
+
+**Artifacts**: `spec.md` (US1–US2 · FR-001–017 · SC-001–006), `checklists/requirements.md` (ready), `features/acceptance/*.feature` ×3, `research.md` (D1–D8 + D1a), `plan.md` (1 interface → `/axb-dsl-refine`; api/data NOOP), `truth-delta.md`. Truth: `techstack.md` MODIFY (Tool resource contract + Agent command tool + `CONTEXT_WINDOW` row; reader caps retired); `chat/running-a-shell-command.feature` ADD; `chat/offering-the-reader-tools.feature` → `offering-the-agent-tools.feature`; `chat/reading-several-files.feature` MODIFY; `chat/dsl.md` (+4 / −3 rows + note).
+
+**Review trail (PR #54)**: plan+truth **REQUEST CHANGES** (B1 model-derived bound · B2 process-group · D1–D4 · coverage) → fold `124f345` → re-review certified → residual fold `2fe29cf` (PR body + `CONTEXT_WINDOW` opt-in note + stdout/stderr capture + wording) → **FINAL APPROVAL — CERTIFIED READY TO MERGE**.
+
+**Propagation**: **PENDING** — PR [#54](https://github.com/gosharplite/tellme/pull/54) open → `dev` (plan + truth half); not merged (human-only); `main` unchanged.
 
 ## Round 023 — `023-interactive-prompt-teardown` (delivered / frozen)
 
@@ -62,12 +78,14 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 | `main` | merged up from `dev` | Stable / released line |
 | `dev` | merged up from delivered round branches | Integration line (round work lands here before `main`) |
 | `001-*` … `023-interactive-prompt-teardown` | delivered / frozen | Each round's working branch — merged into `dev` via its PR, then propagated `dev → main`; frozen history (never receives post-round commits). |
+| `024-tool-resource-contract-and-execute-command` | in progress | Round 024 (plan + truth certified mergeable; PR [#54](https://github.com/gosharplite/tellme/pull/54) open → `dev`; implementation pending). |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`; only a human merges the PR. Propagation is the no-ff merge `dev → main`.
 > **Propagation (round 020):** `020-cross-compile-gate → dev` (PR [#46](https://github.com/gosharplite/tellme/pull/46), `642583b`) `→ main` — DONE (no-ff).
 > **Propagation (round 021):** `021-tool-surface-parity → dev` (PR [#48](https://github.com/gosharplite/tellme/pull/48), `3877053`, merged by `thptcnec`) `→ main` — DONE (no-ff); closeout docs on `dev`.
 > **Propagation (round 022):** `022-tool-loop-log-line → dev` (PR [#50](https://github.com/gosharplite/tellme/pull/50), `05278a5`, merged by `thptcnec`) `→ main` — DONE (no-ff); closeout docs on `dev`.
 > **Propagation (round 023):** `023-interactive-prompt-teardown → dev` (PR [#51](https://github.com/gosharplite/tellme/pull/51), `97e36c6`, merged by `thptcnec`) `→ main` — DONE (no-ff); closeout docs on `dev`.
+> **Propagation (round 024):** `024-tool-resource-contract-and-execute-command → dev` (PR [#54](https://github.com/gosharplite/tellme/pull/54), head `2fe29cf`) — **PENDING** (plan + truth half, certified ready; human-only merge; implementation follows).
 > Read live heads with `git rev-parse --short main dev HEAD`.
 
 ## Roadmap — next slices
@@ -78,7 +96,7 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 | --- | --- | --- | --- |
 | **003–023** | — | Provider-registry completeness → … → the `-i` teardown & submit-surface parity. | ✅ **Delivered** (see the delivered-rounds index) |
 | **023 interactive prompt teardown** | [#51](https://github.com/gosharplite/tellme/pull/51) | Clear the `-i` editor frame on submit/abort and resume the standard turn surface (echoed prompt + chrome + spinner + post-turn status). | ✅ **Delivered** — round 023 (PR [#51](https://github.com/gosharplite/tellme/pull/51)) |
-| **024 tool resource contract + `execute_command` + reader retrofit** | [#52](https://github.com/gosharplite/tellme/issues/52) | Land the cross-cutting **token bound + timeout** contract (uniform per-tool params: **default + param + ceiling**, centrally clamped) and apply it across the surface in one pass: **add `execute_command`** (bash-first `bash -c`, bounded, timed out, **no `pipe_commands`**, no security) **and retrofit the three readers** (`list_files`, `read_files`, `get_tree`) — replacing the fixed 1 MiB / 100000 caps with the params. Resolves issue [#49](https://github.com/gosharplite/tellme/issues/49). | 📋 **Scoped — next** (`/axb-specify` pending) |
+| **024 tool resource contract + `execute_command` + reader retrofit** | [#52](https://github.com/gosharplite/tellme/issues/52) | The cross-cutting **token bound + timeout** contract (uniform per-tool params: **default + param + ceiling**, loop-enforced; bound from the **effective budget** = `min(MAX_HISTORY_TOKENS, the model's configured window)` → default `÷4`, ceiling `÷2`) + **add `execute_command`** (bash-first `bash -c`, bounded, **process-group** timeout, no `pipe_commands`, no security) + **retrofit the readers** (whole-file reads; fixed 1 MiB/100000 caps retired). Issue [#49](https://github.com/gosharplite/tellme/issues/49) resolved (**config-gated**). | 📋 **Plan+truth certified** — PR [#54](https://github.com/gosharplite/tellme/pull/54); implementation `/axb-tasks` next |
 | **025 tool-usage accounting** | [#53](https://github.com/gosharplite/tellme/issues/53) | Count per-tool **pass / fail** (and invocation) usage across a run/session — the empirical instrument for seeing which tools the AI actually uses and which fail, and for tuning defaults / pruning the surface with evidence. | 📋 **Queued** (after 024) |
 | **future slices (candidates)** | [#47](https://github.com/gosharplite/tellme/issues/47) | **Concurrent tool-call matching** — parallel tool execution in the agent loop (`MAX_CONCURRENT_TOOLS`-bounded), one-batch feedback; the survivor of [#36](https://github.com/gosharplite/tellme/issues/36) (closed — Gemini API family + ADC dropped). Plus the carried forward items below. | ⏳ **Candidate** (not started) |
 
