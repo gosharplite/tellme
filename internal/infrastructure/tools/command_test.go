@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"io"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -118,5 +119,27 @@ func TestReaderObservedDeadlineIsNilErrorTimeoutResult(t *testing.T) {
 	}
 	if !strings.Contains(got, "stopped at the time limit") {
 		t.Fatalf("reader result %q does not record a stop", got)
+	}
+}
+
+// TestAbortCaptureBoundsTheDrain witnesses the bounded-drain half of review B2 on
+// EVERY host (unlike the setsid witness): with a finished channel that never
+// closes, abortCapture still returns within commandWaitDelay.
+func TestAbortCaptureBoundsTheDrain(t *testing.T) {
+	cmd := &exec.Cmd{} // not started -> killGroup is a no-op
+	never := make(chan struct{})
+	done := make(chan time.Duration, 1)
+	go func() {
+		start := time.Now()
+		abortCapture(cmd, io.NopCloser(strings.NewReader("")), io.NopCloser(strings.NewReader("")), never)
+		done <- time.Since(start)
+	}()
+	select {
+	case elapsed := <-done:
+		if elapsed < commandWaitDelay-100*time.Millisecond {
+			t.Fatalf("abortCapture returned early (%v); want ~%v", elapsed, commandWaitDelay)
+		}
+	case <-time.After(commandWaitDelay + 3*time.Second):
+		t.Fatal("abortCapture did not bound the drain")
 	}
 }

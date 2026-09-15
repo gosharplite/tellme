@@ -95,12 +95,18 @@ func newCommandProcess(ctx context.Context, command string) *exec.Cmd {
 
 // killGroup kills the whole process group of a started command (negative pgid),
 // so bash AND its descendants die together (round-024 D1a). It is idempotent and
-// safe to call from both the ctx watcher and the capture/trim abort path.
+// safe to call from both the ctx watcher and the capture/trim abort path. An
+// already-gone group (ESRCH) is treated as success, so a deadline-vs-exit race
+// does not leak a joined error into cmd.Wait (review nit 2).
 func killGroup(cmd *exec.Cmd) error {
 	if cmd.Process == nil {
 		return nil
 	}
-	return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+	err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+	if errors.Is(err, syscall.ESRCH) {
+		return nil
+	}
+	return err
 }
 
 // exitStatus extracts the exit code of a finished command: 0 on success, the
@@ -230,7 +236,6 @@ type boundedBuffer struct {
 	mu        sync.Mutex
 	buf       []byte
 	limit     int
-	truncated bool
 	full      chan struct{}
 	closeOnce sync.Once
 }
@@ -257,7 +262,6 @@ func (b *boundedBuffer) Write(p []byte) (int, error) {
 
 // markFull signals the full channel once (caller holds the lock).
 func (b *boundedBuffer) markFull() {
-	b.truncated = true
 	b.closeOnce.Do(func() { close(b.full) })
 }
 
