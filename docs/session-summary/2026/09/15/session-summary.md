@@ -471,3 +471,59 @@ A closeout session on the same calendar day: confirmed the merge of **PR [#56](h
 
 ### PM follow-ups
 - None new (spec/acceptance complete; no PM-owned gaps).
+
+---
+
+## 16. Session 7 (2026-09-15) — round 026 `026-tool-usage-accounting` (plan + truth + implementation) delivered to PR #57; awaiting review/merge
+
+A new session on the same calendar day: opened round **026** (issue [#53](https://github.com/gosharplite/tellme/issues/53) — tool-usage accounting), ran the full AIxBDD pipeline (specify → … → implement), took it through **four review rounds** (plan+truth ×3, implementation ×1) + a final micro-note, and delivered **both halves** on **PR [#57](https://github.com/gosharplite/tellme/pull/57)** — **open, awaiting human review + merge** (a second reviewer picks it up the next day).
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 025 delivered/frozen; active branch `dev`) |
+| Round-026 theme | a **measurement** slice — count per-tool invocations + outcome, persisted globally, surfaced offline |
+| Clarify (round 1) | **Q1 → 1** three-way `ok`/`error`/`timeout` · **Q2 → Others** a global append-only `~/.tellme/tools-count.jsonl` · **Q3 → 1** a dedicated offline report flag |
+| Plan + truth | `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-data-plan` → `/axb-dsl-refine` → `/axb-tasks` (T001–T021) |
+| Reviews | plan+truth: APPROVED WITH REQUIRED FOLDS → fold `64a9fa9` (8 findings) → 5 nits `3170588` → **FINAL ARCHITECTURAL APPROVAL**; implementation `aa6a8dd` → APPROVED WITH NON-BLOCKING FOLDS (A–E) → fold `fb660ff` → **FINAL APPROVAL — CERTIFIED READY TO MERGE** → coverage `bd758f2` |
+| `/axb-implement` | T001–T021 all `[X]` — product + unit + E2E (`make verify` OK · `go test ./...` green) |
+| Delivery | branch `026-tool-usage-accounting`; **PR [#57](https://github.com/gosharplite/tellme/pull/57) → `dev`** (6 commits, head `bd758f2`); **not merged** |
+
+### Decisions locked (round 026)
+| # | Decision |
+| --- | --- |
+| Q1 | Classify each executed invocation `ok`/`error`/`timeout` from **structural** loop signals only (`err` + the per-call `ctx` deadline; no result-text sniffing). |
+| Q2 | Persist to a **user-global, append-only** `~/.tellme/tools-count.jsonl` (`{timestamp, tool, outcome}`); shared across repos/envs/modes; **never reset by `--new`**. |
+| Q3 | Surface via a dedicated **offline `--tool-usage`** flag printing the per-tool roll-up to `stdout`. |
+| F1 (plan+truth review) | The report is **`--version`-class** — no `-c`, no `TELL_ME_HOME`, no workspace (a distinguishing E2E Example with `TELL_ME_HOME` unset added). |
+| F3 (plan+truth review) | The loop↔tool timeout invariant + the **trim-vs-deadline tie-break** (the accounting follows the loop's deadline signal). |
+| F4/F5 (plan+truth review) | Single **streaming** aggregate; **resilient** to malformed/torn lines. |
+| A/B (impl review) | Drop the per-record `f.Sync()` (hoist the mkdir to a once-per-store `sync.Once`); reconcile the port to the shipped `Record(tool, outcome)`. |
+| C/D (impl review) | `Aggregate` **returns** a genuine read failure; the report diagnoses it on `stderr` ("unreadable" ≠ "never-used"). |
+| — (audit) | The `the runtime home is not set` DSL row was **promoted to the interface root** (audit-caught duplicate authority; semantics unchanged; `step_t032` reused; no new task). |
+
+### Commits (branch `026-tool-usage-accounting`)
+| Commit | Note |
+| --- | --- |
+| `31a72de` | `docs(026)`: plan package + truth for tool-usage accounting |
+| `64a9fa9` | `docs(026)`: fold PR #57 review (footprint, precedence, invariant, streaming) |
+| `3170588` | `docs(026)`: address re-review nits (PR #57) |
+| `aa6a8dd` | `feat(026)`: implement tool-usage accounting (T001–T021) |
+| `fb660ff` | `fix(026)`: fold implementation review (A–E) + forward notes |
+| `bd758f2` | `test(026)`: pin the Aggregate read-error path + the report diagnostic |
+
+### Verification (2026-09-15)
+`make verify` **OK** (no test-sleep · offline witness · cross-compile 4/4 · `golangci-lint` 0 issues · `govulncheck` clean) · `go test -count=1 ./...` green (unit + godog E2E) · topology audit **PASSED** (39 features · 16 root + **245** module rows · **1262** steps) · **falsifiability witnesses** reproduced then reverted (a: classification · b: `--new` non-reset · c: report footprint) · `go.mod`/`go.sum` unchanged (stdlib-only).
+
+### Open items (non-blocking)
+- **Round-026 forward items** — (1) recoverable inline failures count as `ok` (a file-not-found with a nil error); (2) pruning erases the prune signal (the report enumerates the live registry); the `~/.tellme/` log grows unbounded (compaction a forward item).
+- **Propagation PENDING** — `026-tool-usage-accounting → dev → main` runs after a human merges PR [#57](https://github.com/gosharplite/tellme/pull/57).
+- Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 Obs 3; sequential tools / no pruning / **no `flock`**; round-011 forward items; round-018 gray styling; round-019 macOS CPU leg; round-024 config-gated `CONTEXT_WINDOW`.
+- Future-slice candidates: [#47](https://github.com/gosharplite/tellme/issues/47) (concurrent tool-call matching); [#13](https://github.com/gosharplite/tellme/issues/13) (coverage tooling).
+
+### Next steps
+1. **Human review + merge PR [#57](https://github.com/gosharplite/tellme/pull/57)** into `dev`; then propagate `dev → main` (no-ff) + run `SESSION-CLOSEOUT.md`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `026-tool-usage-accounting`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
