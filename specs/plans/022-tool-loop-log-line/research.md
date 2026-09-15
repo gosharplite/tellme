@@ -76,3 +76,18 @@ Reference: `~/tmp/github/gosharplite/tell-me-go/internal/ui/renderer_metrics.go`
 - **Ordering**: the merged-stream witness must show `tool line(s) → blank → answer`; the round-018 post-turn lines continue to trail the answer.
 - **Interface truth to update** (`/axb-dsl-refine`): MODIFY the `chat/dsl.md` **`the run reported the reason "{reason}" for the tool call "{tool}"`** row (its `必查` moves from `reason={reason}` to the `[Tool] <tool> - <reason>` shape) and the **`the run reported the tool call "{tool}" on its diagnostic output"`** row (note the timestamped `[Tool]` line); ADD a Then row for the blank-line separation and, if needed, a Rule/Example in `watching-the-tool-loop.feature`. **`/axb-api-plan` and `/axb-data-plan` are expected NOOP** (no request/response contract, no persisted-record change).
 - **`stdout` byte-exactness**: a regression pin that a tool-using run's `stdout` is unchanged is required (FR-008) — the existing byte-exact assertions cover it; nothing new lands on `stdout`.
+
+---
+
+## Review fold — PR #50 (round 022)
+
+The plan+truth half was reviewed (PR #50). The following findings are resolved **in-round**:
+
+- **B1 (blocker) — FR-007's negative had no executable carrier + was ambiguous vs the round-017 frame gap.** Resolution: added the negative Then **`the tool loop added no blank line before the answer`** + a `chat/dsl.md` row + a Rule/Example, carried on the **non-chrome `-i` submit surface** (`renderTurn(..., turnOptions{raw})`, `chrome=false`), where no frame gap exists — so it pins round-022's blank specifically, not round-017's `emitTurnGap`. The `separating-the-tools-from-the-answer.feature` acceptance Example 2 is also reworded to make the surface explicit.
+- **TD1 — the "ungated" claim was prose-only.** Resolution: added an **`-i` tool-using Example** asserting `the tool report is separated from the answer`, so a future implementation that wrongly gates the blank on `chrome` fails. The ungated property is now executable.
+- **TD2 — the no-reason Example drove `read_files`, whose schema requires `reason`.** Resolution: documented explicitly (feature comment + module note) that the fixture **deliberately scripts a schema-nonconforming call** (a `read_files` call without `reason`, which round-021 D2 forbids) to cover the **generic** renderer for a tool that states no reason — exactly Decision 4's stated purpose.
+- **TD3 — FR-005 "in call order" was not carried.** Resolution: added the ordered Then **`the run reported the tool calls in order "{tool_a}" and "{tool_b}"`** + a `chat/dsl.md` row + the sequential two-tool Given **`a configured provider "…" whose endpoint shows the folder tree and then reads "…" and then answers with "…"`** (tree → read → answer), and a new Rule using them.
+- **R1 — stale acceptance pointer.** Resolution: `watching-the-tool-loop.feature`'s header now points at `reporting-each-tool-use.feature` + `separating-the-tools-from-the-answer.feature`.
+- **R2 — clock-format duplication.** Resolution (implementation): factor a small `formatClock(t) string` in `internal/ui`, used by `FormatToolLog` and the existing `FormatPayloadStatus` / `FormatInputCaptured`, so the three `stderr` surfaces stay in lockstep (carried in `tasks.md` T001/T011).
+
+**Implementation notes carried into `tasks.md`** (non-blocking, from the review): emit **exactly one** `\n` for the blank line, positioned **after** `sp.Stop()` and **before** `env.writeAnswer(...)`; set `loop.Now = env.now`; keep the nil→`time.Now` fallback for unit tests; re-check the round-010/017 ordering Thens in the regression scope.

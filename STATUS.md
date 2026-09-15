@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-15 — **round 022 `022-tool-loop-log-line` IN PROGRESS (plan half complete)**: specify → spec-by-example → research → analysis → dsl-refine → tasks all done (clarify Q1–Q3 locked); next `/axb-implement`. Round 021 stays **DELIVERED / FROZEN** (PR [#48](https://github.com/gosharplite/tellme/pull/48) merged into `dev` `3877053`, propagated `dev → main`, head `7ff277d`). Round 020 delivered/frozen (detail in the archive; Rule 12 — older rounds 001–019 also live in the archives).
+**Last updated**: 2026-09-15 — **round 022 `022-tool-loop-log-line` IN PROGRESS (plan half complete + PR #50 review-folded)**: specify → spec-by-example → research → analysis → dsl-refine → tasks all done (clarify Q1–Q3 locked); **PR [#50](https://github.com/gosharplite/tellme/pull/50)** reviewed (APPROVE with blocker **B1**) → folded **B1/TD1/TD2/TD3/R1/R2** in-round; next `/axb-implement`. Round 021 stays **DELIVERED / FROZEN** (PR [#48](https://github.com/gosharplite/tellme/pull/48) merged into `dev` `3877053`, propagated `dev → main`, head `7ff277d`). Round 020 delivered/frozen (detail in the archive; Rule 12 — older rounds 001–019 also live in the archives).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
 **Active branch**: `022-tool-loop-log-line` (off `dev`)
 **Daily log**: [`docs/session-summary/2026/09/15/session-summary.md`](docs/session-summary/2026/09/15/session-summary.md)
@@ -16,7 +16,7 @@
 
 **Pipeline**: specify ✅ · spec-by-example ✅ · research ✅ · analysis ✅ · dsl-refine ✅ · tasks ✅ · implement ⏳.
 
-**Artifacts**: `spec.md` (US1–US2 · FR-001–012 · SC-001–005), `checklists/requirements.md`, `features/acceptance/*.feature` ×2, `research.md` (D1–D8), `plan.md` (1 interface → `/axb-dsl-refine`; api/data NOOP; ui skipped), `tasks.md` (T001–T013; orphan sweep 0), `truth-delta.md`. Truth: `techstack.md` MODIFY (Agent tool loop + pure-helper tests); `chat/**` MODIFY (audit PASSED — 36 features · 15 root + **210** module rows · **1064** steps).
+**Artifacts**: `spec.md` (US1–US2 · FR-001–012 · SC-001–005), `checklists/requirements.md`, `features/acceptance/*.feature` ×2, `research.md` (D1–D8 + PR #50 review fold), `plan.md` (1 interface → `/axb-dsl-refine`; api/data NOOP; ui skipped), `tasks.md` (T001–T016; orphan sweep 0), `truth-delta.md`. Truth: `techstack.md` MODIFY (Agent tool loop + pure-helper tests); `chat/**` MODIFY (audit PASSED — 36 features · 15 root + **213** module rows · **1087** steps). **PR [#50](https://github.com/gosharplite/tellme/pull/50)** open → `dev` (plan + truth half; review-folded B1/TD1/TD2/TD3/R1/R2).
 
 ## Round 021 — `021-tool-surface-parity` (delivered / frozen)
 

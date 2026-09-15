@@ -80,7 +80,7 @@ wave; the round's contract-owner handoff (`/axb-dsl-refine`) happens at delivery
 
 1. **`/axb-api-plan`** — `NOOP` (no OpenAPI contract).
 2. **`/axb-data-plan`** — `NOOP` (no persisted-state change).
-3. **`/axb-dsl-refine`** — **contract owner**: MODIFY `specs/truth/features/cli/chat/watching-the-tool-loop.feature` + `chat/dsl.md` — the tool-loop log line shape (`[HH:MM:SS] [Tool] <tool name> - <reason>`, no-reason form) and the blank-line separation before the answer.
+3. **`/axb-dsl-refine`** — **contract owner** (PR #50 review fold): MODIFY `specs/truth/features/cli/chat/watching-the-tool-loop.feature` + `chat/dsl.md` — the tool-loop log line shape (`[HH:MM:SS] [Tool] <tool name> - <reason>`, no-reason form), the blank-line separation before the answer, **and** the three review-fold additions: the **negative** Rule (`the tool loop added no blank line before the answer`, isolated on the non-chrome `-i` surface — B1), the **`-i` tool-using** Example (witnesses the ungated blank — TD1), and the **ordered** Rule + Then (`the run reported the tool calls in order "…" and "…"` with the sequential two-tool Given — TD3).
 
 Not delegated:
 - `/axb-ui-plan` — **skipped** (no UX surface change).

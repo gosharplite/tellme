@@ -13,10 +13,11 @@ Feature: Separating the tool report from the answer
       And a blank line separates the last tool report from the answer
       And tellme exits successfully
 
-    Example: A run that used no tool
+    Example: A run that used no tool adds no separating blank line
       Given the operator has a runnable tellme installation
+      And the operator is working at an interactive terminal
       And the runtime home holds a configuration with a reachable provider "test-model" that answers directly
-      When the operator asks tellme "Say hello."
+      When the operator submits the prompt "Say hello." at the interactive prompt
       Then tellme answers directly with no tool report
-      And the answer is not preceded by an added blank line
+      And no separating blank line is added before the answer
       And tellme exits successfully
