@@ -655,12 +655,13 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 			_, _ = fmt.Fprintln(env.stderr, prompt)
 		}
 		emitInputCaptured(env)
-		// Turn <N> = the session's completed-turn count + 1, derived from the
-		// loaded active history. Forward item (round-017 review finding 3): when
-		// sliding-window summarisation/archival lands, `len(prior)` will
-		// undercount and this must use a total-lifetime count, e.g. a
-		// history.Store.Count() method.
-		emitTurnOpening(env, len(prior)+1, res.Mode)
+		// Turn <N> = the session's running AI-endpoint-call index (round 027),
+		// derived from the loaded active history's persisted per-turn call counts:
+		// a tool-less turn advances it by one, a tool-using turn by its
+		// inference-round count. Forward item (round-017 review finding 3): a
+		// future summarisation/archive path that drops entries must preserve the
+		// count (today nothing shrinks the active history mid-session).
+		emitTurnOpening(env, turnNumber(prior), res.Mode)
 	}
 	emitPayloadStatus(env, res, llm.EstimatePayload(res.Person, agent.ToolDefs(reg), assembled), true)
 	if opts.chrome {
@@ -704,7 +705,10 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		}
 		return emitProviderError(env.stderr, err)
 	}
-	if err := store.Append(history.Entry{Prompt: prompt, Answer: result.Answer, Steps: result.Steps}); err != nil {
+	// Persist the turn with its AI-endpoint-call count (round 027): the number of
+	// inference rounds this turn made (`len(result.Calls)`), summed across the
+	// session to number the next turn's header.
+	if err := store.Append(history.Entry{Prompt: prompt, Answer: result.Answer, Calls: len(result.Calls), Steps: result.Steps}); err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
 	// Round 022: on a tool-using turn, one blank line separates the tool-log block
@@ -860,6 +864,25 @@ func emitTurnOpening(env runtimeEnv, turn int, mode string) {
 // emitTurnGap writes the blank line that separates the frame from the answer.
 func emitTurnGap(env runtimeEnv) {
 	_, _ = fmt.Fprint(env.stderr, ui.FormatTurnGap())
+}
+
+// turnNumber is the round-017/027 turn-header number: the session's running
+// AI-endpoint-call index — one more than the total number of provider calls
+// (inference rounds) the prior completed turns made. It sums each prior entry's
+// persisted call count; an entry without one (a legacy or arranged plain line)
+// counts as one (round-027 Decision 5). The header is emitted before the turn,
+// so this is the index of this prompt's FIRST call — the value tell-me-go prints
+// at that prompt's first call.
+func turnNumber(prior []history.Entry) int {
+	n := 1
+	for _, e := range prior {
+		if e.Calls > 0 {
+			n += e.Calls
+		} else {
+			n++
+		}
+	}
+	return n
 }
 
 // spinnerGate reports whether the turn spinner should be drawn: only on a

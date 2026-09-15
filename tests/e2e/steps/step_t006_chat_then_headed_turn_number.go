@@ -16,8 +16,9 @@ func init() {
 }
 
 // thenTurnHeaded (必查 呈現結果): the diagnostic stream carries a header line
-// `╭─⠿ Turn {number} - <mode>` (the number equals the session's completed-turn
-// count + 1; the mode is non-empty), and it is NOT written to standard output.
+// `╭─⠿ Turn {number} - <mode>` (the number equals the session's AI-endpoint-call
+// count + 1 — see specs/truth/features/cli/chat/dsl.md, round 027; the mode is
+// non-empty), and it is NOT written to standard output.
 func thenTurnHeaded(ctx context.Context, number string) error {
 	want, err := strconv.Atoi(number)
 	if err != nil {

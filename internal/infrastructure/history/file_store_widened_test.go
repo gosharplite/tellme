@@ -94,3 +94,47 @@ func TestFileStore_UnsignedStepOmitsSignature(t *testing.T) {
 		t.Fatalf("file = %q, want the signature-less shape (omitempty)", string(data))
 	}
 }
+
+// T007 (round 027) — the per-turn AI-call count round-trips, and a line without
+// it (a legacy/arranged plain entry) loads as zero, which the counter treats as
+// one.
+
+func TestFileStore_CallsRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	s := NewFileStore(dir)
+	entry := domainhistory.Entry{
+		Prompt: "read notes.txt",
+		Answer: "ORANGE",
+		Calls:  2,
+		Steps:  []domainhistory.Step{{Tool: "read_files", Arguments: `{"path":"notes.txt"}`, Result: "ORANGE"}},
+	}
+	if err := s.Append(entry); err != nil {
+		t.Fatalf("Append: %v", err)
+	}
+	got, err := s.Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 || got[0].Calls != 2 {
+		t.Fatalf("Load = %+v, want Calls=2 round-tripped", got)
+	}
+	data, _ := os.ReadFile(filepath.Join(dir, "history.jsonl"))
+	wantLine := `{"prompt":"read notes.txt","answer":"ORANGE","calls":2,"steps":[{"tool":"read_files","arguments":"{\"path\":\"notes.txt\"}","result":"ORANGE"}]}` + "\n"
+	if string(data) != wantLine {
+		t.Fatalf("file = %q, want %q", string(data), wantLine)
+	}
+}
+
+func TestFileStore_LegacyLineLoadsWithoutCalls(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "history.jsonl"), []byte(`{"prompt":"q","answer":"a"}`+"\n"), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	got, err := NewFileStore(dir).Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 || got[0].Calls != 0 {
+		t.Fatalf("Load = %+v, want a legacy line (Calls=0)", got)
+	}
+}

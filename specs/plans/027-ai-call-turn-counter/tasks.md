@@ -29,7 +29,7 @@
 
 **Goal**: 建立本輪產品承載（the persisted `calls` field + the counter seam）與一個 `[UNIT]` 落點，讓 Phase 3／Phase 4 不各自發明落點。只建立落點與載體，不寫行為。
 
-- [ ] T001 在 persisted `Entry` 新增整數欄位 `Calls`（`internal/domain/history/history.go`）
+- [X] T001 在 persisted `Entry` 新增整數欄位 `Calls`（`internal/domain/history/history.go`）
   - Read:
     - `specs/truth/data/data-model.dbml` -> `history_entry`（the widened record `{prompt, answer, calls, steps:[…]}`）
     - `specs/truth/techstack.md` -> CLI Application（Session history store）
@@ -38,7 +38,7 @@
   - 只做：為 `history.Entry` 新增 `Calls int`（JSON tag `calls,omitempty`）。純欄位，無邏輯。
   - 不做：不改 store、不改 CLI、不改 `Step`。
 
-- [ ] T002 在 history store 序列化／解析 `calls`（`internal/infrastructure/history/*`）
+- [X] T002 在 history store 序列化／解析 `calls`（`internal/infrastructure/history/*`）
   - Read:
     - `specs/truth/data/data-model.dbml` -> `history_entry`
     - `specs/plans/027-ai-call-turn-counter/research.md` -> Decision 2, Decision 5
@@ -46,7 +46,7 @@
   - 只做：讓 persisted record 帶上 `calls`（`omitempty`）；`Load` 時一個沒有 `calls` 的行解析為 `0`（the round-027 rule 把它視為 1 — the `0` sentinel is resolved by the counter，見 T003）。the append path 寫入 `Entry.Calls` 的值。
   - 不做：不改 `history_step`、不改 `-l` 投影、不改 archive 行為、不改 round-018 usage store。
 
-- [ ] T003 在 `internal/cli/cli.go` 建立 the counter seam 並接線（`Σ calls + 1`；persist `len(result.Calls)`）
+- [X] T003 在 `internal/cli/cli.go` 建立 the counter seam 並接線（`Σ calls + 1`；persist `len(result.Calls)`）
   - Read:
     - `specs/plans/027-ai-call-turn-counter/research.md` -> Decision 3, Decision 4, Decision 5
     - `specs/truth/techstack.md` -> CLI Application（Turn chrome (operator)；Session history store）
@@ -57,7 +57,7 @@
     - 把 `store.Append(history.Entry{Prompt: …, Answer: …, Steps: …})` 改為同時帶 `Calls: len(result.Calls)`（the turn's inference-round count）。
   - 不做：不改 `internal/ui/turn.go`（formatter 不變）、不改 chrome 的順序/格式、不改 payload/post-turn/spinner、不改 `--new` 行為（archive 本身即重置 the sum）、不改任何 exit code。
 
-- [ ] T004 建立 `[UNIT]` 落點骨架
+- [X] T004 建立 `[UNIT]` 落點骨架
   - Read:
     - `specs/plans/027-ai-call-turn-counter/research.md` -> Decision 2, Decision 5
     - `internal/cli/turn_test.go`（the `internal/cli` unit-test precedent）
@@ -102,13 +102,13 @@
 
 ### BDD-ALIGN
 
-- [ ] T005 [P] [BDD-ALIGN] `Given: the session history already holds a tool-using exchange …`（chat：token variant + no-token variant）
+- [X] T005 [P] [BDD-ALIGN] `Given: the session history already holds a tool-using exchange …`（chat：token variant + no-token variant）
   - Read:
     - `specs/truth/features/cli/chat/dsl.md` -> `the session history already holds a tool-using exchange carrying the provider token "{token}"`、`the session history already holds a tool-using exchange with no provider token`（both Round 027）
   - Landing: `tests/e2e/steps/step_t003_chat_given_signed_exchange.go`（+ `step_t004_chat_given_unsigned_exchange.go` reuses `writeToolUsingExchange`）
   - 語意：the written line must carry `calls: 2`（a tool-using turn makes two inference rounds）。將 `signedEntryFixture` 加上 `Calls int \`json:"calls"\`` 並在 `writeToolUsingExchange` 設為 `2`。順帶把 `step_t006_chat_then_headed_turn_number.go` 的過時註解（「completed-turn count + 1」）更新為 the AI-endpoint-call count（純註解，行為不變）。
 
-- [ ] T006 [P] [BDD-ALIGN] `Given: the session history already holds a tool-using exchange`（history module）
+- [X] T006 [P] [BDD-ALIGN] `Given: the session history already holds a tool-using exchange`（history module）
   - Read:
     - `specs/truth/features/cli/history/dsl.md` -> `the session history already holds a tool-using exchange`（Round 027）
   - Landing: `tests/e2e/steps/step_t022_history_given_tool_using_exchange.go`
@@ -116,7 +116,7 @@
 
 ### UNIT
 
-- [ ] T007 [P] [UNIT] the counter computation + the persisted `calls` round-trip
+- [X] T007 [P] [UNIT] the counter computation + the persisted `calls` round-trip
   - Read:
     - `specs/plans/027-ai-call-turn-counter/research.md` -> Decision 2, Decision 4, Decision 5
     - `specs/truth/data/data-model.dbml` -> `history_entry`
@@ -126,7 +126,7 @@
 
 ### Phase Review Gate
 
-- [ ] T008 subagent review (phase quality gate)
+- [X] T008 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/presenting-the-turn.feature`、`specs/truth/features/cli/chat/dsl.md`、`specs/truth/features/cli/history/dsl.md`、`specs/truth/features/cli/dsl.md`
     - `tests/e2e/steps/step_t003_*`、`step_t004_*`、`step_t006_*`、`step_t022_*`
@@ -157,8 +157,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/presenting-the-turn.feature`
 
-- [ ] T009 [BDD-GREEN] 讓 Test Scope 全綠（並使 T007 的 `[UNIT]` 轉綠）
-- [ ] T010 [BDD-REFACTOR] 在綠燈下整理 `turnNumber`／store `calls`／CLI wiring 落點
+- [X] T009 [BDD-GREEN] 讓 Test Scope 全綠（並使 T007 的 `[UNIT]` 轉綠）
+- [X] T010 [BDD-REFACTOR] 在綠燈下整理 `turnNumber`／store `calls`／CLI wiring 落點
 
 ## Phase 4B: Regression
 
@@ -174,7 +174,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`
 
-- [ ] T011 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T011 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`、`verify-cross-compile`）與 `go test -count=1 ./...`（含 godog）。
   - **可偽性見證 (a)（the number counts calls, not turns；非真空）**：暫時把 `turnNumber` 改回 `len(prior)+1`，確認 the `The turn header counts the model requests made so far` 的第二個 Example（a single tool-using earlier turn → `Turn 3`）失敗（會得到 `Turn 2`）；觀察到失敗即還原。
   - **可偽性見證 (b)（`--new` 重置）**：暫時讓 the header 用 lifetime `Σ`（跨 archive），確認 the fresh-session Example（`Turn 1`）失敗；觀察到失敗即還原。
