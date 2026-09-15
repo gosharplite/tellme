@@ -29,8 +29,9 @@ and no `ui/**` artifact — the tool surface is model-facing, not operator-facin
 internal/infrastructure/tools/filesystem.go   # CHANGED — retire the fixed 100000-byte / 1 MiB caps; whole-file reads + one aggregate BYTE bound + skip marker
 internal/infrastructure/tools/get_tree.go      # CHANGED — bound by the shared bound (byte budget)
 internal/infrastructure/tools/command.go       # ADDED   — the bash-first execute_command tool (os/exec `bash -c`; bounded StdoutPipe/StderrPipe; output_file/append; process-group timeout)
-internal/domain/tools/tools.go                  # CHANGED — widen the Tool port TWO-WAY: an upward per-tool contract descriptor (default timeout) + the downward resolved BYTE budget on Execute (grill Q2)
-internal/agent/agentloop.go                     # CHANGED — the single tool-resource-contract enforcement point (resolve default→param→ceiling; convert tokens→the byte budget; clamp on raw byte length + timeout)
+internal/domain/tools/tools.go                  # CHANGED — widen the Tool port TWO-WAY: an upward per-tool contract descriptor (default timeout) + the downward resolved BYTE budget on Execute (grill Q2); each tool's JSON-schema `timeout`/`max_output_tokens` description MUST derive from the same constant as its `DefaultTimeout()` (review R5)
+internal/agent/agentloop.go                     # CHANGED — the single tool-resource-contract enforcement point (applies the timeout; delegates bound resolution/conversion/clamp to the pure resolver below)
+internal/agent/tool_contract.go                 # ADDED   — the PURE contract resolver (`resolveBound(param, ceiling, default)` + `clampBytes(result, byteBudget)`); unit-tested, kept out of `Run` (review R4)
 internal/config/config.go                       # CHANGED — add `ModelPricing.ContextWindow` (yaml `CONTEXT_WINDOW`) + a `ContextWindowFor(model)` accessor (mirrors `PricingFor`) (grill Q7)
 internal/cli/cli.go                             # CHANGED — register execute_command; extend `resolution` with the run-static effective budget and compute it (min of MAX_HISTORY_TOKENS and the window) in `resolve()`; thread it into the AgentLoop literal (≈L638)
 internal/**  (tests)                            # CHANGED — unit tests for the contract resolution, execute_command, and the reader bound
@@ -69,7 +70,7 @@ There is **no** analysis planner for the CLI end (per the CLI-streamlined model)
 > - `/axb-data-plan` = **`NOOP`** (the persisted tool-step shape `{tool, arguments, result[, signature]}` is unchanged; `execute_command` steps store opaquely as today).
 > - `/axb-dsl-refine` = **contract owner** (ADD an `execute_command` interface feature + rows, incl. a **process-tree stop** witness; MODIFY `reading-several-files` + `chat/dsl.md` for the token-bound/timeout params — the bound stated in **bytes** — and the new truncation/skip markers; `listing-a-directory`/`surveying-a-folder-tree` keep their shape but gain an **ADD** bound witness).
 > - `/axb-ui-plan` = **skipped** (no UX surface change; the tool surface is model-facing, and the operator `stderr` chrome is unchanged).
-> - `/axb-spec-by-example` = **done** (2 acceptance journeys: US1 run a shell command · US2 bounded reader results).
+> - `/axb-spec-by-example` = **done** (3 acceptance journeys: US1 run a shell command · US2 bounded reader results · the offered-tool set).
 
 ### Analysis Wave schedule
 
