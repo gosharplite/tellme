@@ -8,7 +8,7 @@
 
 ## Round 022 — `022-tool-loop-log-line` (in progress)
 
-**Status**: 🚧 **IN PROGRESS — implementation delivered** (2026-09-15). Branch `022-tool-loop-log-line` off `dev`. `make verify` **OK** · `go test ./...` green · godog **151/151** (0 undefined) · topology audit PASSED (36 features · 15 root + **213** module rows · **1087** steps) · 8 falsifiability witnesses reproduced.
+**Status**: 🚧 **IN PROGRESS — implementation delivered (impl-review folded)** (2026-09-15). Branch `022-tool-loop-log-line` off `dev`. `make verify` **OK** · `go test ./...` green · godog **151/151** (0 undefined) · topology audit PASSED (36 features · 15 root + **213** module rows · **1087** steps) · implementation review folded (B1 newline-fold + TD-1 dead param + nit; unit witness).
 
 **Scope**: reshape tellme's per-call **tool-loop `stderr` log line** into a single timestamped line `[HH:MM:SS] [Tool] <tool name> - <reason>` (dropping the raw `arguments=` / `result=` dumps), and emit **one blank line** between the tool-log block and the final answer of a tool-using turn. `stdout` stays byte-exact; class-phrase vocabulary stays 11.
 

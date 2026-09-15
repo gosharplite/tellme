@@ -106,3 +106,13 @@ Implementation directives (for `/axb-implement`) folded into `tasks.md` T014:
 1. **Preserve the `LoopObserver` hook lifecycle** — `logStep` keeps wrapping emission with `a.Observer.BeforeToolLog()` / `a.Observer.AfterToolLog()` (no round-019 spinner regression).
 2. **Blank line emission placement** — in `internal/cli/cli.go` (`runTurn`), write the single newline (`fmt.Fprintln(env.stderr)`) strictly **after** `sp.Stop()` **and** `store.Append`, and immediately **before** `env.writeAnswer(...)`.
 3. **Clock-seam fallback** — `AgentLoop.now()` returns `a.Now()` when set, else `time.Now()`.
+
+---
+
+## Review fold 3 — PR #50 (round 022) implementation review, head `9a25848`
+
+Implementation review: **REQUEST CHANGES — one blocker (B1)**. Folded:
+
+- **B1 (blocker) — FR-005 single-line folding was dropped.** The pre-022 log folded the reason (`reasonSegment` → `oneLine(reason)`); the round-022 reshape removed `oneLine` and `FormatToolLog` interpolated the raw reason, so a newline-bearing reason rendered a **multi-line** `[Tool]` block — a regression vs rounds 008/021, untested (the fixtures used single-line reasons). **Fix:** `FormatToolLog` now folds and trims the reason (`strings.TrimSpace(oneLine(reason))`) before choosing the tail branch, so a multi-line / whitespace-only reason can never break the one-line contract (FR-005), keeping the fold in the pure `internal/ui` formatter. Pinned by `TestFormatToolLogFoldsNewlines` (+ the whitespace-reason case), with a unit-layer falsifiability witness.
+- **TD-1 (technical debt) — dead `result` parameter.** `logStep`'s `result` argument (no longer echoed) is dropped: `logStep(tc llm.ToolCall)`; the call site updated.
+- **nit (refactor) — whitespace-only reason.** `FormatToolLog` trims the reason, so an effectively-empty reason takes the no-tail branch (no dangling ` - `).
