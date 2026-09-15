@@ -1,6 +1,7 @@
 # tellme — Status
 
 **Last updated**: 2026-09-15 (day close) — **round 023 `023-interactive-prompt-teardown` DELIVERED / FROZEN**: PR [#51](https://github.com/gosharplite/tellme/pull/51) **MERGED** into `dev` (`97e36c6`, by `thptcnec`, 2026-09-15T03:05:19Z); round-023 head frozen at **`14d7567`**; propagated `dev → main` (no-ff). Round 022 stays delivered/frozen (detail in the archive; Rule 12 — older rounds 001–021 also live in the archives).
+**Planning (2026-09-15, session 4)**: slices **024** ([#52](https://github.com/gosharplite/tellme/issues/52) — tool resource contract + `execute_command` + reader retrofit) and **025** ([#53](https://github.com/gosharplite/tellme/issues/53) — tool-usage accounting) scoped; direction (*no security · no Windows · **bash-first** · small tool surface*) recorded in [`README.md`](README.md#-design-intent--direction-operator-declared).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
 **Active branch**: `dev`
 **Daily log**: [`docs/session-summary/2026/09/15/session-summary.md`](docs/session-summary/2026/09/15/session-summary.md)
@@ -71,10 +72,14 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 
 ## Roadmap — next slices
 
+> **Direction (2026-09-15)** — no security · no Windows · **bash-first** · a deliberately small tool surface (see [`README.md`](README.md#-design-intent--direction-operator-declared)). Slice **024** ([#52](https://github.com/gosharplite/tellme/issues/52)) = the tool resource contract + `execute_command` + reader retrofit; slice **025** ([#53](https://github.com/gosharplite/tellme/issues/53)) = tool-usage accounting.
+
 | Slice | Issue | Scope | Status |
 | --- | --- | --- | --- |
 | **003–023** | — | Provider-registry completeness → … → the `-i` teardown & submit-surface parity. | ✅ **Delivered** (see the delivered-rounds index) |
 | **023 interactive prompt teardown** | [#51](https://github.com/gosharplite/tellme/pull/51) | Clear the `-i` editor frame on submit/abort and resume the standard turn surface (echoed prompt + chrome + spinner + post-turn status). | ✅ **Delivered** — round 023 (PR [#51](https://github.com/gosharplite/tellme/pull/51)) |
+| **024 tool resource contract + `execute_command` + reader retrofit** | [#52](https://github.com/gosharplite/tellme/issues/52) | Land the cross-cutting **token bound + timeout** contract (uniform per-tool params: **default + param + ceiling**, centrally clamped) and apply it across the surface in one pass: **add `execute_command`** (bash-first `bash -c`, bounded, timed out, **no `pipe_commands`**, no security) **and retrofit the three readers** (`list_files`, `read_files`, `get_tree`) — replacing the fixed 1 MiB / 100000 caps with the params. Resolves issue [#49](https://github.com/gosharplite/tellme/issues/49). | 📋 **Scoped — next** (`/axb-specify` pending) |
+| **025 tool-usage accounting** | [#53](https://github.com/gosharplite/tellme/issues/53) | Count per-tool **pass / fail** (and invocation) usage across a run/session — the empirical instrument for seeing which tools the AI actually uses and which fail, and for tuning defaults / pruning the surface with evidence. | 📋 **Queued** (after 024) |
 | **future slices (candidates)** | [#47](https://github.com/gosharplite/tellme/issues/47) | **Concurrent tool-call matching** — parallel tool execution in the agent loop (`MAX_CONCURRENT_TOOLS`-bounded), one-batch feedback; the survivor of [#36](https://github.com/gosharplite/tellme/issues/36) (closed — Gemini API family + ADC dropped). Plus the carried forward items below. | ⏳ **Candidate** (not started) |
 
 ## Open items (non-blocking)

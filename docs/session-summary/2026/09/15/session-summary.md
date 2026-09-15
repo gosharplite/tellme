@@ -238,3 +238,51 @@ A third session on the same calendar day: opened round **023** (make `tellme -i`
 ### PM follow-ups
 
 - None new (spec/acceptance complete; no PM-owned gaps).
+
+
+---
+
+## 12. Session 4 (2026-09-15) — design direction recorded; slices 024 & 025 scoped (issues #52/#53); README + STATUS updated
+
+A **design + planning** session (no product code). Settled the **tool resource contract** design with the operator, recorded the project **direction**, opened the two next-slice issues, and updated the live docs.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 023 delivered/frozen; active branch `dev`) |
+| Direction | Recorded in `README.md` → *Design Intent & Direction*: **no security** (always bypassed → pure overhead), **no Windows**, **bash-first**, deliberately **small tool surface** |
+| Tool design | Token bound + timeout as **uniform tool params** (**default + param + ceiling**); one **aggregate** bound; **no per-file cap / no fair-share / no paging** (the shell is the paging layer) |
+| Slices | **024** ([#52](https://github.com/gosharplite/tellme/issues/52)) = tool resource contract + `execute_command` + reader retrofit; **025** ([#53](https://github.com/gosharplite/tellme/issues/53)) = tool-usage accounting |
+| Docs | `README.md` (*Design Intent & Direction*) + `STATUS.md` (header, roadmap, issue links) updated on `dev` |
+
+### Decisions locked
+
+| # | Decision |
+| --- | --- |
+| D1 | **No security layer** — always bypassed in real usage → zero protection + high friction (caused repeated AI tool failures). Destructive-command risk is an **explicitly accepted** decision. |
+| D2 | **No Windows** — POSIX/bash only; drops the cross-platform tax. |
+| D3 | **Bash-first** — `execute_command` (`bash -c`) is a first-class primitive; `pipe_commands` **omitted**. |
+| D4 | **Small surface** — a dedicated tool must beat bash on **boundedness / determinism / reliability**. |
+| D5 | **Tool resource contract** — `max_output_tokens` + `timeout` as uniform tool params; **default + param + ceiling**; centrally clamped. |
+| D6 | **One aggregate bound only** — no per-file cap, no fair-share math, no paging in `read_files`; big-file slicing = the shell (`sed`/`head`/`tail`). |
+| D7 | **024** = contract + `execute_command` + reader retrofit (one pass); **025** = tool-usage accounting. |
+
+### Open questions (for the 024 clarify)
+
+- `max_output_tokens` default + ceiling derivation; per-tool `timeout` defaults.
+- `execute_command` non-zero-exit semantics; `output_file`/`append`; `cwd`; final param names; truncation-marker wording.
+
+### Artifacts / links
+
+- Issues [#52](https://github.com/gosharplite/tellme/issues/52) (024) and [#53](https://github.com/gosharplite/tellme/issues/53) (025).
+- `README.md` → *Design Intent & Direction*; `STATUS.md` roadmap.
+
+### Next steps
+
+1. `/axb-specify` for `024-…` (this session).
+2. Then the standard pipeline for 024; 025 follows.
+
+### PM follow-ups
+
+- None new (spec/acceptance unchanged; PM-1..PM-4 remain closed).
