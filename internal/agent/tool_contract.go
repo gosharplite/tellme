@@ -117,7 +117,7 @@ func (a *AgentLoop) callTimeout(tool tools.Tool, arguments string) time.Duration
 // the contract-owned bytes-per-token factor.
 //
 // The divisors here — the ceiling `eb/2` and the default `eb/4` — are MIRRORED by
-// the `max_output_tokens` description strings in `readerSchema`
+// the `max_output_tokens` description strings in `resourceSchema`
 // (internal/infrastructure/tools) and the command schema. If these divisors ever
 // change, update those two description strings with them (review nit 3: makes the
 // drift greppable without a shared constant).

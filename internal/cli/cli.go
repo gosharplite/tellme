@@ -1139,12 +1139,23 @@ func emitProviderError(w io.Writer, err error) int {
 type toolRegistryFactory func() domaintools.Registry
 
 // newToolRegistry is the production registry factory (a var so tests may
-// override it). It assembles exactly the four agent tools — the read-only
-// filesystem readers (list_files, read_files, get_tree) and the bash-first
-// command tool (execute_command) — and no others (round-024 FR-013; no
-// pipe_commands, no security tooling).
+// override it). It assembles exactly the six agent tools — the read-only
+// filesystem readers (list_files, read_files, get_tree), the write pair
+// (write_file, replace_text), and the bash-first command tool
+// (execute_command) — in that offer order, and no others (round-029 D1;
+// round-024 FR-013; no pipe_commands, no security tooling).
 var newToolRegistry toolRegistryFactory = func() domaintools.Registry {
-	return domaintools.NewRegistry(append(infratools.NewFilesystemTools(), infratools.NewCommandTool())...)
+	return domaintools.NewRegistry(agentTools()...)
+}
+
+// agentTools assembles the agent tool set in offer order: the read-only
+// filesystem readers, the write pair (round 029), then the bash-first command
+// tool. Kept a named function so the registry seam stays a one-liner.
+func agentTools() []domaintools.Tool {
+	tools := infratools.NewFilesystemTools()
+	tools = append(tools, infratools.NewWriteTools()...)
+	tools = append(tools, infratools.NewCommandTool())
+	return tools
 }
 
 // emitToolError maps an incomplete tool loop to the frozen tool class phrase and

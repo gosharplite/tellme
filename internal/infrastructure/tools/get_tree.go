@@ -31,7 +31,7 @@ func (getTree) Contract() domaintools.ToolContract {
 
 // Parameters is the JSON-schema for the tool's arguments.
 func (getTree) Parameters() json.RawMessage {
-	return readerSchema(`"path":{"type":"string","description":"Directory path to list (default '.')."},"max_depth":{"type":"integer","description":"Depth of the tree (default 2)."}`, `"reason"`)
+	return resourceSchema(`"path":{"type":"string","description":"Directory path to list (default '.')."},"max_depth":{"type":"integer","description":"Depth of the tree (default 2)."}`, `"reason"`, readerDefaultTimeout)
 }
 
 // Execute renders the folder tree of the given path (default ".") down to
