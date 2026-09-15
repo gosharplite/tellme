@@ -24,7 +24,32 @@ type Step struct {
 type Entry struct {
 	Prompt string `json:"prompt"`
 	Answer string `json:"answer"`
-	Steps  []Step `json:"steps,omitempty"`
+	// Calls is the number of AI-endpoint calls (provider inference rounds) this
+	// completed turn made (round 027): 1 for a tool-less turn, 1 + the number of
+	// tool rounds otherwise (a provider-internal retry does not add). It is
+	// summed across the active session to number the round-017 turn header
+	// (Σ calls + 1); a line without it (a legacy or arranged entry) counts as 1.
+	// Omitted when zero so a field-less line stays byte-identical.
+	Calls int    `json:"calls,omitempty"`
+	Steps []Step `json:"steps,omitempty"`
+}
+
+// TotalCalls is the domain reading of the persisted call counts (round 027): the
+// total number of AI-endpoint calls (provider inference rounds) the given
+// completed turns made. Each entry contributes its persisted Calls count; an
+// entry without one (a legacy or arranged plain line, Calls <= 0) contributes 1.
+// It is the basis of the turn-header number (Σ + 1), so the legacy fallback and
+// the accumulation live with the record, not the presentation layer.
+func TotalCalls(entries []Entry) int {
+	total := 0
+	for _, e := range entries {
+		if e.Calls > 0 {
+			total += e.Calls
+		} else {
+			total++
+		}
+	}
+	return total
 }
 
 // Store is the network-free session-history port: load the whole conversation,

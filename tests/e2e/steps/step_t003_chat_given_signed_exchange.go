@@ -29,6 +29,7 @@ type signedStepFixture struct {
 type signedEntryFixture struct {
 	Prompt string              `json:"prompt"`
 	Answer string              `json:"answer"`
+	Calls  int                 `json:"calls"`
 	Steps  []signedStepFixture `json:"steps,omitempty"`
 }
 
@@ -51,6 +52,7 @@ func writeToolUsingExchange(ctx context.Context, token string) error {
 	entry := signedEntryFixture{
 		Prompt: "What is the launch code? Read notes.txt to find out.",
 		Answer: "The launch code is ORANGE",
+		Calls:  2,
 		Steps: []signedStepFixture{{
 			Tool:      "read_files",
 			Arguments: `{"path":"notes.txt"}`,

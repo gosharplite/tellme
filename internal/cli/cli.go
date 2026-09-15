@@ -402,21 +402,25 @@ func run(args []string, version string, env runtimeEnv) int {
 	// context and exits success (0), matching the existing runTurn convention for
 	// an operator-initiated interruption of a prompt turn.
 	if env.isTTY(env.stdin) {
+		// `--new` archives BEFORE the interactive read for BOTH terminal reader
+		// surfaces — the `-i` TUI prompt and the plain reader — so a fresh session
+		// starts regardless of the submission (round 027: the `-i` surface
+		// previously dropped `--new`, so the header counted the prior history). It
+		// archives before resolving the configuration: a prompt-less `--new` is an
+		// archive command that works offline, so — unlike the prompt-bearing
+		// `--new "<prompt>"` form, which resolves first — a broken config still
+		// archives here and then fails when the turn resolves (round-012 review).
+		if opts.newSession {
+			if code := renderNewSession(homeDir, env); code != Success {
+				return code
+			}
+		}
 		// Round 015 — the opt-in interactive TUI prompt engages here (only when
 		// enabled AND stdin is a terminal); the plain reader below stays the
 		// default. The dispatch delegates to the tuiPromptRunner seam so the
 		// matrix is unit-testable (PR #38 review directive ④).
 		if tuiRequested(homeDir, opts) {
 			return runTUIPrompt(homeDir, opts, env)
-		}
-		if opts.newSession {
-			// Archive BEFORE resolving the configuration: a prompt-less --new is an
-			// archive command that works offline, so — unlike the prompt-bearing
-			// `--new "<prompt>"` form, which resolves first — a broken config still
-			// archives here and then fails when the turn resolves (round-012 review).
-			if code := renderNewSession(homeDir, env); code != Success {
-				return code
-			}
 		}
 		ictx, icancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		text, ok := readInteractivePrompt(ictx, env.stdin, env.stderr)
@@ -655,12 +659,13 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 			_, _ = fmt.Fprintln(env.stderr, prompt)
 		}
 		emitInputCaptured(env)
-		// Turn <N> = the session's completed-turn count + 1, derived from the
-		// loaded active history. Forward item (round-017 review finding 3): when
-		// sliding-window summarisation/archival lands, `len(prior)` will
-		// undercount and this must use a total-lifetime count, e.g. a
-		// history.Store.Count() method.
-		emitTurnOpening(env, len(prior)+1, res.Mode)
+		// Turn <N> = the session's running AI-endpoint-call index (round 027),
+		// derived from the loaded active history's persisted per-turn call counts:
+		// a tool-less turn advances it by one, a tool-using turn by its
+		// inference-round count. Forward item (round-017 review finding 3): a
+		// future summarisation/archive path that drops entries must preserve the
+		// count (today nothing shrinks the active history mid-session).
+		emitTurnOpening(env, turnNumber(prior), res.Mode)
 	}
 	emitPayloadStatus(env, res, llm.EstimatePayload(res.Person, agent.ToolDefs(reg), assembled), true)
 	if opts.chrome {
@@ -704,7 +709,10 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		}
 		return emitProviderError(env.stderr, err)
 	}
-	if err := store.Append(history.Entry{Prompt: prompt, Answer: result.Answer, Steps: result.Steps}); err != nil {
+	// Persist the turn with its AI-endpoint-call count (round 027): the number of
+	// inference rounds this turn made (`len(result.Calls)`), summed across the
+	// session to number the next turn's header.
+	if err := store.Append(history.Entry{Prompt: prompt, Answer: result.Answer, Calls: len(result.Calls), Steps: result.Steps}); err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
 	// Round 022: on a tool-using turn, one blank line separates the tool-log block
@@ -860,6 +868,16 @@ func emitTurnOpening(env runtimeEnv, turn int, mode string) {
 // emitTurnGap writes the blank line that separates the frame from the answer.
 func emitTurnGap(env runtimeEnv) {
 	_, _ = fmt.Fprint(env.stderr, ui.FormatTurnGap())
+}
+
+// turnNumber is the round-017/027 turn-header number: the session's running
+// AI-endpoint-call index — one more than the total number of provider calls
+// (inference rounds) the prior completed turns made (`history.TotalCalls`, which
+// treats an entry without a count as one — round-027 Decision 5). The header is
+// emitted before the turn, so this is the index of this prompt's FIRST call —
+// the value tell-me-go prints at that prompt's first call.
+func turnNumber(prior []history.Entry) int {
+	return history.TotalCalls(prior) + 1
 }
 
 // spinnerGate reports whether the turn spinner should be drawn: only on a
