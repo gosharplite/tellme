@@ -53,6 +53,7 @@ type options struct {
 	list        int
 	listSet     bool
 	interactive bool
+	toolUsage   bool
 }
 
 // resolution is the outcome of resolving home → configuration → workspace. On a
@@ -167,6 +168,25 @@ type usageStoreFactory func(workspace string) history.UsageStore
 // override it).
 var newUsageStore usageStoreFactory = func(workspace string) history.UsageStore {
 	return infrhistory.NewUsageStore(workspace)
+}
+
+// userHomeDir resolves the user home — the `~/.tellme` root the round-026
+// tool-usage log lives under. It is a var so tests can inject a seam (the E2E
+// harness points HOME at a per-scenario temp dir).
+var userHomeDir = os.UserHomeDir
+
+// toolUsageStoreFactory builds the user-global tool-usage log adapter (round
+// 026). It returns the DOMAIN read+write port (history.ToolUsageStore), mirroring
+// historyStoreFactory/usageStoreFactory, so the presentation layer couples only to
+// domain types: the loop consumes Record (ToolUsageSink) and the offline report
+// consumes Aggregate (ToolUsageReader) — PR #57 principal-architect review
+// resolved the earlier concrete-adapter return.
+type toolUsageStoreFactory func() history.ToolUsageStore
+
+// newToolUsageStore is the production tool-usage-store factory (a var so tests
+// may override it).
+var newToolUsageStore toolUsageStoreFactory = func() history.ToolUsageStore {
+	return infrhistory.NewToolUsageStore(userHomeDir)
 }
 
 // tuiPromptRunner runs the interactive TUI prompt (round 015) for one invocation
@@ -343,20 +363,10 @@ func run(args []string, version string, env runtimeEnv) int {
 
 	homeDir := os.Getenv("TELL_ME_HOME")
 
-	// -d is the reporting path: it always produces a report (Decision 2), and it
-	// takes precedence over a prompt or piped input (round-004 Decision 7 /
-	// round-005 FR-010).
-	if opts.diagnostic {
-		return renderDiagnostic(homeDir, opts.configPath, env.stdout)
-	}
-	// -l is a terminal reporting command: it lists the last N messages and exits,
-	// strictly offline (round-007 FR-007/FR-008). A non-positive N is a usage
-	// error, evaluated before any network or stdin access (RF-2).
-	if opts.listSet {
-		if opts.list <= 0 {
-			return emitUsageError(env.stderr)
-		}
-		return renderHistoryList(homeDir, opts.list, env)
+	// The offline reporting commands run in precedence order — -d → -l →
+	// --tool-usage — before any prompt or stdin access.
+	if code, handled := dispatchReporting(opts, homeDir, env); handled {
+		return code
 	}
 	// The prompt turn reads piped input only when stdin is not a terminal and
 	// combines it with the positional argument(s); an empty result falls through
@@ -439,6 +449,7 @@ func parseFlags(args []string, stderr io.Writer) (opts *options, flagArgs []stri
 	fs.BoolVar(&o.newSession, "new", false, "Start a fresh session, archiving the current session history.")
 	fs.IntVarP(&o.list, "list", "l", 0, "List the last N messages of the session history and exit.")
 	fs.BoolVarP(&o.interactive, "interactive", "i", false, "Open the interactive TUI prompt (requires a terminal).")
+	fs.BoolVar(&o.toolUsage, "tool-usage", false, "Report per-tool invocation counts across all sessions, then exit.")
 	if err := fs.Parse(args); err != nil {
 		return nil, nil, false
 	}
@@ -666,6 +677,9 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		// chrome/payload lines use one clock (the loop falls back to time.Now when
 		// unset).
 		Now: env.now,
+		// Round 026: the user-global tool-usage sink. Best-effort; a turn that uses
+		// no tool leaves ~/.tellme untouched (the adapter creates the file lazily).
+		ToolUsage: newToolUsageStore(),
 	}
 	// Round 019 — the live progress spinner: a diagnostic-stream-only indicator
 	// that labels / clears / restores per waiting phase. It is injected into the
@@ -879,6 +893,59 @@ func stderrColumns(env runtimeEnv) func() int {
 		return func() int { return n }
 	}
 	return func() int { return terminalColumns(env.stderr) }
+}
+
+// dispatchReporting handles the offline reporting commands in precedence order
+// — `-d` → `-l` → `--tool-usage` — before any prompt or stdin access. It returns
+// the exit code and whether a reporting command handled the run. (`--version` is
+// handled by the caller, ahead of the reporting batch.) Extracted from `run` so
+// its cyclomatic complexity stays under the cyclop gate (round 026).
+func dispatchReporting(opts *options, homeDir string, env runtimeEnv) (int, bool) {
+	// -d is the reporting path: it always produces a report, and it takes
+	// precedence over a prompt or piped input (round-004 Decision 7).
+	if opts.diagnostic {
+		return renderDiagnostic(homeDir, opts.configPath, env.stdout), true
+	}
+	// -l lists the last N messages and exits, strictly offline (round-007). A
+	// non-positive N is a usage error, evaluated before any network or stdin.
+	if opts.listSet {
+		if opts.list <= 0 {
+			return emitUsageError(env.stderr), true
+		}
+		return renderHistoryList(homeDir, opts.list, env), true
+	}
+	// --tool-usage is the offline tool-usage report: like --version it needs no
+	// configuration, no TELL_ME_HOME, and no workspace (round-026 FR-006).
+	if opts.toolUsage {
+		return renderToolUsage(env), true
+	}
+	return 0, false
+}
+
+// renderToolUsage prints the offline per-tool roll-up (round-026 FR-006..FR-009):
+// it enumerates the LIVE registry, streams the user-global tool-usage log into
+// per-tool counts, and writes plain text to stdout. It is `--version`-class — it
+// requires neither a configuration, nor TELL_ME_HOME, nor a session workspace.
+//
+// A GENUINE read failure of the log is surfaced as a one-line diagnostic on the
+// diagnostic stream (the report path is offline, so stderr is free), so an
+// unreadable log is distinguishable from "no tool ever used"; the all-zero report
+// still prints and the command succeeds.
+func renderToolUsage(env runtimeEnv) int {
+	reg := newToolRegistry()
+	tools := reg.Tools()
+	counts, err := newToolUsageStore().Aggregate()
+	if err != nil {
+		_, _ = fmt.Fprintf(env.stderr, "[tool-usage] could not read the usage log: %v\n", err)
+		counts = nil
+	}
+	rows := make([]ui.ToolUsageRow, 0, len(tools))
+	for _, t := range tools {
+		c := counts[t.Name()] // zero value when the tool has no records
+		rows = append(rows, ui.ToolUsageRow{Tool: t.Name(), OK: c.OK, Error: c.Error, Timeout: c.Timeout})
+	}
+	_, _ = fmt.Fprint(env.stdout, ui.FormatToolUsage(rows))
+	return Success
 }
 
 // renderHistoryList lists the last N persisted messages (round-007 FR-007..FR-009)

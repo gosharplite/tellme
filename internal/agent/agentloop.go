@@ -7,6 +7,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -79,6 +80,10 @@ type AgentLoop struct {
 	// window). The loop resolves each call's bound from it (default = /4, ceiling
 	// = /2); <= 0 falls back to defaultEffectiveBudget.
 	EffectiveBudget int
+	// ToolUsage, when set, records each EXECUTED tool invocation's outcome
+	// (round 026) through the injected sink. Nil = a no-op; a sink error is
+	// swallowed (best-effort), so accounting never breaks a turn.
+	ToolUsage history.ToolUsageSink
 }
 
 // Run performs one prompt run. It sends the conversation (the replayed prior
@@ -147,6 +152,9 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 			tctx, cancel := context.WithTimeout(ctx, a.callTimeout(tool, tc.Arguments))
 			byteBudget := a.callByteBudget(tc.Arguments)
 			result, terr := tool.Execute(tctx, tc.Arguments, tools.ByteBudget(byteBudget))
+			// Read the per-call deadline signal BEFORE cancel() (round 026): it is
+			// the structural `timeout` signal, independent of the tool result text.
+			toolTimedOut := errors.Is(tctx.Err(), context.DeadlineExceeded)
 			cancel()
 			if terr != nil {
 				// A recoverable tool error is fed back as the tool's result (non-terminal).
@@ -156,6 +164,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 				// compliant tool that bounded at the source to the same byte budget.
 				result = clampBytes(result, byteBudget)
 			}
+			a.recordToolUsage(tc.Name, terr, toolTimedOut)
 			a.logStep(tc)
 			turn = append(turn, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})
 			steps = append(steps, history.Step{Tool: tc.Name, Arguments: tc.Arguments, Result: result, Signature: tc.Signature})
@@ -240,6 +249,33 @@ func (a *AgentLoop) now() time.Time {
 		return a.Now()
 	}
 	return time.Now()
+}
+
+// classifyToolOutcome derives the recorded outcome from the loop's structural
+// signals ONLY — the tool's returned error and the loop-owned per-call deadline
+// (round 026 D1). It never sniffs the tool result text, so the generic loop stays
+// decoupled from tool-specific markers. The round-024 FR-018 timeout is a
+// nil-error result, so only the deadline distinguishes it from a success.
+func classifyToolOutcome(terr error, timedOut bool) history.ToolOutcome {
+	switch {
+	case terr != nil:
+		return history.ToolOutcomeError
+	case timedOut:
+		return history.ToolOutcomeTimeout
+	default:
+		return history.ToolOutcomeOK
+	}
+}
+
+// recordToolUsage records one executed invocation through the injected sink
+// (round 026). Best-effort: a nil sink or a sink error is ignored so accounting
+// never breaks a turn. The write happens before the tool result is folded back
+// into the conversation, so a record exists for every executed call.
+func (a *AgentLoop) recordToolUsage(tool string, terr error, timedOut bool) {
+	if a.ToolUsage == nil {
+		return
+	}
+	_ = a.ToolUsage.Record(tool, classifyToolOutcome(terr, timedOut))
 }
 
 // toolReason extracts the top-level `reason` string from a tool call's raw
