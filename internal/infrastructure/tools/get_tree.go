@@ -24,9 +24,14 @@ func (getTree) Name() string { return "get_tree" }
 // Description is the model-facing summary.
 func (getTree) Description() string { return "Show a folder tree." }
 
+// Contract declares the reader's per-tool default timeout (round-024 Q2).
+func (getTree) Contract() domaintools.ToolContract {
+	return domaintools.ToolContract{DefaultTimeout: readerDefaultTimeout}
+}
+
 // Parameters is the JSON-schema for the tool's arguments.
 func (getTree) Parameters() json.RawMessage {
-	return json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Directory path to list (default '.')."},"max_depth":{"type":"integer","description":"Depth of the tree (default 2)."},"reason":{"type":"string","description":"Reason for viewing the folder tree."}},"required":["reason"]}`)
+	return readerSchema(`"path":{"type":"string","description":"Directory path to list (default '.')."},"max_depth":{"type":"integer","description":"Depth of the tree (default 2)."}`, `"reason"`)
 }
 
 // Execute renders the folder tree of the given path (default ".") down to
@@ -34,9 +39,9 @@ func (getTree) Parameters() json.RawMessage {
 // the aggregate cap. A directory sitting at depth == max_depth still has its
 // child names listed — recursion stops only once depth exceeds max_depth (the
 // reference's `depth > maxDepth` cut).
-func (getTree) Execute(ctx context.Context, arguments string) (string, error) {
-	if err := ctx.Err(); err != nil {
-		return "", err
+func (getTree) Execute(ctx context.Context, arguments string, budget domaintools.ByteBudget) (string, error) {
+	if timedOut(ctx) {
+		return timeoutMarker, nil
 	}
 	var args struct {
 		Path     string `json:"path"`
@@ -56,9 +61,12 @@ func (getTree) Execute(ctx context.Context, arguments string) (string, error) {
 	}
 	var sb strings.Builder
 	if err := buildTree(ctx, path, "", 0, maxDepth, &sb); err != nil {
+		if timedOut(ctx) {
+			return timeoutMarker, nil
+		}
 		return "", fmt.Errorf("get_tree: %w", err)
 	}
-	return truncateToCap(sb.String()), nil
+	return truncateToBudget(sb.String(), int(budget)), nil
 }
 
 // buildTree writes the connector lines for dir at the given depth. Recursion

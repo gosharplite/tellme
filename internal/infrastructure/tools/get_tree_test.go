@@ -28,7 +28,7 @@ func TestGetTreeShape(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "src", "pkg", "deep", "leaf.go"), []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := getTree{}.Execute(context.Background(), `{"path":"`+dir+`","reason":"r"}`)
+	got, err := getTree{}.Execute(context.Background(), `{"path":"`+dir+`","reason":"r"}`, testBudget)
 	if err != nil {
 		t.Fatalf("get_tree: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestGetTreeSkipsGit(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, ".git", "config"), []byte("gitconfig"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := getTree{}.Execute(context.Background(), `{"path":"`+dir+`","reason":"r"}`)
+	got, err := getTree{}.Execute(context.Background(), `{"path":"`+dir+`","reason":"r"}`, testBudget)
 	if err != nil {
 		t.Fatalf("get_tree: %v", err)
 	}

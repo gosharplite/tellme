@@ -40,7 +40,10 @@ func (f fakeTool) Description() string { return "fake tool" }
 func (f fakeTool) Parameters() json.RawMessage {
 	return json.RawMessage(`{"type":"object","properties":{}}`)
 }
-func (f fakeTool) Execute(context.Context, string) (string, error) { return f.result, f.err }
+func (f fakeTool) Contract() tools.ToolContract { return tools.ToolContract{} }
+func (f fakeTool) Execute(context.Context, string, tools.ByteBudget) (string, error) {
+	return f.result, f.err
+}
 
 // TestRunNoToolCalls: a plain answer makes one request and no tool steps.
 func TestRunNoToolCalls(t *testing.T) {
