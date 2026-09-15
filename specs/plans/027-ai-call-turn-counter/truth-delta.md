@@ -9,7 +9,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| PENDING | `specs/truth/techstack.md` | (to be filled by `/axb-technical-research`) | Skeleton initialized by `/axb-specify`. |
+| MODIFY | `specs/truth/techstack.md` | **Turn chrome (operator)** row: redefined `<N>` as the session's **AI-endpoint-call count + 1** (the running sum of the prior turns' inference rounds) instead of the completed-turn count, and appended the round-027 clause (call-based unit; cadence/format unchanged — one header + one `╰─⠿ Ready` per prompt, not per call; a tool-less turn advances by one, a tool-using turn by its inference-round count; an internal retry does not count; `--new` restarts at `Turn 1`). **Session history store** row: added the integer **`calls`** field (the turn's inference-round count, summed to derive the header number; a legacy line without it counts as 1). | Round-027 Decision 1 (unit = inference round), Decision 2 (persist the per-turn count), Decision 5 (`--new` resets; legacy floor), Decision 6 (surface unchanged). |
 
 ## /axb-api-plan
 
