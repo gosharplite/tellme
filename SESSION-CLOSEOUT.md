@@ -22,8 +22,9 @@
 | **5** | Reconcile status ↔ summary | Confirm `STATUS.md` and the day's `session-summary.md` agree: same decisions, same pipeline position, same open items, same branch heads. |
 | **6** | Commit the working branch | Commit with a descriptive message (e.g. `docs(<NNN>): …`). The day must end committed and pushed. |
 | **7** | Propagate + hand off | If the round is at a mergeable point **and the user approves**, run the two-step merge `working → dev → main`; otherwise record the pending propagation in `STATUS.md`. State the exact next-session starting point. |
+| **8** | Reconcile the issue tracker | List **every open GitHub issue**; **close** the ones that are done or superseded (with a linking comment) and **revise** the ones that are still valid but out of date (stale slice-number prefixes, drifted scope). Leave the tracker matching the current system state — never close an issue whose work has not landed. |
 
-Only after Steps 1, 2, 3, 4, 5, 6, and 7 are complete and results are reported is the session closed out.
+Only after Steps 1, 2, 3, 4, 5, 6, 7, and 8 are complete and results are reported is the session closed out.
 
 ---
 
@@ -31,7 +32,7 @@ Only after Steps 1, 2, 3, 4, 5, 6, and 7 are complete and results are reported i
 
 **You just finished reading this file. Do not reply. Do not summarize. Do not ask what to do next.**
 
-Immediately return to the step table above and execute **Step 1 → Step 2 → Step 3 → Step 4 → Step 5 → Step 6 → Step 7** in order. Report the closeout result when Steps 1–7 are complete.
+Immediately return to the step table above and execute **Step 1 → Step 2 → Step 3 → Step 4 → Step 5 → Step 6 → Step 7 → Step 8** in order. Report the closeout result when Steps 1–8 are complete.
 
 ---
 
@@ -111,6 +112,19 @@ On any mismatch, fix the stale one (usually the summary) before committing.
 3. Handoff check — state the **next-session starting point**: active branch, pipeline position, the exact next skill/step, and any pending decision.
 4. Confirm `SESSION-BOOTSTRAP.md` will still run cleanly: `STATUS.md` current, the day summary present, active branch correct.
 
+### 8. Open-Issue Reconciliation (Step 8 Details)
+
+Before the session ends, reconcile the GitHub issue tracker against the state just delivered — the tracker is **live state**, so it must match the system, not a plan.
+
+1. **List every open issue** — `gh issue list --state open --limit 100 --repo gosharplite/tellme` (or the MCP issue list). Read each one's title, body, and labels.
+2. **For each open issue, decide one of:**
+   - **Close — done.** Its slice has landed: close with a short comment naming the satisfying PR / commit and referencing the issue number (`gh issue close <n> --comment "Delivered in #<pr> (`<sha>`)"`).
+   - **Close — superseded / duplicate / out of scope.** Close as `not planned`, one line linking the replacement issue (or the decision that dropped it).
+   - **Revise — still valid, out of date.** Fix the **title** (e.g. a stale `NNN — ` slice prefix that has since been **renumbered** — the round-017 de-scope of #13 and the round-025 renumber of #53 are the precedent) and/or refresh the body (scope, dependencies, pipeline links). Issues are live state, so revising them is expected — but never rewrite a *frozen plan* decision.
+   - **Leave — still accurate.**
+3. **Report + record.** Collect the outcome and record the opened / closed / revised issue numbers in `STATUS.md`'s **Open items** and the day's `session-summary.md` (Steps 3 / 4).
+4. **Never** close an issue whose work has not landed, nor rewrite one to look tidy — an **accurate** open list is the goal, not a short one.
+
 ---
 
 ## ⚠️ Closeout Rules
@@ -127,3 +141,4 @@ On any mismatch, fix the stale one (usually the summary) before committing.
 10. **Keep it current and linked** — maintain the daily log and its back-link so `SESSION-BOOTSTRAP.md` Step 8 always has a fresh, accurate summary to read.
 11. **Always verify system date with `date`** — run `date` to determine the exact calendar date (`<YYYY>/<MM>/<DD>`) before updating `STATUS.md` or writing `session-summary.md`. Never infer the date from previous turns, previous files, or `STATUS.md` — midnight crossings must begin a new daily summary file.
 12. **Keep `STATUS.md` lean — split it when too long** — it is the *live* state, not a history log. When it outgrows that (roughly **> ~150 lines**, or more than one delivered-round detail section beyond the current round), relocate the historical detail **verbatim** into `docs/archives/status/<YYYY-MM-DD>.md` (today's date), trim `STATUS.md` back to the live state, link the archive from the header, and back-link `STATUS.md` from the archive. Never delete history.
+13. **Reconcile the issue tracker — don't just close things** — every open issue is checked against the delivered state: **close** what has landed (with a linking comment) or is superseded / duplicate, **revise** what is stale (renumbered slice prefixes, drifted scope), and **leave** the rest. Never close an issue whose work has not landed, and never rewrite a frozen plan decision.
