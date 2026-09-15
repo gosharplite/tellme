@@ -31,7 +31,7 @@
 
 **Goal**: 建立本輪測試層落點骨架（Zero Shared Edits）、the domain port + the store adapter + the report formatter + the CLI/loop wiring 落點，以及 the harness `HOME` seam，讓 Phase 3／Phase 4 不各自發明檔案或落點。只建立落點與載體，不寫行為。
 
-- [ ] T001 建立 the `ToolUsageSink` port + the `ToolUsageRecord`/outcome 型別骨架（**新檔** `internal/domain/history/tool_usage.go`）
+- [X] T001 建立 the `ToolUsageSink` port + the `ToolUsageRecord`/outcome 型別骨架（**新檔** `internal/domain/history/tool_usage.go`）
   - Read:
     - `specs/plans/026-tool-usage-accounting/research.md` -> Decision 1, Decision 3
     - `specs/truth/data/data-model.dbml` -> `tool_usage_record`、`tool_usage_outcome`
@@ -40,7 +40,7 @@
   - 只做：**新增** `internal/domain/history/tool_usage.go`，定義 `ToolUsageRecord`（`Timestamp`, `Tool`, `Outcome`；JSON tags 對齊 DBML）、an outcome 型別／列舉（`ok`/`error`/`timeout`），以及 port `ToolUsageSink interface { Record(ToolUsageRecord) error }`。純型別與介面，無 I/O。**不**改 `usage.go`（review F7）。
   - 不做：不實作檔案 adapter、不寫 loop 分類邏輯、不加相依。
 
-- [ ] T002 建立 the file-backed `ToolUsageSink` adapter 骨架（**新檔** `internal/infrastructure/history/tool_usage_store.go`）
+- [X] T002 建立 the file-backed `ToolUsageSink` adapter 骨架（**新檔** `internal/infrastructure/history/tool_usage_store.go`）
   - Read:
     - `specs/truth/data/data-model.dbml` -> `tool_usage_record`
     - `specs/plans/026-tool-usage-accounting/research.md` -> Decision 2
@@ -49,14 +49,14 @@
   - 只做：新增 `tool_usage_store.go` — resolve `~/.tellme/tools-count.jsonl` via `os.UserHomeDir()`; `Record`：**lazily** `MkdirAll ~/.tellme` then `O_APPEND|O_CREATE|O_WRONLY` append one JSON line（**不在 construction 建目錄**，review F8）；`timestamp` 以 `time.Now()` 蓋（**unasserted**，review F8）；a pure **streaming** `Aggregate(reader, registeredTools)` helper placeholder（**single pass、O(tools) 記憶體**；**不**先 `Load()` 全部再 aggregate，review F4；malformed line **skip** best-effort，review F5）。Nil-safe / best-effort signature 就位。
   - 不做：不接上 loop、不寫報告格式、不加相依；不觸碰 `usage_store.go`（round-018 log 不動）。
 
-- [ ] T003 建立 the pure report formatter 骨架（**新檔** `internal/ui/toolusage.go`）
+- [X] T003 建立 the pure report formatter 骨架（**新檔** `internal/ui/toolusage.go`）
   - Read:
     - `specs/plans/026-tool-usage-accounting/research.md` -> Decision 4
     - `internal/ui/metrics.go`、`internal/ui/status.go`（the pure-formatter + injected-clock precedent）
   - 只做：新增 `internal/ui/toolusage.go` — 一個 pure function 的簽名（輸入：per-tool aggregate + **live-registry 工具順序**；輸出：the report text），空殼；不改既有 `internal/ui` 檔。
   - 不做：不真的排版、不讀檔、不加相依。
 
-- [ ] T004 建立 the CLI + loop wiring 骨架（`internal/cli/cli.go`、`internal/agent/agentloop.go`）
+- [X] T004 建立 the CLI + loop wiring 骨架（`internal/cli/cli.go`、`internal/agent/agentloop.go`）
   - Read:
     - `specs/plans/026-tool-usage-accounting/research.md` -> Decision 1, Decision 3, Decision 4
     - `specs/truth/techstack.md` -> CLI Application（Agent tool loop；Tool-usage accounting；Prompt input — the dispatch precedence）
@@ -67,7 +67,7 @@
     - `internal/cli/cli.go`：新增 `--tool-usage` flag 於 `options` + `parseFlags`；dispatch 加入 the offline report branch（落點函式空殼，置於 `-l` 之後、prompt/stdin **之前**，precedence `--version` → `-d` → `-l` → `--tool-usage` → prompt → boot）；**該 branch 不呼叫 `resolve`/`resolveWorkspace`、不要求 `TELL_ME_HOME`、不建 workspace**（review F1）；一個 user-home seam（`os.UserHomeDir` 包一層 var，供測試注入）；construct `AgentLoop` 時注入 `newToolUsageStore` 的 sink（一新 var factory）。
   - 不做：不真的分類、不真的寫檔、不真的排版報告、不改 the tool semantics/set、不改 the round-018 usage store / the post-turn lines / the spinner、不改 `stdout` bytes 或 class-phrase。
 
-- [ ] T005 建立 stepdef + `[UNIT]` 落點骨架，以及 the E2E harness `HOME` seam
+- [X] T005 建立 stepdef + `[UNIT]` 落點骨架，以及 the E2E harness `HOME` seam
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（本輪 9 個新句：3 Given + 1 When + 5 Then）
     - `specs/truth/features/cli/dsl.md`（the promoted row `the runtime home is not set` — reuses `step_t032`）
@@ -135,58 +135,58 @@
 
 ### BDD-RED — Given（新增 arrange 句；3 句）
 
-- [ ] T006 [P] [BDD-RED] `Given: the tool usage already records that the tool "{tool}" was used {count} times with the outcome "{outcome}"`
+- [X] T006 [P] [BDD-RED] `Given: the tool usage already records that the tool "{tool}" was used {count} times with the outcome "{outcome}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the tool usage already records that the tool "{tool}" was used {count} times with the outcome "{outcome}"`
   - Landing: `tests/e2e/steps/step_t006_chat_given_tool_usage_log.go`
   - 語意：create `$HOME/.tellme/` if absent，append `{count}` 條 JSON lines `{"timestamp":"<RFC3339>","tool":"{tool}","outcome":"<mapped>"}` 到 `tools-count.jsonl`（`succeeded`→`ok`、`failed`→`error`、`ran out of time`→`timeout`）。
 
-- [ ] T007 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint lists a folder that does not exist and then answers with "{answer}"`
+- [X] T007 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint lists a folder that does not exist and then answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint lists a folder that does not exist and then answers with "{answer}"`
   - Landing: `tests/e2e/steps/step_t007_chat_given_lists_missing_folder.go`
   - 語意：script the fake 回一個 `list_files` tool-call（`path` 不存在 → 工具回非 nil error），再回答案 `{answer}`。
 
-- [ ] T008 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint runs a command that never returns within a short limit and then answers with "{answer}"`
+- [X] T008 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint runs a command that never returns within a short limit and then answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `a configured provider "{provider}" whose endpoint runs a command that never returns within a short limit and then answers with "{answer}"`
   - Landing: `tests/e2e/steps/step_t008_chat_given_hanging_command.go`
   - 語意：script the fake 回一個 `execute_command` tool-call（args 帶短 `timeout`（例 `1`）與不返回的 `command`（例 `sleep 60`）），再回答案 `{answer}`。
 
 ### BDD-RED — When（新增動作句；1 句）
 
-- [ ] T009 [P] [BDD-RED] `When: the operator reviews how the tools have been used`
+- [X] T009 [P] [BDD-RED] `When: the operator reviews how the tools have been used`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the operator reviews how the tools have been used`
   - Landing: `tests/e2e/steps/step_t009_chat_when_reviews_tools.go`
   - 語意：跑 `tellme --tool-usage`（**不**要求 `TELL_ME_HOME`、no `-c`、no positional prompt、不讀 stdin）；擷取 exit code / stdout / stderr 與 the fake 的 recorded requests。
 
 ### BDD-RED — Then（新增斷言句；5 句）
 
-- [ ] T010 [P] [BDD-RED] `Then: the tool usage shows the tool "{tool}" with {ok} successes, {error} failures, and {timeout} timeouts`
+- [X] T010 [P] [BDD-RED] `Then: the tool usage shows the tool "{tool}" with {ok} successes, {error} failures, and {timeout} timeouts`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the tool usage shows the tool "{tool}" with {ok} successes, {error} failures, and {timeout} timeouts`
   - Landing: `tests/e2e/steps/step_t010_chat_then_log_outcomes.go`
   - 語意：讀 `$HOME/.tellme/tools-count.jsonl`，斷言其中 `{tool}` 恰有 `{ok}` 條 `ok`、`{error}` 條 `error`、`{timeout}` 條 `timeout`，且無其他 outcome。
 
-- [ ] T011 [P] [BDD-RED] `Then: the tool usage shows no tool has been used`
+- [X] T011 [P] [BDD-RED] `Then: the tool usage shows no tool has been used`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the tool usage shows no tool has been used`
   - Landing: `tests/e2e/steps/step_t011_chat_then_log_empty.go`
   - 語意：讀 `$HOME/.tellme/tools-count.jsonl`，斷言檔案不存在或為 **零** 條記錄（並印證 review F8 的 lazy creation：a tool-less turn 不建檔）。
 
-- [ ] T012 [P] [BDD-RED] `Then: the review shows the tool "{tool}" with {ok} successes, {error} failures, and {timeout} timeouts`
+- [X] T012 [P] [BDD-RED] `Then: the review shows the tool "{tool}" with {ok} successes, {error} failures, and {timeout} timeouts`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the review shows the tool "{tool}" with {ok} successes, {error} failures, and {timeout} timeouts`
   - Landing: `tests/e2e/steps/step_t012_chat_then_review_outcomes.go`
   - 語意：於 `--tool-usage` 的 `stdout` 斷言列出 `{tool}` 且其 `{ok}`/`{error}`/`{timeout}` 對應。
 
-- [ ] T013 [P] [BDD-RED] `Then: the review shows the tool "{tool}" was never used`
+- [X] T013 [P] [BDD-RED] `Then: the review shows the tool "{tool}" was never used`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the review shows the tool "{tool}" was never used`
   - Landing: `tests/e2e/steps/step_t013_chat_then_review_never_used.go`
   - 語意：於 `--tool-usage` 的 `stdout` 斷言列出 `{tool}` 且其使用次數為零（a registered-but-unused tool 不得被省略）。
 
-- [ ] T014 [P] [BDD-RED] `Then: the review shows every tool with no uses`
+- [X] T014 [P] [BDD-RED] `Then: the review shows every tool with no uses`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the review shows every tool with no uses`
   - Landing: `tests/e2e/steps/step_t014_chat_then_review_all_zero.go`
   - 語意：於 `--tool-usage` 的 `stdout` 斷言列出**每個 live-registry 工具**（step definition **以 live registry 列舉**，不得硬編四項；today: `list_files`、`read_files`、`get_tree`、`execute_command`）且使用次數為零（review F8）。
 
 ### UNIT（非 DSL 的單元斷言）
 
-- [ ] T015 [P] [UNIT] the loop outcome classification（`ok` / `error` / `timeout`）+ the trim-vs-deadline tie-break
+- [X] T015 [P] [UNIT] the loop outcome classification（`ok` / `error` / `timeout`）+ the trim-vs-deadline tie-break
   - Read:
     - `specs/plans/026-tool-usage-accounting/research.md` -> Decision 1, Decision 3
     - `specs/truth/techstack.md` -> CLI Application（Agent tool loop；Tool-usage accounting）
@@ -194,7 +194,7 @@
   - 撰寫：以注入的 fake gateway + fake registry + fake sink，斷言 classification — 工具回 error → `error`；工具回 nil-error **且** per-call deadline 逾時 → `timeout`（the FR-018 leg；產品回 `timeoutMarker`）；工具回一般結果 → `ok`（含 bounded/truncated 視為 `ok`）；並斷言每 call 恰一筆 `Record`、順序為 call order。**Tie-break 邊界（review F3）：** 造一 call，其結果文字為 truncation 但 ctx deadline 已逾 → 斷言分類為 `timeout`（the loop 的 deadline 訊號優先）。
   - 落點：`internal/agent/tool_usage_test.go`。
 
-- [ ] T016 [P] [UNIT] the store round-trip + the **streaming** aggregation + resilience
+- [X] T016 [P] [UNIT] the store round-trip + the **streaming** aggregation + resilience
   - Read:
     - `specs/truth/data/data-model.dbml` -> `tool_usage_record`、`tool_usage_outcome`
     - `specs/plans/026-tool-usage-accounting/research.md` -> Decision 2, Decision 4
@@ -202,7 +202,7 @@
   - 撰寫：以臨時 `HOME`（injected user-home seam）斷言 — `Record` append 一行且可逐字回來（**round-trip**，供 unit 用）；the **streaming** `Aggregate`（single pass、O(tools)）對固定工具順序（含零使用工具）給出正確的 `ok`/`error`/`timeout` counts；缺檔 → 全零（非 error）；the dir/file 只在首次 `Record` 建立（lazy）；**malformed/torn line → skip 且不失敗**（review F5）；a read-only/不可寫的 home → `Record` best-effort 回錯且**不** panic。
   - 落點：`internal/infrastructure/history/tool_usage_test.go`。
 
-- [ ] T017 [P] [UNIT] the report formatter（deterministic, every live-registry tool）
+- [X] T017 [P] [UNIT] the report formatter（deterministic, every live-registry tool）
   - Read:
     - `specs/plans/026-tool-usage-accounting/research.md` -> Decision 4
     - `internal/ui/metrics.go`（the pure-formatter precedent）
@@ -211,7 +211,7 @@
 
 ### Phase Review Gate
 
-- [ ] T018 subagent review (phase quality gate)
+- [X] T018 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/accounting-for-the-tool-use.feature`
     - `specs/truth/features/cli/chat/dsl.md`（Round 026 區塊）、`specs/truth/features/cli/dsl.md`、`specs/truth/features/cli/workspace/dsl.md`
@@ -243,8 +243,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/accounting-for-the-tool-use.feature`
 
-- [ ] T019 [BDD-GREEN] 讓 Test Scope 全綠（並使 T015/T016/T017 的 `[UNIT]` 轉綠）
-- [ ] T020 [BDD-REFACTOR] 在綠燈下整理 classification／store／report／CLI wiring 落點
+- [X] T019 [BDD-GREEN] 讓 Test Scope 全綠（並使 T015/T016/T017 的 `[UNIT]` 轉綠）
+- [X] T020 [BDD-REFACTOR] 在綠燈下整理 classification／store／report／CLI wiring 落點
 
 ## Phase 4B: Regression
 
@@ -260,7 +260,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`
 
-- [ ] T021 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T021 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`、`verify-cross-compile`）與 `go test -count=1 ./...`（含 godog）。
   - **可偽性見證 (a)（outcome classification；非真空）**：暫時把 `timeout` 一律當 `ok`，確認 `accounting-for-the-tool-use.feature` 的 `the tool usage shows the tool "execute_command" with 0 successes, 0 failures, and 1 timeouts` 失敗；觀察到失敗即還原。
   - **可偽性見證 (b)（the `--new` 不重置）**：暫時讓 `--new` 也清空 the global log，確認 `The record survives a fresh session` 的 `the tool usage shows the tool "read_files" with 3 successes, 0 failures, and 0 timeouts` 失敗；觀察到失敗即還原。

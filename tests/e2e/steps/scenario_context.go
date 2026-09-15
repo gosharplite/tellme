@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/cucumber/godog"
 	"gopkg.in/yaml.v3"
@@ -34,6 +35,11 @@ type scenarioKey struct{}
 type scenarioContext struct {
 	home    string // the actual resolved runtime home directory (temp dir)
 	homeSet bool   // whether TELL_ME_HOME should be exported for a run
+
+	// userHomeDir is the child's HOME (a per-scenario temp dir), so the
+	// user-global tool-usage log (~/.tellme/tools-count.jsonl) lands inside the
+	// scenario and never touches the operator's real ~/.tellme (round 026).
+	userHomeDir string
 
 	workDir string // the child process working directory (holds working-directory file fixtures)
 
@@ -108,9 +114,14 @@ func beforeScenario(ctx context.Context, _ *godog.Scenario) (context.Context, er
 	if err != nil {
 		return ctx, err
 	}
+	userHome, err := os.MkdirTemp("", "tellme-userhome-")
+	if err != nil {
+		return ctx, err
+	}
 	sc := &scenarioContext{
 		home:         dir,
 		workDir:      work,
+		userHomeDir:  userHome,
 		homeSet:      true,
 		envOverrides: map[string]string{},
 		// Unset every environment override the CLI honours by default, so an
@@ -150,6 +161,9 @@ func afterScenario(ctx context.Context, _ *godog.Scenario, _ error) (context.Con
 		if sc.workDir != "" {
 			_ = os.RemoveAll(sc.workDir)
 		}
+		if sc.userHomeDir != "" {
+			_ = os.RemoveAll(sc.userHomeDir)
+		}
 	}
 	return ctx, nil
 }
@@ -185,7 +199,7 @@ func (sc *scenarioContext) setEnv(name, value string) {
 // runEnv returns the environment override map for the next run (including
 // TELL_ME_HOME when the home is set).
 func (sc *scenarioContext) runEnv() map[string]string {
-	env := make(map[string]string, len(sc.envOverrides)+1)
+	env := make(map[string]string, len(sc.envOverrides)+2)
 	for k, v := range sc.envOverrides {
 		env[k] = v
 	}
@@ -193,6 +207,11 @@ func (sc *scenarioContext) runEnv() map[string]string {
 		env["TELL_ME_HOME"] = sc.home
 	} else {
 		delete(env, "TELL_ME_HOME")
+	}
+	// Point the child's HOME at the scenario temp dir so the user-global
+	// tool-usage log (~/.tellme) is scenario-local (round 026).
+	if sc.userHomeDir != "" {
+		env["HOME"] = sc.userHomeDir
 	}
 	return env
 }
@@ -252,11 +271,21 @@ func (sc *scenarioContext) captureMerged() {
 		return
 	}
 	defer func() { _ = os.RemoveAll(workCopy) }()
+	userHomeCopy, err := os.MkdirTemp("", "tellme-merged-userhome-")
+	if err != nil {
+		return
+	}
+	defer func() { _ = os.RemoveAll(userHomeCopy) }()
 	if err := copyTree(sc.home, homeCopy); err != nil {
 		return
 	}
 	if err := copyTree(sc.workDir, workCopy); err != nil {
 		return
+	}
+	if sc.userHomeDir != "" {
+		if err := copyTree(sc.userHomeDir, userHomeCopy); err != nil {
+			return
+		}
 	}
 
 	// Snapshot each fake, re-arm its script cursor so the merged run replays the
@@ -275,6 +304,9 @@ func (sc *scenarioContext) captureMerged() {
 
 	env := sc.runEnv()
 	env["TELL_ME_HOME"] = homeCopy
+	if sc.userHomeDir != "" {
+		env["HOME"] = userHomeCopy
+	}
 	var res harness.RunResult
 	if sc.stdinSet {
 		res = harness.RunInMergedWithStdin(workCopy, sc.args, sc.stdin, env, sc.unsetNames())
@@ -418,6 +450,39 @@ func (sc *scenarioContext) writeWorkFile(name, content string) error {
 		return err
 	}
 	return os.WriteFile(p, []byte(content), 0o644)
+}
+
+// userToolUsagePath is the child's user-global tool-usage log path
+// ($HOME/.tellme/tools-count.jsonl) — scenario-local via the HOME seam (round 026).
+func (sc *scenarioContext) userToolUsagePath() string {
+	return filepath.Join(sc.userHomeDir, ".tellme", "tools-count.jsonl")
+}
+
+// appendToolUsage appends one tool-usage record to the scenario-local global log
+// (the round-026 Given), creating ~/.tellme if absent.
+func (sc *scenarioContext) appendToolUsage(tool, outcome string) error {
+	p := sc.userToolUsagePath()
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		return err
+	}
+	rec := struct {
+		Timestamp string `json:"timestamp"`
+		Tool      string `json:"tool"`
+		Outcome   string `json:"outcome"`
+	}{Timestamp: time.Now().UTC().Format(time.RFC3339), Tool: tool, Outcome: outcome}
+	line, err := json.Marshal(rec)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(append(line, '\n')); err != nil {
+		_ = f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 // historyDir returns the session workspace directory the session commands
