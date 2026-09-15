@@ -1,10 +1,22 @@
 # tellme — Status
 
-**Last updated**: 2026-09-15 (day close) — **round 021 `021-tool-surface-parity` DELIVERED / FROZEN**: PR [#48](https://github.com/gosharplite/tellme/pull/48) **MERGED** into `dev` (`3877053`, by `thptcnec`, 2026-09-15T00:12:50Z); propagated `dev → main` (no-ff); head frozen at **`7ff277d`**. Round 020 stays delivered/frozen (detail in the archive; Rule 12 — older rounds 001–019 also live in the archives).
+**Last updated**: 2026-09-15 — **round 022 `022-tool-loop-log-line` IN PROGRESS (plan half)**: `spec.md` + `checklists/requirements.md` + `truth-delta.md` skeleton authored (clarify Q1–Q3 locked); next `/axb-spec-by-example` → `/axb-technical-research`. Round 021 stays **DELIVERED / FROZEN** (PR [#48](https://github.com/gosharplite/tellme/pull/48) merged into `dev` `3877053`, propagated `dev → main`, head `7ff277d`). Round 020 delivered/frozen (detail in the archive; Rule 12 — older rounds 001–019 also live in the archives).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
-**Active branch**: `dev`
+**Active branch**: `022-tool-loop-log-line` (off `dev`)
 **Daily log**: [`docs/session-summary/2026/09/15/session-summary.md`](docs/session-summary/2026/09/15/session-summary.md)
 **Archive**: [`2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012) · [`2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–019) · [`2026-09-15.md`](docs/archives/status/2026-09-15.md) (round 020).
+
+## Round 022 — `022-tool-loop-log-line` (in progress)
+
+**Status**: 🚧 **IN PROGRESS — plan half** (2026-09-15). Branch `022-tool-loop-log-line` off `dev`. `make verify` / E2E **not yet applicable** (plan artifacts only).
+
+**Scope**: reshape tellme's per-call **tool-loop `stderr` log line** into a single timestamped line `[HH:MM:SS] [Tool] <tool name> - <reason>` (dropping the raw `arguments=` / `result=` dumps), and emit **one blank line** between the tool-log block and the final answer of a tool-using turn. `stdout` stays byte-exact; class-phrase vocabulary stays 11.
+
+**Locked decisions (Q1–Q3)**: (Q1) **strict scope** — only the tool-loop log line + the blank line; the payload line (009/018) and the spinner labels (019) are untouched. (Q2) the blank line is emitted **only on tool-using turns** (≥1 tool log line written). (Q3) a call with no top-level `reason` renders `[HH:MM:SS] [Tool] <name>` (no dangling separator).
+
+**Pipeline**: specify ✅ · spec-by-example ⏳ · research ⏳ · analysis ⏳ · dsl-refine ⏳ · tasks ⏳ · implement ⏳.
+
+**Artifacts (so far)**: `spec.md` (US1–US2 · FR-001–012 · SC-001–005), `checklists/requirements.md`, `truth-delta.md` (skeleton). Truth intent (owner skills pending): MODIFY `techstack.md` (tool-loop log row); MODIFY `features/cli/chat/**`; `/axb-api-plan` + `/axb-data-plan` NOOP candidates.
 
 ## Round 021 — `021-tool-surface-parity` (delivered / frozen)
 
@@ -70,6 +82,7 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 | --- | --- | --- | --- |
 | **003–021** | — | Provider-registry completeness → … → the agent tool-surface parity. | ✅ **Delivered** (see the delivered-rounds index) |
 | **021 tool surface parity** | [#48](https://github.com/gosharplite/tellme/pull/48) | Align the agent tool surface with `tell-me-go` — delete `summarize_history`; multi-file `read_files` + `reason`; add `get_tree`; bound reader results (1 MiB). | ✅ **Delivered** — round 021 (PR [#48](https://github.com/gosharplite/tellme/pull/48)) |
+| **022 tool-loop log line** | — | Reshape the tool-loop `stderr` line to `[HH:MM:SS] [Tool] <name> - <reason>` (drop `arguments=`/`result=`) + one blank line before the answer of a tool-using turn. | 🚧 **In progress** — round 022 |
 | **future slices (candidates)** | [#47](https://github.com/gosharplite/tellme/issues/47) | **Concurrent tool-call matching** — parallel tool execution in the agent loop (`MAX_CONCURRENT_TOOLS`-bounded), one-batch feedback; the survivor of [#36](https://github.com/gosharplite/tellme/issues/36) (closed — Gemini API family + ADC dropped). Plus the carried forward items below. | ⏳ **Candidate** (not started) |
 
 ## Open items (non-blocking)
