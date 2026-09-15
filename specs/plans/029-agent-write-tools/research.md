@@ -87,6 +87,6 @@ Round 029 is the first round with multi-KB tool arguments (`write_file.content`,
 
 ## Truth impact (for the truth-owner skills)
 
-- `specs/truth/techstack.md` → **MODIFY**: add a **Write filesystem tools** row to the agent tool surface (`write_file` create-only + **atomic**; `replace_text` strict-unique + **atomic**; mode `0644`; no security/undo; the `replace_text` whole-file-read hazard) and move `write_file`/`replace_text` **out of** the *Not Introduced Yet* write-tools bullet (leaving `append_text`/`undo_file_change` deferred; `delete_path`/`create_directory` remain non-goals).
+- `specs/truth/techstack.md` → **MODIFY**: add a **Write filesystem tools** row to the agent tool surface (`write_file` **atomic create-only** via `os.Link`/`EEXIST`; `replace_text` strict-unique + **atomic** via `rename`, with a no-op short-circuit; created-file mode `0644`; **missing** `content` rejected; parent-dir mode `0755`; no security/undo; the `replace_text` whole-file-read hazard; the #62 provider-truncation forward item) and move `write_file`/`replace_text` **out of** the *Not Introduced Yet* write-tools bullet (leaving `append_text`/`undo_file_change` deferred; `delete_path`/`create_directory` remain non-goals).
 - `specs/truth/features/cli/**` → **ADD** the write-tools interface feature + `dsl.md` rows (owned by `/axb-dsl-refine`); **MODIFY** `offering-the-agent-tools.feature` prose (four → **six** tools).
 - `specs/truth/contracts/**` and `specs/truth/data/**` → **NOOP** (no API surface; the write tools persist no state).
