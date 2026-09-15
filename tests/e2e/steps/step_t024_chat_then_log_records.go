@@ -15,7 +15,7 @@ func init() {
 }
 
 // thenSharedLogRecords (必查 權威狀態): the shared log holds {prompt}. 工作區: reads
-// $TELL_ME_HOME/output/global_prompts.jsonl.
+// ~/.tellme/global_prompts.jsonl.
 func thenSharedLogRecords(ctx context.Context, prompt string) error {
 	sc := scenarioFrom(ctx)
 	prompts, err := readPromptLog(sc)

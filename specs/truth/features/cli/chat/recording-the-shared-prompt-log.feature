@@ -1,9 +1,10 @@
 Feature: Recording the shared prompt log
 
   # Interface truth (CLI end, `chat` module). An `-i` interactive submission is recorded in the
-  # shared, append-only prompt log at $TELL_ME_HOME/output/global_prompts.jsonl (the same file the
-  # other personas use); a one-shot or piped run writes nothing. Acceptance journey:
-  # features/acceptance/sharing-the-prompt-log.feature.
+  # shared, append-only prompt log at ~/.tellme/global_prompts.jsonl (the per-user log, shared across
+  # every environment/repository/mode — round 028 moved it out of $TELL_ME_HOME/output/); a one-shot
+  # or piped run reads and writes nothing. Acceptance journey:
+  # features/acceptance/sharing-prompts-across-environments.feature.
 
   Rule: An interactive submission records the prompt in the shared prompt log
 

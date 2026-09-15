@@ -13,9 +13,13 @@ Project "tellme_local_state" {
   resumed session replays the step faithfully. Round 027 adds `calls`: the turn's AI-endpoint-call count
   (provider inference rounds), summed across the active session to number the round-017 turn header. The record is
   `{prompt, answer, calls, steps:[{tool, arguments, result, signature?}]}`.
-  The global prompt log (round 015): the shared, append-only prompt log at the `output/` root
-  ($TELL_ME_HOME/output/global_prompts.jsonl), shared across modes/personas with tell-me-go, written
-  only under `-i`, and read newest-first + deduplicated to seed interactive suggestions.
+  The global prompt log (round 015; relocated round 028): the shared, append-only prompt log now at the
+  USER home (~/.tellme/global_prompts.jsonl, resolved via os.UserHomeDir() — the same user-global root
+  as the round-026 tool-usage log), shared across every environment/repository/mode, written only under
+  `-i`, and read newest-first + deduplicated to seed interactive suggestions. When the file is absent it
+  is seeded with a verbatim copy of the environment-scoped $TELL_ME_HOME/output/global_prompts.jsonl
+  (copy, not move; never overwritten; a missing source starts empty); tellme no longer shares it with
+  tell-me-go.
   The per-mode API-call usage log (round 018): one JSON record per provider call at
   $TELL_ME_HOME/output/<mode>/tokens.log, appended after every call in a turn and summed to give the
   session's token totals + cost for the post-turn status lines; `--new` archives/rotates it.
@@ -77,7 +81,7 @@ Table prompt_log_entry {
     (timestamp, prompt) [pk]
   }
 
-  Note: 'One recorded operator prompt in the shared, append-only global prompt log (round 015) — one JSON object per line, `{"timestamp":"<RFC3339>","prompt":"<text>"}` (both fields string). The file lives at the `output/` ROOT of the runtime home (`$TELL_ME_HOME/output/global_prompts.jsonl`) — shared across modes/personas with tell-me-go (not `output/<mode>/`), so lines must round-trip byte-for-byte with that tool. Written ONLY for an `-i` interactive submission; a non-`-i` run (positional/piped/non-interactive) writes nothing. The write is append-only (`O_APPEND|O_CREATE`) and must never truncate or rewrite lines another writer added; no cross-process `flock` is taken. Reads scan backwards newest-first, deduplicating by `prompt` text and bounded by the interactive suggestion cap. A best-effort async compaction (performed inside the append lock, optimistic size-checked) rewrites the file to keep the newest ≤1200 unique prompts once it grows past ≈150 KiB. Distinct from the per-session `history_entry`/`history_step` store — this log is prompt-only and not session-scoped.'
+  Note: 'One recorded operator prompt in the shared, append-only global prompt log (round 015) — one JSON object per line, `{"timestamp":"<RFC3339>","prompt":"<text>"}` (both fields string). The file lives at the USER home (`~/.tellme/global_prompts.jsonl`, resolved via `os.UserHomeDir()`) — the user-global `~/.tellme/` root (round 028), shared across every environment/repository/mode and NOT with tell-me-go (which keeps the environment-scoped `$TELL_ME_HOME/output/global_prompts.jsonl`). When the file is absent it is seeded with a VERBATIM copy of the environment-scoped `$TELL_ME_HOME/output/global_prompts.jsonl` (copy, not move; never overwrites an existing destination; a missing source starts empty). Written ONLY for an `-i` interactive submission; a non-`-i` run (positional/piped/non-interactive) reads and writes nothing. The write is append-only (`O_APPEND|O_CREATE`) and must never truncate or rewrite lines another writer added; no cross-process `flock` is taken. Reads scan backwards newest-first, deduplicating by `prompt` text and bounded by the interactive suggestion cap. A best-effort async compaction (performed inside the append lock, optimistic size-checked) rewrites the file to keep the newest ≤1200 unique prompts once it grows past ≈150 KiB. Distinct from the per-session `history_entry`/`history_step` store — this log is prompt-only and not session-scoped.'
 }
 
 Table usage_record {
