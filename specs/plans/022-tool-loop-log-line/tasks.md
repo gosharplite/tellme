@@ -22,7 +22,7 @@
 
 **Goal**: 建立本輪 formatter／clock seam 與 stepdef／`[UNIT]` 落點骨架（Zero Shared Edits 原則），讓 Phase 3 / Phase 4 不各自發明檔案或 seam。只建立落點與載體，不寫行為。
 
-- [ ] T001 建立 `internal/ui` tool-log formatter 落點、`formatClock` 共用、與 `AgentLoop` clock seam 骨架
+- [X] T001 建立 `internal/ui` tool-log formatter 落點、`formatClock` 共用、與 `AgentLoop` clock seam 骨架
   - Read:
     - `specs/truth/techstack.md` -> CLI Application（Agent tool loop；Pure-helper unit tests）
     - `specs/plans/022-tool-loop-log-line/research.md` -> Decision 1, 2；`## Review fold — PR #50`（R2）
@@ -30,7 +30,7 @@
   - 只做：新增 `internal/ui/toollog.go`，宣告 `func FormatToolLog(t time.Time, name, reason string) string` 空殼（`return ""`）；抽出 `func formatClock(t time.Time) string`（R2）並讓既有 `FormatPayloadStatus`（`status.go`）／`FormatInputCaptured`（`turn.go`）／`FormatMetrics`（`metrics.go`）共用（行為不變，PR #50 review 2 R-1 要求一併納入 `FormatMetrics`）；在 `AgentLoop` 新增 `Now func() time.Time` 欄位（含 nil→`time.Now` 的 `now()` helper 空殼）。
   - 不做：不實作 log 行格式字串；不改 `logStep` 輸出；不動 CLI blank-line；不寫斷言。
 
-- [ ] T002 建立 stepdef／`[UNIT]` 落點檔骨架
+- [X] T002 建立 stepdef／`[UNIT]` 落點檔骨架
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（本輪 2 個 MODIFY 句 + 6 個新句）
     - `tests/e2e/steps/register.go`、`tests/e2e/steps/scenario_context.go`
@@ -72,51 +72,51 @@
 
 ### BDD-ALIGN（既有 tool-loop log 句對齊新形狀）
 
-- [ ] T003 [P] [BDD-ALIGN] `Then: the run reported the reason "{reason}" for the tool call "{tool}"`
+- [X] T003 [P] [BDD-ALIGN] `Then: the run reported the reason "{reason}" for the tool call "{tool}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then（新形狀 `[HH:MM:SS] [Tool] <tool> - <reason>`）
   - Landing: `tests/e2e/steps/step_r021_t027_chat_then_reason_echo.go`
   - 動作：改為斷言 `stderr` 帶 `[HH:MM:SS] [Tool] <tool name> - <reason>` 形狀的行（reason 為 ` - ` 尾），且**不含** `arguments=`／`result=`。
 
-- [ ] T004 [P] [BDD-ALIGN] `Then: the run reported the tool call "{tool}" on its diagnostic output`
+- [X] T004 [P] [BDD-ALIGN] `Then: the run reported the tool call "{tool}" on its diagnostic output`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then（新形狀 `[HH:MM:SS] [Tool] <tool name>`）
   - Landing: `tests/e2e/steps/step_t016_chat_then_reported_tool_call.go`
   - 動作：改為斷言 `stderr` 帶 `[HH:MM:SS] [Tool]` 前綴且命名 `{tool}` 的行；不含 `arguments=`／`result=`。
 
 ### BDD-RED（本輪新增句型）
 
-- [ ] T005 [P] [BDD-RED] `Then: the run reported the tool call "{tool}" without a reason`
+- [X] T005 [P] [BDD-RED] `Then: the run reported the tool call "{tool}" without a reason`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then
   - Landing: `tests/e2e/steps/step_r022_t005_chat_then_tool_no_reason.go`
   - 語意：`stderr` 帶 `[HH:MM:SS] [Tool] <tool name>` 行命名 `{tool}` 且**無** reason 尾（無 ` - `）。
 
-- [ ] T006 [P] [BDD-RED] `Then: the run reported one tool-loop log line for each tool call`
+- [X] T006 [P] [BDD-RED] `Then: the run reported one tool-loop log line for each tool call`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then
   - Landing: `tests/e2e/steps/step_r022_t006_chat_then_one_line_per_call.go`
   - 語意：`[HH:MM:SS] [Tool] …` 行的數量等於該回合工具呼叫數（每呼叫恰一行，不合併、不重複）。
 
-- [ ] T007 [P] [BDD-RED] `Then: the tool report is separated from the answer`
+- [X] T007 [P] [BDD-RED] `Then: the tool report is separated from the answer`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then（merged capture）
   - Landing: `tests/e2e/steps/step_r022_t007_chat_then_tool_report_separated.go`
   - 語意：在 merged (`stdout`+`stderr`) capture 中，最後一條 `[HH:MM:SS] [Tool] …` 行與答案位元組之間恰隔一個空行。
 
-- [ ] T008 [P] [BDD-RED] `Then: the run reported the tool calls in order "{tool_a}" and "{tool_b}"`
+- [X] T008 [P] [BDD-RED] `Then: the run reported the tool calls in order "{tool_a}" and "{tool_b}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then（TD3）
   - Landing: `tests/e2e/steps/step_r022_t008_chat_then_tool_calls_in_order.go`
   - 語意：`stderr` 帶 `[HH:MM:SS] [Tool] {tool_a}` 行**先於** `[HH:MM:SS] [Tool] {tool_b}` 行。
 
-- [ ] T009 [P] [BDD-RED] `Then: the tool loop added no blank line before the answer`
+- [X] T009 [P] [BDD-RED] `Then: the tool loop added no blank line before the answer`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then（B1；merged capture）
   - Landing: `tests/e2e/steps/step_r022_t009_chat_then_tool_no_blank.go`
   - 語意：merged capture 中，答案位元組**不**緊接一個空行（答案前的位元組是前一診斷行的換行，而非空行）。
 
-- [ ] T010 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint shows the folder tree and then reads "{path}" and then answers with "{answer}"`
+- [X] T010 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint shows the folder tree and then reads "{path}" and then answers with "{answer}"`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Given（TD3；三段式 tree → read → answer）
   - Landing: `tests/e2e/steps/step_r022_t010_chat_given_tree_then_read.go`
   - 語意：fake 依序回 `get_tree` 呼叫、`read_files` 呼叫（for `{path}`）、答案 `{answer}`。
 
 ### UNIT（非 DSL 的單元斷言）
 
-- [ ] T011 [P] [UNIT] `internal/ui.FormatToolLog` formatter（+ `formatClock`）
+- [X] T011 [P] [UNIT] `internal/ui.FormatToolLog` formatter（+ `formatClock`）
   - Read:
     - `specs/plans/022-tool-loop-log-line/research.md` -> Decision 1, 2；`## Review fold — PR #50`（R2）
     - `specs/truth/techstack.md` -> CLI Application（Agent tool loop；Pure-helper unit tests）
@@ -124,14 +124,14 @@
   - 撰寫：以注入的固定時間斷言 `[HH:MM:SS] [Tool] <name> - <reason>`（含 reason）；無 reason 時為 `[HH:MM:SS] [Tool] <name>`（無 ` - ` 尾）；時間格式為 `15:04:05`；`formatClock` 與 `FormatPayloadStatus`／`FormatInputCaptured`／`FormatMetrics` 共用同一時鐘格式（R2 + review 2 R-1）。
   - 落點：`internal/ui/toollog_test.go`。
 
-- [ ] T012 [P] [UNIT] `AgentLoop.logStep` 行形狀（新 `[Tool]` 行 + clock seam）
+- [X] T012 [P] [UNIT] `AgentLoop.logStep` 行形狀（新 `[Tool]` 行 + clock seam）
   - Read: `specs/plans/022-tool-loop-log-line/research.md` -> Decision 1, 2, 3, 4；`internal/agent/agentloop.go`
   - 撰寫：`AgentLoop` 搭配注入的 `Now`，`stderr` 帶 `[HH:MM:SS] [Tool] <name> - <reason>`；**不含** `arguments=`／`result=`；無 reason 時為 `[HH:MM:SS] [Tool] <name>`。
   - 落點：`internal/agent/agentloop_reason_test.go`（更新既有檔至新形狀）。
 
 ### Phase Review Gate
 
-- [ ] T013 subagent review (phase quality gate)
+- [X] T013 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/watching-the-tool-loop.feature`、`specs/truth/features/cli/chat/dsl.md`
     - `tests/e2e/steps/*.go`（含 `step_r022_t0{05,06,07,08,09,10}_*.go`、`step_r021_t027_*.go`、`step_t016_*.go`）
@@ -160,8 +160,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/watching-the-tool-loop.feature`
 
-- [ ] T014 [BDD-GREEN] 讓 Test Scope 全綠（並使 T011／T012 的 `[UNIT]` 轉綠）
-- [ ] T015 [BDD-REFACTOR] 在綠燈下整理 `logStep`／`FormatToolLog`／blank-line emit 落點
+- [X] T014 [BDD-GREEN] 讓 Test Scope 全綠（並使 T011／T012 的 `[UNIT]` 轉綠）
+- [X] T015 [BDD-REFACTOR] 在綠燈下整理 `logStep`／`FormatToolLog`／blank-line emit 落點
 
 ## Phase 4B: Regression
 
@@ -170,7 +170,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`（chat、history、configuration、workspace、diagnostics、usage 全模組）
 
-- [ ] T016 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T016 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`、`verify-cross-compile`）與 `go test -count=1 ./...`（含 godog）。
   - **重檢既有 ordering Thens**（round-010/017）：`the tool activity is reported before the answer`、`the turn frame is separated from the answer`（因本輪改了每個 tool-using turn 的 `stderr`）。
   - **可偽性見證**（各觀察失敗後還原）：
