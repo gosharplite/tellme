@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	domainhistory "github.com/gosharplite/tellme/internal/domain/history"
@@ -26,6 +27,11 @@ const toolUsageFileName = "tools-count.jsonl"
 // and the reader is resilient to malformed/torn lines.
 type ToolUsageStore struct {
 	homeDir func() (string, error)
+
+	// mkdirOnce hoists the `~/.tellme/` creation to once per store (the first
+	// Record), so a turn with k tool calls pays one MkdirAll, not k.
+	mkdirOnce sync.Once
+	mkdirErr  error
 }
 
 var _ domainhistory.ToolUsageSink = (*ToolUsageStore)(nil)
@@ -60,7 +66,7 @@ func (s *ToolUsageStore) Record(tool string, outcome domainhistory.ToolOutcome) 
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+	if err := s.ensureDir(filepath.Dir(p)); err != nil {
 		return err
 	}
 	rec := domainhistory.ToolUsageRecord{
@@ -80,17 +86,26 @@ func (s *ToolUsageStore) Record(tool string, outcome domainhistory.ToolOutcome) 
 		_ = f.Close()
 		return err
 	}
-	if err := f.Sync(); err != nil {
-		_ = f.Close()
-		return err
-	}
+	// No f.Sync(): the log is best-effort (FR-004 — a lost tail on crash is
+	// acceptable), and one fsync per record in the loop's hot path buys nothing
+	// the spec asks for. Durability is left to the OS (round 018 batches once per
+	// turn — implementation review A).
 	return f.Close()
+}
+
+// ensureDir creates the log directory once per store (the first Record).
+func (s *ToolUsageStore) ensureDir(dir string) error {
+	s.mkdirOnce.Do(func() { s.mkdirErr = os.MkdirAll(dir, 0o755) })
+	return s.mkdirErr
 }
 
 // Aggregate streams the log in ONE pass into per-tool counts — O(tools) memory,
 // never materialising every record (round 026 NFR-001 / research D2). A missing
-// log is an empty aggregate; a malformed/torn line is SKIPPED best-effort; an
-// unresolvable home is treated as empty. It never fails on log content.
+// log (or an unresolvable home) is an empty aggregate; a malformed/torn line is
+// SKIPPED best-effort (it never fails on log CONTENT — FR-012). A GENUINE open
+// failure (e.g. a permission error) is RETURNED so the caller can diagnose it
+// rather than silently reporting all-zero — "unreadable" must be distinguishable
+// from "never used" (implementation review C/D).
 func (s *ToolUsageStore) Aggregate() (map[string]ToolUsageCounts, error) {
 	counts := map[string]ToolUsageCounts{}
 	p, err := s.path()
@@ -100,11 +115,9 @@ func (s *ToolUsageStore) Aggregate() (map[string]ToolUsageCounts, error) {
 	f, err := os.Open(p)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return counts, nil
+			return counts, nil // no log yet → empty
 		}
-		// A read failure degrades to an empty report rather than failing the
-		// command (the report never fails on log content).
-		return counts, nil
+		return counts, err
 	}
 	defer func() { _ = f.Close() }()
 

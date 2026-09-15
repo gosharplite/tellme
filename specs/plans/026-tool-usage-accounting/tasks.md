@@ -37,7 +37,7 @@
     - `specs/truth/data/data-model.dbml` -> `tool_usage_record`、`tool_usage_outcome`
     - `specs/truth/techstack.md` -> CLI Application（Tool-usage accounting）
     - `internal/domain/history/usage.go`（the round-018 `UsageStore` port — the shape precedent；**本檔不動**）
-  - 只做：**新增** `internal/domain/history/tool_usage.go`，定義 `ToolUsageRecord`（`Timestamp`, `Tool`, `Outcome`；JSON tags 對齊 DBML）、an outcome 型別／列舉（`ok`/`error`/`timeout`），以及 port `ToolUsageSink interface { Record(ToolUsageRecord) error }`。純型別與介面，無 I/O。**不**改 `usage.go`（review F7）。
+  - 只做：**新增** `internal/domain/history/tool_usage.go`，定義 `ToolUsageRecord`（`Timestamp`, `Tool`, `Outcome`；JSON tags 對齊 DBML — 這是 log 的**持久化形狀**，供 store 的 marshal/`Load` 使用）、an outcome 型別／列舉（`ok`/`error`/`timeout`），以及 port `ToolUsageSink interface { Record(tool string, outcome ToolOutcome) error }`（**shipped** signature；adapter 蓋 timestamp、建 `ToolUsageRecord`，loop 不自己造 timestamp — reconciled post-implementation, implementation review B）。純型別與介面，無 I/O。**不**改 `usage.go`（review F7）。
   - 不做：不實作檔案 adapter、不寫 loop 分類邏輯、不加相依。
 
 - [X] T002 建立 the file-backed `ToolUsageSink` adapter 骨架（**新檔** `internal/infrastructure/history/tool_usage_store.go`）

@@ -176,8 +176,10 @@ var newUsageStore usageStoreFactory = func(workspace string) history.UsageStore 
 var userHomeDir = os.UserHomeDir
 
 // toolUsageStoreFactory builds the user-global tool-usage log adapter (round
-// 026). It mirrors newUsageStore so the presentation layer never couples to the
-// concrete file adapter.
+// 026). Unlike historyStoreFactory/usageStoreFactory it returns the CONCRETE
+// adapter rather than a domain interface: the offline report needs Aggregate()
+// (the streaming reader), which is not on the sink port (the loop only needs
+// Record) — implementation review E records the reason at the seam.
 type toolUsageStoreFactory func() *infrhistory.ToolUsageStore
 
 // newToolUsageStore is the production tool-usage-store factory (a var so tests
@@ -914,7 +916,7 @@ func dispatchReporting(opts *options, homeDir string, env runtimeEnv) (int, bool
 	// --tool-usage is the offline tool-usage report: like --version it needs no
 	// configuration, no TELL_ME_HOME, and no workspace (round-026 FR-006).
 	if opts.toolUsage {
-		return renderToolUsage(env.stdout), true
+		return renderToolUsage(env), true
 	}
 	return 0, false
 }
@@ -923,11 +925,17 @@ func dispatchReporting(opts *options, homeDir string, env runtimeEnv) (int, bool
 // it enumerates the LIVE registry, streams the user-global tool-usage log into
 // per-tool counts, and writes plain text to stdout. It is `--version`-class — it
 // requires neither a configuration, nor TELL_ME_HOME, nor a session workspace.
-func renderToolUsage(stdout io.Writer) int {
+//
+// A GENUINE read failure of the log is surfaced as a one-line diagnostic on the
+// diagnostic stream (the report path is offline, so stderr is free), so an
+// unreadable log is distinguishable from "no tool ever used"; the all-zero report
+// still prints and the command succeeds.
+func renderToolUsage(env runtimeEnv) int {
 	reg := newToolRegistry()
 	tools := reg.Tools()
 	counts, err := newToolUsageStore().Aggregate()
 	if err != nil {
+		_, _ = fmt.Fprintf(env.stderr, "[tool-usage] could not read the usage log: %v\n", err)
 		counts = nil
 	}
 	rows := make([]ui.ToolUsageRow, 0, len(tools))
@@ -935,7 +943,7 @@ func renderToolUsage(stdout io.Writer) int {
 		c := counts[t.Name()] // zero value when the tool has no records
 		rows = append(rows, ui.ToolUsageRow{Tool: t.Name(), OK: c.OK, Error: c.Error, Timeout: c.Timeout})
 	}
-	_, _ = fmt.Fprint(stdout, ui.FormatToolUsage(rows))
+	_, _ = fmt.Fprint(env.stdout, ui.FormatToolUsage(rows))
 	return Success
 }
 
