@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-15 (day close, session 8; later: **#47 closed `not_planned`** — see `techstack.md` → *Not Introduced Yet*) — **round 026 `026-tool-usage-accounting` DELIVERED / FROZEN**: PR [#57](https://github.com/gosharplite/tellme/pull/57) **MERGED** into `dev` (`9d62379`, by `gosharplite`, 2026-09-15T11:15:01Z); round-026 head frozen at **`672a226`**; propagated `dev → main` (no-ff). Round-025 detail relocated to the archive (Rule 12); rounds 001–024 live in the archives.
+**Last updated**: 2026-09-15 (day close, session 9: **#47 closed `not_planned`** — decision recorded in [`techstack.md`](specs/truth/techstack.md) → *Not Introduced Yet*) — **round 026 `026-tool-usage-accounting` DELIVERED / FROZEN**: PR [#57](https://github.com/gosharplite/tellme/pull/57) **MERGED** into `dev` (`9d62379`, by `gosharplite`, 2026-09-15T11:15:01Z); round-026 head frozen at **`672a226`**; propagated `dev → main` (no-ff). Round-025 detail relocated to the archive (Rule 12); rounds 001–024 live in the archives.
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
 **Active branch**: `dev` (round 026 delivered; the next round starts a fresh `027-*` off `dev`)
 **Daily log**: [`docs/session-summary/2026/09/15/session-summary.md`](docs/session-summary/2026/09/15/session-summary.md)
