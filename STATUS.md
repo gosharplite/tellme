@@ -1,10 +1,24 @@
 # tellme — Status
 
-**Last updated**: 2026-09-15 (day close) — **round 024 `024-tool-resource-contract-and-execute-command` DELIVERED / FROZEN**: PR [#54](https://github.com/gosharplite/tellme/pull/54) **MERGED** into `dev` (`a59ccad`, by `thptcnec`, 2026-09-15T07:31:25Z); round-024 head frozen at **`2f1dd84`**; propagated `dev → main` (no-ff). Round 023 detail relocated to the archive (Rule 12 — older rounds 001–022 also live in the archives).
+**Last updated**: 2026-09-15 (**round 025 `025-spinner-width-safety` in progress** — implementation half complete) — **round 024 `024-tool-resource-contract-and-execute-command` DELIVERED / FROZEN**: PR [#54](https://github.com/gosharplite/tellme/pull/54) **MERGED** into `dev` (`a59ccad`, by `thptcnec`, 2026-09-15T07:31:25Z); round-024 head frozen at **`2f1dd84`**; propagated `dev → main` (no-ff). Round 023 detail relocated to the archive (Rule 12 — older rounds 001–022 also live in the archives).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
-**Active branch**: `dev`
+**Active branch**: `025-spinner-width-safety` (round 025 in progress)
 **Daily log**: [`docs/session-summary/2026/09/15/session-summary.md`](docs/session-summary/2026/09/15/session-summary.md)
 **Archive**: [`2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012) · [`2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–019) · [`2026-09-15.md`](docs/archives/status/2026-09-15.md) (rounds 020–023).
+
+## Round 025 — `025-spinner-width-safety` (in progress)
+
+**Status**: 🚧 **IMPLEMENTED (pending review/merge)** — plan + truth + implementation half complete. Branch `025-spinner-width-safety` off `dev`. Anchor issue [#55](https://github.com/gosharplite/tellme/issues/55) — the spinner tool-phase label enumerates every tool name → over-wide line (clipped CPU/MEM; wrap defeats the teardown clear).
+
+**Scope**: a defect fix on the round-019 spinner (**both** defects): (1) **bound** the several-tool label (` Executing tools [<first> and <N-1> more]...`; the single-tool / no-names forms unchanged); (2) **width-safe clear** — track the last frame's rendered-row count and erase **every** occupied row. Operator-locked: **Q1 → 1** (fix both) · **Q2 → 1** (row-tracking erase). Reference finding: `tell-me-go` has the same two defects — no upstream fix to port; both are deliberate divergences.
+
+**Pipeline**: specify ✅ · spec-by-example ✅ · research ✅ · system-analysis ✅ · dsl-refine ✅ · tasks ✅ · **implement ✅** (T001–T011 all `[X]`; `make verify` OK · godog **167/167** (0 undefined) · topology audit PASSED).
+
+**Artifacts**: `spec.md` (US1–US2 · FR-001–007 · NFR-001–003), `checklists/requirements.md` (ready), `features/acceptance/keeping-the-spinner-width-safe.feature`, `research.md` (D1–D4), `plan.md` (1 interface → `/axb-dsl-refine`; api/data NOOP; ui skipped), `tasks.md` (T001–T011), `truth-delta.md`. **Truth**: `techstack.md` MODIFY (spinner row + `TELL_ME_FORCE_STDERR_COLS` seam + unit-tests row); `chat/presenting-the-progress-spinner.feature` MODIFY (several-tool Then bounded + a residue Rule); `chat/dsl.md` MODIFY (+2 / −1 / round-025 note); root `cli/dsl.md` NOOP.
+
+**Verification**: topology audit **PASSED** (38 features · 15 root + **237** module rows · **1202** steps). `make verify` **OK** (no test-sleep · offline witness · cross-compile 4/4 · `golangci-lint` 0 issues · `govulncheck` clean); godog **167/167 scenarios · 1226/1226 steps** (0 undefined); **falsifiability witnesses** reproduced (bounded label · row-aware clear).
+
+---
 
 ## Round 024 — `024-tool-resource-contract-and-execute-command` (delivered / frozen)
 
@@ -71,14 +85,15 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 
 ## Roadmap — next slices
 
-> **Direction (2026-09-15)** — no security · no Windows · **bash-first** · a deliberately small tool surface (see [`README.md`](README.md#-design-intent--direction-operator-declared)). Slice **024** ([#52](https://github.com/gosharplite/tellme/issues/52), **delivered**) = the tool resource contract + `execute_command` + reader retrofit; slice **025** ([#53](https://github.com/gosharplite/tellme/issues/53)) = tool-usage accounting (next); a candidate = the spinner-label fix [#55](https://github.com/gosharplite/tellme/issues/55).
+> **Direction (2026-09-15)** — no security · no Windows · **bash-first** · a deliberately small tool surface (see [`README.md`](README.md#-design-intent--direction-operator-declared)). Slice **024** ([#52](https://github.com/gosharplite/tellme/issues/52), **delivered**) = the tool resource contract + `execute_command` + reader retrofit; slice **025** ([#55](https://github.com/gosharplite/tellme/issues/55), branch `025-spinner-width-safety`, **in PR [#56](https://github.com/gosharplite/tellme/pull/56)**) = the spinner-label/bounded-clear fix; the next slice ([#53](https://github.com/gosharplite/tellme/issues/53)) = tool-usage accounting.
 
 | Slice | Issue | Scope | Status |
 | --- | --- | --- | --- |
 | **003–023** | — | Provider-registry completeness → … → the `-i` teardown & submit-surface parity. | ✅ **Delivered** (see the delivered-rounds index) |
 | **023 interactive prompt teardown** | [#51](https://github.com/gosharplite/tellme/pull/51) | Clear the `-i` editor frame on submit/abort and resume the standard turn surface (echoed prompt + chrome + spinner + post-turn status). | ✅ **Delivered** — round 023 (PR [#51](https://github.com/gosharplite/tellme/pull/51)) |
 | **024 tool resource contract + `execute_command` + reader retrofit** | [#52](https://github.com/gosharplite/tellme/issues/52) | The cross-cutting **token bound + timeout** contract (uniform per-tool params: **default + param + ceiling**, loop-enforced; bound from the **effective budget** = `min(MAX_HISTORY_TOKENS, the model's configured window)` → default `÷4`, ceiling `÷2`) + **add `execute_command`** (bash-first `bash -c`, bounded, **process-group** timeout, no `pipe_commands`, no security) + **retrofit the readers** (whole-file reads; fixed 1 MiB/100000 caps retired). Issue [#49](https://github.com/gosharplite/tellme/issues/49) resolved (**config-gated**). | ✅ **Delivered** — round 024 (PR [#54](https://github.com/gosharplite/tellme/pull/54)) |
-| **025 tool-usage accounting** | [#53](https://github.com/gosharplite/tellme/issues/53) | Count per-tool **pass / fail** (and invocation) usage across a run/session — the empirical instrument for seeing which tools the AI actually uses and which fail, and for tuning defaults / pruning the surface with evidence. | 📋 **Queued** (after 024) |
+| **025 spinner width-safety** | [#55](https://github.com/gosharplite/tellme/issues/55) | The spinner tool-phase label enumerates every tool name → over-wide line (clipped CPU/MEM; a wrapped frame defeats the single-row teardown clear). Fix: **bound** the several-tool label (` Executing tools [<first> and <N-1> more]...`) + a **width-safe clear** (row-aware erase). | 🚧 **In PR [#56](https://github.com/gosharplite/tellme/pull/56)** (branch `025-spinner-width-safety`) |
+| **tool-usage accounting** | [#53](https://github.com/gosharplite/tellme/issues/53) | Count per-tool **pass / fail** (and invocation) usage across a run/session — the empirical instrument for seeing which tools the AI actually uses and which fail, and for tuning defaults / pruning the surface with evidence. | 📋 **Queued** (next candidate) |
 | **future slices (candidates)** | [#47](https://github.com/gosharplite/tellme/issues/47) · [#55](https://github.com/gosharplite/tellme/issues/55) · [#13](https://github.com/gosharplite/tellme/issues/13) | **Concurrent tool-call matching** ([#47](https://github.com/gosharplite/tellme/issues/47)) — parallel tool execution in the agent loop (`MAX_CONCURRENT_TOOLS`-bounded), one-batch feedback (survivor of the closed [#36](https://github.com/gosharplite/tellme/issues/36)); the **spinner-label over-width fix** ([#55](https://github.com/gosharplite/tellme/issues/55) — clipped CPU/MEM + wrap defeating the teardown clear; round-019 territory); **coverage tooling** ([#13](https://github.com/gosharplite/tellme/issues/13)). Plus the carried forward items below. | ⏳ **Candidates** (not started) |
 
 ## Open items (non-blocking)

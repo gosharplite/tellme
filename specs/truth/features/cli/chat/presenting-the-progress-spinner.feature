@@ -62,8 +62,20 @@ Feature: Presenting the progress spinner
       And the diagnostics are shown at a terminal
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and "todo.txt" and then answers with "all good"
       When the operator starts tellme with the prompt "read the notes and the todo"
-      Then the progress spinner names every tool it is running
+      Then the progress spinner names the first tool and counts the remaining tools
       And the progress spinner reports the machine's resource usage
+      And tellme exits successfully
+
+  Rule: The spinner leaves no residue on a terminal narrower than its line
+
+    Example: The turn runs several tools on a narrow terminal
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the diagnostics are shown at a terminal narrower than the indicator line
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and "todo.txt" and then answers with "all good"
+      When the operator starts tellme with the prompt "read the notes and the todo"
+      Then the progress indicator is cleared from every row it occupied
+      And the progress spinner no longer appears once the answer is written
       And tellme exits successfully
 
   Rule: The spinner yields the line to the answer
