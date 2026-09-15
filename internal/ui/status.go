@@ -22,5 +22,5 @@ func FormatPayloadStatus(t time.Time, tokens, budget int, mode, model string, es
 		tilde = "~"
 	}
 	return fmt.Sprintf("[%s] Payload: %s%d/%d tokens - %s - %s",
-		t.Format("15:04:05"), tilde, tokens, budget, mode, model)
+		formatClock(t), tilde, tokens, budget, mode, model)
 }

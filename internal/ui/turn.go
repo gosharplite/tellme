@@ -23,7 +23,7 @@ const turnGlyph = "⠿"
 // (no trailing newline): `[HH:MM:SS] Input captured. Processing...`. The
 // timestamp comes from the caller's injected clock seam.
 func FormatInputCaptured(t time.Time) string {
-	return fmt.Sprintf("[%s] Input captured. Processing...", t.Format("15:04:05"))
+	return fmt.Sprintf("[%s] Input captured. Processing...", formatClock(t))
 }
 
 // turnRule is the reference's fixed-width horizontal rule, computed once at
