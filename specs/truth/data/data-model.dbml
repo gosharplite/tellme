@@ -18,14 +18,24 @@ Project "tellme_local_state" {
   The per-mode API-call usage log (round 018): one JSON record per provider call at
   $TELL_ME_HOME/output/<mode>/tokens.log, appended after every call in a turn and summed to give the
   session's token totals + cost for the post-turn status lines; `--new` archives/rotates it.
-  Neither artifact is a relational database — this DBML pins the record shapes and lifecycles so the CLI
-  contract, the interface feature truth, and the implementation share a single model.
+  The global tool-usage log (round 026): one JSON record per EXECUTED agent-tool invocation at
+  ~/.tellme/tools-count.jsonl — a user-global, append-only log (shared across repos/envs/personas; the
+  only artifact here that lives OUTSIDE $TELL_ME_HOME) recording {timestamp, tool, outcome}; it is never
+  reset by `--new`.
+  None of these artifacts is a relational database — this DBML pins the record shapes and lifecycles so
+  the CLI contract, the interface feature truth, and the implementation share a single model.
   '''
 }
 
 Enum history_location {
   active
   archived
+}
+
+Enum tool_usage_outcome {
+  ok
+  error
+  timeout
 }
 
 Table history_entry {
@@ -86,6 +96,15 @@ Table usage_record {
   }
 
   Note: 'One provider call''s recorded usage in the per-mode API-call usage log (round 018) — a single JSON object per line, `{"timestamp","provider","model","cached_tokens","prompt_tokens","response_tokens","total_tokens","thinking_tokens","cost"}`, appended to `$TELL_ME_HOME/output/<mode>/tokens.log` (the same per-mode workspace as `history.jsonl`). Append-only and ordered: `position` is the 1-based line ordinal (the record identity — no id is stored) and row order is call order. Written after EVERY provider call in a turn — the prompt completion and each tool-loop call — so the just-returned call is the last line. `cached_tokens` and `thinking_tokens` are the provider-reported cache-hit and reasoning counts (0 when the provider omits them); `prompt_tokens` INCLUDES the cached portion (so miss = prompt − cached); `total_tokens = prompt + response + thinking`; `cost` is the call cost computed from the config `MODELS` pricing table (0 when the model is un-priced). The session summary (`╰─⠿ Ready`, emitted on `stderr`) sums the whole file — session miss/cached/output token totals, session cost, and the cache-hit rate `cached/(miss+cached)`; the metrics line reports the last line. `--new` moves active records to `archived` (the archived file `tokens.archive.jsonl`, alongside `history.archive.jsonl`), so a fresh session starts with an empty active log. (Forward note: the per-mode directory now rotates two files — `history.jsonl` and `tokens.log` — with no cross-file atomicity and no `flock`; acceptable single-process, revisited if concurrent writers arrive.) Distinct from `history_entry`/`history_step` (the conversation) and `prompt_log_entry` (the shared prompt log). The log is a local audit/roll-up only — it never feeds the request payload. A companion `tokens.summary.json` in the same directory holds the incremental cumulative roll-up (session miss/hit/out + cost) the summary line reads in O(1) instead of re-parsing the log; `--new` drops it.'
+}
+
+Table tool_usage_record {
+  position int [pk]
+  timestamp varchar
+  tool varchar
+  outcome tool_usage_outcome
+
+  Note: 'One agent-tool invocation''s recorded outcome in the user-global tool-usage log (round 026) — a single JSON object per line, `{"timestamp":"<RFC3339>","tool":"<wire name>","outcome":"<ok|error|timeout>"}`, appended to `~/.tellme/tools-count.jsonl` (the USER home, resolved via `os.UserHomeDir()` — deliberately OUTSIDE the runtime home: this log is global, shared across repos/envs/personas, unlike every other artifact here, which lives under `$TELL_ME_HOME`). One record per EXECUTED invocation (the tool name resolves in the registry and Execute runs): `outcome` is `ok` (a result — INCLUDING a bounded/truncated one), `error` (the tool returned a non-nil error), or `timeout` (a nil-error result at the per-call deadline — the round-024 FR-018 "stopped at the time limit" path). Append-only (`O_APPEND|O_CREATE`, 0o644); `position` is the 1-based line ordinal (the record identity — no id is stored) and row order is invocation order. Best-effort: an append failure, or an unresolvable user home, is a silent no-op that never breaks a turn. NEVER reset, archived, or truncated by `--new` (a fresh session must not zero the global counters) — unlike the per-mode `usage_record` log, which `--new` rotates. The `--tool-usage` offline report reads the whole file in ONE streaming pass and sums per tool (every registered tool is shown, including zero-use ones, in registry order). Growth is unbounded (compaction is a forward item). Distinct from `history_step` (per-session conversation) and `usage_record` (per-mode provider-call tokens); the log never feeds the request payload.'
 }
 
 Ref: history_step.(location, position) > history_entry.(location, position)
