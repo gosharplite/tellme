@@ -96,3 +96,83 @@
 ## 9. PM follow-ups
 
 - None new (spec/acceptance complete; no PM-owned gaps).
+
+---
+
+## 10. Session 2 (2026-09-15) — round 022 `022-tool-loop-log-line` (plan + truth + implementation) delivered + closeout
+
+A second session on the same calendar day: opened round **022** (reshape the tool-loop `stderr` log line + separate the report from the answer), ran the **plan + truth half**, took PR [#50](https://github.com/gosharplite/tellme/pull/50) through **three plan+truth reviews to FULL APPROVAL**, ran `/axb-implement` (T001–T016), cleared an **implementation review** (blocker B1) with a fold, saw the **human merge** into `dev`, refreshed the installed binary, and ran `SESSION-CLOSEOUT.md`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 021 delivered/frozen; active branch `dev`) |
+| Round-022 theme | reshape the tool-loop `stderr` line to `[HH:MM:SS] [Tool] <name> - <reason>` (drop `arguments=`/`result=`) + one blank line before the answer of a tool-using turn |
+| `/axb-specify` | `specs/plans/022-tool-loop-log-line/`; Clarify **Q1 strict scope · Q2 blank only on tool-using turns · Q3 no-reason ⇒ `[Tool] <name>`** |
+| `/axb-spec-by-example` | 2 acceptance features (`reporting-each-tool-use`, `separating-the-tools-from-the-answer`) |
+| `/axb-technical-research` | `research.md` D1–D8; `specs/truth/techstack.md` MODIFY |
+| `/axb-system-analysis` | `plan.md` — 1 interface (CLI end → `/axb-dsl-refine`); api/data NOOP; ui skipped |
+| `/axb-dsl-refine` | MODIFY `watching-the-tool-loop.feature` + `chat/dsl.md`; audit PASSED |
+| `/axb-tasks` | `tasks.md` T001–T016; orphan sweep 0 |
+| `/axb-implement` | T001–T016 `[X]`; product + tests; `make verify` OK; godog **151/151** |
+| Reviews (PR #50) | plan+truth: APPROVE w/ **B1** → fold `8c38579` → **FULL APPROVAL** `759c761` (R-1) → review-3 sign-off; implementation: **REQUEST CHANGES** (B1 FR-005 folding) → fold `fcbc958` → **FULL APPROVAL — IMPLEMENTATION CERTIFIED** |
+| Merge | PR [#50](https://github.com/gosharplite/tellme/pull/50) **MERGED** into `dev` (`05278a5`, by `thptcnec`, 2026-09-15T01:26:27Z); propagated `dev → main` (no-ff) |
+| Closeout | `go install ./cmd/tellme`; `STATUS.md` split (round-021 detail → `docs/archives/status/2026-09-15.md`); this §10 |
+
+### Work done
+
+1. **Bootstrap (Steps 1–8)** — re-read the pillars; `list_skills`; peers (self `butler`; `architect`/`coder`/`griller`/`pm`/`rd`); `STATUS.md` (active branch `dev`); last-5-days summaries (09/11–09/15). Rounds 001–021 delivered/frozen.
+2. **Plan + truth half** — `/axb-specify` (Q1–Q3) → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks`; PR **#50** opened → `dev`.
+3. **Plan+truth reviews** — APPROVE w/ blocker B1 → fold `8c38579` (negative carrier isolated on the non-chrome `-i` surface; `-i` ungated witness; TD2 documented; ordered Rule/Then + sequential two-tool Given; R1 header) → **FULL APPROVAL** `759c761` (R-1: extend `formatClock` to `FormatMetrics`) → review-3 sign-off.
+4. **`/axb-implement` (T001–T016)** — product: `internal/ui/{clock,toollog}.go`, `internal/ui/{status,turn,metrics}.go` (shared `formatClock`), `internal/agent/agentloop.go` (`logStep` reshape + `Now` seam; observer hooks preserved), `internal/cli/cli.go` (`loop.Now` + the ungated blank line before the answer). Tests: `toollog_test.go`, updated `agentloop_reason_test.go`, E2E `tool_log.go` + 6 new stepdefs + 2 aligned.
+5. **Implementation review** — REQUEST CHANGES (blocker **B1**: FR-005 single-line folding was dropped) → fold `fcbc958` (`cbce7b3` code + docs): `FormatToolLog` folds/trims the reason; `logStep(tc)` (dead `result` dropped) → **FULL APPROVAL — IMPLEMENTATION CERTIFIED**. 8 falsifiability witnesses + the B1 newline-fold unit witness reproduced.
+6. **Delivery + closeout** — PR #50 merged (`05278a5`); `go install ./cmd/tellme`; `SESSION-CLOSEOUT.md` Steps 1–7.
+
+### Decisions locked (round 022)
+
+| # | Decision |
+| --- | --- |
+| Q1 | **strict scope** — only the tool-loop log line + the blank line; the payload line (009/018) and spinner labels (019) untouched |
+| Q2 | the blank line is emitted **only on tool-using turns** (≥1 tool log line) |
+| Q3 | a call with no top-level `reason` renders `[HH:MM:SS] [Tool] <name>` (no dangling separator) |
+| B1 (impl review) | fold the reason to one line in the pure `FormatToolLog` (`strings.TrimSpace(oneLine(reason))`) — FR-005 |
+| TD-1 | drop `logStep`'s dead `result` parameter |
+| nit | `TrimSpace` the reason so a whitespace-only reason takes the no-tail branch |
+
+### Commits (branch `022-tool-loop-log-line`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `831956b` | `docs(022)`: plan package and spec for the tool-loop log line |
+| `3f9ca91` | `docs(022)`: acceptance Gherkin for the tool-loop log line |
+| `c10e880` | `docs(022)`: technical research + techstack truth |
+| `5e4e74e` | `docs(022)`: system-analysis plan |
+| `e2bbc77` | `docs(022)`: CLI interface truth for the tool-loop log line |
+| `0d4f3fd` | `docs(022)`: tasks.md + status — plan half complete |
+| `8c38579` | `docs(022)`: fold PR #50 review (B1/TD1/TD2/TD3/R1/R2) |
+| `759c761` | `docs(022)`: fold PR #50 review 2 (R-1 + impl directives) |
+| `0caff6e` | `feat(022)`: reshape the tool-loop log line and separate it from the answer |
+| `9a25848` | `docs(022)`: tasks [X] + status — implementation delivered |
+| `cbce7b3` | `fix(022)`: fold the tool-log reason to one line (B1) + drop the dead result param (TD-1) |
+| `fcbc958` | `docs(022)`: record the implementation-review fold (B1/TD-1/nit) |
+| `05278a5` | PR [#50](https://github.com/gosharplite/tellme/pull/50) merge into `dev` (by `thptcnec`) |
+
+### Verification (2026-09-15)
+
+`make verify` **OK** (no test-sleep · offline witness · cross-compile **4/4** · `golangci-lint` **0 issues** · `govulncheck` clean) · `go test ./...` green · godog **151/151 scenarios** (0 undefined) · topology audit **PASSED** (36 features · 15 root + **213** module rows · **1087** steps) · `gofmt` clean · `go.mod`/`go.sum` unchanged (stdlib-only) · **8 falsifiability witnesses** + the B1 newline-fold unit witness reproduced.
+
+### Open items (non-blocking)
+
+- **Round-022 forward item** — none new (the reference's decomposed `[Tool Engine]`/`[Tool Reason]`/`[Tool Action]`/`[Tool Result]` shape remains a recorded divergence).
+- Carried: issue [#49](https://github.com/gosharplite/tellme/issues/49) (1 MiB reader cap ↔ `MAX_HISTORY_TOKENS`); PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items.
+- Future-slice candidates: [#47](https://github.com/gosharplite/tellme/issues/47) (**concurrent tool-call matching**); coverage tooling [#13](https://github.com/gosharplite/tellme/issues/13).
+
+### Next steps
+
+1. Choose the `023-*` theme and start it via `/axb-specify` off `dev` (candidates in `STATUS.md` Open items — e.g. [#47](https://github.com/gosharplite/tellme/issues/47)).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; no PM-owned gaps).
