@@ -9,7 +9,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending — round 024)_ | `specs/truth/techstack.md` | Expected **MODIFY**: the agent tool surface description gains the tool resource contract (`max_output_tokens` + `timeout`, default/param/ceiling) and `execute_command` (bash-first); the reader rows move from the fixed 1 MiB / 100000 caps to the params. | Round-024 research decisions (D5–D7). |
+| MODIFY | `specs/truth/techstack.md` | Added a **Tool resource contract (bounds)** row (`max_output_tokens` + `timeout`; default = resolved budget ÷ 4, ceiling = budget; shell timeout 300 s / readers 30 s; ceiling 7200 s; **loop-enforced**) and an **Agent command tool (`execute_command`)** row (bash-first `bash -c`, no `pipe_commands`, no security, non-zero exit = success result, `output_file`/`append`). Reworked the **Read-only filesystem tools** row to retire the fixed 100000-byte / 1 MiB caps in favour of the parameterized aggregate bound (whole-file reads + skip marker; ≤50 kept). Noted the loop as the single contract enforcement point; extended the pure-helper unit-tests row; updated Not-Introduced-Yet (shell tool now introduced; write tools still deferred). | Round-024 research Decisions 1–8. |
 
 ## /axb-api-plan
 
