@@ -9,7 +9,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | `specs/truth/techstack.md` | — | Filled by `/axb-technical-research` (expected MODIFY: move the write tools out of *Not Introduced Yet* into the agent-tool-surface description, and describe the create-only + atomic + strict-unique contract). |
+| MODIFY | `specs/truth/techstack.md` | Added a **Write filesystem tools** row to the CLI-application agent-tool surface — the `write_file` **create-only + atomic** contract and the `replace_text` **strict-unique** contract, no security/consent and no backup/undo, with the deferred/non-goal split (`append_text` / `undo_file_change` deferred; `delete_path` / `create_directory` non-goals). Rewrote the *Not Introduced Yet* write-tools bullet so `write_file` / `replace_text` are no longer listed as deferred. | Round-029 D1–D8: the write pair becomes part of tellme's current tool surface; the truth must reflect the current system (`truth-current`). |
 
 ## /axb-api-plan
 
