@@ -34,20 +34,23 @@ measurement slice: `/axb-ui-plan` is skipped.)*
 internal/
 ├── domain/
 │   └── history/
-│       └── usage.go               # CHANGED — add the ToolUsageSink port + the ToolUsageRecord / outcome type (nil = no-op)
+│       └── tool_usage.go          # NEW — the ToolUsageSink port + the ToolUsageRecord / outcome types (nil = no-op);
+│                                  #   NEW file (usage.go untouched) — adapter co-location w/ the round-018 UsageStore
 ├── agent/
 │   └── agentloop.go               # CHANGED — classify each executed call ok/error/timeout (err + per-call deadline)
 │                                  #   and Record it through the injected sink (best-effort); loop stays fs-free
 ├── infrastructure/
 │   └── history/
 │       └── tool_usage_store.go    # NEW — the file-backed sink adapter over ~/.tellme/tools-count.jsonl
-│                                  #   (os.UserHomeDir; O_APPEND|O_CREATE; append-only JSONL; Load + aggregate)
+│                                  #   (os.UserHomeDir; lazy-create on first Record; O_APPEND|O_CREATE; append-only JSONL; streaming aggregate)
 ├── ui/
 │   └── toolusage.go               # NEW — the pure report formatter (per-tool roll-up; registry order)
 └── cli/
     └── cli.go                     # CHANGED — wire the sink into AgentLoop; add the --tool-usage offline path
                                    #   (dispatch precedence before prompt/stdin); inject the user-home seam
-internal/domain/history/usage_test.go / (new) tool_usage tests   # NEW/CHANGED — record round-trip + aggregation + classification
+internal/domain/history/tool_usage_test.go   # NEW — the record/port types + the store round-trip + streaming aggregation
+internal/agent/tool_usage_test.go            # NEW — the loop outcome classification (incl. the trim-vs-deadline tie-break)
+internal/ui/toolusage_test.go                # NEW — the report formatter
 go.mod / go.sum                    # unchanged — no new module (stdlib only)
 Makefile                           # unchanged (no new gate)
 ```
@@ -57,7 +60,10 @@ executed agent-tool invocation `ok`/`error`/`timeout` in the **agent loop** (the
 tool's error and the per-call deadline) and records it through an **injected `ToolUsageSink`** port, and
 (b) adds an **offline reporting flag** that reads the global log and prints a per-tool roll-up to
 `stdout`. The log is a **global, append-only JSONL** file at `~/.tellme/tools-count.jsonl` (a new
-`internal/infrastructure/history` adapter), modelled by `/axb-data-plan`. There is **no** new endpoint,
+`internal/infrastructure/history` adapter, **streaming-aggregated** for the report), modelled by
+`/axb-data-plan`. The `ToolUsageSink` port lives in a **new** `internal/domain/history/tool_usage.go`
+(leaving `usage.go` untouched) — chosen for **adapter co-location with the round-018 `UsageStore`**
+(research D3). There is **no** new endpoint,
 **no** new dependency, and **no** change to the tool semantics/ set or the round-018 token store. The
 **executable contract** is pinned in `specs/truth/features/cli/**` by `/axb-dsl-refine`;
 `specs/truth/contracts/**` and `ui/**` are untouched.
@@ -72,13 +78,13 @@ This requirement inventories **2** interfaces.
 
 1. `CLI end (operator terminal interface)`
    - Endpoint type: `CLI / terminal endpoint`
-   - Primary interface: the prompt turn's **tool-usage accounting** (each executed call classified and appended to the global log) and the **offline `--tool-usage` report** that prints, per registered tool, its invocations and `ok`/`error`/`timeout` breakdown to `stdout`. The log write is silent (no `stdout`/`stderr` emission); the prompt path's `stdout` stays byte-exact; the report is strictly offline (no provider, no stdin) and deterministic (registry order).
+   - Primary interface: the prompt turn's **tool-usage accounting** (each executed call classified and appended to the global log) and the **offline `--tool-usage` report** that prints, per registered tool, its invocations and `ok`/`error`/`timeout` breakdown to `stdout`. The log write is silent (no `stdout`/`stderr` emission); the prompt path's `stdout` stays byte-exact; the report is strictly offline (no provider, no stdin) and deterministic (registry order), and is **`--version`-class** — it requires neither `-c`, nor `TELL_ME_HOME`, nor a workspace (reads only `os.UserHomeDir()` + the registry; plain text to `stdout`, not TTY-gated, not `-r`-affected).
    - Requirement evidence: `FR-001`–`FR-011`; acceptance features `keeping-a-record-of-tool-use.feature`, `reviewing-how-the-tools-have-been-used.feature`.
    - Planner: **none** — terminal endpoints have no analysis planner. Its **contract owner** is **`/axb-dsl-refine`**, which adds the executable Gherkin feature(s) and DSL rows under `specs/truth/features/cli/**` at delivery (carried forward per `wave-covers-interfaces`).
 
 2. `Global tool-usage log (local-state interface)`
    - Endpoint type: `Local-state / file endpoint`
-   - Primary interface: the **append-only JSONL record** `{"timestamp":"<RFC3339>","tool":"<wire name>","outcome":"ok|error|timeout"}` at `~/.tellme/tools-count.jsonl` — one record per executed invocation; global (shared across repos/envs/modes); never reset by `--new`; read whole and aggregated by the report.
+   - Primary interface: the **append-only JSONL record** `{"timestamp":"<RFC3339>","tool":"<wire name>","outcome":"ok|error|timeout"}` at `~/.tellme/tools-count.jsonl` — one record per executed invocation; global (shared across repos/envs/modes); never reset by `--new`; **streaming-aggregated** by the report (never read whole into memory).
    - Requirement evidence: `FR-003`, `FR-010`; the key entity *Tool-usage record* / *Tool-usage log* in `spec.md`.
    - Planner: **`/axb-data-plan`** — ADD the record type + its location/lifecycle to `specs/truth/data/data-model.dbml`.
 
@@ -120,4 +126,4 @@ Not delegated:
 
 ### Gating blockers
 
-*(none — the operator locked the outcome taxonomy (Q1 → 1), the storage shape/location (Q2 → Others: `~/.tellme/tools-count.jsonl`), and the surfacing channel (Q3 → 1: a dedicated offline flag); `research.md` Decisions 1–6 settled the classification signals, the counting seam, the report shape, and the hermetic verification split. **Open (non-blocking):** the exact flag name (`--tool-usage` provisional), the report's line wording, and the CLI module home (`/axb-dsl-refine`), and the record's DBML prose (`/axb-data-plan`). None gate this round.)*
+*(none — the operator locked the outcome taxonomy (Q1 → 1), the storage shape/location (Q2 → Others: `~/.tellme/tools-count.jsonl`), and the surfacing channel (Q3 → 1: a dedicated offline flag); `research.md` Decisions 1–6 settled the classification signals, the counting seam, the report shape, and the hermetic verification split. **Open (non-blocking):** the report's exact line *wording* (the flag name `--tool-usage` is **pinned**), the CLI module home (`/axb-dsl-refine`), and the record's DBML prose (`/axb-data-plan`). None gate this round.)*

@@ -87,3 +87,14 @@ Feature: Accounting for how the tools are used
       When the operator reviews how the tools have been used
       Then the review shows every tool with no uses
       And tellme exits successfully
+
+    Example: The report works without a runtime home
+      # The report is `--version`-class: it must NOT require `TELL_ME_HOME` (it reads only
+      # `os.UserHomeDir()` + the live registry). A bare `tellme --tool-usage` in a shell without
+      # `TELL_ME_HOME` must succeed, not exit 4 (the `-l`-class trap).
+      Given the operator has a runnable tellme installation
+      And the runtime home is not set
+      And the tool usage already records that the tool "read_files" was used 1 times with the outcome "succeeded"
+      When the operator reviews how the tools have been used
+      Then the review shows the tool "read_files" with 1 successes, 0 failures, and 0 timeouts
+      And tellme exits successfully

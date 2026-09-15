@@ -32,9 +32,9 @@ As an operator, I want every agent-tool invocation recorded with its outcome —
 **Functional Requirements (FR)**:
 
 - **FR-001**: For every agent-tool invocation that the loop actually **executes** (the tool name resolves in the registry and `Execute` runs), the loop MUST record **exactly one** usage record carrying the tool's **wire name** and its **outcome**.
-- **FR-002**: The outcome MUST be classified as exactly one of: **`error`** (the tool returned a non-nil error), **`timeout`** (the tool returned a nil-error result but the per-call deadline was exceeded — the round-024 FR-018 "stopped at the time limit" path), or **`ok`** (otherwise — including a bounded/truncated result, which is a success).
-- **FR-003**: The record MUST be appended to a **global, append-only JSON-Lines log** at `~/.tellme/tools-count.jsonl` (the user home resolved via `os.UserHomeDir()`), one JSON object per line: `{"timestamp":"<RFC3339>","tool":"<wire name>","outcome":"<ok|error|timeout>"}`.
-- **FR-004**: The write MUST be **best-effort** — a log I/O failure (or an unresolvable user home) MUST NOT break or alter the turn; the answer still prints and the turn still succeeds.
+- **FR-002**: The outcome MUST be classified as exactly one of: **`error`** (the tool returned a non-nil error), **`timeout`** (the tool returned a nil-error result **and the loop's per-call deadline was exceeded** — the round-024 FR-018 "stopped at the time limit" path), or **`ok`** (otherwise — including a bounded/truncated result, which is a success). Classification MUST read **only** the loop-owned `err` and the **per-call `ctx` deadline** — never the result text. This rests on a stated **loop↔tool invariant**: *a tool produces a timeout result only when the loop-owned per-call deadline has expired; a tool MUST NOT fabricate a timeout result outside that deadline.* **Tie-break**: on a rare trim-vs-deadline collision (the byte budget and the deadline both fire), the record follows the **loop's deadline signal** (`timeout`) even though the returned result text is a bounded success; the tool's trim-vs-stop guard remains a *result-shape* concern, not the accounting's.
+- **FR-003**: The record MUST be appended to a **global, append-only JSON-Lines log** at `~/.tellme/tools-count.jsonl` (the user home resolved via `os.UserHomeDir()`), one JSON object per line: `{"timestamp":"<RFC3339>","tool":"<wire name>","outcome":"<ok|error|timeout>"}`. The `timestamp` comes from the adapter's `time.Now()` (an explicitly **unasserted** value — no injected-clock determinism is claimed).
+- **FR-004**: The write MUST be **best-effort** — a log I/O failure (or an unresolvable user home) MUST NOT break or alter the turn; the answer still prints and the turn still succeeds. The `~/.tellme/` directory and the log file MUST be created **lazily on the first `Record`** (never at construction), so a turn that uses no tool leaves `~/.tellme` untouched.
 - **FR-005**: The accounting MUST NOT change the prompt path's `stdout` (byte-exact manual/`-r` output) nor the frozen class-phrase vocabulary; the write MUST NOT emit anything on `stdout` or `stderr`.
 
 ### User Story 2 - The operator reviews a per-tool roll-up (Priority: P2)
@@ -53,8 +53,8 @@ As an operator, I want an offline command that prints, per tool, how many times 
 
 **Functional Requirements (FR)**:
 
-- **FR-006**: tellme MUST offer a **dedicated offline reporting path** (a flag, provisionally `--tool-usage`, finalized by the CLI contract owner) that prints the per-tool roll-up and exits.
-- **FR-007**: The report MUST list **every registered agent tool** (the round-024 set) and, for each, the total invocations plus the `ok` / `error` / `timeout` breakdown, aggregated over the **entire** global log (not session-scoped).
+- **FR-006**: tellme MUST offer a **dedicated offline reporting path** — the **`--tool-usage`** flag (pinned by this round's truth) — that prints the per-tool roll-up to `stdout` and exits. The report MUST be **`--version`-class**: it requires **neither** `-c`, **nor** `TELL_ME_HOME` (or a session workspace) — it reads only the **user home** (`os.UserHomeDir()`) and the **tool registry**. Its output is **plain text on `stdout`**, **not TTY-gated**, and **not affected by `-r`**.
+- **FR-007**: The report MUST list **every registered agent tool** — enumerated from the **live registry** (the round-024 set of four is today's value, but the report MUST NOT hardcode it, so a future tool addition/removal can never pass vacuously) — and, for each, the total invocations plus the `ok` / `error` / `timeout` breakdown, aggregated over the **entire** global log (not session-scoped).
 - **FR-008**: The report MUST be **strictly offline**: it MUST NOT contact a provider and MUST NOT read stdin; it writes its report to `stdout`.
 - **FR-009**: The report MUST be **deterministic** — the tool order is fixed (the registry's offer order), independent of the log's line order or history.
 
@@ -74,6 +74,7 @@ As an operator, I want an offline command that prints, per tool, how many times 
 
 - **FR-010**: The tool-usage log MUST be **global and cumulative** — shared across repos, environments, and personas on the machine, and **never reset, archived, or truncated by `--new`** (unlike the per-mode round-018 token log).
 - **FR-011**: The round MUST NOT change the round-018 per-mode token usage store (`tokens.log` / `tokens.summary.json` / `tokens.archive.jsonl`), the tool execution semantics, the tool set, the post-turn status lines, or the spinner.
+- **FR-012**: The report reader MUST be **resilient** — a malformed or torn line (e.g. a concurrent writer's half-written final line) is **skipped** best-effort; the report MUST never fail, abort, or corrupt the roll-up because of log content. (This is the read-side complement of the write-side best-effort rule, FR-004.)
 
 #### Non-Functional Requirements
 
@@ -90,6 +91,8 @@ As an operator, I want an offline command that prints, per tool, how many times 
 - The **user home cannot be resolved** (unset `HOME`) → the write is a **silent no-op**; the turn is unaffected.
 - The **report** is run with **no log yet** → every registered tool is listed with zero invocations; exit success.
 - A **write failure mid-turn** → swallowed (best-effort); the turn, the answer, and the exit code are unchanged.
+- A **malformed/torn log line** (a concurrent writer's half-written final line) → skipped; the report still succeeds (FR-012).
+- `TELL_ME_HOME` is **unset/empty** → the report still succeeds (it is `--version`-class and needs no runtime home) — a normal prompt turn with `TELL_ME_HOME` unset keeps its existing behaviour.
 
 ### Key entities
 
@@ -110,7 +113,8 @@ As an operator, I want an offline command that prints, per tool, how many times 
 
 - The **counting seam** is the agent loop (round-008 `AgentLoop.Run`): it is the only place that holds both the tool's returned error and the per-call deadline, so `error` / `timeout` are structural signals and no tool-result text is sniffed (Q1 → 1).
 - The log is **global per user machine** at `~/.tellme/tools-count.jsonl` — a **recorded divergence** from `tellme`'s `TellMeHome`-is-the-namespace convention (Q2 → Others); it is still local state, modelled by `/axb-data-plan`.
-- The **reporting flag name** (`--tool-usage`) is provisional in the spec; the exact flag and its output wording are pinned by the CLI contract owner (`/axb-dsl-refine`) and `/axb-technical-research`.
+- The **reporting flag is `--tool-usage`** (pinned by this round's truth — `chat/dsl.md` + `techstack.md`); only its output *wording* remains an implementation detail pinned at the step-definition layer.
+- The **report's resolution footprint** is `--version`-class: no `-c`, no `TELL_ME_HOME`, no workspace (FR-006). The **record's timestamp** is the adapter's `time.Now()` (unasserted), and the log dir/file are created **lazily on the first `Record`** (FR-003/FR-004).
 - **Retention** (compaction/rotation of the unbounded append-only file) is a **forward item**, out of scope this round.
 - Only **executed** (registry-resolved) invocations are recorded; an unregistered tool name aborts the run (existing behaviour) and records nothing.
 - The report's exact line/table format is an implementation detail pinned at the step-definition layer, subject to the deterministic-order and every-registered-tool requirements.
