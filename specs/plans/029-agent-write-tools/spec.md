@@ -34,7 +34,7 @@ As an operator driving tellme on its own repository, I want the agent to replace
 - **FR-003**: If `old_text` occurs **more than once**, the tool MUST fail with an error that names the occurrence count and MUST leave the file unchanged.
 - **FR-004**: If `filepath` does not exist (or is unreadable / not a regular file), the tool MUST fail with an error; it MUST NOT create the file.
 - **FR-005**: An **empty** `old_text` MUST be rejected with an error (it matches everywhere and cannot be uniquely identified).
-- **FR-009** *(shared — see Global requirements for a write tool's atomic-write requirement that governs this story too)*.
+- **FR-009** *(shared atomic-write requirement — defined in **Global requirements**; it governs this story's write too)*.
 
 ---
 
@@ -56,7 +56,7 @@ As an operator driving tellme on its own repository, I want the agent to create 
 - **FR-006**: `write_file(filepath, content, reason)` MUST create the file at `filepath` with **exactly** `content` (byte-for-byte) and mode **`0644`**.
 - **FR-007**: If `filepath` already **exists**, the tool MUST fail with an error and MUST NOT modify or truncate the existing file (**create-only**; there is no overwrite, and no `overwrite` parameter). The create-only guard MUST be **atomic** (see FR-009) — an existing destination MUST fail, never be silently overwritten.
 - **FR-008**: The tool MUST create any missing **parent directories** (`MkdirAll`-equivalent) before creating the file.
-- **FR-009**: **Every write a write tool performs — `write_file`'s create and `replace_text`'s edit — MUST be atomic**: at no observable point does the destination hold a partial file; the implementation writes the full new content to a **temporary file in the target's directory**, sets its mode to `0644`, and **moves it into place** (a same-filesystem `rename`/`link` is atomic on POSIX); the temp file MUST be removed on failure. For `write_file` the move MUST be **atomic create-only** — an existing destination fails (e.g. `os.Link`/`EEXIST` or `O_CREAT|O_EXCL`), never clobbers (this requirement spans both stories and governs US1's `replace_text` write as well).
+- *(the atomic-write requirement **FR-009** is a global requirement — see Global requirements; it governs this story's create too).*
 - **FR-010**: An **empty** `content` MUST be accepted (it creates an empty file) — the create-only rule (FR-007) still applies.
 
 ---
@@ -69,6 +69,7 @@ As an operator driving tellme on its own repository, I want the agent to create 
 
 #### Functional Requirements
 
+- **FR-009**: **Every write a write tool performs — `write_file`'s create and `replace_text`'s edit — MUST be atomic**: at no observable point does the destination hold a partial file; the implementation writes the full new content to a **temporary file in the target's directory**, sets its mode to `0644`, and **moves it into place** (a same-filesystem `rename`/`link` is atomic on POSIX); the temp file MUST be removed on failure. For `write_file` the move MUST be **atomic create-only** — an existing destination fails (e.g. `os.Link`/`EEXIST` or `O_CREAT|O_EXCL`), never clobbers. *(Spans US1 and US2; each story's FR list carries a pointer here.)*
 - **FR-011**: Both tools MUST be registered in the agent tool registry and offered to the model in a **deterministic order** (so the round-026 `--tool-usage` report enumerates them deterministically). Neither tool requires consent (tellme has no security layer — a settled exclusion).
 - **FR-012**: Both tools MUST require `reason` and the loop MUST echo it into the tool-loop log line (the round-021/022 convention), and both MUST declare the round-024 **resource-contract** params (`max_output_tokens`, `timeout`) with a per-tool **default timeout of 30 s** (matching the readers).
 - **FR-013**: Both tools MUST bound their result to the resolved byte budget and MUST return a **nil-error timeout result** when they observe their effective deadline (the round-024 FR-018 convention), never an `error:`-class result.

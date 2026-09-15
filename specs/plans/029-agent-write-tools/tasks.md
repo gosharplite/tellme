@@ -121,7 +121,7 @@
   - Read: `tests/e2e/steps/step_r029_t021_chat_then_line_still_twice.go`
 - [ ] T022 [P] [UNIT] write tools 單元測試
   - Read: `internal/infrastructure/tools/writer.go`, `internal/infrastructure/tools/writer_test.go`, `research.md` -> `Decision 2`, `Decision 3`, `Decision 4`
-  - 必查：create-only（既有檔 → error 且內容不變）；atomicity（temp+rename；失敗不留半檔；同目錄 rename）；`replace_text` strict-unique（0 → error、>1 → error、恰好 1 → 替換）；empty `old_text` → error；missing file → error（不建立）；missing parent → `MkdirAll`。
+  - 必查：create-only（既有檔 → error 且內容不變）；atomicity（同一 atomic-write helper：`write_file` 用 `os.Link`/`EEXIST` atomic create-only、`replace_text` 用 `rename`；失敗不留半檔；temp 與 dest 同目錄）；`replace_text` strict-unique（0 → error、>1 → error、恰好 1 → 替換）；empty `old_text` → error；missing file → error（不建立）；missing parent → `MkdirAll`。
   - 並以 **atomicity witness**（review finding 4）取證：注入一個 `Write` 在第 N byte 失敗的 writer，斷言 destination **不存在或 byte-identical**，且**無 `*.tmp` 殘留**（atomicity 為 unit-tier，E2E 無 fault injection）。
   - 另 pin：建立檔案的 mode 為 **`0644`**（review finding 3）；create-only 以 **atomic move**（`os.Link`/`EEXIST`）成立、**非** `Stat`/`rename` TOCTOU，且既有檔出現時不被 clobber（review finding 2）。
 - [ ] T023 subagent review (phase quality gate)
@@ -138,7 +138,7 @@
 
 **Boundary**:
 - 只處理兩個 write 工具的產品碼；不改 reader trio / `execute_command` / flag / exit / stdout 契約。
-- 依 research：`write_file` create-only（既有檔 → tool error，檔案不動）；atomic（temp file in target dir + `rename`，失敗清 temp，不留半檔）；`replace_text` strict-unique（0 / >1 → tool error，檔案不動）；失敗為非終端 tool error。
+- 依 research：`write_file` create-only（既有檔 → tool error，檔案不動）；**atomic**（同一 atomic-write helper：temp file in target dir + atomic move — `write_file` 用 `os.Link`/`EEXIST` atomic create-only、`replace_text` 用 `rename`；mode `0644`；失敗清 temp，不留半檔）；`replace_text` strict-unique（0 / >1 → tool error，檔案不動）；失敗為非終端 tool error。
 - Register in `internal/cli/cli.go`（offer order：readers、write pair、command）。
 
 **Test Scope**:
@@ -175,7 +175,7 @@
 
 **Boundary**:
 - 不改產品碼；只跑回歸與見證。
-- Witnesses：(a) 取消 create-only → 覆寫被拒的 Example 失敗；(b) 移除 temp+rename → atomicity 見證失敗；(c) `replace_text` 放寬為 replace-first → 歧義 Example 失敗。
+- Witnesses：(a) 取消 create-only → 覆寫被拒的 Example 失敗；(b) 停用 atomic-write 路徑 → **unit-tier** atomicity 見證（SC-002/SC-005：失敗 writer 不留 partial dest 與 `*.tmp`）失敗；(c) `replace_text` 放寬為 replace-first → 歧義 Example 失敗。
 
 **Test Scope**:
 - `specs/truth/features/cli/**`
@@ -188,7 +188,7 @@
 
 **`truth-delta.md` 非 NOOP rows → task 對應**
 - `/axb-technical-research` MODIFY `techstack.md`（Write filesystem tools row + *Not Introduced Yet* bullet）→ T001/T002（Foundational）、T022（UNIT）、Phase 4A/4B。
-- `/axb-dsl-refine` ADD `creating-and-editing-files.feature` → Phase 4A。MODIFY `chat/dsl.md`（offered 集合 + 6 Given + 10 Then + module note）→ T005（ALIGN）、T006–T021（RED）、Phase 4A/4B。
+- `/axb-dsl-refine` ADD `creating-and-editing-files.feature` → Phase 4A。MODIFY `chat/dsl.md`（offered 集合 + 6 Given + 10 Then + module note）→ T005（ALIGN）、T006–T021（RED）、Phase 4A/4B。MODIFY `offering-the-agent-tools.feature`（prose → 六工具）→ Phase 4B。
 - `/axb-api-plan` NOOP、`/axb-data-plan` NOOP → 免建立任務（審計豁免）。
 
 **`research.md` 已拍板 Decisions → task `Read` 覆蓋**
