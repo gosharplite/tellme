@@ -212,8 +212,12 @@ func runExecSynced(bin, dir string, args []string, compose, key, marker string, 
 		_ = stdin.Close()
 	}()
 
-	err = cmd.Wait()
+	// Drain stderr to EOF BEFORE Wait. Per os/exec, Wait closes the StderrPipe, so
+	// reading it concurrently could drop a trailing chunk (PR #51
+	// implementation-review note). The child's exit — or the ctx timeout killing
+	// it — closes stderr, so the drain reaches EOF and Wait then reaps immediately.
 	<-done
+	err = cmd.Wait()
 	return finishResult(RunResult{Stdout: stdout.String(), Stderr: stderr.String()}, err, ctx, timeout)
 }
 
