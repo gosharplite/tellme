@@ -263,7 +263,8 @@ func (replaceText) Execute(ctx context.Context, arguments string, budget domaint
 	if args.OldText == args.NewText {
 		return boundWriteResult(replaceTextNoOpMsg, budget), nil
 	}
-	// Preserve the destination's own permissions on the edit (round-029 review
+	// Preserve the destination's own permission bits (Perm() — the 9 rwx bits; not
+	// setuid/setgid/sticky, ownership or xattrs) on the edit (round-029 review
 	// finding 1): a rename replaces the inode, so an unconditional 0644 would
 	// silently re-mode a 0600 / 0755 file.
 	mode := os.FileMode(createdFileMode)

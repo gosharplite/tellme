@@ -37,16 +37,22 @@ const (
 	timeoutMarker    = "\n... (stopped at the time limit)\n"       // FR-018 nil-error timeout result
 )
 
+// maxOutputTokensDesc is the SINGLE home for the `max_output_tokens` description
+// shared by every agent tool (round-029 implementation re-review: the command tool
+// had advertised a slightly different cap contract).
+const maxOutputTokensDesc = "Optional soft cap on this tool's result size, in tokens (the result is bounded to bytes = tokens x 4); default = the effective budget divided by 4, ceiling = the effective budget divided by 2."
+
 // resourceSchema builds EVERY agent tool's JSON schema (round-024 B3/FR-013): the
-// two resource params are declared for every tool, and their descriptions are
-// single-sourced from the tool's own contract default timeout. Shared by the
-// reader and write tools so the resource-param prose has ONE home (round-029
-// review finding 4).
+// two resource params are declared for every tool, their prose single-sourced
+// (maxOutputTokensDesc; the timeout description names the tool generically). It
+// backs the readers and the write pair; `execute_command` reuses
+// maxOutputTokensDesc while keeping its bespoke props + process-tree timeout
+// wording (round-029 review finding 4).
 func resourceSchema(extraProps, required string, defaultTimeout time.Duration) json.RawMessage {
 	secs := int(defaultTimeout / time.Second)
 	return json.RawMessage(fmt.Sprintf(
-		`{"type":"object","properties":{%s,"max_output_tokens":{"type":"integer","description":"Optional soft cap on this tool's result size, in tokens (the result is bounded to bytes = tokens x 4); default = the effective budget divided by 4, ceiling = the effective budget divided by 2."},"timeout":{"type":"number","description":"Optional seconds before this tool is stopped and returns a timeout result; default %d."}},"required":[%s]}`,
-		extraProps, secs, required))
+		`{"type":"object","properties":{%s,"max_output_tokens":{"type":"integer","description":%q},"timeout":{"type":"number","description":"Optional seconds before this tool is stopped and returns a timeout result; default %d."}},"required":[%s]}`,
+		extraProps, maxOutputTokensDesc, secs, required))
 }
 
 // timedOut reports whether ctx has passed its deadline (the FR-018 trigger).

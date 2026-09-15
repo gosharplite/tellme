@@ -302,3 +302,16 @@ func TestReplaceTextPreservesFileMode(t *testing.T) {
 		t.Errorf("the edit changed the file mode to %o; want 0600 preserved", perm)
 	}
 }
+
+// TestReplaceTextNoOpOnAbsentBlockStillFails pins the FR-002 ↔ no-op precedence
+// (round-029 implementation re-review): an absent block with old == new must still
+// fail, because the presence gate precedes the no-op short-circuit.
+func TestReplaceTextNoOpOnAbsentBlockStillFails(t *testing.T) {
+	dest := filepath.Join(t.TempDir(), "config.txt")
+	if err := os.WriteFile(dest, []byte("alpha\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runReplaceText(replaceArgs(dest, "absent", "absent")); err == nil {
+		t.Fatalf("a no-op on an absent block must fail (FR-002 precedence)")
+	}
+}

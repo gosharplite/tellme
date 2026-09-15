@@ -48,10 +48,13 @@ func (executeCommand) Contract() domaintools.ToolContract {
 	return domaintools.ToolContract{DefaultTimeout: commandDefaultTimeout}
 }
 
-// Parameters is the JSON-schema for the tool's arguments.
+// Parameters is the JSON-schema for the tool's arguments. The resource params are
+// single-sourced from the shared descriptions, so `execute_command` advertises the
+// SAME cap contract as every other tool; it keeps its own props and a
+// process-tree-specific `timeout` wording (round-029 implementation re-review).
 func (executeCommand) Parameters() json.RawMessage {
 	secs := int(commandDefaultTimeout / time.Second)
-	return json.RawMessage(fmt.Sprintf(`{"type":"object","properties":{"command":{"type":"string","description":"The shell command to run (via bash -c)."},"timeout":{"type":"number","description":"Optional seconds before the command's process tree is stopped and returns a timeout result; default %d."},"max_output_tokens":{"type":"integer","description":"Optional soft cap on the result size, in tokens (bytes = tokens x 4); default = the effective budget divided by 4."},"output_file":{"type":"string","description":"If set, write stdout+stderr to this file instead of returning them."},"append":{"type":"boolean","description":"Append to output_file instead of truncating it."},"reason":{"type":"string","description":"Reason for running the command."}},"required":["command","reason"]}`, secs))
+	return json.RawMessage(fmt.Sprintf(`{"type":"object","properties":{"command":{"type":"string","description":"The shell command to run (via bash -c)."},"timeout":{"type":"number","description":"Optional seconds before the command's process tree is stopped and returns a timeout result; default %d."},"max_output_tokens":{"type":"integer","description":%q},"output_file":{"type":"string","description":"If set, write stdout+stderr to this file instead of returning them."},"append":{"type":"boolean","description":"Append to output_file instead of truncating it."},"reason":{"type":"string","description":"Reason for running the command."}},"required":["command","reason"]}`, secs, maxOutputTokensDesc))
 }
 
 // Execute runs the command. It returns the bounded result (or the timeout/
