@@ -626,6 +626,10 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		Registry: reg,
 		MaxLoops: res.MaxToolLoop,
 		Stderr:   env.stderr,
+		// Round 022: share the CLI clock seam so the tool-log line and the
+		// chrome/payload lines use one clock (the loop falls back to time.Now when
+		// unset).
+		Now: env.now,
 	}
 	// Round 019 — the live progress spinner: a diagnostic-stream-only indicator
 	// that labels / clears / restores per waiting phase. It is injected into the
@@ -652,6 +656,15 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	}
 	if err := store.Append(history.Entry{Prompt: prompt, Answer: result.Answer, Steps: result.Steps}); err != nil {
 		return emitHistoryError(env.stderr, err)
+	}
+	// Round 022: on a tool-using turn, one blank line separates the tool-log block
+	// from the answer. It is ungated — it follows the tool-log lines, so it appears
+	// on every tool-using surface (including the `-i` submit path and the non-chrome
+	// path). It is written after the spinner has stopped (the observer's Stop above)
+	// and after the turn is persisted, immediately before the answer, so the
+	// round-019 clear cannot swallow it (review PR #50 directive 2).
+	if len(result.Steps) > 0 {
+		_, _ = fmt.Fprintln(env.stderr)
 	}
 	env.writeAnswer(result.Answer, opts.raw, res.WrapWidth)
 	// Post-turn payload status (round-009 FR-006): the provider's measured prompt

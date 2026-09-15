@@ -9,13 +9,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/domain/tools"
+	"github.com/gosharplite/tellme/internal/ui"
 )
 
 // DefaultToolTimeout bounds each individual tool execution when the loop is not
@@ -69,6 +69,12 @@ type AgentLoop struct {
 	// presenter (the CLI-injected spinner) can label / clear / restore the
 	// indicator per phase (round-019 research Decision 7).
 	Observer agentport.LoopObserver
+	// Now, when set, supplies the clock reading for a tool-loop log line (round
+	// 022). Nil falls back to time.Now, so construction and unit tests stay
+	// simple; the injected seam (the CLI's env.now) keeps the line deterministic
+	// and shares one clock with the chrome / payload lines (round-009/017
+	// precedent).
+	Now func() time.Time
 }
 
 // Run performs one prompt run. It sends the conversation (the replayed prior
@@ -145,7 +151,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 				// A recoverable tool error is fed back as the tool's result (non-terminal).
 				result = "error: " + terr.Error()
 			}
-			a.logStep(tc, result)
+			a.logStep(tc)
 			turn = append(turn, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})
 			steps = append(steps, history.Step{Tool: tc.Name, Arguments: tc.Arguments, Result: result, Signature: tc.Signature})
 		}
@@ -201,31 +207,34 @@ func (a *AgentLoop) notifyToolsEnd() {
 }
 
 // logStep emits one discrete tool-loop log line to the diagnostic stream
-// (round-008 Decision 7): the tool name, its arguments, and its result. This is
-// NOT token streaming.
-func (a *AgentLoop) logStep(tc llm.ToolCall, result string) {
+// (round-008 Decision 7; reshaped round 022): a single timestamped line naming
+// the tool and, when the call states one, its `reason` —
+// `[HH:MM:SS] [Tool] <name> - <reason>`. The raw call arguments and result are
+// deliberately NOT echoed (the operator-chosen shape; round-022 research
+// Decision 1/3). This is NOT token streaming. The line is rendered by the pure
+// `internal/ui` formatter and stamped from the injected clock seam; the Observer
+// hooks still wrap the write so the round-019 spinner can clear/restore around it.
+func (a *AgentLoop) logStep(tc llm.ToolCall) {
 	if a.Stderr == nil {
 		return
 	}
 	if a.Observer != nil {
 		a.Observer.BeforeToolLog()
 	}
-	reasonSeg := reasonSegment(tc.Arguments)
-	_, _ = fmt.Fprintf(a.Stderr, "[tool] %s arguments=%s%s result=%s\n",
-		tc.Name, oneLine(tc.Arguments), reasonSeg, oneLine(truncate(result, 200)))
+	_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolLog(a.now(), tc.Name, toolReason(tc.Arguments)))
 	if a.Observer != nil {
 		a.Observer.AfterToolLog()
 	}
 }
 
-// reasonSegment renders the optional ` reason=<value>` log segment for a tool
-// call's arguments (empty when no top-level reason is present).
-func reasonSegment(arguments string) string {
-	reason := toolReason(arguments)
-	if reason == "" {
-		return ""
+// now returns the clock reading for a tool-loop log line: the injected Now seam
+// when set, else time.Now (the nil fallback keeps construction and the unit tests
+// simple).
+func (a *AgentLoop) now() time.Time {
+	if a.Now != nil {
+		return a.Now()
 	}
-	return " reason=" + oneLine(reason)
+	return time.Now()
 }
 
 // toolReason extracts the top-level `reason` string from a tool call's raw
@@ -273,17 +282,4 @@ func BuildMessages(prior []history.Entry) []llm.Message {
 		msgs = append(msgs, llm.Message{Role: "assistant", Content: e.Answer})
 	}
 	return msgs
-}
-
-// oneLine folds newlines so a log line stays single-line.
-func oneLine(s string) string {
-	return strings.ReplaceAll(strings.ReplaceAll(s, "\n", " "), "\r", " ")
-}
-
-// truncate bounds a log field to n characters.
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n] + "…"
 }
