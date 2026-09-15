@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-15 — **round 022 `022-tool-loop-log-line` IN PROGRESS (plan half)**: `spec.md` + `checklists/requirements.md` + `truth-delta.md` skeleton authored (clarify Q1–Q3 locked); next `/axb-spec-by-example` → `/axb-technical-research`. Round 021 stays **DELIVERED / FROZEN** (PR [#48](https://github.com/gosharplite/tellme/pull/48) merged into `dev` `3877053`, propagated `dev → main`, head `7ff277d`). Round 020 delivered/frozen (detail in the archive; Rule 12 — older rounds 001–019 also live in the archives).
+**Last updated**: 2026-09-15 — **round 022 `022-tool-loop-log-line` IN PROGRESS (plan half complete)**: specify → spec-by-example → research → analysis → dsl-refine → tasks all done (clarify Q1–Q3 locked); next `/axb-implement`. Round 021 stays **DELIVERED / FROZEN** (PR [#48](https://github.com/gosharplite/tellme/pull/48) merged into `dev` `3877053`, propagated `dev → main`, head `7ff277d`). Round 020 delivered/frozen (detail in the archive; Rule 12 — older rounds 001–019 also live in the archives).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
 **Active branch**: `022-tool-loop-log-line` (off `dev`)
 **Daily log**: [`docs/session-summary/2026/09/15/session-summary.md`](docs/session-summary/2026/09/15/session-summary.md)
@@ -8,15 +8,15 @@
 
 ## Round 022 — `022-tool-loop-log-line` (in progress)
 
-**Status**: 🚧 **IN PROGRESS — plan half** (2026-09-15). Branch `022-tool-loop-log-line` off `dev`. `make verify` / E2E **not yet applicable** (plan artifacts only).
+**Status**: 🚧 **IN PROGRESS — plan half complete** (2026-09-15). Branch `022-tool-loop-log-line` off `dev`. `make verify` / E2E **not yet applicable** (plan + truth artifacts only).
 
 **Scope**: reshape tellme's per-call **tool-loop `stderr` log line** into a single timestamped line `[HH:MM:SS] [Tool] <tool name> - <reason>` (dropping the raw `arguments=` / `result=` dumps), and emit **one blank line** between the tool-log block and the final answer of a tool-using turn. `stdout` stays byte-exact; class-phrase vocabulary stays 11.
 
 **Locked decisions (Q1–Q3)**: (Q1) **strict scope** — only the tool-loop log line + the blank line; the payload line (009/018) and the spinner labels (019) are untouched. (Q2) the blank line is emitted **only on tool-using turns** (≥1 tool log line written). (Q3) a call with no top-level `reason` renders `[HH:MM:SS] [Tool] <name>` (no dangling separator).
 
-**Pipeline**: specify ✅ · spec-by-example ⏳ · research ⏳ · analysis ⏳ · dsl-refine ⏳ · tasks ⏳ · implement ⏳.
+**Pipeline**: specify ✅ · spec-by-example ✅ · research ✅ · analysis ✅ · dsl-refine ✅ · tasks ✅ · implement ⏳.
 
-**Artifacts (so far)**: `spec.md` (US1–US2 · FR-001–012 · SC-001–005), `checklists/requirements.md`, `truth-delta.md` (skeleton). Truth intent (owner skills pending): MODIFY `techstack.md` (tool-loop log row); MODIFY `features/cli/chat/**`; `/axb-api-plan` + `/axb-data-plan` NOOP candidates.
+**Artifacts**: `spec.md` (US1–US2 · FR-001–012 · SC-001–005), `checklists/requirements.md`, `features/acceptance/*.feature` ×2, `research.md` (D1–D8), `plan.md` (1 interface → `/axb-dsl-refine`; api/data NOOP; ui skipped), `tasks.md` (T001–T013; orphan sweep 0), `truth-delta.md`. Truth: `techstack.md` MODIFY (Agent tool loop + pure-helper tests); `chat/**` MODIFY (audit PASSED — 36 features · 15 root + **210** module rows · **1064** steps).
 
 ## Round 021 — `021-tool-surface-parity` (delivered / frozen)
 
