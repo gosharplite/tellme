@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -71,7 +70,7 @@ func ExecutingToolsLabel(names []string) string {
 	case 1:
 		return ExecutingLabel(names[0])
 	default:
-		return " Executing tools [" + names[0] + " and " + strconv.Itoa(len(names)-1) + " more]..."
+		return fmt.Sprintf(" Executing tools [%s and %d more]...", names[0], len(names)-1)
 	}
 }
 
@@ -89,6 +88,11 @@ func FormatResourceSegment(cpu, mem float64) string {
 // eraseRows renders the ANSI sequence that erases n terminal rows, bottom-up,
 // leaving the cursor at column 0 of the top row (round 025). n < 1 is treated as
 // 1, so the single-row case is exactly the round-019 clearControl.
+//
+// Known bound (accepted): the row count is captured at draw time, so a mid-frame
+// terminal resize leaves it stale and a clear may over-erase one row of prior
+// output. Residue (the round-019 defect) is eliminated; over-erase-under-reflow
+// is a recorded limitation — the reference has no resize handling at all.
 func eraseRows(n int) string {
 	if n < 1 {
 		n = 1
@@ -105,6 +109,12 @@ func eraseRows(n int) string {
 
 // rowsForLine returns how many terminal rows line occupies at the given column
 // width (round 025). A width <= 0 (unknown) or an empty line is a single row.
+//
+// It measures RUNES, not display columns: correct for the ASCII labels + the
+// single-width braille frames used today, but a wide (CJK/emoji) or zero-width
+// (combining) operator-configured model name would mis-measure — a documented
+// ASCII/single-width boundary (R-1; swap for a display-width lib if the label
+// ever admits wide runes).
 func rowsForLine(line string, columns int) int {
 	if columns <= 0 {
 		return 1
@@ -159,6 +169,9 @@ type Spinner struct {
 // elapsed from epoch (the turn's prompt-capture time), sampling machine resources
 // from m (nil disables the resource segment), and reading the terminal width from
 // columns (nil or <= 0 = unknown, round 025) for the row-aware clear.
+//
+// A functional-options constructor is a recorded forward nit (R-2) if a sixth
+// seam ever lands; five positional params are within the repo's current norm.
 func NewSpinner(w io.Writer, model string, epoch time.Time, m metrics.SystemMetricsProvider, columns func() int) *Spinner {
 	return &Spinner{
 		w:       w,

@@ -52,7 +52,7 @@ As an operator on a terminal narrower than a spinner frame, I want the spinner's
 
 **Non-Functional Requirements (NFR)**:
 
-- **NFR-001**: The occupied-row count MUST be derived from the frame's rendered width and the terminal width; when the terminal width is unknown, the spinner MUST degrade safely (a single-row best-effort clear — no crash, no over-erase).
+- **NFR-001**: The occupied-row count MUST be derived from the frame's rendered width and the terminal width; when the terminal width is unknown, the spinner MUST degrade safely (a single-row best-effort clear — no crash). *Known bound (accepted):* a mid-frame terminal resize leaves the row count stale, so the clear may over-erase one row of prior output; the residue defect is eliminated and over-erase-under-reflow is a recorded limitation (the reference has no resize handling at all).
 
 ---
 

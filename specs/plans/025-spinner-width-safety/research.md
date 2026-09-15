@@ -46,7 +46,7 @@ re-specification, and it already records divergences).
 - **Rationale**: the round-019 teardown contract requires no spinner residue once the answer is written;
   a single-line clear cannot honour it once a frame soft-wraps across ≥ 2 rows. Erasing every occupied
   row fixes the contract **regardless of why** the line wrapped (a long label, the resource segment, or
-  a mid-turn terminal resize).
+  a mid-turn terminal resize). *Known bound (TD-3):* the row count is captured at draw time, so a mid-frame resize leaves it stale and a clear may over-erase one row of prior output — accepted (the reference has no resize handling at all); residue is eliminated.
 - **Alternatives considered**:
   - **Clamp the rendered line to the terminal width** (the issue's other option). Prevents wrapping at
     the source, but does not fix residue when the terminal is resized mid-frame, and silently truncates

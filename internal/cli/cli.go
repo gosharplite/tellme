@@ -872,14 +872,13 @@ func newTurnSpinner(opts turnOptions, env runtimeEnv, model string, epoch time.T
 // without a pty (mirroring TELL_ME_FORCE_STDERR_TTY); 0 means the width is unknown,
 // so the presenter degrades to a single-row best-effort clear.
 func stderrColumns(env runtimeEnv) func() int {
-	return func() int {
-		if v := strings.TrimSpace(os.Getenv("TELL_ME_FORCE_STDERR_COLS")); v != "" {
-			if n, err := strconv.Atoi(v); err == nil && n > 0 {
-				return n
-			}
-		}
-		return terminalColumns(env.stderr)
+	// Resolve the override ONCE at construction (mirroring the stderrTTY / clock
+	// seams), so the seam does not re-read the environment on every frame; the
+	// real probe is still re-issued per call so a mid-turn resize is observed.
+	if n, err := strconv.Atoi(strings.TrimSpace(os.Getenv("TELL_ME_FORCE_STDERR_COLS"))); err == nil && n > 0 {
+		return func() int { return n }
 	}
+	return func() int { return terminalColumns(env.stderr) }
 }
 
 // renderHistoryList lists the last N persisted messages (round-007 FR-007..FR-009)
