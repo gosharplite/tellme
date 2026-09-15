@@ -15,16 +15,17 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/contracts/**` | _to be recorded by `/axb-api-plan`_ | _placeholder_ |
+| NOOP | `specs/truth/contracts/**` | Checked — tellme has a single CLI end and no OpenAPI/HTTP surface; the tool-loop log line authors no request/response contract. | `contract-authoritative` holds vacuously. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/data/data-model.dbml` | _to be recorded by `/axb-data-plan`_ | _placeholder_ |
+| NOOP | `specs/truth/data/data-model.dbml` | Checked — the persisted tool-step record (`{tool, arguments, result[, signature]}`) and the `history.jsonl` shape are unchanged; the tool-loop log line is operator-facing output, not stored. | FR-008/FR-010; no record-shape change. |
 
 ## /axb-dsl-refine
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/features/cli/**` | _to be recorded by `/axb-dsl-refine`_ | _placeholder_ |
+| MODIFY | `specs/truth/features/cli/chat/watching-the-tool-loop.feature` | Added three Rules — a call that states no reason (`[Tool] <name>`), each tool call on its own line, and the answer set apart from the tool report — carrying the round-022 acceptance (US1/US2). | FR-003/FR-005/FR-006; acceptance `reporting-each-tool-use` / `separating-the-tools-from-the-answer`. |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` | Reshaped the `the run reported the reason …` row to the `[HH:MM:SS] [Tool] <tool name> - <reason>` line and the `the run reported the tool call …` row to the `[HH:MM:SS] [Tool] <tool name>` shape (no `arguments=`/`result=`); added the no-reason, one-line-per-call, and separation rows; added the round-022 module note. | FR-001–FR-006; research Decisions 1–6. |
