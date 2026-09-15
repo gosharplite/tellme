@@ -25,7 +25,18 @@ const (
 func launchTUI(sc *scenarioContext, keys string) {
 	sc.setEnv("TELL_ME_FORCE_STDIN_TTY", "1")
 	sc.setEnv("TELL_ME_TUI_DEBOUNCE", "0") // refresh synchronously (round 016)
-	sc.pipeStdin(keys)
+	sc.pipeStdin(keys)                     // keep the plain stdin (the merged capture reruns it)
+	// Round 023: pace the key delivery — write the compose keys, let the editor
+	// paint, then the terminal key (submit/abort). bubbletea coalesces frames when
+	// all keys arrive at once, so without the pause the editor box would never
+	// reach the capture (the round-016/015 presence assertions) and the teardown
+	// witness (T006) would be vacuous. Input pacing, not synchronization.
+	compose, final := keys, ""
+	if len(keys) > 0 {
+		compose, final = keys[:len(keys)-1], keys[len(keys)-1:]
+	}
+	sc.pacedStdin = [2]string{compose, final}
+	sc.pacedSet = true
 	sc.args = []string{"-i"}
 	sc.run()
 }

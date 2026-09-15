@@ -132,6 +132,58 @@ func RunInWithStdin(dir string, args []string, stdin string, set map[string]stri
 	return runExec(bin, dir, args, strings.NewReader(stdin), set, unset, pipedRunTimeout, false)
 }
 
+// RunInWithPacedStdin is RunInWithStdin with the scripted input delivered in two
+// chunks — `first`, a short pause, then `last` (round 023). bubbletea COALESCES
+// frames when all keys are available at once, so with an instantaneous stdin only
+// the final frame renders and the editor box would never reach the captured
+// stream; a paced delivery lets the editor paint (the round-016/015 presence
+// assertions keep seeing the frame) before the terminal key clears it. It is
+// input pacing, not synchronization (tests/e2e is exempt from verify-no-test-sleep).
+func RunInWithPacedStdin(dir string, args []string, first, last string, set map[string]string, unset []string) RunResult {
+	bin, err := BinaryPath()
+	if err != nil {
+		return RunResult{ExitCode: -1, Err: err}
+	}
+	return runExec(bin, dir, args, &pacedReader{data: []byte(first + last), split: len(first), gap: pacedKeyGap}, set, unset, pipedRunTimeout, false)
+}
+
+// pacedKeyGap is the pause between the compose keys and the terminal key.
+const pacedKeyGap = 200 * time.Millisecond
+
+// pacedReader yields the bytes before `split`, then blocks for `gap` since the
+// first read, then the rest, then EOF. It never crosses the split in one Read, so
+// the pause is always observed at the boundary.
+type pacedReader struct {
+	data   []byte
+	split  int
+	gap    time.Duration
+	start  time.Time
+	pos    int
+	waited bool
+}
+
+func (r *pacedReader) Read(p []byte) (int, error) {
+	if r.start.IsZero() {
+		r.start = time.Now()
+	}
+	if r.pos >= len(r.data) {
+		return 0, io.EOF
+	}
+	if !r.waited && r.pos >= r.split {
+		if d := r.gap - time.Since(r.start); d > 0 {
+			time.Sleep(d)
+		}
+		r.waited = true
+	}
+	end := len(r.data)
+	if !r.waited && r.split > r.pos {
+		end = r.split
+	}
+	n := copy(p, r.data[r.pos:end])
+	r.pos += n
+	return n, nil
+}
+
 // RunInWithDevNull is RunIn with the child's stdin wired to the null device
 // (os.DevNull) — a *character device* that is NOT a terminal. It pins the
 // round-012 review BLOCKER B1 fix at the E2E layer: a real isatty probe must

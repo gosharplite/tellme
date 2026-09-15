@@ -193,9 +193,17 @@ func (m *Model) computeSuggestions() {
 
 // View implements tea.Model: the bordered editor above the styled suggestion
 // list. There is NO dashboard header and NO status line (round-016 strict
-// parity with tell-me-go). The frame is always rendered (no submit/abort clear),
-// so the final rendered frame is captured by the E2E harness.
+// parity with tell-me-go). Round 023: once the operator submits
+// (Ctrl+S / Alt+Enter) or aborts (Esc / Ctrl+C) the frame is CLEARED (empty),
+// matching tell-me-go's View() — the editor must not linger on screen while the
+// turn surface takes over. Earlier frames remain in the raw captured stream, so
+// the round-016 chrome assertions still hold; the E2E teardown witness reads the
+// cleared final frame via terminal reduction (the model-level clear is the
+// authoritative pin — round-023 T007).
 func (m *Model) View() string {
+	if m.submitted || m.aborted {
+		return ""
+	}
 	return modelStyle.Render(lipgloss.JoinVertical(lipgloss.Left, m.ed.view(), "\n", m.sug.view()))
 }
 

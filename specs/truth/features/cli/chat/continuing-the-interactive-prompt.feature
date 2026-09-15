@@ -52,7 +52,7 @@ Feature: Continuing the interactive prompt
       And a configured provider "test-model" whose endpoint answers with "all good"
       When the operator starts tellme with the prompt "hi"
       Then the turn opens with a horizontal rule
-      And the prompt is not echoed on the diagnostic output
+      And the prompt "hi" is not echoed on the diagnostic output
       And tellme exits successfully
 
     Example: A prompt read to end-of-input is not echoed back
@@ -62,7 +62,7 @@ Feature: Continuing the interactive prompt
       And a configured provider "test-model" whose endpoint answers with "all good"
       When the operator pipes "carry on" into tellme
       Then the input capture is announced for the turn
-      And the prompt is not echoed on the diagnostic output
+      And the prompt "carry on" is not echoed on the diagnostic output
       And tellme exits successfully
 
   Rule: The interactive prompt shows the progress spinner while it waits
