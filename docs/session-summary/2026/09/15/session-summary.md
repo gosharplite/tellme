@@ -527,3 +527,6 @@ A new session on the same calendar day: opened round **026** (issue [#53](https:
 
 ### PM follow-ups
 - None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled against the delivered state: **#53** left **open** (round-026 work in flight on [PR #57](https://github.com/gosharplite/tellme/pull/57), not yet merged — a linking comment [posted](https://github.com/gosharplite/tellme/issues/53#issuecomment-5678864613)); **#47** and **#13** left open (future candidates, still accurate). **No closes, no revisions.**
