@@ -14,17 +14,21 @@ import (
 //
 // Observable behaviour is asserted through the public Execute; the atomicity
 // guarantee (FR-009) is a UNIT-TIER invariant (no E2E fault injection exists) and
-// is witnessed by overriding the writeTempContent seam to fail a partial write.
-// These tests are RED until the tools are implemented in Phase 4A (T024).
+// is witnessed by injecting a content writer (the tool's struct field) that fails
+// a partial write.
 
 const unitBudget = 1 << 20
 
-func runWriteFile(args string) (string, error) {
-	return writeFile{}.Execute(context.Background(), args, unitBudget)
+func runWriteFile(args string) (string, error) { return runWriteFileWith(nil, args) }
+
+func runWriteFileWith(wc contentWriter, args string) (string, error) {
+	return writeFile{writeContent: wc}.Execute(context.Background(), args, unitBudget)
 }
 
-func runReplaceText(args string) (string, error) {
-	return replaceText{}.Execute(context.Background(), args, unitBudget)
+func runReplaceText(args string) (string, error) { return runReplaceTextWith(nil, args) }
+
+func runReplaceTextWith(wc contentWriter, args string) (string, error) {
+	return replaceText{writeContent: wc}.Execute(context.Background(), args, unitBudget)
 }
 
 func writeArgs(path, content string) string {
@@ -155,16 +159,14 @@ func TestWriteFileRejectsParentPathComponentFile(t *testing.T) {
 func TestWriteFileAtomicityLeavesNoPartialOrTemp(t *testing.T) {
 	dir := t.TempDir()
 	dest := filepath.Join(dir, "out.txt")
-	orig := writeTempContent
-	writeTempContent = func(f *os.File, data []byte) error {
+	injected := func(f *os.File, data []byte) error {
 		if _, err := f.Write(data[:3]); err != nil {
 			return err
 		}
 		return errors.New("injected write failure")
 	}
-	defer func() { writeTempContent = orig }()
 
-	_, err := runWriteFile(writeArgs(dest, "hello"))
+	_, err := runWriteFileWith(injected, writeArgs(dest, "hello"))
 	if err == nil || !strings.Contains(err.Error(), "injected write failure") {
 		t.Fatalf("want the injected write failure surfaced; got err=%v", err)
 	}
@@ -264,11 +266,9 @@ func TestReplaceTextAtomicityLeavesNoPartialOrTemp(t *testing.T) {
 	if err := os.WriteFile(dest, []byte("alpha\nBETA\ngamma\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	orig := writeTempContent
-	writeTempContent = func(f *os.File, data []byte) error { return errors.New("injected write failure") }
-	defer func() { writeTempContent = orig }()
+	injected := func(f *os.File, data []byte) error { return errors.New("injected write failure") }
 
-	_, err := runReplaceText(replaceArgs(dest, "BETA", "beta"))
+	_, err := runReplaceTextWith(injected, replaceArgs(dest, "BETA", "beta"))
 	if err == nil || !strings.Contains(err.Error(), "injected write failure") {
 		t.Fatalf("want the injected write failure surfaced; got err=%v", err)
 	}

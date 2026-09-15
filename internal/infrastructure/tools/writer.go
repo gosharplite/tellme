@@ -37,11 +37,16 @@ const (
 	createdDirMode       = 0o755
 )
 
-// writeTempContent writes the tool's new content into its temporary file. It is a
-// package-level var so the unit tests can fault-inject a partial write — the
-// unit-tier atomicity witness for FR-009 (no E2E fault injection exists). The
-// production value performs the whole write.
-var writeTempContent = func(f *os.File, data []byte) error {
+// contentWriter writes a tool's new content into its temporary file. It is a
+// struct-bound seam (an unexported field on each write tool, defaulting to
+// writeToFile) rather than a package-level mutable global, so the unit tests can
+// fault-inject a partial write (the unit-tier atomicity witness, FR-009) WITHOUT
+// preventing t.Parallel — matching the injected-port idiom (ADR-055/060/074) and
+// closing the principal review's TD-1.
+type contentWriter func(f *os.File, data []byte) error
+
+// writeToFile is the production content writer (the whole write).
+func writeToFile(f *os.File, data []byte) error {
 	_, err := f.Write(data)
 	return err
 }
@@ -53,7 +58,7 @@ var writeTempContent = func(f *os.File, data []byte) error {
 // an existing destination — no Stat-then-Rename TOCTOU); otherwise it is a
 // `rename` (which atomically replaces the destination). The temp file is removed
 // on any failure, so dest is never observed partial.
-func writeAtomic(dest string, data []byte, createOnly bool, mode os.FileMode) error {
+func writeAtomic(dest string, data []byte, createOnly bool, mode os.FileMode, wc contentWriter) error {
 	tmp, err := os.CreateTemp(filepath.Dir(dest), ".tellme-write-*.tmp")
 	if err != nil {
 		return fmt.Errorf("failed to create a temporary file: %w", err)
@@ -63,7 +68,7 @@ func writeAtomic(dest string, data []byte, createOnly bool, mode os.FileMode) er
 	// already gone (a harmless ENOENT on the deferred Remove), and on any failure
 	// this cleans it up so the destination is never left partial.
 	defer func() { _ = os.Remove(tmpName) }()
-	if err := writeTempContent(tmp, data); err != nil {
+	if err := wc(tmp, data); err != nil {
 		_ = tmp.Close()
 		return err
 	}
@@ -120,7 +125,19 @@ func mkdirAll0755(dir string) error {
 }
 
 // writeFile creates a NEW file (create-only; it never overwrites).
-type writeFile struct{}
+type writeFile struct {
+	// writeContent is the injected content writer (nil → writeToFile); the unit
+	// tests set it to fault-inject a partial write.
+	writeContent contentWriter
+}
+
+// writer returns the tool's content writer, defaulting to the production one.
+func (w writeFile) writer() contentWriter {
+	if w.writeContent != nil {
+		return w.writeContent
+	}
+	return writeToFile
+}
 
 // Name is the wire-valid canonical identifier (round-008 BLOCKER-1).
 func (writeFile) Name() string { return "write_file" }
@@ -146,7 +163,7 @@ func (writeFile) Parameters() json.RawMessage {
 // missing parent directories are created (mode 0755); an existing destination is
 // refused. A deadline observed before the write returns a nil-error timeout
 // result (FR-018).
-func (writeFile) Execute(ctx context.Context, arguments string, budget domaintools.ByteBudget) (string, error) {
+func (w writeFile) Execute(ctx context.Context, arguments string, budget domaintools.ByteBudget) (string, error) {
 	if timedOut(ctx) {
 		return timeoutMarker, nil
 	}
@@ -163,7 +180,7 @@ func (writeFile) Execute(ctx context.Context, arguments string, budget domaintoo
 	if timedOut(ctx) {
 		return timeoutMarker, nil
 	}
-	if err := writeAtomic(path, []byte(*content), true, createdFileMode); err != nil {
+	if err := writeAtomic(path, []byte(*content), true, createdFileMode, w.writer()); err != nil {
 		return "", fmt.Errorf("write_file: %w", err)
 	}
 	return boundWriteResult(writeFileSuccessMsg, budget), nil
@@ -201,7 +218,18 @@ func isJSONNull(raw json.RawMessage) bool {
 }
 
 // replaceText replaces a uniquely-identified block in an EXISTING file.
-type replaceText struct{}
+type replaceText struct {
+	// writeContent is the injected content writer (nil → writeToFile).
+	writeContent contentWriter
+}
+
+// writer returns the tool's content writer, defaulting to the production one.
+func (w replaceText) writer() contentWriter {
+	if w.writeContent != nil {
+		return w.writeContent
+	}
+	return writeToFile
+}
 
 // Name is the wire-valid canonical identifier (round-008 BLOCKER-1).
 func (replaceText) Name() string { return "replace_text" }
@@ -229,7 +257,7 @@ func (replaceText) Parameters() json.RawMessage {
 // uniquely-present block) short-circuits to success without a write. The edit
 // PRESERVES the destination's own permissions (round-029 review finding 1). A
 // deadline observed before the write returns a nil-error timeout result (FR-018).
-func (replaceText) Execute(ctx context.Context, arguments string, budget domaintools.ByteBudget) (string, error) {
+func (w replaceText) Execute(ctx context.Context, arguments string, budget domaintools.ByteBudget) (string, error) {
 	if timedOut(ctx) {
 		return timeoutMarker, nil
 	}
@@ -278,7 +306,7 @@ func (replaceText) Execute(ctx context.Context, arguments string, budget domaint
 	}
 	// NOTE (recorded limitation, round-029 review finding 6): the read follows a
 	// symlink and the atomic rename then replaces the LINK with a regular file.
-	if err := writeAtomic(args.FilePath, []byte(updated), false, mode); err != nil {
+	if err := writeAtomic(args.FilePath, []byte(updated), false, mode, w.writer()); err != nil {
 		return "", fmt.Errorf("replace_text: %w", err)
 	}
 	return boundWriteResult(replaceTextSuccessMsg, budget), nil
