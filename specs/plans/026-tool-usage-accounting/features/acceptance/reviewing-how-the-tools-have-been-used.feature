@@ -30,3 +30,16 @@ Feature: Reviewing how the tools have been used
       When the operator reviews how the tools have been used
       Then the review shows every tool with no uses
       And tellme exits successfully
+
+  Rule: The review works even without a configured runtime home
+
+    # The review is self-contained: it does not need the operator's runtime home
+    # to be configured, so it also works in a shell where none is set.
+
+    Example: The operator reviews the tools in a shell with no runtime home configured
+      Given the operator has a runnable tellme installation
+      And the operator has not configured a runtime home
+      And the tool usage records that the read_files tool was used once and succeeded
+      When the operator reviews how the tools have been used
+      Then the review shows the read_files tool was used once and succeeded
+      And tellme exits successfully
