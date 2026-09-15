@@ -117,7 +117,11 @@ Topic: relocate tellme's round-015 `-i` **shared prompt log** from the environme
   one file, while the adapter still takes **no `flock`**. `O_APPEND` keeps single-line appends safe, but two
   concurrent processes can race the ≈150 KiB **compaction** (optimistic size-checked). This **increases** the
   materiality of the existing "no `flock`" forward item; recorded here and qualified in `techstack.md`. No
-  code change this round.
+  code change this round. The **first-use seed is likewise not atomic**: `Seed` creates the destination with
+  `O_EXCL` and then writes the bytes in a single `Write`, so a concurrent other-process reader can observe
+  the file mid-copy (empty/partial) for that one read — acceptable for a one-time migration (and `O_EXCL` is
+  the right no-overwrite primitive), recorded so a future reader knows the seed publish is not atomic
+  (PR #59 implementation-review note).
 - **Single-source seed** — only the first interactive run after the move (in whichever environment is
   active while the destination is absent) seeds the log; other environments' env-scoped logs are not
   merged. Operator-accepted (verbatim copy), disclosed in `spec.md` → edge cases.
