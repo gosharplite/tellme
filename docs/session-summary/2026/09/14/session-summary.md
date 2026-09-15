@@ -927,3 +927,82 @@ The delivery + end-of-day closeout: PR [#46](https://github.com/gosharplite/tell
 
 ### PM follow-ups
 - None new (spec/acceptance unchanged).
+
+## 24. Session 12 (2026-09-14) — round 021 (`021-tool-surface-parity`) plan + truth half → PR #48 (three review folds; approved); day close
+
+A session on the same calendar day: opened round **021** (align tellme's **agent tool surface** with `tell-me-go`), ran the **plan + truth half**, opened **PR [#48](https://github.com/gosharplite/tellme/pull/48)**, took it through **three architectural-review folds** to **APPROVED — plan + truth half, review loop closed**, created forward item **issue [#49](https://github.com/gosharplite/tellme/issues/49)**, and ran `SESSION-CLOSEOUT.md`. **No product code** this half.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 020 delivered/frozen; active branch `dev`) |
+| Round-021 theme | Agent tool surface parity — **DELETE** `summarize_history`; **MODIFY** `list_files` + `read_files` (add `reason`; mirror the reference); **ADD** `get_tree` |
+| Operator decisions (pre-specify) | **D1** multi-file `filepaths` · **D2** `reason` required + echoed · **D3** reference limits · **D4** no security layer · **D5** add `get_tree` |
+| `/axb-specify` | `specs/plans/021-tool-surface-parity/` (spec · checklist · truth-delta) — 0 clarify questions (D1–D5 pre-locked) |
+| `/axb-spec-by-example` | 4 acceptance features (multi-file read · list · tree · reader-tool set) |
+| `/axb-technical-research` | `research.md` (D1–D8 + **D3a** bounded results); `specs/truth/techstack.md` MODIFY |
+| `/axb-system-analysis` | `plan.md` — **1 interface** (CLI end → `/axb-dsl-refine`); `/axb-api-plan` + `/axb-data-plan` = NOOP; `/axb-ui-plan` skipped |
+| `/axb-dsl-refine` | ADD `reading-several-files` / `listing-a-directory` / `surveying-a-folder-tree` / `offering-the-reader-tools`; MODIFY `watching-the-tool-loop` + `sending-the-configured-persona` + `chat/dsl.md`; DELETE `summarising-the-conversation`; audit **PASSED** |
+| `/axb-tasks` | `tasks.md` (T001–T047; orphan sweep 0) |
+| Delivery | branch `021-tool-surface-parity`; **PR [#48](https://github.com/gosharplite/tellme/pull/48) → `dev`** (plan + truth only); **not merged** (human-only) |
+
+### Work done
+
+1. **Bootstrap (Steps 1–8)** — round 020 delivered/frozen; active branch `dev`; peers unchanged.
+2. **Round-021 scoping + 5 operator decisions** (asked one-at-a-time): D1–D5 (above).
+3. **Plan + truth half** — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks`; per-phase doc commits.
+4. **PR [#48](https://github.com/gosharplite/tellme/pull/48)** opened → `dev` (plan + truth only).
+5. **Three review folds** (`0963130`, `dc89677`, `5d14599`) — B1 get_tree falsifiability; B2+TD1 bounded reader results (1 MiB aggregate, `D3a`); TD2 directory Example; TD3 `reason` schema-only; R1 framing; R3 persona history; nits — resolving every blocker/debt/refactor/nit.
+6. **Forward item** — created **issue [#49](https://github.com/gosharplite/tellme/issues/49)** (tie the fixed 1 MiB reader cap to the resolved `MAX_HISTORY_TOKENS`); cross-linked from PR #48.
+7. **Closeout** — `STATUS.md` refreshed (round 021 → plan+truth approved, PR #48 awaiting human merge); this §24.
+
+### Decisions locked (round 021)
+
+| # | Decision |
+| --- | --- |
+| D1 | `read_files` → multi-file `filepaths: string[]` (request order, `--- File: <path> ---` framing) |
+| D2 | `reason` required (**schema-only**) on all three tools; the value is echoed into the tool-loop `stderr` log line (`reason=<value>`) |
+| D3 | reference limits verbatim: 100 000 B/file → `... (truncated)`; binary marker; directory `ERROR:`; ≤50 files; inline `ERROR:` |
+| D3a | **each reader tool's whole result capped at 1 MiB** (aggregate; deterministic — over-cap blocks dropped, marker `... (truncated at the read budget)`, omitted file gets no header). A recorded divergence (the reference has no aggregate cap). |
+| D4 | no security/consent layer (settled exclusion stands) |
+| D5 | add `get_tree` (`{path?, max_depth?, reason*}`, default `max_depth` 2, `.git` not recursed) |
+| R2 | the `offering-the-reader-tools` "removed tool" Rule kept for narrative locality (reuses DSL rows; not new coverage) |
+
+### Commits (branch `021-tool-surface-parity`)
+
+| Commit | Note |
+| --- | --- |
+| `a86142b` | `docs(021)`: plan package and spec for tool surface parity |
+| `43e1905` | `docs(021)`: acceptance Gherkin for tool surface parity |
+| `7d38751` | `docs(021)`: technical research + techstack truth |
+| `14e7146` | `docs(021)`: system-analysis plan |
+| `48342a8` | `docs(021)`: CLI interface truth for tool surface parity |
+| `418cbcd` | `docs(021)`: tasks.md |
+| `c7e86b0` | `docs(021)`: status — plan half complete |
+| `0963130` | `docs(021)`: fold PR #48 review (B1/B2/TD1/TD2/TD3/R1/R3) |
+| `dc89677` | `docs(021)`: fold PR #48 re-review — aggregate-cap shape + marker + asymmetry |
+| `5d14599` | `docs(021)`: fold PR #48 final re-review — suffix-match guard + NFR-001 fixed-ceiling |
+
+### Verification
+
+- Gherkin/DSL topology audit **PASSED** — 36 features · 15 root + **207** module rows · **1041 steps** · 0 errors.
+- `gofmt -l .` clean · diff-level secret scan clean.
+- No product code this half → `make verify` / E2E not applicable.
+
+### Open items (non-blocking)
+
+- **Round 021** — **plan + truth APPROVED (PR #48)**; `/axb-implement` (T001–T047) is next; PR #48 **awaiting human merge**; **propagation pending**.
+- **Round-021 forward item** — issue [#49](https://github.com/gosharplite/tellme/issues/49) (fixed cap → `MAX_HISTORY_TOKENS`).
+- Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / no pruning / **no `flock`**; round-011 forward items; round-018 gray styling; round-019 macOS CPU leg.
+
+### Next steps
+
+1. **`/axb-implement`** on `021-tool-surface-parity` (One-Shot over T001–T047), carrying the review directives embedded in the task boundaries (aggregate cap + suffix-match guard; `reason` echo; exactly the three reader tools).
+2. On delivery: implementation review → **human merge** of PR #48 → propagate `021-tool-surface-parity → dev → main`.
+3. The plan+truth half is independently mergeable (approved); the round is not deliverable until implementation lands.
+4. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `021-tool-surface-parity`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; no PM-owned gaps). The `reason` schema-only rescope (FR-012) and the `D3a` bounded-results decision are recorded in `spec.md`.

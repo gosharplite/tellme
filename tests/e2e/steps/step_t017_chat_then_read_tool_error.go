@@ -24,7 +24,7 @@ func thenReadToolError(ctx context.Context, path string) error {
 	if f == nil {
 		return fmt.Errorf("no fake provider recorded a request")
 	}
-	if !hasToolCall(f, "read_files", path) {
+	if !readFilesCallCarries(f, path) {
 		return fmt.Errorf("no read_files tool call for %q was recorded", path)
 	}
 	result := lastToolResult(f)
