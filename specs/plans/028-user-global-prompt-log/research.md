@@ -12,9 +12,10 @@ Topic: relocate tellme's round-015 `-i` **shared prompt log** from the environme
 
 ## Decision 1: The log moves to a per-user file at `~/.tellme/global_prompts.jsonl`
 
-- **Decision**: Resolve the log path from the operating-system user's home (`os.UserHomeDir()`) →
-  `<home>/.tellme/global_prompts.jsonl`. Both the suggestion **read** and the `-i` **record write** target
-  it, replacing `<TELL_ME_HOME>/output/global_prompts.jsonl`.
+- **Decision**: Resolve the log path at `<user-home>/.tellme/global_prompts.jsonl` via the **CLI-injected
+  user-home resolver** (`userHomeDir = os.UserHomeDir`, passed into the adapter — mirroring the round-026
+  `newToolUsageStore` seam; the adapter keeps the path join). Both the suggestion **read** and the `-i`
+  **record write** target it, replacing `<TELL_ME_HOME>/output/global_prompts.jsonl`.
 - **Rationale**: it reuses the **round-026 user-global root** (`~/.tellme/`, already the home of
   `tools-count.jsonl`), so tellme gains no new base-directory convention; it makes the prompt history
   **follow the operator** across every environment/repository/mode (the operator's stated goal), instead
@@ -52,10 +53,12 @@ Topic: relocate tellme's round-015 `-i` **shared prompt log** from the environme
 
 ## Decision 4: The seed runs in the history adapter, best-effort, before the first suggestion read
 
-- **Decision**: Implement the seed in the infrastructure history adapter (`internal/infrastructure/history`),
-  invoked when the `-i` tracker is constructed/used — **before** seeding suggestions — and make it
-  **best-effort**: any I/O error (unreadable source, unwritable destination) is swallowed and the prompt
-  continues with an empty/partial log.
+- **Decision**: Implement the seed as an **explicit `Seed(ctx) error`** on the infrastructure history
+  adapter (`internal/infrastructure/history`), invoked **once** at the composition root **before** the
+  interactive read (not a constructor side effect — the tracker is built **twice** per `-i` run: once to
+  seed suggestions, once to `Append` the submission), and make it **best-effort**: any I/O error
+  (unreadable source, unwritable destination) is swallowed and the prompt continues with an empty/partial
+  log.
 - **Rationale**: the tracker is only built on the `-i` path, so the seed naturally fires only there (the
   log is never touched by a non-`-i` run — preserving the round-015/027 `-i`-only contract); best-effort
   matches the round-026 tool-usage log and the round-028 NFR-001.
@@ -79,10 +82,11 @@ Topic: relocate tellme's round-015 `-i` **shared prompt log** from the environme
 ## Decision 6: The tell-me-go sharing contract is dropped (recorded divergence)
 
 - **Decision**: Record that tellme **no longer shares** the prompt log with `tell-me-go` (which keeps
-  `<TELL_ME_HOME>/output/global_prompts.jsonl`), and that tellme **skips** tell-me-go's legacy locations
-  (`.tellmego/prompts.jsonl`, `<home>/global_prompts.jsonl`). The record **shape** stays unchanged (one
-  `{"timestamp","prompt"}` per line) — it no longer needs to round-trip with tell-me-go, but keeping the
-  shape avoids a needless format change.
+  `<TELL_ME_HOME>/output/global_prompts.jsonl`). tellme **never** read tell-me-go's legacy locations
+  (`.tellmego/prompts.jsonl`, `<home>/global_prompts.jsonl`) — that was a **reference-side** migration
+  path, not a tellme behaviour — so this is a recording of the reference, **not** new skip logic. The
+  record **shape** stays unchanged (one `{"timestamp","prompt"}` per line) — it no longer needs to
+  round-trip with tell-me-go, but keeping the shape avoids a needless format change.
 - **Rationale**: inherent to the operator-directed relocation (Decision 1/2); the round-015/016
   "byte-for-byte with the other personas" contract is superseded.
 - **Alternatives considered**:
@@ -105,6 +109,12 @@ Topic: relocate tellme's round-015 `-i` **shared prompt log** from the environme
 - **Unbounded `~/.tellme/` growth** — the user-global root now hosts two append-only logs (the round-026
   `tools-count.jsonl` and this prompt log); compaction/rotation for the user-global root remains a shared
   forward item (the prompt log keeps its round-015 in-file compaction policy, unchanged here).
+- **Cross-process contention (escalated by the relocation, TD-3)** — the round-015 log was per-`TELL_ME_HOME`
+  (one writer per environment); after the relocation **every** environment/process on the machine shares
+  one file, while the adapter still takes **no `flock`**. `O_APPEND` keeps single-line appends safe, but two
+  concurrent processes can race the ≈150 KiB **compaction** (optimistic size-checked). This **increases** the
+  materiality of the existing "no `flock`" forward item; recorded here and qualified in `techstack.md`. No
+  code change this round.
 - **Single-source seed** — only the first interactive run after the move (in whichever environment is
   active while the destination is absent) seeds the log; other environments' env-scoped logs are not
   merged. Operator-accepted (verbatim copy), disclosed in `spec.md` → edge cases.

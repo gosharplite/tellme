@@ -34,8 +34,10 @@ state-location slice: `/axb-ui-plan` is skipped.)*
 internal/
 ├── infrastructure/
 │   └── history/
-│       └── global_prompt_tracker.go   # CHANGED — resolve the log at ~/.tellme/global_prompts.jsonl (os.UserHomeDir())
-│                                      #   instead of <home>/output/global_prompts.jsonl; add the seed-on-absent migration
+│       └── global_prompt_tracker.go   # CHANGED — resolve the log at ~/.tellme/global_prompts.jsonl via the INJECTED
+│                                      #   user-home resolver (the CLI's `userHomeDir` seam, mirroring `newToolUsageStore`) —
+│                                      #   the constructor gains the resolver param, keeping the path join in the adapter;
+│                                      #   add an explicit `Seed(ctx) error` for the seed-on-absent migration
 │                                      #   (verbatim copy of <TELL_ME_HOME>/output/global_prompts.jsonl — copy, not move;
 │                                      #   never overwrite an existing destination; missing source → empty); degrade to a
 │                                      #   no-op on an unresolvable/unwritable home (never break the prompt)
@@ -43,8 +45,10 @@ internal/
 │   └── history/
 │       └── tracker.go                 # CHANGED (doc) — the PromptTracker port doc reflects the user-global home + the seed contract
 └── cli/
-    └── cli.go                         # CHANGED — construct the tracker with the runtime home (seed source) + the user home (destination);
-                                       #   the non-`-i` dispatch paths are untouched (the log stays `-i`-only)
+    └── cli.go                         # CHANGED — construct the tracker with the runtime home (seed source) + the injected
+                                       #   `userHomeDir` resolver (destination, mirroring `newToolUsageStore`); invoke `Seed(ctx)`
+                                       #   once at the composition root (before the interactive read); the non-`-i` dispatch
+                                       #   paths are untouched (the log stays `-i`-only)
 tests/
 └── e2e/
     ├── steps/*                        # CHANGED — the shared-prompt-log steps resolve the log at the temp HOME; add seed arrangements/assertions
@@ -58,7 +62,7 @@ round-015 interactive prompt log is **read from and written to** — from the en
 `<TELL_ME_HOME>/output/global_prompts.jsonl` to the per-user `~/.tellme/global_prompts.jsonl` — and adds a
 one-time **seed** that copies the existing environment-scoped file into the user-global one when the
 latter is absent. The change is confined to the `internal/infrastructure/history` adapter (the path
-resolution + the seed) plus the CLI construction seam; the record **shape**, the read **semantics**
+resolution — via a CLI-injected user-home **resolver**, mirroring the round-026 `newToolUsageStore` seam, plus an explicit `Seed(ctx) error`) and the CLI construction seam; the record **shape**, the read **semantics**
 (newest-first + deduped), the `-i`-only write rule, and the interactive TUI chrome are **unchanged**, so
 `internal/ui` and `internal/agent` are **untouched**. There is **no** new endpoint, **no** new dependency,
 and **no** persisted-shape change — only the file's **location and lifecycle**. The CLI end's

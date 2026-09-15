@@ -18,8 +18,8 @@
 
 > 來自 operator 拍板（read from / save to `~/.tellme/global_prompts.jsonl`；if absent, copy the existing `output/global_prompts.jsonl`）與 `research.md` Decisions 1–7。
 
-- **[USER-GLOBAL PATH]** the shared prompt log lives at **`~/.tellme/global_prompts.jsonl`** （resolved via `os.UserHomeDir()`；the child's `HOME` is a per-scenario temp dir — the round-026 precedent）。Both the suggestion **read** and the `-i` **record write** target it；`$TELL_ME_HOME/output/global_prompts.jsonl` is **no longer read or written** by tellme. 見 T001、T002、T012。
-- **[SEED-ON-ABSENT]** when `~/.tellme/global_prompts.jsonl` is **absent**, copy `$TELL_ME_HOME/output/global_prompts.jsonl` into it **verbatim**（copy, **not** move；the source is left in place）；**never overwrite** an existing destination；a **missing source** starts empty（no error）。Best-effort — a seed I/O failure never aborts the prompt. 見 T002、T008、T014。
+- **[USER-GLOBAL PATH]** the shared prompt log lives at **`~/.tellme/global_prompts.jsonl`** （resolved via the **CLI-injected user-home resolver** — `userHomeDir = os.UserHomeDir`, mirroring the round-026 `newToolUsageStore`；the child's `HOME` is a per-scenario temp dir — the round-026 precedent）。Both the suggestion **read** and the `-i` **record write** target it；`$TELL_ME_HOME/output/global_prompts.jsonl` is **no longer read or written** by tellme. 見 T001、T002、T012。
+- **[SEED-ON-ABSENT]** when `~/.tellme/global_prompts.jsonl` is **absent**, copy `$TELL_ME_HOME/output/global_prompts.jsonl` into it **verbatim**（copy, **not** move；the source is left in place）；**never overwrite** an existing destination；a **missing source** starts empty（no error）。Best-effort — a seed I/O failure never aborts the prompt. Implemented as an **explicit `Seed(ctx) error`** invoked **once** at the composition root（**not** a constructor side effect — the tracker is built twice per `-i` run）。見 T002、T008、T014。
 - **[SHAPE UNCHANGED]** the record `{"timestamp":"<RFC3339>","prompt":"<text>"}` per line、the append-only write、the newest-first-deduped read、and the compaction policy are **unchanged**；the `-i`-only write rule（a one-shot / piped run writes nothing）is **unchanged**；the TUI chrome、`stdout` byte-exactness、the class-phrase vocabulary（11）、and the round-018/026 logs are **unchanged**. 見 T012、T016。
 - **[DIVERGENCE]** tellme **no longer shares** the log with `tell-me-go`（which keeps `$TELL_ME_HOME/output/...`）and skips its legacy locations — a recorded, operator-accepted divergence. 見 T012、T016。
 - **[STDLIB / POSIX]** no new dependency；POSIX-only.
@@ -40,13 +40,16 @@
     - 新增 `envPromptLogPath(sc)` = `filepath.Join(sc.home, "output", "global_prompts.jsonl")`（the seed source）；`appendEnvPromptLog(sc, prompt)`（append the seed-source line）；`ensureSharedPromptLogAbsent(sc)`（remove `~/.tellme/global_prompts.jsonl` if present）。
   - 不做：不改 stepdef 檔、不改 feature、不改產品碼、不加相依。
 
-- [ ] T002 建立產品落點骨架 — the tracker path + the seed seam（`internal/infrastructure/history/global_prompt_tracker.go`、`internal/cli/cli.go`）
+- [ ] T002 建立產品落點骨架 — the tracker path (injected resolver) + the explicit seed seam（`internal/infrastructure/history/global_prompt_tracker.go`、`internal/cli/cli.go`）
   - Read:
     - `specs/truth/techstack.md` -> CLI Application（Shared global prompt log）
     - `specs/plans/028-user-global-prompt-log/research.md` -> Decision 1, Decision 4, Decision 5, Decision 7
-    - `internal/infrastructure/history/global_prompt_tracker.go`（the round-015 adapter）、`internal/domain/history/tracker.go`、`internal/cli/cli.go`（the `NewGlobalPromptTracker(res.Home)` call sites）
-  - 只做：把 adapter 的路徑改成 `~/.tellme/global_prompts.jsonl`（dest，via `os.UserHomeDir()`），並保留 runtime home 作為 seed source 的來源；新增一個 `seedIfAbsent` 方法殼（best-effort、無實作行為），於 tracker 建立時先呼叫（Phase 4 補實作）。the CLI constructor 把 runtime home（seed source）傳入。
-  - 不做：不實作 the seed copy、不改 the record shape / read / compaction / `-i`-only rule、不改 any other surface、不加相依。
+    - `internal/infrastructure/history/global_prompt_tracker.go`（the round-015 adapter）、`internal/domain/history/tracker.go`（the port doc）、`internal/cli/cli.go`（the `userHomeDir` seam `:176`、`newToolUsageStore` `:188`、the `NewGlobalPromptTracker(res.Home)` call sites `:210`,`:283`）
+  - 只做：
+    - 把 adapter 的 **destination** 改成經 **injected user-home resolver** 解析的 `~/.tellme/global_prompts.jsonl` — `NewGlobalPromptTracker(home string, userHome func() (string, error))`，mirroring the round-026 `newToolUsageStore`（`userHomeDir = os.UserHomeDir`，`cli.go:176`）。the **path join** 留在 adapter，只注入 resolver；the CLI 的 two call sites 傳入 `res.Home`（seed source）+ the shared `userHomeDir` seam，so CLI unit tests stay hermetic（`cli_test.go` overrides `userHomeDir`）。
+    - 新增 **explicit** `Seed(ctx context.Context) error` 方法殼（best-effort、暫無實作行為）；the CLI 於 composition root（the interactive read 之前）呼叫**一次**（TD-2：the tracker is built **twice** per `-i` run — `cli.go:210` seeds suggestions, `cli.go:283` appends — 故 seed **不**放在 constructor）。
+    - 更新 stale 產品檔的 doc comments（RF-2）：`internal/infrastructure/history/global_prompt_tracker.go`（the `globalPromptLogFile` const + the `GlobalPromptTracker`/`NewGlobalPromptTracker` type docs）、`internal/domain/history/tracker.go`（the port doc）→ the user-global path + the seed + the divergence。
+  - 不做：不實作 the seed copy（Phase 4）、不改 the record shape / read / compaction / `-i`-only rule、不改 any other surface、不加相依。
 
 - [ ] T003 建立 4 個新 stepdef 獨立落點骨架（Zero Shared Edits 原則）
   - Read:
@@ -189,14 +192,21 @@
 - `specs/truth/data/data-model.dbml` -> `prompt_log_entry`（the seed lifecycle）
 
 **Boundary**:
-- 產品碼：`internal/infrastructure/history/global_prompt_tracker.go` — the seed-on-absent: when the user-global file is absent, copy `$TELL_ME_HOME/output/global_prompts.jsonl` verbatim（copy, not move；never overwrite；a missing source starts empty；best-effort — swollow any I/O error so the prompt is never aborted）。
+- 產品碼：`internal/infrastructure/history/global_prompt_tracker.go` — implement the explicit `Seed(ctx)`（the seed-on-absent: when the user-global file is absent, copy `$TELL_ME_HOME/output/global_prompts.jsonl` verbatim；copy, not move；never overwrite；a missing source starts empty；best-effort — **swallow** any I/O error so the prompt is never aborted）。The CLI invokes `Seed(ctx)` **once** at the composition root（before the interactive read）。
 - 依 `research.md` Decisions 3／4；the seed fires only on the `-i` path（the tracker is built there）；the copy is byte-identical；an existing destination is never replaced。
 - **不動** the record shape / read / compaction、the relocation semantics（Phase 4A）、any other surface。**不加相依**。
 
 **Test Scope**:
 - `specs/truth/features/cli/chat/carrying-over-the-environment-prompt-log.feature`
 
-- [ ] T014 [BDD-GREEN] 讓 Test Scope 全綠（implement the first-use seed）
+- [ ] T014 [BDD-GREEN] 讓 Test Scope 全綠（implement the explicit `Seed(ctx)` + the first-use seed）
+  - Read:
+    - `specs/truth/features/cli/chat/carrying-over-the-environment-prompt-log.feature`
+    - `specs/truth/features/cli/chat/dsl.md` -> the 4 seed rows（Round 028）
+    - `specs/plans/028-user-global-prompt-log/research.md` -> Decision 3, Decision 4
+    - `internal/infrastructure/history/global_prompt_tracker.go`
+  - 只做：implement `Seed(ctx)`（the verbatim copy + the no-overwrite guard + the missing-source-is-fine）並接上 the single composition-root call；另加一個 **hermetic unit pin** 證明 the seed fires with **no submission**（i.e. on **opening** the prompt — RF-3；inject the resolver + a temp runtime home），使 the abort/empty-open seed path 也被釘住。
+  - 不做：不改 the record shape / read / compaction、不改 the relocation（Phase 4A）、不改 any other surface。
 - [ ] T015 [BDD-REFACTOR] 在綠燈下整理 the seed（best-effort copy + no-overwrite guard）
 
 ## Phase 4C: Regression
