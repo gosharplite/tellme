@@ -3,7 +3,7 @@
 **Plan Package**: `specs/plans/022-tool-loop-log-line`
 **Core Inputs**: `spec.md`, `plan.md`, `research.md`, `truth-delta.md`, `specs/truth/techstack.md`, `specs/truth/contracts/**`, `specs/truth/data/**`, `specs/truth/features/**`, `ui/**`
 
-> **PR #50 review fold** (B1/TD1/TD2/TD3/R1/R2): this revision adds the negative Rule/Then (B1), the `-i` tool-using Example (TD1), the ordered Rule/Then + sequential two-tool Given (TD3), and the `formatClock` factor (R2). B1/TD1/TD3 land as new `[BDD-RED]` sentences (T008–T010) + the `-i` Examples; TD2 is a documentation note; R2 is a Foundational/product-refactor note.
+> **PR #50 review fold** (B1/TD1/TD2/TD3/R1/R2): this revision adds the negative Rule/Then (B1), the `-i` tool-using Example (TD1), the ordered Rule/Then + sequential two-tool Given (TD3), and the `formatClock` factor (R2). B1/TD1/TD3 land as new `[BDD-RED]` sentences (T008–T010) + the `-i` Examples; TD2 is a documentation note; R2 is a Foundational/product-refactor note. **(review 2)**: `R-1` extends `formatClock` to `FormatMetrics` (T001/T011); implementation directives 1–3 (preserve `LoopObserver` `Before/AfterToolLog` hooks; blank line after `sp.Stop()` + `store.Append` and immediately before `writeAnswer`; `AgentLoop.now()` nil→`time.Now` fallback) are folded into T014.
 
 ## Task Binding Contract
 
@@ -27,7 +27,7 @@
     - `specs/truth/techstack.md` -> CLI Application（Agent tool loop；Pure-helper unit tests）
     - `specs/plans/022-tool-loop-log-line/research.md` -> Decision 1, 2；`## Review fold — PR #50`（R2）
     - `internal/ui/status.go`、`internal/ui/turn.go`（既有 clock-seam formatter 樣式）、`internal/agent/agentloop.go`、`internal/cli/cli.go`（`env.now`）
-  - 只做：新增 `internal/ui/toollog.go`，宣告 `func FormatToolLog(t time.Time, name, reason string) string` 空殼（`return ""`）；抽出 `func formatClock(t time.Time) string`（R2）並讓既有 `FormatPayloadStatus`／`FormatInputCaptured` 共用（行為不變）；在 `AgentLoop` 新增 `Now func() time.Time` 欄位（含 nil→`time.Now` 的 `now()` helper 空殼）。
+  - 只做：新增 `internal/ui/toollog.go`，宣告 `func FormatToolLog(t time.Time, name, reason string) string` 空殼（`return ""`）；抽出 `func formatClock(t time.Time) string`（R2）並讓既有 `FormatPayloadStatus`（`status.go`）／`FormatInputCaptured`（`turn.go`）／`FormatMetrics`（`metrics.go`）共用（行為不變，PR #50 review 2 R-1 要求一併納入 `FormatMetrics`）；在 `AgentLoop` 新增 `Now func() time.Time` 欄位（含 nil→`time.Now` 的 `now()` helper 空殼）。
   - 不做：不實作 log 行格式字串；不改 `logStep` 輸出；不動 CLI blank-line；不寫斷言。
 
 - [ ] T002 建立 stepdef／`[UNIT]` 落點檔骨架
@@ -121,7 +121,7 @@
     - `specs/plans/022-tool-loop-log-line/research.md` -> Decision 1, 2；`## Review fold — PR #50`（R2）
     - `specs/truth/techstack.md` -> CLI Application（Agent tool loop；Pure-helper unit tests）
     - `internal/ui/toollog.go`、`internal/ui/status.go`
-  - 撰寫：以注入的固定時間斷言 `[HH:MM:SS] [Tool] <name> - <reason>`（含 reason）；無 reason 時為 `[HH:MM:SS] [Tool] <name>`（無 ` - ` 尾）；時間格式為 `15:04:05`；`formatClock` 與 `FormatPayloadStatus`／`FormatInputCaptured` 共用同一時鐘格式（R2）。
+  - 撰寫：以注入的固定時間斷言 `[HH:MM:SS] [Tool] <name> - <reason>`（含 reason）；無 reason 時為 `[HH:MM:SS] [Tool] <name>`（無 ` - ` 尾）；時間格式為 `15:04:05`；`formatClock` 與 `FormatPayloadStatus`／`FormatInputCaptured`／`FormatMetrics` 共用同一時鐘格式（R2 + review 2 R-1）。
   - 落點：`internal/ui/toollog_test.go`。
 
 - [ ] T012 [P] [UNIT] `AgentLoop.logStep` 行形狀（新 `[Tool]` 行 + clock seam）
@@ -151,7 +151,8 @@
 - `specs/plans/022-tool-loop-log-line/research.md` -> Decision 1–6；`## Review fold — PR #50`
 
 **Boundary**:
-- 產品碼：`internal/agent/agentloop.go`（`logStep` 改用 `ui.FormatToolLog` + `Now` seam；移除 `arguments=`／`result=`）；`internal/ui/toollog.go`（實作 `FormatToolLog`；R2 `formatClock`）；`internal/cli/cli.go`（`loop.Now = env.now`；`len(result.Steps) > 0` 時於 `writeAnswer` 前輸出**恰好一個 `\n`** 到 `stderr`，位置**在 `sp.Stop()` 之後、`env.writeAnswer(...)` 之前**，以免被 spinner 清除吞掉）。
+- 產品碼：`internal/agent/agentloop.go`（`logStep` 改用 `ui.FormatToolLog` + `Now` seam；移除 `arguments=`／`result=`；**`logStep` 必須持續包裹 `a.Observer.BeforeToolLog()`／`AfterToolLog()`** 以維持 round-019 spinner — PR #50 review 2 directive 1）；`internal/ui/toollog.go`（實作 `FormatToolLog`；R2 `formatClock` 含 `FormatMetrics`）；`internal/cli/cli.go`（`loop.Now = env.now`；`len(result.Steps) > 0` 時輸出 `fmt.Fprintln(env.stderr)` 的**恰好一個 `\n`**，位置**在 `sp.Stop()` 與 `store.Append` 之後、緊接 `env.writeAnswer(...)` 之前** — review 2 directive 2，以免被 spinner 清除吞掉）。
+- `AgentLoop.now()` fallback：`if a.Now != nil { return a.Now() } return time.Now()`（review 2 directive 3）。
 - 空行**不受 `chrome` 條件限制**（跟隨 tool-log 行；任何 tool-using 表面，含 `-i` submit 與非 chrome 路徑）——由 `-i` tool-using Example 見證（TD1）。
 - `stdout` 契約不變；class-phrase 詞彙不變（11）；不動 payload line／spinner；`go mod` 不變。
 - review 回應指出：本輪改變**每個** tool-using turn 的 `stderr`，故 T016 回歸須重檢既有 round-010/017 ordering Thens。

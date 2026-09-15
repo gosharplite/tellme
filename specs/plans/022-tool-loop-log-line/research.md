@@ -91,3 +91,18 @@ The plan+truth half was reviewed (PR #50). The following findings are resolved *
 - **R2 — clock-format duplication.** Resolution (implementation): factor a small `formatClock(t) string` in `internal/ui`, used by `FormatToolLog` and the existing `FormatPayloadStatus` / `FormatInputCaptured`, so the three `stderr` surfaces stay in lockstep (carried in `tasks.md` T001/T011).
 
 **Implementation notes carried into `tasks.md`** (non-blocking, from the review): emit **exactly one** `\n` for the blank line, positioned **after** `sp.Stop()` and **before** `env.writeAnswer(...)`; set `loop.Now = env.now`; keep the nil→`time.Now` fallback for unit tests; re-check the round-010/017 ordering Thens in the regression scope.
+
+---
+
+## Review fold 2 — PR #50 (round 022), head `8c38579`
+
+Second review: **FULL ARCHITECTURAL APPROVAL — CERTIFIED READY FOR IMPLEMENTATION**. Non-blocking recommendations folded:
+
+- **R-1 (refactor) — extend the `formatClock` consolidation to all `internal/ui` timestamp formatters.** Folded into `tasks.md` T001/T011: the shared `formatClock(t)` is used by `FormatToolLog` **and** the existing `FormatPayloadStatus`, `FormatInputCaptured`, **and `FormatMetrics`** (`internal/ui/metrics.go`), so all four `stderr` diagnostic formatters share one clock-format token.
+- **TD-1 (debt) — stale PR description metrics.** The PR body is updated to `tasks.md (T001–T016)` and `213 module rows · 1087 steps` (branch state).
+
+Implementation directives (for `/axb-implement`) folded into `tasks.md` T014:
+
+1. **Preserve the `LoopObserver` hook lifecycle** — `logStep` keeps wrapping emission with `a.Observer.BeforeToolLog()` / `a.Observer.AfterToolLog()` (no round-019 spinner regression).
+2. **Blank line emission placement** — in `internal/cli/cli.go` (`runTurn`), write the single newline (`fmt.Fprintln(env.stderr)`) strictly **after** `sp.Stop()` **and** `store.Append`, and immediately **before** `env.writeAnswer(...)`.
+3. **Clock-seam fallback** — `AgentLoop.now()` returns `a.Now()` when set, else `time.Now()`.
