@@ -6,6 +6,7 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -209,11 +210,36 @@ func (a *AgentLoop) logStep(tc llm.ToolCall, result string) {
 	if a.Observer != nil {
 		a.Observer.BeforeToolLog()
 	}
-	_, _ = fmt.Fprintf(a.Stderr, "[tool] %s arguments=%s result=%s\n",
-		tc.Name, oneLine(tc.Arguments), oneLine(truncate(result, 200)))
+	reasonSeg := reasonSegment(tc.Arguments)
+	_, _ = fmt.Fprintf(a.Stderr, "[tool] %s arguments=%s%s result=%s\n",
+		tc.Name, oneLine(tc.Arguments), reasonSeg, oneLine(truncate(result, 200)))
 	if a.Observer != nil {
 		a.Observer.AfterToolLog()
 	}
+}
+
+// reasonSegment renders the optional ` reason=<value>` log segment for a tool
+// call's arguments (empty when no top-level reason is present).
+func reasonSegment(arguments string) string {
+	reason := toolReason(arguments)
+	if reason == "" {
+		return ""
+	}
+	return " reason=" + oneLine(reason)
+}
+
+// toolReason extracts the top-level `reason` string from a tool call's raw
+// arguments JSON, or "" when it is absent or the arguments are unparseable
+// (round 021 Decision 4). Extracting it in the loop — rather than in each tool —
+// keeps the tools free of presentation concerns and works uniformly.
+func toolReason(arguments string) string {
+	var probe struct {
+		Reason string `json:"reason"`
+	}
+	if err := json.Unmarshal([]byte(arguments), &probe); err != nil {
+		return ""
+	}
+	return probe.Reason
 }
 
 // toolNames extracts the requested tool names in call order, for the observer's

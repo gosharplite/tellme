@@ -43,11 +43,12 @@ Feature: Sending the configured persona
     Example: A tool turn sends the persona on every request
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
+      And the working directory contains a file "notes.txt" whose text is "hi"
       And the session history already holds the exchanges:
         | prompt            | answer |
         | My name is Alice. | Noted. |
-      And a configured provider "test-model" whose endpoint asks tellme to summarise the conversation and then answers with "done"
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "done"
       And the runtime home holds a configuration whose persona is "be terse"
-      When the operator starts tellme with the prompt "summarise"
+      When the operator starts tellme with the prompt "read notes.txt"
       Then every request carried the persona "be terse"
       And tellme exits successfully
