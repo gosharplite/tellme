@@ -41,7 +41,10 @@ Topic: relocate tellme's round-015 `-i` **shared prompt log** from the environme
 - **Decision**: When `~/.tellme/global_prompts.jsonl` is **absent**, copy
   `<TELL_ME_HOME>/output/global_prompts.jsonl` into it **verbatim** (byte-identical), when that source
   exists. It is a **copy** (the source is left in place), it **never overwrites** an existing destination,
-  and a **missing source** yields an empty log with no error.
+  and a **missing source** yields an empty log with no error. A **blank runtime home** (`TELL_ME_HOME` unset
+  → `home == ""`, which the `-i` path tolerates because `runTUIPrompt` proceeds past a `resolve()` error) is
+  treated as "no source": the seed is **skipped**, so it never reads a cwd-relative `output/global_prompts.jsonl`
+  (PR #59 review micro-note).
 - **Rationale**: preserves the operator's existing prompt history across the upgrade (no silent loss);
   deterministic and trivial; exactly the rule the operator stated ("the existing output/global_prompts.jsonl
   file will be copy to ~/.tellme/...").

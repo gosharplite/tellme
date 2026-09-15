@@ -205,7 +205,10 @@
     - `specs/truth/features/cli/chat/dsl.md` -> the 4 seed rows（Round 028）
     - `specs/plans/028-user-global-prompt-log/research.md` -> Decision 3, Decision 4
     - `internal/infrastructure/history/global_prompt_tracker.go`
-  - 只做：implement `Seed(ctx)`（the verbatim copy + the no-overwrite guard + the missing-source-is-fine）並接上 the single composition-root call；另加一個 **hermetic unit pin** 證明 the seed fires with **no submission**（i.e. on **opening** the prompt — RF-3；inject the resolver + a temp runtime home），使 the abort/empty-open seed path 也被釘住。
+  - 只做：
+    - implement `Seed(ctx)`（the verbatim copy + the no-overwrite guard + the missing-source-is-fine）並接上 the single composition-root call。
+    - 一個 **hermetic unit pin** 證明 the seed fires with **no submission**（i.e. on **opening** the prompt — RF-3；inject the resolver + a temp runtime home），使 the abort/empty-open seed path 也被釘住。
+    - Guard the blank source home：when the runtime home is empty（`home == ""` — `TELL_ME_HOME` unset；the `-i` path's `resolve()` errors but `runTUIPrompt` proceeds），**skip** the seed（no cwd-relative `output/global_prompts.jsonl`）；pin it in the same unit（PR #59 review micro-note）。
   - 不做：不改 the record shape / read / compaction、不改 the relocation（Phase 4A）、不改 any other surface。
 - [ ] T015 [BDD-REFACTOR] 在綠燈下整理 the seed（best-effort copy + no-overwrite guard）
 
