@@ -16,10 +16,11 @@ Feature: Reading a large file without a hard cap
 
   Rule: A request for more than fits reports what was not shown
 
-    Example: Reading many files shows what fits and names the rest
+    Example: Reading more content than one result can carry shows what fits and names the rest
       Given the operator has a runnable tellme installation
       And the runtime home holds a configuration with a reachable provider "test-model" that reads every file it is asked for before answering
-      And the working directory contains more files than tellme will show in a single read
+      # The bound here is the result budget (not the ≤50-files-per-call cap): the content overflows a single read's result.
+      And the working directory holds more content than a single read's result can carry
       When the operator asks tellme "Read all of the files here."
       Then tellme reads the files that fit
       And tellme reports that some files were not shown

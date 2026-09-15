@@ -2,10 +2,11 @@ Feature: Reading several files in one request
 
   # Interface truth (CLI end, `chat` module) — the multi-file `read_files` tool: one request may read
   # several files, each framed by a header; the whole result is bounded by the tool resource contract
-  # (`max_output_tokens`, default = the resolved context budget ÷ 4), so a large file is read whole up
-  # to that bound (no fixed per-file cap), and a request that cannot return every file reports the ones
-  # it did not read. Binary/directory/too-many are reported inside the result. Acceptance journey:
-  # features/acceptance/reading-a-large-file.feature.
+  # (`max_output_tokens`, default = the effective budget ÷ 4), so a file larger than the old 100000-byte
+  # per-file cap is read whole up to that bound, and a request that cannot return every file reports the
+  # ones it did not read. Binary/directory/too-many are reported inside the result. Acceptance journeys:
+  # features/acceptance/reading-a-large-file.feature (this round) and
+  # features/acceptance/answering-from-several-files.feature (round 021).
 
   Rule: One request reads several files, each framed by a header
 
@@ -20,6 +21,17 @@ Feature: Reading several files in one request
       And the read result frames "left.txt"
       And the read result frames "right.txt"
       And tellme prints the provider's answer "the code is ORANGE"
+      And tellme exits successfully
+
+  Rule: A file past the old per-file cap is read whole up to the bound
+
+    Example: A file larger than the old per-file cap is read in full
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "mid.txt" whose text is longer than the old per-file cap
+      And a configured provider "test-model" whose endpoint asks tellme to read "mid.txt" and then answers with "done"
+      When the operator starts tellme with the prompt "Read mid.txt."
+      Then the part of "mid.txt" that tellme read does not end with a truncation marker
       And tellme exits successfully
 
   Rule: A file larger than the result bound is truncated

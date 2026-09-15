@@ -47,11 +47,11 @@ As a developer using `tellme` from a terminal, I want the model to be able to **
 - **FR-003**: A command that exceeds the effective `timeout` MUST be terminated (its process tree) and surfaced as a timeout result; the run MUST continue (the loop is not failed).
 - **FR-004**: `reason` MUST be a required schema field and MUST be echoed into the tool-loop diagnostic (`stderr`) line for the call.
 - **FR-005**: `execute_command` MUST NOT sit behind any security/consent gate, and `pipe_commands` MUST NOT be registered (D1/D3).
-- **FR-006**: The command's output is a **tool result fed to the model**; nothing about `execute_command` MUST alter the operator `stdout` (byte-exact).
+- **FR-006**: The command's output is a **tool result fed to the model**; the child's `stdout`/`stderr` MUST be bound to the tool's own buffers — **never** inherited from tellme's `os.Stdout`/`os.Stderr` — so `execute_command` never alters the operator `stdout` (byte-exact; NFR-002).
 - **FR-007**: `execute_command` MUST run on POSIX only (no Windows branch).
 
 - **FR-005a — non-zero-exit semantics (resolved, clarify Q1→1)**: a command that exits non-zero MUST yield a **successful tool result carrying the exit code** (with its bounded output); the loop MUST continue. A **tool failure** is reserved for a timeout (FR-003) and for a tool/argument error — **not** for a normal non-zero exit.
-- **FR-005b — output capture (clarify Q2→1)**: `execute_command` MUST accept an optional `output_file` (string) and `append` (boolean). When `output_file` is set, the command's output MUST be written to that file (`append: true` appends; otherwise it overwrites) so large output is captured to disk instead of flooding the model; the tool result MUST then report the exit status and the capture target (and MAY include a bounded preview). `output_file` is the sanctioned **large-output escape hatch**: capture to a file, then read it back in bounded slices (`read_files` / the shell). No path gate applies (D1).
+- **FR-005b — output capture (clarify Q2→1)**: `execute_command` MUST accept an optional `output_file` (string) and `append` (boolean). When `output_file` is set, the child's output MUST be bound to that file handle (streamed to disk — **never** routed through the tool's memory; `append: true` appends, otherwise it truncates), and the tool result MUST report the exit status and the capture target **with no inline preview** (a preview is obtained by a subsequent bounded `read_files`). `output_file` is the sanctioned **large-output escape hatch**: capture to a file, then read it back in bounded slices (`read_files` / the shell). No path gate applies (D1).
 
 ---
 
@@ -95,7 +95,7 @@ As a developer, I want the reader tools to honour a **single context-budget boun
 
 - **Agent tool** — a model-invocable capability; now `list_files`, `read_files`, `get_tree`, and **`execute_command`**.
 - **Tool resource contract** — the uniform `max_output_tokens` + `timeout` parameters (default/param/ceiling) enforced centrally for every agent tool.
-- **Effective bound / ceiling** — the per-call result bound (param or default) and its hard clamp (derived from the resolved context budget).
+- **Effective budget / bound / ceiling** — `effectiveBudget` = `min(configured MAX_HISTORY_TOKENS, the active model's context window)`; the per-call result bound (param or `effectiveBudget ÷ 4`) and its hard clamp (`effectiveBudget ÷ 2`).
 - **Command result** — the `execute_command` tool result: bounded output plus exit status (semantics per FR-005a).
 - **Tool step** — the persisted record of a tool execution; `execute_command` adds `{tool:"execute_command", arguments, result}`.
 
@@ -111,13 +111,13 @@ As a developer, I want the reader tools to honour a **single context-budget boun
 
 - **FR-013**: **Every** agent tool (`list_files`, `read_files`, `get_tree`, `execute_command`) MUST accept an optional `max_output_tokens` (integer) and an optional `timeout` (number, seconds).
 - **FR-014**: Enforcement MUST be **centralised** — a single execution path applies the timeout (`context.WithTimeout`) and clamps/truncates the result to the effective bound. A param above the ceiling MUST be **clamped, never rejected**.
-- **FR-015**: The **default** `max_output_tokens` MUST be derived from the **resolved context budget** (replacing the fixed 1 MiB constant, hence resolving issue #49), and the **ceiling** MUST be a hard limit derived from that budget.
-- **FR-016**: The `timeout` default(s) and ceiling MUST be defined by the contract (the shell tool's default higher than the local readers') — concrete values are a research decision.
-- **FR-017**: No new failure class MUST be introduced and the frozen class-phrase vocabulary MUST stay unchanged (11); the tool-loop contract (`MAX_TOOL_LOOP`, the frozen phrase, exit codes) is otherwise unchanged — **unless** FR-005a decides a non-zero exit is a tool failure.
+- **FR-015**: The tool bound MUST derive from the **effective budget** = `min(configured MAX_HISTORY_TOKENS, the active model's configured context window)`, where the window is an optional per-model `MODELS.<model>.CONTEXT_WINDOW` (absent → the configured `MAX_HISTORY_TOKENS`). The **default** `max_output_tokens` MUST be `effectiveBudget ÷ 4` (retiring the fixed 1 MiB; the cap tracks the effective budget — issue #49), and the **ceiling** MUST be `effectiveBudget ÷ 2` (a headroom reservation so one tool result cannot fill the window).
+- **FR-016**: The `timeout` default MUST be per-tool (**`execute_command` 300 s; the readers 30 s**) with a hard **ceiling of 7200 s**; a param above the ceiling is clamped.
+- **FR-017**: No new failure class MUST be introduced and the frozen class-phrase vocabulary MUST stay unchanged (11); the tool-loop contract (`MAX_TOOL_LOOP`, the frozen phrase, exit codes) is otherwise unchanged (a non-zero exit is a success result — FR-005a).
 
 #### Non-Functional Requirements
 
-- **NFR-001**: Every agent tool's result MUST be bounded so it cannot exhaust the model's context window; the bound MUST scale with the resolved budget (default) and be clampable (ceiling).
+- **NFR-001**: Every agent tool's result MUST be bounded so it cannot exhaust the model's context window; the bound MUST track the **effective budget** (the configured `MAX_HISTORY_TOKENS`, capped by the model's configured context window) and be clampable to a headroom-reserved ceiling.
 - **NFR-002**: `stdout` MUST stay byte-exact; all tool diagnostics (the `reason` echo, timeout notices, truncation markers) are tool-result content or `stderr` only.
 - **NFR-003**: No new dependency; the tools remain stdlib-only and local (no network); POSIX/bash only.
 
@@ -130,7 +130,7 @@ As a developer, I want the reader tools to honour a **single context-budget boun
 - **SC-001**: A prompt-bearing run offers exactly `list_files`, `read_files`, `get_tree`, `execute_command` (four tools; no `pipe_commands`, no security tooling).
 - **SC-002**: `execute_command` runs via `bash -c`; output is bounded with a marker; a long command is stopped at the timeout; `reason` is echoed; `stdout` is byte-identical to a run without the tool.
 - **SC-003**: The readers honour `max_output_tokens` + `timeout`; a file larger than 100000 bytes is no longer hard-capped; the aggregate bound, the skip marker, and the ≤50 cap behave.
-- **SC-004**: A default derived from the resolved context budget replaces the fixed 1 MiB constant (issue #49 resolved); an over-ceiling param is clamped.
+- **SC-004**: A default derived from the **effective budget** — `min(configured MAX_HISTORY_TOKENS, the active model's configured context window)` — replaces the fixed 1 MiB constant (the cap is tied to the resolved budget: issue #49); an over-ceiling param is clamped.
 - **SC-005**: A non-zero exit yields a successful result carrying the exit code (loop continues); `output_file`/`append` capture output to a file, readable back by a bounded `read_files`.
 - **SC-006**: `make verify`, the E2E suite, and the Gherkin/DSL topology audit are green, with falsifiability witnesses for each new/changed behaviour.
 
@@ -138,7 +138,7 @@ As a developer, I want the reader tools to honour a **single context-budget boun
 
 ## Assumptions
 
-- **Default/ceiling values are a research detail.** Concrete numbers for `max_output_tokens` and per-tool `timeout` are decided by `/axb-technical-research`; the resolved budget drives the default (FR-015/NFR-001). The reference's shell `timeout` shape (default ~15 s, ceiling ~7200 s) is the starting point; the local readers get a shorter default.
+- **Numbers (per `research.md` D5).** The default `max_output_tokens` is `effectiveBudget ÷ 4` and the ceiling `effectiveBudget ÷ 2`; the shell `timeout` default is **300 s** (aligning with the agent loop's existing per-tool timeout), the readers' **30 s**, ceiling **7200 s**. (The reference's ~15 s figure is a starting point, not the chosen value.)
 - **No security, no Windows, bash-first** (D1–D3) are inherited from `README.md` → *Design Intent & Direction*; the destructive-command risk is an accepted decision.
 - **`output_file`/`append` on `execute_command`** are **in** this round (clarify Q2→1); the sanctioned "large output" path is capture-to-file then a bounded `read_files`.
 - This round **rewrites in place** the round-021 fixed caps in `specs/truth/features/cli/chat/**` and `chat/dsl.md`; the round-021 plan package stays frozen (`fresh-package-per-round`).

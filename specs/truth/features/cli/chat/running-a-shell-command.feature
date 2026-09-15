@@ -39,6 +39,16 @@ Feature: Running a shell command
       Then the command result recorded that the command was stopped
       And tellme exits successfully
 
+  Rule: A command's output is contained
+
+    Example: A command with a great deal of output is trimmed
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured provider "test-model" whose endpoint runs a command producing a great deal of output and then answers with "done"
+      When the operator starts tellme with the prompt "Produce a lot of output."
+      Then the command result was trimmed to what the run can hold
+      And tellme exits successfully
+
   Rule: A command may capture its output to a file
 
     Example: Output written to a file and read back

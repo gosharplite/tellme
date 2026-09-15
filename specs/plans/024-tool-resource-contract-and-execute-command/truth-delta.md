@@ -9,19 +9,19 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| MODIFY | `specs/truth/techstack.md` | Added a **Tool resource contract (bounds)** row (`max_output_tokens` + `timeout`; default = resolved budget ÷ 4, ceiling = budget; shell timeout 300 s / readers 30 s; ceiling 7200 s; **loop-enforced**) and an **Agent command tool (`execute_command`)** row (bash-first `bash -c`, no `pipe_commands`, no security, non-zero exit = success result, `output_file`/`append`). Reworked the **Read-only filesystem tools** row to retire the fixed 100000-byte / 1 MiB caps in favour of the parameterized aggregate bound (whole-file reads + skip marker; ≤50 kept). Noted the loop as the single contract enforcement point; extended the pure-helper unit-tests row; updated Not-Introduced-Yet (shell tool now introduced; write tools still deferred). | Round-024 research Decisions 1–8. |
+| MODIFY | `specs/truth/techstack.md` | Added a **Tool resource contract (bounds)** row (`max_output_tokens` + `timeout`; the bound derives from the **effective budget** = `min(MAX_HISTORY_TOKENS, the model's configured context window)`, default `effectiveBudget ÷ 4`, ceiling `effectiveBudget ÷ 2`; shell timeout 300 s / readers 30 s; ceiling 7200 s; **loop-enforced**) and an **Agent command tool (`execute_command`)** row (bash-first `bash -c`, no `pipe_commands`, no security, non-zero exit = success result, `output_file`/`append` bound **directly to the file**, process-group termination, stdout binding). Reworked the **Read-only filesystem tools** row to retire the fixed 100000-byte / 1 MiB caps in favour of the parameterized aggregate bound (whole-file reads + skip marker; ≤50 kept). Extended the **Model pricing** row with an optional per-model **`CONTEXT_WINDOW`**. Noted the loop as the single contract enforcement point; extended the pure-helper unit-tests row; updated Not-Introduced-Yet. | Round-024 research Decisions 1–8 + review fixes B1/B2/D1/D2/D3. |
 
 ## /axb-api-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending — round 024)_ | `specs/truth/contracts/**` | Expected **NOOP** — tellme has a single CLI end and no OpenAPI/HTTP surface; the tool contract authors no request/response document. | `contract-authoritative` holds vacuously. |
+| NOOP | `specs/truth/contracts/**` | Checked — tellme has a single CLI end and no OpenAPI/HTTP surface; the tool contract authors no request/response document. | `contract-authoritative` holds vacuously. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending — round 024)_ | `specs/truth/data/data-model.dbml` | Expected **NOOP** — no new persisted state; the tool-step record already carries `{tool, arguments, result[, signature]}` and accommodates `execute_command`. | No record-shape change. |
+| NOOP | `specs/truth/data/data-model.dbml` | Checked — no new persisted state; the tool-step record already carries `{tool, arguments, result[, signature]}` and accommodates `execute_command`. | No record-shape change. |
 
 ## /axb-dsl-refine
 
