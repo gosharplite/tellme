@@ -2,9 +2,23 @@
 
 **Last updated**: 2026-09-16 (day close, session 11: **round 028 `028-user-global-prompt-log` DELIVERED / FROZEN** — PR [#59](https://github.com/gosharplite/tellme/pull/59) **MERGED** into `dev` (`9e13f9e`, by `gosharplite`, 2026-09-15T20:05:06Z); round-028 head frozen at **`39821fd`** (10 commits); propagated `dev → main` (no-ff)). Round-027 detail relocated to the archive (Rule 12); rounds 001–027 live in the archives.
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
-**Active branch**: `dev` (round 028 delivered; the next round starts a fresh `029-*` off `dev`)
+**Active branch**: `029-agent-write-tools` (round 029 in flight — plan + truth half complete; PR [#61](https://github.com/gosharplite/tellme/pull/61) open for review)
 **Daily log**: [`docs/session-summary/2026/09/16/session-summary.md`](docs/session-summary/2026/09/16/session-summary.md)
 **Archive**: [`2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012) · [`2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–019) · [`2026-09-15.md`](docs/archives/status/2026-09-15.md) (rounds 020–026) · [`2026-09-16.md`](docs/archives/status/2026-09-16.md) (round 027).
+
+## Round 029 — `029-agent-write-tools` (plan + truth half; PR #61 open)
+
+**Status**: 🔵 **IN FLIGHT** (2026-09-16) — the **plan + truth half** is complete on branch `029-agent-write-tools`; **PR [#61](https://github.com/gosharplite/tellme/pull/61) open**, awaiting review. First round of the **dogfooding-enablement track** (umbrella [#60](https://github.com/gosharplite/tellme/issues/60)).
+
+**Scope**: add tellme's first **write** capability to the agent tool surface — `write_file` (**create-only** + **atomic** temp+rename + `MkdirAll`; error if the path exists) and `replace_text` (**strict-unique**: `0` → error, `>1` → error, exactly `1` → replace). No security/consent gate, no undo; `reason` required; round-024 resource contract (30 s default). **Omitted:** `append_text`, `undo_file_change`, `delete_path`, `create_directory` (the shell covers them). `write_file`'s survival is to be **measured** via `--tool-usage` later.
+
+**Pipeline**: specify ✅ · spec-by-example ✅ · research ✅ · system-analysis ✅ · dsl-refine ✅ · tasks ✅ · **implement ⏳ (not started)**.
+
+**Artifacts**: `spec.md` (US1 `replace_text` P1 · US2 `write_file` P2 · FR-001–014 · NFR-001–002 · SC-001–005), `checklists/requirements.md` (ready; 0 clarify), `features/acceptance/*.feature` ×3, `research.md` (D1–8), `plan.md` (1 interface → `/axb-dsl-refine`; api/data NOOP; ui skipped), `tasks.md` (T001–T028; orphan sweep 0), `truth-delta.md`. **Truth**: `techstack.md` MODIFY (Write filesystem tools); `chat/creating-and-editing-files.feature` ADD (4 Rules) + `chat/dsl.md` MODIFY (offered set → 6 tools; +6 Given +10 Then; note); `contracts/**` + `data/**` NOOP.
+
+**Verification (half)**: topology audit **PASSED** (41 features · 16 root + 266 module rows · 1360 steps); no product code → `make verify` N/A.
+
+**Commits**: `6a541e0` (plan package + spec) · `035cbcc` (acceptance + research + techstack) · `af3b2ac` (system-analysis plan) · `303c529` (interface truth) · `2785d3e` (tasks.md).
 
 ## Round 028 — `028-user-global-prompt-log` (delivered / frozen)
 
