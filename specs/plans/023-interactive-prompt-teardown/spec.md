@@ -12,7 +12,7 @@
 
 - **Q1 → 1a — clear the frame on submit (reference parity).** On submit (`Ctrl+S` / `Alt+Enter`) and on abort (`Esc` / `Ctrl+C`) the interactive editor frame MUST be cleared, exactly as `tell-me-go`'s `-i` does (`View()` returns empty once the model is submitted/aborted). It MUST NOT leave the last frame on screen. This reverses the round-016 "the frame is always rendered" choice (which existed only so the E2E harness could capture the final frame).
 - **Q2 → 2a — resume the full standard surface.** The `-i` submit MUST continue on the **same** surface as the positional / Ctrl+D prompt: the input-capture acknowledgement, the 80-column `─` rule, the `╭─⠿ Turn <N> - <mode>` header, the **live progress spinner**, and the post-turn status lines. This reverses the round-017 rule "the interactive prompt shows no turn chrome" and the round-019 "`-i` is out of scope for the spinner" exclusion.
-- **Q3 → A′ — echo the submitted prompt, keep tellme's single captured line.** Because the editor box is erased on submit (Q1), the operator can no longer see what they sent; the submitted prompt MUST therefore be **echoed on its own diagnostic line before** the captured line, so the `-i` submit reads:
+- **Q3 → A′ — echo the submitted prompt, keep tellme's single captured line.** Because the editor box is erased on submit (Q1), the operator can no longer see what they sent; the submitted prompt MUST therefore be **echoed as its own diagnostic block before** the captured line (verbatim; embedded newlines preserved), so the `-i` submit reads:
 
   ```text
   <submitted prompt>                        ← echoed (new)
@@ -103,7 +103,7 @@ As an operator, after I submit `-i` I want the run to continue exactly like the 
 ### Success criteria
 
 - **SC-001**: After an `-i` submit, the rendered output no longer contains the editor frame (the bordered box / editor row does not survive the submit); after an `-i` abort, likewise.
-- **SC-002**: An `-i` submit's post-submit `stderr` carries, in order, the echoed prompt line, the input-capture acknowledgement, the `─` rule + `╭─⠿ Turn <N> - <mode>` header, and (terminal `stderr`, not `-r`) the live spinner — the same shape as a positional / Ctrl+D run of the same prompt.
+- **SC-002**: An `-i` submit's post-submit `stderr` carries, in order, the echoed prompt block, the input-capture acknowledgement, the `─` rule + `╭─⠿ Turn <N> - <mode>` header, and (terminal `stderr`, not `-r`) the live spinner — the same shape as a positional / Ctrl+D run of the same prompt.
 - **SC-003**: `stdout` is byte-identical between the `-i` submit and the positional run of the same prompt (and to the pre-change run).
 - **SC-004**: `make verify`, the E2E suite, and the Gherkin/DSL topology audit are green, and falsifiability witnesses fail the matching scenario — (a) reverting the teardown leaves frame residue; (b) disabling the `-i` chrome drops the header/spinner.
 - **SC-005**: The positional and Ctrl+D surfaces are unchanged (no echo introduced); the interactive prompt's suggestions, opt-in gating, and shared prompt log are unchanged.

@@ -33,7 +33,7 @@
   - Read:
     - `specs/truth/techstack.md` -> CLI Application（Interactive TUI prompt (`-i`)；Turn chrome；Turn progress spinner）
     - `internal/ui/tui/prompt/model.go`、`internal/cli/cli.go`（`runTUIPrompt`、`runTurn`、`turnOptions`）
-  - 只做：在 `internal/ui/tui/prompt/model.go` 預留「submitted/aborted ⇒ frame cleared」的落點（`View()` 的分支 + 註解，實作留待 T010）；在 `internal/cli/cli.go` 的 `turnOptions` 新增 `echo bool` 欄位（空殼）與 `runTUIPrompt` 傳 `chrome: true, echo: true` 的註解（實作留待 T010）；建立 `internal/ui/tui/prompt/model_teardown_test.go` 空殼。
+  - 只做：在 `internal/ui/tui/prompt/model.go` 預留「submitted/aborted ⇒ frame cleared」的落點（`View()` 的分支 + 註解，實作留待 T010）；在 `internal/cli/cli.go` 的 `turnOptions` 新增 `echo bool` 欄位（空殼；**僅** `-i` 提交為 `true`，PR #51 principal review 🔵 REFACTOR）與 `runTUIPrompt` 傳 `chrome: true, echo: true` 的註解（實作留待 T010）；建立 `internal/ui/tui/prompt/model_teardown_test.go` 空殼。
   - 不做：不實作清除行為、不輸出 echo、不改任何輸出。
 
 ---
@@ -76,7 +76,7 @@
 - [ ] T004 [P] [BDD-RED] `Then: the submitted prompt "{prompt}" is echoed on the diagnostic output`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then
   - Landing: `tests/e2e/steps/step_r023_t004_chat_then_prompt_echoed.go`
-  - 語意：`stderr` 在 input-capture acknowledgement 之前，單獨一行帶提交的 `{prompt}`；echo 不得落在 `stdout`。
+  - 語意：`stderr` 在 input-capture acknowledgement 之前，以**獨立區塊**逐字帶提交的 `{prompt}`（`fmt.Fprintln(env.stderr, prompt)`；**不得折疊**內嵌換行，符合 FR-009）；echo 不得落在 `stdout`。
 
 - [ ] T005 [P] [BDD-RED] `Then: the prompt is not echoed on the diagnostic output`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then
@@ -86,7 +86,7 @@
 - [ ] T006 [P] [BDD-RED] `Then: the interactive prompt is cleared`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> 該 Then（讀法：以終端還原，套用 renderer 的 teardown clear）
   - Landing: `tests/e2e/steps/step_r023_t006_chat_then_prompt_cleared.go`
-  - 語意：以終端讀法還原 merged capture 後，編輯框（`┌…└`）**沒有**倖存於 submit/abort 之後；另由 T007 的 `[UNIT]` 釘住模型清除。
+  - 語意：以終端讀法還原 merged capture 後，編輯框（`┌…└`）**沒有**倖存於 submit/abort 之後；另由 T007 的 `[UNIT]` 釘住模型清除。**不得**用天真的 `!strings.Contains(sc.stderr, "┌")` — bubbletea 的 erase 序列（carriage-return 與 line-erase）不會移除先前的 draw bytes，raw buffer 仍留著編輯期 bytes；須先套用終端還原（處理 carriage-return 與行清除序列，參照 `step_t017_root_then_explains_stderr.go` 的讀法），並以 T007 的模型層 `m.View() == ""` 為權威釘（PR #51 principal review TD2）。
 
 - [ ] T007 [P] [UNIT] 模型於 submit/abort 清除 frame（`internal/ui/tui/prompt`）
   - Read:
@@ -123,7 +123,7 @@
 - `specs/plans/023-interactive-prompt-teardown/research.md` -> Decision 1–6
 
 **Boundary**:
-- 產品碼：`internal/ui/tui/prompt/model.go` — 提交/中止時 `View()` 回空（清除編輯框），其餘 chrome（borders、suggestions、placeholder）不變；`internal/cli/cli.go` — `runTUIPrompt` 以 `turnOptions{raw: opts.raw, chrome: true, echo: true}` 呼叫 `renderTurn`，且 `runTurn` 在 `emitInputCaptured` 之前把提交的 prompt 以單行寫入 `env.stderr`（僅當 `opts.echo`）。**positional／Ctrl+D 路徑維持 `echo:false`。**
+- 產品碼：`internal/ui/tui/prompt/model.go` — 提交/中止時 `View()` 回空（清除編輯框），其餘 chrome（borders、suggestions、placeholder）不變；`internal/cli/cli.go` — `runTUIPrompt` 以 `turnOptions{raw: opts.raw, chrome: true, echo: true}` 呼叫 `renderTurn`，且 `runTurn` 在 `emitInputCaptured` 之前以 `fmt.Fprintln(env.stderr, prompt)` 把提交的 prompt **逐字**寫入 `env.stderr`（僅當 `opts.echo`；**不得折疊**內嵌換行，符合 FR-009）。**positional／Ctrl+D 路徑維持 `echo:false`。**
 - 不得改：opt-in gating、suggestion engine、共享 prompt log、provider request、one-turn 契約、exit codes、class-phrase 詞彙（11）；`stdout` byte-exact；`internal/ui` 的 chrome/spinner/status emitters 沿用（不重寫）。
 - **E2E witness 重製（research D5）**：round-016「final rendered frame is captured」前提失效；本 phase 以 cleared `View()` 的 `[UNIT]` pin（T007）+ 標準 surface 的 E2E Thens 取代；不得為舊前提保留 always-render。
 - 保留 `TELL_ME_FORCE_STDIN_TTY`／`TELL_ME_TUI_DEBOUNCE` seam；無 pty；無新相依。
