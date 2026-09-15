@@ -586,3 +586,54 @@ A closeout session on the same calendar day: addressed the independent principal
 
 ### Issue tracker (closeout Step 8)
 Reconciled against the delivered state: **#53** **closed (completed)** — the round-026 work landed (PR [#57](https://github.com/gosharplite/tellme/pull/57) merged `9d62379`); **#47** and **#13** left open (future candidates, still accurate). **No revisions.**
+
+
+---
+
+## 18. Session 9 (2026-09-15) — #47 triaged → closed `not_planned`; decision recorded in the truth tree; STATUS reconciled; closeout
+
+A triage + documentation session on the same calendar day: the operator queried whether issue **#47** (concurrent tool-call matching) was really needed; after a fact-based evaluation it was **closed `not_planned`**, the decision was recorded in the truth tree's canonical negative-decision home, `STATUS.md` was slimmed to a pointer, and `SESSION-CLOSEOUT.md` ran.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 026 delivered/frozen; active branch `dev`) |
+| Issue | [#47](https://github.com/gosharplite/tellme/issues/47) (concurrent tool-call matching) — evaluated, **closed `not_planned`** |
+| Decision | **Declined, not deferred** — recorded in the truth tree: `specs/truth/techstack.md` → *Not Introduced Yet* |
+| STATUS | slimmed to a live-state pointer at that home; issue tracker reconciled |
+| Closeout | `SESSION-CLOSEOUT.md` Steps 1–8 (docs-only gates: `gofmt` · diff secret scan · link check) |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — re-read the pillars; `list_skills`; peers (self `butler`; `architect`/`coder`/`griller`/`pm`/`rd`); `STATUS.md` (active branch `dev`); the last-5-days summaries (09/11–09/15). Round 026 delivered/frozen.
+2. **#47 evaluation** — the operator questioned whether concurrent tool-call execution is needed. Findings: tellme's surface is tiny and already batched (`read_files` multi-file; `execute_command` bash-first); concurrency does **not** shorten the LLM round-trip (both shapes send one response / receive one batch); the reference needed a ~6.9k-line executor subsystem; a concurrent executor would collide with the determinism value (the round-019 spinner / round-022 tool-log / round-026 accounting orderings).
+3. **Decision + close** — closed [#47](https://github.com/gosharplite/tellme/issues/47) **`not_planned`** with a rationale comment (same disposition as the retired parent [#36](https://github.com/gosharplite/tellme/issues/36)).
+4. **Home for the decision** — established that `STATUS.md` is the wrong shelf (it is rotated live-state; Rule 12 splits it); the canonical home is `specs/truth/techstack.md` → `## Not Introduced Yet`, which already carried the topic as a status-quo note. Rewrote that bullet into an explicit **non-goal + revisit trigger**; slimmed `STATUS.md` to pointers.
+
+### Decisions log
+| # | Decision |
+| --- | --- |
+| D1 | **#47 closed `not_planned`** — concurrent tool-call matching declined (weak payoff for a small, already-batched surface; determinism collision). Revisit **only** if the surface grows into genuinely parallel remote work (e.g. an MCP client). |
+| D2 | **Durable home = the truth tree** (`techstack.md` → *Not Introduced Yet*), **not** `STATUS.md` — STATUS holds only the live pointer. Operator-directed off-round annotation of a non-adoption (no system-behaviour change); the techstack truth artifact is nominally `/axb-technical-research`-owned. |
+
+### Commits (branch `dev`)
+| Commit | Note |
+| --- | --- |
+| `6e2fd36` | `docs: close #47 (concurrent tool-call matching) — not planned` |
+| *(this closeout)* | `docs(closeout): session 9 — #47 decision recorded + STATUS reconcile + daily log` |
+
+### Verification (2026-09-15)
+Docs-only round → `gofmt -l .` clean · diff-level secret scan clean · referenced paths verified (`specs/truth/techstack.md`, this daily summary). No code change → `make verify` not applicable.
+
+### Open items (non-blocking)
+- **#13** (coverage tooling) — the only open future-slice candidate (still accurate, left open).
+- Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 Obs 3; sequential tools / no pruning / **no `flock`**; round-011 forward items; round-018 gray styling; round-019 macOS CPU leg; round-024 config-gated `CONTEXT_WINDOW`.
+
+### Next steps
+1. Choose the `027-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance unchanged; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled against the current state: **[#47](https://github.com/gosharplite/tellme/issues/47) closed (`not_planned`, this session)** — concurrent tool-call matching declined, decision recorded in `techstack.md`; **[#13](https://github.com/gosharplite/tellme/issues/13)** left open (coverage tooling, still accurate). No revisions.
