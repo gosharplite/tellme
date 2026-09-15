@@ -151,7 +151,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 				// A recoverable tool error is fed back as the tool's result (non-terminal).
 				result = "error: " + terr.Error()
 			}
-			a.logStep(tc, result)
+			a.logStep(tc)
 			turn = append(turn, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})
 			steps = append(steps, history.Step{Tool: tc.Name, Arguments: tc.Arguments, Result: result, Signature: tc.Signature})
 		}
@@ -214,7 +214,7 @@ func (a *AgentLoop) notifyToolsEnd() {
 // Decision 1/3). This is NOT token streaming. The line is rendered by the pure
 // `internal/ui` formatter and stamped from the injected clock seam; the Observer
 // hooks still wrap the write so the round-019 spinner can clear/restore around it.
-func (a *AgentLoop) logStep(tc llm.ToolCall, result string) {
+func (a *AgentLoop) logStep(tc llm.ToolCall) {
 	if a.Stderr == nil {
 		return
 	}

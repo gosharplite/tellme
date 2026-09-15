@@ -43,3 +43,27 @@ func TestFormatClockSharedAcrossFormatters(t *testing.T) {
 		}
 	}
 }
+
+// TestFormatToolLogFoldsNewlines pins round-022 FR-005: a reason carrying
+// newlines is folded to a single line, so a multi-line reason can never break the
+// one-line-per-call contract (PR #50 implementation review, B1).
+func TestFormatToolLogFoldsNewlines(t *testing.T) {
+	got := FormatToolLog(toolLogClock, "read_files", "first\nsecond")
+	want := "[12:34:56] [Tool] read_files - first second"
+	if got != want {
+		t.Errorf("FormatToolLog = %q; want %q", got, want)
+	}
+	if strings.Contains(got, "\n") {
+		t.Errorf("FormatToolLog produced a multi-line log line: %q", got)
+	}
+}
+
+// TestFormatToolLogWhitespaceReasonHasNoTail pins the review nit: a
+// whitespace-only reason takes the no-tail branch (no dangling ` - `).
+func TestFormatToolLogWhitespaceReasonHasNoTail(t *testing.T) {
+	got := FormatToolLog(toolLogClock, "read_files", "   ")
+	want := "[12:34:56] [Tool] read_files"
+	if got != want {
+		t.Errorf("FormatToolLog = %q; want %q", got, want)
+	}
+}
