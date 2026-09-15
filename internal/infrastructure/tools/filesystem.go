@@ -31,11 +31,21 @@ const readerDefaultTimeout = 30 * time.Second
 
 // The result markers (round 024; wording fixed at the step-definition layer).
 const (
-	capMarker        = "\n... (truncated)\n"                       // list/tree/read cut at the byte budget
+	capMarker        = domaintools.TruncationMarker                // list/tree/read cut at the byte budget (single-sourced, TD3)
 	readBudgetMarker = "\n... (truncated at the read budget)\n"    // read_files aggregate cut
 	skipMarkerPrefix = "\n... (not read: result budget reached): " // read_files files not returned
 	timeoutMarker    = "\n... (stopped at the time limit)\n"       // FR-018 nil-error timeout result
 )
+
+// readerSchema builds a reader tool's JSON schema (round-024 B3/FR-013): the two
+// resource params are declared for EVERY agent tool, and their descriptions are
+// single-sourced from the reader's contract default timeout (review R5).
+func readerSchema(extraProps, required string) json.RawMessage {
+	secs := int(readerDefaultTimeout / time.Second)
+	return json.RawMessage(fmt.Sprintf(
+		`{"type":"object","properties":{%s,"max_output_tokens":{"type":"integer","description":"Optional soft cap on this tool's result size, in tokens (the result is bounded to bytes = tokens x 4); default = the effective budget divided by 4, ceiling = the effective budget divided by 2."},"timeout":{"type":"number","description":"Optional seconds before this tool is stopped and returns a timeout result; default %d."}},"required":[%s]}`,
+		extraProps, secs, required))
+}
 
 // timedOut reports whether ctx has passed its deadline (the FR-018 trigger).
 func timedOut(ctx context.Context) bool {
@@ -76,7 +86,7 @@ func (listFiles) Contract() domaintools.ToolContract {
 
 // Parameters is the JSON-schema for the tool's arguments.
 func (listFiles) Parameters() json.RawMessage {
-	return json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"The directory path to list (defaults to the current directory '.')."},"reason":{"type":"string","description":"Reason for listing files."}},"required":["reason"]}`)
+	return readerSchema(`"path":{"type":"string","description":"The directory path to list (defaults to the current directory '.')."}`, `"reason"`)
 }
 
 // Execute lists the entries at the given path (defaulting to "."), one `[d]` or
@@ -136,7 +146,7 @@ func (readFiles) Contract() domaintools.ToolContract {
 // Parameters is the JSON-schema for the tool's arguments (round 021: the
 // multi-file `filepaths` array; `reason` is required by schema but not validated).
 func (readFiles) Parameters() json.RawMessage {
-	return json.RawMessage(`{"type":"object","properties":{"filepaths":{"type":"array","items":{"type":"string"},"description":"The list of file paths to read."},"reason":{"type":"string","description":"Reason for reading these files."}},"required":["filepaths","reason"]}`)
+	return readerSchema(`"filepaths":{"type":"array","items":{"type":"string"},"description":"The list of file paths to read."}`, `"filepaths","reason"`)
 }
 
 // Execute reads each requested file WHOLE, in request order, stopping at the
@@ -168,8 +178,13 @@ func (readFiles) Execute(ctx context.Context, arguments string, budget domaintoo
 	}
 	// Reserve room for the aggregate + skip markers so the whole result stays
 	// within the budget (round-024 D4: the tool bounds to the exact byte budget so
-	// the loop's backstop stays inert).
-	limit := b - len(readBudgetMarker) - len(skipMarkerPrefix) - 64
+	// the loop's backstop stays inert). The skip marker carries the joined unread
+	// paths, so reserve their worst-case size (review TD2), not a magic constant.
+	skipReserve := 0
+	for _, p := range args.FilePaths {
+		skipReserve += len(p) + 2
+	}
+	limit := b - len(readBudgetMarker) - len(skipMarkerPrefix) - skipReserve
 	if limit < 1 {
 		limit = 1
 	}

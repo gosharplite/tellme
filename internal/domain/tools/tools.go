@@ -28,6 +28,11 @@ type ToolContract struct {
 // — not a context `any` — so the contract is explicit.
 type ByteBudget int
 
+// TruncationMarker terminates a result cut at its byte budget (round-024 D7). It
+// is the SINGLE source for the marker emitted by both the tool adapters and the
+// loop's backstop (review TD3), so the two copies cannot drift.
+const TruncationMarker = "\n... (truncated)\n"
+
 // Tool is one capability the model may invoke during a prompt run. Execute runs
 // the tool with the model's raw arguments string and the resolved byte budget,
 // and returns its result text. A tool failure is returned as an error and is

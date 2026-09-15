@@ -50,7 +50,8 @@ func (executeCommand) Contract() domaintools.ToolContract {
 
 // Parameters is the JSON-schema for the tool's arguments.
 func (executeCommand) Parameters() json.RawMessage {
-	return json.RawMessage(`{"type":"object","properties":{"command":{"type":"string","description":"The shell command to run (via bash -c)."},"timeout":{"type":"number","description":"Seconds before the command's process tree is stopped."},"max_output_tokens":{"type":"integer","description":"Soft cap on the result size (bytes = tokens x 4)."},"output_file":{"type":"string","description":"If set, write stdout+stderr to this file instead of returning them."},"append":{"type":"boolean","description":"Append to output_file instead of truncating it."},"reason":{"type":"string","description":"Reason for running the command."}},"required":["command","reason"]}`)
+	secs := int(commandDefaultTimeout / time.Second)
+	return json.RawMessage(fmt.Sprintf(`{"type":"object","properties":{"command":{"type":"string","description":"The shell command to run (via bash -c)."},"timeout":{"type":"number","description":"Optional seconds before the command's process tree is stopped and returns a timeout result; default %d."},"max_output_tokens":{"type":"integer","description":"Optional soft cap on the result size, in tokens (bytes = tokens x 4); default = the effective budget divided by 4."},"output_file":{"type":"string","description":"If set, write stdout+stderr to this file instead of returning them."},"append":{"type":"boolean","description":"Append to output_file instead of truncating it."},"reason":{"type":"string","description":"Reason for running the command."}},"required":["command","reason"]}`, secs))
 }
 
 // Execute runs the command. It returns the bounded result (or the timeout/
@@ -79,22 +80,27 @@ func (executeCommand) Execute(ctx context.Context, arguments string, budget doma
 	return runCaptured(ctx, args.Command, b)
 }
 
-// newCommandProcess builds a bash -c command in its own process group with the
-// WaitDelay reap bound (round-024 D1a).
-func newCommandProcess(command string) *exec.Cmd {
-	cmd := exec.Command("bash", "-c", command)
+// newCommandProcess builds a bash -c command in its own process group (round-024
+// D1a). It uses exec.CommandContext so the effective timeout terminates the
+// process tree on EVERY path — including output_file (review B1): when ctx is
+// done the CommandContext watcher invokes Cancel, which kills the whole group,
+// and WaitDelay bounds the reap so an orphaned descendant cannot wedge Wait.
+func newCommandProcess(ctx context.Context, command string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, "bash", "-c", command)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	cmd.WaitDelay = commandWaitDelay
+	cmd.Cancel = func() error { return killGroup(cmd) }
 	return cmd
 }
 
 // killGroup kills the whole process group of a started command (negative pgid),
-// so bash AND its descendants die together (round-024 D1a).
-func killGroup(cmd *exec.Cmd) {
+// so bash AND its descendants die together (round-024 D1a). It is idempotent and
+// safe to call from both the ctx watcher and the capture/trim abort path.
+func killGroup(cmd *exec.Cmd) error {
 	if cmd.Process == nil {
-		return
+		return nil
 	}
-	_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+	return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 }
 
 // exitStatus extracts the exit code of a finished command: 0 on success, the
@@ -124,12 +130,15 @@ func runToFile(ctx context.Context, command, path string, appendMode bool) (stri
 		return "", fmt.Errorf("execute_command: failed to open output file: %w", err)
 	}
 	defer func() { _ = f.Close() }()
-	cmd := newCommandProcess(command)
+	cmd := newCommandProcess(ctx, command)
 	cmd.Stdout = f
 	cmd.Stderr = f
 	if err := cmd.Start(); err != nil {
 		return "", fmt.Errorf("execute_command: failed to start: %w", err)
 	}
+	// Wait returns once ctx cancels (the watcher's Cancel kills the group) or the
+	// command exits — so a hanging producer with output_file cannot wedge the turn
+	// (review B1).
 	werr := cmd.Wait()
 	if timedOut(ctx) {
 		return timeoutMarker, nil
@@ -144,7 +153,7 @@ func runToFile(ctx context.Context, command, path string, appendMode bool) (stri
 // result (the "stopped" outcome) — the pinned T1 order stop -> close read-ends ->
 // kill(-pgid) if alive -> Wait.
 func runCaptured(ctx context.Context, command string, budget int) (string, error) {
-	cmd := newCommandProcess(command)
+	cmd := newCommandProcess(ctx, command)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return "", fmt.Errorf("execute_command: stdout pipe: %w", err)
@@ -175,12 +184,12 @@ func runCaptured(ctx context.Context, command string, budget int) (string, error
 	case <-finished:
 		// The producer finished on its own within budget (or closed its pipes).
 	case <-buf.full:
+		// Trim wins over a simultaneous deadline (the byte budget was reached):
+		// stop -> close read-ends -> kill -> drain (review B2).
 		trimmed = true
-		killGroup(cmd)
-		<-finished
+		abortCapture(cmd, stdout, stderr, finished)
 	case <-ctx.Done():
-		killGroup(cmd)
-		<-finished
+		abortCapture(cmd, stdout, stderr, finished)
 	}
 	werr := cmd.Wait()
 
@@ -198,6 +207,20 @@ func runCaptured(ctx context.Context, command string, budget int) (string, error
 		out += "\n"
 	}
 	return fmt.Sprintf("%sExit Code: %d\n", out, exitStatus(werr)), nil
+}
+
+// abortCapture terminates the process tree and CLOSES the pipe read ends so a
+// producer that escaped the process group (setsid / nohup-style) cannot wedge the
+// drain — the pinned "close the read ends" step (round-024 D8/T1; review B2). The
+// drain is additionally bounded by commandWaitDelay.
+func abortCapture(cmd *exec.Cmd, stdout, stderr io.ReadCloser, finished <-chan struct{}) {
+	_ = killGroup(cmd)
+	_ = stdout.Close()
+	_ = stderr.Close()
+	select {
+	case <-finished:
+	case <-time.After(commandWaitDelay):
+	}
 }
 
 // boundedBuffer accumulates up to limit bytes and signals (once) when the limit

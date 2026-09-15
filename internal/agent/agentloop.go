@@ -60,11 +60,10 @@ type AgentResult struct {
 
 // AgentLoop drives the bounded think→act→observe cycle for one prompt run.
 type AgentLoop struct {
-	Gateway     llm.Gateway
-	Registry    tools.Registry
-	MaxLoops    int
-	ToolTimeout time.Duration
-	Stderr      io.Writer
+	Gateway  llm.Gateway
+	Registry tools.Registry
+	MaxLoops int
+	Stderr   io.Writer
 	// Observer, when set, is notified of each waiting phase (round 019) so a
 	// presenter (the CLI-injected spinner) can label / clear / restore the
 	// indicator per phase (round-019 research Decision 7).

@@ -50,7 +50,7 @@ func clampBytes(result string, byteBudget int) string {
 	if byteBudget <= 0 || len(result) <= byteBudget {
 		return result
 	}
-	return strings.ToValidUTF8(result[:byteBudget], "") + "\n... (truncated)\n"
+	return strings.ToValidUTF8(result[:byteBudget], "") + tools.TruncationMarker
 }
 
 // resolveTimeout resolves a call's effective timeout in three tiers
