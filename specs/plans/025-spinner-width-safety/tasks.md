@@ -29,7 +29,7 @@
 
 **Goal**: 建立本輪測試層落點骨架（Zero Shared Edits）與產品碼落點，讓 Phase 3／Phase 4 不各自發明檔案或落點。只建立落點與載體，不寫行為。
 
-- [ ] T001 建立 3 個 stepdef 獨立檔骨架 + 2 個 `[UNIT]` 落點檔骨架（Zero Shared Edits）
+- [X] T001 建立 3 個 stepdef 獨立檔骨架 + 2 個 `[UNIT]` 落點檔骨架（Zero Shared Edits）
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`（本輪 2 個新句 + 1 個改語意句）
     - `tests/e2e/steps/`（the self-registering stepdef pattern — `init()` registrar）
@@ -42,7 +42,7 @@
     - `internal/cli/spinner_cols_test.go`（the `[UNIT]` landing for the `columns`/`TELL_ME_FORCE_STDERR_COLS` seam; 空殼）
   - 不做：不寫具體 arrange／斷言邏輯；不碰既有 step 檔或既有 `spinner_test.go`。
 
-- [ ] T002 落點產品碼骨架（`internal/ui/spinner.go` + `internal/cli/cli.go`）
+- [X] T002 落點產品碼骨架（`internal/ui/spinner.go` + `internal/cli/cli.go`）
   - Read:
     - `specs/plans/025-spinner-width-safety/research.md` -> Decision 1, Decision 2, Decision 3
     - `specs/truth/techstack.md` -> CLI Application（Turn progress spinner (operator)；Terminal detection）
@@ -93,26 +93,26 @@
 
 ### BDD-ALIGN（本輪改語意句；1 句）
 
-- [ ] T003 [P] [BDD-ALIGN] `Then: the progress spinner names the first tool and counts the remaining tools`
+- [X] T003 [P] [BDD-ALIGN] `Then: the progress spinner names the first tool and counts the remaining tools`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the progress spinner names the first tool and counts the remaining tools`
   - Landing: `tests/e2e/steps/step_t003_chat_then_bounded_tools.go`
   - 語意：`stderr` 的 spinner line status 為 **bounded** several-tool 形式 `Executing tools [<first> and <N-1> more]...`（first name + 其餘 count）；**不該** every-name 枚舉、**不該** collapse 成 single-tool、**不該** 漏 count。（the retired round-019 row `… names every tool it is running` 的 stepdef 於此改語意。）
 
 ### BDD-RED（本輪新增句型；1 Given + 1 Then）
 
-- [ ] T004 [P] [BDD-RED] `Given: the diagnostics are shown at a terminal narrower than the indicator line`
+- [X] T004 [P] [BDD-RED] `Given: the diagnostics are shown at a terminal narrower than the indicator line`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the diagnostics are shown at a terminal narrower than the indicator line`
   - Landing: `tests/e2e/steps/step_t004_chat_given_narrow_terminal.go`
   - 語意：把 `TELL_ME_FORCE_STDERR_TTY=1` **與** `TELL_ME_FORCE_STDERR_COLS`（窄寬，例 `40`）設進 subprocess 環境，使 tellme 的 `stderr` terminal probe 回報 terminal **且** width probe 回報該窄寬（tool-phase frame 會 soft-wrap）。
 
-- [ ] T005 [P] [BDD-RED] `Then: the progress indicator is cleared from every row it occupied`
+- [X] T005 [P] [BDD-RED] `Then: the progress indicator is cleared from every row it occupied`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the progress indicator is cleared from every row it occupied`
   - Landing: `tests/e2e/steps/step_t005_chat_then_cleared_rows.go`
   - 語意：`stderr` 帶一個 clear sequence，erase **every** terminal row the last frame occupied — 在窄寬 seam 迫使 frame 寬於 terminal 時，clear 含 cursor-up（`\x1b[<n>A`）後接 per-row erase；讀為 terminal 後無 braille-frame phase-status 殘留。
 
 ### UNIT（非 DSL 的單元斷言）
 
-- [ ] T006 [P] [UNIT] the bounded several-tool label + the row-aware clear
+- [X] T006 [P] [UNIT] the bounded several-tool label + the row-aware clear
   - Read:
     - `specs/plans/025-spinner-width-safety/research.md` -> Decision 1, Decision 2, Decision 4
     - `specs/truth/techstack.md` -> CLI Application（Turn progress spinner (operator)）
@@ -120,7 +120,7 @@
   - 撰寫：斷言 the label formatter — `N=0` → ` Executing tools...`、`N=1` → ` Executing [<name>]...`（unchanged）、`N>=2` → ` Executing tools [<first> and <N-1> more]...`（bounded；不得 every-name 枚舉）；並斷言 the row-aware clear — 注入窄寬，畫一 over-wide frame，clear 後 emit 的序列 erase **every** occupied row（`rows = ceil(width/columns)`；含 cursor-up），且 `rows==1` 時退化為單列 clear（**無** `time.Sleep`）。
   - 落點：`internal/ui/spinner_width_test.go`。
 
-- [ ] T007 [P] [UNIT] the `columns` seam + the `TELL_ME_FORCE_STDERR_COLS` override
+- [X] T007 [P] [UNIT] the `columns` seam + the `TELL_ME_FORCE_STDERR_COLS` override
   - Read:
     - `specs/plans/025-spinner-width-safety/research.md` -> Decision 3
     - `specs/truth/techstack.md` -> CLI Terminal detection（the diagnostic-stream gate + the cols seam）
@@ -130,7 +130,7 @@
 
 ### Phase Review Gate
 
-- [ ] T008 subagent review (phase quality gate)
+- [X] T008 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/presenting-the-progress-spinner.feature`
     - `specs/truth/features/cli/chat/dsl.md`、`specs/truth/features/cli/dsl.md`
@@ -160,8 +160,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/presenting-the-progress-spinner.feature`
 
-- [ ] T009 [BDD-GREEN] 讓 Test Scope 全綠（並使 T006/T007 的 `[UNIT]` 轉綠）
-- [ ] T010 [BDD-REFACTOR] 在綠燈下整理 the label branch／the row-count clear／the width seam 落點
+- [X] T009 [BDD-GREEN] 讓 Test Scope 全綠（並使 T006/T007 的 `[UNIT]` 轉綠）
+- [X] T010 [BDD-REFACTOR] 在綠燈下整理 the label branch／the row-count clear／the width seam 落點
 
 ## Phase 4B: Regression
 
@@ -177,7 +177,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`
 
-- [ ] T011 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T011 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`、`verify-cross-compile`）與 `go test -count=1 ./...`（含 godog）。
   - **可偽性見證 (a)（bounded label；非真空）**：暫時恢復 the every-name 枚舉 label，確認 `presenting-the-progress-spinner.feature` 的 `the progress spinner names the first tool and counts the remaining tools` 失敗；觀察到失敗即還原。
   - **可偽性見證 (b)（row-aware clear）**：暫時把 the clear 退回單列 `\r\x1b[K`，確認 the narrow-terminal Example 的 `the progress indicator is cleared from every row it occupied` 失敗；觀察到失敗即還原。
