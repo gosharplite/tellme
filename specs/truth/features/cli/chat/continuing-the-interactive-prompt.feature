@@ -44,12 +44,24 @@ Feature: Continuing the interactive prompt
       And tellme prints the provider's answer "all good"
       And tellme exits successfully
 
+  Rule: The other prompt surfaces do not echo the prompt
+
     Example: A prompt entered positionally is not echoed back
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint answers with "all good"
       When the operator starts tellme with the prompt "hi"
       Then the turn opens with a horizontal rule
+      And the prompt is not echoed on the diagnostic output
+      And tellme exits successfully
+
+    Example: A prompt read to end-of-input is not echoed back
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the operator is working at an interactive terminal
+      And a configured provider "test-model" whose endpoint answers with "all good"
+      When the operator pipes "carry on" into tellme
+      Then the input capture is announced for the turn
       And the prompt is not echoed on the diagnostic output
       And tellme exits successfully
 

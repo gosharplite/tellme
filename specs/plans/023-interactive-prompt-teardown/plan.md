@@ -5,8 +5,9 @@
 ### Document structure (this feature)
 
 ```text
-specs/023-interactive-prompt-teardown/
+specs/plans/023-interactive-prompt-teardown/
 ├── spec.md
+├── checklists/requirements.md
 ├── research.md
 ├── plan.md
 ├── features/acceptance/
@@ -53,7 +54,7 @@ This round inventories `1` system interface.
   - `CLI end`
 - Analysis focus:
   - the `-i` model's submit/abort transition (clear the frame, no residue) and the CLI's post-submit wiring (chrome flag on, the echoed prompt on `stderr` before the input-capture line, the spinner gate now satisfied);
-  - the review of the PM's terminal-mode `ui/**` (the entry frame + the cleared post-submit handoff + the abandoned frame) for落地性 — reviewed, not re-planned;
+  - the review of the PM's terminal-mode `ui/**` (the entry frame + the cleared post-submit handoff + the abandoned frame) for feasibility — reviewed, not re-planned;
   - the truth-rule rewrite the round implies (the round-017 "no turn chrome" rule and the round-019 "`-i` excluded" spinner rule).
 - Rationale: a single CLI end with no cross-interface dependency; one wave suffices.
 
@@ -61,6 +62,6 @@ This round inventories `1` system interface.
 
 - `/axb-api-plan` → **NOOP** (`specs/truth/contracts/**`; tellme has no OpenAPI surface).
 - `/axb-data-plan` → **NOOP** (`specs/truth/data/**`; no stored-state change).
-- `/axb-ui-plan` → **terminal mode**, produced by the PM (this package's `ui/ui-plan.md` + `ui/screens/*.txt`); reviewed here for可落地性, not re-planned or re-done.
+- `/axb-ui-plan` → **terminal mode**, produced by the PM (this package's `ui/ui-plan.md` + `ui/screens/*.txt`); reviewed here for feasibility, not re-planned or re-done.
 - `/axb-dsl-refine` → the **CLI end's contract owner** carries the end forward: it rewrites the affected `specs/truth/features/cli/chat/**` rules and `dsl.md` rows (the `-i` teardown + echo; the turn-chrome and spinner re-scoping).
 - `/axb-technical-research` → already delivered (`research.md` + `specs/truth/techstack.md` MODIFY).

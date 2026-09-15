@@ -127,6 +127,7 @@
 - 不得改：opt-in gating、suggestion engine、共享 prompt log、provider request、one-turn 契約、exit codes、class-phrase 詞彙（11）；`stdout` byte-exact；`internal/ui` 的 chrome/spinner/status emitters 沿用（不重寫）。
 - **E2E witness 重製（research D5）**：round-016「final rendered frame is captured」前提失效；本 phase 以 cleared `View()` 的 `[UNIT]` pin（T007）+ 標準 surface 的 E2E Thens 取代；不得為舊前提保留 always-render。
 - 保留 `TELL_ME_FORCE_STDIN_TTY`／`TELL_ME_TUI_DEBOUNCE` seam；無 pty；無新相依。
+- 更新 `internal/cli/cli.go` 中已過時的註解（`…including the \`-i\` submit path **and the non-chrome path**` → 去掉 non-chrome 字樣；PR #51 review NIT）。
 
 **Test Scope**:
 - `specs/truth/features/cli/chat/continuing-the-interactive-prompt.feature`

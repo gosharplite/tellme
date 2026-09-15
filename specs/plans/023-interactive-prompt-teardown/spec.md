@@ -60,18 +60,18 @@ As an operator, after I submit `-i` I want the run to continue exactly like the 
 
 **Acceptance Scenarios**:
 
-1. **Given** the operator submits the prompt `hi` at the interactive prompt, **When** the turn begins, **Then** the diagnostic stream carries the echoed prompt line, then the input-capture acknowledgement.
+1. **Given** the operator submits the prompt `hi` at the interactive prompt, **When** the turn begins, **Then** the diagnostic stream carries the echoed prompt, then the input-capture acknowledgement.
 2. **Given** the same submit, **When** the turn surface renders, **Then** the diagnostic stream carries the 80-column `─` rule and the `╭─⠿ Turn <N> - <mode>` header, the pre-flight payload line, the answer, the post-turn payload line, and the post-turn status lines — the same shape as the positional / Ctrl+D surfaces.
 3. **Given** a terminal `stderr` and not `-r/--raw`, **When** the `-i` turn runs, **Then** the live progress spinner is shown while waiting and cleared before the answer (as on the other surfaces).
-4. **Given** the same prompt entered positionally and via `-i`, **When** both runs complete, **Then** `stdout` is byte-identical and the diagnostic chrome shape matches.
+4. **Given** the same prompt entered positionally and via `-i`, **When** both runs complete, **Then** `stdout` is byte-identical and the diagnostic chrome shape matches **apart from the echoed prompt (FR-007)**.
 
 **Functional Requirements**:
 
 - **FR-005**: On `-i` submit, the turn MUST resume the **same** operator surface as the positional / Ctrl+D prompt — the input-capture acknowledgement, the 80-column `─` rule, and the `╭─⠿ Turn <N> - <mode>` header.
 - **FR-006**: The `-i` submit MUST be a **chrome surface**: it MUST render the turn chrome, the live progress spinner (gated on a terminal `stderr` and not `-r/--raw`), and the post-turn status lines, identical to the other prompt surfaces.
-- **FR-007**: Because the editor box is erased (FR-001), the submitted prompt MUST be **echoed on its own diagnostic line before** the input-capture acknowledgement, so the operator can see the text they sent.
+- **FR-007**: Because the editor box is erased (FR-001), the submitted prompt MUST be **echoed as its own diagnostic block before** the input-capture acknowledgement, so the operator can see the text they sent.
 - **FR-008**: The echo (FR-007) MUST apply **only** to the `-i` submit surface. The positional and Ctrl+D surfaces MUST NOT echo (the shell command line / terminal line echo already shows the text) — unchanged.
-- **FR-009**: The echoed text MUST be the submitted (trimmed) prompt; a multi-line submission is echoed as written.
+- **FR-009**: The echoed text MUST be the submitted (trimmed) prompt echoed **verbatim**; a multi-line submission preserves its embedded newlines (the echo is a diagnostic block, not a single line).
 - **FR-010**: The `-i` turn MUST remain exactly one reasoning turn per submit — same provider call, same session-history append — as on the other surfaces.
 
 ---
@@ -90,7 +90,7 @@ As an operator, after I submit `-i` I want the run to continue exactly like the 
 - **Interactive prompt (`-i`)** — tellme's opt-in Bubble Tea editor (round 015/016); the surface this round changes on submit/abort.
 - **Submit transition** — the moment `Ctrl+S` / `Alt+Enter` ends the editor and the reasoning turn begins (and the analogous abort transition for `Esc` / `Ctrl+C`).
 - **Turn surface** — the shared `stderr` rendering of a turn (echoed prompt · input-capture acknowledgement · `─` rule + `╭─⠿ Turn <N>` header · live spinner · tool-loop lines · post-turn status); the `-i` submit now uses it.
-- **Echoed prompt** — the submitted prompt re-printed on its own diagnostic line on the `-i` surface, because the editor box that held it is erased.
+- **Echoed prompt** — the submitted prompt re-printed as its own diagnostic block on the `-i` surface (verbatim; embedded newlines preserved), because the editor box that held it is erased.
 - **Diagnostic stream (`stderr`)** — the stream that carries all of the above; the answer stays on `stdout`.
 
 ### Global requirements
