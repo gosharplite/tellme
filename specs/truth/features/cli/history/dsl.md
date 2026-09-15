@@ -15,7 +15,7 @@ interface root, every step in this module's feature must match exactly one row.
 
 | DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
 | --- | --- | --- | --- | --- |
-| `the session history already holds a tool-using exchange` | 無 | 不支援 | `工作區`: writes into `$TELL_ME_HOME/output/<mode>/history.jsonl` (the effective mode's session workspace). | `怎麼做`: create the per-mode session workspace directory if absent, then append one JSON line carrying `prompt`, `answer`, and an ordered `steps` array with one step (the widened record from `specs/truth/data/data-model.dbml`). `權威狀態落地`: the active history holds a completed tool-using turn. `回寫`: the session history file. |
+| `the session history already holds a tool-using exchange` | 無 | 不支援 | `工作區`: writes into `$TELL_ME_HOME/output/<mode>/history.jsonl` (the effective mode's session workspace). | `怎麼做`: create the per-mode session workspace directory if absent, then append one JSON line carrying `prompt`, `answer`, `calls: 2` (a tool-using turn makes two provider inference rounds), and an ordered `steps` array with one step (the widened, round-027 record from `specs/truth/data/data-model.dbml`). `權威狀態落地`: the active history holds a completed tool-using turn. `回寫`: the session history file. |
 
 ## When
 

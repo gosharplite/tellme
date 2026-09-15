@@ -63,9 +63,9 @@ Feature: Presenting the turn
       And the captured standard output is exactly "all good"
       And tellme exits successfully
 
-  Rule: The turn header counts the session's turns
+  Rule: The turn header counts the model requests made so far
 
-    Example: The operator continues a session that already has two turns
+    Example: The operator continues a session that already made two plain requests
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint answers with "all good"
@@ -73,6 +73,15 @@ Feature: Presenting the turn
         | prompt            | answer |
         | My name is Alice. | Noted. |
         | I use Go.         | Noted. |
+      When the operator starts tellme with the prompt "carry on"
+      Then the turn is headed "Turn 3" for the active mode
+      And tellme exits successfully
+
+    Example: The operator continues a session whose single earlier turn consulted a tool
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured provider "test-model" whose endpoint answers with "all good"
+      And the session history already holds a tool-using exchange with no provider token
       When the operator starts tellme with the prompt "carry on"
       Then the turn is headed "Turn 3" for the active mode
       And tellme exits successfully
