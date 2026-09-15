@@ -15,13 +15,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| PENDING | `specs/truth/contracts/**` | (to be filled by `/axb-api-plan`) | Skeleton initialized by `/axb-specify`. |
+| NOOP | `specs/truth/contracts/**` | Checked — tellme has a single CLI end and no OpenAPI/HTTP surface; the turn counter authors no request/response document. | `contract-authoritative` holds vacuously. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| PENDING | `specs/truth/data/data-model.dbml` | (to be filled by `/axb-data-plan`) | Skeleton initialized by `/axb-specify`. |
+| MODIFY | `specs/truth/data/data-model.dbml` | `history_entry` gains an integer **`calls`** attribute (always ≥ 1): the turn's AI-endpoint-call count (provider inference rounds; 1 for a tool-less turn, 1 + tool rounds otherwise; an internal retry is not counted). It is summed across the active session (`Σ calls`), and the round-017 turn header shows `Σ calls + 1`; a legacy line without the field counts as 1; `--new` archives the active file, so the sum restarts. Updated the `history_entry` Note, the record shape to `{prompt, answer, calls, steps:[…]}`, and the Project Note. | Round-027 Decision 2 (persist the per-turn count) + Decision 5 (`--new` reset; legacy floor); the session-history record is the durable home for the count. |
 
 ## /axb-dsl-refine
 
