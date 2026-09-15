@@ -30,7 +30,7 @@
 
 **Goal**: 建立本輪的測試共用元件（the user-global prompt-log path + the seed helpers）與產品／stepdef 落點骨架，讓 Phase 3／Phase 4 不各自發明落點。只建立載體與落點，不寫 stepdef 語意、不寫產品行為。
 
-- [ ] T001 retarget the shared prompt-log test helper to the user-global path + add the seed helpers（`tests/e2e/steps/shared_prompt_log.go`）
+- [X] T001 retarget the shared prompt-log test helper to the user-global path + add the seed helpers（`tests/e2e/steps/shared_prompt_log.go`）
   - Read:
     - `specs/truth/data/data-model.dbml` -> `prompt_log_entry`（the user-global location + the seed lifecycle）
     - `specs/plans/028-user-global-prompt-log/research.md` -> Decision 1, Decision 3, Decision 4, Decision 5
@@ -40,7 +40,7 @@
     - 新增 `envPromptLogPath(sc)` = `filepath.Join(sc.home, "output", "global_prompts.jsonl")`（the seed source）；`appendEnvPromptLog(sc, prompt)`（append the seed-source line）；`ensureSharedPromptLogAbsent(sc)`（remove `~/.tellme/global_prompts.jsonl` if present）。
   - 不做：不改 stepdef 檔、不改 feature、不改產品碼、不加相依。
 
-- [ ] T002 建立產品落點骨架 — the tracker path (injected resolver) + the explicit seed seam（`internal/infrastructure/history/global_prompt_tracker.go`、`internal/cli/cli.go`）
+- [X] T002 建立產品落點骨架 — the tracker path (injected resolver) + the explicit seed seam（`internal/infrastructure/history/global_prompt_tracker.go`、`internal/cli/cli.go`）
   - Read:
     - `specs/truth/techstack.md` -> CLI Application（Shared global prompt log）
     - `specs/plans/028-user-global-prompt-log/research.md` -> Decision 1, Decision 4, Decision 5, Decision 7
@@ -51,7 +51,7 @@
     - 更新 stale 產品檔的 doc comments（RF-2）：`internal/infrastructure/history/global_prompt_tracker.go`（the `globalPromptLogFile` const + the `GlobalPromptTracker`/`NewGlobalPromptTracker` type docs）、`internal/domain/history/tracker.go`（the port doc）→ the user-global path + the seed + the divergence。
   - 不做：不實作 the seed copy（Phase 4）、不改 the record shape / read / compaction / `-i`-only rule、不改 any other surface、不加相依。
 
-- [ ] T003 建立 4 個新 stepdef 獨立落點骨架（Zero Shared Edits 原則）
+- [X] T003 建立 4 個新 stepdef 獨立落點骨架（Zero Shared Edits 原則）
   - Read:
     - `tests/e2e/steps/step_t011_chat_given_shared_log_holds.go`（the existing stepdef pattern）
     - `specs/truth/features/cli/chat/dsl.md`（the 4 new rows）
@@ -98,21 +98,21 @@
 
 ### BDD-ALIGN
 
-- [ ] T004 [P] [BDD-ALIGN] `Given: the shared prompt log already holds "{prompt}"`（+ the shared path helper retarget）
+- [X] T004 [P] [BDD-ALIGN] `Given: the shared prompt log already holds "{prompt}"`（+ the shared path helper retarget）
   - Read:
     - `specs/truth/features/cli/chat/dsl.md` -> `the shared prompt log already holds "{prompt}"`（Round 028）
     - `tests/e2e/steps/step_t011_chat_given_shared_log_holds.go`、`tests/e2e/steps/shared_prompt_log.go`
   - Landing: `tests/e2e/steps/shared_prompt_log.go`（**三句共用；唯一寫者**）+ `tests/e2e/steps/step_t011_chat_given_shared_log_holds.go`
   - 語意：the Given 現在寫入 `~/.tellme/global_prompts.jsonl`（the user-global log；creating it，so the first-use seed is skipped）。確認 `appendPromptLog` 經 retargeted `promptLogPath` 寫入；更新 stepdef／helper 的過時註解。
 
-- [ ] T005 [P] [BDD-ALIGN] `Then: the shared prompt log records the prompt "{prompt}"`
+- [X] T005 [P] [BDD-ALIGN] `Then: the shared prompt log records the prompt "{prompt}"`
   - Read:
     - `specs/truth/features/cli/chat/dsl.md` -> `the shared prompt log records the prompt "{prompt}"`（Round 028）
     - `tests/e2e/steps/step_t024_chat_then_log_records.go`
   - Landing: `tests/e2e/steps/step_t024_chat_then_log_records.go`
   - 語意：`工作區` 改為讀 `~/.tellme/global_prompts.jsonl`（via retargeted helper）。更新過時註解；不改 assertion 邏輯。
 
-- [ ] T006 [P] [BDD-ALIGN] `Then: the shared prompt log still holds only "{prompt}"`
+- [X] T006 [P] [BDD-ALIGN] `Then: the shared prompt log still holds only "{prompt}"`
   - Read:
     - `specs/truth/features/cli/chat/dsl.md` -> `the shared prompt log still holds only "{prompt}"`（Round 028）
     - `tests/e2e/steps/step_t025_chat_then_log_unchanged.go`
@@ -121,25 +121,25 @@
 
 ### BDD-RED
 
-- [ ] T007 [P] [BDD-RED] `Given: the environment prompt log already holds "{prompt}"`
+- [X] T007 [P] [BDD-RED] `Given: the environment prompt log already holds "{prompt}"`
   - Read:
     - `specs/truth/features/cli/chat/dsl.md` -> `the environment prompt log already holds "{prompt}"`（Round 028）
     - `tests/e2e/steps/step_r028_given_env_log_holds.go`（T003 skeleton）
   - 語意：寫入 `$TELL_ME_HOME/output/global_prompts.jsonl`（the seed source；create `output/` if absent，append one `{timestamp,prompt}` line via `appendEnvPromptLog`）。
 
-- [ ] T008 [P] [BDD-RED] `Given: the shared prompt log has not been created yet`
+- [X] T008 [P] [BDD-RED] `Given: the shared prompt log has not been created yet`
   - Read:
     - `specs/truth/features/cli/chat/dsl.md` -> `the shared prompt log has not been created yet`（Round 028）
     - `tests/e2e/steps/step_r028_given_shared_log_absent.go`（T003 skeleton）
   - 語意：ensure `~/.tellme/global_prompts.jsonl` does not exist（remove it if present via `ensureSharedPromptLogAbsent`）。
 
-- [ ] T009 [P] [BDD-RED] `Then: the shared prompt log also holds the earlier prompt "{prompt}"`
+- [X] T009 [P] [BDD-RED] `Then: the shared prompt log also holds the earlier prompt "{prompt}"`
   - Read:
     - `specs/truth/features/cli/chat/dsl.md` -> `the shared prompt log also holds the earlier prompt "{prompt}"`（Round 028）
     - `tests/e2e/steps/step_r028_then_shared_log_also_holds.go`（T003 skeleton）
   - 語意：`必查 權威狀態`：讀 `~/.tellme/global_prompts.jsonl`，確認它持有 `{prompt}`（the carry-over）。
 
-- [ ] T010 [P] [BDD-RED] `Then: the shared prompt log does not hold "{prompt}"`
+- [X] T010 [P] [BDD-RED] `Then: the shared prompt log does not hold "{prompt}"`
   - Read:
     - `specs/truth/features/cli/chat/dsl.md` -> `the shared prompt log does not hold "{prompt}"`（Round 028）
     - `tests/e2e/steps/step_r028_then_shared_log_not_holds.go`（T003 skeleton）
@@ -147,7 +147,7 @@
 
 ### Phase Review Gate
 
-- [ ] T011 subagent review (phase quality gate)
+- [X] T011 subagent review (phase quality gate)
   - Read:
     - `specs/truth/features/cli/chat/dsl.md`、`specs/truth/features/cli/chat/recording-the-shared-prompt-log.feature`、`specs/truth/features/cli/chat/carrying-over-the-environment-prompt-log.feature`
     - `tests/e2e/steps/shared_prompt_log.go`、`tests/e2e/steps/step_t011_*`、`step_t024_*`、`step_t025_*`、`tests/e2e/steps/step_r028_*`
@@ -177,8 +177,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/recording-the-shared-prompt-log.feature`
 
-- [ ] T012 [BDD-GREEN] 讓 Test Scope 全綠（relocate the shared prompt log to the user-global path）
-- [ ] T013 [BDD-REFACTOR] 在綠燈下整理 the tracker path resolution 與 the CLI construction seam
+- [X] T012 [BDD-GREEN] 讓 Test Scope 全綠（relocate the shared prompt log to the user-global path）
+- [X] T013 [BDD-REFACTOR] 在綠燈下整理 the tracker path resolution 與 the CLI construction seam
 
 ## Phase 4B: ADD Feature File - cli/chat/carrying-over-the-environment-prompt-log.feature
 
@@ -199,7 +199,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/carrying-over-the-environment-prompt-log.feature`
 
-- [ ] T014 [BDD-GREEN] 讓 Test Scope 全綠（implement the explicit `Seed(ctx)` + the first-use seed）
+- [X] T014 [BDD-GREEN] 讓 Test Scope 全綠（implement the explicit `Seed(ctx)` + the first-use seed）
   - Read:
     - `specs/truth/features/cli/chat/carrying-over-the-environment-prompt-log.feature`
     - `specs/truth/features/cli/chat/dsl.md` -> the 4 seed rows（Round 028）
@@ -210,7 +210,7 @@
     - 一個 **hermetic unit pin** 證明 the seed fires with **no submission**（i.e. on **opening** the prompt — RF-3；inject the resolver + a temp runtime home），使 the abort/empty-open seed path 也被釘住。
     - Guard the blank source home：when the runtime home is empty（`home == ""` — `TELL_ME_HOME` unset；the `-i` path's `resolve()` errors but `runTUIPrompt` proceeds），**skip** the seed（no cwd-relative `output/global_prompts.jsonl`）；pin it in the same unit（PR #59 review micro-note）。
   - 不做：不改 the record shape / read / compaction、不改 the relocation（Phase 4A）、不改 any other surface。
-- [ ] T015 [BDD-REFACTOR] 在綠燈下整理 the seed（best-effort copy + no-overwrite guard）
+- [X] T015 [BDD-REFACTOR] 在綠燈下整理 the seed（best-effort copy + no-overwrite guard）
 
 ## Phase 4C: Regression
 
@@ -227,7 +227,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`
 
-- [ ] T016 [REGRESSION] 執行全域回歸 + falsifiability witness
+- [X] T016 [REGRESSION] 執行全域回歸 + falsifiability witness
   - 執行 `make verify`（`gofmt`、`go vet`、`staticcheck`、`golangci-lint`、`govulncheck`、`verify-cross-compile`）與 `go test -count=1 ./...`（含 godog）。
   - **可偽性見證 (a)（the read/write target moved；非真空）**：暫時把 `promptLogPath` 改回 `$TELL_ME_HOME/output/global_prompts.jsonl`（或把 the adapter path 改回），確認 the `recording`／`carrying-over` 的 Examples 失敗（a submission 不再被 the user-global read 觀察到）；觀察到失敗即還原。
   - **可偽性見證 (b)（the seed-on-absent）**：暫時移除 the seed copy，確認 the `carrying-over` 的第一個 Example（the `also holds the earlier prompt` Then）失敗；觀察到失敗即還原。
