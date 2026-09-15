@@ -37,11 +37,13 @@ const (
 	timeoutMarker    = "\n... (stopped at the time limit)\n"       // FR-018 nil-error timeout result
 )
 
-// readerSchema builds a reader tool's JSON schema (round-024 B3/FR-013): the two
-// resource params are declared for EVERY agent tool, and their descriptions are
-// single-sourced from the reader's contract default timeout (review R5).
-func readerSchema(extraProps, required string) json.RawMessage {
-	secs := int(readerDefaultTimeout / time.Second)
+// resourceSchema builds EVERY agent tool's JSON schema (round-024 B3/FR-013): the
+// two resource params are declared for every tool, and their descriptions are
+// single-sourced from the tool's own contract default timeout. Shared by the
+// reader and write tools so the resource-param prose has ONE home (round-029
+// review finding 4).
+func resourceSchema(extraProps, required string, defaultTimeout time.Duration) json.RawMessage {
+	secs := int(defaultTimeout / time.Second)
 	return json.RawMessage(fmt.Sprintf(
 		`{"type":"object","properties":{%s,"max_output_tokens":{"type":"integer","description":"Optional soft cap on this tool's result size, in tokens (the result is bounded to bytes = tokens x 4); default = the effective budget divided by 4, ceiling = the effective budget divided by 2."},"timeout":{"type":"number","description":"Optional seconds before this tool is stopped and returns a timeout result; default %d."}},"required":[%s]}`,
 		extraProps, secs, required))
@@ -86,7 +88,7 @@ func (listFiles) Contract() domaintools.ToolContract {
 
 // Parameters is the JSON-schema for the tool's arguments.
 func (listFiles) Parameters() json.RawMessage {
-	return readerSchema(`"path":{"type":"string","description":"The directory path to list (defaults to the current directory '.')."}`, `"reason"`)
+	return resourceSchema(`"path":{"type":"string","description":"The directory path to list (defaults to the current directory '.')."}`, `"reason"`, readerDefaultTimeout)
 }
 
 // Execute lists the entries at the given path (defaulting to "."), one `[d]` or
@@ -146,7 +148,7 @@ func (readFiles) Contract() domaintools.ToolContract {
 // Parameters is the JSON-schema for the tool's arguments (round 021: the
 // multi-file `filepaths` array; `reason` is required by schema but not validated).
 func (readFiles) Parameters() json.RawMessage {
-	return readerSchema(`"filepaths":{"type":"array","items":{"type":"string"},"description":"The list of file paths to read."}`, `"filepaths","reason"`)
+	return resourceSchema(`"filepaths":{"type":"array","items":{"type":"string"},"description":"The list of file paths to read."}`, `"filepaths","reason"`, readerDefaultTimeout)
 }
 
 // Execute reads each requested file WHOLE, in request order, stopping at the

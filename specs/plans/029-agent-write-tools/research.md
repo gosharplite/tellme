@@ -41,7 +41,7 @@
   - **Replace-first** (`>=1` → replace the first) — rejected: silently picks a target the model did not uniquely identify; loses the guarantee.
   - **Replace-all** — rejected: a broad edit on a non-unique block is exactly the foot-gun the tool exists to prevent.
   - **A line-number / range edit** — rejected: line numbers drift and are not robust to concurrent edits; block content is the stable identity.
-- **Recorded hazard (review finding 6)**: `replace_text` reads the **whole** file to locate the unique block (`os.ReadFile`). The round-024 invariant "every tool bounds at the source" governs the tool's **result**, not its **input**; an unbounded input read is a **conscious, recorded** decision this round (the block must be found in the whole file). A future **input** bound (or a streaming/anchored matcher) is a forward item, noted in `techstack.md`.
+- **Recorded hazard (review finding 6)**: `replace_text` reads the **whole** file to locate the unique block (`os.ReadFile`). The round-024 invariant "every tool bounds at the source" governs the tool's **result**, not its **input**; an unbounded input read is a **conscious, recorded** decision this round (the block must be found in the whole file). A future **input** bound (or a streaming/anchored matcher) is a forward item, noted in `techstack.md`. **Symlink case (implementation review finding 6):** the read follows a symlink, and the atomic `rename` then replaces the *link* with a regular file — a recorded limitation of `replace_text`.
 
 ## Decision 5: No security gate and no backup/undo
 

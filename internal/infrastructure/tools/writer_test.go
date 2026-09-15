@@ -278,3 +278,27 @@ func TestReplaceTextAtomicityLeavesNoPartialOrTemp(t *testing.T) {
 	}
 	assertNoTempResidue(t, dir)
 }
+
+// TestReplaceTextPreservesFileMode pins round-029 review finding 1: an edit must
+// not change an existing file's permissions (a rename replaces the inode, so an
+// unconditional 0644 would silently re-mode a 0600 / 0755 file).
+func TestReplaceTextPreservesFileMode(t *testing.T) {
+	dest := filepath.Join(t.TempDir(), "script.sh")
+	if err := os.WriteFile(dest, []byte("echo hi\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// Force a non-0644 mode explicitly so the assertion is umask-independent.
+	if err := os.Chmod(dest, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runReplaceText(replaceArgs(dest, "hi", "bye")); err != nil {
+		t.Fatalf("replace_text returned an error: %v", err)
+	}
+	info, err := os.Stat(dest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if perm := info.Mode().Perm(); perm != 0o600 {
+		t.Errorf("the edit changed the file mode to %o; want 0600 preserved", perm)
+	}
+}

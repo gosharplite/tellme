@@ -24,24 +24,18 @@ import (
 //
 // Every write is ATOMIC (round-029 D3 / FR-009): the content goes to a temp file
 // in the target's directory and is moved into place — `write_file` via an atomic
-// create-only `os.Link` (an existing destination fails with EEXIST, no TOCTOU
-// window), `replace_text` via `rename`. The temp file is removed on any failure,
-// so the destination is never observed partial.
+// create-only `os.Link` (an existing destination fails with EEXIST, no Stat→Rename
+// TOCTOU window; requires hard-link support), `replace_text` via `rename`. The
+// temp file is removed on any failure, so the destination is never observed
+// partial.
 
-// writerDefaultTimeout is the write tools' protective per-call timeout default
-// (round-029 D6, matching the readers), declared upward via Contract().
-const writerDefaultTimeout = 30 * time.Second
-
-// writerSchema builds a write tool's JSON schema (round-029 D6/FR-012): the two
-// resource params are declared for EVERY agent tool, and their descriptions are
-// single-sourced from the write tools' contract default timeout (mirrors the
-// reader schema in filesystem.go).
-func writerSchema(extraProps, required string) json.RawMessage {
-	secs := int(writerDefaultTimeout / time.Second)
-	return json.RawMessage(fmt.Sprintf(
-		`{"type":"object","properties":{%s,"max_output_tokens":{"type":"integer","description":"Optional soft cap on this tool's result size, in tokens (the result is bounded to bytes = tokens x 4); default = the effective budget divided by 4, ceiling = the effective budget divided by 2."},"timeout":{"type":"number","description":"Optional seconds before this tool is stopped and returns a timeout result; default %d."}},"required":[%s]}`,
-		extraProps, secs, required))
-}
+// The write tools' per-tool default timeout (round-029 D6, matching the readers)
+// and the modes they create (round-029 review findings 2/3).
+const (
+	writerDefaultTimeout = 30 * time.Second
+	createdFileMode      = 0o644
+	createdDirMode       = 0o755
+)
 
 // writeTempContent writes the tool's new content into its temporary file. It is a
 // package-level var so the unit tests can fault-inject a partial write — the
@@ -54,12 +48,12 @@ var writeTempContent = func(f *os.File, data []byte) error {
 
 // writeAtomic writes data to dest atomically: the content is written to a temp
 // file IN dest's directory (so the move is a same-filesystem, atomic operation),
-// the temp's mode is set to 0644, and it is moved into place. When createOnly is
-// true the move is an atomic create-only link (`os.Link` fails with EEXIST on an
-// existing destination — no Stat-then-Rename TOCTOU); otherwise it is a `rename`
-// (which atomically replaces the destination). The temp file is removed on any
-// failure, so dest is never observed partial.
-func writeAtomic(dest string, data []byte, createOnly bool) error {
+// the temp's mode is set to `mode`, and it is moved into place. When createOnly
+// is true the move is an atomic create-only link (`os.Link` fails with EEXIST on
+// an existing destination — no Stat-then-Rename TOCTOU); otherwise it is a
+// `rename` (which atomically replaces the destination). The temp file is removed
+// on any failure, so dest is never observed partial.
+func writeAtomic(dest string, data []byte, createOnly bool, mode os.FileMode) error {
 	tmp, err := os.CreateTemp(filepath.Dir(dest), ".tellme-write-*.tmp")
 	if err != nil {
 		return fmt.Errorf("failed to create a temporary file: %w", err)
@@ -76,9 +70,9 @@ func writeAtomic(dest string, data []byte, createOnly bool) error {
 	if err := tmp.Close(); err != nil {
 		return fmt.Errorf("failed to close the temporary file: %w", err)
 	}
-	// Set the final mode on the temp before the move, so a renamed temp is 0644
-	// (os.CreateTemp would otherwise leave it owner-only, 0600).
-	if err := os.Chmod(tmpName, 0o644); err != nil {
+	// Set the final mode on the temp before the move, so a moved temp carries the
+	// intended mode: os.CreateTemp would otherwise leave it owner-only (0600).
+	if err := os.Chmod(tmpName, mode); err != nil {
 		return fmt.Errorf("failed to set the temporary file mode: %w", err)
 	}
 	if createOnly {
@@ -97,6 +91,32 @@ func writeAtomic(dest string, data []byte, createOnly bool) error {
 		return fmt.Errorf("failed to move the temporary file into place: %w", err)
 	}
 	return nil
+}
+
+// mkdirAll0755 creates dir and any missing parents, forcing mode 0755 on every
+// directory it creates. os.MkdirAll is umask-masked, so its mode is only "0755
+// if the ambient umask allows it"; the write tool's directory guarantee must not
+// depend on the ambient umask (ADR-036 determinism — round-029 review finding 2).
+func mkdirAll0755(dir string) error {
+	info, err := os.Stat(dir)
+	if err == nil {
+		if info.IsDir() {
+			return nil
+		}
+		return fmt.Errorf("%s exists and is not a directory", dir)
+	}
+	if parent := filepath.Dir(dir); parent != dir {
+		if err := mkdirAll0755(parent); err != nil {
+			return err
+		}
+	}
+	if err := os.Mkdir(dir, createdDirMode); err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return nil
+		}
+		return err
+	}
+	return os.Chmod(dir, createdDirMode)
 }
 
 // writeFile creates a NEW file (create-only; it never overwrites).
@@ -118,7 +138,7 @@ func (writeFile) Contract() domaintools.ToolContract {
 // Parameters is the JSON-schema for the tool's arguments (round-029 D6/FR-012:
 // `filepath`, `content`, `reason` required, plus the two resource params).
 func (writeFile) Parameters() json.RawMessage {
-	return writerSchema(`"filepath":{"type":"string","description":"The path of the file to create."},"content":{"type":"string","description":"The exact content to write to the new file."}`, `"filepath","content","reason"`)
+	return resourceSchema(`"filepath":{"type":"string","description":"The path of the file to create."},"content":{"type":"string","description":"The exact content to write to the new file."}`, `"filepath","content","reason"`, writerDefaultTimeout)
 }
 
 // Execute creates the file at filepath with exactly content (create-only, atomic).
@@ -137,20 +157,22 @@ func (writeFile) Execute(ctx context.Context, arguments string, budget domaintoo
 	if content == nil {
 		return "", errors.New(`write_file: the content argument is required (use "" to create an empty file)`)
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := mkdirAll0755(filepath.Dir(path)); err != nil {
 		return "", fmt.Errorf("write_file: failed to create parent directories: %w", err)
 	}
 	if timedOut(ctx) {
 		return timeoutMarker, nil
 	}
-	if err := writeAtomic(path, []byte(*content), true); err != nil {
+	if err := writeAtomic(path, []byte(*content), true, createdFileMode); err != nil {
 		return "", fmt.Errorf("write_file: %w", err)
 	}
 	return boundWriteResult(writeFileSuccessMsg, budget), nil
 }
 
 // parseWriteFileArgs decodes write_file's arguments, distinguishing a MISSING
-// `content` key (a nil pointer → rejected) from an explicit "" (an empty file).
+// `content` key (a nil pointer → rejected) from an explicit "" (an empty file). A
+// JSON `null` is treated like absent (round-029 review nit) — only an explicit ""
+// writes an empty file (FR-010).
 func parseWriteFileArgs(arguments string) (path string, content *string, err error) {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal([]byte(arguments), &raw); err != nil {
@@ -163,7 +185,7 @@ func parseWriteFileArgs(arguments string) (path string, content *string, err err
 	if err := json.Unmarshal(pv, &path); err != nil {
 		return "", nil, fmt.Errorf("invalid filepath: %w", err)
 	}
-	if cv, ok := raw["content"]; ok {
+	if cv, ok := raw["content"]; ok && !isJSONNull(cv) {
 		var c string
 		if err := json.Unmarshal(cv, &c); err != nil {
 			return "", nil, fmt.Errorf("invalid content: %w", err)
@@ -171,6 +193,11 @@ func parseWriteFileArgs(arguments string) (path string, content *string, err err
 		content = &c
 	}
 	return path, content, nil
+}
+
+// isJSONNull reports whether a raw JSON value is the literal `null`.
+func isJSONNull(raw json.RawMessage) bool {
+	return strings.TrimSpace(string(raw)) == "null"
 }
 
 // replaceText replaces a uniquely-identified block in an EXISTING file.
@@ -193,14 +220,15 @@ func (replaceText) Contract() domaintools.ToolContract {
 // `filepath`, `old_text`, `new_text`, `reason` required, plus the two resource
 // params).
 func (replaceText) Parameters() json.RawMessage {
-	return writerSchema(`"filepath":{"type":"string","description":"The path of the file to edit."},"old_text":{"type":"string","description":"The exact block to replace (it must occur exactly once)."},"new_text":{"type":"string","description":"The replacement text."}`, `"filepath","old_text","new_text","reason"`)
+	return resourceSchema(`"filepath":{"type":"string","description":"The path of the file to edit."},"old_text":{"type":"string","description":"The exact block to replace (it must occur exactly once)."},"new_text":{"type":"string","description":"The replacement text."}`, `"filepath","old_text","new_text","reason"`, writerDefaultTimeout)
 }
 
 // Execute replaces the single occurrence of old_text with new_text (strict-unique,
 // atomic). An empty old_text, a missing/unreadable file, an absent block, or a
-// non-unique block is a recoverable error; a no-op (new_text == old_text)
-// short-circuits to success without a write. A deadline observed before the write
-// returns a nil-error timeout result (FR-018).
+// non-unique block is a recoverable error; a no-op (new_text == old_text, on a
+// uniquely-present block) short-circuits to success without a write. The edit
+// PRESERVES the destination's own permissions (round-029 review finding 1). A
+// deadline observed before the write returns a nil-error timeout result (FR-018).
 func (replaceText) Execute(ctx context.Context, arguments string, budget domaintools.ByteBudget) (string, error) {
 	if timedOut(ctx) {
 		return timeoutMarker, nil
@@ -222,11 +250,6 @@ func (replaceText) Execute(ctx context.Context, arguments string, budget domaint
 		return "", fmt.Errorf("replace_text: failed to read the file: %w", err)
 	}
 	content := string(data)
-	// A no-op (nothing to change) short-circuits to success WITHOUT a write — no
-	// reason to take a write risk under the no-undo posture (round-029 D4).
-	if args.OldText == args.NewText {
-		return boundWriteResult(replaceTextNoOpMsg, budget), nil
-	}
 	count := strings.Count(content, args.OldText)
 	if count == 0 {
 		return "", fmt.Errorf("replace_text: the block is not present: %q", args.OldText)
@@ -234,12 +257,27 @@ func (replaceText) Execute(ctx context.Context, arguments string, budget domaint
 	if count > 1 {
 		return "", fmt.Errorf("replace_text: the block is not unique (%d occurrences): %q", count, args.OldText)
 	}
+	// A no-op short-circuits to success WITHOUT a write (round-029 D4) — evaluated
+	// AFTER the presence/uniqueness gates, so an absent block still fails (FR-002;
+	// round-029 review finding 5).
+	if args.OldText == args.NewText {
+		return boundWriteResult(replaceTextNoOpMsg, budget), nil
+	}
+	// Preserve the destination's own permissions on the edit (round-029 review
+	// finding 1): a rename replaces the inode, so an unconditional 0644 would
+	// silently re-mode a 0600 / 0755 file.
+	mode := os.FileMode(createdFileMode)
+	if info, statErr := os.Stat(args.FilePath); statErr == nil {
+		mode = info.Mode().Perm()
+	}
 	idx := strings.Index(content, args.OldText)
 	updated := content[:idx] + args.NewText + content[idx+len(args.OldText):]
 	if timedOut(ctx) {
 		return timeoutMarker, nil
 	}
-	if err := writeAtomic(args.FilePath, []byte(updated), false); err != nil {
+	// NOTE (recorded limitation, round-029 review finding 6): the read follows a
+	// symlink and the atomic rename then replaces the LINK with a regular file.
+	if err := writeAtomic(args.FilePath, []byte(updated), false, mode); err != nil {
 		return "", fmt.Errorf("replace_text: %w", err)
 	}
 	return boundWriteResult(replaceTextSuccessMsg, budget), nil
