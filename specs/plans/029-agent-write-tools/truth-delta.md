@@ -15,16 +15,17 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | `specs/truth/contracts/**` | — | Filled by `/axb-api-plan` (expected NOOP: tellme has a single CLI end, no API surface; `contract-authoritative` holds vacuously). |
+| NOOP | `specs/truth/contracts/**` | Checked — tellme has a single CLI end and no OpenAPI/HTTP surface; the write tools author no request/response document. | `contract-authoritative` holds vacuously. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | `specs/truth/data/**` | — | Filled by `/axb-data-plan` (expected NOOP: the two write tools persist no state; the persisted-file shapes are unchanged). |
+| NOOP | `specs/truth/data/**` | Checked — the two write tools persist no state; the existing persisted shapes (`history.jsonl`, `tokens.log`, the prompt logs) are unchanged. | `data-model-covers-all-state` holds — no new state. |
 
 ## /axb-dsl-refine
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | `specs/truth/features/cli/**` | — | Filled by `/axb-dsl-refine` (expected ADD: a write-tools interface feature + `dsl.md` rows for the create-only / atomic / strict-unique steps; `acceptance-coverage` for the round-029 journeys). |
+| ADD | `specs/truth/features/cli/chat/creating-and-editing-files.feature` | New interface feature (chat module) with 4 atomic Rules — (1) a new file is created with exactly the requested content (incl. a missing parent folder); (2) an existing file is never overwritten; (3) a uniquely identified block is replaced and nothing else changes; (4) an edit that cannot be uniquely placed is refused, leaving the file untouched (0 / >1 matches). | `acceptance-coverage` for the round-029 acceptance journeys `creating-a-file.feature` + `editing-a-file.feature`. |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` | Updated the `the request offered exactly the agent tools` row to the **six**-tool set (`list_files`, `read_files`, `get_tree`, `write_file`, `replace_text`, `execute_command`). **Added** 6 Given rows (working-dir contains no file / no folder; a file whose lines are a table; a file containing a line twice; providers that create / edit a file before answering) and 10 Then rows (file created; folder created; content exactly / still exactly; lines are / are still; creation refused; edit refused — not present / not unique; file still holds a line twice), plus the round-029 module note. | The offered set and the new write-tool steps must be executable and uniquely owned (`dsl-exact-one-match`); the module note records the round. |
