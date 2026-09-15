@@ -60,11 +60,10 @@ type AgentResult struct {
 
 // AgentLoop drives the bounded think→act→observe cycle for one prompt run.
 type AgentLoop struct {
-	Gateway     llm.Gateway
-	Registry    tools.Registry
-	MaxLoops    int
-	ToolTimeout time.Duration
-	Stderr      io.Writer
+	Gateway  llm.Gateway
+	Registry tools.Registry
+	MaxLoops int
+	Stderr   io.Writer
 	// Observer, when set, is notified of each waiting phase (round 019) so a
 	// presenter (the CLI-injected spinner) can label / clear / restore the
 	// indicator per phase (round-019 research Decision 7).
@@ -75,6 +74,11 @@ type AgentLoop struct {
 	// and shares one clock with the chrome / payload lines (round-009/017
 	// precedent).
 	Now func() time.Time
+	// EffectiveBudget is the resolved run-static token budget (round-024
+	// FR-015): min(MAX_HISTORY_TOKENS, the active model's configured context
+	// window). The loop resolves each call's bound from it (default = /4, ceiling
+	// = /2); <= 0 falls back to defaultEffectiveBudget.
+	EffectiveBudget int
 }
 
 // Run performs one prompt run. It sends the conversation (the replayed prior
@@ -97,10 +101,6 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 	maxLoops := a.MaxLoops
 	if maxLoops <= 0 {
 		maxLoops = 1
-	}
-	toolTimeout := a.ToolTimeout
-	if toolTimeout <= 0 {
-		toolTimeout = DefaultToolTimeout
 	}
 
 	base := BuildMessages(prior)
@@ -144,12 +144,17 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 			if !ok {
 				return AgentResult{Steps: steps, Calls: calls}, &ErrIncomplete{Reason: fmt.Sprintf("tool %q is not available", tc.Name)}
 			}
-			tctx, cancel := context.WithTimeout(ctx, toolTimeout)
-			result, terr := tool.Execute(tctx, tc.Arguments)
+			tctx, cancel := context.WithTimeout(ctx, a.callTimeout(tool, tc.Arguments))
+			byteBudget := a.callByteBudget(tc.Arguments)
+			result, terr := tool.Execute(tctx, tc.Arguments, tools.ByteBudget(byteBudget))
 			cancel()
 			if terr != nil {
 				// A recoverable tool error is fed back as the tool's result (non-terminal).
 				result = "error: " + terr.Error()
+			} else {
+				// The loop's raw-byte-length backstop (round-024 Q1/D4): inert for a
+				// compliant tool that bounded at the source to the same byte budget.
+				result = clampBytes(result, byteBudget)
 			}
 			a.logStep(tc)
 			turn = append(turn, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})

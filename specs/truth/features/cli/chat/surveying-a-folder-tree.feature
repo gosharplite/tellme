@@ -36,3 +36,18 @@ Feature: Surveying a folder tree
       And the tree shows ".git"
       And the tree does not descend into ".git"
       And tellme exits successfully
+
+
+  Rule: A tree larger than the result bound is trimmed
+
+    # Grill Q5 — FR-011 witnessed for get_tree: a tree overflowing the tool resource bound ends
+    # with the truncation marker (the same shared truncateToCap path as list_files).
+
+    Example: A tree over the result bound ends with a truncation marker
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains more files than tellme reads in one request
+      And a configured provider "test-model" whose endpoint shows the folder tree with a small result budget and then answers with "done"
+      When the operator starts tellme with the prompt "Show me the project tree."
+      Then the tree was trimmed to what the run can hold
+      And tellme exits successfully

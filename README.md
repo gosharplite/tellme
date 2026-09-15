@@ -16,6 +16,26 @@ This is a long-term journey. Rather than rushing code implementation, `tellme` w
 
 ---
 
+## 🧭 Design Intent & Direction (operator-declared)
+
+`tellme` is not a feature-for-feature port of `tell-me-go`; it is a deliberate **re-specification** of the same capability, carried out with an engineering-grade BDD/SDD/TDD process. Three operator-declared directions define the target shape of `tellme`:
+
+1. **No security layer.** `tell-me-go` shipped `SafePath` authorization, consent prompts, command whitelists, and forbidden-character rules. In real usage the operator **always bypassed them** — the rules never held in practice, yet they caused the AI to *repeatedly fail* tool calls for no protection gained. A guardrail that is always disengaged is pure overhead, so `tellme` removes it entirely: tools read, write, and execute whatever they are given. The resulting risk (destructive commands, out-of-tree writes) is an **explicitly accepted operator decision**, not an oversight.
+2. **No Windows.** Dropping Windows removes the entire cross-platform tax — path translation, `cmd`/PowerShell shell wrappers, Windows built-in probing, and separator handling. `tellme` targets **bash on POSIX** only.
+3. **Bash-first execution.** `execute_command` (run through `bash -c`) is a **first-class primitive**, not a gated escape hatch. Because bash already provides piping and redirection, a separate `pipe_commands` tool is unnecessary and is not offered.
+
+**Consequence — a deliberately small tool surface.** With no security layer and no Windows, a dedicated agent tool only earns its place if it beats bash on a real axis:
+
+- **Context boundedness** — bash `cat`/`grep` are unbounded and can blow the model's context window; a bounded, own-contract tool protects it.
+- **Determinism / testable contract** — in BDD a tool's output is *executable truth*; a fixed result shape is testable where a shell one-liner's is not.
+- **Reliability** — exact-content writes and exact-block replacements are easy for a schema'd tool and error-prone in shell (`sed`/quoting).
+
+The surface is therefore kept intentionally minimal: `execute_command` as the universal primitive, plus only the tools that clearly clear that bar (the reader trio, `write_file`, `replace_text`). Tools that merely duplicate a trivial shell command are omitted rather than carried for parity.
+
+*This direction is consistent with the project's settled decisions (round 008 Clarify Q3 and round 021 D4 record "no security/consent layer" as a settled exclusion; rounds 012/015 declare POSIX-only). Direction changes are recorded here and in [`STATUS.md`](STATUS.md).*
+
+---
+
 ## 📚 Essential References
 
 The development of `tellme` is anchored against two primary reference repositories:
@@ -29,7 +49,7 @@ The development of `tellme` is anchored against two primary reference repositori
   - Built-in agentic tools: FileSystem, Git, AST Go analysis, system commands, MCP client, and enterprise integrations.
   - Context window control: token budgeting, automatic turn summarization, and turn pinning.
   - Session durability and persistence (`history.jsonl`, O(1) archive navigation, SQLite task/state storage).
-  - Security and safety guardrails: `SafePath` authorization, run-away loop detection, and cost auditing.
+  - Security and safety guardrails: `SafePath` authorization, run-away loop detection, and cost auditing. *(The `SafePath`/consent rules are deliberately **not** re-created in `tellme` — see [Design Intent & Direction](#-design-intent--direction-operator-declared).)*
   - Environment management: Niffler group/persona templates and provider hot-swapping.
 
 ### 2. `aixbdd-tmg` (BDD Execution, Skills & Domain Model Reference)

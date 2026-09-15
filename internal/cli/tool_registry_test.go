@@ -2,19 +2,19 @@ package cli
 
 import "testing"
 
-// Round 021 T034: the production registry factory offers exactly the three
-// filesystem reader tools — list_files, read_files, get_tree — and never
-// summarize_history (RED until Phase 4E/4F).
+// Round 024 T042: the production registry factory offers exactly the four agent
+// tools — the three filesystem readers plus the command tool — and never
+// summarize_history or pipe_commands.
 
-func TestNewToolRegistryOffersReaderToolsOnly(t *testing.T) {
+func TestNewToolRegistryOffersAgentTools(t *testing.T) {
 	reg := newToolRegistry()
 	got := map[string]bool{}
 	for _, tl := range reg.Tools() {
 		got[tl.Name()] = true
 	}
-	want := map[string]bool{"list_files": true, "read_files": true, "get_tree": true}
+	want := map[string]bool{"list_files": true, "read_files": true, "get_tree": true, "execute_command": true}
 	if len(got) != len(want) {
-		t.Fatalf("registry tools = %v; want exactly list_files, read_files, get_tree", got)
+		t.Fatalf("registry tools = %v; want exactly list_files, read_files, get_tree, execute_command", got)
 	}
 	for name := range want {
 		if !got[name] {

@@ -13,10 +13,13 @@ type stubTool struct {
 	name string
 }
 
-func (s stubTool) Name() string                                    { return s.name }
-func (s stubTool) Description() string                             { return "stub tool" }
-func (s stubTool) Parameters() json.RawMessage                     { return json.RawMessage(`{"type":"object"}`) }
-func (s stubTool) Execute(context.Context, string) (string, error) { return "", nil }
+func (s stubTool) Name() string                { return s.name }
+func (s stubTool) Description() string         { return "stub tool" }
+func (s stubTool) Parameters() json.RawMessage { return json.RawMessage(`{"type":"object"}`) }
+func (s stubTool) Contract() ToolContract      { return ToolContract{} }
+func (s stubTool) Execute(context.Context, string, ByteBudget) (string, error) {
+	return "", nil
+}
 
 func TestRegistryLookupAndOrder(t *testing.T) {
 	r := NewRegistry(stubTool{name: "list_files"}, stubTool{name: "read_files"})

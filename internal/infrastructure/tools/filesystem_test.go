@@ -11,11 +11,14 @@ import (
 	"unicode/utf8"
 )
 
-// Round 021: the filesystem tools take the reference contracts — list_files emits
-// `Contents of <path>:` with `[d]`/`[f]` lines; read_files takes a multi-file
-// `filepaths` array with per-file framing and the reference limits (100000 B/file,
-// binary/directory/≤50 handling) plus tellme's aggregate 1 MiB result cap. These
-// assertions are the T032 pins.
+// Round 024: the filesystem reader tools take the reference contracts — list_files
+// emits `Contents of <path>:` with `[d]`/`[f]` lines; read_files takes a
+// multi-file `filepaths` array with per-file framing (binary/directory/≤50
+// handling) — and are bounded by the resolved BYTE budget (the former fixed
+// 100000-byte / 1 MiB caps are retired).
+
+// testBudget is the byte budget the reader unit tests pass to Execute.
+const testBudget = 1 << 20
 
 func TestListFilesShape(t *testing.T) {
 	dir := t.TempDir()
@@ -25,7 +28,7 @@ func TestListFilesShape(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(dir, "sub"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	got, err := listFiles{}.Execute(context.Background(), `{"path":"`+dir+`","reason":"r"}`)
+	got, err := listFiles{}.Execute(context.Background(), `{"path":"`+dir+`","reason":"r"}`, testBudget)
 	if err != nil {
 		t.Fatalf("list_files: %v", err)
 	}
@@ -38,12 +41,32 @@ func TestListFilesShape(t *testing.T) {
 }
 
 func TestListFilesDefaultPath(t *testing.T) {
-	got, err := listFiles{}.Execute(context.Background(), `{"reason":"r"}`)
+	got, err := listFiles{}.Execute(context.Background(), `{"reason":"r"}`, testBudget)
 	if err != nil {
 		t.Fatalf("list_files (default path): %v", err)
 	}
 	if !strings.HasPrefix(got, "Contents of .:") {
 		t.Errorf("list_files default header = %q; want prefix Contents of .:", got)
+	}
+}
+
+func TestListFilesTruncatesAtBudget(t *testing.T) {
+	dir := t.TempDir()
+	// Many entries so the listing overflows a small budget.
+	for i := 0; i < 200; i++ {
+		if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("file%03d.txt", i)), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := listFiles{}.Execute(context.Background(), `{"path":"`+dir+`","reason":"r"}`, 200)
+	if err != nil {
+		t.Fatalf("list_files: %v", err)
+	}
+	if len(got) > 200 {
+		t.Errorf("list_files result %d bytes exceeds the 200 budget", len(got))
+	}
+	if !strings.HasSuffix(strings.TrimRight(got, "\n"), "... (truncated)") {
+		t.Errorf("list_files did not truncate at the budget; tail=%q", tail(got, 40))
 	}
 }
 
@@ -58,7 +81,7 @@ func TestReadFilesMulti(t *testing.T) {
 		t.Fatal(err)
 	}
 	args, _ := json.Marshal(map[string]any{"filepaths": []string{p1, p2}, "reason": "r"})
-	got, err := readFiles{}.Execute(context.Background(), string(args))
+	got, err := readFiles{}.Execute(context.Background(), string(args), testBudget)
 	if err != nil {
 		t.Fatalf("read_files: %v", err)
 	}
@@ -70,21 +93,21 @@ func TestReadFilesMulti(t *testing.T) {
 	}
 }
 
-func TestReadFilesTruncates(t *testing.T) {
+func TestReadFilesTruncatesAtBudget(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "big.txt")
-	if err := os.WriteFile(p, []byte(strings.Repeat("x", 100001)), 0o644); err != nil {
+	if err := os.WriteFile(p, []byte(strings.Repeat("x", testBudget+100)), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := readFiles{}.Execute(context.Background(), `{"filepaths":["`+p+`"]}`)
+	got, err := readFiles{}.Execute(context.Background(), `{"filepaths":["`+p+`"]}`, testBudget)
 	if err != nil {
 		t.Fatalf("read_files: %v", err)
 	}
 	if !strings.HasSuffix(strings.TrimRight(got, "\n"), "(truncated)") {
-		t.Errorf("read_files did not truncate at the per-file cap; tail=%q", tail(got, 40))
+		t.Errorf("read_files did not truncate at the budget; tail=%q", tail(got, 40))
 	}
-	if len(got) > 100000+200 {
-		t.Errorf("read_files result %d bytes is not bounded by the 100000 cap", len(got))
+	if len(got) > testBudget {
+		t.Errorf("read_files result %d bytes is not bounded by the %d budget", len(got), testBudget)
 	}
 }
 
@@ -94,7 +117,7 @@ func TestReadFilesBinary(t *testing.T) {
 	if err := os.WriteFile(p, []byte{0x00, 0x01, 0x02}, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := readFiles{}.Execute(context.Background(), `{"filepaths":["`+p+`"]}`)
+	got, err := readFiles{}.Execute(context.Background(), `{"filepaths":["`+p+`"]}`, testBudget)
 	if err != nil {
 		t.Fatalf("read_files: %v", err)
 	}
@@ -109,7 +132,7 @@ func TestReadFilesDirectory(t *testing.T) {
 	if err := os.Mkdir(sub, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	got, err := readFiles{}.Execute(context.Background(), `{"filepaths":["`+sub+`"]}`)
+	got, err := readFiles{}.Execute(context.Background(), `{"filepaths":["`+sub+`"]}`, testBudget)
 	if err != nil {
 		t.Fatalf("read_files: %v", err)
 	}
@@ -121,10 +144,10 @@ func TestReadFilesDirectory(t *testing.T) {
 func TestReadFilesTooMany(t *testing.T) {
 	paths := make([]string, 51)
 	for i := range paths {
-		paths[i] = fmt.Sprintf("/tmp/r021/file%02d.txt", i)
+		paths[i] = fmt.Sprintf("/tmp/r024/file%02d.txt", i)
 	}
 	args, _ := json.Marshal(map[string]any{"filepaths": paths, "reason": "r"})
-	got, err := readFiles{}.Execute(context.Background(), string(args))
+	got, err := readFiles{}.Execute(context.Background(), string(args), testBudget)
 	if err != nil {
 		t.Fatalf("too-many-files must be a non-fatal result, got error %v", err)
 	}
@@ -134,92 +157,77 @@ func TestReadFilesTooMany(t *testing.T) {
 }
 
 func TestReadFilesEmptyArgs(t *testing.T) {
-	if _, err := (readFiles{}).Execute(context.Background(), `{"filepaths":[]}`); err == nil {
+	if _, err := (readFiles{}).Execute(context.Background(), `{"filepaths":[]}`, testBudget); err == nil {
 		t.Error("empty filepaths must error")
 	}
-	if _, err := (readFiles{}).Execute(context.Background(), `{}`); err == nil {
+	if _, err := (readFiles{}).Execute(context.Background(), `{}`, testBudget); err == nil {
 		t.Error("missing filepaths must error")
 	}
 }
 
-func TestReadFilesAggregateCap(t *testing.T) {
+func TestReadFilesAggregateBudgetSkips(t *testing.T) {
 	dir := t.TempDir()
-	// 11 × 100000 bytes ≈ 1.05 MB > the 1 MiB aggregate cap.
-	paths := make([]string, 0, 11)
-	for i := 0; i < 11; i++ {
-		p := filepath.Join(dir, fmt.Sprintf("f%02d.txt", i))
-		if err := os.WriteFile(p, []byte(strings.Repeat("y", 100000)), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		paths = append(paths, p)
+	big := filepath.Join(dir, "big.txt")
+	extra := filepath.Join(dir, "extra.txt")
+	// big alone (≈0.9 MB) fits; adding extra overflows the 1 MB budget, so extra
+	// is named as not read (no header).
+	if err := os.WriteFile(big, []byte(strings.Repeat("y", 900000)), 0o644); err != nil {
+		t.Fatal(err)
 	}
-	args, _ := json.Marshal(map[string]any{"filepaths": paths, "reason": "r"})
-	got, err := readFiles{}.Execute(context.Background(), string(args))
+	if err := os.WriteFile(extra, []byte(strings.Repeat("z", 900000)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	args, _ := json.Marshal(map[string]any{"filepaths": []string{big, extra}, "reason": "r"})
+	got, err := readFiles{}.Execute(context.Background(), string(args), testBudget)
 	if err != nil {
 		t.Fatalf("read_files: %v", err)
 	}
-	// Exact ceiling: the whole result — blocks plus the aggregate marker — stays
-	// within readAggregateCap (round-021 TD2).
-	if len(got) > readAggregateCap {
-		t.Errorf("the aggregate result %d bytes exceeds the %d cap", len(got), readAggregateCap)
+	if len(got) > testBudget {
+		t.Errorf("the aggregate result %d bytes exceeds the %d budget", len(got), testBudget)
 	}
 	if !strings.Contains(got, "truncated at the read budget") {
-		t.Errorf("the aggregate cap marker is missing; tail=%q", tail(got, 60))
+		t.Errorf("the aggregate budget marker is missing; tail=%q", tail(got, 60))
+	}
+	if !strings.Contains(got, "not read") || !strings.Contains(got, extra) {
+		t.Errorf("the skip marker must name extra.txt; tail=%q", tail(got, 80))
+	}
+	if strings.Contains(got, "--- File: "+extra+" ---") {
+		t.Errorf("a skipped file must get no header; got %q", tail(got, 80))
 	}
 }
 
-// TestTruncateToCapIsBoundedAndUTF8Safe witnesses the round-021 TD2 fix on the
-// list_files/get_tree cap path: a multi-byte-heavy over-cap result is truncated
-// to within the exact 1 MiB ceiling AND remains valid UTF-8 (no split rune).
-func TestTruncateToCapIsBoundedAndUTF8Safe(t *testing.T) {
-	// 3-byte box-drawing glyphs, far larger than the cap, so a naive byte cut
-	// would land mid-rune.
-	big := strings.Repeat("├── x\n", readAggregateCap)
-	got := truncateToCap(big)
-	if len(got) > readAggregateCap {
-		t.Fatalf("truncateToCap result %d bytes exceeds the %d cap", len(got), readAggregateCap)
+// TestTruncateToBudgetIsBoundedAndUTF8Safe witnesses the budget cut: a
+// multi-byte-heavy over-budget result is truncated to within the budget AND
+// remains valid UTF-8 (no split rune).
+func TestTruncateToBudgetIsBoundedAndUTF8Safe(t *testing.T) {
+	big := strings.Repeat("├── x\n", testBudget) // 3-byte glyphs, ≫ budget
+	got := truncateToBudget(big, testBudget)
+	if len(got) > testBudget {
+		t.Fatalf("truncateToBudget result %d bytes exceeds the %d budget", len(got), testBudget)
 	}
 	if !utf8.ValidString(got) {
-		t.Fatal("truncateToCap split a UTF-8 rune")
+		t.Fatal("truncateToBudget split a UTF-8 rune")
 	}
 	if !strings.HasSuffix(strings.TrimRight(got, "\n"), "... (truncated)") {
-		t.Fatalf("truncateToCap is missing the cap marker; tail=%q", tail(got, 40))
+		t.Fatalf("truncateToBudget is missing the cap marker; tail=%q", tail(got, 40))
 	}
-
-	if small := "short"; truncateToCap(small) != small {
-		t.Fatalf("truncateToCap(%q) = %q; want unchanged", small, truncateToCap(small))
-	}
-}
-
-// TestAppendBoundedReservesMarker witnesses the read_files aggregate path: a
-// block larger than the remaining budget is dropped, the budget marker is
-// written, and the accumulated result stays within the cap.
-func TestAppendBoundedReservesMarker(t *testing.T) {
-	var sb strings.Builder
-	if appendBounded(&sb, strings.Repeat("x", readAggregateCap)) {
-		t.Fatal("appendBounded admitted a block larger than the cap")
-	}
-	if sb.Len() > readAggregateCap {
-		t.Fatalf("appendBounded result %d bytes exceeds the %d cap", sb.Len(), readAggregateCap)
-	}
-	if !strings.Contains(sb.String(), "truncated at the read budget") {
-		t.Fatalf("appendBounded did not write the budget marker; got %q", sb.String())
+	if small := "short"; truncateToBudget(small, testBudget) != small {
+		t.Fatalf("truncateToBudget(%q) = %q; want unchanged", small, truncateToBudget(small, testBudget))
 	}
 }
 
-// TestTruncateToCapDropsSplitRune makes the cap cut land MID-rune, so the
-// ToValidUTF8 guard — not mere arithmetic — is what keeps the result valid UTF-8
-// (round-021 review micro-note). The input is a run of 4-byte runes; the cut is
-// at readAggregateCap - len(capMarker) = 1048559 ≡ 3 (mod 4), i.e. three bytes
-// into a rune. Deleting strings.ToValidUTF8 would therefore fail this test.
-func TestTruncateToCapDropsSplitRune(t *testing.T) {
-	big := strings.Repeat("\U0001F600", readAggregateCap) // 4-byte rune, ≫ cap
-	got := truncateToCap(big)
-	if len(got) > readAggregateCap {
-		t.Fatalf("truncateToCap result %d bytes exceeds the %d cap", len(got), readAggregateCap)
+// TestTruncateToBudgetDropsSplitRune makes the cut land MID-rune, so the
+// ToValidUTF8 guard — not mere arithmetic — keeps the result valid UTF-8. The
+// input is a run of 4-byte runes; the cut at budget - len(capMarker) is not a
+// multiple of 4, so a byte cut alone would split a rune.
+func TestTruncateToBudgetDropsSplitRune(t *testing.T) {
+	big := strings.Repeat("\U0001F600", testBudget) // 4-byte rune, ≫ budget
+	got := truncateToBudget(big, testBudget)
+	if len(got) > testBudget {
+		t.Fatalf("truncateToBudget result %d bytes exceeds the %d budget", len(got), testBudget)
 	}
 	if !utf8.ValidString(got) {
-		t.Fatal("truncateToCap left a split rune — the ToValidUTF8 guard is missing")
+		t.Fatal("truncateToBudget left a split rune — the ToValidUTF8 guard is missing")
 	}
 }
 
