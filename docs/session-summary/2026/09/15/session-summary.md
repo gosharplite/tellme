@@ -621,6 +621,8 @@ A triage + documentation session on the same calendar day: the operator queried 
 | `6e2fd36` | `docs: close #47 (concurrent tool-call matching) — not planned` |
 | *(this closeout)* | `docs(closeout): session 9 — #47 decision recorded + STATUS reconcile + daily log` |
 
+**Propagation**: `dev → main` — **DONE (no-ff, `bc5ad85`)** (user-approved); closeout docs on `dev` (`a8fa88c`).
+
 ### Verification (2026-09-15)
 Docs-only round → `gofmt -l .` clean · diff-level secret scan clean · referenced paths verified (`specs/truth/techstack.md`, this daily summary). No code change → `make verify` not applicable.
 

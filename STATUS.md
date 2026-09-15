@@ -76,7 +76,7 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 > **Propagation (round 024):** `024-tool-resource-contract-and-execute-command → dev` (PR [#54](https://github.com/gosharplite/tellme/pull/54), `a59ccad`, merged by `thptcnec`) `→ main` — **DONE (no-ff)**; closeout docs on `dev`.
 > **Propagation (round 025):** `025-spinner-width-safety → dev` (PR [#56](https://github.com/gosharplite/tellme/pull/56), `a6fb921`, merged by `thptcnec`); `dev → main` — **DONE (no-ff)**; closeout docs on `dev`.
 > **Propagation (round 026):** `026-tool-usage-accounting → dev` (PR [#57](https://github.com/gosharplite/tellme/pull/57), `9d62379`, merged by `gosharplite`); `dev → main` — **DONE (no-ff)**; closeout docs on `dev`.
-> **Propagation (session 9, 2026-09-15):** the `#47`-decision closeout docs are on `dev` (pushed `6d5f595`); **`dev → main` — PENDING user approval.**
+> **Propagation (session 9, 2026-09-15):** `dev → main` — **DONE (no-ff, `bc5ad85`)**; the `#47`-decision closeout docs propagated; closeout docs on `dev` (`a8fa88c`).
 > Read live heads with `git rev-parse --short main dev HEAD`.
 
 ## Roadmap — next slices
