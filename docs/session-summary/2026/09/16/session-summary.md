@@ -249,3 +249,133 @@ A third session on the same calendar day: ran the **implementation half** of rou
 
 ### Issue tracker (closeout Step 8)
 Reconciled: **#13** open (coverage tooling); **#60** open (dogfooding umbrella — round 029 was its first slice); **#62** open (provider-transport guard); all still accurate — **no closes, no revisions**.
+
+
+---
+
+## 10. 2026-09-16 (session 4 of the day) — round 030 `030-provider-truncation-guard`: full pipeline to implementation; PR #63 (three review rounds); awaiting human merge
+
+A session on 2026-09-16: opened round **030** (resolve issue [#62](https://github.com/gosharplite/tellme/issues/62)), ran the **full AIxBDD pipeline** (`/axb-specify` → `/axb-spec-by-example` + `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`), took **PR [#63](https://github.com/gosharplite/tellme/pull/63)** through **three plan+truth review rounds**, and delivered the **implementation**. The round is **not merged** (operator: human-only merge).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (Linux host).
+**Branch**: `030-provider-truncation-guard` (off `dev`) — **open**, PR [#63](https://github.com/gosharplite/tellme/pull/63) awaiting human merge.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 029 delivered/frozen; active branch `dev`) |
+| Round-030 theme | the provider-transport **truncation guard** ([#62](https://github.com/gosharplite/tellme/issues/62)) — read the finish reason; fail an output-cap truncation as a loud provider error |
+| `/axb-clarify` | 1 round, 2 questions, **both Option 1** (Q1 universal trigger; Q2 reuse the provider class `the provider requested failed` + exit 6) |
+| Pipeline | specify ✅ · spec-by-example ✅ · research ✅ · system-analysis ✅ · dsl-refine ✅ · tasks ✅ · **implement ✅** (T001–T015 all `[X]`) |
+| Reviews (PR #63) | plan+truth **APPROVED WITH REQUIRED FOLDS** (B1/B2 · TD-1..TD-4 · RF-1/RF-2 · N1) → fold `71b5d3e` → re-review **fold ACCEPTED** (R-1/R-2) → fold `008d08b` → **fold ACCEPTED — review loop CLOSED** |
+| Delivery | implementation `ca873d9`; **PR [#63](https://github.com/gosharplite/tellme/pull/63) open — human-only merge** |
+| Closeout | `gofmt`/`go vet` clean · diff secret scan clean · `make verify` OK · topology audit PASSED (42 features · 16 root + **273** module rows · **1403** steps) |
+
+### Decisions locked (round 030)
+| # | Decision |
+| --- | --- |
+| Q1 | **Universal** truncation trigger — any `finish_reason=="length"` / `finishReason=="MAX_TOKENS"`, tool call **or** text. |
+| Q2 | **Reuse the provider class** — the frozen `the provider request failed` + exit **6**; no new phrase, no new exit code. |
+| D1 | The guard lives in the **transports** (decode-side); returns `*llm.ProviderError`. |
+| D2 | Only `length`/`MAX_TOKENS` fire; healthy `stop`/`tool_calls`/`STOP`/absent are unaffected; `SAFETY`/`RECITATION`/`MALFORMED_FUNCTION_CALL`/`content_filter` out of scope. |
+| D3 | No new phrase/exit code (Q2). |
+| D4 | The failure is **terminal by construction** — no retry layer (tellme has none). |
+| D5 | The **request side is unchanged** (unset `MAX_TOKENS` → provider default). |
+| D6 | The truncation check runs **before** the generic "no usable answer" (recorded divergence, TD-3); the Gemini message is **function-call-aware**. |
+| D7 | stdlib-only; POSIX; hermetic; falsifiability witnesses. |
+| TD-1 | A truncation failure **accounts no usage** for the call (recorded option a). |
+
+### Commits (branch `030-provider-truncation-guard`)
+| Commit | Note |
+| --- | --- |
+| `880d3bb` | `docs(030)`: plan package + spec |
+| `62f9a0c` | `docs(030)`: acceptance + research + techstack truth |
+| `19d80e4` | `docs(030)`: system-analysis plan |
+| `5ea4c23` | `docs(030)`: CLI interface truth |
+| `5b9fdc4` | `docs(030)`: tasks.md |
+| `71b5d3e` | `docs(030)`: fold PR #63 review (B1 Gemini `functionCall` Example · B2 truth-delta NOOPs · TD-1..4 · RF-1/RF-2 · N1) |
+| `008d08b` | `docs(030)`: fold PR #63 re-review (R-1 soften message E2E claim · R-2 align acceptance title) |
+| `ca873d9` | `feat(030)`: implement the provider-transport truncation guard |
+
+### Verification (2026-09-16)
+- Topology audit **PASSED** — 42 features · 6 modules · 16 root + **273** module rows · **1403** steps, 0 errors/warnings.
+- `make verify` **OK** (no test-sleep · offline witness · cross-compile 4/4 · `golangci-lint` 0 issues · `govulncheck` clean).
+- `go test` green — full E2E `ok` (**193 scenarios**, 0 undefined) + the `openai`/`gemini` unit pins.
+- **Falsifiability witnesses** reproduced then reverted — (a) disable the OpenAI guard → the 3 OpenAI cut-off scenarios fail · (b) Gemini fires only on function-calls → the cut-off **answer** scenario + 2 unit pins fail · (c) fire on the healthy *absent* finish reason → many existing scenarios fail.
+- **Self-caught + fixed**: `T002` initially shipped a malformed-JSON bug in the fake body builders; the Phase-3 full-suite run surfaced it; fixed all six builders and re-verified (no regression).
+- `stdout` byte-exact; `go.mod`/`go.sum` unchanged (stdlib-only).
+
+### Open items (non-blocking)
+- **#62** is implemented by round 030 but stays **open until PR [#63](https://github.com/gosharplite/tellme/pull/63) merges**.
+- Round-030 forward items: (a) a truncation failure **accounts no usage** (TD-1); (b) the guard runs **before** the generic "no usable answer" (TD-3 divergence); (c) `MALFORMED_FUNCTION_CALL` out of scope (TD-4).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items.
+
+### Next steps
+1. **Human merges PR [#63](https://github.com/gosharplite/tellme/pull/63)** into `dev`; propagate `030-provider-truncation-guard → dev → main` (no-ff); then `SESSION-CLOSEOUT.md` (close #62).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `030-provider-truncation-guard` until merged, then `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled against the current state: **#13** open (coverage tooling; still accurate); **#60** open (dogfooding-enablement umbrella); **#62** open (round 030's slice — **to be closed on merge of PR #63**). `#47` `not_planned`, `#53`/`#55` completed (earlier). **No closes/revises this closeout** (round 030 not yet merged).
+
+---
+
+## 11. 2026-09-16 (session 5 of the day) — round 030 `030-provider-truncation-guard`: impl-review fold, **PR #63 MERGED + propagated**; new tool-schema bug [#64](https://github.com/gosharplite/tellme/issues/64) filed; closeout
+
+A continuation session on the same calendar day: folded the round-030 **implementation-review** notes (N-1/N-2), saw the **principal architecture review** certify the branch, confirmed the **human merge** of PR [#63](https://github.com/gosharplite/tellme/pull/63) into `dev` and propagated `dev → main`, **found + filed a new real-endpoint bug** ([#64](https://github.com/gosharplite/tellme/issues/64)) by dogfooding a Vertex/Gemini provider, and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Impl-review fold | `1c2dcb6` — N-1 comment accuracy (name the **content-empty** check) + N-2 `Complete`-layer `ProviderError` type pin in **both** adapters |
+| Principal review | **APPROVED — CERTIFIED ARCHITECTURALLY READY TO MERGE** (comment `5690403302`, head `1c2dcb6`) |
+| Merge | PR [#63](https://github.com/gosharplite/tellme/pull/63) **MERGED** into `dev` (`9ecf845`, by `thptcnec`, 2026-09-16T01:05:42Z); round-030 head frozen at `1c2dcb6` (10 commits) |
+| Propagation | `030-provider-truncation-guard → dev` (`9ecf845`) `→ main` — **DONE (no-ff)** |
+| `go install` | `go install ./cmd/tellme` from `1c2dcb6` → `$(go env GOPATH)/bin/tellme` (`--version` → `dev`) |
+| New bug | **[#64](https://github.com/gosharplite/tellme/issues/64)** filed — tool-schema `required`/`properties` defect; Vertex/Gemini 400s **every** request |
+| Closeout | `make verify` OK · `go test ./...` green (E2E 21.4s) · `gofmt`/`vet` clean; STATUS updated; **#62 closed (completed)** |
+
+### Work done
+1. **Implementation-review fold (`1c2dcb6`)** — took the review's two notes: **N-1** tightened the `checkTruncation` comment to name the **content-empty** "no usable answer" check (not the earlier `len(choices)==0` guard that shares the phrase); **N-2** added a `Complete`-layer unit pinning `errors.As(err, &*llm.ProviderError)` for a truncated response in **both** adapters. `make verify` OK; posted fold note `5690346087`.
+2. **Re-review + principal review** — re-review `5690352664` (**fold ACCEPTED, review loop CLOSED**); principal architecture review `5690403302` (**CERTIFIED READY TO MERGE**).
+3. **Binary refresh** — `go install ./cmd/tellme` (from `1c2dcb6`).
+4. **New bug found by dogfooding** — `b --new hi` against a **Vertex/Gemini** provider (`gemini-3.8-flash`) failed with `provider returned status 400: required fields ['reason'] are not defined in the schema properties`. Diagnosed: the shared `resourceSchema` helper (introduced round-024 fold `cfa005c`; renamed round-029 fold `eb0367c`) emits `properties:{<tool props>, max_output_tokens, timeout}` + `required:[…,"reason"]` but **never declares a `reason` property** — so 5 of 6 tools violate `required ⊆ properties` (only `execute_command` complies, built inline). OpenAI-compatible tolerates it; Vertex rejects it. Filed **[#64](https://github.com/gosharplite/tellme/issues/64)** with the per-tool evidence table, the git regression origin, and the fix + well-formedness-gate scope.
+5. **Merge check** — PR [#63](https://github.com/gosharplite/tellme/pull/63) confirmed `merged: true` (by `thptcnec`, base `dev`); local `dev` fast-forwarded `d8d9c34 → 9ecf845`.
+6. **Closeout (Steps 1–8)** — clean tree; `gofmt`/`go vet` clean; `make verify` OK; `go test ./...` green; `STATUS.md` updated (030 → DELIVERED/FROZEN; active branch `dev`; #62 closed + #64 recorded); this §11; propagated `dev → main`; Step 8 closed **#62**.
+
+### Decisions locked (this session)
+| # | Decision |
+| --- | --- |
+| D1 | Round 030 **DELIVERED / FROZEN** on merge of PR #63 (`9ecf845`); frozen head `1c2dcb6`. |
+| D2 | N-1/N-2 folded (`1c2dcb6`): comment accuracy + the `Complete`-layer `ProviderError` type pin. |
+| D3 | Bug **[#64](https://github.com/gosharplite/tellme/issues/64)** filed (tool-schema `required ⊆ properties`); **not** fixed in-round — it is a pre-existing defect on `dev`/`main` (shipped round 024), so it wants its own round (candidate `031-*`). |
+| D4 | Propagation `dev → main` (no-ff) — per the closeout directive. |
+| D5 | Closeout docs land on **`dev`** (round branches frozen). |
+
+### Commits
+| Commit | Note |
+| --- | --- |
+| `1c2dcb6` | `fix(030)`: fold PR #63 implementation review — N-1 comment accuracy, N-2 ProviderError type pin (on the round branch) |
+| `9ecf845` | PR [#63](https://github.com/gosharplite/tellme/pull/63) merge into `dev` (by `thptcnec`) |
+| *(this closeout, on `dev`)* | `docs(030)`: day close — round 030 delivered + propagated; STATUS + daily summary |
+
+### Verification (2026-09-16)
+- `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (no test-sleep · offline witness · cross-compile 4/4 · `golangci-lint` 0 issues · `govulncheck` clean) · `go test -count=1 ./...` green (incl. E2E `ok … 21.4s`).
+- Topology audit unchanged (42 features · 16 root + **273** module rows · **1403** steps) — the fold touched no feature/DSL rows.
+
+### Open items (non-blocking)
+- **[#64](https://github.com/gosharplite/tellme/issues/64)** — new tool-schema bug (candidate round 031).
+- **Round-030 forward items** — TD-1 usage loss · TD-3 ordering divergence · TD-4 `MALFORMED_FUNCTION_CALL` · exact-string finish-reason matching.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011/024/028/029 forward items.
+
+### Next steps
+1. Start the next round `031-*` off `dev` via `/axb-specify` — candidate: **[#64](https://github.com/gosharplite/tellme/issues/64)** (tool-schema fix + well-formedness gate), alongside the [#60](https://github.com/gosharplite/tellme/issues/60) dogfooding track / [#13](https://github.com/gosharplite/tellme/issues/13).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled against the delivered state: **[#62](https://github.com/gosharplite/tellme/issues/62) CLOSED (completed)** — delivered by round 030 (PR [#63](https://github.com/gosharplite/tellme/pull/63) merged `9ecf845`); **[#64](https://github.com/gosharplite/tellme/issues/64) OPEN (new)** — tool-schema bug, not yet landed; **[#60](https://github.com/gosharplite/tellme/issues/60) OPEN** (dogfooding umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13) OPEN** (coverage tooling). No revisions needed.

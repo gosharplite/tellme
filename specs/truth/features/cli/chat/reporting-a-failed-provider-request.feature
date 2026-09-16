@@ -2,7 +2,8 @@ Feature: Reporting a failed provider request
 
   # Interface truth (CLI end, `chat` module) — the provider/transport failure surface. A failed
   # request must name the frozen class phrase `the provider request failed` and exit with the pinned
-  # provider error code `6`.
+  # provider error code `6`. (A reply **cut off at the provider's output limit** is a further cause of
+  # the same class — see `refusing-a-cut-off-reply.feature`, round 030.)
 
   Rule: An unreachable provider or an error response is reported with the frozen class phrase
 
