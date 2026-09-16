@@ -9,9 +9,9 @@
 - 每個**開發任務**都必須對應 `truth-delta.md` 中的 ADD / MODIFY / DELETE / NOOP 語意，或 `research.md` 已拍板的 Decision。
 - **本輪是「schema 正確性 + 驗證 gate」輪，非 BDD feature 輪**：`/axb-api-plan`、`/axb-data-plan`、`/axb-dsl-refine` 皆為 **NOOP**（無 API／無資料／無 CLI interface truth 變更）。因此：
   - **省略 Phase 1 `Setup`** —— 本輪不新增技術（`research.md` D5；`go.mod`／`go.sum` 不動）。
-  - **Phase 3 `Test Alignment` 只有 `[UNIT]`** —— 本輪沒有新的 DSL 句，也沒有 stepdef；驗證由 **registry 層 unit gate** 承擔（非 Gherkin，`research.md` D2）。
+  - **Phase 3 `Test Alignment` 只有 `[UNIT]`** —— 本輪沒有新的 DSL 句，也沒有 stepdef；驗證由 **production-assembler（`agentTools()`）unit gate** 承擔（非 Gherkin，`research.md` D2）。
   - **沒有 Feature phase** —— 沒有 `specs/truth/features/**` 變更；產品修復以 **Phase 4 Implementation** 直接交付。
-  - 交付物是 **shared schema builder 的修復**（`internal/infrastructure/tools/filesystem.go`）與 **registry well-formedness gate**（`internal/cli/tool_registry_test.go`）；唯一 truth 變更是 `specs/truth/techstack.md`（by `/axb-technical-research`）。
+  - 交付物是 **shared schema builder 的修復**（`internal/infrastructure/tools/filesystem.go`）與 **production-assembler（`agentTools()`）well-formedness gate**（`internal/cli/tool_registry_test.go`）；唯一 truth 變更是 `specs/truth/techstack.md`（by `/axb-technical-research`）。
 - 每個開發任務的 `Read` 須涵蓋 `research.md` 對應 Decision 與 `specs/truth/techstack.md` 對應 section。
 - Truth 參照使用 `specs/truth/**` 路徑；plan 參照使用當前 plan package 相對路徑。
 - **不動** the offered tool set、the `tellme` binary 的 `stdout`／`stderr` 行為、the class-phrase vocabulary 或 exit code、任何工具的名稱/描述/執行語意。
@@ -39,10 +39,10 @@
 
 ## Phase 3: Test Alignment (unit)
 
-**Goal**: 先把本輪的驗證落到測試層（**不寫產品碼**）：新增 registry 層 well-formedness gate 並讓它對現行缺陷 **RED**，同時強化只斷言 `required` 的盲點測試。
+**Goal**: 先把本輪的驗證落到測試層（**不寫產品碼**）：新增 **production-assembler（`agentTools()`）層** well-formedness gate 並讓它對現行缺陷 **RED**，同時強化只斷言 `required` 的盲點測試。
 
 **Markers**:
-- `[UNIT]`：本輪的驗證是 **unit tier**（registry 層 schema 檢查）；非 Gherkin、非 `[BDD-*]`（本輪無 DSL 句）。只動測試層，不寫產品碼。
+- `[UNIT]`：本輪的驗證是 **unit tier**（production-assembler 層 schema 檢查）；非 Gherkin、非 `[BDD-*]`（本輪無 DSL 句）。只動測試層，不寫產品碼。
 
 **Shared Must Read**:
 - `specs/truth/techstack.md` -> Agent tool-schema gate row（Testing & Verification）
@@ -63,6 +63,7 @@
   - 做：新增 `TestAgentToolSchemasAreWellFormed`（名稱可調），迭代 **非可覆寫的 production assembler `agentTools()`**（ARCH-1：gate 不得坐在可被測試覆寫的 `newToolRegistry` var 上，否則未來一個忘記 `t.Cleanup` 還原的覆寫會讓 gate 讀到 fake registry 而**空過**）；對每個工具解析 `Parameters()` 為 `{properties map[string]json.RawMessage, required []string}`，斷言：schema 可解析、為 JSON object、且 **每個 `required` 名稱都在 `properties` 中**（`required ⊆ properties`）。
   - 邊界（ARCH-2，flat-schema 前置條件）：本 gate 只走 **root** 的 `properties`/`required`；六個 schema 今日皆為 flat（`read_files` 只在 `items` 內層帶 **properties**、內層無 `required`），故此檢查正確——以註解 **明示此前置條件**。巢狀物件自帶 `required` 的**遞迴**形式列為 **`#60` forward item**，不得靜默假設。
   - 邊界（nits）：failure message 需含 **不變式名稱 `required ⊆ properties`** 與違規工具名（diagnostic 指向**類別**，不只工具名）；另 **明確斷言** spec 的兩個 edge case——**zero-`required`** 工具須 **vacuously pass**，**非 object／不可解析** 的 schema 須 **fail**（FR-007）。
+  - 邊界（optional belt-and-braces，PR #65 fold-review 建議）：另以 **一行**斷言 `agentTools()` 的**工具名集合**與 `newToolRegistry().Tools()` 的工具名集合**相同**，把 assembler 與 registry 綁在一起，使兩處測試不會漂移；此比較只讀 registry 的**名稱**（**不**作為 gate 對象——不變式仍只對 `agentTools()` 斷言，ARCH-1）。
   - 邊界：此測試 **今日必須失敗**（5 個工具違規）——**不得**放寬 assertion 讓它變綠（RED-first）；不寫產品碼。
   - 不做：不改 `resourceSchema`（留 Phase 4）；不碰 offered-set 測試。
 
@@ -71,7 +72,7 @@
     - `specs/plans/031-tool-schema-wellformedness/research.md` -> `Decision 2`
     - `internal/infrastructure/tools/filesystem_test.go` -> 既有 `TestToolSchemasRequireReason`（只斷言 `required` **包含** `reason`，且只涵蓋 3 個 reader）
   - 做：把該測試強化為斷言 **`reason` 是 `properties` 中宣告的 property**（而不只是出現在 `required`），並涵蓋 **builder-backed** 的工具（`list_files`、`read_files`、`get_tree`、`write_file`、`replace_text`——即 `resourceSchema` 所支撐者；`execute_command` 為 inline 且已宣告 `reason`），使「required 有、property 沒有」不再能通過。
-  - 邊界（ARCH-3）：**完整性的責任在 T001**（production-assembler 的 `required ⊆ properties`，覆蓋**每一個**工具）。**T002 不得**再手抄第二份「全部六工具」清單——該 package（`internal/infrastructure/tools`）**無法 import `internal/cli`**，兩份清單會漂移。T002 只保留 `reason` 的專項敘述與 builder-backed 範圍（用**單一本地 table**，或直接對 builder 支撐的工具斷言），不與 registry gate 競爭完整性。
+  - 邊界（ARCH-3）：**完整性的責任在 T001**（production-assembler 的 `required ⊆ properties`，覆蓋**每一個**工具）。**T002 不得**再手抄第二份「全部六工具」清單——該 package（`internal/infrastructure/tools`）**無法 import `internal/cli`**，兩份清單會漂移。T002 只保留 `reason` 的專項敘述與 builder-backed 範圍（用**單一本地 table**，或直接對 builder 支撐的工具斷言），不與 production-assembler gate 競爭完整性。
   - 不做：不重寫其他既有 reader 測試；不建立第二份全工具清單。
 
 - [ ] T003 subagent review (phase quality gate)
