@@ -9,7 +9,8 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _placeholder_ | `specs/truth/techstack.md` | To be filled by `/axb-technical-research` (expected MODIFY — remote MCP client / SDK adoption / auth). | Truth owner fills during the round. |
+| MODIFY | `specs/truth/techstack.md` -> `### MCP Client` (new category) | Added a **MCP Client** category (CLI Application): the protocol library `github.com/modelcontextprotocol/go-sdk` **v1.7.0** **confined** to `internal/infrastructure/mcp/` behind the `tools.MCPClient` domain port (a `verify-mcp-sdk-confinement` gate); the typed `MCP_SERVERS` registry + its deterministic validation; credential resolution by auth mode (`auto`/`gh`/`bearer`/`basic`/`none`, token never logged); and the **non-stall** tool discovery (a small fixed fast-fail bound + per-server `ENABLED`, prompt-path-only, deterministic `mcp_<server>_<tool>` naming). Moved **"MCP client SDK"** out of *Not Introduced Yet*. | Round-032 Decisions 1–7: tellme gains a remote (Streamable HTTP) MCP client; the truth must reflect the current system (`truth-current`). |
+| MODIFY | `specs/truth/techstack.md` -> `### Testing & Verification` / `### Not Introduced Yet` | Added a **Local fake MCP server** test edge (`httptest`, hermetic; a "never answers" fake witnesses the fast-fail bound; a manual live check is a closeout step, not a gate). Added *Not Introduced Yet* bullets for the deferred **local stdio transport**, **cross-invocation tool caching**, and **MCP-backed MEMORY/PLUR**; annotated the round-047 tool-call-concurrency note as unchanged despite the new MCP client. | Round-032 Decisions 1/3/7: record the test surface and the explicitly deferred MCP sub-capabilities (Q1/Q2/Q5). |
 
 ## /axb-api-plan
 
