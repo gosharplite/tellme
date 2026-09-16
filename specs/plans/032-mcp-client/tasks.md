@@ -27,6 +27,7 @@
 - **[NAMING]** 以確定性名稱 `mcp_<server>_<tool>` 提供；超過 64 bytes 時以 rune 截斷 tool 段並加 8-hex SHA-256（FR-004；Q4）。
 - **[VALIDATION/CONTRACT]** typed `MCP_SERVERS` + 確定性驗證（key `^[a-z0-9-]{1,24}$`、URL 必填、`COMMAND` 拒絕、auth 合法 + 對應憑證、`TIMEOUT ≥ 0`、`ENABLED` 預設 true）；失敗 **重用既有 class phrase / exit code**，**不新增** failure class（FR-002/015）。
 - **[NO-DEP-ELSE]** 除 SDK 外無其他新相依；POSIX-only；MCP tool 逾時走既有 FR-018 nil-error timeout result；tool-level error 是可回復的 tool result。
+- **[REVIEW FOLDS (PR #66)]** **B1** — MCP tool schemas are normalized/verified (`required ⊆ properties`) before offering; unsafe → skip+warn (FR-019; T003/T008/T024). **B2** — the e2e fake is **SDK-built** in `internal/infrastructure/mcp/mcptest/`; the confinement gate covers production **and** test files (T007/T008). **B3** — token resolution is bounded + an injectable `tokenResolver` seam; no `gh` spawn in tests (FR-020; T006/T024). **TD1** — a tool-call failure (tool-level or transport) is **recoverable**, never aborts the run (FR-018; T024). **TD2** — the port types `InputSchema json.RawMessage` / `args map[string]interface{}` with the nil→`{}` invariant (T002). **TD3** — the name budget is **derived** (bytes) (T005/T024). **TD4** — unmodelled sub-keys tolerated; `COMMAND` warn+skip (FR-002/013; T020). **TD5** — the MCP timeout follows the resource contract (default 30 s; clamped) (FR-021; T024). **TD7** — `ENABLED` addition / `REQUIRES_CONSENT` drop recorded. **TD8** — `-d` MCP diagnostics deferred. **R1** — structure paths pinned in `plan.md`. **R3** — gate hygiene (`.PHONY` + `help` + aggregate).
 
 ---
 
@@ -46,13 +47,13 @@
 
 - [ ] T002 [FOUNDATION] Domain port `tools.MCPClient`
   - Read: `specs/truth/techstack.md` -> MCP Client / MCP client protocol library row；`research.md` -> `Decision 2`；`internal/domain/tools/`（既有 `Tool` port）
-  - 做：新增 `internal/domain/tools/mcp_client.go` —— `MCPToolDefinition{Name, Description, InputSchema}` 與 `MCPClient` interface（`ListTools(ctx) ([]MCPToolDefinition, error)`、`CallTool(ctx, name, args) (ToolResult, error)`、`Close() error`）。network-free、protocol-free。
-  - 只做：型別 + interface。不做：任何 SDK import、任何 transport。
+  - 做：新增 `internal/domain/tools/mcp_client.go` —— `MCPToolDefinition{Name, Description, InputSchema json.RawMessage}` 與 `MCPClient` interface（`ListTools(ctx) ([]MCPToolDefinition, error)`、`CallTool(ctx, name string, args map[string]interface{}) (ToolResult, error)`、`Close() error`）。**TD2：** 型別固定為 `InputSchema json.RawMessage` 與 `args map[string]interface{}`，並在 port 註解寫明 **nil args → `{}`** 的不變式（MCP wire 不得攜帶 `"arguments": null`，strict server 會拒）。network-free、protocol-free。
+  - 只做：型別 + interface（含不變式註解）。不做：任何 SDK import、任何 transport、normalization（T024）。
 
 - [ ] T003 [FOUNDATION] Adapter package `internal/infrastructure/mcp/` (SDK confined here)
   - Read: `research.md` -> `Decision 2`；`internal/domain/tools/mcp_client.go`
-  - 做：新增 `internal/infrastructure/mcp/client.go` —— 一個 constructor 與 `ListTools`/`CallTool`/`Close` 的骨架，實作 `tools.MCPClient`；SDK import **只** 出現在此 package。
-  - 只做：package + 編譯骨架。不做：credential 解析細節、discovery 接線。
+  - 做：新增 `internal/infrastructure/mcp/client.go` —— 一個 constructor 與 `ListTools`/`CallTool`/`Close` 的骨架，實作 `tools.MCPClient`；並新增 `internal/infrastructure/mcp/schema.go` 的骨架（**B1**：`normalizeMCPSchema(raw json.RawMessage) (json.RawMessage, error)` —— 非 object/absent/unparseable → freeform；確保 `required ⊆ properties`；無法安全化 → 回 error 供 skip+warn）。SDK import **只** 出現在此 package（`client.go`）。
+  - 只做：package + 編譯骨架（`client.go` + `schema.go`）。不做：credential 解析細節、discovery 接線、schema 邏輯測試（T024）。
 
 - [ ] T004 [FOUNDATION] Typed `MCP_SERVERS` config + validation skeleton
   - Read: `research.md` -> `Decision 6`；`specs/truth/techstack.md` -> MCP server registry (config) row；`internal/config/`
@@ -61,23 +62,23 @@
 
 - [ ] T005 [FOUNDATION] Deterministic tool-name helper + UNIT landing
   - Read: `research.md` -> `Decision 5`
-  - 做：新增 pure function 產出 `mcp_<server>_<tool>`（超 64 bytes 時 rune 截斷 + 8-hex SHA-256）與其 `[UNIT]` landing 檔。
-  - 只做：pure helper + 空測試檔。不做：實作測試斷言（T022）。
+  - 做：新增 pure function 產出 `mcp_<server>_<tool>`；**TD3** 超 64 bytes 時以**推導預算**截斷 tool 段（`maxPrefixLen = 64 − 4 − len(server) − 1 − 1 − 8`，cap 40，floor 0）並接 8-hex SHA-256；預算以 **bytes（`len()`）** 計，不以 runes。與其 `[UNIT]` landing 檔。
+  - 只做：pure helper + 空測試檔。不做：實作測試斷言（T022/T024）。
 
 - [ ] T006 [FOUNDATION] Discovery / registration + credential seams in `internal/cli`
   - Read: `research.md` -> `Decision 3`, `Decision 4`；`specs/plans/032-mcp-client/plan.md`（Structure）
-  - 做：新增（骨架）一個在 prompt path 上被呼叫的 discovery 函式（給定 config + client factory → 併發探測 enabled server、以小固定 bound 收集 tools、sorted 回傳），與一個 credential-resolution seam；註冊時使用 T005 的 naming。
-  - 只做：seams。不做：bound 值調校/測試（T023）、真實 auth 解析（T021）。
+  - 做：新增（骨架）一個在 prompt path 上被呼叫的 discovery 函式（給定 config + client factory → 併發探測 enabled server、以小固定 bound 收集 tools、normalize schema（B1，無法安全化者 skip+warn）、sorted 回傳），與一個 credential-resolution seam。**B3：** credential seam 是一個 **injectable `tokenResolver func(ctx) (string, error)`**（default = 受 **同一個 fast-fail bound** 限制的 `gh auth token` spawn；timeout/失敗 → warn + anonymous）；註冊時使用 T005 的 naming。
+  - 只做：seams。不做：bound 值調校/測試（T023）、真實 auth 解析（T021）、token 邊界測試（T024）。
 
 - [ ] T007 [FOUNDATION] Makefile gate `verify-mcp-sdk-confinement`
   - Read: `research.md` -> `Decision 2`；`Makefile`（既有 `verify-*` 樣式）
-  - 做：新增 target 斷言 `github.com/modelcontextprotocol/go-sdk` 的 import **只** 出現在 `internal/infrastructure/mcp/`，並接入 `make verify`/`test`。
+  - 做：新增 target 斷言 `github.com/modelcontextprotocol/go-sdk` 的 import **只** 出現在 `internal/infrastructure/mcp/**`（含 `mcptest/`），並接入 `make verify`/`test`。**R3（gate hygiene）：** 比照 round-020 樣式 —— `.PHONY` + `help` 條目 + 接入與其他 `verify-*` 相同的 aggregate；**明確涵蓋 production 與 `_test.go`**（reference 如此），故 `mcptest/` 內的 SDK-built fake 合規。
   - 只做：gate + 接線。不做：其他工具鏈變更。
 
 - [ ] T008 [FOUNDATION] Fake MCP server harness + stepdef/UNIT landing files
   - Read: `specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature`；`chat/dsl.md` -> `## Given (round 032)` + `## Then (round 032)`；`tests/e2e/`（既有 fake provider 樣式）
-  - 做：新增一個 in-process **fake MCP server**（httptest，serving the remote Streamable HTTP shape；可 script 一個 tool、一個 never-answers 模式、一個 token 要求、一個 recording 模式）；為 11 條新 DSL row 各建**獨立** stepdef landing 檔（Zero Shared Edits）；為純函式建 `[UNIT]` landing 檔。
-  - 只做：harness + 空落點。不做：step 實作（Phase 3）。
+  - 做：新增一個 in-process **fake MCP server**；**B2：** 它以 **SDK 的 server API** 建構（不手刻 Streamable-HTTP wire），住在 **`internal/infrastructure/mcp/mcptest/`**（exported，供 e2e import）—— mirroring the reference（其 fake 在 `internal/infrastructure/mcp/` 內、「starts a real SDK MCP server (same wire…)」）。提供可 script 的：一個 tool、never-answers 模式、token 要求、recording 模式、**malformed-schema** 模式（B1）。為 11 條新 DSL row 各建**獨立** stepdef landing 檔（Zero Shared Edits）；為純函式建 `[UNIT]` landing 檔。
+  - 只做：harness（SDK-built）+ 空落點。不做：step 實作（Phase 3）、任何 hand-rolled protocol。
 
 ## Phase 3: Test Alignment & Implementation (test layer)
 
@@ -118,7 +119,7 @@
   - 做：斷言 fake 記錄 `Authorization: Bearer {token}`。
 - [ ] T020 [P] [UNIT] Config validation: `MCP_SERVERS` rules
   - Read: `chat/dsl.md`（間接）；`research.md` -> `Decision 6`
-  - 做：表驅動 unit —— key 格式、URL 必填、`COMMAND` 被拒、auth mode 合法 + 憑證要求、`TIMEOUT ≥ 0`、`ENABLED` 預設 true；非法 entry → 既有 configuration-invalid class phrase。
+  - 做：表驅動 unit —— key 格式、URL 必填、auth mode 合法 + 憑證要求、`TIMEOUT ≥ 0`、`ENABLED` 預設 true；**TD4**：**unmodelled sub-keys（`REQUIRES_CONSENT`/`ARGS`/`DIR`/`ENV`）被容忍（忽略）**；**`COMMAND`-shaped entry → warn+skip（非 fatal）**；只有 malformed **remote** entry → 既有 configuration-invalid class phrase（fatal）。
 - [ ] T021 [P] [UNIT] Auth resolution + token-not-logged
   - Read: `research.md` -> `Decision 4`
   - 做：表驅動 unit —— `auto`/`gh`/`bearer`/`basic`/`none` 的解析（explicit token 優先；GitHub-hostname→token 來源；匿名）；斷言 token 不落入任何 log。
@@ -128,7 +129,12 @@
 - [ ] T023 [P] [UNIT] Discovery fast-fail bound + skip + sorted registration
   - Read: `research.md` -> `Decision 3`
   - 做：unit —— enabled server 併發探測；never-answers → 在 bound 內 skip 並 warning；off → 不連線；註冊順序 sorted by server key。
-- [ ] T024 subagent review (phase quality gate)
+- [ ] T024 [P] [UNIT] Fold additions: schema normalization (B1), tool-call failure semantics (TD1), bounded token resolution (B3), name byte-budget (TD3), timeout clamp (TD5)
+  - Read: `research.md` -> `Decision 8`–`Decision 10`；`spec.md` -> FR-018..FR-021
+  - 做：表驅動 unit —— (a) `normalizeMCPSchema` 對 malformed/absent/non-object → freeform，輸出滿足 `required ⊆ properties`；不可安全化 → error（skip+warn）；(b) 一次 MCP tool call 的 **tool-level error** 與 **transport failure** 皆回一個 recoverable tool result（run 不中止；**非** `the tool request failed`）；(c) `tokenResolver` 逾時/失敗 → warn + anonymous，且測試**不 spawn `gh`**（inject fake resolver）；(d) name 預算：`server=24 + very long tool` 的結果 `len() ≤ 64`；(e) MCP tool timeout default 30 s、server `TIMEOUT` 由 round-024 ceiling clamp。
+  - 不做：不寫產品碼（產品在 Phase 4）；不為轉綠放寬 assertion。
+
+- [ ] T025 subagent review (phase quality gate)
   - Read: `tests/e2e/**`、`internal/**/*_test.go`、`chat/dsl.md` -> round-032 rows
   - 檢驗：11 條 row 各有 stepdef 且 **0 undefined steps**；`[UNIT]` 覆蓋 T020–T023；只動測試層。有 issues 修正再 review，直到零問題。
 
@@ -144,25 +150,25 @@
 
 **Boundary**: 產品碼限於 `internal/domain/tools/mcp_client.go`、`internal/infrastructure/mcp/**`、`internal/config/**`、`internal/infrastructure/di/**`、`internal/cli/**` 與 `Makefile`（gate）；SDK import 只可在 `internal/infrastructure/mcp/`；discovery 只在 prompt path；不得改 native tool set / 順序模型 / class phrase / exit code / `stdout`。
 
-- [ ] T025 [BDD-GREEN] Implement the MCP client + discovery + registration to pass the ADD'ed feature
-  - Read: `specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature`；`research.md` -> `Decision 1`–`Decision 6`；`specs/truth/techstack.md` -> MCP Client rows
-  - 做：實作 T002–T006 的骨架：SDK adapter（Streamable HTTP）+ credential 解析；typed `MCP_SERVERS` + 驗證；在 prompt path 上以小固定 fast-fail bound 併發 discovery（skip+warn、`ENABLED` 跳過、prompt-path-only），以 sorted 順序把 tools 以 `mcp_<server>_<tool>` 註冊進既有 tool registry，並讓 loop 可呼叫之（結果回饋、逾時走 FR-018）。確認 `verify-mcp-sdk-confinement` 綠。
+- [ ] T026 [BDD-GREEN] Implement the MCP client + discovery + registration to pass the ADD'ed feature
+  - Read: `specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature`；`research.md` -> `Decision 1`–`Decision 11`；`specs/truth/techstack.md` -> MCP Client rows
+  - 做：實作 T002–T006 的骨架：SDK adapter（Streamable HTTP）+ credential 解析（含 **bounded + injectable `tokenResolver`** seam，B3）；typed `MCP_SERVERS` + 驗證（TD4 容忍）；**schema normalization/well-formedness 於 offering 前**（B1）；在 prompt path 上以小固定 fast-fail bound 併發 discovery（skip+warn、`ENABLED` 跳過、prompt-path-only），以 sorted 順序把 tools 以 `mcp_<server>_<tool>` 註冊進既有 tool registry，並讓 loop 可呼叫之（**tool-level error 與 transport failure 皆為 recoverable result**，逾時走 FR-018）；MCP tool timeout 依 round-024 契約（default 30 s，server `TIMEOUT` 由 ceiling clamp，TD5）。確認 `verify-mcp-sdk-confinement` 綠。
   - 驗證：`specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature` 全綠；offline paths 仍不連網（root `tellme performs no network access` row）。
   - 不做：不改 native 六工具、不加 tool-call 併發、不為轉綠放寬 assertion。
 
-- [ ] T026 [BDD-REFACTOR] Refactor under green (naming/validation/discovery seams)
-  - Read: `research.md` -> `Decision 3`, `Decision 5`, `Decision 6`
-  - 做：在綠燈下整理 —— 把 fast-fail bound 抽為單一具名常數；single-source 的 skip-warning 訊息；把 validation 子檢查分組；保持語意不變、gate 續綠。
+- [ ] T027 [BDD-REFACTOR] Refactor under green (naming/validation/discovery seams)
+  - Read: `research.md` -> `Decision 3`, `Decision 5`, `Decision 6`, `Decision 8`
+  - 做：在綠燈下整理 —— 把 fast-fail bound 抽為單一具名常數；single-source 的 skip-warning 訊息（不可達與 schema-skip 各一）；把 validation 子檢查分組；保持語意不變、gate 續綠。
   - 不做：不擴大重構範圍、不改行為。
 
 ### Phase 4B — Regression
 
-- [ ] T027 [REGRESSION] Full regression + falsifiability witnesses + `make verify` + topology audit
+- [ ] T028 [REGRESSION] Full regression + falsifiability witnesses + `make verify` + topology audit
   - Read: `research.md` -> `Decision 7`；`specs/truth/techstack.md` -> MCP Client + Local fake MCP server rows
   - 做：
     - `go test -count=1 ./...` 全綠（unit + godog E2E）。
     - Witnesses（可偽性，觀察後還原）：(a) 令 never-answers 的 fast-fail bound 失效 → non-stall 案例失敗；(b) 移除 `ENABLED` 跳過 → off 案例失敗；(c) 移除 namespacing → offered 案例失敗。
-    - `make verify` **OK**（含 `verify-mcp-sdk-confinement`）；`gofmt -l .` clean；Gherkin/DSL 拓樸稽核 **PASSED**（43 features · 284 module rows · 1441 steps）。
+    - `make verify` **OK**（含 `verify-mcp-sdk-confinement`）；`gofmt -l .` clean；Gherkin/DSL 拓樸稽核 **PASSED**（43 features · 289 module rows · 1498 steps）。
     - offline paths 不連網（差異見證）；native 六工具 / class phrase / exit code / `stdout` byte-exact 不變。
     - 記錄對**真實** remote MCP endpoint 的**手動** closeout 確認（非 gate）。
   - 不做：不放寬 assertion；不為轉綠移除見證。
@@ -173,31 +179,39 @@
 
 | Truth Spec / Plan Decision | Covered By Task Read / Delivery | Status |
 |:---|:---|:---:|
-| `specs/truth/techstack.md` -> `### MCP Client` (protocol library / registry / credential / discovery rows) | T001（SDK）、T003、T004、T006、T020–T023、T025 | PASS |
-| `specs/truth/techstack.md` -> `### Testing & Verification` (Local fake MCP server row) | T008（fake）、T014–T019、T025 | PASS |
-| `specs/truth/techstack.md` -> `### Not Introduced Yet` (stdio / caching / MEMORY) | 負向決策；T025 邊界明示不引入 | PASS |
-| `specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature`（ADD） | T009–T019（RED）、T025/T026（GREEN/REFACTOR）、T027 | PASS |
+| `specs/truth/techstack.md` -> `### MCP Client` (protocol library / registry / credential / discovery rows) | T001（SDK）、T003、T004、T006、T020–T023、T026 | PASS |
+| `specs/truth/techstack.md` -> `### Testing & Verification` (Local fake MCP server row) | T008（fake）、T014–T019、T026 | PASS |
+| `specs/truth/techstack.md` -> `### Not Introduced Yet` (stdio / caching / MEMORY) | 負向決策；T026 邊界明示不引入 | PASS |
+| `specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature`（ADD） | T009–T019（RED）、T026/T027（GREEN/REFACTOR）、T028 | PASS |
 | `specs/truth/features/cli/chat/dsl.md` -> `## Given (round 032)`（5 rows） | T009–T013、T020 | PASS |
 | `specs/truth/features/cli/chat/dsl.md` -> `## Then (round 032)`（6 rows） | T014–T019 | PASS |
-| `truth-delta.md` -> `/axb-technical-research` MODIFY `techstack.md` | T001、T003、T004、T020–T023、T025、T027 | PASS |
-| `truth-delta.md` -> `/axb-api-plan` NOOP (`specs/truth/contracts/**`) | 豁免（NOOP 不建任務；T025 邊界不觸及 API surface） | PASS |
+| `truth-delta.md` -> `/axb-technical-research` MODIFY `techstack.md` | T001、T003、T004、T020–T023、T026、T028 | PASS |
+| `truth-delta.md` -> `/axb-api-plan` NOOP (`specs/truth/contracts/**`) | 豁免（NOOP 不建任務；T026 邊界不觸及 API surface） | PASS |
 | `truth-delta.md` -> `/axb-data-plan` NOOP (`specs/truth/data/**`) | 豁免（NOOP 不建任務；無資料變更；caching deferred） | PASS |
-| `truth-delta.md` -> `/axb-dsl-refine` ADD (`specs/truth/features/cli/chat/**`) | T009–T019、T025 | PASS |
-| `research.md` -> Decision 1（remote HTTP only） | T004（COMMAND 拒絕）、T020、T025 | PASS |
-| `research.md` -> Decision 2（SDK confined behind port + gate） | T001、T002、T003、T007、T025 | PASS |
-| `research.md` -> Decision 3（non-stall bound + ENABLED + prompt-path-only） | T006、T010、T011、T017、T018、T023、T025、T027 | PASS |
-| `research.md` -> Decision 4（auth parity；token not logged） | T012、T019、T021、T025 | PASS |
-| `research.md` -> Decision 5（deterministic naming） | T005、T014、T015、T022、T025 | PASS |
-| `research.md` -> Decision 6（typed config + validation；no new failure class） | T004、T020、T025 | PASS |
-| `research.md` -> Decision 7（hermetic fake + manual live check） | T008、T027（手動 closeout 記錄） | PASS |
-| `spec.md` -> US1（FR-001–007, NFR-001） | T004、T005、T006、T009–T016、T020–T022、T025 | PASS |
-| `spec.md` -> US2（FR-008–010, NFR-002） | T006、T010、T017、T023、T025、T027 | PASS |
-| `spec.md` -> US3（FR-011–012, NFR-003） | T011、T015、T018、T020、T025 | PASS |
-| `spec.md` -> 全域（FR-013–017, NFR-004–005） | T004、T007、T021（token not logged）、T025（prompt-path-only、no new failure class）、T027 | PASS |
-| `spec.md` -> 邊界情況（malformed server data、long name、同名 cross-server、no `MCP_SERVERS` or all-off、tool error、timeout） | T020、T022、T023、T025（tool error/timeout 走既有路徑）、T027 | PASS |
-| `spec.md` -> SC-001–SC-005 | T014–T019、T023、T025（SC-001/002/003）、T021（SC-004）、T027（SC-005） | PASS |
-| `plan.md` -> Structure（port / adapter / config / di / cli / Makefile / fake；`go.mod` CHANGED） | T001–T008、T025 | PASS |
-| `plan.md` -> Scope notes（api/data NOOP；`/axb-ui-plan` skipped） | T025 邊界、T027 | PASS |
-| operator 拍板（Q1 remote only；Q2 fast-fail + ENABLED；Q3 SDK confined；Q4 auth parity + naming；Q5 MCP only） | T001（SDK）、T004/T010/T011/T017/T018/T023（Q2）、T007（Q3）、T012/T019/T021（Q4）、T025 邊界（Q5） | PASS |
+| `truth-delta.md` -> `/axb-dsl-refine` ADD (`specs/truth/features/cli/chat/**`) | T009–T019、T026 | PASS |
+| `research.md` -> Decision 1（remote HTTP only） | T004（COMMAND 拒絕）、T020、T026 | PASS |
+| `research.md` -> Decision 2（SDK confined behind port + gate） | T001、T002、T003、T007、T026 | PASS |
+| `research.md` -> Decision 3（non-stall bound + ENABLED + prompt-path-only） | T006、T010、T011、T017、T018、T023、T026、T028 | PASS |
+| `research.md` -> Decision 4（auth parity；token not logged） | T012、T019、T021、T026 | PASS |
+| `research.md` -> Decision 5（deterministic naming） | T005、T014、T015、T022、T026 | PASS |
+| `research.md` -> Decision 6（typed config + validation；no new failure class） | T004、T020、T026 | PASS |
+| `research.md` -> Decision 7（hermetic fake + manual live check） | T008、T028（手動 closeout 記錄） | PASS |
+| `spec.md` -> US1（FR-001–007, NFR-001） | T004、T005、T006、T009–T016、T020–T022、T026 | PASS |
+| `spec.md` -> US2（FR-008–010, NFR-002） | T006、T010、T017、T023、T026、T028 | PASS |
+| `spec.md` -> US3（FR-011–012, NFR-003） | T011、T015、T018、T020、T026 | PASS |
+| `spec.md` -> 全域（FR-013–017, NFR-004–005） | T004、T007、T021（token not logged）、T026（prompt-path-only、no new failure class）、T028 | PASS |
+| `spec.md` -> 邊界情況（malformed server data、long name、同名 cross-server、no `MCP_SERVERS` or all-off、tool error、timeout） | T020、T022、T023、T026（tool error/timeout 走既有路徑）、T028 | PASS |
+| `spec.md` -> SC-001–SC-005 | T014–T019、T023、T026（SC-001/002/003）、T021（SC-004）、T028（SC-005） | PASS |
+| `plan.md` -> Structure（port / adapter / config / di / cli / Makefile / fake；`go.mod` CHANGED） | T001–T008、T026 | PASS |
+| `plan.md` -> Scope notes（api/data NOOP；`/axb-ui-plan` skipped） | T026 邊界、T028 | PASS |
+| operator 拍板（Q1 remote only；Q2 fast-fail + ENABLED；Q3 SDK confined；Q4 auth parity + naming；Q5 MCP only） | T001（SDK）、T004/T010/T011/T017/T018/T023（Q2）、T007（Q3）、T012/T019/T021（Q4）、T026 邊界（Q5） | PASS |
+
+| `research.md` -> Decision 8（MCP schema normalization/well-formedness；B1） | T003（schema.go）、T008（malformed mode）、T024（unit）、T026 | PASS |
+| `research.md` -> Decision 9（tool-call failure recoverable；TD1） | T024（unit）、T026 | PASS |
+| `research.md` -> Decision 10（timeout default/clamp；TD5） | T024（unit）、T026 | PASS |
+| `research.md` -> Decision 11（SDK-built fake home；B2；TD8；TD7） | T007（gate scope）、T008（mcptest）、T026 邊界 | PASS |
+| `research.md` -> TD4（tolerant sub-keys + `COMMAND` warn+skip） | T004、T020、T026 | PASS |
+| `research.md` -> B3（bounded `tokenResolver` + seam） | T006、T024、T026 | PASS |
+| `spec.md` -> FR-018..FR-021（tool-call failure / schema / token / timeout） | T024（unit）、T026、T027 | PASS |
 
 > 孤立產物件數：0。掃描通過，准予交付。

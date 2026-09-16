@@ -39,7 +39,7 @@ As an operator who runs tellme against a remote MCP server, I want tellme to dis
 **Functional Requirements (FR)**:
 
 - **FR-001**: tellme MUST load a remote MCP server registry from its existing configuration (`MCP_SERVERS`), supporting at least `URL`, `TOKEN`, `USERNAME`, `AUTH`, `TIMEOUT`, and `ENABLED` per server.
-- **FR-002**: tellme MUST validate each MCP server entry deterministically (server key format; exactly one transport shape — a `URL`; a known auth mode; the credentials that mode requires; a non-negative timeout) and MUST reject an invalid entry with a stable, classed failure.
+- **FR-002**: tellme MUST validate each **remote** MCP server entry deterministically — server key format (`^[a-z0-9-]{1,24}$`), a non-empty `URL`, a known auth mode and the credentials that mode requires, and a non-negative `TIMEOUT` — and MUST reject an invalid **remote** entry with a stable, classed failure. **Unmodelled sub-keys** under a server (e.g. a real-world reference's `REQUIRES_CONSENT`/`ARGS`/`DIR`/`ENV`) MUST be **tolerated** (ignored), consistent with round 003's tolerant top-level decode, so an existing `tell-me-go` configuration never makes tellme refuse to start.
 - **FR-003**: On a prompt-bearing turn, tellme MUST discover the tools a configured, enabled remote MCP server offers and offer them to the model **in addition to** its native tools.
 - **FR-004**: Each discovered tool MUST be offered under a **deterministic, namespaced** name derived from the server key and the tool name, and MUST NOT collide with native tool names or with another server's tools.
 - **FR-005**: When the model requests a discovered MCP tool, tellme MUST execute that tool on the configured server and feed the result back into the turn, subject to the same per-tool bounding as native tools.
@@ -119,11 +119,15 @@ As an operator with a known-flaky server, I want to turn that server off with a 
 
 #### Functional Requirements
 
-- **FR-013**: This round MUST support the **remote Streamable HTTP** transport only; the **local stdio** (`COMMAND`) transport is out of scope (a later round). A `COMMAND`-shaped entry MUST be rejected or ignored deterministically.
+- **FR-013**: This round MUST support the **remote Streamable HTTP** transport only; the **local stdio** (`COMMAND`) transport is out of scope (a later round). A `COMMAND`-shaped entry MUST be **skipped with a warning** — deterministically, without contacting it and **without failing the run** — so a real-world config carrying a stdio server does not invert the round's purpose (replacing "wait 30 s" with "tellme won't start").
 - **FR-014**: The round MUST NOT change the existing native tool surface, the sequential tool-execution model, or the tool resource contract; MCP tools MUST honour the same per-tool bounding/timeout as native tools.
 - **FR-015**: The round MUST NOT change the frozen class-phrase vocabulary or the exit-code set; MCP integration failures MUST reuse the existing classed failure surfaces.
 - **FR-016**: MCP discovery and any server contact MUST occur only on the prompt-bearing turn path; the offline paths (`--version`, `-d`, `-l`, prompt-less `--new`, boot) MUST make no network contact.
 - **FR-017**: Any credential used for an MCP server (and any derived Authorization header) MUST NOT be logged or written to disk.
+- **FR-018**: An MCP **tool-call failure MUST NOT abort the run**: a tool-level error reported by the server MUST be surfaced as a **recoverable tool result** fed back into the loop, and a **transport/connection failure** during a tool call MUST likewise be surfaced as a recoverable tool result (the loop continues to a final answer) — consistent with FR-009.
+- **FR-019**: Before a server's tool is offered to the model, its argument schema MUST be **normalized and verified** to be well-formed — a JSON object declaring its offered arguments (`properties`) and its mandatory arguments (`required`) with `required ⊆ properties` (the round-031 / issue #64 invariant). A non-object, unparseable, or otherwise unsafe schema MUST be **skipped with a warning** (the tool is not offered and cannot 400 the turn); tellme MUST NOT offer a third-party schema verbatim when it can fail a strict provider.
+- **FR-020**: Resolving a server's credentials via the external `gh` token source MUST be **bounded by the same fixed fast-fail deadline** as discovery; on timeout/failure it MUST warn and fall back to anonymous (never fail the run). The token source MUST be an **injectable seam**, so tests never spawn `gh`.
+- **FR-021**: An MCP tool's call timeout MUST follow the existing tool resource contract — a resolved default, overridable by the server's `TIMEOUT`, and **clamped by the contract's ceiling**; a server-set value MUST NOT defeat the ceiling.
 
 #### Non-Functional Requirements
 
@@ -148,9 +152,12 @@ As an operator with a known-flaky server, I want to turn that server off with a 
 
 ## Assumptions
 
-- The reference's startup-stall is caused by **unbounded/長 discovery on the critical path**; a small fixed fast-fail bound plus an `ENABLED` switch removes it (this is the round's defining requirement, not a nice-to-have).
+- The reference's startup-stall is caused by **unbounded discovery on the critical path**; a small fixed fast-fail bound plus an `ENABLED` switch removes it (this is the round's defining requirement, not a nice-to-have).
 - The active `github` server in the operator's config resolves under `auto` via its **explicit** `${GITHUB_TOKEN}` — the `gh` fallback (which spawns the external `gh` CLI) runs only when no explicit token is present.
 - Adopting the official MCP Go SDK (Q3 → 1) is a deliberate techstack decision recorded by the truth owner (`techstack.md`), not a spec requirement; the SDK is walled behind the domain port (NFR-005).
 - Manual live confirmation against a **real** remote MCP endpoint is a closeout check, not part of the hermetic automated gate (re-using the round-013/031 precedent that `make verify` stays offline).
 - Cross-invocation tool caching (Q2 Option 2), the stdio transport (Q1 deferral), and MEMORY/PLUR (Q5) are **out of scope** and recorded as forward items.
 - This is a **CLI-interface** capability round: `/axb-system-analysis` is expected to record the CLI end carried to `/axb-dsl-refine`; `/axb-api-plan` is **NOOP**; `/axb-data-plan` is **NOOP** (no persisted state — caching deferred); `/axb-dsl-refine` **ADDs** the executable MCP interface truth; the truth change also touches `specs/truth/techstack.md` (the MCP rows).
+- **Recorded divergences (round 032):** `ENABLED` is a tellme **addition** (the reference has no such key — the operator's stopgap was to comment the block out); and `REQUIRES_CONSENT` is **dropped** (tellme has no consent layer — a settled exclusion). Recorded rather than silent, per the round-028 ADR-0004 precedent.
+- **MCP diagnostics (`-d`) are out of scope this round** (TD8): discovery is prompt-path-only, so `-d` neither reports an MCP server's reachability nor its tools; a non-dialing MCP diagnostic is a recorded forward item.
+- **MCP tool schemas are an untrusted input** (B1): a third-party server's advertised schema is normalized/verified before offering (FR-019), because the round-031 recurrence gate only sees the **static** `agentTools()` assembler and cannot see dynamically registered tools.

@@ -26,17 +26,20 @@ and no `ui/**` artifact — the MCP surface is model-facing and its CLI behaviou
 ### Repository structure (root)
 
 ```text
-internal/domain/tools/mcp_client.go        # ADDED   — the tools.MCPClient domain port (ListTools / CallTool / Close) + MCPToolDefinition; network-free, protocol-free
-internal/infrastructure/mcp/                # ADDED   — the remote (Streamable HTTP) adapter over github.com/modelcontextprotocol/go-sdk; credential resolution (auth modes); the ONLY package allowed to import the SDK
-internal/config/                            # CHANGED — typed MCP_SERVERS registry (MCPServerConfig) + deterministic validation (key format, URL required / COMMAND rejected, auth mode + credentials, TIMEOUT ≥ 0, ENABLED default true)
-internal/infrastructure/di/                 # CHANGED — an MCP client factory (builds a client per enabled server; injectable token resolver; memoized gh/token)
-internal/cli/cli.go                         # CHANGED — on the prompt-bearing path, discover enabled servers under the fixed fast-fail bound, register their tools into the tool registry (deterministic mcp_<server>_<tool> names), and thread the MCP tools through the existing tool loop
-internal/*/mcp_discovery*.go                # ADDED   — the concurrent, fixed-bound discovery + sorted registration (namespacing)
-Makefile                                    # CHANGED — add `verify-mcp-sdk-confinement` (SDK import confined to internal/infrastructure/mcp/) and wire it into the gates
-tests/e2e/steps/*, suite, (fake MCP server) # ADDED   — a hermetic fake MCP server (httptest) + steps: use a tool; a "never answers" server witnesses the fast-fail bound; ENABLED skip
-specs/truth/techstack.md                    # MODIFY  — MCP Client category + Local fake MCP server edge + Not-Introduced-Yet bullets ✓ done
-specs/truth/features/cli/**                 # ADD     — the executable MCP interface truth (/axb-dsl-refine, contract owner)
-go.mod / go.sum                             # CHANGED — add github.com/modelcontextprotocol/go-sdk (v1.7.0)
+internal/domain/tools/mcp_client.go          # ADDED   — the tools.MCPClient domain port (ListTools / CallTool / Close) + MCPToolDefinition (InputSchema json.RawMessage; args map[string]interface{}; nil→{} invariant); network-free, protocol-free
+internal/infrastructure/mcp/client.go        # ADDED   — the remote (Streamable HTTP) adapter over github.com/modelcontextprotocol/go-sdk; the ONLY production package that imports the SDK
+internal/infrastructure/mcp/schema.go        # ADDED   — MCP tool-schema normalization/well-formedness (required ⊆ properties) before offering (B1)
+internal/infrastructure/mcp/naming.go        # ADDED   — the deterministic `mcp_<server>_<tool>` name (derived 64-byte budget, byte-length) (TD3)
+internal/infrastructure/mcp/mcptest/         # ADDED   — the SDK-built hermetic fake MCP server helper, exported for e2e (B2)
+internal/config/                             # CHANGED — typed `MCP_SERVERS` (MCPServerConfig) + deterministic validation (tolerant unmodelled sub-keys; `COMMAND` warn+skip) (TD4)
+internal/infrastructure/di/mcp_factory.go    # CHANGED — the MCP client factory + the injectable, bounded `tokenResolver` seam (B3)
+internal/cli/mcp_discovery.go                # ADDED   — the prompt-path discovery + registration (concurrent, fixed fast-fail bound; `ENABLED` skip; deterministic names) (Q2)
+internal/cli/cli.go                          # CHANGED — invoke discovery on the prompt path and thread the MCP tools through the existing tool loop
+Makefile                                     # CHANGED — `verify-mcp-sdk-confinement` (.PHONY + help + wired into the verify aggregate; covers production AND test files; allows internal/infrastructure/mcp/**) (R3)
+tests/e2e/steps/*, suite                     # ADDED   — MCP steps consuming the mcptest helper (no hand-rolled Streamable-HTTP wire)
+specs/truth/techstack.md                     # MODIFY  — MCP Client rows + Local fake MCP server edge + Not-Introduced-Yet bullets ✓ done
+specs/truth/features/cli/**                  # ADD     — the executable MCP interface truth (/axb-dsl-refine, contract owner)
+go.mod / go.sum                              # CHANGED — add github.com/modelcontextprotocol/go-sdk (v1.7.0)
 ```
 
 **Structure Decision**: Round 032 adds the **remote MCP client** capability *inside* the existing CLI end —
@@ -49,7 +52,7 @@ The round **does change the CLI end's observable behaviour** (a prompt run now o
 tools of a configured remote MCP server) and it persists **no** new state (`/axb-data-plan` `NOOP`;
 caching is deferred). It reaches an **external dependency** (the remote MCP server) — an *outbound*
 endpoint tellme consumes, exactly as it consumes provider endpoints — which is **not** a new system
-interface tellme exposes. Consistent with `research.md` Decisions 1–7.
+interface tellme exposes. Consistent with `research.md` Decisions 1–11. **Paths are pinned (R1)** so a `[P]` Phase 3 has no same-file collisions. **Review folds (PR #66):** **B1** — MCP tool schemas are normalized/verified before offering (`internal/infrastructure/mcp/schema.go`; FR-019); **B2** — the hermetic fake is **SDK-built** and lives in `internal/infrastructure/mcp/mcptest/`, so the confinement gate (T007) and the e2e harness (T008) are consistent by construction; **B3** — token resolution is bounded + an injectable seam (FR-020).
 
 ---
 
@@ -84,7 +87,7 @@ wave; the round's contract-owner handoff (`/axb-dsl-refine`) happens at delivery
 
 1. **`/axb-api-plan`** — `NOOP` (no OpenAPI contract).
 2. **`/axb-data-plan`** — `NOOP` (no persisted-state change; caching deferred).
-3. **`/axb-dsl-refine`** — **contract owner**: ADD the MCP interface truth under `specs/truth/features/cli/**` — that a configured remote server's tools are offered to the model alongside the native tools and can be called (their results fed back); that an unreachable server is skipped within the fixed bound and never stalls the run; that a server marked off is never contacted — plus the matching `chat/dsl.md` rows. *(Exact file/rule/row names are `/axb-dsl-refine`'s call.)*
+3. **`/axb-dsl-refine`** — **contract owner**: ADD the MCP interface truth under `specs/truth/features/cli/**` — that a configured remote server's tools are offered to the model **alongside** the native tools and can be called (their results fed back); that an unreachable server is skipped within the fixed bound and never stalls the run; that a server marked off is never contacted; that a **malformed schema is not offered** (B1); that a **failed MCP tool call does not abort the run** (TD1); and the **multi-server** (one down, one up) and **many-unresponsive** journeys — plus the matching `chat/dsl.md` rows. *(Exact file/rule/row names are `/axb-dsl-refine`'s call.)*
 
 Not delegated:
 - `/axb-ui-plan` — **skipped** (no UX-surface change).

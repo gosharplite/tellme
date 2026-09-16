@@ -65,3 +65,86 @@ Feature: Using tools from a remote MCP server
       When the operator starts tellme with the prompt "What does the gadget cost?"
       Then the MCP server "shop" received the token "s3cr3t"
       And tellme exits successfully
+
+  Rule: A server's tools are offered alongside the native tools
+
+    Example: Both the server's tool and the native tools are offered
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
+      And a configured provider "test-model" whose endpoint reports the offered tools and then answers with "done"
+      When the operator starts tellme with the prompt "Which tools can you use?"
+      Then the request offered the tool "lookup_price" from the MCP server "shop" alongside the agent tools
+      And tellme exits successfully
+
+  Rule: A reachable server still works while another is unavailable
+
+    Example: A reachable server's tool is used while another server is down
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
+      And a remote MCP server "hf" that never answers
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" and then answers with "The gadget costs $42."
+      When the operator starts tellme with the prompt "What does the gadget cost?"
+      Then tellme called the tool "lookup_price" on the MCP server "shop"
+      And tellme reported on stderr that the MCP server "hf" could not be reached
+      And tellme exits successfully
+
+  Rule: Several unresponsive servers still do not add up to a long wait
+
+    Example: Three unresponsive servers are each skipped and the run still answers
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "hf1" that never answers
+      And a remote MCP server "hf2" that never answers
+      And a remote MCP server "hf3" that never answers
+      And a configured provider "test-model" whose endpoint answers with "done"
+      When the operator starts tellme with the prompt "hello"
+      Then tellme reported on stderr that the MCP server "hf1" could not be reached
+      And tellme reported on stderr that the MCP server "hf2" could not be reached
+      And tellme reported on stderr that the MCP server "hf3" could not be reached
+      And tellme exits successfully
+
+  Rule: A tool that advertises a malformed schema is not offered
+
+    Example: A malformed schema is skipped and the run still succeeds
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "bad" that advertises a tool "broken" with a malformed schema
+      And a configured provider "test-model" whose endpoint reports the offered tools and then answers with "done"
+      When the operator starts tellme with the prompt "Which tools can you use?"
+      Then the request offered no tool from the MCP server "bad"
+      And tellme exits successfully
+
+  Rule: A failed MCP tool call does not abort the run
+
+    Example: A tool that reports a tool error does not abort the run
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" whose tool "lookup_price" reports a tool error
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" and then answers with "I could not check the price."
+      When the operator starts tellme with the prompt "What does the gadget cost?"
+      Then the run continued past the failed MCP tool call
+      And tellme prints the provider's answer "I could not check the price."
+      And tellme exits successfully
+
+    Example: A transport failure does not abort the run
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" that fails the tool call
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" and then answers with "I could not check the price."
+      When the operator starts tellme with the prompt "What does the gadget cost?"
+      Then the run continued past the failed MCP tool call
+      And tellme prints the provider's answer "I could not check the price."
+      And tellme exits successfully
+
+  Rule: A server with no off switch is used as before
+
+    Example: A server that omits the off switch is used
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" and then answers with "The gadget costs $42."
+      When the operator starts tellme with the prompt "What does the gadget cost?"
+      Then tellme called the tool "lookup_price" on the MCP server "shop"
+      And tellme exits successfully
