@@ -27,7 +27,7 @@ specs/truth/
 ```text
 internal/infrastructure/tools/filesystem.go    # CHANGED — the shared schema builder (resourceSchema) declares the mandatory `reason` property, so every tool it backs satisfies required ⊆ properties
 internal/infrastructure/tools/filesystem_test.go # CHANGED — strengthen/replace the blind-spot TestToolSchemasRequireReason (it asserted only that `required` contains `reason`)
-internal/cli/tool_registry_test.go             # ADDED   — the well-formedness gate over newToolRegistry(): for EVERY registered tool, every name in `required` is declared under `properties` and the schema parses
+internal/cli/tool_registry_test.go             # ADDED   — the well-formedness gate over the non-overridable production assembler `agentTools()`: for EVERY agent tool, every name in `required` is declared under `properties` and the schema parses (the file also hosts `TestNewToolRegistryOffersAgentTools`)
 internal/infrastructure/tools/command.go       # unchanged — execute_command builds its schema inline and already declares `reason` (the lone compliant tool)
 internal/infrastructure/tools/{writer,get_tree}.go # unchanged callers — they already pass `"reason"` as required; the builder now declares its property
 specs/truth/techstack.md                        # MODIFY — Agent tool schemas row + Agent tool-schema gate row ✓ done
@@ -40,7 +40,7 @@ builder** (`internal/infrastructure/tools/filesystem.go`), which builds the argu
 agent tool behind the **unchanged** `internal/domain/tools.Tool` port; the correction makes each tool's
 advertised schema satisfy `required ⊆ properties` (the invariant a strict provider such as Vertex/Gemini
 enforces). The regression gate is a **hermetic unit test over the production assembler `agentTools()`**
-(`internal/cli/tool_registry_test.go`, `newToolRegistry()`), not a runtime behaviour. There is **no** new
+(`internal/cli/tool_registry_test.go`), not a runtime behaviour. There is **no** new
 endpoint, **no** persisted-state change, **no** change to the CLI's observable behaviour or the offered
 tool set, and **no** new dependency — consistent with `research.md` Decisions 1–6. The **only** truth
 change is `specs/truth/techstack.md`, owned by `/axb-technical-research` (already applied).
