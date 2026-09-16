@@ -2,9 +2,21 @@
 
 **Last updated**: 2026-09-16 (day close, session 14: **round 030 `030-provider-truncation-guard` DELIVERED / FROZEN** — PR [#63](https://github.com/gosharplite/tellme/pull/63) merged by `thptcnec` (frozen head `1c2dcb6` → `dev` `9ecf845`) and propagated `dev → main`). Round-029 detail lives in the archive (Rule 12); rounds 001–029 live in the archives. **#60** = the dogfooding-enablement umbrella; **#13** = coverage tooling; **#64** = a NEW provider/tool-schema bug (opened this session).
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
-**Active branch**: `dev` (all rounds through 030 delivered; the next round `031-*` starts off `dev`)
+**Active branch**: `031-tool-schema-wellformedness` (round 031 **in progress** — off `dev`; rounds 001–030 delivered/frozen; `dev` is the integration line)
 **Daily log**: [`docs/session-summary/2026/09/16/session-summary.md`](docs/session-summary/2026/09/16/session-summary.md)
 **Archive**: [`2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012) · [`2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–019) · [`2026-09-15.md`](docs/archives/status/2026-09-15.md) (rounds 020–026) · [`2026-09-16.md`](docs/archives/status/2026-09-16.md) (rounds 027–029).
+
+## Round 031 — `031-tool-schema-wellformedness` (IN PROGRESS)
+
+**Status**: ⏳ **IN PROGRESS** — branch `031-tool-schema-wellformedness` (off `dev`). Resolves issue [#64](https://github.com/gosharplite/tellme/issues/64): a tool-schema `required`/`properties` defect from round 024 — 5 of 6 tools list `reason` in `required` but never declare its property, so a strict provider (Vertex/Gemini) 400s **every** request.
+
+**Pipeline**: specify ✅ · research ✅ · spec-by-example (expected skipped — no new journey) · system-analysis (expected NOOP) · dsl-refine (expected NOOP) · tasks ⏳ · implement ⏳.
+
+**Decisions locked (round 031)**: **Q1 → 1** (hermetic registry unit gate + a **manual** live Vertex/Gemini closeout check; keeps `make verify` offline); **Q2 → 1** (minimal fix — the shared `resourceSchema` declares the `reason` property; `execute_command` left inline, already compliant — plus a for-every-registered-tool `required ⊆ properties` unit gate).
+
+**Commits**: `0180f9c` (plan package + spec).
+
+**Next**: `/axb-spec-by-example` (expect skip) → `/axb-system-analysis` → `/axb-tasks` → `/axb-implement`.
 
 ## Round 030 — `030-provider-truncation-guard` (DELIVERED / FROZEN)
 
