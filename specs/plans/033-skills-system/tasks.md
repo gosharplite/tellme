@@ -1,4 +1,4 @@
-# Tasks: 033 — skills system (`list_skills`: load & list the workspace's skills)
+# Tasks: 033 — skills system (`list_skills`: load & list the runtime home's skills)
 
 **Plan Package**: `specs/plans/033-skills-system`
 **Core Inputs**: `spec.md`, `plan.md`, `research.md`, `truth-delta.md`, `specs/truth/techstack.md`, `specs/truth/features/cli/**`
@@ -104,9 +104,9 @@
 - [ ] T004 [P] [BDD-ALIGN] `Then: the request offered exactly the agent tools`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the request offered exactly the agent tools` row（`集合` 現為七工具）
   - 只做：更新既有的 offered-set stepdef，使其斷言七個工具（新增 `list_skills`）。
-- [ ] T005 [P] [BDD-RED] `Given: the workspace holds a skill "{name}" described as "{description}"`
-- [ ] T006 [P] [BDD-RED] `Given: the workspace holds a skill "{name}" whose folder also holds a reference file "{relpath}"`
-- [ ] T007 [P] [BDD-RED] `Given: the workspace holds no skills`
+- [ ] T005 [P] [BDD-RED] `Given: the runtime home holds a skill "{name}" described as "{description}"`
+- [ ] T006 [P] [BDD-RED] `Given: the runtime home holds a skill "{name}" whose folder also holds a reference file "{relpath}"`
+- [ ] T007 [P] [BDD-RED] `Given: the runtime home holds no skills`
 - [ ] T008 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to list its skills and then answers with "{answer}"`
 - [ ] T009 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to list its skills, then to read the skill "{name}", and then answers with "{answer}"`
 - [ ] T010 [P] [BDD-RED] `Then: tellme listed the skills using its list_skills tool`
