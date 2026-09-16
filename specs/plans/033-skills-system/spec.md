@@ -43,7 +43,7 @@ As an operator whose environment carries a `docs/skills/` library, I want tellme
 
 **Non-Functional Requirements (NFR)**:
 
-- **NFR-001**: Loading MUST be **best-effort**: a malformed or unreadable individual skill file is skipped (with a diagnostic) and MUST NOT fail the run or the boot.
+- **NFR-001**: Loading MUST be **best-effort**: a malformed or unreadable individual skill file is skipped **best-effort (silent)** and MUST NOT fail the run or the boot.
 
 ---
 
@@ -75,7 +75,7 @@ As an operator, I want the agent to be able to open a listed skill's content on 
 
 - **A skills directory holds nested skill directories and their `rules/` / `templates/` Markdown** → only the skill definition files are listed; rule/template Markdown is not.
 - **A skill file with missing or invalid frontmatter** → it is skipped (not listed), best-effort; the other skills are unaffected.
-- **Two skill files declare the same name** → tellme MUST handle it deterministically (e.g. the first is kept, the duplicate is skipped with a warning) and MUST NOT fail.
+- **Two skill files declare the same name** → tellme MUST handle it deterministically (e.g. the first is kept, the duplicate **silently** skipped) and MUST NOT fail.
 - **The skills directory is absent, empty, or unreadable** → an empty catalog, no failure (FR-001/FR-004).
 - **The catalog is very large** → the `list_skills` result MUST be bounded by the ordinary tool resource contract, like every other tool (FR-008).
 - **The offline paths** (`--version`, `-d`, `--tool-usage`, prompt-less `--new`, boot) → MUST be unaffected (no skill loading observable, no new output).

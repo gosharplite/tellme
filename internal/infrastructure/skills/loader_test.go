@@ -3,6 +3,7 @@ package skills
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	domainskills "github.com/gosharplite/tellme/internal/domain/skills"
@@ -61,8 +62,14 @@ func TestLoadParsesFrontmatterRecursivelyAndIgnoresNonSkills(t *testing.T) {
 			t.Errorf("missing skill %q; got %v", want, names)
 		}
 	}
-	if names["REFERENCE-SENTINEL"] || names["STANDARDS"] {
-		t.Errorf("a non-skill Markdown file must not be listed; got %v", names)
+	// A non-skill Markdown file must not be listed: assert no listed entry's
+	// *location* names it (names is keyed by frontmatter `name`, so a
+	// filename-keyed check there would be vacuous — the E2E asserts the same on
+	// the listing text).
+	for _, s := range got {
+		if strings.Contains(s.Location, "REFERENCE-SENTINEL") || strings.Contains(s.Location, "STANDARDS") {
+			t.Errorf("a non-skill Markdown file must not be listed; got location %q", s.Location)
+		}
 	}
 	if got[0].Name == "golang-patterns" && got[0].Description != "Idiomatic Go patterns" {
 		t.Errorf("golang-patterns description = %q; want %q", got[0].Description, "Idiomatic Go patterns")
