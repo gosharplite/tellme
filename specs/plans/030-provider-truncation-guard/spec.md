@@ -30,7 +30,7 @@ As an operator driving tellme to edit its own repository, I want a provider resp
 
 - **FR-001**: The OpenAI-compatible adapter MUST read `choices[0].finish_reason`; the Vertex/Gemini adapter MUST read `candidates[0].finishReason`.
 - **FR-002**: When the finish reason denotes an output-cap truncation (`"length"` for OpenAI-compatible; `"MAX_TOKENS"` for Vertex/Gemini), the adapter MUST fail the request with a provider/transport error **instead of** returning the response.
-- **FR-003**: When the truncated response carries a tool call, the adapter MUST NOT return the call for execution — the tool MUST NOT be dispatched and MUST NOT write any file; the error detail SHOULD name the truncation (and the tool when the truncation site is a function call).
+- **FR-003**: When the truncated response carries a tool call, the adapter MUST NOT return the call for execution — the tool MUST NOT be dispatched and MUST NOT write any file. The error detail MUST name the truncation; the **Vertex/Gemini** detail MUST additionally name the tool when the truncation site is a `functionCall` part (the OpenAI-compatible detail is family-agnostic — a deliberate reference-parity asymmetry, see `research.md` D6).
 
 ---
 
@@ -65,7 +65,7 @@ As an operator, I want any provider response cut off at its output-token cap —
 - **FR-007**: The truncation failure MUST NOT be silently retried or masked. tellme has **no** retry/failover/classification layer today; this round MUST NOT introduce one, and the guard MUST fail the turn rather than attempting recovery.
 - **FR-008**: The guard MUST be implemented in **both** transport families — the OpenAI-compatible adapter and the Vertex/Gemini adapter.
 - **FR-009**: The adapters MUST NOT change the **request** side. When `MAX_TOKENS` is unset tellme sends **no** output cap and the provider's own default governs; the guard still fires on whatever truncation the provider reports. (No default cap is added this round.)
-- **FR-010**: Only output-cap truncation (`"length"` / `"MAX_TOKENS"`) is in scope. Other finish reasons (e.g. Vertex/Gemini `SAFETY`/`RECITATION`, OpenAI-compatible `content_filter`) are **out of scope** — their behaviour is unchanged this round.
+- **FR-010**: Only output-cap truncation (`"length"` / `"MAX_TOKENS"`) is in scope. Other finish reasons are **out of scope** — their behaviour is unchanged this round — **explicitly including** Vertex/Gemini `SAFETY`, `RECITATION`, and `MALFORMED_FUNCTION_CALL` (a function-call integrity failure adjacent to this round's class, recorded as a tracked forward item), and OpenAI-compatible `content_filter`.
 
 #### Non-Functional Requirements
 
@@ -98,5 +98,6 @@ As an operator, I want any provider response cut off at its output-token cap —
 
 - tellme has **no** retry/failover/classification layer: every transport/provider failure becomes a `*llm.ProviderError`, which the CLI maps to the frozen phrase `tellme: the provider request failed: <detail>` and exit code 6. So the issue's "terminal (never auto-retried)" reduces to "a plain provider error"; the round must not add a retry.
 - `MAX_TOKENS` is **unset by default**, so tellme sends no output cap and the provider's own default governs; the guard fires on the provider's reported truncation regardless. The issue asks only for this documented sentence — **no default cap is added** this round.
+- A truncation failure is a **failed** turn: the agent loop records usage only for a **completed** call (round 018), so a refused truncation accounts **no** usage (token/cost) for that call. The reference returns `(content, metrics, err)` and still accounts the call; folding usage onto the error path would require a loop/`Gateway` change out of this round's scope, so the loss is **recorded** (`research.md` D1) — a conscious decision, not an unknown.
 - The reference (`tell-me-go`) is the benchmark: its `checkGeminiTruncation` and its OpenAI `finish_reason == "length"` check are both **terminal** and **universal** (they pin a text-only case too), recorded as the evidence that motivated this round.
 - The actual truth changes (`specs/truth/techstack.md` transport rows; a `features/cli/**` interface feature + `dsl.md` rows; `contracts/**` and `data/**` expected NOOP) are made by the truth-owner skills; this plan package records the intent only (`fresh-package-per-round`).

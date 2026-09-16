@@ -76,7 +76,7 @@ wave; the round's contract-owner handoff (`/axb-dsl-refine`) happens at delivery
 
 1. **`/axb-api-plan`** — `NOOP` (no OpenAPI contract).
 2. **`/axb-data-plan`** — `NOOP` (no persisted-state change).
-3. **`/axb-dsl-refine`** — **contract owner**: ADD a `specs/truth/features/cli/chat/**` interface feature (Rules: a reply cut off at the output cap while asking tellme to change a file is refused and the file is untouched; a reply cut off at the output cap before the answer is finished is refused and no answer is printed) + `chat/dsl.md` rows (a provider whose reply is cut off at the output limit; the refusal reuses the frozen `the provider request failed` phrase + the provider error code; the file is not written / the answer is not printed); optionally MODIFY `reporting-a-failed-provider-request.feature`'s header/scope note. *(Exact file/rule/row names are `/axb-dsl-refine`'s call.)*
+3. **`/axb-dsl-refine`** — **contract owner**: ADD a `specs/truth/features/cli/chat/**` interface feature (Rules: a reply cut off at the output cap while asking tellme to change a file is refused and the file is untouched — **both families**, incl. a Gemini `functionCall` create; a reply cut off at the output cap before the answer is finished is refused and no answer is printed — **both families**) + `chat/dsl.md` rows (a provider whose reply is cut off at the output limit; the refusal reuses the frozen `the provider request failed` phrase + the provider error code; the file is not written / the answer is not printed); optionally MODIFY `reporting-a-failed-provider-request.feature`'s header/scope note. *(Exact file/rule/row names are `/axb-dsl-refine`'s call.)*
 
 Not delegated:
 - `/axb-ui-plan` — **skipped** (no UX surface change).

@@ -26,14 +26,14 @@
   - Read:
     - `tests/e2e/steps/` -> 既有 `step_r0NN_tNNN_*.go` 獨立檔＋`init()` 自我註冊慣例（見 `step_r029_t012_chat_then_file_created.go`）
     - `specs/truth/features/cli/chat/dsl.md` -> 本輪新增的句列（見 Phase 3 `DSL 參照`）
-  - 只做：在 `tests/e2e/steps/` 下，為 Phase 3 每一句建立**獨立**檔案骨架（`step_r030_t004…t009_…`，`init()` 註冊、body 待填），使 Phase 3 並行任務目標檔案互斥。
+  - 只做：在 `tests/e2e/steps/` 下，為 Phase 3 每一句建立**獨立**檔案骨架（`step_r030_t004…t010_…`，`init()` 註冊、body 待填），使 Phase 3 並行任務目標檔案互斥。
   - 不做：不寫任何 `[BDD-RED]` 語意，不寫 fake 腳本或產品邏輯。
 
 - [ ] T002 擴充 fake provider 的 truncation 腳本接點
   - Read:
     - `tests/e2e/fakeprovider/fakeprovider.go` -> `Reply`、`scriptedBody`、`answerBody`、`toolCallBody`、`vertexAnswerBody`、`vertexToolCallBody`
     - `specs/plans/030-provider-truncation-guard/research.md` -> `Decision 1`（finish reason 在 wire 上）
-  - 只做：為 `Reply` 增加一個 **finish-reason** 欄位，並讓 body builders 在該欄位非空時輸出 `"finish_reason":"<value>"`（OpenAI-compatible `choices[0]`）或 `"finishReason":"<value>"`（Vertex `candidates[0]`）——一個**共用**的truncation 腳本接點，供 Phase 3 的 Given 使用（`"length"` / `"MAX_TOKENS"`）。
+  - 只做：為 `Reply` 增加一個 **finish-reason** 欄位，並讓 body builders 在該欄位非空時輸出 `"finish_reason":"<value>"`（OpenAI-compatible `choices[0]`）或 `"finishReason":"<value>"`（Vertex `candidates[0]`）——一個**共用**的 truncation 腳本接點，供 Phase 3 的 Given 使用（`"length"` / `"MAX_TOKENS"`），並支援帶 `functionCall`/`tool_calls` 的截斷回覆。
   - 不做：不寫任一 Given 的腳本內容，不碰 stepdef，不改產品碼。
 
 - [ ] T003 建立兩個 adapter 的 finish-reason guard 單元測試落點骨架
@@ -58,12 +58,12 @@
 - `[BDD-ALIGN]`：`MODIFY`。既有 stepdef 還在，但語意是舊 truth。依 `dsl.md` 該列改測試，讓它表達最新版 `StepDef 實作語意`。
 - `[BDD-REMOVE]`：`DELETE`。此句已不是 truth。移除或改寫仍綁這句的 stepdef / assertion，不得留下保護舊行為的測試。
 - `[BDD-RED]`：`ADD`，或本輪 Feature 用到、尚無 stepdef 的句。依 `dsl.md` 該列寫出 stepdef。完成時這句可被跑到，失敗只能是 assertion 或產品行為，不能是 undefined step。
-- 三個 marker 都只動測試層，不寫產品碼。（本輪 6 句全為 `ADD` → 全 `[BDD-RED]`；無 `[BDD-ALIGN]`／`[BDD-REMOVE]`。）
+- 三個 marker 都只動測試層，不寫產品碼。（本輪 7 句全為 `ADD` → 全 `[BDD-RED]`；無 `[BDD-ALIGN]`／`[BDD-REMOVE]`。）
 
 **Shared Must Read**:
 - `specs/truth/features/cli/chat/dsl.md`
-  -> `## Given (round 030)`：4 條（provider cut off while **creating** a file／while **editing** a file／before finishing its answer／a **Gemini** provider before finishing its answer）
-  -> `## Then (round 030)`：2 條（`tellme creates no file "{name}"`／`tellme prints no answer`）
+  -> `## Given (round 030)`：5 條（provider cut off while **creating** a file／while **editing** a file／before finishing its answer／a **Gemini** provider before finishing its answer／**a Gemini `functionCall` create**）
+  -> `## Then (round 030)`：2 條（`tellme creates no file "{path}"`／`tellme prints no answer`）
 - `truth-delta.md` -> `/axb-dsl-refine` ADD `refusing-a-cut-off-reply.feature` + MODIFY `chat/dsl.md`
 - `tests/e2e/fakeprovider/fakeprovider.go` -> the truncation scripting seam（T002）
 
@@ -75,30 +75,33 @@
 - review 啟動 subagent；本輪所有 Test Scope 不得再有 undefined step，失敗只能是 assertion 或產品行為。有 issues 就修正再 review，直到沒有任何問題。通過前不解鎖 Phase 4。
 
 **Parallel Hint**:
-- T004–T010 各派一個獨立 subagent，一次整批並行 dispatch（目標檔獨立，符合 Zero Shared Edits）；T011 等全部回來再啟動 subagent review。
+- T004–T011 各派一個獨立 subagent，一次整批並行 dispatch（目標檔獨立，符合 Zero Shared Edits）；T012 等全部回來再啟動 subagent review。
 
-- [ ] T004 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint is cut off at the output limit while creating the file "{path}" with the content "{content}"`
+- [ ] T004 [P] [BDD-RED] `a configured provider "{provider}" whose reply is cut off at the output limit while creating the file "{path}" with the content "{content}"`
   - Read: `tests/e2e/steps/step_r030_t004_chat_given_provider_cutoff_create.go`（+ `tests/e2e/fakeprovider/fakeprovider.go` 的 T002 接點）
   - 語意：script the fake to return a single response whose OpenAI-compatible `finish_reason` is `"length"` and whose message carries a `write_file` tool call (`filepath`={path}, `content`={content}, `reason` set) — a reply cut off mid-tool-call, no final answer.
-- [ ] T005 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint is cut off at the output limit while editing the file "{path}" replacing "{old}" with "{new}"`
+- [ ] T005 [P] [BDD-RED] `a configured provider "{provider}" whose reply is cut off at the output limit while editing the file "{path}" replacing "{old}" with "{new}"`
   - Read: `tests/e2e/steps/step_r030_t005_chat_given_provider_cutoff_edit.go`（+ fake 接點）
   - 語意：同上，tool call 改為 `replace_text`（`filepath`={path}, `old_text`={old}, `new_text`={new}, `reason` set），`finish_reason` = `"length"`。
-- [ ] T006 [P] [BDD-RED] `a configured provider "{provider}" whose endpoint is cut off at the output limit before finishing its answer`
+- [ ] T006 [P] [BDD-RED] `a configured provider "{provider}" whose reply is cut off at the output limit before finishing its answer`
   - Read: `tests/e2e/steps/step_r030_t006_chat_given_provider_cutoff_answer.go`（+ fake 接點）
   - 語意：script the fake to return a single response whose `finish_reason` is `"length"` carrying partial text and **no** tool call.
-- [ ] T007 [P] [BDD-RED] `a configured Gemini provider "{provider}" whose endpoint is cut off at the output limit before finishing its answer`
+- [ ] T007 [P] [BDD-RED] `a configured Gemini provider "{provider}" whose reply is cut off at the output limit before finishing its answer`
   - Read: `tests/e2e/steps/step_r030_t007_chat_given_gemini_cutoff_answer.go`（+ fake 接點）
   - 語意：arrange a `gemini` Vertex-shaped provider（key file 等，照既有 Gemini Given），script the fake for a single Vertex `:generateContent` response whose `candidates[0].finishReason` is `"MAX_TOKENS"` carrying partial text (no `functionCall`).
-- [ ] T008 [P] [BDD-RED] `tellme creates no file "{name}"`
-  - Read: `tests/e2e/steps/step_r030_t008_chat_then_no_file.go`
-  - 語意（必查 權威狀態）：the file `{name}` does **not** exist on disk after the run.
-- [ ] T009 [P] [BDD-RED] `tellme prints no answer`
-  - Read: `tests/e2e/steps/step_r030_t009_chat_then_no_answer.go`
+- [ ] T008 [P] [BDD-RED] `a configured Gemini provider "{provider}" whose reply is cut off at the output limit while creating the file "{path}" with the content "{content}"`
+  - Read: `tests/e2e/steps/step_r030_t008_chat_given_gemini_cutoff_create.go`（+ fake 接點）
+  - 語意：arrange a `gemini` Vertex-shaped provider；script the fake for a single Vertex response whose `candidates[0].finishReason` is `"MAX_TOKENS"` carrying a `functionCall` for `write_file` (`args` `filepath`={path}, `content`={content}, `reason` set) — the **Gemini function-call** truncation site (B1; E2E-witnesses the function-call-aware message).
+- [ ] T009 [P] [BDD-RED] `tellme creates no file "{path}"`
+  - Read: `tests/e2e/steps/step_r030_t009_chat_then_no_file.go`
+  - 語意（必查 權威狀態）：the file `{path}` does **not** exist on disk after the run.
+- [ ] T010 [P] [BDD-RED] `tellme prints no answer`
+  - Read: `tests/e2e/steps/step_r030_t010_chat_then_no_answer.go`
   - 語意（必查 呈現結果）：the captured standard output is **empty** — the failed turn emitted no answer bytes.
-- [ ] T010 [P] [UNIT] provider finish-reason guard 單元測試
+- [ ] T011 [P] [UNIT] provider finish-reason guard 單元測試
   - Read: `internal/infrastructure/llm/openai/client.go` (`parseResponse`), `internal/infrastructure/llm/gemini/client.go` (`parseResponse`), `internal/infrastructure/llm/openai/truncation_test.go`, `internal/infrastructure/llm/gemini/truncation_test.go`, `research.md` -> `Decision 1`, `Decision 2`, `Decision 6`
-  - 必查：OpenAI-compatible adapter 對 `choices[0].finish_reason == "length"` 回 **error**（`*llm.ProviderError`），Vertex/Gemini adapter 對 `candidates[0].finishReason == "MAX_TOKENS"` 回 **error**；trigger 為 **universal**（tool call 或純 text 皆然，`Decision 2`）；healthy 值（`stop`/`tool_calls`/`STOP`/absent）**不**觸發；truncation error 對空 body 的 precedence 勝過 `no usable answer`（`Decision 6`）；Gemini 訊息在 `functionCall` 在場時點名該 tool（function-call-aware）。
-- [ ] T011 subagent review (phase quality gate)
+  - 必查：OpenAI-compatible adapter 對 `choices[0].finish_reason == "length"` 回 **error**（`*llm.ProviderError`），Vertex/Gemini adapter 對 `candidates[0].finishReason == "MAX_TOKENS"` 回 **error**；trigger 為 **universal**（tool call 或純 text 皆然，`Decision 2`）；healthy 值（`stop`/`tool_calls`/`STOP`/absent）**不**觸發；truncation error 對空 body 的 precedence 勝過 `no usable answer`（`Decision 6`）；Gemini 訊息在 `functionCall` 在場時點名該 tool（function-call-aware，`FR-003`）。
+- [ ] T012 subagent review (phase quality gate)
 
 ## Phase 4A: ADD Feature File - cli/chat/refusing-a-cut-off-reply.feature
 
@@ -106,21 +109,21 @@
 
 **Shared Must Read**:
 - `specs/truth/features/cli/chat/refusing-a-cut-off-reply.feature` -> `Feature: Refusing a reply cut off at the output limit`
-- `specs/truth/features/cli/chat/dsl.md` -> `## Given (round 030)` 4 條 + `## Then (round 030)` 2 條
+- `specs/truth/features/cli/chat/dsl.md` -> `## Given (round 030)` 5 條 + `## Then (round 030)` 2 條
 - `truth-delta.md` -> `/axb-dsl-refine` ADD `refusing-a-cut-off-reply.feature`
 - `specs/truth/techstack.md` -> `Provider output-cap truncation guard` row
 - `specs/plans/030-provider-truncation-guard/research.md` -> `Decision 1`, `Decision 2`, `Decision 3`, `Decision 4`, `Decision 5`, `Decision 6`
 
 **Boundary**:
 - 只處理兩個 adapter 的 finish-reason guard；**不改** request side（`MAX_TOKENS` 未設時仍不送 cap — `Decision 5`）；不改 CLI dispatch、flag、exit code、`stdout` 契約；**不加** retry/failover/classify 層（`Decision 4`）。
-- 產品落點（in-place edit，**無新檔**）：`internal/infrastructure/llm/openai/client.go` 的 `parseResponse` 讀 `choices[0].finish_reason`；`internal/infrastructure/llm/gemini/client.go` 的 `parseResponse` 讀 `candidates[0].finishReason`。truncation error 以 `*llm.ProviderError` 回傳（沿用既有型別 → CLI 的 frozen `the provider request failed` + exit 6），並**優先於**既有 `no usable answer` error。
+- 產品落點（in-place edit，**無新檔**）：`internal/infrastructure/llm/openai/client.go` 的 `parseResponse` 讀 `choices[0].finish_reason`；`internal/infrastructure/llm/gemini/client.go` 的 `parseResponse` 讀 `candidates[0].finishReason`。truncation error 以 `*llm.ProviderError` 回傳（沿用既有型別 → CLI 的 frozen `the provider request failed` + exit 6），並**優先於**既有 `no usable answer` error；Gemini 訊息在 `functionCall` 在場時點名 tool。
 - `[BDD-GREEN]` 讓 `refusing-a-cut-off-reply.feature` 全綠後，方得 `[BDD-REFACTOR]`。
 
 **Test Scope**:
 - `specs/truth/features/cli/chat/refusing-a-cut-off-reply.feature`
 
-- [ ] T012 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T013 [BDD-REFACTOR] 在綠燈下整理兩個 adapter 的 truncation 判斷（各自抽出本地判斷函式＋具名常數，收斂訊息），行為不變
+- [ ] T013 [BDD-GREEN] 讓 Test Scope 全綠
+- [ ] T014 [BDD-REFACTOR] 在綠燈下整理兩個 adapter 的 truncation 判斷（各自抽出本地判斷函式＋具名常數，收斂訊息），行為不變
 
 ## Phase 4C: REGRESSION
 
@@ -138,21 +141,21 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`
 
-- [ ] T014 [REGRESSION] 跑全 CLI feature + 見證 + `make verify` + 拓樸稽核
+- [ ] T015 [REGRESSION] 跑全 CLI feature + 見證 + `make verify` + 拓樸稽核
 
 ---
 
 ## Pre-Delivery Orphan Coverage Sweep
 
 **`truth-delta.md` 非 NOOP rows → task 對應**
-- `/axb-technical-research` MODIFY `techstack.md`（Provider output-cap truncation guard row + adapter/normalization/port rows + write-tools row 更新）→ Phase 4A 的 `Read`（`specs/truth/techstack.md -> Provider output-cap truncation guard`）；實作落點由 T012 交付。
-- `/axb-dsl-refine` ADD `refusing-a-cut-off-reply.feature` → Phase 4A。MODIFY `chat/dsl.md`（4 Given + 2 Then + module note）→ T004–T009（RED）、T010（UNIT）；Phase 4A。MODIFY `reporting-a-failed-provider-request.feature`（**doc-only** header cross-reference）→ Phase 4C 回歸（其步驟未變）。
-- `/axb-api-plan` NOOP、`/axb-data-plan` NOOP → 免建立任務（審計豁免）。
+- `/axb-technical-research` MODIFY `techstack.md`（Provider output-cap truncation guard row — 含 TD-1 usage loss、TD-3 ordering divergence、TD-4 `MALFORMED_FUNCTION_CALL` — + adapter/normalization/port rows + write-tools row 更新）→ Phase 4A 的 `Read`（`specs/truth/techstack.md -> Provider output-cap truncation guard`）；實作落點由 T013 交付。
+- `/axb-dsl-refine` ADD `refusing-a-cut-off-reply.feature` → Phase 4A。MODIFY `chat/dsl.md`（5 Given + 2 Then + module note）→ T004–T010（RED）、T011（UNIT）；Phase 4A。MODIFY `reporting-a-failed-provider-request.feature`（**doc-only** header cross-reference）→ Phase 4C 回歸（其步驟未變）。
+- `/axb-api-plan` NOOP（`contracts/**`）、`/axb-data-plan` NOOP（`data/**`）→ 免建立任務（審計豁免）。
 
 **`research.md` 已拍決 Decisions → task `Read` 覆蓋**
-- D1 → T002/T004–T007/T010/Phase 4A；D2 → T004–T009/T010/Phase 4A；D3 → T008/T009/Phase 4A（frozen phrase + exit 6）；D4 → T010/Phase 4A（no retry layer）；D5 → Phase 4A `Boundary`（request side unchanged）；D6 → T010/Phase 4A（precedence）；D7 → T002/T010/T014（hermetic、both families、witnesses）。Truth impact（techstack / dsl-refine / api+data NOOP）→ 對應 `truth-delta.md` rows。
+- D1 → T002/T004–T008/T011/Phase 4A（含 TD-1 usage-loss consequence）；D2 → T004–T010/T011/Phase 4A（TD-4 `MALFORMED_FUNCTION_CALL` out-of-scope）；D3 → T009/T010/Phase 4A（frozen phrase + exit 6）；D4 → T011/Phase 4A（no retry layer）；D5 → Phase 4A `Boundary`（request side unchanged）；D6 → T007/T008/T011/Phase 4A（precedence + TD-3 divergence + Gemini function-call-aware）；D7 → T002/T011/T015（hermetic、both families、witnesses）。Truth impact（techstack / dsl-refine / api+data NOOP）→ 對應 `truth-delta.md` rows。
 
 **`specs/truth/techstack.md` 異動章節 → 建置/驗證 task 覆蓋**
-- 本輪**無新增技術**（stdlib-only），故無 Setup 建置/版本/make target 變更；相關章節（Provider output-cap truncation guard row）由 Phase 4A 的 `Read` 引用並由 T012 承接。
+- 本輪**無新增技術**（stdlib-only），故無 Setup 建置/版本/make target 變更；相關章節（Provider output-cap truncation guard row）由 Phase 4A 的 `Read` 引用並由 T013 承接。
 
 **孤立產物件數：0。掃描通過，准予交付。**

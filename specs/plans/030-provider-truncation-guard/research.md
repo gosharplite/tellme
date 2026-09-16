@@ -9,10 +9,11 @@
 - **Alternatives considered**:
   - Expose a finish reason on `llm.Response` and fail in the loop — rejected: spreads a transport concern into the agent loop and adds a second decision site for no gain.
   - A dedicated new error type — rejected: `*llm.ProviderError` already carries the provider name + cause and is the CLI's mapped failure surface.
+- **Recorded consequence (TD-1)**: a truncation failure is a **failed** turn, so the call's decoded `usage` is **discarded** — the loop records usage only for a **completed** call (round 018), so a truncated call contributes **no** token/cost record. The reference returns `(content, metrics, err)` and still accounts the call; tellme keeps the loss deliberately (carrying usage on the error path would need a `Gateway`/loop change out of this round's scope). Recorded in `techstack.md` so it is a conscious decision, not an unknown.
 
 ## Decision 2: The trigger is universal, and only the two truncation values
 
-- **Decision**: fire on **any** finish reason that denotes an output-cap truncation — `"length"` (OpenAI-compatible), `"MAX_TOKENS"` (Vertex/Gemini) — whether the response carries a tool call **or only text** (Q1 → universal). Do **not** fire on `"stop"` / `"tool_calls"` (OpenAI-compatible), `"STOP"` (Vertex/Gemini), or an **absent/empty** finish reason. Other finish reasons (`SAFETY`, `RECITATION`, `content_filter`) are **out of scope**.
+- **Decision**: fire on **any** finish reason that denotes an output-cap truncation — `"length"` (OpenAI-compatible), `"MAX_TOKENS"` (Vertex/Gemini) — whether the response carries a tool call **or only text** (Q1 → universal). Do **not** fire on `"stop"` / `"tool_calls"` (OpenAI-compatible), `"STOP"` (Vertex/Gemini), or an **absent/empty** finish reason. Other finish reasons (`SAFETY`, `RECITATION`, `MALFORMED_FUNCTION_CALL`, `content_filter`) are **out of scope** (TD-4 — `MALFORMED_FUNCTION_CALL` named explicitly; a tracked forward item, not silently ignored).
 - **Rationale**: mirrors the reference (its `checkGeminiTruncation` is universal and pins a text-only case; its OpenAI check fires on any `length`), and it is the conservative reading — a cut-off answer can mislead, not only a cut-off tool call. The rule is false-positive-free on the healthy values, including Gemini's commonly-absent `finishReason`.
 - **Alternatives considered**:
   - Tool-call-only — rejected (Q1 → universal): it misses a cut-off answer, and the reference is universal.
@@ -45,6 +46,7 @@
 
 - **Decision**: in each adapter the truncation check runs on the decoded response and its error **takes precedence** over the existing generic `provider response carried no usable answer` error, so a truncated response that is also empty is reported as a **truncation**. The OpenAI check runs after the decode regardless of whether tool-call args parse — the adapter stores args as raw strings, so today a truncated args string does **not** error on its own; the finish-reason guard is the residual-class catcher. The Gemini check is **function-call-aware**: when a `functionCall` part is present it names the tool, else it emits a generic truncation message.
 - **Rationale**: a truncation-specific message is actionable (raise the budget / break the call up); the generic "no usable answer" would hide the true cause. Mirrors the reference's function-call-aware diagnostic.
+- **Recorded divergence (TD-3)**: tellme runs the truncation check **before** the generic `no usable answer` path, so an *empty + truncated* response is reported as a **truncation**; the reference runs its empty-content path (`checkResponse` → `handleEmptyContent`) **before** `checkGeminiTruncation`, reporting `empty response (Finish Reason: MAX_TOKENS)`. Both fail loud (same outcome); the inversion is deliberate and recorded so "mirrors the reference" is not read as ordering parity.
 - **Alternatives considered**:
   - Reuse the generic "no usable answer" error — rejected: loses the truncation cause the operator needs.
   - Only check when args fail to parse — rejected: misses the residual well-formed-but-incomplete case the issue explicitly calls out.
