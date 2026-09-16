@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/cucumber/godog"
 	"gopkg.in/yaml.v3"
 
+	mcptest "github.com/gosharplite/tellme/internal/infrastructure/mcp/mcptest"
 	"github.com/gosharplite/tellme/tests/e2e/fakeprovider"
 	"github.com/gosharplite/tellme/tests/e2e/harness"
 )
@@ -93,6 +95,23 @@ type scenarioContext struct {
 	// `a previous run …` Given, so a Then can compare the current run against it.
 	previousEstimate    int
 	previousEstimateSet bool
+
+	// mcpServers holds the MCP_SERVERS entries an MCP Given arranged; they are
+	// merged into the default configuration when a provider Given writes it
+	// (round 032 — the MCP Givens precede the provider Given in every feature).
+	mcpServers map[string]mcpServerEntry
+	// mcpFakeByName maps an MCP server key to the fake MCP server the scenario
+	// started, so a Then can assert on its records; every started fake is closed
+	// by afterScenario.
+	mcpFakeByName map[string]*mcptest.Server
+}
+
+// mcpServerEntry is one arranged MCP_SERVERS entry (round 032).
+type mcpServerEntry struct {
+	URL     string
+	Token   string
+	Auth    string
+	Enabled *bool
 }
 
 // exchange is one arranged prompt/answer pair (round 007).
@@ -154,6 +173,9 @@ func afterScenario(ctx context.Context, _ *godog.Scenario, _ error) (context.Con
 	if sc := scenarioFrom(ctx); sc != nil {
 		for _, f := range sc.fakes {
 			f.Close()
+		}
+		for _, s := range sc.mcpFakeByName {
+			s.Close()
 		}
 		if sc.home != "" {
 			_ = os.RemoveAll(sc.home)
@@ -382,9 +404,67 @@ func (sc *scenarioContext) registerFake(provider string, f *fakeprovider.Provide
 
 // writeDefaultConfig writes the default configuration for the effective mode
 // (configs/butler.yaml) selecting `selected`, with each provider pointing at the
-// given endpoint.
+// given endpoint. Any MCP_SERVERS entries an MCP Given arranged are merged in
+// (round 032), so the MCP Givens can precede the provider Given.
 func (sc *scenarioContext) writeDefaultConfig(selected string, urls map[string]string) error {
-	return sc.writeFile("configs/butler.yaml", []byte(fakeprovider.ConfigYAML(selected, urls)))
+	cfg := fakeprovider.ConfigYAML(selected, urls) + sc.mcpServersYAML()
+	return sc.writeFile("configs/butler.yaml", []byte(cfg))
+}
+
+// mcpServersYAML renders the arranged MCP_SERVERS block (deterministic key
+// order), or "" when none was arranged.
+func (sc *scenarioContext) mcpServersYAML() string {
+	if len(sc.mcpServers) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(sc.mcpServers))
+	for k := range sc.mcpServers {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var sb strings.Builder
+	sb.WriteString("MCP_SERVERS:\n")
+	for _, k := range keys {
+		e := sc.mcpServers[k]
+		sb.WriteString("  " + k + ":\n")
+		if e.URL != "" {
+			sb.WriteString("    URL: " + e.URL + "\n")
+		}
+		if e.Token != "" {
+			sb.WriteString("    TOKEN: " + e.Token + "\n")
+		}
+		if e.Auth != "" {
+			sb.WriteString("    AUTH: " + e.Auth + "\n")
+		}
+		if e.Enabled != nil {
+			fmt.Fprintf(&sb, "    ENABLED: %t\n", *e.Enabled)
+		}
+	}
+	return sb.String()
+}
+
+// addMCPServer records an arranged MCP_SERVERS entry (round 032).
+func (sc *scenarioContext) addMCPServer(name string, e mcpServerEntry) {
+	if sc.mcpServers == nil {
+		sc.mcpServers = map[string]mcpServerEntry{}
+	}
+	sc.mcpServers[name] = e
+}
+
+// startMCPFake starts a fake MCP server owned by the scenario (closed by
+// afterScenario) and registers it under a server key (round 032).
+func (sc *scenarioContext) startMCPFake(name string, opts mcptest.Options) *mcptest.Server {
+	s := mcptest.Start(opts)
+	if sc.mcpFakeByName == nil {
+		sc.mcpFakeByName = map[string]*mcptest.Server{}
+	}
+	sc.mcpFakeByName[name] = s
+	return s
+}
+
+// mcpFake returns the fake MCP server registered under a server key, or nil.
+func (sc *scenarioContext) mcpFake(name string) *mcptest.Server {
+	return sc.mcpFakeByName[name]
 }
 
 // writeFile writes content at a home-relative path, creating parent dirs.

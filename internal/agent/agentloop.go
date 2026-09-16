@@ -20,8 +20,9 @@ import (
 )
 
 // DefaultToolTimeout bounds each individual tool execution when the loop is not
-// given an explicit timeout (round-008 FR-009).
-const DefaultToolTimeout = 300 * time.Second
+// given an explicit timeout (round-008 FR-009). It aliases the shared domain
+// constant (round-032 implementation-review F4).
+const DefaultToolTimeout = tools.DefaultToolTimeout
 
 // ErrIncomplete reports that a tool-using run could not reach a final answer —
 // the iteration bound was reached, or the model requested a tool that tellme

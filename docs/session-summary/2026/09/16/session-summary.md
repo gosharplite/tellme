@@ -454,3 +454,82 @@ A session on 2026-09-16: opened round **031** (resolve issue [#64](https://githu
 
 ### Issue tracker (closeout Step 8)
 Reconciled against the delivered state: **[#64](https://github.com/gosharplite/tellme/issues/64) CLOSED (completed)** — delivered by round 031 (PR [#65](https://github.com/gosharplite/tellme/pull/65) merged `a7de7b7`); **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella — now also carries the round-031 typed-schema + recursive-walk forward items); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling; still accurate). No revisions needed.
+
+---
+
+## 13. 2026-09-16 (session 7 of the day) — round 032 `032-mcp-client`: opened, plan + truth half delivered, **five-round review/fold loop → CERTIFIED READY**; PR #66 open; closeout
+
+A session on 2026-09-16: opened round **032** (operator request *"Let tellme support MCP"* — motivated by the reference's per-invocation MCP discovery stall), ran the **plan + truth half** of the AIxBDD pipeline, took **PR [#66](https://github.com/gosharplite/tellme/pull/66)** through an **architectural review + a re-review + a principal-architect review** (five deterministic folds), reached **CERTIFIED READY FOR IMPLEMENTATION**, and ran `SESSION-CLOSEOUT.md` (Steps 1–8). **No product code** (plan + truth only).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (Linux host).
+**Branch**: `032-mcp-client` (off `dev`) — **open**; PR [#66](https://github.com/gosharplite/tellme/pull/66) awaiting human merge.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 031 delivered/frozen; active branch `dev`) |
+| Round-032 theme | the **remote (Streamable HTTP) MCP client** + **non-stall** discovery (fixes "one offline server delays every command") |
+| Design session | operator-locked Q1–Q5, one decision at a time (see below) |
+| `/axb-specify` | `specs/plans/032-mcp-client/`; **0** clarify (Q1–Q5 locked in-session) |
+| Pipeline | specify ✅ · spec-by-example ✅ (3 journeys) · research ✅ (D1–D11) · system-analysis ✅ (1 CLI interface; api/data NOOP) · dsl-refine ✅ (ADD feature + 15 rows) · tasks ✅ (T001–T032) · **implement ⏳ (next)** |
+| Reviews (PR #66) | Architectural Review (**NOT APPROVED** — B1/B2/B3 + TD1–TD8 + R1–R4) → fold `912010d` → **BLOCKER-FOLD ACCEPTED** → fold `313e11f` → **CERTIFIED READY** → fold `0b926c4` (nits N1–N3) → **CERTIFICATION STANDS** → fold `cb407ed` (closed-client wording, option a) → **review loop CLOSED** → Principal Architectural Review flag (**tasks.md Phase-3 DSL drift**) → fold `4b4ca46` → **BLOCKER RESOLVED — CERTIFIED READY FOR IMPLEMENTATION** |
+| Delivery | branch `032-mcp-client` (11 commits, head `4b4ca46`); **PR [#66](https://github.com/gosharplite/tellme/pull/66) open — human-only merge** |
+| Closeout | `gofmt -l .` clean · diff-level secret scan **clean** · topology audit **PASSED** (`--root specs/truth/features/cli`: 43 features · 288 module rows · **1492 steps**) |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — re-read the pillars; `list_skills`; peers (self `butler`; `architect`/`coder`/`griller`/`pm`/`rd`); the environment's MCP config (one active `github` server + `hf`/`plur`/`atlassian`/`fs` commented — the operator's `hf`-offline workaround); `STATUS.md` (active branch `dev`); the last-5-days summaries.
+2. **Design session** — operator-locked **Q1 → 1** (remote HTTP only) · **Q2 → 1+3** (fixed fast-fail bound + per-server `ENABLED`) · **Q3 → 1** (official MCP Go SDK, confined) · **Q4 → 1** (full auth parity + reference naming) · **Q5 → 1** (MCP client only).
+3. **Plan + truth half** — `/axb-specify` → `/axb-spec-by-example` (3 journeys) → `/axb-technical-research` (`research.md` D1–D11 + `techstack.md` MODIFY) → `/axb-system-analysis` (`plan.md`; 1 CLI interface → `/axb-dsl-refine`; api/data NOOP) → `/axb-dsl-refine` (ADD `chat/using-tools-from-a-remote-mcp-server.feature` + 15 `chat/dsl.md` rows; audit PASSED) → `/axb-tasks` (`tasks.md` T001–T032). Committed per phase.
+4. **Five-round review/fold loop (PR #66)** — architectural review → B1 (schema well-formedness), B2 (SDK-built fake in `mcptest/`), B3 (bounded `tokenResolver` seam), TD1–TD8, R1–R4 folded (`912010d`); residuals R1 (timeout ceiling/default) + R2–R8 folded (`313e11f`); nits N1–N3 folded (`0b926c4`); closed-client wording folded via option (a) (`cb407ed`) → **review loop CLOSED**; then the **principal architectural review** flagged a **tasks.md Phase-3 DSL drift** (11 vs 15 rows) → realigned (`4b4ca46`) → **BLOCKER RESOLVED — CERTIFIED READY FOR IMPLEMENTATION**.
+5. **Closeout (Steps 1–8)** — clean tree; docs-only gates green (gofmt + diff secret scan + audit); `STATUS.md` → round-032 live state (round-031 detail relocated to the archive, Rule 12); this §13; Step 8 issue-tracker reconciliation.
+
+### Decisions locked (round 032)
+| # | Decision |
+| --- | --- |
+| Q1 → 1 | Remote **Streamable HTTP** only; `COMMAND` (stdio) **warn+skipped** (deferred) |
+| Q2 → 1+3 | A **fixed small fast-fail discovery bound** (default 3 s, independent of the tool-call timeout) **+** a per-server **`ENABLED`** switch (no cross-invocation cache) |
+| Q3 → 1 | Official **`github.com/modelcontextprotocol/go-sdk` v1.7.0**, confined to `internal/infrastructure/mcp/**` behind a `tools.MCPClient` port (+ a `verify-mcp-sdk-confinement` gate) |
+| Q4 → 1 | Full auth parity (`auto`/`gh`/`bearer`/`basic`/`none`) + reference tool naming (`mcp_<server>_<tool>`, derived 64-byte budget) |
+| Q5 → 1 | MCP client only; stdio / caching / MEMORY deferred |
+| B1 (review) | MCP tool schemas **normalized/verified** (`required ⊆ properties`) before offering; unsafe → skip+warn (FR-019) |
+| B2 (review) | The e2e fake is **SDK-built** in `internal/infrastructure/mcp/mcptest/`; the gate covers production **and** test files |
+| B3 (review) | Token resolution **bounded + an injectable `tokenResolver` seam**; no `gh` spawn in tests (FR-020) |
+| TD1–TD8 / R1–R8 | Recoverable call-time failures (incl. closed client); typed port (nil→`{}`); derived byte name-budget; tolerant config + `COMMAND` warn+skip; timeout default **300 s** / **fixed 7200 s** ceiling; recorded divergences; SDK-built fake home; pinned structure paths; gate hygiene |
+| Principal fold | `tasks.md` Phase 3 realigned to the **15 DSL rows** (T009–T023); units T024–T028; review T029; Phase 4 T030–T032 |
+
+### Commits (branch `032-mcp-client`)
+| Commit | Note |
+| --- | --- |
+| `cd882a2` | `docs(032)`: plan package + spec |
+| `6c622d2` | `docs(032)`: acceptance Gherkin (3 journeys) |
+| `37a12f3` | `docs(032)`: technical research (D1–D11) + `techstack.md` MODIFY |
+| `4bd6bad` | `docs(032)`: system-analysis plan (1 CLI interface; api/data NOOP) |
+| `c63633a` | `docs(032)`: CLI interface truth (`chat/using-tools-from-a-remote-mcp-server.feature` + 15 DSL rows) |
+| `c94c5ac` | `docs(032)`: `tasks.md` |
+| `912010d` | `docs(032)`: fold PR #66 review (B1–B3, TD1–TD8, R1–R4) |
+| `313e11f` | `docs(032)`: fold re-review residuals (R1–R8) |
+| `0b926c4` | `docs(032)`: fold nits (N1–N3) |
+| `cb407ed` | `docs(032)`: fold closed-client wording (option a) |
+| `4b4ca46` | `docs(032)`: fold principal review (tasks.md Phase-3 realignment) |
+
+### Verification (2026-09-16)
+- `gofmt -l .` clean · diff-level secret scan **clean** · no `secrets/`/`.env` staged · referenced plan artifacts present.
+- Gherkin/DSL topology audit **PASSED** (`--root specs/truth/features/cli`: 43 features · 6 modules · 16 root + **288** module rows · **1492** steps).
+- No product code → `make verify` N/A.
+
+### Open items (non-blocking)
+- **Round 032** — **implementation half not started**: `/axb-implement` (T001–T032) on `032-mcp-client`; then the implementation review, a **human merge** of PR [#66](https://github.com/gosharplite/tellme/pull/66), and propagation `032 → dev → main`.
+- **Round-032 forward items** — local stdio transport; cross-invocation caching; MEMORY/PLUR; MCP `-d` diagnostic; `mcptest/` → #13 coverage-exclusion list; stale `make help` `verify-no-network` text.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items; round-031 forward items (#60).
+- Future-slice candidates: **#60** (dogfooding track), **#13** (coverage tooling).
+
+### Next steps
+1. **Run `/axb-implement`** over **T001–T032** on `032-mcp-client` (Setup SDK → Foundational skeletons → Phase 3 test alignment → Feature GREEN/REFACTOR → regression + falsifiability witnesses).
+2. Then the **implementation review** → **human merge** of PR #66 → propagate `032-mcp-client → dev → main`.
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `032-mcp-client`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled against the current state: **#60** open (dogfooding-enablement umbrella); **#13** open (coverage tooling). Round 032 has **no anchor issue** (operator request) and **nothing has landed** (plan+truth half only), so **no issues closed/revised** this closeout.
