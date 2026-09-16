@@ -34,11 +34,44 @@ const (
 	commandWaitDelay = 2 * time.Second
 )
 
-// executeCommand runs a shell command through bash -c.
-type executeCommand struct{}
+// commandToolName is the wire-valid canonical identifier (single-sourced so the
+// Name() and the sink-binding lookup cannot drift — round 034).
+const commandToolName = "execute_command"
+
+// toolOutputBox holds the command tool's bound `[Tool Output]` sink behind a
+// pointer so BindToolOutput can set it on the registry's stored (value) tool
+// (round 034 ADR 0005 D7).
+type toolOutputBox struct {
+	sink ToolOutputSink
+}
+
+// executeCommand runs a shell command through bash -c. The output sink sits
+// behind a pointer so a value copy (the registry's) shares the binding.
+type executeCommand struct {
+	output *toolOutputBox
+}
+
+// sink returns the bound `[Tool Output]` sink, or a zero (disabled) sink.
+func (c executeCommand) sink() ToolOutputSink {
+	if c.output == nil {
+		return ToolOutputSink{}
+	}
+	return c.output.sink
+}
+
+// BindToolOutput rebinds the `[Tool Output]` sink on the command tool (the
+// prompt-path wiring seam; round 034). It is a no-op when the registry carries no
+// bindable command tool (e.g. a test registry).
+func BindToolOutput(reg domaintools.Registry, sink ToolOutputSink) {
+	if t, ok := reg.Lookup(commandToolName); ok {
+		if c, ok := t.(executeCommand); ok && c.output != nil {
+			c.output.sink = sink
+		}
+	}
+}
 
 // Name is the wire-valid canonical identifier.
-func (executeCommand) Name() string { return "execute_command" }
+func (executeCommand) Name() string { return commandToolName }
 
 // Description is the model-facing summary.
 func (executeCommand) Description() string { return "Run a shell command via bash -c." }
@@ -60,7 +93,7 @@ func (executeCommand) Parameters() json.RawMessage {
 // Execute runs the command. It returns the bounded result (or the timeout/
 // truncation marker), and never an error for a non-zero exit (which is a
 // successful result) nor for an observed deadline (a nil-error timeout result).
-func (executeCommand) Execute(ctx context.Context, arguments string, budget domaintools.ByteBudget) (string, error) {
+func (c executeCommand) Execute(ctx context.Context, arguments string, budget domaintools.ByteBudget) (string, error) {
 	var args struct {
 		Command    string `json:"command"`
 		OutputFile string `json:"output_file"`
@@ -80,7 +113,7 @@ func (executeCommand) Execute(ctx context.Context, arguments string, budget doma
 	if b < 1 {
 		b = 1
 	}
-	return runCaptured(ctx, args.Command, b)
+	return runCaptured(ctx, args.Command, b, c.sink())
 }
 
 // newCommandProcess builds a bash -c command in its own process group (round-024
@@ -161,7 +194,7 @@ func runToFile(ctx context.Context, command, path string, appendMode bool) (stri
 // on the deadline it kills the process group and returns the nil-error timeout
 // result (the "stopped" outcome) — the pinned T1 order stop -> close read-ends ->
 // kill(-pgid) if alive -> Wait.
-func runCaptured(ctx context.Context, command string, budget int) (string, error) {
+func runCaptured(ctx context.Context, command string, budget int, sink ToolOutputSink) (string, error) {
 	cmd := newCommandProcess(ctx, command)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -171,7 +204,16 @@ func runCaptured(ctx context.Context, command string, budget int) (string, error
 	if err != nil {
 		return "", fmt.Errorf("execute_command: stderr pipe: %w", err)
 	}
+	// Round 034 (FR-010): open the live `[Tool Output]` block before the child
+	// starts. The block renders unconditionally — the CLI's Begin stops the
+	// spinner and writes the header/separator; a nil spinner is a no-op.
+	if sink.Enabled() {
+		sink.Begin()
+	}
 	if err := cmd.Start(); err != nil {
+		if sink.Enabled() {
+			sink.End()
+		}
 		return "", fmt.Errorf("execute_command: failed to start: %w", err)
 	}
 	// Reserve marker space so the whole result (bytes + terminator) stays within
@@ -181,10 +223,13 @@ func runCaptured(ctx context.Context, command string, budget int) (string, error
 		limit = 1
 	}
 	buf := &boundedBuffer{limit: limit, full: make(chan struct{})}
+	// Tee the child's combined streams into the `[Tool Output]` sink alongside the
+	// result buffer (round 034 FR-010). The sink's writer owns its own mutex.
+	outDst, errDst := teeSink(buf, sink), teeSink(buf, sink)
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go func() { defer wg.Done(); _, _ = io.Copy(buf, stdout) }()
-	go func() { defer wg.Done(); _, _ = io.Copy(buf, stderr) }()
+	go func() { defer wg.Done(); _, _ = io.Copy(outDst, stdout) }()
+	go func() { defer wg.Done(); _, _ = io.Copy(errDst, stderr) }()
 	finished := make(chan struct{})
 	go func() { wg.Wait(); close(finished) }()
 
@@ -201,6 +246,11 @@ func runCaptured(ctx context.Context, command string, budget int) (string, error
 		abortCapture(cmd, stdout, stderr, finished)
 	}
 	werr := cmd.Wait()
+	if sink.Enabled() {
+		// Close the block: the CLI writes the closing separator and drops any
+		// trailing partial line, then resumes the spinner (FR-010/FR-012).
+		sink.End()
+	}
 
 	if trimmed {
 		// The byte budget was reached: a distinct "trimmed" outcome. The
@@ -216,6 +266,15 @@ func runCaptured(ctx context.Context, command string, budget int) (string, error
 		out += "\n"
 	}
 	return fmt.Sprintf("%sExit Code: %d\n", out, exitStatus(werr)), nil
+}
+
+// teeSink fans dst out to the sink's writer as well as the result buffer when a
+// sink is bound (round 034 FR-010); a zero sink returns dst unchanged.
+func teeSink(dst io.Writer, sink ToolOutputSink) io.Writer {
+	if sink.Enabled() {
+		return io.MultiWriter(dst, sink.Writer)
+	}
+	return dst
 }
 
 // abortCapture terminates the process tree and CLOSES the pipe read ends so a
@@ -276,7 +335,7 @@ func (b *boundedBuffer) bytes() []byte {
 }
 
 // NewCommandTool returns the bash-first command tool (round-024).
-func NewCommandTool() domaintools.Tool { return executeCommand{} }
+func NewCommandTool() domaintools.Tool { return executeCommand{output: &toolOutputBox{}} }
 
 // Compile-time port conformance.
 var _ domaintools.Tool = executeCommand{}

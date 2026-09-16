@@ -13,6 +13,10 @@ package agent
 // logStep stderr write, so an implementer can clear the indicator for the log
 // line and restore it afterwards.
 type LoopObserver interface {
+	// CallObserver adds the round-034 per-AI-endpoint-call hooks (call-begin /
+	// call-end; ADR 0005 D1) to the same port, so the loop keeps a single
+	// observer seam. The CLI's compositeObserver implements both facets.
+	CallObserver
 	// OnInferenceStart signals that the run has begun awaiting the model.
 	OnInferenceStart()
 	// OnInferenceEnd signals that the model's response has arrived.

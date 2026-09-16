@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/domain/metrics"
 )
 
@@ -204,6 +205,14 @@ func (s *Spinner) OnToolsStart(names []string) {
 
 // OnToolsEnd leaves the indicator running until the next phase.
 func (s *Spinner) OnToolsEnd() {}
+
+// OnCallBegin is a no-op on the spinner: the round-034 per-call rendering is
+// composed by the CLI's compositeObserver, not the spinner (ADR 0005 D1). The
+// method exists so *Spinner still satisfies the extended agentport.LoopObserver.
+func (s *Spinner) OnCallBegin(callIndex int, messages []llm.Message) {}
+
+// OnCallEnd is a no-op on the spinner (ADR 0005 D1).
+func (s *Spinner) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []string, final bool) {}
 
 // BeforeToolLog yields the line to a tool-loop log write (a synchronous clear).
 func (s *Spinner) BeforeToolLog() { s.deactivate() }
