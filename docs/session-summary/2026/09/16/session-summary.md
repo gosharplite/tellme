@@ -102,3 +102,150 @@
 ## 7. Issue tracker (closeout Step 8)
 
 Reconciled against the delivered state: **#13** open (coverage tooling; future candidate, still accurate); **#47** `not_planned`, **#53**/**#55** completed (earlier sessions). Round 028 was an **operator request** (no anchor issue). **No changes this closeout.**
+
+---
+
+## 8. Session 2 (2026-09-16) — round 029 `029-agent-write-tools`: opened, plan + truth half delivered, **4-round review/fold loop → CERTIFIED READY**
+
+A second session on the same calendar day: bootstrap (Steps 1–8), opened round **029** (the first **agent write tools** — the first slice of the **dogfooding-enablement track**, umbrella [#60](https://github.com/gosharplite/tellme/issues/60)), ran the full **plan + truth half**, and took **PR [#61](https://github.com/gosharplite/tellme/pull/61)** through a **four-round architectural review + fold loop** to **CERTIFIED READY TO MERGE**. No product code (plan + truth only). Also filed **#62** (a provider-transport truncation guard) from the reviewer's reference cross-check.
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`; Linux host this session).
+**Branch**: `029-agent-write-tools` (off `dev`) — **open**, awaiting the operator's merge.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 028 delivered/frozen; active branch `dev`) |
+| Round-029 theme | tellme's first **write** capability: `write_file` (**create-only**, atomic) + `replace_text` (**strict-unique**, atomic) — so the agent can create/edit files without shell heredocs |
+| Design session | operator-locked, one decision at a time: **scope = the pair**; `write_file` = **create-only** (A); **every write atomic**; `replace_text` = **strict-unique** (A); **no security/undo** |
+| `/axb-specify` | `specs/plans/029-agent-write-tools/`; **0** clarify (all decisions locked in-session) |
+| Pipeline | specify ✅ · spec-by-example ✅ · research ✅ · system-analysis ✅ · dsl-refine ✅ · tasks ✅ · **implement ⏳ (next)** |
+| Delivery | 5 plan-half commits + 5 fold commits on `029-agent-write-tools`; **PR [#61](https://github.com/gosharplite/tellme/pull/61) open** |
+| Reviews (PR #61) | **APPROVED WITH REQUIRED FOLDS** → folds `2cfc9c6` → re-review **APPROVED** (items A–D) → `6583bc7` → **final re-review ✅ CERTIFIED READY** → a **reference cross-check** (R1/R2/R3) → `8b7d078` + nit `d22d2cd` → **review complete, no open findings** |
+| New issue | [#62](https://github.com/gosharplite/tellme/issues/62) — *provider transports can silently truncate large tool-call arguments (no finish-reason guard)* — a **deliberate forward item** (own transport round) |
+| Verification (half) | topology audit **PASSED** (41 features · 16 root + **266** module rows · **1360** steps); no product code → `make verify` N/A |
+
+### Work done
+
+1. **Bootstrap (Steps 1–8)** — re-read the pillars; `list_skills`; peers (self `butler`; `architect`/`coder`/`griller`/`pm`/`rd`); `STATUS.md` (active branch `dev`); last-5-days summaries (09/12–09/16). Registered two read-only reference trees (they were outside the session boundary).
+2. **#60 filed + design discussion** — the dogfooding goal; verified tellme's capability gap (readers + `execute_command` only; no skills/write/context); filed the umbrella [#60](https://github.com/gosharplite/tellme/issues/60); recorded the "measure `list_files`/`get_tree` on real `--tool-usage` data" intent on #60; a **write-tools design session** settled scope (the pair), `write_file` create-only + atomic, `replace_text` strict-unique, and the `append_text`/`undo_file_change` omissions.
+3. **Plan + truth half** — `/axb-specify` → `/axb-spec-by-example` (3 journeys: creating a file · editing a file · offering the write tools) → `/axb-technical-research` (`research.md` D1–8 + `techstack.md` Write-filesystem-tools row) → `/axb-system-analysis` (`plan.md`; 1 interface → `/axb-dsl-refine`; api/data NOOP; ui skipped) → `/axb-dsl-refine` (ADD `chat/creating-and-editing-files.feature` + 6 Given/10 Then rows; MODIFY the offered-tool row + `offering-the-agent-tools.feature` prose; audit PASSED) → `/axb-tasks` (`tasks.md` T001–T028; orphan sweep 0). Committed per phase.
+4. **Review + fold loop (PR #61)** — 4 review rounds: **blocker** (atomicity asymmetry → both tools atomic), 3 TD (atomic create-only via `os.Link`/`EEXIST`; mode `0644`; a unit-tier atomicity witness), 3 refactor (stale offered-set truth; read hazard; single-sourced expected set), 4 consistency (A–D), and a **reference cross-check** → R1 (#62), R2 (reject a **missing** `content`) + R3 (dir mode `0755`) folded. **CERTIFIED READY.**
+
+### Decisions locked (round 029)
+
+| # | Decision |
+| --- | --- |
+| Scope | the write surface is exactly **`write_file` + `replace_text`** (first-class tools on the existing `domain/tools.Tool` port) |
+| `write_file` | **create-only** (error if the path exists) + **atomic create-only** (`os.Link`/`EEXIST`, no TOCTOU) + `MkdirAll` mode `0755`; created file mode `0644`; empty `content` OK, a **missing** `content` rejected |
+| `replace_text` | **strict-unique** (`0` → error, `>1` → error, exactly `1` → replace) + **atomic** write (temp + `rename`); no-op short-circuit; whole-file read is a recorded hazard |
+| Cross-cutting | no security/consent gate, no undo; `reason` required; round-024 resource contract (30 s default) |
+| Omitted | `append_text`, `undo_file_change`, `delete_path`, `create_directory` (the shell covers them) |
+| Deferral | **R1** (provider truncation of large tool args) → **#62**, its own transport round (deliberate, not silent) |
+
+### Commits (branch `029-agent-write-tools`)
+
+| Commit | Note |
+| --- | --- |
+| `6a541e0` | `docs(029)`: plan package + spec |
+| `035cbcc` | `docs(029)`: acceptance + research + techstack truth |
+| `af3b2ac` | `docs(029)`: system-analysis plan |
+| `303c529` | `docs(029)`: CLI interface truth for the write tools |
+| `2785d3e` | `docs(029)`: tasks.md |
+| `a684148` | `docs(029)`: status — plan + truth half complete (PR #61) |
+| `2cfc9c6` | `docs(029)`: fold PR #61 review (atomic both tools, atomic create-only, mode 0644, witness, offered-set prose) |
+| `6583bc7` | `docs(029)`: fold PR #61 re-review (A–D) |
+| `8b7d078` | `docs(029)`: fold PR #61 reference cross-check (R2 missing-content, R3 dir mode; R1 → #62) |
+| `d22d2cd` | `docs(029)`: fold PR #61 cross-check nit (research Truth-impact bullet) |
+
+### Artifacts / truth
+
+- Plan package: `spec.md` (US1 `replace_text` P1 · US2 `write_file` P2 · FR-001–014 · NFR-001–002 · SC-001–005) · `checklists/requirements.md` (ready) · `features/acceptance/*.feature` ×3 · `research.md` (D1–8 + R1 forward item) · `plan.md` · `tasks.md` (T001–T028) · `truth-delta.md`.
+- Truth: `techstack.md` MODIFY (Write filesystem tools row; deferred bullet) · `chat/creating-and-editing-files.feature` ADD (4 Rules) + `chat/dsl.md` MODIFY (offered set → 6 tools; +6 Given +10 Then; note) + `chat/offering-the-agent-tools.feature` MODIFY (4→6 tools) · `contracts/**` + `data/**` NOOP.
+
+### Open items (round 029, non-blocking)
+
+- **Merge PR [#61](https://github.com/gosharplite/tellme/pull/61)** → propagate `029 → dev → main`; then `/axb-implement` over **T001–T028**.
+- **#62** (provider-transport guard) — its own future round.
+- **`write_file` survival** — measured via `--tool-usage` after dogfooding.
+- `replace_text` reads the whole file (recorded input-read hazard; a future input bound is a forward item).
+
+### Next steps
+
+1. Operator merges **PR #61** → `dev`; propagate `029 → dev → main`.
+2. Run **`/axb-implement`** over **T001–T028** (Foundational → Phase 3 test-alignment → Feature GREEN/REFACTOR → regression + falsifiability witnesses).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `029-agent-write-tools` until merged, then `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+
+Reconciled against the current state: **#13** open (coverage tooling; still accurate); **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella — round 029 is its first slice); **[#62](https://github.com/gosharplite/tellme/issues/62)** **opened this session** (provider-transport truncation guard — a deliberate forward item). #47 `not_planned`, #53/#55 completed (earlier). **No closes, no revisions.**
+
+
+---
+
+## 9. Session 3 (2026-09-16) — round 029 `029-agent-write-tools`: implementation half delivered, **FINAL ARCHITECTURAL SIGN-OFF**, merged (PR #61) + closeout
+
+A third session on the same calendar day: ran the **implementation half** of round 029 (`/axb-implement`, T001–T028), took it through an **implementation review** + a **principal-architect review** to a **final architectural sign-off**, saw PR [#61](https://github.com/gosharplite/tellme/pull/61) **merged** into `dev` (by `thptcnec`), propagated `dev → main`, refreshed the installed binary, and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (Linux host).
+**Branch**: `029-agent-write-tools` (off `dev`) → merged via PR [#61](https://github.com/gosharplite/tellme/pull/61) into `dev` (`d5eb07b`) → propagated `dev → main`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 029 plan+truth CERTIFIED; active branch `029-agent-write-tools`) |
+| `/axb-implement` | One-Shot over **T001–T028** — all `[X]` (product + unit + E2E) |
+| Product | `internal/infrastructure/tools/writer.go` (`write_file` create-only atomic via `os.Link`/`EEXIST`; `replace_text` strict-unique atomic via temp+`rename`, mode-preserving; `writeAtomic` + `mkdirAll0755` + the struct-bound `contentWriter` seam); `internal/cli/cli.go` (`agentTools()` registers the write pair); shared `resourceSchema`/`maxOutputTokensDesc` |
+| Impl review (PR #61) | **APPROVED WITH REQUIRED FOLDS** → folds `eb0367c` (mode preservation · umask-independent dirs · drop the 2nd enumeration · no-op ordering · schema dedup) + `f3c9401` (single-sourced cap desc · no-op pin · `Perm()` scoping) → **CERTIFIED** |
+| Principal review | **FULL ARCHITECTURAL APPROVAL** → **TD-1 closed** (struct field seam) at `777fa95` → **FINAL SIGN-OFF — 100% READY TO MERGE** |
+| Merge | PR [#61](https://github.com/gosharplite/tellme/pull/61) **MERGED** into `dev` (`d5eb07b`, by `thptcnec`, 2026-09-15T23:57:23Z); round-029 head frozen at **`777fa95`** (15 commits) |
+| Propagation | `029-agent-write-tools → dev` (`d5eb07b`) `→ main` — **DONE (no-ff)** |
+| Closeout | `make verify` OK · godog **188/188** (1384 steps, 0 undefined) · topology audit **PASSED** (266 module rows · 1360 steps); `STATUS.md` split (round-028 → `docs/archives/status/2026-09-16.md`); `go install ./cmd/tellme` refreshed |
+
+### Work done
+1. **Bootstrap** (round 029 plan+truth certified; active branch `029-agent-write-tools`).
+2. **`/axb-implement`** — Foundational (write-tool shells · registry seam · 16 stepdef landing skeletons · unit-test skeleton) → Phase 3 (offered-set ALIGN + 16 RED stepdefs + the unit-tier atomicity witness + the review gate) → 4A/4B feature GREEN/REFACTOR → 4C regression + falsifiability witnesses. (One-Shot executed directly — no parallel subagent substrate in this session; the deviation was disclosed in `tasks.md` + the PR.)
+3. **Reviews (PR #61)** — implementation review (mode preservation, umask-independent dirs, single-sourcing, no-op ordering, schema dedup) → folds `eb0367c` + `f3c9401`; **principal-architect review** → TD-1 fold `777fa95` → **FINAL SIGN-OFF**.
+4. **Merge + propagation + closeout** — PR #61 merged (`d5eb07b`); `dev → main`; `go install ./cmd/tellme`; `STATUS.md` split + this §9.
+
+### Decisions locked (round 029, implementation)
+| # | Decision |
+| --- | --- |
+| Impl-fold F1 | `replace_text` **preserves the destination's mode** (`Perm()`) — no silent re-moding on edit. |
+| Impl-fold F2 | Parent dirs forced to `0755` (`mkdirAll0755`, umask-independent). |
+| Impl-fold F3/F4 | One registry enumeration (`registeredToolNames()`); one schema builder (`resourceSchema` + `maxOutputTokensDesc`). |
+| Impl-fold F5 | No-op short-circuit **after** the presence/uniqueness gate (FR-002 precedence), pinned. |
+| Principal TD-1 | The content-writer seam is a **struct-bound field** (`contentWriter`), not a package global — `t.Parallel()`-safe (ADR-055/060/074). |
+| Deferred | TD-2 (unbounded `replace_text` input) → **#62** / future resource hardening; TD-3 (symlink/hardlink) recorded. |
+
+### Commits (branch `029-agent-write-tools`, then merged)
+| Commit | Note |
+| --- | --- |
+| `20d5d64` | `feat(029)`: implement the agent write tools (T001–T028) |
+| `eb0367c` | `fix(029)`: fold implementation review (PR #61) |
+| `f3c9401` | `fix(029)`: address implementation re-review residual |
+| `777fa95` | `refactor(029)`: inject the content writer via a struct field (principal review TD-1) |
+| `d5eb07b` | PR [#61](https://github.com/gosharplite/tellme/pull/61) merge into `dev` |
+
+### Verification (2026-09-16)
+`make verify` **OK** (no test-sleep · offline witness · cross-compile 4/4 · `golangci-lint` 0 issues · `govulncheck` clean) · `go test -count=1 ./...` green (**188 scenarios · 1384 steps**, 0 undefined) · topology audit **PASSED** (41 features · 16 root + 266 module rows · 1360 steps) · falsifiability witnesses (a)/(b)/(c) reproduced + reverted · `umask 077` witnesses PASS · `gofmt` clean · `go.mod`/`go.sum` unchanged (stdlib-only).
+
+### Open items (non-blocking)
+- **Round-029 forward items** — (a) **#62** (provider-transport truncation guard) — its own future round; (b) **`write_file` survival** measured via `--tool-usage` after dogfooding; (c) `replace_text` reads the **whole** file (input-read hazard — a future input bound); (d) **TD-3** symlink/hardlink (recorded).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; round-018 gray styling; round-019 macOS CPU leg; round-024 config-gated `CONTEXT_WINDOW`; sequential tools / no pruning / no `flock`; round-011 forward items.
+- Future-slice candidates: **#60** (dogfooding track), **#62**, **#13** (coverage tooling).
+
+### Next steps
+1. Choose the `030-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled: **#13** open (coverage tooling); **#60** open (dogfooding umbrella — round 029 was its first slice); **#62** open (provider-transport guard); all still accurate — **no closes, no revisions**.
