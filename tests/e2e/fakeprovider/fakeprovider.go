@@ -26,6 +26,11 @@ type Reply struct {
 	// Tools, when non-empty, scripts ONE response carrying every listed tool-call
 	// request (round 019). Mutually exclusive with ToolName.
 	Tools []ToolRequest
+	// FinishReason, when non-empty, scripts the response's provider finish reason
+	// (round 030): the OpenAI-compatible `choices[0].finish_reason` or the Vertex
+	// `candidates[0].finishReason`. "" omits it (a healthy response). A truncation
+	// scripts "length" (OpenAI-compatible) / "MAX_TOKENS" (Vertex) to drive the guard.
+	FinishReason string
 }
 
 // ToolRequest is one tool call in a multi-tool scripted reply (round 019).
@@ -311,9 +316,9 @@ func noAnswerBody(vertex bool) string {
 // plainAnswerBody is the body for the default (unscripted) answer.
 func plainAnswerBody(answer string, vertex bool, u *usageCounts) string {
 	if vertex {
-		return vertexAnswerBody(answer, u)
+		return vertexAnswerBody(answer, u, "")
 	}
-	return answerBody(answer, u)
+	return answerBody(answer, u, "")
 }
 
 // scriptedBody picks the scripted reply's wire body, family-aware. Extracted so
@@ -322,33 +327,51 @@ func scriptedBody(reply Reply, vertex bool, u *usageCounts) string {
 	switch {
 	case len(reply.Tools) > 0:
 		if vertex {
-			return vertexMultiToolCallBody(reply.Tools)
+			return vertexMultiToolCallBody(reply.Tools, reply.FinishReason)
 		}
-		return multiToolCallBody(reply.Tools, u)
+		return multiToolCallBody(reply.Tools, u, reply.FinishReason)
 	case reply.ToolName != "":
 		if vertex {
-			return vertexToolCallBody(reply.ToolName, reply.Arguments)
+			return vertexToolCallBody(reply.ToolName, reply.Arguments, reply.FinishReason)
 		}
-		return toolCallBody(reply.ToolName, reply.Arguments, u)
+		return toolCallBody(reply.ToolName, reply.Arguments, u, reply.FinishReason)
 	default:
 		if vertex {
-			return vertexAnswerBody(reply.Answer, u)
+			return vertexAnswerBody(reply.Answer, u, reply.FinishReason)
 		}
-		return answerBody(reply.Answer, u)
+		return answerBody(reply.Answer, u, reply.FinishReason)
 	}
 }
 
-func answerBody(text string, u *usageCounts) string {
-	return `{"choices":[{"message":{"role":"assistant","content":` + jsonString(text) + `}}]` + usageBlock(u) + `}`
+// openAIFinishReason renders the `finish_reason` fragment for an OpenAI-compatible
+// choice (round 030), or "" when none is scripted (a healthy response omits it).
+func openAIFinishReason(finishReason string) string {
+	if finishReason == "" {
+		return ""
+	}
+	return `,"finish_reason":` + jsonString(finishReason)
+}
+
+// vertexFinishReason renders the `finishReason` fragment for a Vertex candidate
+// (round 030), or "" when none is scripted (a healthy response omits it).
+func vertexFinishReason(finishReason string) string {
+	if finishReason == "" {
+		return ""
+	}
+	return `,"finishReason":` + jsonString(finishReason)
+}
+
+func answerBody(text string, u *usageCounts, finishReason string) string {
+	return `{"choices":[{"message":{"role":"assistant","content":` + jsonString(text) + `}` + openAIFinishReason(finishReason) + `}]` + usageBlock(u) + `}`
 }
 
 // toolCallBody builds a tool-call response; the wire call id is deterministic
 // ("call_1") so the loop pairs it with the tool result deterministically. Round
 // 018 also attaches the scripted `usage` block (so a tool turn's first call
 // reports usage too).
-func toolCallBody(name, arguments string, u *usageCounts) string {
+func toolCallBody(name, arguments string, u *usageCounts, finishReason string) string {
 	call := `{"id":"call_1","type":"function","function":{"name":` + jsonString(name) + `,"arguments":` + jsonString(arguments) + `}}`
-	return `{"choices":[{"message":{"role":"assistant","content":"","tool_calls":[` + call + `]}}]` + usageBlock(u) + `}`
+	return `{"choices":[{"message":{"role":"assistant","content":"","tool_calls":[` + call + `]}` + openAIFinishReason(finishReason) + `}]` + usageBlock(u) + `}`
 }
 
 func jsonString(s string) string {
@@ -358,7 +381,7 @@ func jsonString(s string) string {
 
 // multiToolCallBody builds a single OpenAI-compatible response carrying every
 // listed tool call (deterministic ids call_1..call_N). Round 019.
-func multiToolCallBody(tools []ToolRequest, u *usageCounts) string {
+func multiToolCallBody(tools []ToolRequest, u *usageCounts, finishReason string) string {
 	calls := make([]string, 0, len(tools))
 	for i, t := range tools {
 		calls = append(calls, fmt.Sprintf(
@@ -366,12 +389,12 @@ func multiToolCallBody(tools []ToolRequest, u *usageCounts) string {
 			i+1, jsonString(t.Name), jsonString(t.Arguments)))
 	}
 	return `{"choices":[{"message":{"role":"assistant","content":"","tool_calls":[` +
-		strings.Join(calls, ",") + `]}}]` + usageBlock(u) + `}`
+		strings.Join(calls, ",") + `]}` + openAIFinishReason(finishReason) + `}]` + usageBlock(u) + `}`
 }
 
 // vertexMultiToolCallBody builds a single Vertex response carrying every listed
 // functionCall part. Round 019.
-func vertexMultiToolCallBody(tools []ToolRequest) string {
+func vertexMultiToolCallBody(tools []ToolRequest, finishReason string) string {
 	parts := make([]string, 0, len(tools))
 	for _, t := range tools {
 		args := strings.TrimSpace(t.Arguments)
@@ -380,26 +403,26 @@ func vertexMultiToolCallBody(tools []ToolRequest) string {
 		}
 		parts = append(parts, `{"functionCall":{"name":`+jsonString(t.Name)+`,"args":`+args+`},"thoughtSignature":"sig-1"}`)
 	}
-	return `{"candidates":[{"content":{"role":"model","parts":[` + strings.Join(parts, ",") + `]}}]}`
+	return `{"candidates":[{"content":{"role":"model","parts":[` + strings.Join(parts, ",") + `]}` + vertexFinishReason(finishReason) + `}]}`
 }
 
 // vertexAnswerBody builds a Vertex `:generateContent` answer response (round-013).
-func vertexAnswerBody(text string, u *usageCounts) string {
+func vertexAnswerBody(text string, u *usageCounts, finishReason string) string {
 	usageJSON := ""
 	if u != nil {
 		usageJSON = fmt.Sprintf(`,"usageMetadata":{"promptTokenCount":%d,"candidatesTokenCount":%d,"totalTokenCount":%d}`, u.prompt, u.completion, u.total)
 	}
-	return `{"candidates":[{"content":{"role":"model","parts":[{"text":` + jsonString(text) + `}]}}]` + usageJSON + `}`
+	return `{"candidates":[{"content":{"role":"model","parts":[{"text":` + jsonString(text) + `}]}` + vertexFinishReason(finishReason) + `}]` + usageJSON + `}`
 }
 
 // vertexToolCallBody builds a Vertex functionCall response; `arguments` is a raw
 // JSON object (Vertex `args` is an object, unlike OpenAI's string form).
-func vertexToolCallBody(name, arguments string) string {
+func vertexToolCallBody(name, arguments string, finishReason string) string {
 	args := strings.TrimSpace(arguments)
 	if args == "" {
 		args = "{}"
 	}
-	return `{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"name":` + jsonString(name) + `,"args":` + args + `},"thoughtSignature":"sig-1"}]}}]}`
+	return `{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"name":` + jsonString(name) + `,"args":` + args + `},"thoughtSignature":"sig-1"}]}` + vertexFinishReason(finishReason) + `}]}`
 }
 
 // ConfigYAML builds a resolvable default configuration (MODE: butler) that
