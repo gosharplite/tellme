@@ -21,7 +21,7 @@
 > 來自 `research.md` Decisions 1–6 與 spec US1/US2（FR-001..FR-009、SC-001..SC-004）。
 
 - **[FIX-SITE]** 只改 **shared schema builder**（`resourceSchema`）：在 `properties` 中宣告 **`reason`** property（每個 caller 都已把 `reason` 放進 `required`，且 `reason` 對每個工具都是 mandatory）。修好它所支撐的五個工具（`list_files`、`read_files`、`get_tree`、`write_file`、`replace_text`）。**`execute_command` 不動**（inline schema 已宣告 `reason`，是唯一合規者）。
-- **[GATE]** 在 **production registry**（`newToolRegistry()`）上斷言：對 **每一個** 註冊工具，schema 的 `required` 每個名稱都必須在 `properties` 中宣告，且 schema 可解析為 JSON object。**覆蓋全部工具**（含 write pair 與 `execute_command`）。
+- **[GATE]** 在 **非可覆寫的 production assembler `agentTools()`** 上斷言（**不**用可被測試覆寫的 `newToolRegistry` var——ARCH-1）：對 **每一個** 註冊工具，schema 的 `required` 每個名稱都必須在 `properties` 中宣告，且 schema 可解析為 JSON object。**覆蓋全部工具**（含 write pair 與 `execute_command`）。root-only 走訪（flat-schema 前置條件）；巢狀物件自帶 `required` 的遞迴形式列為 **`#60`** forward item（ARCH-2）。
 - **[RED-FIRST]** gate 必須先對現行缺陷 **非真空地失敗**（今日 5 個工具違規），再於 `[GREEN]` 修復後轉綠。
 - **[NO-DEP]** 只用 Go 標準庫（`encoding/json`、`testing`）；無新相依；`go.mod`／`go.sum` 不動；POSIX-only。
 - **[VERIFY]** 驗證為 **hermetic**（離線）；真實 Vertex/Gemini 確認是 **closeout 手動步驟**（非 gate 成員）。
@@ -53,23 +53,26 @@
 - 只動測試層（`internal/cli/tool_registry_test.go`、`internal/infrastructure/tools/filesystem_test.go`）；不寫產品碼。
 - review 啟動 subagent；本輪 gate 必須對現行缺陷 **非真空失敗**（非 undefined、非 parse error）；通過前不解鎖 Phase 4。
 
-- [ ] T001 [UNIT] 新增 registry 層 well-formedness gate（RED）
+- [ ] T001 [UNIT] 新增 production-assembler well-formedness gate（RED）
   - Read:
     - `specs/truth/techstack.md` -> Agent tool-schema gate row
     - `specs/plans/031-tool-schema-wellformedness/research.md` -> `Decision 2`
-    - `internal/cli/tool_registry_test.go` -> 既有 `TestNewToolRegistryOffersAgentTools`（同一 registry 表面）
+    - `internal/cli/cli.go` -> `agentTools()`（production assembler；gate 對象）與 `newToolRegistry` var（DI seam；**不得**作為 gate 對象）
+    - `internal/cli/tool_registry_test.go` -> 既有 `TestNewToolRegistryOffersAgentTools`（同一套工具集）
     - `internal/domain/tools/tools.go` -> `Tool.Parameters()` 契約
-  - 做：新增 `TestRegisteredToolSchemasAreWellFormed`（名稱可調），迭代 `newToolRegistry().Tools()`；對每個工具解析 `Parameters()` 為 `{properties map[string]json.RawMessage, required []string}`，斷言：schema 可解析、為 JSON object、且 **每個 `required` 名稱都在 `properties` 中**（`required ⊆ properties`）。訊息需 **點名違規工具**。
+  - 做：新增 `TestAgentToolSchemasAreWellFormed`（名稱可調），迭代 **非可覆寫的 production assembler `agentTools()`**（ARCH-1：gate 不得坐在可被測試覆寫的 `newToolRegistry` var 上，否則未來一個忘記 `t.Cleanup` 還原的覆寫會讓 gate 讀到 fake registry 而**空過**）；對每個工具解析 `Parameters()` 為 `{properties map[string]json.RawMessage, required []string}`，斷言：schema 可解析、為 JSON object、且 **每個 `required` 名稱都在 `properties` 中**（`required ⊆ properties`）。
+  - 邊界（ARCH-2，flat-schema 前置條件）：本 gate 只走 **root** 的 `properties`/`required`；六個 schema 今日皆為 flat（`read_files` 只在 `items` 內層帶 **properties**、內層無 `required`），故此檢查正確——以註解 **明示此前置條件**。巢狀物件自帶 `required` 的**遞迴**形式列為 **`#60` forward item**，不得靜默假設。
+  - 邊界（nits）：failure message 需含 **不變式名稱 `required ⊆ properties`** 與違規工具名（diagnostic 指向**類別**，不只工具名）；另 **明確斷言** spec 的兩個 edge case——**zero-`required`** 工具須 **vacuously pass**，**非 object／不可解析** 的 schema 須 **fail**（FR-007）。
   - 邊界：此測試 **今日必須失敗**（5 個工具違規）——**不得**放寬 assertion 讓它變綠（RED-first）；不寫產品碼。
   - 不做：不改 `resourceSchema`（留 Phase 4）；不碰 offered-set 測試。
 
-- [ ] T002 [UNIT] 強化盲點測試 `TestToolSchemasRequireReason`
+- [ ] T002 [UNIT] 強化盲點測試 `TestToolSchemasRequireReason`（`reason`-specific；**不**重抄全工具清單）
   - Read:
     - `specs/plans/031-tool-schema-wellformedness/research.md` -> `Decision 2`
-    - `internal/infrastructure/tools/filesystem_test.go` -> 既有 `TestToolSchemasRequireReason`（只斷言 `required` **包含** `reason`）
-  - 做：把該測試（或等價新測試）強化為斷言 **`reason` 是 `properties` 中宣告的 property**（而不只是出現在 `required`），並涵蓋全部工具（含 write pair 與 `execute_command`），使「required 有、property 沒有」不再能通過。
-  - 邊界：只動測試層；與 T001 的 registry gate 互補（T001 為全量 `required ⊆ properties`，T002 保留 `reason` 專項敘述）。
-  - 不做：不重寫其他既有 reader 測試。
+    - `internal/infrastructure/tools/filesystem_test.go` -> 既有 `TestToolSchemasRequireReason`（只斷言 `required` **包含** `reason`，且只涵蓋 3 個 reader）
+  - 做：把該測試強化為斷言 **`reason` 是 `properties` 中宣告的 property**（而不只是出現在 `required`），並涵蓋 **builder-backed** 的工具（`list_files`、`read_files`、`get_tree`、`write_file`、`replace_text`——即 `resourceSchema` 所支撐者；`execute_command` 為 inline 且已宣告 `reason`），使「required 有、property 沒有」不再能通過。
+  - 邊界（ARCH-3）：**完整性的責任在 T001**（production-assembler 的 `required ⊆ properties`，覆蓋**每一個**工具）。**T002 不得**再手抄第二份「全部六工具」清單——該 package（`internal/infrastructure/tools`）**無法 import `internal/cli`**，兩份清單會漂移。T002 只保留 `reason` 的專項敘述與 builder-backed 範圍（用**單一本地 table**，或直接對 builder 支撐的工具斷言），不與 registry gate 競爭完整性。
+  - 不做：不重寫其他既有 reader 測試；不建立第二份全工具清單。
 
 - [ ] T003 subagent review (phase quality gate)
   - Read: `internal/cli/tool_registry_test.go`、`internal/infrastructure/tools/filesystem_test.go`、`research.md` -> `Decision 2`
@@ -143,7 +146,7 @@
 | `truth-delta.md` -> `/axb-data-plan` NOOP (`specs/truth/data/**`) | 豁免（NOOP 不建任務；無資料變更） | PASS |
 | `truth-delta.md` -> `/axb-dsl-refine` NOOP (`specs/truth/features/cli/**`) | 豁免（NOOP 不建任務；無 CLI interface 變更；T007 確認 offered-set rows 未變） | PASS |
 | `research.md` -> Decision 1（fix 於 shared builder） | T004、T005、T007 | PASS |
-| `research.md` -> Decision 2（gate 於 production registry，覆蓋全工具） | T001、T002、T003、T006 | PASS |
+| `research.md` -> Decision 2（gate 於 production assembler `agentTools()`，覆蓋全工具；ARCH-1/2/3） | T001、T002、T003、T006 | PASS |
 | `research.md` -> Decision 3（`execute_command` 不動） | T004、T007 | PASS |
 | `research.md` -> Decision 4（hermetic gate + 手動 live 確認） | T006（hermetic + 手動 closeout 記錄） | PASS |
 | `research.md` -> Decision 5（no new dependency；stdlib；POSIX） | T004/T006（`go.mod` 不變） | PASS |

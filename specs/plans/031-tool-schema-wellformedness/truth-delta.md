@@ -27,4 +27,4 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| NOOP | `specs/truth/features/cli/**` | Checked — no new or changed CLI interface truth: the tool-schema well-formedness is asserted by the **registry unit gate**, and the offered-tool-set Gherkin/DSL rows (`offering-the-agent-tools.feature` + `chat/dsl.md`) are unchanged. | `acceptance-coverage` / `dsl-exact-one-match` hold — nothing to add or change (round-020 precedent). |
+| NOOP | `specs/truth/features/cli/**` | Checked — no new or changed CLI interface truth: the tool-schema well-formedness is asserted by the **registry unit gate**, and the offered-tool-set Gherkin/DSL rows (`offering-the-agent-tools.feature` + `chat/dsl.md`) are unchanged. | `acceptance-coverage` / `dsl-exact-one-match` hold — nothing to add or change (round-020 precedent). **Recorded divergence (ARCH-5)**: the round's acceptance (US1/US2) is carried by the registry unit gate + a manual live Vertex/Gemini check, **not** by executable Gherkin (deliberate — the schemas are not observable through the built binary hermetically). |
