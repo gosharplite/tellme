@@ -218,10 +218,11 @@ type toolCall struct {
 const openAIFinishReasonLength = "length"
 
 // checkTruncation surfaces an output-cap truncation as a loud error, or returns
-// nil for a healthy finish reason (round 030). It is called BEFORE the generic
-// "no usable answer" check, so an empty + truncated response is reported as a
-// truncation — a deliberate inversion of the reference's empty-content-first
-// order (research D6).
+// nil for a healthy finish reason (round 030). The call site sits after the
+// `len(choices)==0` early-return (a choice-less body carries no finish reason)
+// and BEFORE the generic content-empty "no usable answer" check, so an empty +
+// truncated response is reported as a truncation — a deliberate inversion of the
+// reference's empty-content-first order (research D6).
 func checkTruncation(finishReason string) error {
 	if finishReason != openAIFinishReasonLength {
 		return nil

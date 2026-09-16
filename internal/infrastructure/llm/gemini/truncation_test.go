@@ -1,8 +1,14 @@
 package gemini
 
 import (
+	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/gosharplite/tellme/internal/domain/llm"
 )
 
 // T011 [UNIT] — the round-030 Vertex/Gemini finish-reason truncation guard. A
@@ -55,5 +61,42 @@ func TestParseResponse_FinishReasonMaxTokensOnFunctionCallNamesTool(t *testing.T
 	}
 	if !strings.Contains(err.Error(), "write_file") {
 		t.Errorf("expected the Gemini truncation error to name the tool, got %v", err)
+	}
+}
+
+// N-2 (review follow-up) — parseResponse returns a *plain* truncation error; the
+// *llm.ProviderError wrapping that establishes the frozen `the provider request
+// failed` + exit-6 contract happens in Complete. Pin the type at that layer too,
+// on the function-call-aware path (FR-003).
+func TestComplete_TruncationIsProviderError(t *testing.T) {
+	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"access_token":"tok-abc","expires_in":3600}`))
+	}))
+	defer tokenSrv.Close()
+
+	genSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"name":"write_file","args":{}}}]},"finishReason":"MAX_TOKENS"}]}`))
+	}))
+	defer genSrv.Close()
+
+	c, err := New(Config{
+		ProviderName: "vertex-flash",
+		BaseURL:      genSrv.URL + "/models",
+		APIKey:       writeTestKey(t, tokenSrv.URL),
+		Model:        "gemini-3-flash",
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	_, err = c.Complete(context.Background(), llm.Request{Prompt: "go"})
+	var perr *llm.ProviderError
+	if err == nil || !errors.As(err, &perr) {
+		t.Fatalf("error = %v, want *llm.ProviderError", err)
+	}
+	if perr.Provider != "vertex-flash" {
+		t.Errorf("ProviderError.Provider = %q, want vertex-flash", perr.Provider)
+	}
+	if !strings.Contains(perr.Err.Error(), "write_file") {
+		t.Errorf("ProviderError.Err = %q, want the function-call-aware detail", perr.Err.Error())
 	}
 }

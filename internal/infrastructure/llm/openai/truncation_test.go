@@ -1,8 +1,14 @@
 package openai
 
 import (
+	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/gosharplite/tellme/internal/domain/llm"
 )
 
 // T011 [UNIT] — the round-030 OpenAI-compatible finish-reason truncation guard.
@@ -44,5 +50,30 @@ func TestParseResponse_TruncationPrecedesNoUsableAnswer(t *testing.T) {
 	}
 	if !strings.Contains(strings.ToLower(err.Error()), "truncat") {
 		t.Errorf("expected the truncation error to take precedence, got %v", err)
+	}
+}
+
+// N-2 (review follow-up) — parseResponse returns a *plain* truncation error; the
+// *llm.ProviderError wrapping that establishes the frozen `the provider request
+// failed` + exit-6 contract happens in Complete. Pin the type at that layer too
+// (the E2E suite covers the contract end-to-end; this pins it directly, cheaply).
+func TestComplete_TruncationIsProviderError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"partial answer"},"finish_reason":"length"}]}`))
+	}))
+	defer srv.Close()
+
+	c := New(Config{ProviderName: "prov", BaseURL: srv.URL, Model: "m"})
+	_, err := c.Complete(context.Background(), llm.Request{Prompt: "go"})
+	var perr *llm.ProviderError
+	if err == nil || !errors.As(err, &perr) {
+		t.Fatalf("error = %v, want *llm.ProviderError", err)
+	}
+	if perr.Provider != "prov" {
+		t.Errorf("ProviderError.Provider = %q, want prov", perr.Provider)
+	}
+	if !strings.Contains(strings.ToLower(perr.Err.Error()), "truncat") {
+		t.Errorf("ProviderError.Err = %q, want the truncation detail", perr.Err.Error())
 	}
 }
