@@ -42,6 +42,10 @@ type Config struct {
 	// standing TELL_ME_* precedence applies to scalar keys only) and there are NO
 	// built-in rates — an un-priced model renders `$0.0000` (round-018 D2).
 	Models map[string]ModelPricing `yaml:"MODELS"`
+	// MCPServers is the remote MCP server registry (round 032, `MCP_SERVERS`).
+	// Decoded tolerantly (unmodelled sub-keys ignored); validated
+	// deterministically at resolve time (FR-002).
+	MCPServers map[string]MCPServerConfig `yaml:"MCP_SERVERS"`
 }
 
 // ModelPricing is one `MODELS` entry: the model's optional `CONTEXT_WINDOW`

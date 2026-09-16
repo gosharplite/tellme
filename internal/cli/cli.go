@@ -86,6 +86,12 @@ type resolution struct {
 	// Person is the resolved PERSON — the persona sent to the provider as the
 	// leading `system` message of every request (round 011).
 	Person string
+	// MCPServers is the validated MCP_SERVERS registry (round 032); the
+	// prompt-path discovery reads it. MCPWarnings carries non-fatal validation
+	// warnings (a skipped COMMAND/stdio entry) to surface on the diagnostic
+	// stream when a prompt run begins.
+	MCPServers  map[string]config.MCPServerConfig
+	MCPWarnings []string
 	// Pricing is the active model's config-only `MODELS` rates (round 018);
 	// Priced is false when the model has no entry, so the post-turn cost renders
 	// `$0.0000` (research D2).
@@ -524,6 +530,27 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 	}
 	res.MaxHistoryTokens = budget
 
+	// Step 4d.1 — expand ${VAR} / ${VAR:-default} in the MCP_SERVERS string
+	// fields, best-effort (round-032 SC-002 / issue #67): a `TOKEN:
+	// "${GITHUB_TOKEN}"` entry authenticates instead of being sent literally (and
+	// then warn+skipped). An unresolved ${VAR} keeps its literal text AND emits a
+	// non-fatal diagnostic warning naming the field/variable, so the cause is
+	// visible instead of an opaque "could not be reached"; the load never fails.
+	// Expansion runs BEFORE validation so the validator sees the resolved values.
+	res.MCPWarnings = append(res.MCPWarnings, cfg.ExpandMCPServers()...)
+
+	// Step 4e — validate the MCP_SERVERS registry (round-032 FR-002/FR-013): a
+	// malformed REMOTE entry reuses the configuration-invalid class phrase (a
+	// stable, classed failure); a COMMAND (stdio) entry is warn+skipped, surfaced
+	// on the prompt path. The registry is carried on the resolution so the
+	// prompt-path discovery reads the exact validated set.
+	if mcpVal, mcpErr := cfg.ValidateMCPServers(); mcpErr != nil {
+		return res, &resolveError{Reason: reasonConfigInvalid, Err: mcpErr}
+	} else {
+		res.MCPWarnings = append(res.MCPWarnings, mcpVal.Warnings...)
+	}
+	res.MCPServers = cfg.MCPServers
+
 	// Step 5 — the effective selected provider must be in the registry (FR-003).
 	res.Selected = cfg.EffectiveSelectedProvider(os.Getenv("TELL_ME_SELECTED_PROVIDER"))
 	if !cfg.ProviderInRegistry(res.Selected) {
@@ -675,6 +702,12 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		// count (today nothing shrinks the active history mid-session).
 		emitTurnOpening(env, turnNumber(prior), res.Mode)
 	}
+	// Round 032 (F9) — discover MCP tools AFTER the turn chrome is on screen, so
+	// a slow/unreachable server's bounded wait is never silent (the header is
+	// visible while discovery runs). Discovery still precedes the pre-flight
+	// estimate, which counts the offered tools.
+	reg, closeMCP := augmentRegistryWithMCP(ctx, res, reg, env.stderr)
+	defer closeMCP()
 	emitPayloadStatus(env, res, llm.EstimatePayload(res.Person, agent.ToolDefs(reg), assembled), true)
 	if opts.chrome {
 		emitTurnGap(env)
@@ -1146,6 +1179,26 @@ type toolRegistryFactory func() domaintools.Registry
 // round-024 FR-013; no pipe_commands, no security tooling).
 var newToolRegistry toolRegistryFactory = func() domaintools.Registry {
 	return domaintools.NewRegistry(agentTools()...)
+}
+
+// augmentRegistryWithMCP performs the round-032 prompt-path MCP discovery: it
+// discovers each enabled remote MCP server's tools (bounded, non-stall), offers
+// them ALONGSIDE the native tools, and surfaces any warn+skip messages on the
+// diagnostic stream. Discovery runs ONLY on the prompt path (this function is
+// called from runTurn), so an offline run makes no MCP network contact. The
+// returned close hook tears down the discovered clients when the turn ends.
+func augmentRegistryWithMCP(ctx context.Context, res resolution, reg domaintools.Registry, stderr io.Writer) (domaintools.Registry, func()) {
+	mcpDiscovered := discoverForRun(ctx, res.MCPServers)
+	for _, w := range res.MCPWarnings {
+		_, _ = fmt.Fprintln(stderr, w)
+	}
+	for _, w := range mcpDiscovered.warnings {
+		_, _ = fmt.Fprintln(stderr, w)
+	}
+	if len(mcpDiscovered.tools) > 0 {
+		reg = domaintools.NewRegistry(append(reg.Tools(), mcpDiscovered.tools...)...)
+	}
+	return reg, mcpDiscovered.close
 }
 
 // agentTools assembles the agent tool set in offer order: the read-only
