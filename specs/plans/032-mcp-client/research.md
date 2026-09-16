@@ -72,7 +72,7 @@
 
 ## Decision 9: MCP tool-call failures are recoverable, never abort the run (TD1)
 
-- **Decision**: an MCP tool-call outcome is fed back like any tool result and **never aborts the turn** (FR-018): a **tool-level error** (`isError: true`) → a recoverable tool result carrying the error text; a **transport/connection failure** → likewise a recoverable tool result (the loop continues to a final answer). Neither is the terminal `the tool request failed` class phrase (reserved, unchanged, for an **unregistered tool name** loop abort).
+- **Decision**: an MCP tool-call outcome is fed back like any tool result and **never aborts the turn** (FR-018): **every** call-time failure — a **tool-level error** (`isError: true`), a **transport/connection failure**, or a call against an **already-closed client** — is a recoverable **nil-error `ToolResult`** carrying the error text (the loop continues to a final answer). **No call-time failure returns a non-nil error from `CallTool`.** The terminal `the tool request failed` class phrase is reserved (unchanged) for the loop's **unregistered tool name** dispatch abort — which never reaches `CallTool`.
 - **Rationale**: resolves the tension the review found between Decision 6's original "a transport failure is a classed failure" and FR-009 ("a skipped or failed server MUST NOT abort the run") — the round's own motivation (a flaky server is a non-event) applies at **call time**, not only discovery. Matches the reference (*"`isError: true` returns error text with nil Go error for in-turn LLM recovery"*).
 - **Alternatives considered**:
   - **Abort the run on a transport failure** (Decision 6's original wording) — rejected: contradicts FR-009; a transient mid-turn failure would kill the run.
