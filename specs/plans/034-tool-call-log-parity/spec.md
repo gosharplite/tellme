@@ -4,24 +4,41 @@
 
 **Created**: 2026-09-16
 
-**Status**: Draft — operator-locked decisions Q1–Q7 (clarify held one decision at a time)
+**Status**: Draft — operator-locked decisions Q1–Q7 **plus grill-round (PR #70) folds G1–G10**. See [`docs/decisions/0005-tool-call-log-parity.md`](../../../docs/decisions/0005-tool-call-log-parity.md).
 
 **Input**: Operator request: *"I want tellme to show tool calls similar to tell-me-go."* The operator supplied the reference (`tell-me-go`) and tellme renderings side by side.
 
 - **tellme today** writes **one** line per tool call — `[HH:MM:SS] [Tool] <name> - <reason>` (round 022), deliberately omitting the call's arguments and its result.
-- **tell-me-go** decomposes each call into `[Tool Engine]`/`[Tool Reason]`/`[Tool Action]`/`[Tool Output]`/`[Tool Result]` lines and emits a full status block **per AI-endpoint call**.
+- **tell-me-go** decomposes each call into `[Tool Engine]`/`[Tool Reason]`/`[Tool Action]`/`[Tool Output]`/`[Tool Result]` lines and emits a status block **per AI-endpoint call**.
 
 ## Operator-locked decisions (clarify — resolved one at a time)
 
-- **Q1 → 1 — full per-AI-call parity.** tellme emits the status block once per **AI-endpoint call** (rule + `╭─⠿ Turn N - <mode>` + pre-flight payload + … + post-call + `╰─⠿ Ready`), with the decomposed tool-call rendering inside. `[Tool Reason]` is printed **twice**: once immediately after `[Tool Engine]`, and once **grouped at the post-call status** (the round's reasons, re-emitted after the results, before the measured payload line) — the reference's actual mechanism.
-- **Q2 → 1 — `[Tool Output]` is a live stream.** `execute_command` streams each complete stdout/stderr line as it arrives (the reference's `warnWriter` behavior).
-- **Q3 → 1 — verbatim reference templates & constants.** Engine `Step i/M`; Reason; Action `key: value` (`reason` **excluded**, each value capped at **189** chars + `…`); Output; Result `Text` (newlines → spaces, capped at **200** chars + `…`). **All tellme tool calls carry `reason`**, so `[Tool Reason]` always renders — round 022's "states no reason" form **retires**.
-- **Q4 → 1 — keep tellme's status-block line formats.** The header / payload / metrics / `Ready` lines keep tellme's round-018/027 formats; **only** the cadence and the tool-call rendering change.
-- **Q5 → 1 — unbounded live stream.** `[Tool Output]` prints every line with **no cap** (the operator's deliberate CTRL+C signal that the command is producing a lot).
-- **Q6 → 1 — keep the round-019 spinner**, drawn inside the `[Tool Output]` block, yielding the line to output then redrawing.
-- **Q7 → 1 — all prompt surfaces** (positional / piped / `-i` submit); `-r` does **not** suppress the tool-call lines (they are `stderr` diagnostics).
+- **Q1 → 1 — full per-AI-call parity.** tellme emits the status block once per **AI-endpoint call**, with the decomposed tool-call rendering inside. `[Tool Reason]` is printed **twice**: once immediately after `[Tool Engine]`, and once **grouped at the post-call tail** (the round's reasons, re-emitted after the results, before the measured payload line).
+- **Q2 → 1 — `[Tool Output]` is a live stream.**
+- **Q3 → 1 — verbatim reference templates & constants** (amended by G3 for rune-safety; see below). **All tellme tool calls carry `reason`**.
+- **Q4 → 1 — keep tellme's status-block line formats** (header/payload/metrics/`Ready`); only the cadence and the tool-call rendering change.
+- **Q5 → 1 — the `[Tool Output]` stream is not artificially capped** (the operator's signal that a command is producing a lot) — **amended by G4**: the round-024 byte budget already bounds and *stops* it.
+- **Q6 → 1 — keep the round-019 spinner** as the live indicator — **amended by G6/G8**: it is yielded once per call (single-writer), not per line.
+- **Q7 → 1 — all prompt surfaces**; `-r` does **not** suppress the tool-call lines.
 
-**Scope note**: a **tool-call diagnostic rendering** round, not a capability round. It reshapes what tellme writes to `stderr` during a tool-using turn and how the turn's status blocks are laid out. It changes **no** tool schema, tool result, provider transport, session-history record, CLI flag, exit code, or `stdout` byte. It **supersedes** round 022's single-line `[Tool]` log and its blank-line rule, and re-cuts rounds 017/023/027's turn-chrome cadence to **per AI call**.
+## Grill-round folds (PR #70) — G1–G10
+
+A grill round (`architect` subject vs `griller`, both initialised by executing `SESSION-BOOTSTRAP.md`) ran 10 verified questions against this specification. Verdict: **proceed with changes**. The following corrections are now folded **into this spec** (full transcript: see the PR #70 grill comment / gist):
+
+- **G1 — two emission seams.** The CLI cannot compute calls 2..k. The loop exposes a **call-begin** hook `(callIndex, estimatedPayload)` and a **call-end** hook `(callIndex, usage, roundReasons, measuredPayload, final)`. Pricing / session roll-up / the persistence flush stay in the CLI (`runTurn`); `AppendBatch` (one batch per turn) is unchanged.
+- **G2 — display vs persistence divergence (recorded).** With a per-call tail, a turn that **fails** (`the tool request failed` / `the provider request failed`), or a **completed** turn whose **final** call reports no usage, prints `Ready` footers whose **session** field includes calls that will **never** be persisted (round 030 discards a failed turn's usage; `if !result.Usage.Reported` gates persistence on the final call). Pinned invariant: the persisted record set is the `Reported` subset of `result.Calls` written by **one** `AppendBatch` on completion, and **empty** on every error exit. Recorded as an explicit **display-only divergence**.
+- **G3 — canonical truncation rule (normative).** Cap = **maximum total rendered RUNE length**, the ellipsis is exactly one **U+2026 `…` counted inside the cap**, the cut is on a **rune boundary** (never a byte slice), and the predicate is evaluated on the **folded** value. Argument values (reason excluded): fold `\n`/`\r`→space, truncate iff folded runes **> 189**, keep the first **188** runes + `…` → **≤189 runes**. Result snippet: fold first, truncate iff **> 200**, keep the first **199** runes + `…` → **≤200 runes**. **Recorded divergence:** the reference cuts **bytes** and marks with **three ASCII dots** (its `[:186]+"..."` = 189 *bytes*; `[:197]+"..."` = 200 *bytes*, cut-then-fold); tellme's rendered **rune** totals equal 189/200 while the glyph differs (+2 rendered bytes for ASCII input). The false `truncateToCap` citation is struck — the real precedents are `truncateToBudget` (`internal/infrastructure/tools/filesystem.go`) and `truncateBytes` (`internal/infrastructure/mcp/naming.go`).
+- **G4 — `[Tool Output]` is bounded-and-stopped, not "unbounded".** `AgentLoop.callByteBudget` (1,000,000 B at the shipped budget) makes `runCaptured` set `trimmed` and `abortCapture`→`killGroup` (SIGKILL) — the byte budget **ends the stream and kills the producer**. FR-011 is restated: the stream carries every complete line the child produces **up to that call's round-024 byte budget**, after which the process group is **stopped** (the existing `trimmed` outcome + `TruncationMarker`); the bound is observable as a **stop, not a cap**. `output_file` calls (`runToFile`) emit **no** `[Tool Output]` block (their bytes never enter memory). A **trailing partial line is dropped, not flushed** (reference parity). The "deliberate CTRL+C signal" rationale is withdrawn as unachievable.
+- **G5 — the tail trails the answer.** The existing Rule "the post-turn status trails the answer" (`presenting-the-post-turn-status.feature`) would break on a 1-call plain turn under a uniform per-call tail. **Last-call deferral**: the final call's tail is emitted **after** `writeAnswer`, so the closing status still trails the answer.
+- **G6 — the reference tail is per call (A5's single-tail claim is withdrawn).** The status middleware wraps **every** phase processor; `ExecutionStep` returns `NextPhase: PhasePersisting` on both exits; `Engine.Run` allocates a fresh Turn per call ⇒ **N calls = N tails**. Per-call tails are reinstated (each call's grouped reasons + measured payload + metrics + `Ready`), with G5's final-call deferral. The header frame carries the **same** `N` per prompt? — **No (corrected):** `GuardStep` recomputes `Turn.SessionTurnsAtStart` per Turn, so the reference's number **advances within a prompt**; tellme's k-th frame carries `prior-calls + k`.
+- **G7 — argument ordering + number rendering.** Decode `Arguments` with `json.Decoder` `UseNumber()`; **remove `reason` first**; sort the remaining keys **ascending** (byte-wise); render `key: value` joined by `, `; numbers render their **raw literal** (`1000000`, never `1e+06`), strings unquoted, booleans/`null` literal, arrays/objects compact. Unparseable arguments → `[Tool Action] <tool>()`. **Recorded divergence** from the reference's `%v`-on-`float64`. Ordering is a **presentation** rule in the pure `internal/ui` formatter; it never mutates `tc.Arguments` or the value fed back to the provider (round-014 replay fidelity).
+- **G8 — single-writer spinner yield.** `[Tool Output]` lines come from **two tool-owned `io.Copy` goroutines** while the loop is blocked in `tool.Execute`; `BeforeToolLog`/`AfterToolLog` are loop-goroutine-only and `deactivate()`'s positional `lastRows` clear cannot be issued from a tool goroutine. The block is **yielded once per call**: the presenter clears/stops the spinner **before** the child starts; the sink owns `stderr` exclusively for the whole block (its own mutex serialising the two copy goroutines); the presenter resumes after the closing separator. The block renders **unconditionally** (pause/resume is a no-op when the spinner is gated off). Consequence: the spinner is **not visible** while a shell command streams (reference parity), and the turn-scoped elapsed survives (round-019 D4).
+- **G9 — `Step i/M` unit.** `MAX_TOOL_LOOP` bounds **executed tool rounds**, so a bound-reached call must not render `Step 1001/1000`. `i` and `M` are both in **executed-round** units; the `[Tool Engine]` line is emitted at the round's **execution site** (after the `i >= maxLoops` check) so `1 ≤ i ≤ M` holds **by construction**; the bound-reached call renders its **frame** but **no** `[Tool Engine]` line. **Recorded divergence**: the reference guards on the call index before inference, so an over-bound call is never made/framed.
+- **G10 — injected estimator seam.** `AgentLoop` has no persona (the adapter owns it), so the per-call pre-flight estimate is an injected pure seam **`AgentLoop.PayloadEstimate func(messages []llm.Message) int`** (nil ⇒ no estimate), set in `runTurn` with a closure capturing `res.Person` + `agent.ToolDefs(reg)` (the augmented registry). The loop passes the **fused** `base+turn` slice (not `llm.Request`, so the adapter's prompt-vs-messages rule is not duplicated). Call 1's value is byte-identical to today's `emitPayloadStatus`; calls 2..k grow monotonically. It is the **only** path to that number (`emitPayloadStatus`'s hard-wired call is retired for calls).
+
+**Recorded ADR**: `docs/decisions/0005-tool-call-log-parity.md` (observer-port extension, the `PayloadEstimate` seam, the per-call cadence + final-call deferral + the display/persistence divergence, and the sorted-keys / `json.Number` / rune-cap divergences).
+
+**Scope note**: a **tool-call diagnostic rendering** round, not a capability round. It reshapes what tellme writes to `stderr` during a tool-using turn and how the turn's status frames are laid out. It changes **no** tool schema, tool result, provider transport, session-history record shape, CLI flag, exit code, or `stdout` byte. It **supersedes** round 022's single-line `[Tool]` log and its blank-line rule, and re-cuts rounds 017/023/027's turn-chrome cadence to **per AI call**.
 
 ---
 
@@ -31,134 +48,148 @@
 
 As a developer reading tellme's terminal, I want each tool call shown the way tell-me-go shows it — a step counter, the reason, the action (tool + arguments), and the result — so I can see *what* the agent ran and *with what arguments*, not just the tool name.
 
-**Why this priority**: it is the operator's primary request and the substance of the feature; without it nothing else in the round has value.
+**Why this priority**: the operator's primary request and the substance of the feature.
 
-**Independent verification**: run a tool-using turn (scripted provider asks for a tool with `reason` + args); assert `stderr` carries, in order, `[HH:MM:SS] [Tool Engine] Step i/M`, `[HH:MM:SS] [Tool Reason] <reason>`, `[HH:MM:SS] [Tool Action] <tool>(k: v)`, `[HH:MM:SS] [Tool Result] <tool>: <snippet>`, and — at the post-call status — a grouped `[HH:MM:SS] [Tool Reason] <reason>`; assert no round-022 `[Tool] <name> - <reason>` line remains.
+**Independent verification**: run a tool-using turn (scripted provider asks for a tool with `reason` + args); assert `stderr` carries, in order, `[Tool Engine] Step i/M`, `[Tool Reason] <reason>`, `[Tool Action] <tool>(sorted k: v)`, `[Tool Result] <tool>: <snippet>`, and a grouped `[Tool Reason]` at the post-call tail; assert no round-022 `[Tool] <name> - <reason>` line remains.
 
 **Acceptance Scenarios**:
 
-1. **Given** a tool-using turn, **When** the loop runs a tool round, **Then** `stderr` carries `[HH:MM:SS] [Tool Engine] Step <i>/<M>` (i = 1-based round index, M = the effective loop bound) and, per call, `[Tool Reason]` then `[Tool Action] <tool>(<args>)`.
-2. **Given** a call whose arguments carry a top-level `reason`, **When** it is logged, **Then** the `reason` renders as its own `[Tool Reason]` line and is **excluded** from the `[Tool Action]` argument list.
-3. **Given** an argument value longer than 189 characters, **When** the action is rendered, **Then** that value is truncated to 189 chars followed by `…`.
-4. **Given** a completed call with a textual result, **When** the result is rendered, **Then** `stderr` carries `[HH:MM:SS] [Tool Result] <tool>: <snippet>`, the `Text` folded to a single line (newlines → spaces) and truncated to 200 chars followed by `…`.
-5. **Given** a round with several tool calls, **When** the round completes, **Then** each call's `[Tool Reason]` precedes its `[Tool Action]` (interleaved per call), and **all** of the round's reasons are re-emitted, grouped, as `[Tool Reason]` lines at the post-call status (the second occurrence), before the measured payload line.
+1. **Given** a tool-using turn, **When** the loop **executes** a tool round, **Then** `stderr` carries `[HH:MM:SS] [Tool Engine] Step <i>/<M>` (i = 1-based round index, M = the effective `MAX_TOOL_LOOP`) and, per call, `[Tool Reason]` then `[Tool Action] <tool>(<args>)`; and a call that executes **no** round emits **no** `[Tool Engine]` line.
+2. **Given** a call whose arguments carry a top-level `reason`, **When** it is logged, **Then** the `reason` renders as its own `[Tool Reason]` line and is **excluded** from the `[Tool Action]` argument list (and **not counted** in the sort).
+3. **Given** an argument value whose folded length exceeds 189 runes, **When** the action is rendered, **Then** the rendered value is **≤189 runes**: the first 188 runes + one U+2026 `…`; the cut is on a rune boundary.
+4. **Given** a completed call with a textual result, **When** the result is rendered, **Then** `stderr` carries `[HH:MM:SS] [Tool Result] <tool>: <snippet>` — the `Text` folded (newlines → spaces) **then** truncated iff > 200 runes → first 199 runes + `…` (**≤200 runes**), rune-safe.
+5. **Given** a round with several tool calls, **When** the round completes, **Then** each call's `[Tool Reason]` precedes its `[Tool Action]` (interleaved per call), and at the post-call tail the round's reasons are re-emitted, grouped, before the measured payload line.
+6. **Given** arguments that do not parse as a JSON object, **When** the action is rendered, **Then** the argument list is empty: `[Tool Action] <tool>()`.
 
 **Functional Requirements**:
 
-- **FR-001**: The tool-call diagnostic on `stderr` MUST begin each round with `[HH:MM:SS] [Tool Engine] Step <i>/<M>`, where `i` is the 1-based index of the round within the call and `M` is the effective tool-loop bound (`MAX_TOOL_LOOP`, default `1000`).
-- **FR-002**: For each call in the round, tellme MUST emit `[HH:MM:SS] [Tool Reason] <reason>` immediately before the call's `[Tool Action]` line, when the call's top-level `reason` is a non-empty string.
-- **FR-003**: For each call, tellme MUST emit `[HH:MM:SS] [Tool Action] <tool>(<args>)`, where `<args>` is the call's arguments rendered as `key: value`, **excluding the `reason` key**, joined by `, `, each value truncated to 189 characters followed by `…` when longer.
-- **FR-004**: For each completed call, tellme MUST emit `[HH:MM:SS] [Tool Result] <tool>: <snippet>`, where `<snippet>` is the result's text folded to a single line (newlines replaced by spaces) and truncated to 200 characters followed by `…` when longer; a binary result MUST instead render `[Tool Result] <tool>: Received <mime> (<n> bytes)`.
-- **FR-005**: At the post-call status, tellme MUST re-emit the round's reasons, grouped, as `[HH:MM:SS] [Tool Reason] <reason>` lines — after the round's results and immediately before the measured payload line (the second `[Tool Reason]` occurrence).
-- **FR-006**: Every tool call carries a top-level `reason`; the log therefore always renders `[Tool Reason]`. A call whose `reason` is empty/absent MUST render **no** `[Tool Reason]` line (defensive tolerance) — the round-022 "reports a call that states no reason" behavior is **retired** from the truth.
-- **FR-007**: The lines MUST be emitted one per event, in call order per round, each prefixed with a `[HH:MM:SS]` (24-hour, zero-padded) wall-clock timestamp from the shared clock seam.
+- **FR-001**: The tool-call diagnostic MUST emit `[HH:MM:SS] [Tool Engine] Step <i>/<M>` once per **executed** tool round, at that round's execution site (immediately before its calls, after the loop bound check); `i` = the 1-based round index within the turn, `M` = the effective tool-loop bound (`MAX_TOOL_LOOP`, default `1000`); `1 ≤ i ≤ M` MUST hold. A call that requests tools but executes none MUST emit **no** `[Tool Engine]` line (G9). Recorded divergence: the reference guards on the AI-call index before inference.
+- **FR-002**: For each call, tellme MUST emit `[HH:MM:SS] [Tool Reason] <reason>` (from the loop's existing top-level `reason` extraction) immediately before the call's `[Tool Action]` line, when the `reason` is non-empty.
+- **FR-003**: For each call, tellme MUST emit `[HH:MM:SS] [Tool Action] <tool>(<args>)`, where `<args>` is: the call's `Arguments` decoded with `json.Decoder` + `UseNumber()`; the `reason` key **removed first**; the remaining keys **sorted ascending**; each rendered `key: value` and joined by `, `. Values render: numbers via `json.Number.String()` (the raw literal — `1000000`, never `1e+06`), strings unquoted, booleans/`null` literal, arrays/objects as compact JSON (source order inside nested values). The **cap is a maximum total rendered rune length of 189**: fold `\n`/`\r`→space first, truncate iff the folded rune count **> 189**, keep the first **188** runes + exactly one **U+2026 `…` counted inside the cap**, cut on a **rune boundary**. Unparseable `Arguments` render the argument list as empty (`<tool>()`). Ordering/value rendering MUST NOT mutate the call's arguments or the value fed back to the provider (round-014 replay fidelity). (G3, G7)
+- **FR-004**: For each completed call, tellme MUST emit `[HH:MM:SS] [Tool Result] <tool>: <snippet>`, where `<snippet>` is the result's text folded (newlines → spaces) **first**, then truncated iff the folded rune count **> 200** to the first **199** runes + one **U+2026** (**≤200 runes** total), cut on a **rune boundary**. (G3) A binary result is **not** rendered specially — a binary file surfaces as the readers' inline text marker `(Binary file, cannot display as text)` on this same line (the reference's `Received <mime> (<n> bytes)` branch is **struck**: the `Tool` port has no binary channel).
+- **FR-005**: At the **post-call tail** of each call, tellme MUST re-emit the round's reasons, grouped, as `[HH:MM:SS] [Tool Reason] <reason>` lines — immediately before that call's measured payload line (the second `[Tool Reason]` occurrence).
+- **FR-006**: Every tellme tool call carries a top-level `reason`, so `[Tool Reason]` always renders. A call whose `reason` is empty/absent MUST render **no** `[Tool Reason]` line (defensive tolerance); round 022's "reports a call that states no reason" behavior is **retired**.
+- **FR-007**: The lines MUST be emitted one per event, in call order within a round, each prefixed with a `[HH:MM:SS]` (24-hour, zero-padded) timestamp from the shared clock seam.
 
 ---
 
-### User Story 2 - A status block per AI-endpoint call (Priority: P1)
+### User Story 2 - A status frame per AI-endpoint call, with the tail trailing the answer (Priority: P1)
 
-As a developer, I want tellme's turn output framed the way tell-me-go frames it — one status block **per AI-endpoint call** — so the tool activity of each inference round sits inside its own block, with its own payload/metrics/`Ready` summary.
+As a developer, I want tellme's turn output framed the way tell-me-go frames it — one **frame** per AI-endpoint call, with the closing status **once per call** and the final one trailing the answer.
 
-**Why this priority**: the per-call cadence is what makes the tool log legible "like tell-me-go"; it is bracket to US1's content and is required for the reference reading.
+**Why this priority**: the per-call cadence is what makes the tool log legible "like tell-me-go".
 
-**Independent verification**: run a tool-using turn (≥2 inference rounds); assert the output contains more than one `╭─⠿ Turn N - <mode>` header and a matching `╰─⠿ Ready` per AI call, and that a tool-less turn still shows exactly one block.
+**Independent verification**: run a tool-using turn (≥2 inference rounds); assert the output contains a `╭─⠿ Turn N` frame per AI call (N advancing), a per-call tail (grouped `[Tool Reason]` + measured payload + metrics + `╰─⠿ Ready`), and that the **final** call's tail appears **after** the answer; a tool-less turn shows exactly one frame.
 
 **Acceptance Scenarios**:
 
-1. **Given** a turn that makes more than one AI-endpoint call, **When** it runs, **Then** each call's block (rule + `╭─⠿ Turn N - <mode>` + pre-flight payload + post-call + `╰─⠿ Ready`) appears around that call's tool activity.
-2. **Given** a turn that makes exactly one AI-endpoint call (a plain answer), **When** it runs, **Then** exactly one block appears — unchanged from today.
+1. **Given** a turn that makes more than one AI-endpoint call, **When** it runs, **Then** each call's status **frame** (rule + `╭─⠿ Turn N - <mode>` + pre-flight payload) appears at that call's begin, and each call emits its **tail** (grouped reasons + measured payload + metrics + `╰─⠿ Ready`) at its end.
+2. **Given** the final AI-endpoint call, **When** it ends, **Then** its tail is emitted **after** the answer bytes (the closing status trails the answer).
+3. **Given** a 1-call plain turn, **When** it runs, **Then** exactly one frame renders and the metrics + `Ready` appear **after** the answer.
+4. **Given** a prompt-bearing turn, **When** each call's pre-flight payload line is emitted, **Then** its estimate is computed **before** that call and is **non-decreasing** across the turn.
 
 **Functional Requirements**:
 
-- **FR-008**: The status block (rule + `╭─⠿ Turn N - <mode>` header + pre-flight payload line + post-call reasons/measured payload/metrics + `╰─⠿ Ready`) MUST be emitted once per **AI-endpoint call**, not once per prompt.
-- **FR-009**: The header/payload/metrics/`Ready` **line formats** MUST stay tellme's existing round-018/027 formats (this round changes only the cadence and the tool-call rendering).
+- **FR-008**: tellme MUST emit the status **frame** (rule + `╭─⠿ Turn N - <mode>` + pre-flight payload line) once per **AI-endpoint call**, at call begin; `N` = the session's prior AI-call count + `k` (the 1-based call index within the turn) — the number **advances within a prompt**. tellme MUST emit the call's **tail** (grouped `[Tool Reason]` lines + measured payload line + metrics line + `╰─⠿ Ready`) at that call's end, with the **final** call's tail emitted **after** the answer bytes (last-call deferral). (G1, G5, G6)
+- **FR-009**: the header / pre-flight payload / measured payload / metrics / `Ready` **line formats** MUST stay tellme's existing round-018/027 formats (this round changes only the cadence and the tool-call rendering).
+- **FR-010a**: each call's pre-flight payload estimate MUST be computed **before** that call by an injected `AgentLoop.PayloadEstimate func(messages []llm.Message) int` seam (nil ⇒ no estimate), fed the loop's fused `base+turn` wire slice; call 1's value MUST be byte-identical to today's estimate, and calls 2..k MUST grow monotonically with the appended turn. (G10)
+- **FR-010b**: the persistence/accounting flush MUST stay **one** `AppendBatch` per turn and the persistence gate MUST stay the **final** call's `Reported` flag; the persisted record set is the `Reported` subset of `result.Calls` on a completed turn and **empty** on every error exit. The per-call tail's `Ready` session field is a **recorded display-only divergence**: on a failed turn, or a completed turn whose final call reports no usage, it names session totals that will never be persisted. (G2)
 
 ---
 
 ### User Story 3 - Live `[Tool Output]` for shell commands (Priority: P2)
 
-As a developer, I want `execute_command`'s live output streamed to the terminal as `[Tool Output]` lines the way tell-me-go does, so I get a clear, real-time signal (and can CTRL+C a runaway command).
+As a developer, I want `execute_command`'s output streamed to the terminal as `[Tool Output]` lines the way tell-me-go does, so I get a real-time view (and can CTRL+C a runaway command).
 
-**Why this priority**: it is the element the operator explicitly called out as missing; it builds on US1's block and is the most novel sub-capability. It ranks below US1/US2 because it concerns one tool class, but it is a first-class requirement.
+**Why this priority**: the element the operator explicitly called out as missing.
 
-**Independent verification**: run a turn whose scripted provider asks for `execute_command` with a benign command that prints output; assert `stderr` carries the `[Tool Output]` header, separators, and the command's output lines.
+**Independent verification**: run a turn whose scripted provider asks for `execute_command` printing output; assert the `[Tool Output]` header, separators, and the output lines.
 
 **Acceptance Scenarios**:
 
-1. **Given** a tool round that runs `execute_command`, **When** the command executes, **Then** `stderr` carries `[HH:MM:SS] [Tool Output] Executing... (Output shown below)`, a hyphen separator line, the command's stdout/stderr **line by line as they arrive**, and a closing hyphen separator line.
-2. **Given** a command producing a large amount of output, **When** it runs, **Then** every line is printed (no cap) — the deliberate CTRL+C signal.
-3. **Given** a shell tool streaming output while the round-019 spinner is active, **When** an output line arrives, **Then** the spinner yields the line, the output is printed, and the spinner redraws.
+1. **Given** a tool round that runs a shell-class call **without** `output_file`, **When** it executes, **Then** `stderr` carries `[HH:MM:SS] [Tool Output] Executing... (Output shown below)` (emitted at call begin, before the child starts), a separator line, the command's stdout/stderr **line by line as they arrive**, and a closing separator line.
+2. **Given** a command that produces more than the effective byte budget, **When** it runs, **Then** the stream carries the lines up to the budget and then **stops** (the process group is stopped; the result carries the truncation marker) — it is not an unbounded print.
+3. **Given** a call that carries `output_file`, **When** it runs, **Then** **no** `[Tool Output]` block renders.
+4. **Given** a trailing partial line (no terminating newline before the child exits/stops), **Then** it is **dropped**, not flushed.
 
 **Functional Requirements**:
 
-- **FR-010**: When a round runs `execute_command`, tellme MUST emit `[HH:MM:SS] [Tool Output] Executing... (Output shown below)`, then a separator line, then each complete stdout/stderr line as it arrives (prefixed `[HH:MM:SS] [Tool Output] `), then a closing separator line.
-- **FR-011**: The `[Tool Output]` stream MUST be **unbounded** (no cap) and MUST NOT alter the bounded tool result.
-- **FR-012**: The round-019 live spinner MUST be **kept** and drawn inside the `[Tool Output]` block; it yields the line to an output line and redraws thereafter.
+- **FR-010**: When a round runs a **shell-class call that does not carry `output_file`**, tellme MUST emit, in order, the header `[HH:MM:SS] [Tool Output] Executing... (Output shown below)` (at call begin, before the child starts), a separator line, each **complete** stdout/stderr line as it arrives (prefixed `[HH:MM:SS] [Tool Output] `), and a closing separator line. A shell-class call that carries `output_file` MUST emit **no** block. A trailing partial line MUST be **dropped, not flushed**. (G4)
+- **FR-011**: The `[Tool Output]` stream MUST be **bounded by the round-024 resource contract**: it carries every complete line the child produces **up to that call's byte budget**, after which the process group is **stopped** (the existing `trimmed` outcome + `TruncationMarker` in the result); the bound MUST be observable as a **stop, not a cap**. ("Unbounded" is unachievable and MUST NOT be specified.) (G4)
+- **FR-012**: The round-019 spinner MUST be **kept** and, for a shell command, **yielded once per call** (single writer): the presenter clears/stops the spinner before the child starts; the sink owns `stderr` exclusively for the whole block (serialising the two copy goroutines with its own mutex); the presenter resumes after the closing separator. The block MUST render **unconditionally**, including when the spinner is gated off (non-TTY / `-r`), where the pause/resume is a no-op. (G6, G8)
 
 **Non-Functional Requirements**:
 
-- **NFR-001**: `[Tool Output]` is a **shell-class** surface only — in tellme, `execute_command`. Readers/writers/`list_skills`/MCP tools MUST NOT emit it (they render only via `[Tool Result]`).
+- **NFR-001**: `[Tool Output]` is a **shell-class** surface only — in tellme, `execute_command`. Readers/writers/`list_skills`/MCP tools MUST NOT emit it.
 
 ---
 
 ### Edge cases
 
-- **A round with several tool calls** → one `[Tool Engine]` per round; `[Tool Reason]`/`[Tool Action]` interleaved per call; `[Tool Result]` per call; the round's reasons re-emitted grouped at the post-call status (FR-005).
-- **A long argument value** → capped at 189 chars + `…` (FR-003).
-- **A long textual result** → folded single-line, capped at 200 chars + `…` (FR-004).
-- **A binary result** → `[Tool Result] <tool>: Received <mime> (<n> bytes)` (FR-004).
-- **A command producing unbounded output** → printed in full (FR-011).
-- **A call whose `reason` is empty/absent** → no `[Tool Reason]` line (defensive; not expected — all calls carry `reason`, FR-006).
-- **A tool-less turn** → exactly one status block, no tool lines (FR-008).
-- **The `-i` submit / piped / positional surfaces** → all carry the rendering; `-r` does not suppress it (Q7).
-- **Offline paths** (`--version`, `-d`, `--tool-usage`, prompt-less `--new`, boot) → unaffected (FR-015).
+- **A round with several tool calls** → one `[Tool Engine]` per round; `[Tool Reason]`/`[Tool Action]` interleaved per call; `[Tool Result]` per call; grouped reasons at the post-call tail.
+- **A long argument value** → ≤189 runes (188 + U+2026), rune-safe (FR-003).
+- **A long textual result** → folded, ≤200 runes (199 + U+2026), rune-safe (FR-004).
+- **Arguments that do not parse** → `[Tool Action] <tool>()` (FR-003).
+- **A binary result** → the readers' inline text marker `(Binary file, cannot display as text)` on the `[Tool Result]` line (the special branch is struck, FR-004).
+- **A command producing unbounded output** → printed up to the byte budget, then **stopped** (FR-011).
+- **An `output_file` call** → no `[Tool Output]` block (FR-010).
+- **A trailing partial line** → dropped (FR-010).
+- **A call whose `reason` is empty/absent** → no `[Tool Reason]` line (defensive; FR-006).
+- **A tool-less turn** → exactly one frame, no tool lines, tail after the answer.
+- **A bound-reached turn** → the final call renders a **frame but no `[Tool Engine]` line**; the turn fails with `the tool request failed` (exit 7) and persists **nothing** (FR-001, FR-008, FR-010b).
+- **A failed turn** → the already-shown per-call `Ready` session totals exceed what `us.Totals()` will report next; the **next prompt's** frame numbering restarts at `prior + 1` (the failed turn persists nothing) — a recorded display/accounting skew (FR-010b).
+- **`stdout`/`stderr` interleave inside a `[Tool Output]` block** → non-deterministic (two `io.Copy` goroutines); assertions use **presence + per-stream relative order**, never a global line order.
+- **The `-i` submit / piped / positional surfaces** → all carry the rendering; `-r` does not suppress it.
+- **Offline paths** → unaffected.
 
 ### Key entities
 
-- **Tool-call log block** — the `[Tool Engine]`/`[Tool Reason]`/`[Tool Action]`/`[Tool Output]`/`[Tool Result]` lines tellme writes to `stderr` for one tool round.
-- **Status block** — the per-AI-call frame (rule + header + pre-flight payload + post-call + `Ready`) that contains the tool-call log block and the answer.
-- **`[Tool Output]` stream** — the live, unbounded per-line stream of an `execute_command` child's stdout/stderr.
-- **Tool call** — one model-requested invocation; its top-level `reason` string and its arguments JSON are the values rendered on the log lines.
+- **Tool-call log block** — the `[Tool Engine]`/`[Tool Reason]`/`[Tool Action]`/`[Tool Output]`/`[Tool Result]` lines for one tool round.
+- **Status frame** — the per-AI-call bracket (rule + `╭─⠿ Turn N - <mode>` + pre-flight payload) and its closing **tail** (grouped `[Tool Reason]` + measured payload + metrics + `╰─⠿ Ready`).
+- **`[Tool Output]` stream** — the live, byte-bounded, stop-on-overflow per-line stream of an `execute_command` child's stdout/stderr.
+- **Tool call** — one model-requested invocation; its top-level `reason` and its `Arguments` are the values rendered.
 
 ## Requirements *(mandatory)*
 
 ### Global requirements
 
-#### Functional Requirements
-
-- **FR-013**: The answer stream `stdout` MUST stay **byte-exact**; every tool-call and status line MUST be written to the diagnostic stream (`stderr`).
+- **FR-013**: `stdout` MUST stay **byte-exact**; every tool-call and status line MUST be written to `stderr`.
 - **FR-014**: The rendering MUST appear on all prompt-bearing surfaces (positional / piped / `-i` submit); `-r` MUST NOT suppress the tool-call lines.
 - **FR-015**: The offline paths MUST remain unchanged (no tool-call rendering, no new output).
-- **FR-016**: The round MUST NOT change tellme's tool surface, tool schemas (including the required `reason` argument), tool results, the tool resource contract, the provider transport, the persisted history record, the frozen class-phrase vocabulary, or the exit-code set.
+- **FR-016**: The round MUST NOT change tellme's tool surface, tool schemas (incl. the required `reason`), tool results, the tool resource contract, the provider transport, the persisted `history.jsonl` record shape, the frozen class-phrase vocabulary, or the exit-code set.
+- **FR-017**: The reference's own status-block line formats (its cost/timing metrics line, its `Ready` footer without ` - ` groups) MUST NOT be adopted (Q4).
 
-#### Non-Functional Requirements
+### Non-Functional Requirements
 
-- **NFR-002**: tellme MUST remain **POSIX-only** (no Windows variant).
-- **NFR-003**: There MUST be **no security/consent gate** (a settled exclusion); the reference's `[Bypassed]` line is **not** reproduced.
-- **NFR-004**: The round MUST be **stdlib-only** — no new module dependency (`go.mod` / `go.sum` unchanged).
-- **NFR-005**: The rendering MUST be exercisable **hermetically** (offline, no pty, injected streams/clock), consistent with the existing harness.
+- **NFR-002**: **POSIX-only** (no Windows variant).
+- **NFR-003**: **No security/consent gate** (a settled exclusion); the reference's `[Bypassed]` line is **not** reproduced.
+- **NFR-004**: **stdlib-only** — no new module dependency (`go.mod` / `go.sum` unchanged).
+- **NFR-005**: The rendering MUST be exercisable **hermetically** (offline, no pty, injected streams/clock/estimator).
 
 ### Out of scope (recorded)
 
-- The reference's pre-turn `[Info] Starting chat...` line **stays out of scope** (round-017 recorded divergence).
-- The reference's **`[Bypassed]`** security line is **not** reproduced (no security layer).
-- The reference's **status-block line formats** (its metrics line with `($cost) [timing]`, its `Ready` footer without ` - ` groups) are **not** adopted (Q4).
+- The reference's pre-turn `[Info] Starting chat...` line (round-017 divergence).
+- The reference's `[Bypassed]` security line.
+- The reference's status-block line formats (Q4).
+- Reference-shaped binary reporting (`Received <mime> (<n> bytes)`) — a tool-result change (FR-016).
 
 ## Success criteria *(mandatory)*
 
-- **SC-001**: A tool-using run's `stderr` carries, per round, `[Tool Engine] Step i/M`, `[Tool Reason]`, `[Tool Action] <tool>(<args>)` (reason excluded, values capped at 189), and `[Tool Result] <tool>: <snippet>` (single line, capped at 200) — and no round-022 `[Tool] <name> - <reason>` line (US1).
-- **SC-002**: The round's reasons reappear, grouped, at the post-call status (the second `[Tool Reason]`), before the measured payload line (US1/FR-005).
-- **SC-003**: A tool-using turn shows one status block per AI-endpoint call (multiple headers + `Ready` footers); a tool-less turn shows exactly one (US2).
-- **SC-004**: `execute_command` streams a live, unbounded `[Tool Output]` block (header + separators + per-line output) with the spinner drawn inside it (US3).
-- **SC-005**: `stdout` is byte-identical to before; the offline paths are unchanged; no new dependency; the tool surface, class-phrase vocabulary, and exit codes are unchanged.
-- **SC-006**: `make verify`, the E2E suite, and the Gherkin/DSL topology audit are green, and a falsifiability witness (reverting a rendered element) fails the corresponding scenario.
+- **SC-001**: A tool-using run's `stderr` carries, per round, `[Tool Engine] Step i/M`, `[Tool Reason]`, `[Tool Action] <tool>(sorted k: v)` (reason excluded, value ≤189 runes), and `[Tool Result] <tool>: <snippet>` (single line, ≤200 runes) — no round-022 `[Tool]` line (US1). Unparseable args → `<tool>()`.
+- **SC-002**: The round's reasons reappear, grouped, at the post-call tail before the measured payload line (US1/FR-005).
+- **SC-003**: A tool-using turn shows a **frame per AI call** (`╭─⠿ Turn N`, N advancing) with a per-call tail; the **final** tail trails the answer; a tool-less turn shows exactly one frame (US2).
+- **SC-004**: `execute_command` (non-`output_file`) streams a live `[Tool Output]` block (header + separators + per-line output), **bounded-and-stopped** at the byte budget; `output_file` emits no block (US3).
+- **SC-005**: `stdout` byte-exact; offline paths unchanged; no new dependency; tool surface / class-phrase vocabulary / exit codes unchanged.
+- **SC-006**: `make verify`, the E2E suite, and the Gherkin/DSL topology audit are green, and each pinned element has a **falsifiability witness** (reverting it fails the corresponding scenario) — including: a 190-rune argument renders 189 runes; rune-boundary cut; sorted keys vs source order; `json.Number` vs `%v`; no engine line on the bound-reached call; the frozen estimator seam; `output_file` block suppression; the stop-vs-cap wording; the per-call frame count; tail-before-answer rejected.
 
 ## Assumptions
 
-- The reference's line templates and constants are adopted **verbatim** (Q3): `[Tool Engine] Step i/M`; `[Tool Reason]`; `[Tool Action] <tool>(k: v, …)` (`reason` excluded; `%v`; values capped at 189 + `…`); `[Tool Result] <tool>: <snippet>` (`Text`; newlines → spaces; capped at 200 + `…`; binary → `Received <mime> (<n> bytes)`).
+- **The pins above (G1–G10) are normative and supersede the corresponding earlier text.**
 - The `[Tool Output]` header text is `Executing... (Output shown below)` and the separator is the reference's fixed hyphen literal — exact literals pinned in `/axb-dsl-refine`.
-- The `[HH:MM:SS]` timestamps reuse tellme's shared `formatClock` seam (round 022).
-- tellme's status-block line formats remain unchanged (Q4); this round is a rendering/cadence change only.
-- Every tellme tool call carries `reason` (tellme's tools declare it required, round 021 D2 onward); the renderer stays defensively tolerant of an empty reason (FR-006).
-- The round touches `specs/truth/techstack.md` (the tool-loop log row), `specs/truth/features/cli/chat/watching-the-tool-loop.feature` + `chat/dsl.md` (MODIFY); `/axb-api-plan` is **NOOP**; `/axb-data-plan` is **NOOP** (the rendering is not persisted state); `/axb-system-analysis` records the CLI end carried to `/axb-dsl-refine`.
-- **Recorded divergence**: this round **removes** the round-022 operator-chosen divergence (single-line log, no args/result) and restores the reference's decomposed rendering — an operator-directed reversal, recorded rather than silent.
+- The `[HH:MM:SS]` timestamps reuse tellme's shared `formatClock` seam.
+- Every tellme tool call carries `reason`; the renderer stays defensively tolerant of an empty reason (FR-006).
+- The emitting seams: a call-begin hook `(callIndex, estimatedPayload)` and a call-end hook `(callIndex, usage, roundReasons, measuredPayload, final)` on the existing `agentport.LoopObserver` (which becomes a composite so the CLI can both render the block and drive the spinner); the CLI remains the only renderer/accounting owner; the `[Tool Output]` sink is a struct-bound, prompt-path-lazily-bound per-line writer on the command tool (round-029 TD-1 / round-033 FR-009 precedent), so `agentTools()` stays parameterless and read-free.
+- **Truth scope (explicit MODIFY set)** — `specs/truth/techstack.md` (Agent tool loop · Turn chrome · Post-turn status lines · Turn progress spinner · `execute_command` · Read-only filesystem tools rows); `specs/truth/features/cli/chat/`: `watching-the-tool-loop.feature`, `presenting-the-turn.feature`, `presenting-the-post-turn-status.feature`, `presenting-the-progress-spinner.feature`, `reporting-the-payload-status.feature`, `estimating-the-wire-payload.feature`, `failing-the-tool-loop.feature`, and `chat/dsl.md`. `/axb-api-plan` is **NOOP** (no HTTP surface). `/axb-data-plan` is a **re-derived, checked NOOP** (see `truth-delta.md`). `/axb-system-analysis` records the CLI end carried to `/axb-dsl-refine`.
+- **This spec's Assumptions list replaces the earlier three-file list** (the grill found the earlier scope incomplete).
+- **Recorded divergences** (all documented above): the decomposed `[Tool Engine]`-family shape (round 022's reversal); the rune-cap vs byte-cut + U+2026 vs ASCII dots; sorted-keys + `json.Number` vs map-iteration + `%v`; the bounded-and-stopped stream vs the reference's un-terminated `warnWriter`; the per-call cadence + final-call deferral + the display/persistence divergence; `output_file` → no block; trailing partial line dropped; the `Step i/M` executed-round unit vs the reference's call index.
+- This is a **CLI-interface** round: `/axb-spec-by-example` renders the acceptance journeys; `/axb-dsl-refine` is the CLI end contract owner.
