@@ -17,6 +17,7 @@ func TestValidateMCPServers_RemoteEntryRules(t *testing.T) {
 		{"valid auto without token", map[string]MCPServerConfig{"gh": {URL: "https://x"}}, false},
 		{"valid none", map[string]MCPServerConfig{"gh": {URL: "https://x", Auth: "none"}}, false},
 		{"valid basic", map[string]MCPServerConfig{"gh": {URL: "https://x", Auth: "basic", Token: "t", Username: "u"}}, false},
+		{"basic without username", map[string]MCPServerConfig{"gh": {URL: "https://x", Auth: "basic", Token: "t"}}, true},
 		{"bad key", map[string]MCPServerConfig{"Bad_Key": {URL: "https://x"}}, true},
 		{"missing url", map[string]MCPServerConfig{"gh": {Auth: "none"}}, true},
 		{"unknown auth", map[string]MCPServerConfig{"gh": {URL: "https://x", Auth: "weird"}}, true},

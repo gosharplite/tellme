@@ -11,26 +11,21 @@ import (
 
 // MCPDefaultTimeout is the default per-call timeout for a networked MCP tool
 // (the execute_command class — NOT the 30 s local-reader default), overridable
-// by the server's TIMEOUT (round-032 FR-021).
-const MCPDefaultTimeout = 300 * time.Second
-
-// MCPTimeoutCeiling is the contract's FIXED timeout ceiling (mirrors
-// agent.TimeoutCeiling): a server-set TIMEOUT must not defeat it (round-032
-// FR-021 / TD5 — distinct from the contract's token-bound ceiling).
-const MCPTimeoutCeiling = 7200 * time.Second
+// by the server's TIMEOUT (round-032 FR-021). It aliases the shared contract
+// default (round-032 implementation-review F4).
+const MCPDefaultTimeout = domaintools.DefaultToolTimeout
 
 // ResolveMCPTimeout resolves a server's effective tool-call timeout: the server
-// TIMEOUT (seconds) when positive, else MCPDefaultTimeout; clamped to
-// MCPTimeoutCeiling. The loop applies the same ceiling as a backstop.
+// TIMEOUT (seconds) when positive, else MCPDefaultTimeout; then clamped to the
+// contract's fixed TimeoutCeiling. It reuses the shared domain resolver so the
+// ceiling and the default→clamp policy have ONE home (round-032 F4) — a server
+// value cannot defeat the ceiling.
 func ResolveMCPTimeout(seconds int) time.Duration {
-	t := MCPDefaultTimeout
+	def := MCPDefaultTimeout
 	if seconds > 0 {
-		t = time.Duration(seconds) * time.Second
+		def = time.Duration(seconds) * time.Second
 	}
-	if t > MCPTimeoutCeiling {
-		t = MCPTimeoutCeiling
-	}
-	return t
+	return domaintools.ResolveTimeout(0, def)
 }
 
 // Tool adapts a discovered MCP tool to the domaintools.Tool port (round-032
@@ -89,6 +84,12 @@ func (t *Tool) Contract() domaintools.ToolContract {
 // the source to the byte budget (the loop keeps its own backstop). A nil args
 // object is normalised to `{}`; ANY call-time failure is a recoverable nil-error
 // result (round-032 FR-018 / TD1).
+//
+// NOTE (F8, confirmed intended): because every call-time failure is a nil-error
+// result, round-026 classifies an MCP failure as `ok` and the round-022 log line
+// shows no error — consistent with round-026's recorded forward item
+// ("recoverable inline failures count as ok"). A future distinction would need
+// an explicit error marker on the fed-back result text.
 func (t *Tool) Execute(ctx context.Context, arguments string, budget domaintools.ByteBudget) (string, error) {
 	args := map[string]interface{}{}
 	if s := strings.TrimSpace(arguments); s != "" {

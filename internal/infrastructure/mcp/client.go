@@ -118,22 +118,22 @@ func (c *client) ListTools(ctx context.Context) ([]domaintools.MCPToolDefinition
 
 // CallTool calls the named tool. Per the port's TD1/R3 invariant, EVERY
 // call-time failure (tool-level error, transport failure, or a call against a
-// closed client) is returned as a nil-error ToolResult carrying the error text,
+// closed client) is returned as a nil-error MCPToolResult carrying the error text,
 // so the loop takes the recoverable path and the run never aborts (FR-018).
 // A nil args map is normalised to {} before the wire (TD2/R2).
-func (c *client) CallTool(ctx context.Context, name string, args map[string]interface{}) (domaintools.ToolResult, error) {
+func (c *client) CallTool(ctx context.Context, name string, args map[string]interface{}) (domaintools.MCPToolResult, error) {
 	if args == nil {
 		args = map[string]interface{}{}
 	}
 	res, err := c.session.CallTool(ctx, &sdk.CallToolParams{Name: name, Arguments: args})
 	if err != nil {
-		return domaintools.ToolResult{Text: "error: " + err.Error()}, nil
+		return domaintools.MCPToolResult{Text: "error: " + err.Error()}, nil
 	}
 	text := contentText(res)
 	if res.IsError && text == "" {
 		text = "error: the tool reported a failure"
 	}
-	return domaintools.ToolResult{Text: text}, nil
+	return domaintools.MCPToolResult{Text: text}, nil
 }
 
 // Close closes the session (idempotent at the SDK layer).

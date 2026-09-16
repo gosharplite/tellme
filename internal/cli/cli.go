@@ -666,8 +666,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// assembled conversation — the resumed turns (via the shared projection,
 	// including tool steps — TD-1) plus the current prompt — measured against the
 	// payload budget. Diagnostic only, on stderr.
-	reg, closeMCP := augmentRegistryWithMCP(ctx, res, newToolRegistry(), env.stderr)
-	defer closeMCP()
+	reg := newToolRegistry()
 	assembled := append(append(make([]llm.Message, 0, len(prior)+1), agent.BuildMessages(prior)...), llm.Message{Role: "user", Content: prompt})
 	// Round-019 elapsed epoch: the spinner's turn-scoped timer starts at prompt
 	// capture — the moment the input-capture acknowledgement fires (research D4).
@@ -694,6 +693,12 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		// count (today nothing shrinks the active history mid-session).
 		emitTurnOpening(env, turnNumber(prior), res.Mode)
 	}
+	// Round 032 (F9) — discover MCP tools AFTER the turn chrome is on screen, so
+	// a slow/unreachable server's bounded wait is never silent (the header is
+	// visible while discovery runs). Discovery still precedes the pre-flight
+	// estimate, which counts the offered tools.
+	reg, closeMCP := augmentRegistryWithMCP(ctx, res, reg, env.stderr)
+	defer closeMCP()
 	emitPayloadStatus(env, res, llm.EstimatePayload(res.Person, agent.ToolDefs(reg), assembled), true)
 	if opts.chrome {
 		emitTurnGap(env)

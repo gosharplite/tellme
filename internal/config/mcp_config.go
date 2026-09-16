@@ -108,6 +108,9 @@ func validateMCPServerEntry(name string, s MCPServerConfig) (string, error) {
 		if strings.TrimSpace(s.Token) == "" {
 			return "", fmt.Errorf("%w: MCP_SERVERS.%s requires TOKEN for AUTH %q", ErrInvalidValue, name, s.EffectiveAuth())
 		}
+		if s.EffectiveAuth() == "basic" && strings.TrimSpace(s.Username) == "" {
+			return "", fmt.Errorf("%w: MCP_SERVERS.%s requires USERNAME for AUTH \"basic\"", ErrInvalidValue, name)
+		}
 	default:
 		return "", fmt.Errorf("%w: MCP_SERVERS.%s.AUTH %q is not one of auto/gh/bearer/basic/none", ErrInvalidValue, name, s.EffectiveAuth())
 	}

@@ -3,6 +3,8 @@ package mcp
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"regexp"
+	"unicode/utf8"
 )
 
 // The deterministic namespaced tool-name contract (round-032 FR-004, research
@@ -23,13 +25,26 @@ const (
 	prefixCap = 40
 )
 
+// wireToolNamePattern is the provider-side tool-name grammar. A name outside it
+// (e.g. a server tool name carrying non-ASCII or spaces) can 400 a strict
+// provider, so the discovery layer validates the namespaced name and skips an
+// unsafe one — the same untrusted-input family as the schema normalizer
+// (round-032 implementation-review F5).
+var wireToolNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,64}$`)
+
+// ValidToolName reports whether a name satisfies the wire tool-name grammar.
+func ValidToolName(name string) bool {
+	return wireToolNamePattern.MatchString(name)
+}
+
 // NamespacedName returns the deterministic, namespaced wire name for a tool a
 // server advertises: `mcp_<server>_<tool>` when that fits the 64-byte wire
 // maximum. When it does not, the tool segment is truncated to a DERIVED budget —
 // `50 - len(server)` bytes, capped at 40, floored at 0 — and an 8-hex SHA-256
 // prefix of the full tool name is appended, so the result is always ≤ 64 BYTES
 // (measured with len(), not runes) and two tools that share a truncated prefix
-// stay distinct (round-032 TD3).
+// stay distinct (round-032 TD3). The truncation is rune-safe: a multi-byte rune
+// is never split (F5).
 func NamespacedName(server, tool string) string {
 	full := mcpNamePrefix + server + "_" + tool
 	if len(full) <= maxToolNameLen {
@@ -44,9 +59,20 @@ func NamespacedName(server, tool string) string {
 	}
 	sum := sha256.Sum256([]byte(tool))
 	hash8 := hex.EncodeToString(sum[:4]) // 8 hex characters
-	truncated := tool
-	if len(truncated) > maxPrefix {
-		truncated = truncated[:maxPrefix]
-	}
+	truncated := truncateBytes(tool, maxPrefix)
 	return mcpNamePrefix + server + "_" + truncated + "_" + hash8
+}
+
+// truncateBytes returns s truncated to at most max BYTES without splitting a
+// multi-byte rune (a byte prefix that is not valid UTF-8 is backed off to the
+// last rune boundary).
+func truncateBytes(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	b := []byte(s)[:max]
+	for len(b) > 0 && !utf8.Valid(b) {
+		b = b[:len(b)-1]
+	}
+	return string(b)
 }

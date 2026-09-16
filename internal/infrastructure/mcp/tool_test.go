@@ -21,12 +21,12 @@ func (c *recordingClient) ListTools(context.Context) ([]domaintools.MCPToolDefin
 	return nil, nil
 }
 
-func (c *recordingClient) CallTool(_ context.Context, _ string, args map[string]interface{}) (domaintools.ToolResult, error) {
+func (c *recordingClient) CallTool(_ context.Context, _ string, args map[string]interface{}) (domaintools.MCPToolResult, error) {
 	c.args = args
 	if c.err != nil {
-		return domaintools.ToolResult{}, c.err
+		return domaintools.MCPToolResult{}, c.err
 	}
-	return domaintools.ToolResult{Text: c.text}, nil
+	return domaintools.MCPToolResult{Text: c.text}, nil
 }
 
 func (c *recordingClient) Close() error { return nil }

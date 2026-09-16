@@ -20,8 +20,10 @@ import (
 const BytesPerToken = 4
 
 // TimeoutCeiling is the hard upper bound on a tool call's effective timeout
-// (round-024 FR-016): a `timeout` param above it is clamped, never rejected.
-const TimeoutCeiling = 7200 * time.Second
+// (round-024 FR-016): a `timeout` param above it is clamped, never rejected. It
+// aliases the shared domain constant so the loop and the tool adapters cannot
+// drift (round-032 implementation-review F4).
+const TimeoutCeiling = tools.TimeoutCeiling
 
 // resolveBound resolves a call's effective token bound in three tiers
 // (round-024 D5): the call's `max_output_tokens` param when positive, else the
@@ -56,19 +58,10 @@ func clampBytes(result string, byteBudget int) string {
 // resolveTimeout resolves a call's effective timeout in three tiers
 // (round-024 FR-016): the call's `timeout` param when positive, else the tool's
 // declared default (toolDefault, from its Contract), else DefaultToolTimeout;
-// then clamped to TimeoutCeiling.
+// then clamped to TimeoutCeiling. It delegates to the shared domain resolver so
+// the loop and the tool adapters share one implementation (F4).
 func resolveTimeout(param, toolDefault time.Duration) time.Duration {
-	t := param
-	if t <= 0 {
-		t = toolDefault
-	}
-	if t <= 0 {
-		t = DefaultToolTimeout
-	}
-	if t > TimeoutCeiling {
-		t = TimeoutCeiling
-	}
-	return t
+	return tools.ResolveTimeout(param, toolDefault)
 }
 
 // defaultEffectiveBudget is the fallback effective budget (tokens) when the loop

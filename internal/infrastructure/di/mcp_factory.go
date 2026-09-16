@@ -8,6 +8,7 @@ import (
 	"context"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
@@ -29,17 +30,35 @@ func NewRemoteClient(ctx context.Context, url, authorization string, discoveryTi
 	return mcp.NewRemoteClient(ctx, url, authorization, discoveryTimeout, callTimeout)
 }
 
+// ghWaitDelay bounds the wait after the gh process group is killed, so a
+// descendant holding the output pipe cannot outlive the deadline (round-024
+// D1a discipline).
+const ghWaitDelay = 2 * time.Second
+
 // NewGhTokenResolver returns the production token resolver: it spawns `gh auth
 // token` bounded by bound (the SAME fixed fast-fail deadline as discovery —
 // round-032 FR-020), trimming the output. On timeout/failure it returns an error
-// the caller turns into a warn + anonymous fallback (never a run failure). It is
-// bounded and ctx-carrying — a deliberate improvement over the reference's
-// unbounded `gh` shell-out (round-032 research Decision 4, R6).
+// the caller turns into a warn + anonymous fallback (never a run failure).
+//
+// It follows tellme's own round-024 process discipline (implementation-review
+// F3): the child runs in its OWN process group and cancellation kills the whole
+// group (`kill(-pgid, SIGKILL)`), with a WaitDelay — so an unresponsive `gh`
+// (or a descendant holding the pipe) cannot stall the prompt path past the
+// bound. It is bounded and ctx-carrying — a deliberate improvement over the
+// reference's unbounded `gh` shell-out (round-032 research Decision 4, R6).
 func NewGhTokenResolver(bound time.Duration) mcp.TokenSource {
 	return func(ctx context.Context) (string, error) {
 		cctx, cancel := context.WithTimeout(ctx, bound)
 		defer cancel()
 		cmd := exec.CommandContext(cctx, "gh", "auth", "token")
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+		cmd.Cancel = func() error {
+			if cmd.Process == nil {
+				return nil
+			}
+			return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		}
+		cmd.WaitDelay = ghWaitDelay
 		out, err := cmd.Output()
 		if err != nil {
 			return "", err

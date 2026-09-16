@@ -22,3 +22,9 @@ func UnreachableWarning(server string) string {
 func SchemaSkippedWarning(server, tool string) string {
 	return fmt.Sprintf("[mcp] the tool %q from server %q has an unusable schema; skipping it", tool, server)
 }
+
+// NameSkippedWarning is the warn+skip message for a tool whose namespaced wire
+// name would not satisfy the provider tool-name grammar (round-032 F5).
+func NameSkippedWarning(server, tool string) string {
+	return fmt.Sprintf("[mcp] the tool %q from server %q has a name that cannot be offered safely; skipping it", tool, server)
+}

@@ -19,9 +19,9 @@ type MCPToolDefinition struct {
 	InputSchema json.RawMessage
 }
 
-// ToolResult is the outcome of an MCP tool call: the text fed back into the
+// MCPToolResult is the outcome of an MCP tool call: the text fed back into the
 // conversation like a native tool result (round-032 FR-005/FR-018).
-type ToolResult struct {
+type MCPToolResult struct {
 	// Text is the result text fed back to the model.
 	Text string
 }
@@ -40,7 +40,7 @@ type ToolResult struct {
 //
 //   - TD1 / R3 — NO call-time failure returns a non-nil error: a tool-level
 //     error reported by the server (isError), a transport/connection failure, and
-//     a call against an already-closed client ALL return a nil-error ToolResult
+//     a call against an already-closed client ALL return a nil-error MCPToolResult
 //     carrying the error text. The loop therefore always takes the recoverable
 //     path and the run never aborts on an MCP call-time failure (FR-018). The
 //     `error` return is retained only for interface symmetry / a future genuinely
@@ -50,6 +50,6 @@ type ToolResult struct {
 // failure there is a discovery failure the caller warns+skips).
 type MCPClient interface {
 	ListTools(ctx context.Context) ([]MCPToolDefinition, error)
-	CallTool(ctx context.Context, name string, args map[string]interface{}) (ToolResult, error)
+	CallTool(ctx context.Context, name string, args map[string]interface{}) (MCPToolResult, error)
 	Close() error
 }
