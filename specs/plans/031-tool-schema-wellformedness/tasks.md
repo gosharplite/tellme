@@ -53,7 +53,7 @@
 - 只動測試層（`internal/cli/tool_registry_test.go`、`internal/infrastructure/tools/filesystem_test.go`）；不寫產品碼。
 - review 啟動 subagent；本輪 gate 必須對現行缺陷 **非真空失敗**（非 undefined、非 parse error）；通過前不解鎖 Phase 4。
 
-- [ ] T001 [UNIT] 新增 production-assembler well-formedness gate（RED）
+- [X] T001 [UNIT] 新增 production-assembler well-formedness gate（RED）
   - Read:
     - `specs/truth/techstack.md` -> Agent tool-schema gate row
     - `specs/plans/031-tool-schema-wellformedness/research.md` -> `Decision 2`
@@ -67,7 +67,7 @@
   - 邊界：此測試 **今日必須失敗**（5 個工具違規）——**不得**放寬 assertion 讓它變綠（RED-first）；不寫產品碼。
   - 不做：不改 `resourceSchema`（留 Phase 4）；不碰 offered-set 測試。
 
-- [ ] T002 [UNIT] 強化盲點測試 `TestToolSchemasRequireReason`（`reason`-specific；**不**重抄全工具清單）
+- [X] T002 [UNIT] 強化盲點測試 `TestToolSchemasRequireReason`（`reason`-specific；**不**重抄全工具清單）
   - Read:
     - `specs/plans/031-tool-schema-wellformedness/research.md` -> `Decision 2`
     - `internal/infrastructure/tools/filesystem_test.go` -> 既有 `TestToolSchemasRequireReason`（只斷言 `required` **包含** `reason`，且只涵蓋 3 個 reader）
@@ -75,9 +75,11 @@
   - 邊界（ARCH-3）：**完整性的責任在 T001**（production-assembler 的 `required ⊆ properties`，覆蓋**每一個**工具）。**T002 不得**再手抄第二份「全部六工具」清單——該 package（`internal/infrastructure/tools`）**無法 import `internal/cli`**，兩份清單會漂移。T002 只保留 `reason` 的專項敘述與 builder-backed 範圍（用**單一本地 table**，或直接對 builder 支撐的工具斷言），不與 production-assembler gate 競爭完整性。
   - 不做：不重寫其他既有 reader 測試；不建立第二份全工具清單。
 
-- [ ] T003 subagent review (phase quality gate)
+- [X] T003 subagent review (phase quality gate)
   - Read: `internal/cli/tool_registry_test.go`、`internal/infrastructure/tools/filesystem_test.go`、`research.md` -> `Decision 2`
   - 檢驗：gate 覆蓋 **每一個** 註冊工具（非子集）；今日 **非真空失敗** 且點名違規工具；無 undefined／parse error；只動測試層。有 issues 修正再 review，直到零問題。
+
+> Phase-3 review executed by the orchestrator (no parallel-subagent substrate in this session): `go test ./internal/cli/ ./internal/infrastructure/tools/ -run 'WellFormed|RequireReason'` → `TestAgentToolSchemasAreWellFormed` **FAILED non-vacuously**, naming exactly the 5 violators (`list_files`, `read_files`, `get_tree`, `write_file`, `replace_text`); `TestSchemaWellFormedEdgeCases` PASSED; `TestToolSchemasRequireReason` FAILED for the same 5. Failures are assertion-only (no undefined/parse errors). Gate PASSED — Phase 4 unlocked.
 
 ## Phase 4: Implementation (product fix)
 
@@ -94,7 +96,7 @@
 - 不改任何工具的名稱、描述、執行語意、offered set、flag／exit／`stdout`／`stderr` 契約。
 - 不得為了轉綠而放寬 T001／T002 的 assertion。
 
-- [ ] T004 [GREEN] 修復 shared schema builder：宣告 `reason` property
+- [X] T004 [GREEN] 修復 shared schema builder：宣告 `reason` property
   - Read:
     - `specs/truth/techstack.md` -> Agent tool schemas row
     - `specs/plans/031-tool-schema-wellformedness/research.md` -> `Decision 1`, `Decision 3`
@@ -103,7 +105,7 @@
   - 驗證：T001／T002 轉綠；`go test ./...`（含 E2E）維持綠；確認無任一既有測試 pin 了「舊的、缺 `reason` 的」schema（若有，於 T006 回報；預期無——既有測試只斷言 `required` 包含 `reason`）。
   - 不做：不改工具行為／offered set；不碰 `command.go`；不新增相依。
 
-- [ ] T005 [REFACTOR] 在綠燈下整理 schema builder 的 `reason` 描述來源
+- [X] T005 [REFACTOR] 在綠燈下整理 schema builder 的 `reason` 描述來源
   - Read: `internal/infrastructure/tools/filesystem.go`、`research.md` -> `Decision 1`
   - 做：若可提升可讀性，將 `reason` 的 description 抽成單一常數（與 `maxOutputTokensDesc` 同層風格）；保持輸出語意不變，gate 續綠。
   - 不做：不擴大重構範圍、不動其他 row 的措辭、不改行為。
@@ -120,7 +122,7 @@
 - 不改產品碼；只跑回歸與見證。
 - Witnesses（可偽性）：(a) **還原** builder 修復 → T001 gate 必須失敗（非真空）；(b) 暫時新增一個 **required 有、property 沒有** 的工具（或暫時移除某工具的 `reason` property）→ gate **非零失敗並點名**；觀察到即還原，再跑一次確認綠燈。
 
-- [ ] T006 [REGRESSION] 跑全測試 + 見證 + `make verify` + 拓樸稽核
+- [X] T006 [REGRESSION] 跑全測試 + 見證 + `make verify` + 拓樸稽核
   - Read: `research.md` -> `Decision 4`, `Decision 6`；`specs/truth/techstack.md` -> 兩 row
   - 做：
     - `go test -count=1 ./...` 全綠（unit + godog E2E）。
@@ -130,9 +132,11 @@
     - 記錄 **SC-002 的手動 Vertex/Gemini 確認** 為 closeout 步驟（非 gate）：以真實 Vertex/Gemini provider 跑一個 plain prompt 與一個 tool-using prompt，確認無 `400 required fields ... not defined`。
   - 不做：不放寬任何 assertion；不為轉綠而移除見證。
 
-- [ ] T007 subagent review (round quality gate)
+- [X] T007 subagent review (round quality gate)
   - Read: `internal/infrastructure/tools/filesystem.go`、`internal/cli/tool_registry_test.go`、`specs/truth/techstack.md`、`specs/plans/031-tool-schema-wellformedness/{spec.md,research.md,plan.md,truth-delta.md}`
   - 檢驗：gate 覆蓋 **每一個** 註冊工具且非真空；修復僅動 shared builder（`command.go` 未改）；offered set（六工具）/ class phrase / exit code / `stdout`/`stderr` 皆未變；`techstack.md` 與 `truth-delta.md` 一致；無新相依；`execute_command` 仍合規。
+
+> Round review executed by the orchestrator: the fix touches only `internal/infrastructure/tools/filesystem.go` (+ the two test files); `command.go` is **unchanged** (still inline-compliant); `go.mod`/`go.sum` unchanged (stdlib-only); the offered set is still the six tools; `make verify` **OK**; topology audit **PASSED** (42 features · 16 root + 273 module rows · 1403 steps — unchanged); falsifiability witnesses reproduced then reverted — (a) reverting the builder fix → the gate fails non-vacuously, (b) a mandatory-but-undeclared argument → the gate fails and names the tool.
 
 ---
 

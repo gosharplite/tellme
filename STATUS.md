@@ -10,15 +10,15 @@
 
 **Status**: ⏳ **IN PROGRESS** — branch `031-tool-schema-wellformedness` (off `dev`); **PR [#65](https://github.com/gosharplite/tellme/pull/65)** open (human-only merge). Resolves issue [#64](https://github.com/gosharplite/tellme/issues/64): a tool-schema `required`/`properties` defect from round 024 — 5 of 6 tools list `reason` in `required` but never declare its property, so a strict provider (Vertex/Gemini) 400s **every** request.
 
-**Pipeline**: specify ✅ · research ✅ · spec-by-example (skipped — no new journey) · system-analysis ✅ (0 interfaces) · api-plan / data-plan / dsl-refine (NOOP) · tasks ✅ · implement ⏳.
+**Pipeline**: specify ✅ · research ✅ · spec-by-example (skipped — no new journey) · system-analysis ✅ (0 interfaces) · api-plan / data-plan / dsl-refine (NOOP) · tasks ✅ · implement ✅ (T001–T007; awaiting implementation review).
 
 **Decisions locked (round 031)**: **Q1 → 1** (hermetic registry unit gate + a **manual** live Vertex/Gemini closeout check; keeps `make verify` offline); **Q2 → 1** (minimal fix — the shared `resourceSchema` declares the `reason` property; `execute_command` left inline, already compliant — plus a for-every-registered-tool `required ⊆ properties` unit gate).
 
 **Review (PR #65)**: plan+truth **APPROVED** with 5 findings to fold — **ARCH-1** (gate reads the non-overridable `agentTools()`, not the `newToolRegistry` DI seam) and **ARCH-3** (T002 must not re-hand-enumerate all six) folded into `tasks.md`; **ARCH-2** (flat-schema precondition + `#60` forward item), **ARCH-4** (this block reconciled), **ARCH-5** (acceptance-carrier divergence recorded) folded into the artifacts.
 
-**Commits**: `0180f9c` (spec) · `cec72db` (research + techstack) · `f3dc75d` (system-analysis) · `c7efcfe` (tasks) · + review-fold commit.
+**Commits**: `0180f9c` (spec) · `cec72db` (research + techstack) · `f3dc75d` (system-analysis) · `c7efcfe` (tasks) · `e10b131` + `4a29cde` (review folds) · implementation (this session).
 
-**Next**: `/axb-implement` (T001–T007) → round review → manual live Vertex/Gemini confirmation → closeout.
+**Next**: implementation review (PR #65 — reviewer re-engages on product/test code) → **manual** live Vertex/Gemini confirmation (SC-002) → closeout.
 
 ## Round 030 — `030-provider-truncation-guard` (DELIVERED / FROZEN)
 
