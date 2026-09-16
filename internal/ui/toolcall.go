@@ -1,0 +1,123 @@
+package ui
+
+import (
+	"encoding/json"
+	"fmt"
+	"sort"
+	"strings"
+	"time"
+)
+
+// Round-034 decomposed tool-call rendering
+// (specs/truth/features/cli/chat/watching-the-tool-loop.feature; ADR 0005). The
+// pure formatters below supersede the round-022 single-line `FormatToolLog`:
+//
+//	[HH:MM:SS] [Tool Engine] Step <i>/<m>
+//	[HH:MM:SS] [Tool Reason] <reason>
+//	[HH:MM:SS] [Tool Action] <tool>(<sorted k: v>)
+//	[HH:MM:SS] [Tool Result] <tool>: <snippet>
+//
+// Truncation is RUNE-safe (ADR 0005 D5): a maximum total rendered rune length,
+// one U+2026 counted inside the cap, cut on a rune boundary, evaluated on the
+// folded value. Argument keys are sorted ascending and the `reason` key is
+// excluded (ADR 0005 D6); ordering/value rendering NEVER mutates the call's
+// arguments (round-014 replay fidelity).
+
+// argValueCap is the maximum total rendered rune length of one argument value
+// (FR-003): fold first, truncate iff > 189 runes → first 188 runes + one U+2026.
+const argValueCap = 189
+
+// resultValueCap is the maximum total rendered rune length of a result snippet
+// (FR-004): fold first, truncate iff > 200 runes → first 199 runes + one U+2026.
+const resultValueCap = 200
+
+// FormatToolEngine renders the per-executed-round step marker (FR-001):
+// `[HH:MM:SS] [Tool Engine] Step <step>/<total>`.
+func FormatToolEngine(t time.Time, step, total int) string {
+	return fmt.Sprintf("[%s] [Tool Engine] Step %d/%d", formatClock(t), step, total)
+}
+
+// FormatToolReason renders one reason line (FR-002/FR-005):
+// `[HH:MM:SS] [Tool Reason] <reason>`.
+func FormatToolReason(t time.Time, reason string) string {
+	return fmt.Sprintf("[%s] [Tool Reason] %s", formatClock(t), reason)
+}
+
+// FormatToolAction renders the action line — the tool name plus its sorted,
+// rune-capped argument list with `reason` excluded (FR-003):
+// `[HH:MM:SS] [Tool Action] <tool>(<sorted k: v>)`. Unparseable or non-object
+// arguments render the empty argument list (`<tool>()`).
+func FormatToolAction(t time.Time, tool, arguments string) string {
+	return fmt.Sprintf("[%s] [Tool Action] %s(%s)", formatClock(t), tool, formatToolArgs(arguments))
+}
+
+// FormatToolResult renders the result line — the tool name plus the folded,
+// rune-capped result snippet (FR-004): `[HH:MM:SS] [Tool Result] <tool>: <snippet>`.
+func FormatToolResult(t time.Time, tool, text string) string {
+	return fmt.Sprintf("[%s] [Tool Result] %s: %s", formatClock(t), tool, capRunes(oneLine(text), resultValueCap))
+}
+
+// formatToolArgs renders the sorted, reason-excluded, rune-capped `k: v, k: v`
+// argument list (FR-003 / ADR 0005 D6). Unparseable / non-object / empty (after
+// removing `reason`) arguments render "".
+func formatToolArgs(arguments string) string {
+	dec := json.NewDecoder(strings.NewReader(arguments))
+	dec.UseNumber()
+	var raw map[string]any
+	if err := dec.Decode(&raw); err != nil || raw == nil {
+		return ""
+	}
+	delete(raw, "reason")
+	if len(raw) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(raw))
+	for k := range raw {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	parts := make([]string, 0, len(keys))
+	for _, k := range keys {
+		parts = append(parts, k+": "+capRunes(oneLine(renderArgValue(raw[k])), argValueCap))
+	}
+	return strings.Join(parts, ", ")
+}
+
+// renderArgValue renders one decoded JSON value (FR-003 / ADR 0005 D6): a
+// json.Number's raw literal (`1000000`, never `1e+06`), strings unquoted,
+// booleans/`null` literal, arrays/objects compact JSON.
+func renderArgValue(v any) string {
+	switch x := v.(type) {
+	case nil:
+		return "null"
+	case string:
+		return x
+	case bool:
+		if x {
+			return "true"
+		}
+		return "false"
+	case json.Number:
+		return x.String()
+	default:
+		b, err := json.Marshal(v)
+		if err != nil {
+			return fmt.Sprintf("%v", v)
+		}
+		return string(b)
+	}
+}
+
+// capRunes truncates s to at most max RUNES, keeping the first max-1 runes plus
+// one U+2026 counted INSIDE the cap (FR-003/FR-004 / ADR 0005 D5). The cut is
+// on a rune boundary — never a byte slice.
+func capRunes(s string, max int) string {
+	rs := []rune(s)
+	if len(rs) <= max {
+		return s
+	}
+	if max <= 1 {
+		return "…"
+	}
+	return string(rs[:max-1]) + "…"
+}

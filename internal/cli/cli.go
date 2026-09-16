@@ -20,6 +20,7 @@ import (
 	"github.com/gosharplite/tellme/internal/agent"
 	appsuggestions "github.com/gosharplite/tellme/internal/app/suggestions"
 	"github.com/gosharplite/tellme/internal/config"
+	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	domainskills "github.com/gosharplite/tellme/internal/domain/skills"
@@ -683,7 +684,8 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// stays lazy (inside the tool's Execute), so no registration reads docs/skills
 	// and the offline paths never touch it.
 	bindSkillsCatalog(reg, res)
-	assembled := append(append(make([]llm.Message, 0, len(prior)+1), agent.BuildMessages(prior)...), llm.Message{Role: "user", Content: prompt})
+	// Round 034: the per-prompt pre-flight line is retired in favour of the
+	// per-call estimate computed by the call renderer from the loop's messages.
 	// Round-019 elapsed epoch: the spinner's turn-scoped timer starts at prompt
 	// capture — the moment the input-capture acknowledgement fires (research D4).
 	turnStart := env.now()
@@ -701,24 +703,19 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 			_, _ = fmt.Fprintln(env.stderr, prompt)
 		}
 		emitInputCaptured(env)
-		// Turn <N> = the session's running AI-endpoint-call index (round 027),
-		// derived from the loaded active history's persisted per-turn call counts:
-		// a tool-less turn advances it by one, a tool-using turn by its
-		// inference-round count. Forward item (round-017 review finding 3): a
-		// future summarisation/archive path that drops entries must preserve the
-		// count (today nothing shrinks the active history mid-session).
-		emitTurnOpening(env, turnNumber(prior), res.Mode)
 	}
-	// Round 032 (F9) — discover MCP tools AFTER the turn chrome is on screen, so
-	// a slow/unreachable server's bounded wait is never silent (the header is
-	// visible while discovery runs). Discovery still precedes the pre-flight
-	// estimate, which counts the offered tools.
+	// Round 032 (F9) — discover MCP tools BEFORE the turn frames, so a
+	// slow/unreachable server's bounded wait is never silent and the per-call
+	// estimate counts the offered tools (round 034: the frame is per call).
 	reg, closeMCP := augmentRegistryWithMCP(ctx, res, reg, env.stderr)
 	defer closeMCP()
-	emitPayloadStatus(env, res, llm.EstimatePayload(res.Person, agent.ToolDefs(reg), assembled), true)
-	if opts.chrome {
-		emitTurnGap(env)
-	}
+
+	// Round 034 (ADR 0005 D1/D3): the CLI's call renderer is the sole per-call
+	// renderer — the status frame (rule + `╭─⠿ Turn N - <mode>` + pre-flight
+	// estimate) at each call's begin, and the tail (grouped reasons + measured
+	// payload + metrics + `Ready`) at each call's end, with the FINAL call's tail
+	// deferred past the answer (G5). The loop fires the call hooks.
+	renderer := newCallRenderer(env, res, reg, opts.chrome, turnNumber(prior)-1)
 
 	loop := &agent.AgentLoop{
 		Gateway:         gw,
@@ -737,11 +734,37 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// Round 019 — the live progress spinner: a diagnostic-stream-only indicator
 	// that labels / clears / restores per waiting phase. It is injected into the
 	// loop as the observer; the CLI owns its lifecycle (round-019 research D7).
-	sp := newTurnSpinner(opts, env, res.Provider.Model, turnStart)
-	if sp != nil {
-		loop.Observer = sp
+	var sp *ui.Spinner
+	if s := newTurnSpinner(opts, env, res.Provider.Model, turnStart); s != nil {
+		sp = s
 		defer sp.Stop() // panic-safe residue guard (idempotent)
 	}
+	var spinner agentport.LoopObserver
+	if sp != nil {
+		spinner = sp
+	}
+	// Round 034 (ADR 0005 D1): the loop keeps a single observer — the composite
+	// composes the per-call block renderer with the round-019 spinner.
+	loop.Observer = compositeObserver{call: renderer, spinner: spinner}
+	// Round 034 (FR-010/FR-012): bind the live `[Tool Output]` sink on the prompt
+	// path. The block renders unconditionally; the sink yields the spinner once per
+	// call (single writer) around it.
+	uiWriter := &ui.ToolOutputWriter{W: env.stderr, Now: env.now}
+	infratools.BindToolOutput(reg, infratools.ToolOutputSink{
+		Begin: func() {
+			if sp != nil {
+				sp.BeforeToolLog()
+			}
+			uiWriter.Begin()
+		},
+		Writer: uiWriter,
+		End: func() {
+			uiWriter.End()
+			if sp != nil {
+				sp.AfterToolLog()
+			}
+		},
+	})
 	result, err := loop.Run(ctx, prompt, prior)
 	if sp != nil {
 		// Synchronous clear before any interleaved write (the answer, the
@@ -763,26 +786,13 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	if err := store.Append(history.Entry{Prompt: prompt, Answer: result.Answer, Calls: len(result.Calls), Steps: result.Steps}); err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
-	// Round 022: on a tool-using turn, one blank line separates the tool-log block
-	// from the answer. It is ungated — it follows the tool-log lines, so it appears
-	// on every tool-using surface (including the `-i` submit path). It is written
-	// after the spinner has stopped (the observer's Stop above)
-	// and after the turn is persisted, immediately before the answer, so the
-	// round-019 clear cannot swallow it (review PR #50 directive 2).
-	if len(result.Steps) > 0 {
-		_, _ = fmt.Fprintln(env.stderr)
-	}
+	// Round 034 (ADR 0005 D4/FR-010b): persist the turn's usage ONCE — the
+	// Reported subset of result.Calls in one AppendBatch (never per call).
+	persistTurnUsage(env, res, result)
 	env.writeAnswer(result.Answer, opts.raw, res.WrapWidth)
-	// Post-turn payload status (round-009 FR-006): the provider's measured prompt
-	// tokens, written AFTER the answer so it trails the response (the pre-flight
-	// line led it). Omitted when the provider reported no usage.
-	if result.Usage.Reported {
-		emitPayloadStatus(env, res, result.Usage.PromptTokens, false)
-	}
-	// Round 018 — the post-turn status lines (the metrics line + the `╰─⠿ Ready`
-	// summary), written AFTER the measured payload line; suppressed when the
-	// just-returned call reports no usage (FR-012).
-	emitPostTurnStatus(env, res, result)
+	// The final AI-endpoint call's tail was deferred; emit it now so the closing
+	// status trails the answer (G5).
+	renderer.EmitFinalTail()
 	return Success
 }
 
@@ -801,9 +811,8 @@ func (r resolution) effectiveBudget() int {
 	return r.MaxHistoryTokens
 }
 
-func emitPayloadStatus(env runtimeEnv, res resolution, tokens int, estimated bool) {
-	_, _ = fmt.Fprintln(env.stderr, ui.FormatPayloadStatus(env.now(), tokens, res.effectiveBudget(), res.Mode, res.Provider.Model, estimated))
-}
+// (round 034, 4B: emitPayloadStatus is retired — the per-call renderer renders
+// the pre-flight and measured payload lines from the call hooks.)
 
 // logNoWindowOnce emits a one-time debug log when the active model has no
 // configured CONTEXT_WINDOW, so the operator knows the tool bound tracks
@@ -827,79 +836,8 @@ func (e runtimeEnv) now() time.Time {
 	return time.Now()
 }
 
-// emitPostTurnStatus writes the round-018 post-turn status to the diagnostic
-// stream and persists the turn's per-call usage to the per-mode usage log. It is
-// a no-op when the just-returned call reports no usage (FR-012); otherwise it:
-//   - loads the session's prior usage, appends one record per reported call, and
-//     emits the metrics line (`M/H/C/Th` of the just-returned call) and the
-//     `╰─⠿ Ready` summary (three costs + the session token totals + hit-rate).
-//
-// The usage-log write is best-effort: a log failure never breaks a completed
-// turn (the answer is already on stdout).
-func emitPostTurnStatus(env runtimeEnv, res resolution, result agent.AgentResult) {
-	if !result.Usage.Reported {
-		return
-	}
-	// The session roll-up: read the persisted cumulative summary (O(1)) instead
-	// of re-parsing the whole log each turn (round-018 review #1). An empty
-	// workspace has no log; persistence is also skipped so such a run never
-	// writes into the process cwd.
-	var session history.UsageSummary
-	us := newUsageStore(res.Workspace)
-	if res.Workspace != "" {
-		// A summary failure is best-effort: the session totals then understate
-		// the true session, but the turn never breaks.
-		session, _ = us.Totals()
-	}
-
-	pricing := ui.Pricing{Hit: res.Pricing.HIT, Miss: res.Pricing.MISS, Comp: res.Pricing.COMP}
-	now := env.now()
-
-	var turnCost, lastCost float64
-	turnRecords := make([]history.UsageRecord, 0, len(result.Calls))
-	for _, c := range result.Calls {
-		if !c.Reported {
-			continue
-		}
-		miss := c.PromptTokens - c.CachedTokens
-		cost := ui.ComputeCost(pricing, miss, c.CachedTokens, c.CompletionTokens, c.ThinkingTokens)
-		turnCost += cost
-		turnRecords = append(turnRecords, history.UsageRecord{
-			Timestamp:      now.Format(time.RFC3339),
-			Provider:       res.Selected,
-			Model:          res.Provider.Model,
-			CachedTokens:   c.CachedTokens,
-			PromptTokens:   c.PromptTokens,
-			ResponseTokens: c.CompletionTokens,
-			TotalTokens:    c.PromptTokens + c.CompletionTokens + c.ThinkingTokens,
-			ThinkingTokens: c.ThinkingTokens,
-			Cost:           cost,
-		})
-	}
-	if len(turnRecords) > 0 {
-		lastCost = turnRecords[len(turnRecords)-1].Cost
-	}
-	// Best-effort persistence — a log I/O error must NEVER drop the
-	// operator-facing display lines (they are emitted below regardless), and an
-	// empty workspace must never write into the process cwd.
-	if res.Workspace != "" {
-		_ = us.AppendBatch(turnRecords)
-	}
-	// Fold this turn's records into the session roll-up (the persisted summary
-	// read above already carries the prior turns).
-	for _, rec := range turnRecords {
-		session.Add(rec)
-	}
-
-	last := result.Usage
-	_, _ = fmt.Fprintln(env.stderr, ui.FormatMetrics(env.now(), res.Selected, ui.UsageCounts{
-		Miss:       last.PromptTokens - last.CachedTokens,
-		Hit:        last.CachedTokens,
-		Completion: last.CompletionTokens,
-		Thinking:   last.ThinkingTokens,
-	}))
-	_, _ = fmt.Fprintln(env.stderr, ui.FormatReady(lastCost, turnCost, session.Cost, session.Miss, session.Hit, session.Out, ui.HitRate(session.Hit, session.Miss)))
-}
+// (round 034, 4B: emitPostTurnStatus is retired — the per-call renderer emits
+// each call's metrics/`Ready` tail and persistTurnUsage writes the one AppendBatch.)
 
 // emitInputCaptured writes the round-017 input-capture acknowledgement to the
 // diagnostic stream (the reference's `[HH:MM:SS] Input captured. Processing...`).
@@ -907,16 +845,8 @@ func emitInputCaptured(env runtimeEnv) {
 	_, _ = fmt.Fprintln(env.stderr, ui.FormatInputCaptured(env.now()))
 }
 
-// emitTurnOpening writes the round-017 frame opening (a leading blank line, the
-// 80-column rule, and the `╭─⠿ Turn <N> - <mode>` header) to the diagnostic stream.
-func emitTurnOpening(env runtimeEnv, turn int, mode string) {
-	_, _ = fmt.Fprint(env.stderr, ui.FormatTurnOpening(turn, mode))
-}
-
-// emitTurnGap writes the blank line that separates the frame from the answer.
-func emitTurnGap(env runtimeEnv) {
-	_, _ = fmt.Fprint(env.stderr, ui.FormatTurnGap())
-}
+// (round 034, 4B: emitTurnOpening / emitTurnGap are retired — the per-call
+// renderer emits the frame via ui.FormatTurnOpening/FormatTurnGap directly.)
 
 // turnNumber is the round-017/027 turn-header number: the session's running
 // AI-endpoint-call index — one more than the total number of provider calls
