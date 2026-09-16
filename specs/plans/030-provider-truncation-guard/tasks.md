@@ -22,21 +22,21 @@
 
 **Goal**: 只建立後續實作程式、測試共用元件、入口、fixture、helper 與落點骨架；每則寫「只做／不做」。不寫 Phase 3 測試語意，也不寫 Feature Green。
 
-- [ ] T001 建立 Phase 3 stepdef 獨立落點骨架（Zero Shared Edits 原則）
+- [X] T001 建立 Phase 3 stepdef 獨立落點骨架（Zero Shared Edits 原則）
   - Read:
     - `tests/e2e/steps/` -> 既有 `step_r0NN_tNNN_*.go` 獨立檔＋`init()` 自我註冊慣例（見 `step_r029_t012_chat_then_file_created.go`）
     - `specs/truth/features/cli/chat/dsl.md` -> 本輪新增的句列（見 Phase 3 `DSL 參照`）
   - 只做：在 `tests/e2e/steps/` 下，為 Phase 3 每一句建立**獨立**檔案骨架（`step_r030_t004…t010_…`，`init()` 註冊、body 待填），使 Phase 3 並行任務目標檔案互斥。
   - 不做：不寫任何 `[BDD-RED]` 語意，不寫 fake 腳本或產品邏輯。
 
-- [ ] T002 擴充 fake provider 的 truncation 腳本接點
+- [X] T002 擴充 fake provider 的 truncation 腳本接點
   - Read:
     - `tests/e2e/fakeprovider/fakeprovider.go` -> `Reply`、`scriptedBody`、`answerBody`、`toolCallBody`、`vertexAnswerBody`、`vertexToolCallBody`
     - `specs/plans/030-provider-truncation-guard/research.md` -> `Decision 1`（finish reason 在 wire 上）
   - 只做：為 `Reply` 增加一個 **finish-reason** 欄位，並讓 body builders 在該欄位非空時輸出 `"finish_reason":"<value>"`（OpenAI-compatible `choices[0]`）或 `"finishReason":"<value>"`（Vertex `candidates[0]`）——一個**共用**的 truncation 腳本接點，供 Phase 3 的 Given 使用（`"length"` / `"MAX_TOKENS"`），並支援帶 `functionCall`/`tool_calls` 的截斷回覆。
   - 不做：不寫任一 Given 的腳本內容，不碰 stepdef，不改產品碼。
 
-- [ ] T003 建立兩個 adapter 的 finish-reason guard 單元測試落點骨架
+- [X] T003 建立兩個 adapter 的 finish-reason guard 單元測試落點骨架
   - Read:
     - `specs/plans/030-provider-truncation-guard/research.md` -> `Decision 1`, `Decision 6`, `Decision 7`
     - `internal/infrastructure/llm/openai/client.go` -> `parseResponse`
@@ -77,31 +77,31 @@
 **Parallel Hint**:
 - T004–T011 各派一個獨立 subagent，一次整批並行 dispatch（目標檔獨立，符合 Zero Shared Edits）；T012 等全部回來再啟動 subagent review。
 
-- [ ] T004 [P] [BDD-RED] `a configured provider "{provider}" whose reply is cut off at the output limit while creating the file "{path}" with the content "{content}"`
+- [X] T004 [P] [BDD-RED] `a configured provider "{provider}" whose reply is cut off at the output limit while creating the file "{path}" with the content "{content}"`
   - Read: `tests/e2e/steps/step_r030_t004_chat_given_provider_cutoff_create.go`（+ `tests/e2e/fakeprovider/fakeprovider.go` 的 T002 接點）
   - 語意：script the fake to return a single response whose OpenAI-compatible `finish_reason` is `"length"` and whose message carries a `write_file` tool call (`filepath`={path}, `content`={content}, `reason` set) — a reply cut off mid-tool-call, no final answer.
-- [ ] T005 [P] [BDD-RED] `a configured provider "{provider}" whose reply is cut off at the output limit while editing the file "{path}" replacing "{old}" with "{new}"`
+- [X] T005 [P] [BDD-RED] `a configured provider "{provider}" whose reply is cut off at the output limit while editing the file "{path}" replacing "{old}" with "{new}"`
   - Read: `tests/e2e/steps/step_r030_t005_chat_given_provider_cutoff_edit.go`（+ fake 接點）
   - 語意：同上，tool call 改為 `replace_text`（`filepath`={path}, `old_text`={old}, `new_text`={new}, `reason` set），`finish_reason` = `"length"`。
-- [ ] T006 [P] [BDD-RED] `a configured provider "{provider}" whose reply is cut off at the output limit before finishing its answer`
+- [X] T006 [P] [BDD-RED] `a configured provider "{provider}" whose reply is cut off at the output limit before finishing its answer`
   - Read: `tests/e2e/steps/step_r030_t006_chat_given_provider_cutoff_answer.go`（+ fake 接點）
   - 語意：script the fake to return a single response whose `finish_reason` is `"length"` carrying partial text and **no** tool call.
-- [ ] T007 [P] [BDD-RED] `a configured Gemini provider "{provider}" whose reply is cut off at the output limit before finishing its answer`
+- [X] T007 [P] [BDD-RED] `a configured Gemini provider "{provider}" whose reply is cut off at the output limit before finishing its answer`
   - Read: `tests/e2e/steps/step_r030_t007_chat_given_gemini_cutoff_answer.go`（+ fake 接點）
   - 語意：arrange a `gemini` Vertex-shaped provider（key file 等，照既有 Gemini Given），script the fake for a single Vertex `:generateContent` response whose `candidates[0].finishReason` is `"MAX_TOKENS"` carrying partial text (no `functionCall`).
-- [ ] T008 [P] [BDD-RED] `a configured Gemini provider "{provider}" whose reply is cut off at the output limit while creating the file "{path}" with the content "{content}"`
+- [X] T008 [P] [BDD-RED] `a configured Gemini provider "{provider}" whose reply is cut off at the output limit while creating the file "{path}" with the content "{content}"`
   - Read: `tests/e2e/steps/step_r030_t008_chat_given_gemini_cutoff_create.go`（+ fake 接點）
   - 語意：arrange a `gemini` Vertex-shaped provider；script the fake for a single Vertex response whose `candidates[0].finishReason` is `"MAX_TOKENS"` carrying a `functionCall` for `write_file` (`args` `filepath`={path}, `content`={content}, `reason` set) — the **Gemini function-call** truncation site (B1; the Example E2E-witnesses the **refusal** of a Gemini `functionCall` truncation — the function-call-aware **message detail** stays unit-pinned at T011).
-- [ ] T009 [P] [BDD-RED] `tellme creates no file "{path}"`
+- [X] T009 [P] [BDD-RED] `tellme creates no file "{path}"`
   - Read: `tests/e2e/steps/step_r030_t009_chat_then_no_file.go`
   - 語意（必查 權威狀態）：the file `{path}` does **not** exist on disk after the run.
-- [ ] T010 [P] [BDD-RED] `tellme prints no answer`
+- [X] T010 [P] [BDD-RED] `tellme prints no answer`
   - Read: `tests/e2e/steps/step_r030_t010_chat_then_no_answer.go`
   - 語意（必查 呈現結果）：the captured standard output is **empty** — the failed turn emitted no answer bytes.
-- [ ] T011 [P] [UNIT] provider finish-reason guard 單元測試
+- [X] T011 [P] [UNIT] provider finish-reason guard 單元測試
   - Read: `internal/infrastructure/llm/openai/client.go` (`parseResponse`), `internal/infrastructure/llm/gemini/client.go` (`parseResponse`), `internal/infrastructure/llm/openai/truncation_test.go`, `internal/infrastructure/llm/gemini/truncation_test.go`, `research.md` -> `Decision 1`, `Decision 2`, `Decision 6`
   - 必查：OpenAI-compatible adapter 對 `choices[0].finish_reason == "length"` 回 **error**（`*llm.ProviderError`），Vertex/Gemini adapter 對 `candidates[0].finishReason == "MAX_TOKENS"` 回 **error**；trigger 為 **universal**（tool call 或純 text 皆然，`Decision 2`）；healthy 值（`stop`/`tool_calls`/`STOP`/absent）**不**觸發；truncation error 對空 body 的 precedence 勝過 `no usable answer`（`Decision 6`）；Gemini 訊息在 `functionCall` 在場時點名該 tool（function-call-aware，`FR-003`）。
-- [ ] T012 subagent review (phase quality gate)
+- [X] T012 subagent review (phase quality gate)
 
 ## Phase 4A: ADD Feature File - cli/chat/refusing-a-cut-off-reply.feature
 
@@ -122,8 +122,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/refusing-a-cut-off-reply.feature`
 
-- [ ] T013 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T014 [BDD-REFACTOR] 在綠燈下整理兩個 adapter 的 truncation 判斷（各自抽出本地判斷函式＋具名常數，收斂訊息），行為不變
+- [X] T013 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T014 [BDD-REFACTOR] 在綠燈下整理兩個 adapter 的 truncation 判斷（各自抽出本地判斷函式＋具名常數，收斂訊息），行為不變
 
 ## Phase 4C: REGRESSION
 
@@ -141,7 +141,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/**`
 
-- [ ] T015 [REGRESSION] 跑全 CLI feature + 見證 + `make verify` + 拓樸稽核
+- [X] T015 [REGRESSION] 跑全 CLI feature + 見證 + `make verify` + 拓樸稽核
 
 ---
 

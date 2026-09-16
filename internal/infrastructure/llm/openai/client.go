@@ -213,6 +213,22 @@ type toolCall struct {
 	} `json:"function"`
 }
 
+// openAIFinishReasonLength is the OpenAI-compatible finish reason for an
+// output-cap truncation (round 030): the output budget was exhausted.
+const openAIFinishReasonLength = "length"
+
+// checkTruncation surfaces an output-cap truncation as a loud error, or returns
+// nil for a healthy finish reason (round 030). It is called BEFORE the generic
+// "no usable answer" check, so an empty + truncated response is reported as a
+// truncation — a deliberate inversion of the reference's empty-content-first
+// order (research D6).
+func checkTruncation(finishReason string) error {
+	if finishReason != openAIFinishReasonLength {
+		return nil
+	}
+	return fmt.Errorf("response truncated at max_tokens (finish_reason=%q): the output budget was exhausted before the model finished; increase MAX_TOKENS or shorten the prompt", finishReason)
+}
+
 // parseResponse extracts choices[0].message.content and
 // choices[0].message.tool_calls (pure helper). A response must carry either
 // answer text or at least one tool call; an empty response is an error.
@@ -223,6 +239,7 @@ func parseResponse(raw []byte) (llm.Response, error) {
 				Content   string     `json:"content"`
 				ToolCalls []toolCall `json:"tool_calls"`
 			} `json:"message"`
+			FinishReason string `json:"finish_reason"`
 		} `json:"choices"`
 		Usage *struct {
 			PromptTokens     int `json:"prompt_tokens"`
@@ -241,6 +258,10 @@ func parseResponse(raw []byte) (llm.Response, error) {
 	}
 	if len(decoded.Choices) == 0 {
 		return llm.Response{}, fmt.Errorf("provider response carried no usable answer")
+	}
+	// Round 030 — an output-cap truncation is a loud failure (see checkTruncation).
+	if err := checkTruncation(decoded.Choices[0].FinishReason); err != nil {
+		return llm.Response{}, err
 	}
 	resp := llm.Response{Text: decoded.Choices[0].Message.Content}
 	if decoded.Usage != nil {

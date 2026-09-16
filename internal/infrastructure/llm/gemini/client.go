@@ -269,6 +269,22 @@ func requestHeaders(token string, extra map[string]string) map[string]string {
 	return headers
 }
 
+// geminiFinishReasonMaxTokens is the Vertex/Gemini finish reason for an
+// output-cap truncation (round 030): the output budget was exhausted.
+const geminiFinishReasonMaxTokens = "MAX_TOKENS"
+
+// geminiTruncationError is the generic output-cap-truncation error (round 030).
+func geminiTruncationError() error {
+	return fmt.Errorf("response truncated at %s: the output budget was exhausted before the model finished; increase MAX_TOKENS or shorten the prompt", geminiFinishReasonMaxTokens)
+}
+
+// geminiFunctionCallTruncationError is the function-call-aware output-cap
+// truncation error (round 030 / FR-003): it names the tool whose arguments were
+// cut off and cannot be safely dispatched.
+func geminiFunctionCallTruncationError(tool string) error {
+	return fmt.Errorf("response truncated at %s during function call (tool=%q): the tool arguments are incomplete and cannot be safely dispatched; increase MAX_TOKENS or break the call up", geminiFinishReasonMaxTokens, tool)
+}
+
 // parseResponse extracts candidates[0].content.parts (text + functionCall) and
 // usageMetadata (pure helper). A response must carry either answer text or at
 // least one function call; an empty response is an error.
@@ -285,6 +301,7 @@ func parseResponse(raw []byte) (llm.Response, error) {
 					} `json:"functionCall"`
 				} `json:"parts"`
 			} `json:"content"`
+			FinishReason string `json:"finishReason"`
 		} `json:"candidates"`
 		UsageMetadata *struct {
 			PromptTokenCount     int `json:"promptTokenCount"`
@@ -297,6 +314,15 @@ func parseResponse(raw []byte) (llm.Response, error) {
 	}
 	if len(decoded.Candidates) == 0 {
 		return llm.Response{}, fmt.Errorf("provider response carried no usable answer")
+	}
+	// Round 030 — an output-cap truncation is a loud failure, function-call-aware.
+	if decoded.Candidates[0].FinishReason == geminiFinishReasonMaxTokens {
+		for _, p := range decoded.Candidates[0].Content.Parts {
+			if p.FunctionCall != nil {
+				return llm.Response{}, geminiFunctionCallTruncationError(p.FunctionCall.Name)
+			}
+		}
+		return llm.Response{}, geminiTruncationError()
 	}
 	var resp llm.Response
 	var sb strings.Builder
