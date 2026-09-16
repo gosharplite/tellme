@@ -106,10 +106,11 @@ func (r *callRenderer) EmitFinalTail() {
 // share ONE usage-record formula (usageRecordOf), so display and persistence can
 // never diverge (round 034 review REFACTOR-1).
 func (r *callRenderer) emitMetrics(usage llm.Usage) {
-	rec, cost := usageRecordOf(r.pricing, r.res.Selected, r.res.Provider.Model, r.env.now().Format(time.RFC3339), usage)
+	now := r.env.now()
+	rec, cost := usageRecordOf(r.pricing, r.res.Selected, r.res.Provider.Model, now.Format(time.RFC3339), usage)
 	r.turnCost += cost
 	r.session.Add(rec)
-	_, _ = fmt.Fprintln(r.env.stderr, ui.FormatMetrics(r.env.now(), r.res.Selected, ui.UsageCounts{
+	_, _ = fmt.Fprintln(r.env.stderr, ui.FormatMetrics(now, r.res.Selected, ui.UsageCounts{
 		Miss:       rec.PromptTokens - rec.CachedTokens,
 		Hit:        rec.CachedTokens,
 		Completion: rec.ResponseTokens,
