@@ -65,6 +65,25 @@ func readyValues(s string) (costs [3]float64, miss, hit, out int, pct float64, o
 	return costs, miss, hit, out, pct, true
 }
 
+// lastReadyValues returns the three costs, the session M/H/O, and the hit% of
+// the LAST Ready line in s — the final AI-endpoint call's tail, which trails the
+// answer under the round-034 per-call cadence.
+func lastReadyValues(s string) (costs [3]float64, miss, hit, out int, pct float64, ok bool) {
+	subs := reReady.FindAllStringSubmatch(s, -1)
+	if subs == nil {
+		return costs, 0, 0, 0, 0, false
+	}
+	sub := subs[len(subs)-1]
+	for i := 0; i < 3; i++ {
+		costs[i], _ = strconv.ParseFloat(sub[1+i], 64)
+	}
+	miss, _ = strconv.Atoi(sub[4])
+	hit, _ = strconv.Atoi(sub[5])
+	out, _ = strconv.Atoi(sub[6])
+	pct, _ = strconv.ParseFloat(sub[7], 64)
+	return costs, miss, hit, out, pct, true
+}
+
 // usageFromTable reads the single data row of the
 // `| prompt | cached | completion | thinking |` table.
 func usageFromTable(t *godog.Table) (prompt, cached, completion, thinking int, err error) {

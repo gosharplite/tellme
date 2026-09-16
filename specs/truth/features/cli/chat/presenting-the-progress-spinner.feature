@@ -107,3 +107,14 @@ Feature: Presenting the progress spinner
       When the operator starts tellme with the prompt "hi" and the raw flag
       Then the run shows no progress spinner
       And tellme exits successfully
+
+  Rule: The spinner is paused while a command's output streams
+
+    Example: A command streams its output without the spinner flipping
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the diagnostics are shown at a terminal
+      And a configured provider "test-model" whose endpoint runs a command and then answers with "all good"
+      When the operator starts tellme with the prompt "run it"
+      Then the progress spinner does not appear while the command's output streams
+      And tellme exits successfully

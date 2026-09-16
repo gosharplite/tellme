@@ -95,3 +95,16 @@ Feature: Reporting the payload status
       And tellme reports the measured payload status for the turn
       And tellme prints the provider's answer "all good"
       And tellme exits successfully
+
+  Rule: The estimated payload is reported for every model request
+
+    Example: A tool-using turn reports an estimate for each request
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "notes.txt" whose text is "all good"
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good" and reports the token usage:
+        | prompt | cached | completion | thinking |
+        | 100000 | 60000  | 3000       | 2000     |
+      When the operator starts tellme with the prompt "read the notes"
+      Then each model request reports an estimated payload status
+      And tellme exits successfully

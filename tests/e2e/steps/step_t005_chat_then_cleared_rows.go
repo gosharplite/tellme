@@ -17,8 +17,10 @@ func init() {
 	})
 }
 
-// reToolLogStart matches the start of a tool-loop log line (`[HH:MM:SS] [Tool] `).
-var reToolLogStart = regexp.MustCompile(`\[\d{2}:\d{2}:\d{2}\] \[Tool\] `)
+// reToolLogStart matches the start of a decomposed tool-loop log line
+// (`[HH:MM:SS] [Tool …` — round 034: `[Tool Engine]`/`[Tool Reason]`/
+// `[Tool Action]`/`[Tool Result]`/`[Tool Output]`).
+var reToolLogStart = regexp.MustCompile(`\[\d{2}:\d{2}:\d{2}\] \[Tool `)
 
 // thenClearedFromEveryRow (必查 / 呈現結果): the erase immediately preceding a
 // tool-loop log line — the yield-to-output clear of the (narrow-width-forced)

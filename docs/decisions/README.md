@@ -28,3 +28,4 @@ Typo- and editorial-only fixes do not need an ADR.
 | [0002](0002-first-presentation-dependency.md) | First presentation dependency: glamour | Accepted |
 | [0003](0003-terminal-detection-isatty.md) | Terminal detection: a real isatty (`golang.org/x/term`) | Accepted |
 | [0004](0004-user-global-prompt-log.md) | User-global interactive prompt log (`~/.tellme/global_prompts.jsonl`) | Accepted |
+| [0005](0005-tool-call-log-parity.md) | Tool-call log parity: per-call frame cadence, CLI-computed per-call estimate, rune-safe rendering | Accepted |

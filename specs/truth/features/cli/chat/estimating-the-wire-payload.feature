@@ -36,3 +36,16 @@ Feature: Estimating the wire payload
       And a previous run with the persona "be terse" and the prompt "Hi" reported an estimated payload status
       When the operator uses the persona "be terse" and starts tellme with the prompt "Hi"
       Then the estimated payload matches the previous run's
+
+  Rule: Each request of a turn reports its own estimate
+
+    Example: A tool-using turn reports an estimate for each request
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "notes.txt" whose text is "all good"
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "ok" and reports the token usage:
+        | prompt | cached | completion | thinking |
+        | 100000 | 60000  | 3000       | 2000     |
+      When the operator starts tellme with the prompt "Read notes.txt."
+      Then each model request reports an estimated payload status
+      And tellme exits successfully

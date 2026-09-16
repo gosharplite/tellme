@@ -118,12 +118,20 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 
 	for i := 0; ; i++ {
 		req := llm.Request{Tools: a.toolDefs()}
+		// The fused base+turn wire slice the call-begin hook carries, so the CLI
+		// computes the per-call estimate WITHOUT the loop owning a persona or an
+		// estimator field (ADR 0005 D2). Built ONCE per call (round 034 review
+		// REFACTOR-2): for i == 0 the request carries the prompt via Request.Prompt
+		// (its Messages is just `base`), so the two legitimately differ; for i >= 1
+		// the request messages ARE the fused slice, so share it.
+		wire := append(append(make([]llm.Message, 0, len(base)+len(turn)), base...), turn...)
 		if i == 0 {
 			req.Prompt = prompt
 			req.Messages = base
 		} else {
-			req.Messages = append(append(make([]llm.Message, 0, len(base)+len(turn)), base...), turn...)
+			req.Messages = wire
 		}
+		a.notifyCallBegin(i, wire)
 		a.notifyInferenceStart()
 		resp, err := a.Gateway.Complete(ctx, req)
 		a.notifyInferenceEnd()
@@ -131,16 +139,22 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 			return AgentResult{Steps: steps, Calls: calls}, err
 		}
 		calls = append(calls, resp.Usage)
-		if len(resp.ToolCalls) == 0 {
+		final := len(resp.ToolCalls) == 0
+		if final {
+			// The final call produced the answer: fire the call-end hook with no
+			// round reasons (ADR 0005 D1). The CLI defers its tail past the answer.
+			a.notifyCallEnd(i, resp.Usage, nil, true)
 			return AgentResult{Answer: resp.Text, Steps: steps, Usage: resp.Usage, Calls: calls}, nil
 		}
 		if i >= maxLoops {
+			a.notifyCallEnd(i, resp.Usage, reasonsOf(resp.ToolCalls), false)
 			return AgentResult{Steps: steps, Calls: calls}, &ErrIncomplete{Reason: "the tool-loop bound was reached"}
 		}
 
 		// The model requested tools: echo the assistant tool-call message, run
 		// each tool, and feed the results back — appended after the user prompt.
 		a.notifyToolsStart(toolNames(resp.ToolCalls))
+		a.logEngine(i+1, maxLoops)
 		turn = append(turn, llm.Message{Role: "assistant", ToolCalls: resp.ToolCalls})
 		for _, tc := range resp.ToolCalls {
 			if a.Registry == nil {
@@ -150,6 +164,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 			if !ok {
 				return AgentResult{Steps: steps, Calls: calls}, &ErrIncomplete{Reason: fmt.Sprintf("tool %q is not available", tc.Name)}
 			}
+			a.logAction(tc)
 			tctx, cancel := context.WithTimeout(ctx, a.callTimeout(tool, tc.Arguments))
 			byteBudget := a.callByteBudget(tc.Arguments)
 			result, terr := tool.Execute(tctx, tc.Arguments, tools.ByteBudget(byteBudget))
@@ -166,11 +181,15 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 				result = clampBytes(result, byteBudget)
 			}
 			a.recordToolUsage(tc.Name, terr, toolTimedOut)
-			a.logStep(tc)
+			a.logResult(tc, result)
 			turn = append(turn, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})
 			steps = append(steps, history.Step{Tool: tc.Name, Arguments: tc.Arguments, Result: result, Signature: tc.Signature})
 		}
 		a.notifyToolsEnd()
+		// Round 034 (ADR 0005 D1): the call-end hook fires at the END of the
+		// call's phase (inference + its tool round), carrying the round's reasons
+		// so the CLI emits the grouped post-call tail after the results.
+		a.notifyCallEnd(i, resp.Usage, reasonsOf(resp.ToolCalls), false)
 	}
 }
 
@@ -221,22 +240,76 @@ func (a *AgentLoop) notifyToolsEnd() {
 	}
 }
 
-// logStep emits one discrete tool-loop log line to the diagnostic stream
-// (round-008 Decision 7; reshaped round 022): a single timestamped line naming
-// the tool and, when the call states one, its `reason` —
-// `[HH:MM:SS] [Tool] <name> - <reason>`. The raw call arguments and result are
-// deliberately NOT echoed (the operator-chosen shape; round-022 research
-// Decision 1/3). This is NOT token streaming. The line is rendered by the pure
-// `internal/ui` formatter and stamped from the injected clock seam; the Observer
-// hooks still wrap the write so the round-019 spinner can clear/restore around it.
-func (a *AgentLoop) logStep(tc llm.ToolCall) {
+// notifyCallBegin fires the round-034 call-begin hook (ADR 0005 D1/D2): the
+// CLI observer computes the per-call pre-flight estimate from the fused base+turn
+// wire messages. A nil observer is a no-op (the seam's default).
+func (a *AgentLoop) notifyCallBegin(callIndex int, messages []llm.Message) {
+	if a.Observer != nil {
+		a.Observer.OnCallBegin(callIndex, messages)
+	}
+}
+
+// notifyCallEnd fires the round-034 call-end hook (ADR 0005 D1): the CLI
+// observer renders the call's tail from its usage, the round's reasons, and
+// whether the call produced the final answer.
+func (a *AgentLoop) notifyCallEnd(callIndex int, usage llm.Usage, roundReasons []string, final bool) {
+	if a.Observer != nil {
+		a.Observer.OnCallEnd(callIndex, usage, roundReasons, final)
+	}
+}
+
+// reasonsOf returns the non-empty top-level `reason` of each requested call, in
+// call order (the grouped post-call tail; round 034 FR-005).
+func reasonsOf(calls []llm.ToolCall) []string {
+	var out []string
+	for _, tc := range calls {
+		if r := toolReason(tc.Arguments); r != "" {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// Round-034 decomposed tool-call rendering (ADR 0005). Each piece is rendered by
+// a pure `internal/ui` formatter and stamped from the injected clock seam; the
+// Observer hooks still wrap every write (round-019). logEngine fires once per
+// EXECUTED round (FR-001); logAction fires per call at its begin — the reason,
+// then the action (FR-002/FR-003); logResult fires per call when it completes
+// (FR-004).
+func (a *AgentLoop) logEngine(step, total int) {
+	a.withToolLog(func() {
+		_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolEngine(a.now(), step, total))
+	})
+}
+
+// logAction emits the call's `[Tool Reason]` (when present) then its
+// `[Tool Action]` line at call begin.
+func (a *AgentLoop) logAction(tc llm.ToolCall) {
+	a.withToolLog(func() {
+		if reason := toolReason(tc.Arguments); reason != "" {
+			_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolReason(a.now(), reason))
+		}
+		_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolAction(a.now(), tc.Name, tc.Arguments))
+	})
+}
+
+// logResult emits the call's `[Tool Result]` line once the tool has run.
+func (a *AgentLoop) logResult(tc llm.ToolCall, result string) {
+	a.withToolLog(func() {
+		_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolResult(a.now(), tc.Name, result))
+	})
+}
+
+// withToolLog wraps one diagnostic write with the nil-Stderr guard and the
+// observer's clear/restore hooks (round-019), so the spinner yields the line.
+func (a *AgentLoop) withToolLog(fn func()) {
 	if a.Stderr == nil {
 		return
 	}
 	if a.Observer != nil {
 		a.Observer.BeforeToolLog()
 	}
-	_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolLog(a.now(), tc.Name, toolReason(tc.Arguments)))
+	fn()
 	if a.Observer != nil {
 		a.Observer.AfterToolLog()
 	}

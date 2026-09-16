@@ -749,3 +749,137 @@ A session on 2026-09-16: ran the round-033 implementation half (`/axb-implement`
 
 ### Issue tracker (closeout Step 8)
 Reconciled against the delivered state: **[#69](https://github.com/gosharplite/tellme/issues/69)** **open** (**new this session** — the `internal/cli` composition-root layer violations; a future refactor slice; left open, accurate); **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling). Round 033 has **no anchor issue** (operator request); its work has landed → **no closes/revises** this closeout.
+
+---
+
+## 17. Session 20 (2026-09-16) — round 034 `034-tool-call-log-parity`: grill round → certified plan + truth half → **merged (PR #70)**; implementation pending; closeout
+
+A session on 2026-09-16: opened round **034** from an operator request (*"I want tellme to show tool calls similar to tell-me-go."*), ran a **one-question-at-a-time clarify (Q1–Q7)**, then an **adversarial grill round** (`architect` ⚔ `griller`, both initialised by executing `SESSION-BOOTSTRAP.md`; verdict **proceed with changes**; folds **G1–G10**), folded the pins, ran the downstream phases, took **PR #70** through **three review rounds** (architectural + independent + concurrence) to **✅ FINAL sign-off**, and — the human having merged it — ran `SESSION-CLOSEOUT.md`.
+
+**Workspace**: `…/mbp-johndoe-niffler/ait-tellme` (`$TELL_ME_HOME`; macOS host this session).
+**Branch**: `034-tool-call-log-parity` (off `dev`) → **merged** via PR [#70](https://github.com/gosharplite/tellme/pull/70) into `dev` (`dd488e9`, by `gosharplite`, 2026-09-16T12:15:07Z); frozen head `26595fa`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | Steps 1–8 at session start (round 033 delivered/frozen; active branch `dev`) |
+| Round-034 theme | the reference's **decomposed** tool-call log + a **per-AI-endpoint-call** status-frame cadence + a live **bounded-and-stopped** `[Tool Output]` stream |
+| Clarify | **Q1–Q7**, one decision at a time (per-call parity; live output; verbatim templates/constants; keep tellme's block formats; not artificially capped; keep spinner; all surfaces) |
+| Grill round | `architect` (subject) ⚔ `griller` on PR #70; **10 questions**; verdict **proceed with changes**; folds **G1–G10**; transcript gist + a detailed PR comment |
+| Pipeline | specify ✅ · spec-by-example ✅ (3 journeys) · research ✅ (D1–D10) · system-analysis ✅ (1 CLI interface; api/data NOOP; ui skipped) · dsl-refine ✅ (MODIFY 8 `chat` features + `chat/dsl.md`, 15 new rows) · tasks ✅ (T001–T033) · **implement ⏳ next** |
+| Review trail | architectural review (REQUEST CHANGES) → folds → re-review (directives) → independent review (REQUEST CHANGES) + concurrence → folds → **✅ FINAL ARCHITECTURAL APPROVAL — plan + truth half certified** |
+| Merge | PR [#70](https://github.com/gosharplite/tellme/pull/70) **MERGED** into `dev` (`dd488e9`); frozen head `26595fa` |
+| Propagation | `034 → dev` **DONE** (`dd488e9`) · `dev → main` **PENDING** (round not delivered — implementation next) |
+| Closeout | tree clean; diff-level secret scan **clean**; topology audit **PASSED** (44 features · 16 root + 310 module rows · 1569 steps); `STATUS.md` split (round-033 detail → `docs/archives/status/2026-09-16.md`); this §17 |
+
+### Work done
+1. **Bootstrap** (Steps 1–8) — round 033 delivered/frozen; active branch `dev`; peers unchanged (`butler` + `architect`/`coder`/`griller`/`pm`/`rd`).
+2. **Clarify Q1–Q7** — locked the round's shape one question at a time; the operator corrected `[Tool Output]` + the per-call status line into scope.
+3. **Grill round** — seeded both agents via `SESSION-BOOTSTRAP.md`; the griller's 10 verified questions found real defects (the accounting path, the failed-turn divergence, the truncation constants, the impossible "unbounded" stream, the tail/cadence, arg ordering, the spinner interleave, the `Step i/M` unit, the estimator gap); published the transcript gist + a detailed PR comment; folds **G1–G10**.
+4. **Fold + downstream** — spec (G1–G10), `truth-delta.md`, **ADR 0005**, acceptance (3), `research.md` (D1–D10), `techstack.md` (5 rows), `plan.md`, the `watching-the-tool-loop.feature` rewrite + `dsl.md` rows, `tasks.md`.
+5. **Review loop (PR #70)** — architectural review → `b5d093e`; re-review directives → `1ad5a42`; independent review + concurrence (techstack seam, 4+2 orphans, truncation carrier, naming) → `6fbb8af`; Finding 5 → `4eebf64`; optional nit → `26595fa` → **✅ final sign-off**.
+6. **Merge + closeout** — PR #70 merged (`dd488e9`); `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 034)
+| # | Decision |
+| --- | --- |
+| Q1 | full per-AI-call parity; `[Tool Reason]` printed twice (pre-action + grouped post-call) |
+| Q2 | `[Tool Output]` is a live stream |
+| Q3 | verbatim reference templates/constants (rune-safe caps per G3) |
+| Q4 | keep tellme's status-block line formats (only cadence + tool rendering change) |
+| Q5 | the `[Tool Output]` stream is not artificially capped (bounded-and-stopped per G4) |
+| Q6 | keep the round-019 spinner (single-writer once-per-call yield per G8) |
+| Q7 | all prompt surfaces; `-r` does not suppress |
+| G1–G10 | decoupled observer seams; recorded display/persistence divergence; rune-safe caps; bounded-and-stopped output + `output_file` no-block + trailing-partial drop; final-call tail deferral; per-call tails; sorted keys + `json.Number`; single-writer yield; executed-round `Step i/M`; CLI-computed estimate |
+| ADR | [`0005`](../../../../../docs/decisions/0005-tool-call-log-parity.md) |
+
+### Commits (branch `034-tool-call-log-parity`, then merged)
+| Commit | Note |
+| --- | --- |
+| `a7bc2ce` | `docs(034)`: plan package + spec |
+| `2088027` | `docs(034)`: grill-pin fold + downstream phases (research, plan, dsl-refine, tasks) |
+| `b5d093e` | `docs(034)`: architectural-review folds (dsl table, 6 features, seams, naming) |
+| `1ad5a42` | `docs(034)`: re-review directives (T002 signature; Phase 3 = 15 rows) |
+| `6fbb8af` | `docs(034)`: independent-review folds (techstack seam, orphans, rune-cap carrier, naming) |
+| `4eebf64` | `docs(034)`: Finding 5 (Reason row semantics; retire 2 orphans; mark 022 note superseded) |
+| `26595fa` | `docs(034)`: nit (reason row retargeted wording) |
+| `dd488e9` | PR [#70](https://github.com/gosharplite/tellme/pull/70) merge into `dev` (by `gosharplite`) |
+
+### Open items (non-blocking)
+- **Round 034 implementation pending** — `/axb-implement` over `T001–T033`; then a human merges the implementation PR; then propagate `dev → main`.
+- **Round-034 forward items** — the failed-turn display-only `Ready` overstatement (G2) + the numbering skew (recorded); the round-022 row→feature audit blind spot → filed on [#60](https://github.com/gosharplite/tellme/issues/60#issuecomment-5697192786).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`.
+
+### Next steps
+1. **`/axb-implement`** over `T001–T033` (on a fresh `034-*` implementation branch off `dev`); then a human merges; propagate `dev → main`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled: [#69](https://github.com/gosharplite/tellme/issues/69) open (CLI composition root); [#60](https://github.com/gosharplite/tellme/issues/60) open (dogfooding umbrella; now also carries the `row→feature` audit-guard note, [#60 · 5697192786](https://github.com/gosharplite/tellme/issues/60#issuecomment-5697192786)); [#13](https://github.com/gosharplite/tellme/issues/13) open (coverage tooling). Round 034 has **no anchor issue** (operator request) and its **implementation has not landed** → **no closes this closeout**.
+
+
+---
+
+## 21. Session 21 (2026-09-16) — round 034 `034-tool-call-log-parity`: `/axb-implement` delivered → review loop → merged (PR #71) → propagated `dev → main`; closeout
+
+A session on 2026-09-16: ran the round-034 **implementation half** (`/axb-implement`, T001–T033), took **PR [#71](https://github.com/gosharplite/tellme/pull/71)** through an independent architectural review + a fold review + a **principal-architect** review to **FINAL APPROVAL + CONCURRENCE (review loop CLOSED)**, saw PR #71 **merged** into `dev` (`806cede`), propagated `dev → main`, refreshed the installed binary, and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`; Linux host).
+**Branch**: `034-implement-tool-call-log-parity` (off `dev`) → merged via PR [#71](https://github.com/gosharplite/tellme/pull/71) into `dev` (`806cede`) → propagated `dev → main`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 033 delivered/frozen; active branch `dev`) |
+| `/axb-implement` | One-Shot over **T001–T033** — all `[X]` (product + unit + E2E) |
+| Product | decomposed tool log (`logEngine`/`logAction`/`logResult` in `internal/agent/agentloop.go`); pure formatters `internal/ui/toolcall.go`; `[Tool Output]` writer `internal/ui/tooloutput.go`; the CLI `internal/cli/call_renderer.go` (per-call estimate/frame/tail + final-call deferral); the command-tool tee (`BindToolOutput` + `runCaptured` `io.MultiWriter`); `internal/ui/toollog.go` reduced to `oneLine` |
+| Review (PR #71) | independent architectural review (APPROVE WITH NON-BLOCKING FOLDS) → fold `aa274ab` (TD-1 doc + REFACTOR-1/2 + NIT-1) → **FOLD ACCEPTED** → micro-nit `2596663` → **FINAL APPROVAL + CONCURRENCE — REVIEW LOOP CLOSED** |
+| Merge | PR [#71](https://github.com/gosharplite/tellme/pull/71) **MERGED** into `dev` (`806cede`); frozen head `2596663` |
+| Propagation | `034-implement-tool-call-log-parity → dev` (`806cede`) `→ main` — **DONE (no-ff)** |
+| Closeout | `make verify` OK · `go test ./...` green (E2E **214/214**, 0 undefined) · lint 0 · cross-compile 4/4 · `STATUS.md` split (round-034 detail → `docs/archives/status/2026-09-16.md`); `go install ./cmd/tellme` refreshed |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — round 033 delivered/frozen; active branch `dev`; peers unchanged (`butler` + `architect`/`coder`/`griller`/`pm`/`rd`).
+2. **`/axb-implement` (T001–T033)** — Foundational (seams) → Phase 3 (retire/align the round-022 assertions incl. 2 unit pins + the round-025 spinner stepdef; **17** `[BDD-RED]` stepdefs; **4** `[UNIT]` suites; review gate 0-undefined) → Feature (decomposed log → per-call frames/tails → live `[Tool Output]` → `CODE-REMOVE` of `FormatToolLog`) → regression. Deviation disclosed: the Phase-3 `[P]` batch + the `[BDD-GREEN]` `Test Scope` overlap ran **inline** (no parallel-subagent substrate).
+3. **Fold gap found in-round**: two further artifacts still parsed the round-022 `[Tool]` shape — `internal/agent/agentloop_reason_test.go` (aligned) and `tests/e2e/steps/step_t005_chat_then_cleared_rows.go` (aligned); dead `tool_log.go` deleted. A **loop-hook ordering fix** (call-end fires at the call's *phase end*, after its tool round) and the `usageRecordOf`/fused-slice folds.
+4. **Review loop (PR #71)** — architectural review (TD-1 required + REFACTOR-1/2 + NIT-1/2/3) → fold `aa274ab` → fold review **FOLD ACCEPTED** → micro-nit `2596663` → **principal-architect FINAL APPROVAL + CONCURRENCE**. Forward items recorded (not folded): the `BindToolOutput` constructor-injection debt → [#69](https://github.com/gosharplite/tellme/issues/69#issuecomment-5698460385); the `LoopObserver` segregation (ADR-0005-G1-superseding) → held.
+5. **Merge + propagation + closeout** — PR #71 merged (`806cede`); `dev → main` (no-ff); `go install`; `STATUS.md` split + this §21.
+
+### Decisions locked (round 034, implementation)
+| # | Decision |
+| --- | --- |
+| Impl | The decomposed rendering is emitted **by the loop** (the tool lines) via the pure `internal/ui` formatters; the per-call **frame/tail/estimate** by the CLI `callRenderer` through the `CallObserver` hooks (ADR 0005 D1/D2). |
+| Fold TD-1 | The round-032 F9 discovery-ordering reversal is **recorded** (the per-call frame's estimate must count the discovered set) in `spec.md`/`truth-delta.md`/`techstack.md` — not restored. |
+| Fold REFACTOR-1/2 | `usageRecordOf` single-sources the usage record/cost; the fused wire slice is built once per call. |
+| Fold NIT-1 | `ToolOutputWriter.Begin` is idempotent. |
+| Forward | `BindToolOutput` → constructor injection at the composition root (`#69`); `LoopObserver` segregation → future ADR supersession. |
+
+### Commits (branch `034-implement-tool-call-log-parity`, then merged)
+| Commit | Note |
+| --- | --- |
+| `babe537` | `feat(034)`: implement tool-call log parity (T001–T033) |
+| `aa274ab` | `refactor(034)`: fold PR #71 review (TD-1 doc, REFACTOR-1/2, NIT-1) |
+| `2596663` | `refactor(034)`: fold fold-review micro-nit (single `now` in `emitMetrics`) |
+| `806cede` | PR [#71](https://github.com/gosharplite/tellme/pull/71) merge into `dev` (by `gosharplite`) |
+| *(this closeout, on `dev`)* | `docs(034)`: day close — round 034 delivered + `STATUS.md` split + daily summary |
+
+### Verification (2026-09-16)
+`make verify` **OK** (no test-sleep · offline witness · cross-compile 4/4 · `golangci-lint` **0 issues** · `govulncheck` clean) · `go test ./...` green (E2E **214/214 scenarios · 0 undefined**) · `gofmt`/`go vet` clean · **falsifiability witness** reproduced + reverted (cap 189→190 fails `TestFormatToolAction_ValuesAreRuneCapped`) · `go.mod`/`go.sum` unchanged (stdlib-only) · `verify_architecture` **0 cycles** · topology audit unchanged (44 features · 310 module rows · 1569 steps).
+
+### Open items (non-blocking)
+- **Round-034 forward items** — (a) the failed-turn **display-only `Ready` overstatement** (G2) + the numbering skew; (b) `[TECHNICAL DEBT]` `BindToolOutput` constructor injection → [#69](https://github.com/gosharplite/tellme/issues/69#issuecomment-5698460385); (c) `[REFACTOR]` `LoopObserver` segregation (ADR-0005-G1-superseding); (d) the round-022 row→feature audit blind spot → [#60](https://github.com/gosharplite/tellme/issues/60#issuecomment-5697192786).
+- Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011/024/028/029/030/031/032/033 forward items.
+- **Propagation** — `dev → main` **DONE (no-ff)**.
+
+### Next steps
+1. Choose the `035-*` theme and start it via `/axb-specify` off `dev` (candidates: [#69](https://github.com/gosharplite/tellme/issues/69) composition-root refactor; [#60](https://github.com/gosharplite/tellme/issues/60) dogfooding; [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled against the delivered state: **#69** open (CLI composition root; now also carries the round-034 `BindToolOutput` constructor-injection forward item); **#60** open (dogfooding-enablement umbrella); **#13** open (coverage tooling). Round 034 has **no anchor issue** (operator request) and its work **landed** (PR #71) → **no closes/revises** this closeout.
