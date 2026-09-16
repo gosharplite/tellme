@@ -86,6 +86,12 @@ type resolution struct {
 	// Person is the resolved PERSON — the persona sent to the provider as the
 	// leading `system` message of every request (round 011).
 	Person string
+	// MCPServers is the validated MCP_SERVERS registry (round 032); the
+	// prompt-path discovery reads it. MCPWarnings carries non-fatal validation
+	// warnings (a skipped COMMAND/stdio entry) to surface on the diagnostic
+	// stream when a prompt run begins.
+	MCPServers  map[string]config.MCPServerConfig
+	MCPWarnings []string
 	// Pricing is the active model's config-only `MODELS` rates (round 018);
 	// Priced is false when the model has no entry, so the post-turn cost renders
 	// `$0.0000` (research D2).
@@ -524,6 +530,18 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 	}
 	res.MaxHistoryTokens = budget
 
+	// Step 4e — validate the MCP_SERVERS registry (round-032 FR-002/FR-013): a
+	// malformed REMOTE entry reuses the configuration-invalid class phrase (a
+	// stable, classed failure); a COMMAND (stdio) entry is warn+skipped, surfaced
+	// on the prompt path. The registry is carried on the resolution so the
+	// prompt-path discovery reads the exact validated set.
+	if mcpVal, mcpErr := cfg.ValidateMCPServers(); mcpErr != nil {
+		return res, &resolveError{Reason: reasonConfigInvalid, Err: mcpErr}
+	} else {
+		res.MCPWarnings = mcpVal.Warnings
+	}
+	res.MCPServers = cfg.MCPServers
+
 	// Step 5 — the effective selected provider must be in the registry (FR-003).
 	res.Selected = cfg.EffectiveSelectedProvider(os.Getenv("TELL_ME_SELECTED_PROVIDER"))
 	if !cfg.ProviderInRegistry(res.Selected) {
@@ -648,7 +666,8 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// assembled conversation — the resumed turns (via the shared projection,
 	// including tool steps — TD-1) plus the current prompt — measured against the
 	// payload budget. Diagnostic only, on stderr.
-	reg := newToolRegistry()
+	reg, closeMCP := augmentRegistryWithMCP(ctx, res, newToolRegistry(), env.stderr)
+	defer closeMCP()
 	assembled := append(append(make([]llm.Message, 0, len(prior)+1), agent.BuildMessages(prior)...), llm.Message{Role: "user", Content: prompt})
 	// Round-019 elapsed epoch: the spinner's turn-scoped timer starts at prompt
 	// capture — the moment the input-capture acknowledgement fires (research D4).
@@ -1146,6 +1165,26 @@ type toolRegistryFactory func() domaintools.Registry
 // round-024 FR-013; no pipe_commands, no security tooling).
 var newToolRegistry toolRegistryFactory = func() domaintools.Registry {
 	return domaintools.NewRegistry(agentTools()...)
+}
+
+// augmentRegistryWithMCP performs the round-032 prompt-path MCP discovery: it
+// discovers each enabled remote MCP server's tools (bounded, non-stall), offers
+// them ALONGSIDE the native tools, and surfaces any warn+skip messages on the
+// diagnostic stream. Discovery runs ONLY on the prompt path (this function is
+// called from runTurn), so an offline run makes no MCP network contact. The
+// returned close hook tears down the discovered clients when the turn ends.
+func augmentRegistryWithMCP(ctx context.Context, res resolution, reg domaintools.Registry, stderr io.Writer) (domaintools.Registry, func()) {
+	mcpDiscovered := discoverForRun(ctx, res.MCPServers)
+	for _, w := range res.MCPWarnings {
+		_, _ = fmt.Fprintln(stderr, w)
+	}
+	for _, w := range mcpDiscovered.warnings {
+		_, _ = fmt.Fprintln(stderr, w)
+	}
+	if len(mcpDiscovered.tools) > 0 {
+		reg = domaintools.NewRegistry(append(reg.Tools(), mcpDiscovered.tools...)...)
+	}
+	return reg, mcpDiscovered.close
 }
 
 // agentTools assembles the agent tool set in offer order: the read-only

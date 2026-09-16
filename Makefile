@@ -9,7 +9,7 @@ STATICCHECK := $(shell command -v staticcheck 2>/dev/null)
 GOLANGCI := $(shell command -v golangci-lint 2>/dev/null)
 GOVULNCHECK := $(shell command -v govulncheck 2>/dev/null)
 
-.PHONY: help build fmt vet staticcheck tidy lint vulncheck test verify verify-no-test-sleep verify-no-network verify-cross-compile
+.PHONY: help build fmt vet staticcheck tidy lint vulncheck test verify verify-no-test-sleep verify-no-network verify-cross-compile verify-mcp-sdk-confinement
 
 help:
 	@echo "tellme development tasks:"
@@ -24,7 +24,8 @@ help:
 	@echo "  make verify-no-test-sleep - forbid time.Sleep for synchronization in *_test.go (ADR-036 parity)"
 	@echo "  make verify-no-network    - build-graph capability guard: no net/net/http in ./cmd/tellme closure"
 	@echo "  make verify-cross-compile - build + vet the module for every supported POSIX target (linux/darwin, amd64/arm64)"
-	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + vet + verify-cross-compile + lint + vulncheck"
+	@echo "  make verify-mcp-sdk-confinement - verify the MCP Go SDK is imported only under internal/infrastructure/mcp/"
+	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + vet + verify-cross-compile + verify-mcp-sdk-confinement + lint + vulncheck"
 
 # NOTE: `VERSION ?= dev` is the local/release default ONLY.
 # The E2E harness must build explicitly with the sentinel
@@ -70,7 +71,7 @@ else
 	$(GOVULNCHECK) ./...
 endif
 
-test:
+test: verify-mcp-sdk-confinement
 	go test ./...
 
 # Determinism gate (ADR-036 parity): no time.Sleep for synchronization in tests.
@@ -108,7 +109,25 @@ verify-cross-compile:
 	@for target in $(CROSS_TARGETS); do os=$${target%/*}; arch=$${target#*/}; echo "  cross-build $$os/$$arch"; CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build ./... || { echo "❌ go build failed for $$os/$$arch"; exit 1; }; CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go vet ./... || { echo "❌ go vet failed for $$os/$$arch"; exit 1; }; done
 	@echo "  ✓ cross-compiles and vets for all supported targets"
 
+# MCP SDK confinement gate (round 032, ADR-067 parity): the official MCP Go SDK
+# may be imported ONLY under internal/infrastructure/mcp/ (production AND
+# _test.go files, including the SDK-built fake in mcptest/). Every other layer
+# consumes the tools.MCPClient domain port. Mirrors the reference's
+# verify-mcp-sdk-confinement.
+verify-mcp-sdk-confinement:
+	@echo "verify-mcp-sdk-confinement: MCP Go SDK imports confined to internal/infrastructure/mcp/ ..."
+	@VIOLATIONS="$$( grep -rn 'github.com/modelcontextprotocol/go-sdk' --include='*.go' --exclude-dir=vendor --exclude-dir=.git . | grep -v '^\./internal/infrastructure/mcp/' )"; \
+	if [ -n "$$VIOLATIONS" ]; then \
+		echo ""; \
+		echo "❌ verification violation: MCP Go SDK imported outside internal/infrastructure/mcp/."; \
+		echo "   The SDK is confined to the MCP adapter; consume tools.MCPClient instead."; \
+		echo ""; \
+		echo "$$VIOLATIONS"; \
+		exit 1; \
+	fi
+	@echo "  ✓ MCP Go SDK imports confined to internal/infrastructure/mcp/"
+
 # `vet` runs before `verify-cross-compile` for fail-fast on host-local errors;
 # `verify-cross-compile` then re-covers the host target as part of the matrix.
-verify: verify-no-test-sleep verify-no-network vet verify-cross-compile lint vulncheck
+verify: verify-no-test-sleep verify-no-network vet verify-cross-compile verify-mcp-sdk-confinement lint vulncheck
 	@echo "verify: OK"
