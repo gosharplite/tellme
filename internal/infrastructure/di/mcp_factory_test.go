@@ -9,7 +9,10 @@ import (
 )
 
 // writeFakeGh writes an executable `gh` shim into a temp dir and points PATH at
-// it, so the production resolver can be exercised without a real `gh`.
+// it, so the production resolver can be exercised without a real `gh`. NOTE: the
+// shim must be self-contained — a bare `sleep` would NOT be found under the
+// shim-only PATH (exit 127) — so a hanging shim restores a real PATH before
+// sleeping (round-032 implementation-review N1).
 func writeFakeGh(t *testing.T, script string) {
 	t.Helper()
 	dir := t.TempDir()
@@ -33,16 +36,22 @@ func TestNewGhTokenResolver_TrimsToken(t *testing.T) {
 
 // T032 [UNIT] — an unresponsive `gh` is bounded by the fast-fail deadline and
 // returns an error (the caller then warns and falls back to anonymous).
+//
+// N1 fold: the shim MUST be self-contained. PATH points only at the shim dir, so
+// a bare `sleep` is not found (exit 127) and the shim would fail INSTANTLY —
+// making the test pass vacuously (indistinguishable from "bounded"). Restoring a
+// real PATH makes the shim genuinely sleep past the 200 ms bound, so the bound is
+// the thing under test (fails if the bound is removed).
 func TestNewGhTokenResolver_Bounded(t *testing.T) {
-	writeFakeGh(t, `sleep 30`)
+	writeFakeGh(t, "PATH=\"/usr/bin:/bin\"\nexec sleep 3")
 	start := time.Now()
 	_, err := NewGhTokenResolver(200 * time.Millisecond)(context.Background())
 	elapsed := time.Since(start)
 	if err == nil {
 		t.Fatal("a hanging gh must return an error")
 	}
-	if elapsed > 3*time.Second {
-		t.Fatalf("the resolver stalled for %v (bound 200ms)", elapsed)
+	if elapsed > time.Second {
+		t.Fatalf("the resolver stalled for %v (bound 200ms); the fast-fail bound is not applied", elapsed)
 	}
 }
 
