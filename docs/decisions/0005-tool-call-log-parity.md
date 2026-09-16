@@ -1,4 +1,4 @@
-# ADR 0005 — Tool-call log parity: per-call frame cadence, injected estimator seam, and rune-safe rendering
+# ADR 0005 — Tool-call log parity: per-call frame cadence, CLI-computed per-call estimate, and rune-safe rendering
 
 - **Status:** Accepted
 - **Date:** 2026-09-16

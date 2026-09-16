@@ -59,3 +59,22 @@ Feature: Watching the tool loop work
       When the operator starts tellme with the prompt "Run the command."
       Then the run streamed no command output block for the writing command
       And tellme exits successfully
+
+  Rule: An over-long rendered value is shortened to its rune cap
+
+    Example: A very long file result is shortened to 200 runes
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "long.txt" whose text is "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog."
+      And a configured provider "test-model" whose endpoint asks tellme to read "long.txt" and then answers with "done"
+      When the operator starts tellme with the prompt "Read long.txt."
+      Then the run reported the result for the tool call "read_files" shortened to at most 200 runes
+      And tellme exits successfully
+
+    Example: A very long argument value is shortened to 189 runes
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured provider "test-model" whose endpoint creates the file "out.txt" with the content "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog." and then answers with "done"
+      When the operator starts tellme with the prompt "Create out.txt."
+      Then the run reported the action value for the tool call "write_file" shortened to at most 189 runes
+      And tellme exits successfully

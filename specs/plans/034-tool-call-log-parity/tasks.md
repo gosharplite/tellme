@@ -54,7 +54,7 @@ Core inputs: `spec.md` (FR-001–FR-017, folds G1–G10), `research.md` (D1–D1
 - [ ] T028 [BDD-REFACTOR] 4B tidy under green.
 - [ ] T029 [BDD-GREEN] 4C — the live `[Tool Output]` block (shell-class, non-`output_file`; bounded-and-stopped; single-writer yield). **Test Scope**: `watching-the-tool-loop.feature`, `presenting-the-progress-spinner.feature`. **Read**: FR-010–FR-012; D7.
 - [ ] T030 [BDD-REFACTOR] 4C tidy under green.
-- [ ] T031 [CODE-REMOVE] 4D — delete the round-022 `FormatToolLog` + its call site + the blank-line emission; retire the round-022 `dsl.md` rows.
+- [ ] T031 [CODE-REMOVE] 4D — delete the round-022 `FormatToolLog` + its call site + the blank-line emission (code only; the round-022 `dsl.md` rows are retired by `/axb-dsl-refine` in this round's truth half).
 - [ ] T032 [REGRESSION] 4E — the bound-reached witness in `failing-the-tool-loop.feature` (N frames, `M` engine lines, one engine-less final frame, failure, exit 7, nothing persisted); `make verify`; the topology audit; and the **falsifiability witnesses** for SC-006 (190-rune arg → 189; rune-boundary cut; sorted vs source order; `json.Number` vs `%v`; no engine line on the bound-reached call; frozen estimator seam; `output_file` block suppression; stop-vs-cap wording; per-call frame count; tail-before-answer rejected).
 - [ ] T033 [REGRESSION] `stdout` byte-exact; offline paths unchanged; no new dependency; the tool surface / class-phrase vocabulary / exit codes unchanged.
 

@@ -30,10 +30,10 @@ Feature: Showing each tool call the way tell-me-go shows it
       And tellme exits successfully
 
   Rule: Long values are shortened predictably
-    Example: A very long argument is shortened so it stays on one line
+    Example: A very long result is shortened so it stays on one line
       Given the operator has a runnable tellme installation
-      And a configured provider whose reply asks tellme to read a file with a very long reason
+      And a configured provider whose reply asks tellme to read a file whose contents are very long
       When the operator asks tellme a question that makes it use that tool
-      Then the displayed line stays on a single line
-      And the shortened value ends with a single ellipsis character
+      Then the displayed result stays on a single line
+      And the shortened result ends with a single ellipsis character
       And tellme exits successfully
