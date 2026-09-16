@@ -118,18 +118,19 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 
 	for i := 0; ; i++ {
 		req := llm.Request{Tools: a.toolDefs()}
+		// The fused base+turn wire slice the call-begin hook carries, so the CLI
+		// computes the per-call estimate WITHOUT the loop owning a persona or an
+		// estimator field (ADR 0005 D2). Built ONCE per call (round 034 review
+		// REFACTOR-2): for i == 0 the request carries the prompt via Request.Prompt
+		// (its Messages is just `base`), so the two legitimately differ; for i >= 1
+		// the request messages ARE the fused slice, so share it.
+		wire := append(append(make([]llm.Message, 0, len(base)+len(turn)), base...), turn...)
 		if i == 0 {
 			req.Prompt = prompt
 			req.Messages = base
 		} else {
-			req.Messages = append(append(make([]llm.Message, 0, len(base)+len(turn)), base...), turn...)
+			req.Messages = wire
 		}
-		// Round 034 (ADR 0005 D2): the fused base+turn wire slice the call-begin
-		// hook carries, so the CLI observer computes the per-call estimate WITHOUT
-		// the loop owning a persona or an estimator field. For i==0 this equals the
-		// once-per-prompt `base + [user prompt]` projection, so call 1's estimate is
-		// byte-identical to the previous behaviour.
-		wire := append(append(make([]llm.Message, 0, len(base)+len(turn)), base...), turn...)
 		a.notifyCallBegin(i, wire)
 		a.notifyInferenceStart()
 		resp, err := a.Gateway.Complete(ctx, req)

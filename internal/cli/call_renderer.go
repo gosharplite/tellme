@@ -102,25 +102,41 @@ func (r *callRenderer) EmitFinalTail() {
 }
 
 // emitMetrics renders the call's metrics line and the `╰─⠿ Ready` session summary,
-// folding the call into the display-only session roll-up.
+// folding the call into the display-only session roll-up. It and persistTurnUsage
+// share ONE usage-record formula (usageRecordOf), so display and persistence can
+// never diverge (round 034 review REFACTOR-1).
 func (r *callRenderer) emitMetrics(usage llm.Usage) {
-	miss := usage.PromptTokens - usage.CachedTokens
-	cost := ui.ComputeCost(r.pricing, miss, usage.CachedTokens, usage.CompletionTokens, usage.ThinkingTokens)
+	rec, cost := usageRecordOf(r.pricing, r.res.Selected, r.res.Provider.Model, r.env.now().Format(time.RFC3339), usage)
 	r.turnCost += cost
-	r.session.Add(history.UsageRecord{
-		CachedTokens:   usage.CachedTokens,
-		PromptTokens:   usage.PromptTokens,
-		ResponseTokens: usage.CompletionTokens,
-		ThinkingTokens: usage.ThinkingTokens,
-		Cost:           cost,
-	})
+	r.session.Add(rec)
 	_, _ = fmt.Fprintln(r.env.stderr, ui.FormatMetrics(r.env.now(), r.res.Selected, ui.UsageCounts{
-		Miss:       miss,
-		Hit:        usage.CachedTokens,
-		Completion: usage.CompletionTokens,
-		Thinking:   usage.ThinkingTokens,
+		Miss:       rec.PromptTokens - rec.CachedTokens,
+		Hit:        rec.CachedTokens,
+		Completion: rec.ResponseTokens,
+		Thinking:   rec.ThinkingTokens,
 	}))
 	_, _ = fmt.Fprintln(r.env.stderr, ui.FormatReady(cost, r.turnCost, r.session.Cost, r.session.Miss, r.session.Hit, r.session.Out, ui.HitRate(r.session.Hit, r.session.Miss)))
+}
+
+// usageRecordOf builds one call's persisted usage record and its cost from the
+// SINGLE-SOURCED formula (round 034 review REFACTOR-1): the miss is
+// `prompt − cached`, the cost is derived from the config `MODELS` pricing, and
+// the total is `prompt + response + thinking`. Both the display tail and the
+// persistence batch consume it, so a pricing/rounding change touches one place.
+func usageRecordOf(pricing ui.Pricing, selected, model, ts string, c llm.Usage) (history.UsageRecord, float64) {
+	miss := c.PromptTokens - c.CachedTokens
+	cost := ui.ComputeCost(pricing, miss, c.CachedTokens, c.CompletionTokens, c.ThinkingTokens)
+	return history.UsageRecord{
+		Timestamp:      ts,
+		Provider:       selected,
+		Model:          model,
+		CachedTokens:   c.CachedTokens,
+		PromptTokens:   c.PromptTokens,
+		ResponseTokens: c.CompletionTokens,
+		TotalTokens:    c.PromptTokens + c.CompletionTokens + c.ThinkingTokens,
+		ThinkingTokens: c.ThinkingTokens,
+		Cost:           cost,
+	}, cost
 }
 
 // persistTurnUsage writes the turn's usage ONCE (ADR 0005 D4/FR-010b): the
@@ -132,25 +148,14 @@ func persistTurnUsage(env runtimeEnv, res resolution, result agent.AgentResult) 
 		return
 	}
 	pricing := ui.Pricing{Hit: res.Pricing.HIT, Miss: res.Pricing.MISS, Comp: res.Pricing.COMP}
-	now := env.now()
+	ts := env.now().Format(time.RFC3339)
 	records := make([]history.UsageRecord, 0, len(result.Calls))
 	for _, c := range result.Calls {
 		if !c.Reported {
 			continue
 		}
-		miss := c.PromptTokens - c.CachedTokens
-		cost := ui.ComputeCost(pricing, miss, c.CachedTokens, c.CompletionTokens, c.ThinkingTokens)
-		records = append(records, history.UsageRecord{
-			Timestamp:      now.Format(time.RFC3339),
-			Provider:       res.Selected,
-			Model:          res.Provider.Model,
-			CachedTokens:   c.CachedTokens,
-			PromptTokens:   c.PromptTokens,
-			ResponseTokens: c.CompletionTokens,
-			TotalTokens:    c.PromptTokens + c.CompletionTokens + c.ThinkingTokens,
-			ThinkingTokens: c.ThinkingTokens,
-			Cost:           cost,
-		})
+		rec, _ := usageRecordOf(pricing, res.Selected, res.Provider.Model, ts, c)
+		records = append(records, rec)
 	}
 	_ = newUsageStore(res.Workspace).AppendBatch(records)
 }

@@ -64,6 +64,9 @@ func (w *ToolOutputWriter) Begin() {
 	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	if w.open {
+		return
+	}
 	w.open = true
 	w.buf = w.buf[:0]
 	_, _ = fmt.Fprintln(w.W, FormatToolOutputHeader(w.now()))
