@@ -749,3 +749,73 @@ A session on 2026-09-16: ran the round-033 implementation half (`/axb-implement`
 
 ### Issue tracker (closeout Step 8)
 Reconciled against the delivered state: **[#69](https://github.com/gosharplite/tellme/issues/69)** **open** (**new this session** — the `internal/cli` composition-root layer violations; a future refactor slice; left open, accurate); **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling). Round 033 has **no anchor issue** (operator request); its work has landed → **no closes/revises** this closeout.
+
+---
+
+## 17. Session 20 (2026-09-16) — round 034 `034-tool-call-log-parity`: grill round → certified plan + truth half → **merged (PR #70)**; implementation pending; closeout
+
+A session on 2026-09-16: opened round **034** from an operator request (*"I want tellme to show tool calls similar to tell-me-go."*), ran a **one-question-at-a-time clarify (Q1–Q7)**, then an **adversarial grill round** (`architect` ⚔ `griller`, both initialised by executing `SESSION-BOOTSTRAP.md`; verdict **proceed with changes**; folds **G1–G10**), folded the pins, ran the downstream phases, took **PR #70** through **three review rounds** (architectural + independent + concurrence) to **✅ FINAL sign-off**, and — the human having merged it — ran `SESSION-CLOSEOUT.md`.
+
+**Workspace**: `…/mbp-johndoe-niffler/ait-tellme` (`$TELL_ME_HOME`; macOS host this session).
+**Branch**: `034-tool-call-log-parity` (off `dev`) → **merged** via PR [#70](https://github.com/gosharplite/tellme/pull/70) into `dev` (`dd488e9`, by `gosharplite`, 2026-09-16T12:15:07Z); frozen head `26595fa`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | Steps 1–8 at session start (round 033 delivered/frozen; active branch `dev`) |
+| Round-034 theme | the reference's **decomposed** tool-call log + a **per-AI-endpoint-call** status-frame cadence + a live **bounded-and-stopped** `[Tool Output]` stream |
+| Clarify | **Q1–Q7**, one decision at a time (per-call parity; live output; verbatim templates/constants; keep tellme's block formats; not artificially capped; keep spinner; all surfaces) |
+| Grill round | `architect` (subject) ⚔ `griller` on PR #70; **10 questions**; verdict **proceed with changes**; folds **G1–G10**; transcript gist + a detailed PR comment |
+| Pipeline | specify ✅ · spec-by-example ✅ (3 journeys) · research ✅ (D1–D10) · system-analysis ✅ (1 CLI interface; api/data NOOP; ui skipped) · dsl-refine ✅ (MODIFY 8 `chat` features + `chat/dsl.md`, 15 new rows) · tasks ✅ (T001–T033) · **implement ⏳ next** |
+| Review trail | architectural review (REQUEST CHANGES) → folds → re-review (directives) → independent review (REQUEST CHANGES) + concurrence → folds → **✅ FINAL ARCHITECTURAL APPROVAL — plan + truth half certified** |
+| Merge | PR [#70](https://github.com/gosharplite/tellme/pull/70) **MERGED** into `dev` (`dd488e9`); frozen head `26595fa` |
+| Propagation | `034 → dev` **DONE** (`dd488e9`) · `dev → main` **PENDING** (round not delivered — implementation next) |
+| Closeout | tree clean; diff-level secret scan **clean**; topology audit **PASSED** (44 features · 16 root + 310 module rows · 1569 steps); `STATUS.md` split (round-033 detail → `docs/archives/status/2026-09-16.md`); this §17 |
+
+### Work done
+1. **Bootstrap** (Steps 1–8) — round 033 delivered/frozen; active branch `dev`; peers unchanged (`butler` + `architect`/`coder`/`griller`/`pm`/`rd`).
+2. **Clarify Q1–Q7** — locked the round's shape one question at a time; the operator corrected `[Tool Output]` + the per-call status line into scope.
+3. **Grill round** — seeded both agents via `SESSION-BOOTSTRAP.md`; the griller's 10 verified questions found real defects (the accounting path, the failed-turn divergence, the truncation constants, the impossible "unbounded" stream, the tail/cadence, arg ordering, the spinner interleave, the `Step i/M` unit, the estimator gap); published the transcript gist + a detailed PR comment; folds **G1–G10**.
+4. **Fold + downstream** — spec (G1–G10), `truth-delta.md`, **ADR 0005**, acceptance (3), `research.md` (D1–D10), `techstack.md` (5 rows), `plan.md`, the `watching-the-tool-loop.feature` rewrite + `dsl.md` rows, `tasks.md`.
+5. **Review loop (PR #70)** — architectural review → `b5d093e`; re-review directives → `1ad5a42`; independent review + concurrence (techstack seam, 4+2 orphans, truncation carrier, naming) → `6fbb8af`; Finding 5 → `4eebf64`; optional nit → `26595fa` → **✅ final sign-off**.
+6. **Merge + closeout** — PR #70 merged (`dd488e9`); `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 034)
+| # | Decision |
+| --- | --- |
+| Q1 | full per-AI-call parity; `[Tool Reason]` printed twice (pre-action + grouped post-call) |
+| Q2 | `[Tool Output]` is a live stream |
+| Q3 | verbatim reference templates/constants (rune-safe caps per G3) |
+| Q4 | keep tellme's status-block line formats (only cadence + tool rendering change) |
+| Q5 | the `[Tool Output]` stream is not artificially capped (bounded-and-stopped per G4) |
+| Q6 | keep the round-019 spinner (single-writer once-per-call yield per G8) |
+| Q7 | all prompt surfaces; `-r` does not suppress |
+| G1–G10 | decoupled observer seams; recorded display/persistence divergence; rune-safe caps; bounded-and-stopped output + `output_file` no-block + trailing-partial drop; final-call tail deferral; per-call tails; sorted keys + `json.Number`; single-writer yield; executed-round `Step i/M`; CLI-computed estimate |
+| ADR | [`0005`](../../../../../docs/decisions/0005-tool-call-log-parity.md) |
+
+### Commits (branch `034-tool-call-log-parity`, then merged)
+| Commit | Note |
+| --- | --- |
+| `a7bc2ce` | `docs(034)`: plan package + spec |
+| `2088027` | `docs(034)`: grill-pin fold + downstream phases (research, plan, dsl-refine, tasks) |
+| `b5d093e` | `docs(034)`: architectural-review folds (dsl table, 6 features, seams, naming) |
+| `1ad5a42` | `docs(034)`: re-review directives (T002 signature; Phase 3 = 15 rows) |
+| `6fbb8af` | `docs(034)`: independent-review folds (techstack seam, orphans, rune-cap carrier, naming) |
+| `4eebf64` | `docs(034)`: Finding 5 (Reason row semantics; retire 2 orphans; mark 022 note superseded) |
+| `26595fa` | `docs(034)`: nit (reason row retargeted wording) |
+| `dd488e9` | PR [#70](https://github.com/gosharplite/tellme/pull/70) merge into `dev` (by `gosharplite`) |
+
+### Open items (non-blocking)
+- **Round 034 implementation pending** — `/axb-implement` over `T001–T033`; then a human merges the implementation PR; then propagate `dev → main`.
+- **Round-034 forward items** — the failed-turn display-only `Ready` overstatement (G2) + the numbering skew (recorded); the round-022 row→feature audit blind spot → filed on [#60](https://github.com/gosharplite/tellme/issues/60#issuecomment-5697192786).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`.
+
+### Next steps
+1. **`/axb-implement`** over `T001–T033` (on a fresh `034-*` implementation branch off `dev`); then a human merges; propagate `dev → main`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled: [#69](https://github.com/gosharplite/tellme/issues/69) open (CLI composition root); [#60](https://github.com/gosharplite/tellme/issues/60) open (dogfooding umbrella; now also carries the `row→feature` audit-guard note, [#60 · 5697192786](https://github.com/gosharplite/tellme/issues/60#issuecomment-5697192786)); [#13](https://github.com/gosharplite/tellme/issues/13) open (coverage tooling). Round 034 has **no anchor issue** (operator request) and its **implementation has not landed** → **no closes this closeout**.
