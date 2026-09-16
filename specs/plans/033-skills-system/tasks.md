@@ -61,8 +61,8 @@
     - `internal/domain/tools/tools.go` -> `Tool` port（`Name`/`Description`/`Parameters`/`Contract`/`Execute`）
     - `internal/cli/cli.go` -> `agentTools()`（production assembler）與 `newToolRegistry` seam
     - `internal/infrastructure/tools/filesystem.go` -> `resourceSchema` builder + `readerDefaultTimeout`
-  - 只做：建立落點骨架 — `internal/domain/skills/skill.go`（`Skill{Name, Description, Location}` 型別）、`internal/infrastructure/skills/loader.go`（loader 函式簽名 + TODO）、`internal/infrastructure/tools/skills.go`（`listSkills` tool 型別 + 五個 method 空殼，用 `resourceSchema`）、並在 `agentTools()` 預留 `list_skills` 註冊位置（空殼）。
-  - 不做：不實作 loader 邏輯或 tool 行為（留 Phase 4）；不改 provider/loop/其他工具；不新增相依。
+  - 只做：建立落點骨架 — `internal/domain/skills/skill.go`（`Skill{Name, Description, Location}` 型別）、`internal/infrastructure/skills/loader.go`（loader 函式簽名 + TODO）、`internal/infrastructure/tools/skills.go`（`listSkills` tool 型別 + 五個 method 空殼，用 `resourceSchema`）、並在 `agentTools()` 預留 `list_skills` 註冊位置（空殼）。**Wiring seam（review fold R-TD1；FR-009）**：`agentTools()` 保持 **parameterless 且不做任何檔案讀取** — 以 **空/unbound** catalog source 構造 `list_skills`；catalog 只在 **prompt path**（`runTurn`，resolved home 已知）載入並注入該 tool（lazy `func() ([]skills.Skill, error)` seam，僅在 `Execute` 內解析）。`newToolRegistry` DI seam 簽名**不變**。`<TELL_ME_HOME>/docs/skills` 以一個 `internal/home` helper 單一來源化（mirror `EnsureWorkspace`）。
+  - 不做：不實作 loader 邏輯或 tool 行為（留 Phase 4）；不改 provider/loop/其他工具；不改 `newToolRegistry` 簽名；不讓 `agentTools()`／offline `--tool-usage` 觸及 `docs/skills`；不新增相依。
 
 - [ ] T003 unit 測試落點骨架
   - Read:
@@ -141,7 +141,10 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/listing-the-available-skills.feature`
 
-- [ ] T019 [BDD-GREEN] 讓 Test Scope 全綠
+- [ ] T019 [BDD-GREEN] 讓 Test Scope 全綠（`list_skills` 產品實作）
+  - Read: `specs/plans/033-skills-system/plan.md` -> Implementation constraints（catalog → tool wiring seam）；`specs/plans/033-skills-system/research.md` -> `Decision 1`, `Decision 4`, `Decision 5`, `Decision 6`, `Decision 7`
+  - 做：在 **prompt path**（`runTurn`）載入 catalog 並注入 `list_skills`（lazy seam，僅 `Execute` 內解析）；`agentTools()` 保持 parameterless 且**不讀檔**；offline `--tool-usage` 與 round-031 gate 皆**不觸及** `docs/skills`（FR-009）；輸出每 skill 的 name + description + location（path-sorted）。
+  - 不做：不改 provider/loop/六個既有工具；不注入 skill 內容；不新增相依。
 - [ ] T020 [BDD-REFACTOR] 在綠燈下整理 loader 與 tool 的共用結構（frontmatter 解析、輸出格式），保持行為不變
 
 ## Phase 4B: MODIFY Feature File - cli/chat/offering-the-agent-tools.feature
@@ -161,6 +164,7 @@
 
 - [ ] T021 [BDD-GREEN] 讓 Test Scope 全綠
 - [ ] T022 [BDD-REFACTOR] 在綠燈下整理 `agentTools()` 的註冊（無語意變更）
+  - 另：reconcile 仍寫 "six" 的 code comments（`newToolRegistry` 的 doc、round-031 gate 的 comment）→ "seven"（techstack rows 已是 seven）。
 
 ## Phase 5: Verification & Regression
 

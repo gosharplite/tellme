@@ -12,7 +12,7 @@ specs/plans/033-skills-system/
 ├── truth-delta.md
 ├── checklists/
 │   └── requirements.md
-├── features/acceptance/*.feature  # /axb-spec-by-example — ⏳ PENDING (a thin but REAL journey: a prompt lists the pre-loaded skills — see the note below)
+├── features/acceptance/*.feature  # /axb-spec-by-example — ✅ done (journey: a prompt lists the workspace's pre-loaded skills)
 └── tasks.md                       # produced by /axb-tasks
 
 specs/truth/
@@ -23,12 +23,11 @@ specs/truth/
 *(No `contracts/**` change (`/axb-api-plan` `NOOP`), no `data/**` change (`/axb-data-plan` `NOOP`),
 and no `ui/**` artifact — the skills surface is model-facing and its CLI behaviour is carried by the CLI end.)*
 
-> **`/axb-spec-by-example` note.** Round 033 **does** add a user-facing CLI journey (on a prompt-bearing
-> turn the agent can now list the environment's pre-loaded skills), so unlike the journey-less rounds 020/031
-> this round is **not** a clean skip: a single acceptance journey ("listing the pre-loaded skills") is
-> warranted and is **recommended to run before `/axb-dsl-refine`**. It is recorded here as **pending**, not
-> as skipped — the round is mergeable without it only if the operator explicitly chooses to carry the
-> acceptance solely in the CLI end interface truth.
+> **`/axb-spec-by-example` — done.** Round 033 adds a user-facing CLI journey (on a prompt-bearing turn
+> the agent can now list the environment's pre-loaded skills), so a single acceptance journey was warranted
+> (unlike the journey-less rounds 020/031). The acceptance feature
+> `features/acceptance/discovering-the-available-skills.feature` was authored in `8219150` and consumed by
+> `/axb-dsl-refine` (`3b619ca`).
 
 ### Repository structure (root)
 
@@ -56,6 +55,12 @@ prompt can now list the loaded skills) and persists **no** new state (`/axb-data
 is read from disk each run; there is no install/remove and no cache). Skill **content is never injected**;
 the agent opens a listed skill's file with the existing `read_files`. Consistent with `research.md`
 Decisions 1–9. **Paths are pinned** so a `[P]` Phase 3 has no same-file collisions.
+
+### Implementation constraints (review folds — round 033)
+
+- **Catalog → tool wiring seam (pinned; FR-009).** The `docs/skills` load is bound **only on the prompt path** (`runTurn`), where the resolved runtime home is known. `agentTools()` stays **parameterless and performs no filesystem read** — it constructs `list_skills` with an **empty/unbound catalog source**, so the round-031 gate (which iterates `agentTools()`) **and** the offline `--tool-usage` report (which builds the same registry via `newToolRegistry()`) both touch **no** `docs/skills` (they never invoke `Execute`). The `list_skills` tool carries a **lazy `func() ([]skills.Skill, error)` catalog seam** that is set in `runTurn` and resolved **only inside `Execute`**; the `newToolRegistry` DI seam signature is left unchanged. *(Chosen over widening `agentTools()`/`newToolRegistry` to take the catalog, which would churn the round-031 gate call site.)*
+- **Single-source the skills path.** `<TELL_ME_HOME>/docs/skills` is derived by a small `internal/home` helper (mirroring `EnsureWorkspace`) rather than re-joined in the loader.
+- **Six → seven comment reconciliation (Phase 4/5).** After `list_skills` lands, the code comments that still say "six" (`newToolRegistry`'s doc and the round-031 gate's comment) are reconciled to "seven"; the techstack rows already say seven.
 
 ---
 
@@ -86,7 +91,7 @@ content into the request.
 >   `specs/truth/features/cli/**` + the matching `chat/dsl.md` rows).
 > - `/axb-ui-plan` = **skipped** (no UX-surface change; the operator `stderr` chrome is unchanged — the
 >   skills system adds no new visible chrome).
-> - `/axb-spec-by-example` = **⏳ pending** (a thin but real journey — see the document-structure note).
+> - `/axb-spec-by-example` = **✅ done** (the acceptance feature `discovering-the-available-skills.feature` was delivered; carried by `/axb-dsl-refine`'s interface truth).
 
 ### Analysis Wave schedule
 
@@ -124,6 +129,4 @@ Q3 → a `list_skills` tool); `research.md` Decisions 1–9 settle the source, t
 on-demand surface, the load timing, the minimal shape, the output shape, the tool integration, the
 out-of-scope boundary, and the verification posture. No open decision gates the round.)*
 
-*(One non-blocking open item: `/axb-spec-by-example` — a single thin acceptance journey is warranted and
-recommended before `/axb-dsl-refine`; the round can otherwise carry the acceptance in the CLI end interface
-truth if the operator chooses to skip it.)*
+*(No open decision gates the round; the acceptance journey is delivered and the catalog→tool wiring seam is pinned above.)*

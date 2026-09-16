@@ -17,13 +17,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| TBD | `specs/truth/contracts/**` | (to be completed by `/axb-api-plan`) | — |
+| NOOP | `specs/truth/contracts/**` | Checked — tellme has a single CLI end and no OpenAPI/HTTP surface; the skills system reads local files and exposes no request/response contract of tellme's own. | `contract-authoritative` holds vacuously. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| TBD | `specs/truth/data/**` | (to be completed by `/axb-data-plan`) | — |
+| NOOP | `specs/truth/data/**` | Checked — the round persists no state: the skills catalog is read from disk on each prompt-bearing turn and is **not** persisted system state (no install/remove, no cache). | `data-model-covers-all-state` holds — no new state. |
 
 ## /axb-dsl-refine
 
