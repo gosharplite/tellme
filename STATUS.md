@@ -1,10 +1,26 @@
 # tellme — Status
 
-**Last updated**: 2026-09-16 (day close, session 17: **round 032 `032-mcp-client` — DELIVERED / FROZEN**; PR [#66](https://github.com/gosharplite/tellme/pull/66) **merged** into `dev` (`4376f79`)). tellme ships a **remote (Streamable HTTP) MCP client** (plan + truth + implementation); the **SC-002 live check** found and fixed the `MCP_SERVERS` `${VAR}` gap ([#67](https://github.com/gosharplite/tellme/issues/67)). Round-031 detail lives in the archive (Rule 12); rounds 001–030 live in the archives. Open issues: **#60** (dogfooding-enablement umbrella) · **#13** (coverage tooling). **Propagation `dev → main`: DONE (`5b9d5fd`, no-ff).**
+**Last updated**: 2026-09-16 (day close, session 18: **round 033 `033-skills-system` — IN PROGRESS (plan + truth ✅ CERTIFIED; implementation ✅ delivered (head `320a4a9`); PR [#68](https://github.com/gosharplite/tellme/pull/68) open)**). tellme is gaining a **minimal, on-demand skills system** (`list_skills` over `<TELL_ME_HOME>/docs/skills/`; no injection; no skills.sh). Round 032 (`032-mcp-client`, remote MCP client) is **DELIVERED / FROZEN** (PR [#66](https://github.com/gosharplite/tellme/pull/66) merged; propagated `dev → main` `5b9d5fd`). Round-031 detail + earlier live in the archives; rounds 001–032 in the delivered index. Open issues: **#60** (dogfooding-enablement umbrella) · **#13** (coverage tooling). **Propagation this session: none (round 033 not mergeable).**
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
-**Active branch**: `dev` (round 032 delivered; next: start the `033-*` round via `/axb-specify`)
+**Active branch**: `033-skills-system` (round 033 in progress — plan + truth ✅ CERTIFIED; **implementation ✅ delivered** (T001–T024 `[X]`, head `320a4a9`); PR [#68](https://github.com/gosharplite/tellme/pull/68) open)
 **Daily log**: [`docs/session-summary/2026/09/16/session-summary.md`](docs/session-summary/2026/09/16/session-summary.md)
 **Archive**: [`2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002 + grill/clarify history) · [`2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012) · [`2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–019) · [`2026-09-15.md`](docs/archives/status/2026-09-15.md) (rounds 020–026) · [`2026-09-16.md`](docs/archives/status/2026-09-16.md) (rounds 027–031).
+
+## Round 033 — `033-skills-system` — IN PROGRESS (plan + truth ✅ CERTIFIED; implementation ✅ delivered; PR [#68](https://github.com/gosharplite/tellme/pull/68) open)
+
+**Status**: ⏳ **IN PROGRESS** — the **plan + truth half is CERTIFIED** (certified head `45db613`) and the **implementation is delivered** (T001–T024 all `[X]`, head `320a4a9`; implementation-review fold applied). Branch `033-skills-system` (off `dev`); PR **not merged** (human-only).
+
+**Scope**: a **minimal, on-demand skills system** — tellme loads skill definitions from `<TELL_ME_HOME>/docs/skills/` (recursive; a skill = a Markdown file with valid `name`/`description` frontmatter; non-skill Markdown skipped; best-effort) and surfaces them via a read-only **`list_skills`** tool (name + description + location, path-sorted). **No injection** (the agent opens a listed skill with the existing `read_files`); **no skills.sh** (`.skills/`, `search/install/remove_skill`) — a recorded divergence from `tell-me-go`.
+
+**Pipeline (plan + truth half ✅)**: specify · clarify (Q1 → 1 on-demand only; Q2 → moot; Q3 → 1 a `list_skills` tool) · spec-by-example (1 journey) · research (D1–D9) · system-analysis (1 CLI interface → `/axb-dsl-refine`; api/data NOOP; ui skipped) · dsl-refine (ADD `chat/listing-the-available-skills.feature` + 11 `chat/dsl.md` rows; MODIFY `chat/offering-the-agent-tools.feature` six → **seven** tools) · tasks (T001–T024) · implement ✅ (T001–T024 all `[X]`). **Next: implementation review → human merge.**
+
+**Decisions locked (round 033)**: single source `<home>/docs/skills`; a skill = `.md` with valid `name`/`description` frontmatter (recursive); on-demand only; loaded on the prompt path only (offline untouched); minimal shape (`internal/domain/skills` type + infra loader; no repository/selector framework); output = name + description + location (path-sorted); `list_skills` = an ordinary agent tool (shared `resourceSchema` + `reason`; reader-class 30 s default; the round-031 gate covers it). **Review folds (PR #68)**: 🔴 catalog→tool wiring seam pinned (**FR-009**; `agentTools()` parameterless + read-free; lazy `Execute`-only seam set in `runTurn`; `newToolRegistry` unchanged); 🔴 `truth-delta.md` `/axb-api-plan` + `/axb-data-plan` explicit **NOOP** rows; 🟡 `plan.md` (spec-by-example ✅ done) + `spec.md` (clarification markers resolved-by-research); nits (sentinel `REFERENCE-SENTINEL`; `runtime home` vocabulary; `internal/home` helper; six→seven comment reconciliation in T022).
+
+**Commits** (branch `033-skills-system`): `c4e85b5` (spec) · `829aa1f` (research + techstack) · `182724d` (plan) · `8219150` (acceptance) · `3b619ca` (interface truth) · `b405c60` (tasks) · `c019370` (review fold 1) · `448b2b9` (re-review fold) · `45db613` (cosmetic tidy) · `320a4a9` (implementation, T001–T024). **Certified head `45db613`; implementation head `320a4a9`.**
+
+**Propagation**: **PENDING** — round 033 is not mergeable (implementation pending); PR [#68](https://github.com/gosharplite/tellme/pull/68) open (human-only merge). No `dev`/`main` change this session.
+
+---
 
 ## Round 032 — `032-mcp-client` — DELIVERED / FROZEN (merged into `dev`)
 
@@ -69,6 +85,7 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 | --- | --- | --- |
 | `main` | merged up from `dev` | Stable / released line |
 | `dev` | merged up from delivered round branches | Integration line (round work lands here before `main`) |
+| `033-skills-system` | **in progress** (plan + truth half ✅ CERTIFIED; PR [#68](https://github.com/gosharplite/tellme/pull/68) open) | Current round's working branch (off `dev`); not yet merged. |
 | `001-*` … `032-mcp-client` | delivered / frozen | Each round's working branch — merged into `dev` via its PR, then propagated `dev → main`; frozen history. |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`; only a human merges the PR. Propagation is the no-ff merge `dev → main`.
@@ -83,16 +100,20 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 | --- | --- | --- | --- |
 | **003–031** | — | Provider-registry completeness → … → the tool-schema well-formedness fix + gate. | ✅ **Delivered** (see the delivered-rounds index) |
 | **032** | (operator request) · [#67](https://github.com/gosharplite/tellme/issues/67) | The **remote MCP client** (Streamable HTTP) + non-stall discovery; the SC-002 live check found + fixed the `MCP_SERVERS` `${VAR}` gap ([#67](https://github.com/gosharplite/tellme/issues/67)). | ✅ **Delivered** (PR [#66](https://github.com/gosharplite/tellme/pull/66) merged into `dev`) |
+| **033** | (operator request) | The **minimal, on-demand skills system** — load `<TELL_ME_HOME>/docs/skills/` + a read-only `list_skills` tool (no injection, no skills.sh). | ⏳ **Plan + truth half certified** (PR [#68](https://github.com/gosharplite/tellme/pull/68) open; implementation next) |
 | **future slices (candidates)** | [#60](https://github.com/gosharplite/tellme/issues/60) · [#13](https://github.com/gosharplite/tellme/issues/13) | the **dogfooding track** ([#60](https://github.com/gosharplite/tellme/issues/60)) skills/context rounds; **coverage tooling** ([#13](https://github.com/gosharplite/tellme/issues/13)); plus the carried forward items below. | ⏳ **Candidates** (not started) |
 
 ## Open items (non-blocking)
 
+- **Round 033 — in progress** (plan + truth ✅ CERTIFIED, head `45db613`; **implementation ✅ delivered** — T001–T024 `[X]`, head `320a4a9`; **propagation pending**; not merged).
+- **Round 033 forward items** — (a) a very large catalog is bounded by the round-024 resource contract on the tool's **result** (no paging); (b) the `list_skills` result ordering is a fixed path sort; (c) the discovery rule is settled via research D2 ("any `.md` with valid `name`+`description` frontmatter", recursive).
 - **Round 032 — delivered** (PR [#66](https://github.com/gosharplite/tellme/pull/66) merged into `dev` `4376f79`; propagated `dev → main` `5b9d5fd`; frozen head `c370433`).
 - **Round-032 forward items** — (a) **local stdio MCP transport** (`COMMAND`); (b) **cross-invocation tool caching**; (c) **MCP-backed MEMORY/PLUR** integration; (d) **MCP `-d` diagnostic** (non-dialing); (e) `mcptest/` to issue [#13](https://github.com/gosharplite/tellme/issues/13)'s coverage exclusion list; (f) the stale `make help` `verify-no-network` text; (g) a **dedicated credential-resolution bound** (the `gh` spawn shares the discovery fast-fail bound — a deliberate choice; a named bound is an option).
 - **Round-031 forward items (recorded on [#60](https://github.com/gosharplite/tellme/issues/60))** — (a) **typed schema construction** ([#60 · 5690778272](https://github.com/gosharplite/tellme/issues/60#issuecomment-5690778272)); (b) **recursive schema walk** ([#60 · 5690604951](https://github.com/gosharplite/tellme/issues/60#issuecomment-5690604951)); (c) **SC-002** — the **manual** live Vertex/Gemini confirmation (open, non-gating).
 - **Issue tracker (2026-09-16 closeout, session 17)** — **[#67](https://github.com/gosharplite/tellme/issues/67)** **CLOSED (completed)** — the `MCP_SERVERS` `${VAR}` gap, delivered by round 032 (folds `2ced555`/`c370433`; PR #66 merged `4376f79`); **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling). No revisions.
 - **Older forward items** — rounds 018–030 forward items are recorded per-round in the archives (`2026-09-15.md` for 020–026; `2026-09-16.md` for 027–031).
 - **Carried forward items** — PR #16 **Obs 1** stdout TTY probe **OPEN**; round-006 **Obs 3** renderer lifecycle deferred; sequential tool execution / **no pruning** (a settled exclusion) / **no `flock`**; round-011 forward items.
+- **Issue tracker (2026-09-16 closeout, session 18)** — [#60](https://github.com/gosharplite/tellme/issues/60) open (dogfooding-enablement umbrella); [#13](https://github.com/gosharplite/tellme/issues/13) open (coverage tooling). Round 033 has no anchor issue (operator request) and nothing has landed → **no closes/revises** this closeout.
 
 ## Environment notes
 
