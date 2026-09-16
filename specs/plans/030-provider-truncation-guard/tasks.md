@@ -91,7 +91,7 @@
   - 語意：arrange a `gemini` Vertex-shaped provider（key file 等，照既有 Gemini Given），script the fake for a single Vertex `:generateContent` response whose `candidates[0].finishReason` is `"MAX_TOKENS"` carrying partial text (no `functionCall`).
 - [ ] T008 [P] [BDD-RED] `a configured Gemini provider "{provider}" whose reply is cut off at the output limit while creating the file "{path}" with the content "{content}"`
   - Read: `tests/e2e/steps/step_r030_t008_chat_given_gemini_cutoff_create.go`（+ fake 接點）
-  - 語意：arrange a `gemini` Vertex-shaped provider；script the fake for a single Vertex response whose `candidates[0].finishReason` is `"MAX_TOKENS"` carrying a `functionCall` for `write_file` (`args` `filepath`={path}, `content`={content}, `reason` set) — the **Gemini function-call** truncation site (B1; E2E-witnesses the function-call-aware message).
+  - 語意：arrange a `gemini` Vertex-shaped provider；script the fake for a single Vertex response whose `candidates[0].finishReason` is `"MAX_TOKENS"` carrying a `functionCall` for `write_file` (`args` `filepath`={path}, `content`={content}, `reason` set) — the **Gemini function-call** truncation site (B1; the Example E2E-witnesses the **refusal** of a Gemini `functionCall` truncation — the function-call-aware **message detail** stays unit-pinned at T011).
 - [ ] T009 [P] [BDD-RED] `tellme creates no file "{path}"`
   - Read: `tests/e2e/steps/step_r030_t009_chat_then_no_file.go`
   - 語意（必查 權威狀態）：the file `{path}` does **not** exist on disk after the run.

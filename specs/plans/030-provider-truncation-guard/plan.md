@@ -12,7 +12,7 @@ specs/plans/030-provider-truncation-guard/
 ├── truth-delta.md
 ├── checklists/
 │   └── requirements.md
-├── features/acceptance/*.feature  # /axb-spec-by-example ✓ done (refusing a reply cut off at the output limit)
+├── features/acceptance/*.feature  # /axb-spec-by-example ✓ done (refusing a reply that stops before it is finished)
 └── tasks.md                       # produced by /axb-tasks
 
 specs/truth/
@@ -65,7 +65,7 @@ There is **no** analysis planner for the CLI end (per the CLI-streamlined model)
 > - `/axb-data-plan` = **`NOOP`** (the guard persists no state; the existing persisted shapes — `history.jsonl`, `tokens.log`, the prompt logs — are unchanged).
 > - `/axb-dsl-refine` = **contract owner** (ADD a `chat` interface feature for the truncation guard — a reply cut off at the output cap is refused, both when it carries a tool call and when it carries only text — + the `chat/dsl.md` rows; possibly MODIFY `reporting-a-failed-provider-request.feature`'s header/scope note, since a truncation is a further cause of the same frozen provider class).
 > - `/axb-ui-plan` = **skipped** (no UX surface change; the failure reuses the existing `stderr` class-phrase surface, and the operator chrome is unchanged).
-> - `/axb-spec-by-example` = **done** (acceptance journey: refusing a reply cut off at the output limit).
+> - `/axb-spec-by-example` = **done** (acceptance journey: refusing a reply that stops before it is finished).
 
 ### Analysis Wave schedule
 
