@@ -15,16 +15,16 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/contracts/**` | _Placeholder — expected NOOP (single CLI end; no OpenAPI/HTTP surface)._ | _Expected `contract-authoritative` holds vacuously._ |
+| NOOP | `specs/truth/contracts/**` | Checked — tellme has a single CLI end and no OpenAPI/HTTP surface; the schema fix authors no request/response document. | `contract-authoritative` holds vacuously. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/data/**` | _Placeholder — expected NOOP (no persisted state changes)._ | _Expected `data-model-covers-all-state` holds — no new state._ |
+| NOOP | `specs/truth/data/**` | Checked — the round changes no persisted or in-memory state; the existing persisted shapes (`history.jsonl`, `tokens.log`, the prompt logs) are unchanged. | `data-model-covers-all-state` holds — no new state. |
 
 ## /axb-dsl-refine
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/features/cli/**` | _Placeholder — expected NOOP (no new business journey; the verification is a registry unit gate — round-020 precedent)._ | _To be confirmed by `/axb-dsl-refine` during the round._ |
+| NOOP | `specs/truth/features/cli/**` | Checked — no new or changed CLI interface truth: the tool-schema well-formedness is asserted by the **registry unit gate**, and the offered-tool-set Gherkin/DSL rows (`offering-the-agent-tools.feature` + `chat/dsl.md`) are unchanged. | `acceptance-coverage` / `dsl-exact-one-match` hold — nothing to add or change (round-020 precedent). |
