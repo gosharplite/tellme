@@ -64,7 +64,7 @@
 **Parallel Hint**:
 - 只有一個 Phase-3 任務（T001）；T002 等 T001 回來再啟動 subagent 來 review。
 
-- [ ] T001 [UNIT] 新增 `compositeObserver.OnCallEnd` yield-ordering pin（RED）
+- [X] T001 [UNIT] 新增 `compositeObserver.OnCallEnd` yield-ordering pin（RED）
   - Read:
     - `research.md` -> `Decision 2`, `Decision 5`
     - `internal/cli/composite_observer.go` -> `compositeObserver`（`call` / `spinner` 兩半）與 `OnCallEnd`
@@ -77,7 +77,7 @@
   - 邊界：此測試 **今日必須失敗**（現行 `OnCallEnd` 沒有 clear）——**不得**放寬 assertion 讓它變綠（RED-first）；不寫產品碼。
   - 不做：不改 `composite_observer.go`（留 Phase 4）；不碰 `callRenderer`／spinner 內部；不寫 E2E stepdef（既有句已存在）。
 
-- [ ] T002 subagent review (phase quality gate)
+- [X] T002 subagent review (phase quality gate)
   - Read: `internal/cli/composite_observer_test.go`、`tests/e2e/steps/spinner_helpers.go`、`specs/truth/features/cli/chat/presenting-the-progress-spinner.feature`、`research.md` -> `Decision 3`, `Decision 5`
   - 檢驗：
     - unit pin **非真空失敗**（現行缺陷下 clear 不存在）且點名 ordering；只動測試層。
@@ -105,7 +105,7 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/presenting-the-progress-spinner.feature`
 
-- [ ] T003 [BDD-GREEN] 讓 Test Scope 全綠（套用 phase-boundary clear）
+- [X] T003 [BDD-GREEN] 讓 Test Scope 全綠（套用 phase-boundary clear）
   - Read:
     - `research.md` -> `Decision 1`, `Decision 2`
     - `internal/cli/composite_observer.go`
@@ -114,7 +114,7 @@
   - 驗證：T001 unit pin 轉綠；`presenting-the-progress-spinner.feature` 新 Example 轉綠；既有 spinner Examples（含 narrow-terminal residue）與 `the progress spinner no longer appears once the answer is written`（t011）保持綠；`stdout` byte-exact。
   - 不做：不 resume；不改格式/cadence；不碰 `callRenderer`／spinner 內部；不新增相依。
 
-- [ ] T004 [BDD-REFACTOR] 在綠燈下整理 clear 呼叫的落點
+- [X] T004 [BDD-REFACTOR] 在綠燈下整理 clear 呼叫的落點
   - Read: `internal/cli/composite_observer.go`、`research.md` -> `Decision 1`, `Decision 2`
   - 做：若可提升可讀性，將「yield the indicator before a tail write」抽成 composite 上一個具名小 helper（或加清楚註解指出 phase-boundary no-resume 的理據），保持輸出語意不變、gate 續綠。
   - 不做：不擴大重構範圍、不改 `callRenderer` 契約、不改行為。
@@ -131,7 +131,7 @@
 - 不改產品碼；只跑回歸與見證。
 - Witnesses（可偽性）：(a) **還原** clear（移除 `OnCallEnd` 的 yield）→ T001 unit pin 與新 Example 必須失敗（非真空；`⠋ Executing …` 殘留）；(b) 讓 clear 改為 **resume-after-tail** → 確認下一回合的 frame 寫入把 resumed frame 留在上一列（殘留移位），使新 Example 仍失敗——據此佐證 D1 的 **no-resume** 選擇；觀察到即還原，重跑確認綠燈。
 
-- [ ] T005 [REGRESSION] 跑全測試 + 見證 + `make verify` + 拓樸稽核
+- [X] T005 [REGRESSION] 跑全測試 + 見證 + `make verify` + 拓樸稽核
   - Read: `research.md` -> `Decision 3`, `Decision 4`, `Decision 6`；`specs/truth/techstack.md` -> Turn progress spinner row
   - 做：
     - `go test -count=1 ./...` 全綠（unit + godog E2E）。
@@ -141,7 +141,7 @@
     - 確認 gated-off（非 terminal `stderr`／`-r`）路徑 byte-identical（無 spinner、無 clear）。
   - 不做：不放寬任何 assertion；不為轉綠而移除見證。
 
-- [ ] T006 subagent review (round quality gate)
+- [X] T006 subagent review (round quality gate)
   - Read: `internal/cli/composite_observer.go`、`internal/cli/composite_observer_test.go`、`specs/truth/features/cli/chat/presenting-the-progress-spinner.feature`、`specs/truth/techstack.md`、`specs/plans/035-spinner-tail-residue/{spec.md,research.md,plan.md,truth-delta.md}`
   - 檢驗：修復僅動 `composite_observer.go`（`callRenderer`／`spinner.go` 未改）；`Spinner.OnCallEnd` 仍 no-op；final/ gated-off 路徑 byte-identical；flags／exit codes／class phrase／line formats／cadence／`stdout` 皆未變；`techstack.md` 與 `truth-delta.md` 一致；無新相依。
 
