@@ -16,13 +16,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _placeholder_ | `specs/truth/contracts/**` | To be filled by `/axb-api-plan` (expected NOOP — tellme has a single CLI end). | Truth owner fills during the round. |
+| NOOP | `specs/truth/contracts/**` | Checked — tellme has a single CLI end and no OpenAPI/HTTP surface; the MCP client authors no request/response contract of tellme's own (the remote MCP server is an outbound dependency, not an exposed end). | `contract-authoritative` holds vacuously. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _placeholder_ | `specs/truth/data/**` | To be filled by `/axb-data-plan` (expected NOOP — no persisted state this round; caching deferred). | Truth owner fills during the round. |
+| NOOP | `specs/truth/data/**` | Checked — the round persists no new state: MCP tool lists are discovered live each run (caching deferred, Q2 Option 2); the existing persisted shapes (`history.jsonl`, `tokens.log`, the prompt logs) are unchanged. The `MCP_SERVERS` block is configuration, not persisted system state. | `data-model-covers-all-state` holds — no new state. |
 
 ## /axb-dsl-refine
 
