@@ -602,3 +602,84 @@ A session on 2026-09-16: the operator ran the round's **SC-002 manual live check
 
 ### Issue tracker (closeout Step 8)
 Reconciled against the delivered state: **[#67](https://github.com/gosharplite/tellme/issues/67) CLOSED (completed)** — the `MCP_SERVERS` `${VAR}` gap, delivered by round 032 (folds `2ced555`/`c370433`; PR #66 merged `4376f79`); **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling). No revisions.
+
+---
+
+## 15. Session 18 (2026-09-16) — round 033 `033-skills-system`: plan + truth half delivered; PR #68 reviewed (3 passes) → CERTIFIED; closeout
+
+A session on 2026-09-16: opened round **033** (operator request — a **minimal, on-demand skills system**: load `<TELL_ME_HOME>/docs/skills/` + a read-only `list_skills` tool; **no** injection; **no** `skillssh` toolkit), ran the **full plan + truth half** of the AIxBDD pipeline, opened **PR [#68](https://github.com/gosharplite/tellme/pull/68)** → `dev`, and took it through **three architectural review passes → ✅ CERTIFIED**. **No product code** (implementation `/axb-implement` is next). Only a human merges.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 032 delivered/frozen; active branch `dev`) |
+| Round-033 theme | a **minimal, on-demand skills system** — `list_skills` over `<TELL_ME_HOME>/docs/skills/`; no injection; no skills.sh |
+| Operator scope | load only `ait-*/docs/skills`; drop the `skillssh` "complication" |
+| `/axb-specify` | `specs/plans/033-skills-system/`; **Clarify Q1 → 1** (on-demand only), **Q2 → moot**, **Q3 → 1** (`list_skills` tool) |
+| `/axb-spec-by-example` | `features/acceptance/discovering-the-available-skills.feature` (4 Rules) |
+| `/axb-technical-research` | `research.md` D1–D9; `specs/truth/techstack.md` MODIFY (new `### Skills` rows + corrections) |
+| `/axb-system-analysis` | `plan.md` — 1 interface (CLI end → `/axb-dsl-refine`); api/data NOOP; ui skipped |
+| `/axb-dsl-refine` | ADD `chat/listing-the-available-skills.feature` (5 Rules) + `chat/dsl.md` (+11 rows); MODIFY `chat/offering-the-agent-tools.feature` (six → **seven** tools) |
+| `/axb-tasks` | `tasks.md` T001–T024; Pre-Delivery orphan sweep 0 |
+| Reviews (PR #68) | 3 passes → **✅ CERTIFIED** (head `45db613`); review loop closed |
+| Delivery | branch `033-skills-system` (9 commits); **PR #68 open — not merged** (human-only) |
+| Closeout | `gofmt`/`go vet` clean; topology audit **PASSED** (44 features · 299 module rows · 1533 steps); diff secret scan clean; `STATUS.md` updated; this §15 |
+
+### Work done
+
+1. **Bootstrap (Steps 1–8)** — round 032 delivered/frozen; active branch `dev`; peers unchanged (`butler` + `architect`/`coder`/`griller`/`pm`/`rd`); registered a read path for `tellme.sh`.
+2. **Investigation** — confirmed tellme has **no** skill subsystem (`grep skill *.go` → 0; no `domain/skills`, no `list_skills` tool); mapped the reference's skill architecture (ADR-005) and the ai-* `docs/skills` layout.
+3. **Plan + truth half** — `/axb-specify` → `/axb-clarify` (Q1/Q2/Q3) → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks`; committed per phase; opened **PR #68**.
+4. **Review loop (PR #68)** — pass 1 (2 🔴 + 2 🟡 + 3 nits) → fold `c019370`; re-review (1 must-fix + 2 nits) → fold `448b2b9`; final re-review (2 cosmetic strays) → tidy `45db613` → **✅ CERTIFIED; review loop closed.**
+
+### Decisions locked (round 033)
+
+| # | Decision |
+| --- | --- |
+| Q1 → 1 | **On-demand only** — a read-only `list_skills` + the existing `read_files`; **no** automatic injection, **no** selector. |
+| Q2 → moot | No injected block, so the manifest-vs-selector question does not apply. |
+| Q3 → 1 | Listing delivered as a **model-callable read-only `list_skills` tool** (not an offline flag). |
+| D1–D9 | Single source `<home>/docs/skills`; a skill = `.md` with valid `name`/`description` frontmatter (recursive); minimal shape (type + loader); output name+description+location (path-sorted); `list_skills` = an ordinary agent tool (shared `resourceSchema` + `reason`, reader-class 30 s); loaded on the prompt path only; no skills.sh + no injection (recorded divergence); hermetic; stdlib-only. |
+| Fold | **FR-009 wiring seam** pinned — `agentTools()` parameterless + read-free; lazy `Execute`-only catalog seam set in `runTurn`; the offline `--tool-usage` path and the round-031 gate touch no `docs/skills`. |
+
+### Commits (branch `033-skills-system`)
+
+| Commit | Note |
+| --- | --- |
+| `c4e85b5` | `docs(033): plan package and spec for the skills system` |
+| `829aa1f` | `docs(033): technical research + techstack truth for the skills system` |
+| `182724d` | `docs(033): system-analysis plan for the skills system` |
+| `8219150` | `docs(033): acceptance Gherkin for the skills system` |
+| `3b619ca` | `docs(033): CLI interface truth for the skills system (list_skills)` |
+| `b405c60` | `docs(033): task plan for the skills system` |
+| `c019370` | `docs(033): fold PR #68 review — wiring seam (FR-009), truth-delta NOOPs, spec/plan consistency, sentinel + vocabulary` |
+| `448b2b9` | `docs(033): fold PR #68 re-review — task↔DSL vocabulary (runtime home) + truth-delta summary` |
+| `45db613` | `docs(033): cosmetic tidy — last 'workspace' stray + checklist note reconcile` |
+
+### Verification (docs half)
+
+- `gofmt -l .` clean · `go vet ./...` clean.
+- Gherkin/DSL topology audit **PASSED** — `--root specs/truth/features/cli`: **44 features · 16 root + 299 module rows · 1533 steps** (was 43 · 288 · 1492).
+- Pre-Delivery Orphan Coverage Sweep: **0 orphans**.
+- Diff-level secret scan clean; no product code this half → `make verify` N/A until `/axb-implement`.
+
+### Open items (non-blocking)
+
+- **Round 033 — implementation pending**: `/axb-implement` (T001–T024) on `033-skills-system`; then **a human merges PR #68**.
+- **Round-033 forward items** — (a) a very large catalog is bounded by the round-024 resource contract on the tool's result (no paging); (b) the result ordering is a fixed path sort.
+- Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 Obs 3; sequential tools / no pruning / no `flock`; round-011 forward items.
+- **Propagation PENDING** — round 033 is not mergeable (implementation pending); PR #68 open. No `dev`/`main` change.
+
+### Next steps
+
+1. **`/axb-implement`** over **T001–T024** on `033-skills-system` (Setup omitted → Foundational → Phase 3 test alignment → Feature GREEN/REFACTOR → regression + falsifiability witnesses), then the implementation review → **human merge** of PR #68 → propagate `033 → dev → main`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `033-skills-system`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+
+Reconciled against the current state: **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella — round 033 is a step toward it, but its slices are tracked there, not by round 033); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling). Round 033 has **no anchor issue** (operator request) and **nothing has landed** (plan + truth half only) → **no closes, no revisions** this closeout.
