@@ -231,13 +231,36 @@ func TestTruncateToBudgetDropsSplitRune(t *testing.T) {
 	}
 }
 
+// TestToolSchemasRequireReason pins the `reason` requirement of every
+// builder-backed tool (the five tools the shared `resourceSchema` builds; the
+// `execute_command` tool builds its schema inline). Round 031 strengthened it to
+// assert that `reason` is a declared PROPERTY — not merely listed in `required` —
+// which is the defect this round fixes (issue #64): a `required` name with no
+// matching property is rejected by a strict provider (Vertex/Gemini). Completeness
+// across the whole registry is owned by the cli-level gate
+// (`TestAgentToolSchemasAreWellFormed`); this test keeps the `reason`-specific
+// prose and must not re-enumerate the full tool set.
 func TestToolSchemasRequireReason(t *testing.T) {
-	for _, params := range []json.RawMessage{listFiles{}.Parameters(), readFiles{}.Parameters(), getTree{}.Parameters()} {
+	backed := []struct {
+		name   string
+		params json.RawMessage
+	}{
+		{"list_files", listFiles{}.Parameters()},
+		{"read_files", readFiles{}.Parameters()},
+		{"get_tree", getTree{}.Parameters()},
+		{"write_file", writeFile{}.Parameters()},
+		{"replace_text", replaceText{}.Parameters()},
+	}
+	for _, tc := range backed {
 		var s struct {
-			Required []string `json:"required"`
+			Properties map[string]json.RawMessage `json:"properties"`
+			Required   []string                   `json:"required"`
 		}
-		if err := json.Unmarshal(params, &s); err != nil {
-			t.Fatalf("tool schema is not valid JSON: %v", err)
+		if err := json.Unmarshal(tc.params, &s); err != nil {
+			t.Fatalf("%s: tool schema is not valid JSON: %v", tc.name, err)
+		}
+		if _, ok := s.Properties["reason"]; !ok {
+			t.Errorf("%s: schema does not declare the `reason` property (required ⊆ properties would be violated): %s", tc.name, tc.params)
 		}
 		found := false
 		for _, r := range s.Required {
@@ -246,7 +269,7 @@ func TestToolSchemasRequireReason(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Errorf("tool schema does not require reason: %s", params)
+			t.Errorf("%s: tool schema does not require reason: %s", tc.name, tc.params)
 		}
 	}
 }

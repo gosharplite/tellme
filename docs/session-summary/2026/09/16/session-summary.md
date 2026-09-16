@@ -379,3 +379,78 @@ A continuation session on the same calendar day: folded the round-030 **implemen
 
 ### Issue tracker (closeout Step 8)
 Reconciled against the delivered state: **[#62](https://github.com/gosharplite/tellme/issues/62) CLOSED (completed)** — delivered by round 030 (PR [#63](https://github.com/gosharplite/tellme/pull/63) merged `9ecf845`); **[#64](https://github.com/gosharplite/tellme/issues/64) OPEN (new)** — tool-schema bug, not yet landed; **[#60](https://github.com/gosharplite/tellme/issues/60) OPEN** (dogfooding umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13) OPEN** (coverage tooling). No revisions needed.
+
+
+---
+
+## 12. 2026-09-16 (session 6 of the day) — round 031 `031-tool-schema-wellformedness`: full pipeline → five review folds → merged (PR #65) + closeout
+
+A session on 2026-09-16: opened round **031** (resolve issue [#64](https://github.com/gosharplite/tellme/issues/64)), ran the full AIxBDD pipeline (`/axb-specify` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-tasks` → `/axb-implement`), took **PR [#65](https://github.com/gosharplite/tellme/pull/65)** through an architectural review + an implementation review + a **principal-architect** review (**five deterministic folds**), saw the **human merge**, refreshed the installed binary, and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (Linux host).
+**Branch**: `031-tool-schema-wellformedness` (off `dev`) → merged via PR [#65](https://github.com/gosharplite/tellme/pull/65) into `dev` (`a7de7b7`) → propagated `dev → main`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 030 delivered/frozen; active branch `dev`) |
+| Round-031 theme | the tool-schema `required ⊆ properties` defect ([#64](https://github.com/gosharplite/tellme/issues/64)): 5 of 6 agent tools list `reason` in `required` but never declare its property → Vertex/Gemini 400s **every** request |
+| `/axb-clarify` | 1 round, 2 questions, **both Option 1** (Q1 hermetic gate + manual live check; Q2 minimal fix + gate) |
+| Pipeline | specify ✅ · spec-by-example (skipped) · research ✅ · system-analysis ✅ (0 interfaces) · api/data/dsl-refine NOOP · tasks ✅ (T001–T007) · **implement ✅** |
+| Reviews (PR #65) | plan+truth **APPROVED** + **5 folds** (ARCH-1…ARCH-5) → **FOLD ACCEPTED** → residue nit → **review loop CLOSED** → impl **APPROVED** (required truth fold + vacuous-gate guard) → **principal review CERTIFIED READY TO MERGE** (`06d574f`) |
+| Merge | PR [#65](https://github.com/gosharplite/tellme/pull/65) **MERGED** into `dev` (`a7de7b7`, by `thptcnec`, 2026-09-16T01:52:05Z); round-031 head frozen at **`06d574f`** (10 commits) |
+| Propagation | `031-tool-schema-wellformedness → dev` (`a7de7b7`) `→ main` — **DONE (no-ff)** |
+| Closeout | `gofmt` clean · `make verify` **OK** · `go test ./...` green · topology audit **PASSED** (42 features · 16 root + 273 module rows · 1403 steps — unchanged); `STATUS.md` split (round-030 detail → `docs/archives/status/2026-09-16.md`); `go install ./cmd/tellme` refreshed from `06d574f`; **#64 closed** |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — round 030 delivered/frozen; active branch `dev`; peers unchanged (`butler` + `architect`/`coder`/`griller`/`pm`/`rd`).
+2. **Round-031 pipeline** — `/axb-specify` (`spec.md` US1/US2 · FR-001..009 · SC-001..004) → `/axb-technical-research` (`research.md` D1–D6 + `techstack.md` MODIFY) → `/axb-system-analysis` (`plan.md`; 0 interfaces) → `/axb-tasks` (`tasks.md` T001–T007; orphan sweep 0) → `/axb-implement` (RED-first gate → the fix → GREEN).
+3. **The delivery** — `resourceSchema` declares the **`reason`** property (single-sourced `reasonDesc`) → the 5 builder-backed tools satisfy `required ⊆ properties`; `execute_command` (inline) untouched; the **`TestAgentToolSchemasAreWellFormed`** gate over the **non-overridable `agentTools()`** + edge-case pins + assembler↔registry name pin + a vacuous-gate guard.
+4. **Five review folds** — `e10b131` (plan+truth ARCH-1…ARCH-5) · `4a29cde` (fold-review nit: terminology + assembler↔registry pin) · `989dd20` (implementation T001–T007) · `c1190e9` (impl-review: truth gate row names `agentTools()` + gate guard) + `7790bea` (STATUS) · `06d574f` (impl-fold-review residual: plan.md names `agentTools()`).
+5. **Forward items filed on [#60](https://github.com/gosharplite/tellme/issues/60)** — typed schema construction ([5690778272](https://github.com/gosharplite/tellme/issues/60#issuecomment-5690778272)) and recursive schema walk ([5690604951](https://github.com/gosharplite/tellme/issues/60#issuecomment-5690604951)).
+6. **Merge + propagation + closeout** — PR #65 merged (`a7de7b7`); `go install ./cmd/tellme`; `STATUS.md` split + this §12; **#64 closed**.
+
+### Decisions locked (round 031)
+| # | Decision |
+| --- | --- |
+| Q1 → 1 | Hermetic **tool-schema well-formedness gate** + a **manual** live Vertex/Gemini closeout check; `make verify` stays offline |
+| Q2 → 1 | Minimal fix — the shared `resourceSchema` declares the `reason` property; `execute_command` left inline — plus a for-every-registered-tool `required ⊆ properties` gate |
+| ARCH-1 | The gate reads the **non-overridable production assembler `agentTools()`**, never the `newToolRegistry` DI seam |
+| ARCH-2 | Flat-schema (root-only) precondition recorded; the recursive walk filed as a `#60` forward item |
+| ARCH-3 | T002 does not re-hand-enumerate the six — **T001 owns completeness** |
+| ARCH-4 | STATUS reconciled |
+| ARCH-5 | The acceptance-carrier divergence (no Gherkin carrier) recorded explicitly |
+
+### Commits (branch `031-tool-schema-wellformedness`, then merged)
+| Commit | Note |
+| --- | --- |
+| `0180f9c` | `docs(031)`: plan package + spec |
+| `cec72db` | `docs(031)`: research + techstack truth |
+| `f3dc75d` | `docs(031)`: system-analysis plan |
+| `c7efcfe` | `docs(031)`: tasks.md |
+| `e10b131` | `docs(031)`: fold plan+truth review (ARCH-1…ARCH-5) |
+| `4a29cde` | `docs(031)`: fold fold-review nit |
+| `989dd20` | `feat(031)`: fix the tool-schema `reason` property + add the assembler well-formedness gate (T001–T007) |
+| `c1190e9` | `fix(031)`: fold implementation review (truth row names `agentTools()`; vacuous-gate guard) |
+| `7790bea` | `docs(031)`: STATUS — impl-review fold |
+| `06d574f` | `docs(031)`: fold impl-fold-review residual (plan.md names `agentTools()`) |
+| `a7de7b7` | PR [#65](https://github.com/gosharplite/tellme/pull/65) merge into `dev` (by `thptcnec`) |
+
+### Verification (2026-09-16)
+`gofmt -l .` clean · `make verify` **OK** (no-test-sleep · offline witness · cross-compile 4/4 · `golangci-lint` 0 issues · `govulncheck` clean) · `go test -count=1 ./...` green (unit + godog E2E) · topology audit **PASSED** (42 features · 16 root + 273 module rows · **1403** steps — unchanged) · diff-level secret scan **clean** · **falsifiability witnesses** (a) revert the fix → gate fails non-vacuously; (b) a mandatory-but-undeclared arg → gate fails; both reproduced then reverted · `go.mod`/`go.sum` unchanged (stdlib-only).
+
+### Open items (non-blocking)
+- **Round-031 forward items** — (a) typed schema construction (`fmt.Sprintf` → typed struct + `encoding/json`) → `#60`; (b) recursive schema walk → `#60`; (c) **SC-002** — the **manual** live Vertex/Gemini confirmation (plain + tool-using prompt, no `400`) is the round's one open, non-gating closeout step.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011/024/028/029/030 forward items.
+- Future-slice candidates: **#60** (dogfooding track — incl. the round-031 forward items), **#13** (coverage tooling).
+
+### Next steps
+1. Choose the `032-*` theme and start it via `/axb-specify` off `dev` (candidates: the `#60` dogfooding track / `#13`).
+2. Perform SC-002's **manual** live Vertex/Gemini confirmation (the one open, non-gating round-031 item).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled against the delivered state: **[#64](https://github.com/gosharplite/tellme/issues/64) CLOSED (completed)** — delivered by round 031 (PR [#65](https://github.com/gosharplite/tellme/pull/65) merged `a7de7b7`); **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella — now also carries the round-031 typed-schema + recursive-walk forward items); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling; still accurate). No revisions needed.
