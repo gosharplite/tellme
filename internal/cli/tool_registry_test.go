@@ -6,10 +6,10 @@ import (
 	"testing"
 )
 
-// Round 024 T042 / round 029: the production registry factory offers exactly the
-// six agent tools — the three filesystem readers, the write pair (write_file,
-// replace_text), and the command tool — and never summarize_history or
-// pipe_commands.
+// Round 024 T042 / round 029 / round 033: the production registry factory offers
+// exactly the seven agent tools — the three filesystem readers, the write pair
+// (write_file, replace_text), the command tool, and the read-only skills listing
+// tool (list_skills) — and never summarize_history or pipe_commands.
 
 func TestNewToolRegistryOffersAgentTools(t *testing.T) {
 	reg := newToolRegistry()
@@ -24,9 +24,10 @@ func TestNewToolRegistryOffersAgentTools(t *testing.T) {
 		"write_file":      true,
 		"replace_text":    true,
 		"execute_command": true,
+		"list_skills":     true,
 	}
 	if len(got) != len(want) {
-		t.Fatalf("registry tools = %v; want exactly list_files, read_files, get_tree, write_file, replace_text, execute_command", got)
+		t.Fatalf("registry tools = %v; want exactly list_files, read_files, get_tree, write_file, replace_text, execute_command, list_skills", got)
 	}
 	for name := range want {
 		if !got[name] {

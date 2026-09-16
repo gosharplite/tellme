@@ -59,9 +59,16 @@ const reasonDesc = "Reason for calling this tool."
 // bespoke props + process-tree timeout wording (round-029 review finding 4).
 func resourceSchema(extraProps, required string, defaultTimeout time.Duration) json.RawMessage {
 	secs := int(defaultTimeout / time.Second)
+	// extraProps may be empty for a tool with no bespoke parameters (round-033
+	// `list_skills`, whose properties are the mandatory `reason` + the two resource
+	// params) — only insert the separating comma when it carries properties.
+	prefix := ""
+	if strings.TrimSpace(extraProps) != "" {
+		prefix = strings.TrimSpace(extraProps) + ","
+	}
 	return json.RawMessage(fmt.Sprintf(
-		`{"type":"object","properties":{%s,"reason":{"type":"string","description":%q},"max_output_tokens":{"type":"integer","description":%q},"timeout":{"type":"number","description":"Optional seconds before this tool is stopped and returns a timeout result; default %d."}},"required":[%s]}`,
-		extraProps, reasonDesc, maxOutputTokensDesc, secs, required))
+		`{"type":"object","properties":{%s"reason":{"type":"string","description":%q},"max_output_tokens":{"type":"integer","description":%q},"timeout":{"type":"number","description":"Optional seconds before this tool is stopped and returns a timeout result; default %d."}},"required":[%s]}`,
+		prefix, reasonDesc, maxOutputTokensDesc, secs, required))
 }
 
 // timedOut reports whether ctx has passed its deadline (the FR-018 trigger).

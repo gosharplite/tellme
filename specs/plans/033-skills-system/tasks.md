@@ -48,14 +48,14 @@
 **Boundary**:
 - 只建立骨架 / 落點 / 入口；**不寫** DSL 語意、**不寫** 產品行為、**不寫** 測試 assertion。
 
-- [ ] T001 stepdef 落點骨架（一 task 一檔案，Zero Shared Edits）
+- [X] T001 stepdef 落點骨架（一 task 一檔案，Zero Shared Edits）
   - Read:
     - `specs/truth/features/cli/chat/dsl.md` -> `## Given (round 033)` + `## Then (round 033)` 各列
     - `tests/e2e/steps/` 既有 stepdef 檔（命名與 `init()` 自動註冊慣例）
   - 只做：為 `## Given (round 033)`（5 句）與 `## Then (round 033)`（6 句）各建立**獨立** stepdef 落點檔案（例如 `tests/e2e/steps/step_r033_t004..t014.go`）與一個 `tests/e2e/steps/wire_skills.go` helper 落點；每檔僅含 `gherkin` step 註冊骨架（可回傳 pending），**不含**邏輯。
   - 不做：不填 assertion（留 Phase 3）；不改既有 stepdef 檔案；不碰產品碼。
 
-- [ ] T002 產品落點骨架
+- [X] T002 產品落點骨架
   - Read:
     - `specs/plans/033-skills-system/research.md` -> `Decision 5`, `Decision 7`
     - `internal/domain/tools/tools.go` -> `Tool` port（`Name`/`Description`/`Parameters`/`Contract`/`Execute`）
@@ -64,7 +64,7 @@
   - 只做：建立落點骨架 — `internal/domain/skills/skill.go`（`Skill{Name, Description, Location}` 型別）、`internal/infrastructure/skills/loader.go`（loader 函式簽名 + TODO）、`internal/infrastructure/tools/skills.go`（`listSkills` tool 型別 + 五個 method 空殼，用 `resourceSchema`）、並在 `agentTools()` 預留 `list_skills` 註冊位置（空殼）。**Wiring seam（review fold R-TD1；FR-009）**：`agentTools()` 保持 **parameterless 且不做任何檔案讀取** — 以 **空/unbound** catalog source 構造 `list_skills`；catalog 只在 **prompt path**（`runTurn`，resolved home 已知）載入並注入該 tool（lazy `func() ([]skills.Skill, error)` seam，僅在 `Execute` 內解析）。`newToolRegistry` DI seam 簽名**不變**。`<TELL_ME_HOME>/docs/skills` 以一個 `internal/home` helper 單一來源化（mirror `EnsureWorkspace`）。
   - 不做：不實作 loader 邏輯或 tool 行為（留 Phase 4）；不改 provider/loop/其他工具；不改 `newToolRegistry` 簽名；不讓 `agentTools()`／offline `--tool-usage` 觸及 `docs/skills`；不新增相依。
 
-- [ ] T003 unit 測試落點骨架
+- [X] T003 unit 測試落點骨架
   - Read:
     - `internal/infrastructure/tools/filesystem_test.go`（測試風格慣例）
     - `specs/plans/033-skills-system/research.md` -> `Decision 2`, `Decision 6`
@@ -101,27 +101,27 @@
 **Parallel Hint**:
 - T004–T017 各派一個獨立 subagent（依 `ParallelHint平行Subagent與同檔調度判準.md` 調度）；T018 等全部回來再啟動 subagent 來 review。
 
-- [ ] T004 [P] [BDD-ALIGN] `Then: the request offered exactly the agent tools`
+- [X] T004 [P] [BDD-ALIGN] `Then: the request offered exactly the agent tools`
   - Read: `specs/truth/features/cli/chat/dsl.md` -> `the request offered exactly the agent tools` row（`集合` 現為七工具）
   - 只做：更新既有的 offered-set stepdef，使其斷言七個工具（新增 `list_skills`）。
-- [ ] T005 [P] [BDD-RED] `Given: the runtime home holds a skill "{name}" described as "{description}"`
-- [ ] T006 [P] [BDD-RED] `Given: the runtime home holds a skill "{name}" whose folder also holds a reference file "{relpath}"`
-- [ ] T007 [P] [BDD-RED] `Given: the runtime home holds no skills`
-- [ ] T008 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to list its skills and then answers with "{answer}"`
-- [ ] T009 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to list its skills, then to read the skill "{name}", and then answers with "{answer}"`
-- [ ] T010 [P] [BDD-RED] `Then: tellme listed the skills using its list_skills tool`
-- [ ] T011 [P] [BDD-RED] `Then: the listing includes the skill "{name}"`
-- [ ] T012 [P] [BDD-RED] `Then: the listing does not include "{text}"`
-- [ ] T013 [P] [BDD-RED] `Then: the listing reports that no skills are available`
-- [ ] T014 [P] [BDD-RED] `Then: tellme read the skill "{name}" using its read_files tool`
-- [ ] T015 [P] [BDD-RED] `Then: the request carried none of the text "{text}"`
-- [ ] T016 [P] [UNIT] loader 測試（`internal/infrastructure/skills/loader_test.go`）
+- [X] T005 [P] [BDD-RED] `Given: the runtime home holds a skill "{name}" described as "{description}"`
+- [X] T006 [P] [BDD-RED] `Given: the runtime home holds a skill "{name}" whose folder also holds a reference file "{relpath}"`
+- [X] T007 [P] [BDD-RED] `Given: the runtime home holds no skills`
+- [X] T008 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to list its skills and then answers with "{answer}"`
+- [X] T009 [P] [BDD-RED] `Given: a configured provider "{provider}" whose endpoint asks tellme to list its skills, then to read the skill "{name}", and then answers with "{answer}"`
+- [X] T010 [P] [BDD-RED] `Then: tellme listed the skills using its list_skills tool`
+- [X] T011 [P] [BDD-RED] `Then: the listing includes the skill "{name}"`
+- [X] T012 [P] [BDD-RED] `Then: the listing does not include "{text}"`
+- [X] T013 [P] [BDD-RED] `Then: the listing reports that no skills are available`
+- [X] T014 [P] [BDD-RED] `Then: tellme read the skill "{name}" using its read_files tool`
+- [X] T015 [P] [BDD-RED] `Then: the request carried none of the text "{text}"`
+- [X] T016 [P] [UNIT] loader 測試（`internal/infrastructure/skills/loader_test.go`）
   - Read: `research.md` -> `Decision 2`；`specs/truth/techstack.md` -> Skills catalog (load) row
   - 只做：pin — frontmatter `name`/`description` 解析、遞迴發現、無 frontmatter 的 `.md` 不算 skill、重名首見者勝、缺/空目錄 → 空 catalog、CRLF 正規化、個別壞檔 best-effort skip。以 `t.TempDir()` 造 fixture。
-- [ ] T017 [P] [UNIT] tool 測試（`internal/infrastructure/tools/skills_test.go`）
+- [X] T017 [P] [UNIT] tool 測試（`internal/infrastructure/tools/skills_test.go`）
   - Read: `research.md` -> `Decision 6`, `Decision 7`；`specs/truth/features/cli/chat/dsl.md` -> round-033 Then rows
   - 只做：pin — `list_skills` 輸出格式（name + description + location）、paths 排序決定性、空 catalog 回報、schema well-formed（`required ⊆ properties`，由 round-031 gate 一併涵蓋）、未觀測 deadline 時回一般結果。
-- [ ] T018 subagent review (phase quality gate)
+- [X] T018 subagent review (phase quality gate)
   - Read: `tests/e2e/steps/step_r033_*.go`、`tests/e2e/steps/wire_skills.go`、`internal/infrastructure/skills/loader_test.go`、`internal/infrastructure/tools/skills_test.go`、`truth-delta.md`
   - 檢驗：11 句各有獨立 stepdef 且可被跑到（非 undefined）；offered-set ALIGN 已對齊七工具；loader/tool unit 測試就位；只動測試層。有 issues 修正再 review，直到零問題。通過前不解鎖 Phase 4。
 
@@ -141,11 +141,11 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/listing-the-available-skills.feature`
 
-- [ ] T019 [BDD-GREEN] 讓 Test Scope 全綠（`list_skills` 產品實作）
+- [X] T019 [BDD-GREEN] 讓 Test Scope 全綠（`list_skills` 產品實作）
   - Read: `specs/plans/033-skills-system/plan.md` -> Implementation constraints（catalog → tool wiring seam）；`specs/plans/033-skills-system/research.md` -> `Decision 1`, `Decision 4`, `Decision 5`, `Decision 6`, `Decision 7`
   - 做：在 **prompt path**（`runTurn`）載入 catalog 並注入 `list_skills`（lazy seam，僅 `Execute` 內解析）；`agentTools()` 保持 parameterless 且**不讀檔**；offline `--tool-usage` 與 round-031 gate 皆**不觸及** `docs/skills`（FR-009）；輸出每 skill 的 name + description + location（path-sorted）。
   - 不做：不改 provider/loop/六個既有工具；不注入 skill 內容；不新增相依。
-- [ ] T020 [BDD-REFACTOR] 在綠燈下整理 loader 與 tool 的共用結構（frontmatter 解析、輸出格式），保持行為不變
+- [X] T020 [BDD-REFACTOR] 在綠燈下整理 loader 與 tool 的共用結構（frontmatter 解析、輸出格式），保持行為不變
 
 ## Phase 4B: MODIFY Feature File - cli/chat/offering-the-agent-tools.feature
 
@@ -162,8 +162,8 @@
 **Test Scope**:
 - `specs/truth/features/cli/chat/offering-the-agent-tools.feature`
 
-- [ ] T021 [BDD-GREEN] 讓 Test Scope 全綠
-- [ ] T022 [BDD-REFACTOR] 在綠燈下整理 `agentTools()` 的註冊（無語意變更）
+- [X] T021 [BDD-GREEN] 讓 Test Scope 全綠
+- [X] T022 [BDD-REFACTOR] 在綠燈下整理 `agentTools()` 的註冊（無語意變更）
   - 另：reconcile 仍寫 "six" 的 code comments（`newToolRegistry` 的 doc、round-031 gate 的 comment）→ "seven"（techstack rows 已是 seven）。
 
 ## Phase 5: Verification & Regression
@@ -178,7 +178,7 @@
 - 不改產品碼；只跑回歸與見證。
 - Witnesses（可偽性）：(a) 移除 frontmatter 規則（把無 frontmatter 的 `.md` 也當 skill）→ non-skill-`.md` 的 Then 失敗；(b) 暫時把 skill 內容注入 request（system block）→ no-injection 的 Then 失敗。觀察到即還原，再跑一次確認綠燈。
 
-- [ ] T023 [REGRESSION] 跑 Test Scope（`specs/truth/features/cli/**`）+ 見證 + `make verify` + 拓樸稽核
+- [X] T023 [REGRESSION] 跑 Test Scope（`specs/truth/features/cli/**`）+ 見證 + `make verify` + 拓樸稽核
   - Read: `research.md` -> `Decision 4`, `Decision 9`；`specs/truth/techstack.md` -> Skills rows
   - 做：
     - `go test -count=1 ./...` 全綠（unit + godog E2E；本輪不需 undefined step）。
@@ -186,7 +186,7 @@
     - `make verify` **OK**；`gofmt -l .` clean；Gherkin/DSL 拓樸稽核 **PASSED**（44 features · 16 root + **299** module rows · **1533** steps）。
     - 確認 offline paths 不觸及 `docs/skills`；class phrase vocabulary 與 exit code **未變**；六個既有工具行為未變；`go.mod`／`go.sum` 不變（stdlib-only）。
   - 不做：不放寬任何 assertion；不為轉綠而移除見證。
-- [ ] T024 subagent review (round quality gate)
+- [X] T024 subagent review (round quality gate)
   - Read: `internal/domain/skills/skill.go`、`internal/infrastructure/skills/loader.go`、`internal/infrastructure/tools/skills.go`、`internal/cli/cli.go`（`agentTools()` + prompt-path 載入）、`specs/truth/features/cli/chat/listing-the-available-skills.feature`、`specs/plans/033-skills-system/{spec.md,research.md,plan.md,truth-delta.md}`
   - 檢驗：`list_skills` 為 read-only 且 no-injection；載入僅在 prompt path；六個既有工具與 provider/loop 未改；`techstack.md` 與 `truth-delta.md` 一致；無新相依；class phrase / exit code / `stdout`/`stderr` 未變；audit PASSED。
 

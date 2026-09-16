@@ -22,10 +22,12 @@ import (
 	"github.com/gosharplite/tellme/internal/config"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
+	domainskills "github.com/gosharplite/tellme/internal/domain/skills"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 	"github.com/gosharplite/tellme/internal/home"
 	infrhistory "github.com/gosharplite/tellme/internal/infrastructure/history"
 	infrallm "github.com/gosharplite/tellme/internal/infrastructure/llm"
+	infrskills "github.com/gosharplite/tellme/internal/infrastructure/skills"
 	infratelemetry "github.com/gosharplite/tellme/internal/infrastructure/telemetry"
 	infratools "github.com/gosharplite/tellme/internal/infrastructure/tools"
 	"github.com/gosharplite/tellme/internal/ui"
@@ -676,6 +678,11 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// including tool steps — TD-1) plus the current prompt — measured against the
 	// payload budget. Diagnostic only, on stderr.
 	reg := newToolRegistry()
+	// Round 033 (FR-009): bind the `list_skills` catalog source on the
+	// prompt-bearing turn path ONLY — the runtime home is resolved here. The load
+	// stays lazy (inside the tool's Execute), so no registration reads docs/skills
+	// and the offline paths never touch it.
+	bindSkillsCatalog(reg, res)
 	assembled := append(append(make([]llm.Message, 0, len(prior)+1), agent.BuildMessages(prior)...), llm.Message{Role: "user", Content: prompt})
 	// Round-019 elapsed epoch: the spinner's turn-scoped timer starts at prompt
 	// capture — the moment the input-capture acknowledgement fires (research D4).
@@ -1172,11 +1179,12 @@ func emitProviderError(w io.Writer, err error) int {
 type toolRegistryFactory func() domaintools.Registry
 
 // newToolRegistry is the production registry factory (a var so tests may
-// override it). It assembles exactly the six agent tools — the read-only
+// override it). It assembles exactly the seven agent tools — the read-only
 // filesystem readers (list_files, read_files, get_tree), the write pair
-// (write_file, replace_text), and the bash-first command tool
-// (execute_command) — in that offer order, and no others (round-029 D1;
-// round-024 FR-013; no pipe_commands, no security tooling).
+// (write_file, replace_text), the bash-first command tool (execute_command), and
+// the read-only skills listing tool (list_skills, round 033) — in that offer
+// order, and no others (round-029 D1; round-024 FR-013; no pipe_commands, no
+// security tooling).
 var newToolRegistry toolRegistryFactory = func() domaintools.Registry {
 	return domaintools.NewRegistry(agentTools()...)
 }
@@ -1202,13 +1210,30 @@ func augmentRegistryWithMCP(ctx context.Context, res resolution, reg domaintools
 }
 
 // agentTools assembles the agent tool set in offer order: the read-only
-// filesystem readers, the write pair (round 029), then the bash-first command
-// tool. Kept a named function so the registry seam stays a one-liner.
+// filesystem readers, the write pair (round 029), the bash-first command tool,
+// and the read-only skills listing tool (round 033). Kept a named function so the
+// registry seam stays a one-liner.
 func agentTools() []domaintools.Tool {
 	tools := infratools.NewFilesystemTools()
 	tools = append(tools, infratools.NewWriteTools()...)
 	tools = append(tools, infratools.NewCommandTool())
+	// Round 033: the `list_skills` tool is constructed with an UNBOUND catalog
+	// source here, so this assembler — which the round-031 gate iterates and the
+	// offline `--tool-usage` report builds via newToolRegistry() — performs NO
+	// filesystem read. The catalog is bound on the prompt path only
+	// (bindSkillsCatalog in runTurn); agentTools() stays parameterless (FR-009).
+	tools = append(tools, infratools.NewSkillsTool(nil))
 	return tools
+}
+
+// bindSkillsCatalog wires the `list_skills` tool's catalog source over the
+// resolved runtime home. It runs on the prompt-bearing turn path ONLY (FR-009):
+// the offline paths never build a registry through runTurn, so they never touch
+// docs/skills. The source is a lazy func resolved inside the tool's Execute.
+func bindSkillsCatalog(reg domaintools.Registry, res resolution) {
+	infratools.BindSkillsCatalog(reg, func() ([]domainskills.Skill, error) {
+		return infrskills.Load(home.SkillsDir(res.Home))
+	})
 }
 
 // emitToolError maps an incomplete tool loop to the frozen tool class phrase and

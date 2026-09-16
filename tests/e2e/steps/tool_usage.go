@@ -124,12 +124,15 @@ func parseReportLine(stdout, tool string) (reportToolCounts, bool) {
 // registeredToolNames enumerates the LIVE agent-tool registry (the same
 // constructors cli.newToolRegistry uses), so the all-zero Then cannot pass
 // vacuously when a tool is added or removed (round-026 review F8). Round 029 adds
-// the write pair (write_file, replace_text), keeping this in sync with
-// cli.newToolRegistry.
+// the write pair (write_file, replace_text) and round 033 adds the read-only
+// list_skills tool, keeping this in sync with cli.newToolRegistry.
 func registeredToolNames() []string {
 	reg := domaintools.NewRegistry(append(
-		append(infratools.NewFilesystemTools(), infratools.NewWriteTools()...),
-		infratools.NewCommandTool(),
+		append(
+			append(infratools.NewFilesystemTools(), infratools.NewWriteTools()...),
+			infratools.NewCommandTool(),
+		),
+		infratools.NewSkillsTool(nil),
 	)...)
 	tools := reg.Tools()
 	names := make([]string, 0, len(tools))
