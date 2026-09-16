@@ -9,7 +9,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | `specs/truth/techstack.md` | To be recorded by `/axb-technical-research` (expected MODIFY: the transport rows gain the finish-reason truncation guard). | Round 030 makes an output-cap truncation a loud provider failure in both transports. |
+| MODIFY | `specs/truth/techstack.md` | Added the cross-cutting **Provider output-cap truncation guard** row (both transports read the finish reason; **universal** trigger; the truncation rides the existing `*llm.ProviderError` → frozen `the provider request failed` + exit 6; no new phrase / no new exit code; **no** retry layer; request side unchanged — no default cap; other finish reasons out of scope) and updated the **OpenAI-compatible adapter**, **Vertex/Gemini adapter**, **response-normalization**, and **provider-gateway-port** rows to point at it. The **write-filesystem-tools** row's "#62 forward item" sentence now reads "delivered in round 030". | Round-030 D1–D7: an output-cap truncation becomes a loud provider failure in both transports; the truth must reflect the current system (`truth-current`). |
 
 ## /axb-api-plan
 
