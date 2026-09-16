@@ -41,3 +41,11 @@ func EnsureWorkspace(home, mode string) (Workspace, error) {
 	}
 	return Workspace{Path: path}, nil
 }
+
+// SkillsDir returns the runtime home's skills directory (<home>/docs/skills) —
+// the single source for the skills catalog location (round 033). It mirrors
+// EnsureWorkspace: the caller (the prompt path) derives the path here rather than
+// re-joining it in the loader.
+func SkillsDir(home string) string {
+	return filepath.Join(home, "docs", "skills")
+}

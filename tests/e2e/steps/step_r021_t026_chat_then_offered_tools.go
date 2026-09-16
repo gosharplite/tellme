@@ -11,7 +11,12 @@ import (
 //
 // Round 029 MODIFY: the offered set grew from four tools (the three readers +
 // execute_command) to six (three readers + the write pair write_file /
-// replace_text + execute_command). Aligned to the latest `chat/dsl.md` row.
+// replace_text + execute_command).
+//
+// Round 033 MODIFY (T004): the offered set grew to seven — the reader trio, the
+// write pair, execute_command, and the read-only list_skills tool. The expected
+// set is single-sourced from the shared registeredToolNames() enumerator, so no
+// count is hand-copied. Aligned to the latest `chat/dsl.md` row.
 func init() {
 	registrars = append(registrars, func(ctx *godog.ScenarioContext) {
 		ctx.Then(`^the request offered exactly the agent tools$`, thenOfferedTools)
