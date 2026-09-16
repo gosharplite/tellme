@@ -35,3 +35,16 @@ Feature: Bounding and failing the tool loop
       When the operator starts tellme with the prompt "Use the time-travel tool."
       Then tellme explains on stderr that "the tool request failed"
       And tellme exits with the tool error code
+
+  Rule: The loop reports a step marker only for executed rounds
+
+    Example: A provider that exceeds the loop limit reports no marker for the final request
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
+      And the tool-loop limit is "1"
+      And a configured provider "test-model" whose endpoint always asks tellme to read "notes.txt"
+      When the operator starts tellme with the prompt "Keep reading until you find it."
+      Then the run reported a tool step marker for each of the 1 executed rounds
+      And the final model request reports no tool step marker
+      And tellme exits with the tool error code

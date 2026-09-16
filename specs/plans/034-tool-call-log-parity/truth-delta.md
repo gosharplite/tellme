@@ -14,7 +14,6 @@
 | MODIFY | `specs/truth/techstack.md` — **Post-turn status lines (operator)** row | The metrics line + `╰─⠿ Ready` summary move to the **per-call tail** (each call's own usage), with the **final** call's tail deferred past the answer (G5); the session field is a **recorded display-only divergence** on failed turns / a final call reporting no usage (G2); persistence stays one `AppendBatch` per turn. | FR-008, FR-010b; G2/G5. |
 | MODIFY | `specs/truth/techstack.md` — **Turn progress spinner (operator)** row | The spinner is **yielded once per call** (single writer) around a `[Tool Output]` block, and the block renders even when the spinner is gated off (G8); the turn-scoped elapsed is unchanged. | FR-012; G8. |
 | MODIFY | `specs/truth/techstack.md` — **Agent command tool (`execute_command`)** row | The child's stdout/stderr are also streamed live as `[Tool Output]` lines up to the round-024 byte budget, after which the process group is stopped; `output_file` calls emit no block; a trailing partial line is dropped (G4). | FR-010, FR-011; G4/G8. |
-| MODIFY | `specs/truth/techstack.md` — **Read-only filesystem tools** row | A binary file surfaces as the readers' inline text marker `(Binary file, cannot display as text)` on the `[Tool Result]` line (the reference's `Received <mime> (<n> bytes)` form is **not** introduced — the `Tool` port has no binary channel). | FR-004; G3 (**binary branch struck**). |
 
 ## /axb-api-plan
 

@@ -25,8 +25,8 @@ The existing `FormatToolLog` (round 022) is **retired**.
 
 ### D2 — Two loop observer seams; the CLI is the only renderer/accountant
 The loop emits nothing itself for the frame/tail; it drives the **existing** `agentport.LoopObserver` seam, extended with:
-- a **call-begin** hook carrying `(callIndex int, estimatedPayload int)`, fired once per `Complete`, right after the request is assembled;
-- a **call-end** hook carrying `(callIndex int, usage llm.Usage, roundReasons []string, measuredPayload int, final bool)`, fired once per `Complete` return.
+- a **call-begin** hook carrying `(callIndex int, messages []llm.Message)`, fired once per `Complete`, right after the request is assembled — the CLI observer computes the estimate from the messages (no closure injected into the loop);
+- a **call-end** hook carrying `(callIndex int, usage llm.Usage, roundReasons []string, final bool)`, fired once per `Complete` return — `usage.PromptTokens` *is* the measured payload, so no separate `measuredPayload`.
 
 Because `loop.Observer` is today the **spinner** (`loop.Observer = sp`), the CLI wires a **composite presenter** that renders the block and conditionally drives the spinner. The `internal/cli.runTurn` composition root keeps all pricing (`ui.Pricing`), the session roll-up (`newUsageStore(res.Workspace).Totals()`) and the persistence flush; `internal/agent` gains no persona/pricing/store (ADR-0005 D1).
 
@@ -49,8 +49,8 @@ The status **frame** (rule + `╭─⠿ Turn N - <mode>` + pre-flight payload li
 
 The call's **tail** (grouped `[Tool Reason]` lines + measured payload line + metrics line + `╰─⠿ Ready`) is emitted at call end (the call-end hook), with the **final** call's tail **deferred** past `env.writeAnswer(...)`. This reproduces the reference's observable order (it streams the answer to `stdout` during inference, so its `PhasePersisting` tail already follows the text) and preserves the existing Rule "the post-turn status trails the answer". **Divergence (recorded):** none — the reference's tail is per call (one Turn per call).
 
-### D6 — Injected per-call estimator seam
-`AgentLoop` has no persona (the adapter owns it) and the CLI only has call 1's inputs. Add `AgentLoop.PayloadEstimate func(messages []llm.Message) int` (nil ⇒ no estimate), set in `runTurn` with a closure capturing `res.Person` + `agent.ToolDefs(reg)` (the augmented registry). The loop computes `wire := base + turn` before each `Complete` and passes it. Call 1's value is **byte-identical** to the previous once-per-prompt estimate; calls 2..k grow monotonically. Typed on messages (not `llm.Request`) so the adapter's prompt-vs-messages rule is not duplicated. It is the **only** path to that number (`emitPayloadStatus`'s hard-wired call is retired for calls). (ADR-0005 D2.)
+### D6 — The CLI computes the per-call estimate from the observer's messages
+`AgentLoop` has no persona (the adapter owns it) and carries **no** estimator field. The call-begin hook carries the loop's **fused** `wire := base + turn` slice (not `llm.Request`, so the adapter's prompt-vs-messages rule is not duplicated); the **CLI** observer runs `llm.EstimatePayload(res.Person, agent.ToolDefs(reg), messages)`. Call 1's value is **byte-identical** to the previous once-per-prompt estimate; calls 2..k grow monotonically. It is the **only** path to that number (`emitPayloadStatus`'s hard-wired call is retired for calls). (ADR-0005 D2.)
 
 ### D7 — `[Tool Output]`: shell-class only, live, single-writer, bounded-and-stopped
 - **Scope:** shell-class calls that do **not** carry `output_file` (NFR-001). `output_file` (`runToFile`) binds the child's streams straight to a file handle — no bytes enter memory — so **no** block renders (G4).

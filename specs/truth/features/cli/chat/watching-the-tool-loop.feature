@@ -32,14 +32,14 @@ Feature: Watching the tool loop work
 
   Rule: A tool-using run reports every call in the order it was made
 
-    Example: Two calls in one round are each reported in order
+    Example: Two tools used in sequence are reported in order
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And the working directory contains a file "left.txt" whose text is "the code is ORANGE"
-      And the working directory contains a file "right.txt" whose text is "the code is not BLUE"
-      And a configured provider "test-model" whose endpoint asks tellme to read "left.txt" and "right.txt" and then answers with "The code is ORANGE."
-      When the operator starts tellme with the prompt "Compare left.txt and right.txt."
-      Then the run reported the action for the tool call "read_files" before the action for the tool call "read_files"
+      And the working directory contains a sub-folder "src"
+      And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
+      And a configured provider "test-model" whose endpoint shows the folder tree and then reads "notes.txt" and then answers with "The launch code is ORANGE."
+      When the operator starts tellme with the prompt "Survey the project, then read notes.txt."
+      Then the run reported the action for the tool call "get_tree" before the action for the tool call "read_files"
       And tellme exits successfully
 
   Rule: A tool-using run streams a command's output live
