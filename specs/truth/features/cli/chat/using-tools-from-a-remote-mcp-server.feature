@@ -8,9 +8,9 @@ Feature: Using tools from a remote MCP server
   # is never contacted. Acceptance journeys: features/acceptance/using-a-tool-from-a-remote-mcp-server.feature,
   # …/keeping-the-run-responsive-when-an-mcp-server-is-down.feature, …/turning-off-an-mcp-server.feature.
 
-  Rule: A configured remote MCP server's tools are offered to the model
+  Rule: A server's tools are offered alongside the native tools
 
-    Example: The offered tool set includes the server's tool
+    Example: The offered tool set includes the server's tool alongside the native tools
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
@@ -64,17 +64,6 @@ Feature: Using tools from a remote MCP server
       And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" and then answers with "The gadget costs $42."
       When the operator starts tellme with the prompt "What does the gadget cost?"
       Then the MCP server "shop" received the token "s3cr3t"
-      And tellme exits successfully
-
-  Rule: A server's tools are offered alongside the native tools
-
-    Example: Both the server's tool and the native tools are offered
-      Given the operator has a runnable tellme installation
-      And the runtime home is "ait-tmg"
-      And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
-      And a configured provider "test-model" whose endpoint reports the offered tools and then answers with "done"
-      When the operator starts tellme with the prompt "Which tools can you use?"
-      Then the request offered the tool "lookup_price" from the MCP server "shop" alongside the agent tools
       And tellme exits successfully
 
   Rule: A reachable server still works while another is unavailable
