@@ -43,6 +43,8 @@ Coherence trace (2-call tool turn), after the fix:
 
 `Rationale`: the composite is the single seam that owns both behaviours (ADR-0005 D1), so the fix is one method, leaves `callRenderer` and `internal/ui` untouched, and is unit-testable with a recording double. **Alternatives**: give `callRenderer` a spinner handle (couples the renderer to the indicator); a dedicated `Spinner` method (widens the indicator's API for one caller) — neither earns its surface.
 
+**Yield-site inventory (PR #73 review RF-1).** After this round the turn's spinner-yield policy has **three** homes, none of them a named owner: (a) the composite's per-call tail (this round — clear-only, no resume, `!final`); (b) the `[Tool Output]` sink closure (`cli.go:753-766` — clear before the child, resume after the closing separator); (c) `runTurn`'s `sp.Stop()` before the answer / `EmitFinalTail()` after (`cli.go:774/795`). ADR 0005 D1 partitions *rendering* ownership (loop → tool lines, CLI → frames/tails) but not the *yield* policy; single ownership of it is recorded on [#69](https://github.com/gosharplite/tellme/issues/69) (RF-1) so the next rendering round does not add a fourth site by path of least resistance.
+
 ### D3 — The E2E witness: force the gate + a tool round + the whole-stream residue row
 
 The primary witness is an E2E Example that **pairs the spinner gate with a tool round** and asserts the **whole-stream residue row** `the run shows no progress spinner` (which reads the capture through the `\r`-redraw simulation, `tests/e2e/steps/spinner_helpers.go:spinnerVisible`):
@@ -83,7 +85,7 @@ Rationale: a flat unit capture cannot reproduce a terminal grid (the round-025 n
 
 ## Recorded residual risk / forward items
 
-- **Boundary fragility (residual, low).** "Clear-only, no resume" depends on the invariant: **no diagnostic write occurs between a non-final tail and the next waiting-phase activation.** Today the only write in that window is the next call's frame, which is safe because the line was cleared. If a future phase interleaves a write there, it must yield too; recorded so a future round re-checks it.
+- **Boundary fragility (residual, low — writer inventory folded, PR #73 review D6).** "Clear-only, no resume" depends on the invariant: **no diagnostic write occurs between a non-final tail and the next waiting-phase activation.** Verified (not merely asserted): in that window the **only** writer is the **next call's `OnCallBegin` frame** — safe, because the indicator is stopped and the line cleared, and `FormatTurnOpening` opens with a bare `\n` on an already-clean row. Call-end-adjacent paths that correctly need **no** yield, because `runTurn`'s idempotent `Stop()` already covers them: (a) the `no tools are registered` / `tool %q is not available` returns (`agentloop.go:161/165`) fire **no** call-end at all; (b) a `Complete` error returns before any call-end. A future phase that interleaves a write in that window must yield too; recorded so a future round re-diffs this inventory.
 - Nothing else new; the round-034 siblings (G2 `Ready` overstatement, numbering skew) remain out of scope (Q3).
 
 ## Truth impact

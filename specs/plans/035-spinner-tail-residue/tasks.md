@@ -170,7 +170,8 @@
 | `spec.md` -> US1（FR-001–FR-005） | T001、T002、T003 | PASS |
 | `spec.md` -> 全域（FR-006、FR-007） | T003（不改 surfaces）、T005（gated-off byte-identical）、T006 | PASS |
 | `spec.md` -> 邊界情況（multi-call／tool-less／bound-reached／gated-off／narrow terminal） | T003（multi-call trace）、T005（narrow-terminal Example 回歸；gated-off byte-identical） | PASS |
-| `spec.md` -> SC-001–SC-004 | T001（SC-004 unit）、T002/T003（SC-001/002）、T005（SC-003/004） | PASS |
+| `spec.md` -> SC-001, SC-002（the whole-stream residue row is SC-002's carrier — no separate literal count assertion, M-1） | T002（新 Example RED 見證）、T003（GREEN） | PASS |
+| `spec.md` -> SC-003, SC-004 | T001（SC-004 unit pin）、T005（SC-003 byte-identical gated-off + SC-004 `make verify`/稽核） | PASS |
 | `plan.md` -> Interface inventory / Wave（1 CLI end → `/axb-dsl-refine`；api/data NOOP；ui skipped） | T002/T003（CLI 介面交付）、T005（不觸及 API/資料） | PASS |
 | operator 拍板（Q1(a) yield、Q2 純 bug fix、Q3 siblings out、Q4 E2E+unit） | T001（unit）、T002/T003（E2E）、T003（fix 落點）、T006 | PASS |
 
