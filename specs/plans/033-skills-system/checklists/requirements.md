@@ -55,4 +55,4 @@
 - [x] Ready to proceed to later planning
 - [ ] Still needs a high-impact requirement gap closed first
 
-**Note**: Scope derives from the operator request plus the locked Q1/Q3. This plan may proceed to `/axb-technical-research` (the loading/parsing decision + `techstack.md`) and `/axb-system-analysis`. `/axb-spec-by-example` may be **skipped** (a listing tool is CLI-observable but the sole new journey is thin — the API/data planners are NOOP and the CLI end is carried to `/axb-dsl-refine`).
+**Note**: Scope derives from the operator request plus the locked Q1/Q3. `/axb-spec-by-example` **ran** — a thin but real journey (a prompt can list the runtime home's pre-loaded skills) was warranted and delivered in `8219150`. The plan proceeds to `/axb-technical-research` (the loading/parsing decision + `techstack.md`), `/axb-system-analysis`, and `/axb-dsl-refine` (the CLI end contract owner).

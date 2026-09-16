@@ -12,7 +12,7 @@ specs/plans/033-skills-system/
 ├── truth-delta.md
 ├── checklists/
 │   └── requirements.md
-├── features/acceptance/*.feature  # /axb-spec-by-example — ✅ done (journey: a prompt lists the workspace's pre-loaded skills)
+├── features/acceptance/*.feature  # /axb-spec-by-example — ✅ done (journey: a prompt lists the runtime home's pre-loaded skills)
 └── tasks.md                       # produced by /axb-tasks
 
 specs/truth/
