@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -18,7 +19,9 @@ import (
 // the SDK import is confined to this package by the verify-mcp-sdk-confinement
 // gate (round-032 research Decision 2).
 type client struct {
-	session *sdk.ClientSession
+	session     *sdk.ClientSession
+	rt          *boundedTransport
+	callTimeout time.Duration
 }
 
 // clientVersion is the tellme implementation version advertised in the MCP
@@ -32,11 +35,11 @@ const clientVersion = "0.1"
 // Bounding (round-032 FR-008/FR-021): the SDK DETACHES the connection context
 // from the caller's, so a server that never answers would otherwise hang
 // unbounded. The adapter therefore applies a per-request deadline through its
-// transport: requests made during the connect/list phase are capped at
-// discoveryTimeout (the fixed fast-fail bound), and requests made afterwards —
-// the tool calls — are capped at callTimeout. A never-answering server is thus
-// abandoned within the fast-fail bound (its request is cancelled, so the peer
-// unblocks too), and a tool call honours the tool resource contract.
+// transport. The deadline starts at discoveryTimeout (the fixed fast-fail bound)
+// and covers the connect/list phase; the caller switches it to the tool-call
+// timeout via SwitchToCallTimeout once discovery is complete, so ListTools stays
+// on the fast-fail bound while tool calls get the full resource-contract
+// timeout.
 func NewRemoteClient(ctx context.Context, url, authorization string, discoveryTimeout, callTimeout time.Duration) (domaintools.MCPClient, error) {
 	rt := &boundedTransport{base: http.DefaultTransport, authorization: authorization, timeout: discoveryTimeout}
 	httpClient := &http.Client{Transport: rt}
@@ -54,9 +57,24 @@ func NewRemoteClient(ctx context.Context, url, authorization string, discoveryTi
 	if err != nil {
 		return nil, fmt.Errorf("connect to MCP server: %w", err)
 	}
-	// Phase switch: subsequent requests (tool calls) get the tool-call deadline.
-	rt.setTimeout(callTimeout)
-	return &client{session: sess}, nil
+	return &client{session: sess, rt: rt, callTimeout: callTimeout}, nil
+}
+
+// UseCallTimeout moves the adapter's per-request deadline to the tool-call
+// timeout. It is called once discovery (connect + list) is complete.
+func (c *client) UseCallTimeout() {
+	if c.rt != nil {
+		c.rt.setTimeout(c.callTimeout)
+	}
+}
+
+// SwitchToCallTimeout moves a client's per-request deadline to the tool-call
+// timeout when the adapter supports it (the discovery layer calls it after
+// ListTools). A client without the capability is left unchanged.
+func SwitchToCallTimeout(c domaintools.MCPClient) {
+	if s, ok := c.(interface{ UseCallTimeout() }); ok {
+		s.UseCallTimeout()
+	}
 }
 
 // boundedTransport injects the resolved Authorization header (when non-empty)
@@ -77,22 +95,51 @@ func (t *boundedTransport) setTimeout(d time.Duration) {
 	t.mu.Unlock()
 }
 
+// RoundTrip applies the per-request deadline. IMPORTANT: the deadline's cancel
+// func is tied to the response body's Close (NOT deferred inside RoundTrip),
+// because net/http's RoundTrip returns once the response HEADERS are decoded —
+// the body is read lazily by the caller. A `defer cancel()` here would cancel
+// the request the instant headers arrived, so any chunked / streaming body read
+// afterwards would fail with `context canceled` (round-032 principal review
+// BLOCKER).
 func (t *boundedTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	t.mu.Lock()
 	d := t.timeout
 	t.mu.Unlock()
 
 	ctx := r.Context()
+	var cancel context.CancelFunc
 	if d > 0 {
-		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, d)
-		defer cancel()
 	}
 	r = r.Clone(ctx)
 	if t.authorization != "" {
 		r.Header.Set("Authorization", t.authorization)
 	}
-	return t.base.RoundTrip(r)
+
+	resp, err := t.base.RoundTrip(r)
+	if err != nil {
+		if cancel != nil {
+			cancel()
+		}
+		return nil, err
+	}
+	if cancel != nil {
+		resp.Body = &cancelBody{ReadCloser: resp.Body, cancel: cancel}
+	}
+	return resp, nil
+}
+
+// cancelBody releases the per-request deadline's cancel func when the response
+// body is closed, so the context stays live for the whole body read.
+type cancelBody struct {
+	io.ReadCloser
+	cancel context.CancelFunc
+}
+
+func (b *cancelBody) Close() error {
+	defer b.cancel()
+	return b.ReadCloser.Close()
 }
 
 // ListTools lists the server's tools as network-free domain definitions.
@@ -118,9 +165,9 @@ func (c *client) ListTools(ctx context.Context) ([]domaintools.MCPToolDefinition
 
 // CallTool calls the named tool. Per the port's TD1/R3 invariant, EVERY
 // call-time failure (tool-level error, transport failure, or a call against a
-// closed client) is returned as a nil-error MCPToolResult carrying the error text,
-// so the loop takes the recoverable path and the run never aborts (FR-018).
-// A nil args map is normalised to {} before the wire (TD2/R2).
+// closed client) is returned as a nil-error MCPToolResult carrying the error
+// text, so the loop takes the recoverable path and the run never aborts
+// (FR-018). A nil args map is normalised to {} before the wire (TD2/R2).
 func (c *client) CallTool(ctx context.Context, name string, args map[string]interface{}) (domaintools.MCPToolResult, error) {
 	if args == nil {
 		args = map[string]interface{}{}

@@ -144,6 +144,11 @@ func (d mcpDiscoveryConfig) discoverServer(parent context.Context, key string, c
 		return res
 	}
 	res.client = client
+	// Discovery is complete: move the adapter's per-request deadline from the
+	// fast-fail bound to the tool-call timeout, so ListTools stayed on the bound
+	// while the subsequent tool calls get the full resource-contract timeout
+	// (round-032 principal-review TD).
+	mcp.SwitchToCallTimeout(client)
 	for _, dt := range defs {
 		name := mcp.NamespacedName(key, dt.Name)
 		if !mcp.ValidToolName(name) {
