@@ -533,3 +533,72 @@ A session on 2026-09-16: opened round **032** (operator request *"Let tellme sup
 
 ### Issue tracker (closeout Step 8)
 Reconciled against the current state: **#60** open (dogfooding-enablement umbrella); **#13** open (coverage tooling). Round 032 has **no anchor issue** (operator request) and **nothing has landed** (plan+truth half only), so **no issues closed/revised** this closeout.
+
+
+---
+
+## 14. 2026-09-16 (session 17 of the day) — round 032 `032-mcp-client`: **DELIVERED** — SC-002 live-check bug fixed ([#67](https://github.com/gosharplite/tellme/issues/67)), diagnostic fold, PR #66 merged + closeout
+
+A session on 2026-09-16: the operator ran the round's **SC-002 manual live check** against a real remote MCP endpoint, which surfaced a **real capability gap** (issue [#67](https://github.com/gosharplite/tellme/issues/67) — `MCP_SERVERS` `${VAR}` never expanded); the gap was **fixed in-round** and taken through two review rounds to *verified, no further items*; then **PR [#66](https://github.com/gosharplite/tellme/pull/66) was merged into `dev`**, the binary refreshed, and `SESSION-CLOSEOUT.md` (Steps 1–8) ran.
+
+**Workspace**: `…/beta-niffler/ait-tellme` (Linux host).
+**Branch**: `032-mcp-client` (off `dev`) → merged via PR [#66](https://github.com/gosharplite/tellme/pull/66) into `dev` (`4376f79`); frozen head `c370433`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | read the SC-002 closeout note + issue [#67](https://github.com/gosharplite/tellme/issues/67) |
+| Round-032 SC-002 bug | `${VAR}` in `MCP_SERVERS` sent **literally** → 401 → server warn+skipped as a misleading "could not be reached"; fixed **best-effort, non-fatal** (`FR-022`, research D12) |
+| Fix #1 (issue #67) | `commit 2ced555` — `Config.ExpandMCPServers()` expands `${VAR}`/`${VAR:-default}` over `MCP_SERVERS` `URL`/`TOKEN`/`USERNAME`/`COMMAND` **before** validation; unset → literal preserved + non-fatal |
+| Fix #2 (diagnostic ask) | `commit c370433` — expansion-time warning (names field + variable) + a **safe reachability hint** on the skip warning (`(401 unauthorized)`; base sentence preserved; never the raw error — FR-017) |
+| Reviews (PR #66) | SC-002 fold **VERIFIED** → diagnostic fold **VERIFIED** → **no further review items** (reviewer: add the diagnostic improvement, "it need not hold the merge") |
+| `/axb-implement` | already delivered earlier this day (`3fa2a96`, T001–T032 `[X]`) |
+| Merge | PR [#66](https://github.com/gosharplite/tellme/pull/66) **MERGED** into `dev` (`4376f79`, by `thptcnec`, 2026-09-16T06:20:44Z); frozen head `c370433` (18 commits) |
+| Binary | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` (round-032 head) |
+| Propagation | `032-mcp-client → dev` **DONE**; **`dev → main` PENDING** (awaiting approval — Rule 8) |
+| Closeout | `gofmt`/`vet` clean · `make verify` **OK** · `go test -count=1 ./...` green · topology audit **PASSED** (43 features · 288 module rows · 1492 steps); `STATUS.md` updated; **#67 closed** |
+
+### Work done
+1. **Read the SC-002 review + issue [#67](https://github.com/gosharplite/tellme/issues/67)** — the manual live check against `api.githubcopilot.com/mcp/` found `TOKEN: "${GITHUB_TOKEN}"` sent literally (401 → warn+skip). Root cause: tellme expanded `${VAR}` **only** for provider entries (`Provider.Expand`), never for `MCP_SERVERS`.
+2. **Fix #1 (`2ced555`)** — `internal/config/mcp_config.go`: `Config.ExpandMCPServers()` (production `os.LookupEnv`) + an **injectable** `expandMCPServersWithLookup` (round-003 F1 style); expands the four string fields **best-effort** (any failure keeps the original text), run in `resolve()` **before** `ValidateMCPServers()`. Unit tests + the token E2E scenario re-pointed to `TOKEN: "${TELLME_E2E_MCP_TOKEN_<server>}"` (a genuine witness: disabled expansion → E2E **fails**). Truth folded: `spec.md` FR-022, `research.md` D12, `techstack.md` *Variable expansion* row, `truth-delta.md`, `chat/dsl.md` token-row semantics.
+3. **Fix #2 (`c370433`)** — `mcp/messages.go`: `UnreachableWarningWithHint` appends a **safe** cause token (`401 unauthorized` / `timed out` / …; base sentence stays a prefix; never the raw error) via a constrained regex; `internal/config` expansion now also emits a **non-fatal warning** naming field + variable (`resolve()` collects both warning sets with `append`). Unit tests (`reachabilityHint` table, expansion-warning table). Truth folded (research D12, FR-022, techstack rows incl. the **strict-vs-best-effort divergence**).
+4. **Reviews** — SC-002 fold **VERIFIED** ([#5692842532](https://github.com/gosharplite/tellme/pull/66#issuecomment-5692842532)); diagnostic fold **VERIFIED, no further review items** ([#5692928686](https://github.com/gosharplite/tellme/pull/66#issuecomment-5692928686)) — the reviewer specifically checked that no warning set is dropped and the hint cannot leak a credential.
+5. **Merge + closeout** — PR #66 merged (`4376f79`); `go install ./cmd/tellme`; `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (this session)
+| # | Decision |
+| --- | --- |
+| D1 | `MCP_SERVERS` `${VAR}`/`${VAR:-default}` expansion is **best-effort, never fatal** (unset → literal preserved) — a deliberate asymmetry vs the **strict** provider-entry expansion (an MCP server is an optional, fail-open dependency). |
+| D2 | A skipped MCP server's warning carries a **safe cause hint** (fixed classification token only; base sentence preserved) — never the raw error (FR-017). |
+| D3 | An unresolved `${VAR}` in `MCP_SERVERS` emits a **non-fatal diagnostic** naming the field + variable (self-diagnosing). |
+| D4 | Round 032 **DELIVERED / FROZEN** on merge of PR #66 (`4376f79`); frozen head `c370433`. |
+| D5 | Propagation `dev → main` is **PENDING** — awaiting the operator's explicit approval (Closeout Rule 8). |
+
+### Commits (branch `032-mcp-client`, then merged)
+| Commit | Note |
+| --- | --- |
+| `2ced555` | `fix(032)`: expand `${VAR}` in `MCP_SERVERS` string fields (issue #67, SC-002 fold) |
+| `c370433` | `fix(032)`: make skipped MCP servers self-diagnosing (SC-002 fold review) |
+| `4376f79` | PR [#66](https://github.com/gosharplite/tellme/pull/66) merge into `dev` (by `thptcnec`) |
+| *(this closeout, on `dev`)* | `docs(032)`: day close — round 032 delivered + STATUS + daily summary |
+
+### Verification (2026-09-16, on `dev` @ `4376f79`)
+- `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (no-test-sleep · offline witness · cross-compile 4/4 · `verify-mcp-sdk-confinement` · golangci-lint **0 issues** · govulncheck clean) · `go test -count=1 ./...` green (incl. E2E ~51 s).
+- Topology audit **PASSED** — `--root specs/truth/features/cli`: 43 features · 288 module rows · 1492 steps (unchanged).
+
+### Open items (non-blocking)
+- **`dev → main` propagation — PENDING** (awaiting approval).
+- **Round-032 forward items** — (a) local stdio MCP transport; (b) cross-invocation tool caching; (c) MCP-backed MEMORY/PLUR; (d) MCP `-d` diagnostic (non-dialing); (e) `mcptest/` → [#13](https://github.com/gosharplite/tellme/issues/13)'s coverage exclusion list; (f) stale `make help` `verify-no-network` text; (g) a dedicated credential-resolution bound (option).
+- Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items.
+- Future-slice candidates: [#60](https://github.com/gosharplite/tellme/issues/60) (dogfooding track), [#13](https://github.com/gosharplite/tellme/issues/13) (coverage tooling).
+
+### Next steps
+1. (Operator) **Approve and run** the propagation `dev → main` (no-ff); then the round is delivered on both lines.
+2. Start the next round `033-*` off `dev` via `/axb-specify` (candidates: [#60](https://github.com/gosharplite/tellme/issues/60) dogfooding track / [#13](https://github.com/gosharplite/tellme/issues/13)).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled against the delivered state: **[#67](https://github.com/gosharplite/tellme/issues/67) CLOSED (completed)** — the `MCP_SERVERS` `${VAR}` gap, delivered by round 032 (folds `2ced555`/`c370433`; PR #66 merged `4376f79`); **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling). No revisions.
