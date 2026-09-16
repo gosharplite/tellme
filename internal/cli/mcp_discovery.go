@@ -134,13 +134,13 @@ func (d mcpDiscoveryConfig) discoverServer(parent context.Context, key string, c
 	timeout := mcp.ResolveMCPTimeout(cfg.Timeout)
 	client, err := d.newClient(ctx, cfg.URL, header, d.bound, timeout)
 	if err != nil {
-		res.warnings = append(res.warnings, mcp.UnreachableWarning(key))
+		res.warnings = append(res.warnings, mcp.UnreachableWarningWithHint(key, err))
 		return res
 	}
 	defs, err := client.ListTools(ctx)
 	if err != nil {
 		_ = client.Close()
-		res.warnings = append(res.warnings, mcp.UnreachableWarning(key))
+		res.warnings = append(res.warnings, mcp.UnreachableWarningWithHint(key, err))
 		return res
 	}
 	res.client = client

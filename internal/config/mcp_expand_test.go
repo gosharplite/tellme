@@ -1,6 +1,9 @@
 package config
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // MCP_SERVERS ${VAR} expansion (round-032 SC-002 / issue #67).
 //
@@ -115,5 +118,59 @@ func TestExpandMCPServers_ProcessEnvFallback(t *testing.T) {
 
 	if got := cfg.MCPServers["shop"].Token; got != "from-process-env" {
 		t.Errorf("Token = %q, want %q", got, "from-process-env")
+	}
+}
+
+// TestExpandMCPServersWithLookup_WarnsOnUnset pins the SC-002 review improvement:
+// an unset ${VAR} still keeps the literal value (non-fatal), but now ALSO returns
+// a non-fatal diagnostic warning naming the server, field, and variable — so an
+// unresolved credential is self-diagnosing rather than surfacing only as an
+// opaque "could not be reached".
+func TestExpandMCPServersWithLookup_WarnsOnUnset(t *testing.T) {
+	t.Parallel()
+
+	lookup := func(key string) (string, bool) {
+		if key == "MCP_SET" {
+			return "resolved", true
+		}
+		return "", false
+	}
+	cfg := &Config{MCPServers: map[string]MCPServerConfig{
+		"hf": {URL: "https://x", Token: "${GITHUB_TOKEN}"}, // unset → warn, literal kept
+		"ok": {URL: "https://${MCP_SET}", Token: "plain"},  // resolves → no warning
+	}}
+
+	warnings := cfg.expandMCPServersWithLookup(lookup)
+
+	if len(warnings) != 1 {
+		t.Fatalf("want exactly one warning (the unset token); got %v", warnings)
+	}
+	for _, want := range []string{"MCP_SERVERS.hf.TOKEN", "${GITHUB_TOKEN}", "unset"} {
+		if !strings.Contains(warnings[0], want) {
+			t.Errorf("warning %q must mention %q", warnings[0], want)
+		}
+	}
+	if got := cfg.MCPServers["hf"].Token; got != "${GITHUB_TOKEN}" {
+		t.Errorf("the unresolved token must be preserved literally; got %q", got)
+	}
+}
+
+// TestExpandMCPServersWithLookup_WarnsOnMalformed pins the malformed-expression
+// branch of the same diagnostic.
+func TestExpandMCPServersWithLookup_WarnsOnMalformed(t *testing.T) {
+	t.Parallel()
+
+	lookup := func(string) (string, bool) { return "", false }
+	cfg := &Config{MCPServers: map[string]MCPServerConfig{
+		"bad": {URL: "https://x", Token: "${UNDONE"},
+	}}
+
+	warnings := cfg.expandMCPServersWithLookup(lookup)
+
+	if len(warnings) != 1 || !strings.Contains(warnings[0], "malformed") {
+		t.Fatalf("want one malformed-expression warning; got %v", warnings)
+	}
+	if got := cfg.MCPServers["bad"].Token; got != "${UNDONE" {
+		t.Errorf("the malformed value must be preserved literally; got %q", got)
 	}
 }

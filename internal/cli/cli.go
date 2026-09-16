@@ -533,10 +533,11 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 	// Step 4d.1 — expand ${VAR} / ${VAR:-default} in the MCP_SERVERS string
 	// fields, best-effort (round-032 SC-002 / issue #67): a `TOKEN:
 	// "${GITHUB_TOKEN}"` entry authenticates instead of being sent literally (and
-	// then warn+skipped). An unresolved ${VAR} keeps its literal text, so the
-	// load never fails and the server is still warn+skipped, exactly as before.
+	// then warn+skipped). An unresolved ${VAR} keeps its literal text AND emits a
+	// non-fatal diagnostic warning naming the field/variable, so the cause is
+	// visible instead of an opaque "could not be reached"; the load never fails.
 	// Expansion runs BEFORE validation so the validator sees the resolved values.
-	cfg.ExpandMCPServers()
+	res.MCPWarnings = append(res.MCPWarnings, cfg.ExpandMCPServers()...)
 
 	// Step 4e — validate the MCP_SERVERS registry (round-032 FR-002/FR-013): a
 	// malformed REMOTE entry reuses the configuration-invalid class phrase (a
@@ -546,7 +547,7 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 	if mcpVal, mcpErr := cfg.ValidateMCPServers(); mcpErr != nil {
 		return res, &resolveError{Reason: reasonConfigInvalid, Err: mcpErr}
 	} else {
-		res.MCPWarnings = mcpVal.Warnings
+		res.MCPWarnings = append(res.MCPWarnings, mcpVal.Warnings...)
 	}
 	res.MCPServers = cfg.MCPServers
 

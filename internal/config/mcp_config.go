@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -141,34 +142,71 @@ func validateMCPServerEntry(name string, s MCPServerConfig) (string, error) {
 // and COMMAND for surface consistency); the fields the deferred stdio transport
 // adds (ARGS/DIR/ENV) join this list when that transport lands. The resolved
 // values are NEVER logged (FR-017).
-func (c *Config) ExpandMCPServers() {
-	c.expandMCPServersWithLookup(os.LookupEnv)
+//
+// It returns one non-fatal diagnostic warning per field whose expansion failed
+// (an unset variable without a default, or a malformed expression), naming the
+// server, field, and variable — so an unresolved credential is SELF-DIAGNOSING
+// (round-032 SC-002 review) instead of surfacing only as an opaque
+// "could not be reached". Note the deliberate divergence this makes explicit:
+// `${VAR}` is STRICT for the selected provider entry (round-003 D2 errors on an
+// unset variable) but BEST-EFFORT here, because an MCP server is optional and
+// fail-open by design.
+func (c *Config) ExpandMCPServers() []string {
+	return c.expandMCPServersWithLookup(os.LookupEnv)
 }
 
 // expandMCPServersWithLookup is the injectable-lookup form (round-003 review F1
 // precedent): tests drive an in-memory lookup so expansion stays a pure function
-// of its inputs and the table runs without os.Setenv.
-func (c *Config) expandMCPServersWithLookup(lookup EnvLookupFunc) {
-	for name, s := range c.MCPServers {
-		s.URL = expandBestEffort(s.URL, lookup)
-		s.Token = expandBestEffort(s.Token, lookup)
-		s.Username = expandBestEffort(s.Username, lookup)
-		s.Command = expandBestEffort(s.Command, lookup)
+// of its inputs and the table runs without os.Setenv. Warnings are emitted in
+// sorted server-key order, so the diagnostic output is deterministic.
+func (c *Config) expandMCPServersWithLookup(lookup EnvLookupFunc) []string {
+	var warnings []string
+	names := make([]string, 0, len(c.MCPServers))
+	for name := range c.MCPServers {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		s := c.MCPServers[name]
+		for _, f := range []struct {
+			field string
+			value *string
+		}{
+			{"URL", &s.URL},
+			{"TOKEN", &s.Token},
+			{"USERNAME", &s.Username},
+			{"COMMAND", &s.Command},
+		} {
+			out, warning := expandFieldWarning(name, f.field, *f.value, lookup)
+			*f.value = out
+			if warning != "" {
+				warnings = append(warnings, warning)
+			}
+		}
 		c.MCPServers[name] = s
 	}
+	return warnings
 }
 
-// expandBestEffort expands ${VAR} / ${VAR:-default} in s, returning s UNCHANGED
-// when the expansion fails (an unset variable without a default, or malformed
-// syntax) or when there is nothing to expand — so expansion can never become a
-// startup failure (issue #67).
-func expandBestEffort(s string, lookup EnvLookupFunc) string {
-	if !strings.Contains(s, "${") {
-		return s
+// expandFieldWarning expands ${VAR} / ${VAR:-default} in one MCP_SERVERS string
+// field, returning the resolved value plus a non-fatal diagnostic warning that
+// names the field and the offending variable when the expansion FAILS (an
+// variable that is unset without a default, or a malformed expression). On
+// failure the ORIGINAL text is returned unchanged, so expansion can never become
+// a startup failure (issue #67); the warning is what makes the cause visible
+// instead of an opaque "could not be reached" (round-032 SC-002 review). A value
+// with nothing to expand is returned untouched with no warning.
+func expandFieldWarning(server, field, value string, lookup EnvLookupFunc) (string, string) {
+	if !strings.Contains(value, "${") {
+		return value, ""
 	}
-	out, err := ExpandStringWithLookup(s, lookup)
-	if err != nil {
-		return s
+	out, err := ExpandStringWithLookup(value, lookup)
+	if err == nil {
+		return out, ""
 	}
-	return out
+	if errors.Is(err, ErrUnsetVariable) {
+		name := strings.TrimPrefix(err.Error(), ErrUnsetVariable.Error()+": ")
+		return value, fmt.Sprintf("[mcp] MCP_SERVERS.%s.%s references ${%s}, which is unset; sending the literal value", server, field, name)
+	}
+	return value, fmt.Sprintf("[mcp] MCP_SERVERS.%s.%s contains a malformed ${...} expression; sending the literal value", server, field)
 }
