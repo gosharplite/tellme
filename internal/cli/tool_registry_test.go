@@ -79,6 +79,9 @@ func schemaWellFormed(params json.RawMessage) error {
 // advertised tool satisfies `required ⊆ properties`. It must fail non-vacuously
 // against the 5 violating tools until the shared schema builder is fixed.
 func TestAgentToolSchemasAreWellFormed(t *testing.T) {
+	if len(agentTools()) == 0 {
+		t.Fatal("agentTools() is empty — the well-formedness gate would pass vacuously")
+	}
 	for _, tl := range agentTools() {
 		if err := schemaWellFormed(tl.Parameters()); err != nil {
 			t.Errorf("tool %q: %v", tl.Name(), err)

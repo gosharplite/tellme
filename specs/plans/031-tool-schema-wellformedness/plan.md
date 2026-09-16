@@ -39,7 +39,7 @@ go.mod / go.sum                                 # unchanged — stdlib-only (no 
 builder** (`internal/infrastructure/tools/filesystem.go`), which builds the argument schema for every
 agent tool behind the **unchanged** `internal/domain/tools.Tool` port; the correction makes each tool's
 advertised schema satisfy `required ⊆ properties` (the invariant a strict provider such as Vertex/Gemini
-enforces). The regression gate is a **hermetic unit test over the production registry**
+enforces). The regression gate is a **hermetic unit test over the production assembler `agentTools()`**
 (`internal/cli/tool_registry_test.go`, `newToolRegistry()`), not a runtime behaviour. There is **no** new
 endpoint, **no** persisted-state change, **no** change to the CLI's observable behaviour or the offered
 tool set, and **no** new dependency — consistent with `research.md` Decisions 1–6. The **only** truth
@@ -60,8 +60,8 @@ no interface to delegate or carry forward.
 > **Scope notes**:
 > - `/axb-api-plan` = **`NOOP`** (standalone CLI; no OpenAPI/HTTP surface; the schema fix authors no request/response shape).
 > - `/axb-data-plan` = **`NOOP`** (no persisted or in-memory state change; the round writes no file format).
-> - `/axb-dsl-refine` = **`NOOP`** (no CLI interface truth change — the tool-schema well-formedness is asserted by a **registry unit gate**, not a new/changed Gherkin rule or DSL row; the offered-tool-set rows are unchanged — round-020 precedent).
-> - **Recorded divergence (ARCH-5)** — the round's acceptance (US1/US2) is carried by the **registry unit gate + a manual live Vertex/Gemini check**, **not** by executable Gherkin (`/axb-spec-by-example` skipped, `/axb-dsl-refine` NOOP): the tool schemas are not observable through the built binary hermetically. Recorded so `acceptance-coverage`'s intent — *PM-defined acceptance is executable* — is not silently re-interpreted (round-020 precedent).
+> - `/axb-dsl-refine` = **`NOOP`** (no CLI interface truth change — the tool-schema well-formedness is asserted by a **production-assembler (`agentTools()`) gate**, not a new/changed Gherkin rule or DSL row; the offered-tool-set rows are unchanged — round-020 precedent).
+> - **Recorded divergence (ARCH-5)** — the round's acceptance (US1/US2) is carried by the **production-assembler (`agentTools()`) gate + a manual live Vertex/Gemini check**, **not** by executable Gherkin (`/axb-spec-by-example` skipped, `/axb-dsl-refine` NOOP): the tool schemas are not observable through the built binary hermetically. Recorded so `acceptance-coverage`'s intent — *PM-defined acceptance is executable* — is not silently re-interpreted (round-020 precedent).
 > - `/axb-ui-plan` = **skipped** (no UX surface; nothing operator-facing changes).
 > - `/axb-spec-by-example` = **skipped** (no new user-facing CLI journey — the defect fix restores an existing journey rather than adding one).
 

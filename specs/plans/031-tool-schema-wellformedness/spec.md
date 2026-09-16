@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-16
 
-**Status**: Draft — scope resolved from issue [#64](https://github.com/gosharplite/tellme/issues/64). Clarify Round 1 locked **Q1 → 1** (hermetic registry unit gate + a **manual** live closeout check) and **Q2 → 1** (minimal fix + gate).
+**Status**: Draft — scope resolved from issue [#64](https://github.com/gosharplite/tellme/issues/64). Clarify Round 1 locked **Q1 → 1** (hermetic tool-schema well-formedness gate + a **manual** live closeout check) and **Q2 → 1** (minimal fix + gate).
 
 **Input**: Operator request: *"kick off 031 for #64."*
 
