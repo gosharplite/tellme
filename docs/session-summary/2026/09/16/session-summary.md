@@ -683,3 +683,69 @@ A session on 2026-09-16: opened round **033** (operator request — a **minimal,
 ### Issue tracker (closeout Step 8)
 
 Reconciled against the current state: **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella — round 033 is a step toward it, but its slices are tracked there, not by round 033); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling). Round 033 has **no anchor issue** (operator request) and **nothing has landed** (plan + truth half only) → **no closes, no revisions** this closeout.
+
+
+---
+
+## 16. Session 19 (2026-09-16) — round 033 `033-skills-system`: `/axb-implement` delivered → implementation-review fold → **FULL ARCHITECTURAL APPROVAL** → merged (PR #68) → propagated `dev → main`; closeout
+
+A session on 2026-09-16: ran the round-033 implementation half (`/axb-implement`, T001–T024), took it through an **implementation review** + one **fold** (truth-accuracy + two nits) → a **re-review** → a **principal architectural review**, reached **✅ FULL ARCHITECTURAL APPROVAL — CERTIFIED READY TO MERGE**, saw PR [#68](https://github.com/gosharplite/tellme/pull/68) **merged** into `dev`, propagated `dev → main`, and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (Linux host).
+**Branch**: `033-skills-system` (off `dev`) → merged via PR [#68](https://github.com/gosharplite/tellme/pull/68) into `dev` (`86bab47`, by `thptcnec`, 2026-09-16T08:25:38Z) → propagated `dev → main` (`d900bd5`).
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 032 delivered/frozen; active branch `033-skills-system`) |
+| `/axb-implement` | One-Shot over **T001–T024** — all `[X]` (product + unit + E2E) |
+| Product | `internal/domain/skills` (`Skill{Name,Description,Location}`); `internal/infrastructure/skills` (recursive frontmatter loader); `internal/infrastructure/tools/skills.go` (read-only `list_skills`); `internal/home.SkillsDir`; `agentTools()` + prompt-path `bindSkillsCatalog` wiring (`internal/cli`) |
+| Impl review (PR #68) | **IMPLEMENTATION APPROVED** + one truth-accuracy fold + 2 nits → fold **`4e2d96b`** (NFR-001/edge-case/techstack/research reworded to the shipped **silent** loader; loader-test negative strengthened; STATUS synced) |
+| Re-review | **✅ all folded — `truth-current` restored** |
+| Principal review | **✅ FULL ARCHITECTURAL APPROVAL — CERTIFIED READY TO MERGE** (no blocker) |
+| Merge | PR [#68](https://github.com/gosharplite/tellme/pull/68) **MERGED** into `dev` (`86bab47`); frozen head **`4e2d96b`** (12 commits) |
+| Propagation | `033-skills-system → dev` (`86bab47`) `→ main` (`d900bd5`) — **DONE (no-ff)** |
+| Closeout | `gofmt`/`go vet` clean · `make verify` OK · topology audit **PASSED** (44 features · 16 root + 299 module rows · 1533 steps); `STATUS.md` split (round-032 detail → `docs/archives/status/2026-09-16.md`); this §16 |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — round 032 delivered/frozen; active branch `033-skills-system`; peers unchanged.
+2. **`/axb-implement` (T001–T024)** — Foundational landing skeletons (11 stepdef files + `wire_skills.go`; product skeletons; unit-test skeletons) → Phase 3 (1 `[BDD-ALIGN]` offered-set to seven + 11 `[BDD-RED]` stepdefs + 2 `[UNIT]` suites + review) → 4A/4B feature GREEN/REFACTOR → Phase 5 regression + falsifiability witnesses + round review. Implemented the loader, the tool, `home.SkillsDir`, the FR-009 wiring seam, and `resourceSchema`'s empty-extra-props support.
+3. **Implementation review + fold (`4e2d96b`)** — truth-accuracy (reword NFR-001 + the edge case + the techstack *Skills catalog (load)* row + `research.md` D2/D5/rationale to the shipped **silent** best-effort loader); the loader-test negative strengthened; `STATUS.md` synced.
+4. **Principal review (`5694176920`)** — **✅ FULL ARCHITECTURAL APPROVAL — CERTIFIED READY TO MERGE** (no architectural blocker; one non-blocking doc-sync note).
+5. **Merge + propagation + closeout** — PR #68 merged (`86bab47`); `dev → main` (`d900bd5`); `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 033, implementation)
+| # | Decision |
+| --- | --- |
+| FR-009 | Catalog→tool wiring seam: `agentTools()` parameterless + read-free (`NewSkillsTool(nil)`); the catalog is bound **only** on the prompt path (`bindSkillsCatalog` in `runTurn`, a lazy `Execute`-only seam); `newToolRegistry` unchanged. |
+| Loader | A skill = a `.md` with valid `name`+`description` frontmatter (recursive; CRLF-normalized); non-skill `.md` skipped; duplicate first-wins; missing/empty/unreadable → empty; **silently** best-effort (no logger seam). |
+| Tool | `list_skills` = `resourceSchema("", "reason", readerDefaultTimeout)`; path-sorted `name + description + location`; empty catalog → a **result**; source-bounded; FR-018 nil-error timeout. |
+| Review fold | Reword the truth to match the shipped silent loader (not a `slog` seam — the principal review confirmed *"the reword is the right call"*). |
+| Deviation | The Phase-3 `Parallel Hint` ran **inline** (no parallel-subagent substrate), disclosed per round-029 precedent. |
+
+### Commits (branch `033-skills-system`, then merged)
+| Commit | Note |
+| --- | --- |
+| `320a4a9` | `feat(033)`: implement the skills system (T001–T024) |
+| `4e2d96b` | `fix(033)`: fold implementation review — truth-accuracy, loader-test negative, STATUS |
+| `86bab47` | PR [#68](https://github.com/gosharplite/tellme/pull/68) merge into `dev` (by `thptcnec`) |
+| `d900bd5` | propagation `dev → main` (no-ff) |
+| *(this closeout, on `dev`)* | `docs(033)`: day close — round 033 delivered + STATUS split + daily summary |
+
+### Verification
+`make verify` **OK** (no-test-sleep · offline witness · cross-compile 4/4 · 0 lint · 0 reachable vulns) · `go test -count=1 ./...` green (209 E2E scenarios, 0 undefined) · topology audit **PASSED** (44 features · 16 root + 299 module rows · 1533 steps) · diff-level secret scan **clean** · falsifiability witnesses (a)/(b) reproduced + reverted · `go.mod`/`go.sum` unchanged.
+
+### Open items (non-blocking)
+- **Round-033 forward items** — (a) a very large catalog is bounded by the round-024 resource contract on the tool's **result** (no paging); (b) the result ordering is a fixed path sort; (c) the loader is silently best-effort (operator-visible skip diagnostics → the `#60` track if wanted); (d) the recursive walk scales linearly (a cache could go behind the `catalog` seam).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011/024/028/029/030/031/032 forward items.
+- Future-slice candidates: [#60](https://github.com/gosharplite/tellme/issues/60) (dogfooding track), [#13](https://github.com/gosharplite/tellme/issues/13) (coverage tooling).
+
+### Next steps
+1. Choose the `034-*` theme and start it via `/axb-specify` off `dev`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled against the delivered state: **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling). Round 033 has **no anchor issue** (operator request); its work has landed → **no closes/revises** this closeout.
