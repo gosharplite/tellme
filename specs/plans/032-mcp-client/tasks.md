@@ -47,12 +47,12 @@
 
 - [ ] T002 [FOUNDATION] Domain port `tools.MCPClient`
   - Read: `specs/truth/techstack.md` -> MCP Client / MCP client protocol library row；`research.md` -> `Decision 2`；`internal/domain/tools/`（既有 `Tool` port）
-  - 做：新增 `internal/domain/tools/mcp_client.go` —— `MCPToolDefinition{Name, Description, InputSchema json.RawMessage}` 與 `MCPClient` interface（`ListTools(ctx) ([]MCPToolDefinition, error)`、`CallTool(ctx, name string, args map[string]interface{}) (ToolResult, error)`、`Close() error`）。**TD2：** 型別固定為 `InputSchema json.RawMessage` 與 `args map[string]interface{}`，並在 port 註解寫明 **nil args → `{}`** 的不變式（MCP wire 不得攜帶 `"arguments": null`，strict server 會拒）。network-free、protocol-free。
-  - 只做：型別 + interface（含不變式註解）。不做：任何 SDK import、任何 transport、normalization（T024）。
+  - 做：新增 `internal/domain/tools/mcp_client.go` —— `MCPToolDefinition{Name, Description, InputSchema json.RawMessage}` 與 `MCPClient` interface（`ListTools(ctx) ([]MCPToolDefinition, error)`、`CallTool(ctx, name string, args map[string]interface{}) (ToolResult, error)`、`Close() error`）。**TD2：** 型別固定為 `InputSchema json.RawMessage` 與 `args map[string]interface{}`，並在 port 註解寫明 **nil args → `{}`** 的不變式（MCP wire 不得攜帶 `"arguments": null`，strict server 會拒）。**R3：** port 註解並寫明 **call-time 失敗以一個 `ToolResult`（**nil error**）回傳**（tool-level error 與 transport failure 皆是），使 loop 走 **recoverable** 路徑而非 terminal；一個非 nil error 僅保留給真正 terminal 的情況（例如 unregistered tool name）。network-free、protocol-free。
+  - 只做：型別 + interface（含兩條不變式註解）。不做：任何 SDK import、任何 transport、normalization（T024）。
 
 - [ ] T003 [FOUNDATION] Adapter package `internal/infrastructure/mcp/` (SDK confined here)
   - Read: `research.md` -> `Decision 2`；`internal/domain/tools/mcp_client.go`
-  - 做：新增 `internal/infrastructure/mcp/client.go` —— 一個 constructor 與 `ListTools`/`CallTool`/`Close` 的骨架，實作 `tools.MCPClient`；並新增 `internal/infrastructure/mcp/schema.go` 的骨架（**B1**：`normalizeMCPSchema(raw json.RawMessage) (json.RawMessage, error)` —— 非 object/absent/unparseable → freeform；確保 `required ⊆ properties`；無法安全化 → 回 error 供 skip+warn）。SDK import **只** 出現在此 package（`client.go`）。
+  - 做：新增 `internal/infrastructure/mcp/client.go` —— 一個 constructor 與 `ListTools`/`CallTool`/`Close` 的骨架，實作 `tools.MCPClient`（**R2**：`CallTool` 骨架須在發出 wire 前把 **nil args 正規化為 `{}`**）；並新增 `internal/infrastructure/mcp/schema.go` 的骨架（**B1**：`normalizeMCPSchema(raw json.RawMessage) (json.RawMessage, error)` —— 非 object/absent/unparseable → freeform；確保 `required ⊆ properties`；無法安全化 → 回 error 供 skip+warn）。SDK import **只** 出現在此 package（`client.go`）。
   - 只做：package + 編譯骨架（`client.go` + `schema.go`）。不做：credential 解析細節、discovery 接線、schema 邏輯測試（T024）。
 
 - [ ] T004 [FOUNDATION] Typed `MCP_SERVERS` config + validation skeleton
@@ -131,12 +131,12 @@
   - 做：unit —— enabled server 併發探測；never-answers → 在 bound 內 skip 並 warning；off → 不連線；註冊順序 sorted by server key。
 - [ ] T024 [P] [UNIT] Fold additions: schema normalization (B1), tool-call failure semantics (TD1), bounded token resolution (B3), name byte-budget (TD3), timeout clamp (TD5)
   - Read: `research.md` -> `Decision 8`–`Decision 10`；`spec.md` -> FR-018..FR-021
-  - 做：表驅動 unit —— (a) `normalizeMCPSchema` 對 malformed/absent/non-object → freeform，輸出滿足 `required ⊆ properties`；不可安全化 → error（skip+warn）；(b) 一次 MCP tool call 的 **tool-level error** 與 **transport failure** 皆回一個 recoverable tool result（run 不中止；**非** `the tool request failed`）；(c) `tokenResolver` 逾時/失敗 → warn + anonymous，且測試**不 spawn `gh`**（inject fake resolver）；(d) name 預算：`server=24 + very long tool` 的結果 `len() ≤ 64`；(e) MCP tool timeout default 30 s、server `TIMEOUT` 由 round-024 ceiling clamp。
+  - 做：表驅動 unit —— (a) `normalizeMCPSchema` 對 malformed/absent/non-object → freeform，輸出滿足 `required ⊆ properties`；不可安全化 → error（skip+warn）；(b) 一次 MCP tool call 的 **tool-level error** 與 **transport failure** 皆回一個 **nil-error `ToolResult`**（run 不中止；**非** `the tool request failed`）——並 pin **`CallTool` 的 nil-error 簽章契約**（R3）；(c) `tokenResolver` 逾時/失敗 → warn + anonymous，且測試**不 spawn `gh`**（inject fake resolver）；(d) name 預算：`server=24 + very long tool` 的結果 `len() ≤ 64`；(e) MCP tool timeout default **300 s**、server `TIMEOUT` 由 round-024 **fixed 7200 s** timeout ceiling clamp（**R1**：非 token-bound ceiling）；(f) **nil args → `{}`** 於 wire 前正規化（R2）。
   - 不做：不寫產品碼（產品在 Phase 4）；不為轉綠放寬 assertion。
 
 - [ ] T025 subagent review (phase quality gate)
   - Read: `tests/e2e/**`、`internal/**/*_test.go`、`chat/dsl.md` -> round-032 rows
-  - 檢驗：11 條 row 各有 stepdef 且 **0 undefined steps**；`[UNIT]` 覆蓋 T020–T023；只動測試層。有 issues 修正再 review，直到零問題。
+  - 檢驗：15 條 row 各有 stepdef 且 **0 undefined steps**；`[UNIT]` 覆蓋 **T020–T024**；只動測試層。有 issues 修正再 review，直到零問題。
 
 > Phase-3 review executed by the orchestrator (no parallel-subagent substrate in this session): `<test command>` reports 0 undefined steps; `[UNIT]` suites present for validation/auth/naming/discovery. (Recorded at implementation time.)
 
@@ -168,7 +168,7 @@
   - 做：
     - `go test -count=1 ./...` 全綠（unit + godog E2E）。
     - Witnesses（可偽性，觀察後還原）：(a) 令 never-answers 的 fast-fail bound 失效 → non-stall 案例失敗；(b) 移除 `ENABLED` 跳過 → off 案例失敗；(c) 移除 namespacing → offered 案例失敗。
-    - `make verify` **OK**（含 `verify-mcp-sdk-confinement`）；`gofmt -l .` clean；Gherkin/DSL 拓樸稽核 **PASSED**（43 features · 289 module rows · 1498 steps）。
+    - `make verify` **OK**（含 `verify-mcp-sdk-confinement`）；`gofmt -l .` clean；Gherkin/DSL 拓樸稽核 **PASSED**（43 features · 288 module rows · 1499 steps）。
     - offline paths 不連網（差異見證）；native 六工具 / class phrase / exit code / `stdout` byte-exact 不變。
     - 記錄對**真實** remote MCP endpoint 的**手動** closeout 確認（非 gate）。
   - 不做：不放寬 assertion；不為轉綠移除見證。

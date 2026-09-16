@@ -16,7 +16,7 @@ Feature: Using tools from a remote MCP server
       And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
       And a configured provider "test-model" whose endpoint reports the offered tools and then answers with "done"
       When the operator starts tellme with the prompt "Which tools can you use?"
-      Then the request offered the tool "lookup_price" from the MCP server "shop"
+      Then the request offered the tool "lookup_price" from the MCP server "shop" alongside the agent tools
       And tellme exits successfully
 
   Rule: A prompt that needs an MCP tool is answered using it
@@ -92,6 +92,9 @@ Feature: Using tools from a remote MCP server
 
   Rule: Several unresponsive servers still do not add up to a long wait
 
+    # FR-010's *time* bound is witnessed by the single-server case (tasks.md T028 falsifiability
+    # witness); this Rule asserts the observable behaviour for N servers (each warned+skipped, still answers).
+
     Example: Three unresponsive servers are each skipped and the run still answers
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
@@ -140,11 +143,13 @@ Feature: Using tools from a remote MCP server
 
   Rule: A server with no off switch is used as before
 
+    # FR-012 (default-true): the server omits the off switch, so its tool is offered AND callable.
     Example: A server that omits the off switch is used
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
       And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" and then answers with "The gadget costs $42."
       When the operator starts tellme with the prompt "What does the gadget cost?"
-      Then tellme called the tool "lookup_price" on the MCP server "shop"
+      Then the request offered the tool "lookup_price" from the MCP server "shop" alongside the agent tools
+      And tellme called the tool "lookup_price" on the MCP server "shop"
       And tellme exits successfully
