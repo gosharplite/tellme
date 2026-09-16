@@ -1,6 +1,6 @@
 # tellme — Status
 
-**Last updated**: 2026-09-16 (day close, session 17: **round 032 `032-mcp-client` — DELIVERED / FROZEN**; PR [#66](https://github.com/gosharplite/tellme/pull/66) **merged** into `dev` (`4376f79`)). tellme ships a **remote (Streamable HTTP) MCP client** (plan + truth + implementation); the **SC-002 live check** found and fixed the `MCP_SERVERS` `${VAR}` gap ([#67](https://github.com/gosharplite/tellme/issues/67)). Round-031 detail lives in the archive (Rule 12); rounds 001–030 live in the archives. Open issues: **#60** (dogfooding-enablement umbrella) · **#13** (coverage tooling). **Propagation `dev → main`: PENDING (awaiting approval).**
+**Last updated**: 2026-09-16 (day close, session 17: **round 032 `032-mcp-client` — DELIVERED / FROZEN**; PR [#66](https://github.com/gosharplite/tellme/pull/66) **merged** into `dev` (`4376f79`)). tellme ships a **remote (Streamable HTTP) MCP client** (plan + truth + implementation); the **SC-002 live check** found and fixed the `MCP_SERVERS` `${VAR}` gap ([#67](https://github.com/gosharplite/tellme/issues/67)). Round-031 detail lives in the archive (Rule 12); rounds 001–030 live in the archives. Open issues: **#60** (dogfooding-enablement umbrella) · **#13** (coverage tooling). **Propagation `dev → main`: DONE (`5b9d5fd`, no-ff).**
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation this phase)
 **Active branch**: `dev` (round 032 delivered; next: start the `033-*` round via `/axb-specify`)
 **Daily log**: [`docs/session-summary/2026/09/16/session-summary.md`](docs/session-summary/2026/09/16/session-summary.md)
@@ -12,7 +12,7 @@
 
 **Scope (delivered)**: a typed `MCP_SERVERS` registry, a `tools.MCPClient` domain port, the official SDK adapter confined to `internal/infrastructure/mcp/`, credential resolution (`auto`/`gh`/`bearer`/`basic`/`none`), **non-stall** discovery (a fixed fast-fail bound + per-server `ENABLED`), and deterministic `mcp_<server>_<tool>` names offered **alongside** the native tools. Stdio transport, cross-invocation caching, and MEMORY/PLUR remain **deferred** (recorded forward items).
 
-**Pipeline (all ✅)**: specify · spec-by-example (3 journeys) · research (D1–D12) · system-analysis (1 CLI interface; api/data NOOP) · dsl-refine (ADD `chat/using-tools-from-a-remote-mcp-server.feature` + 15 `chat/dsl.md` rows) · tasks (T001–T032) · implement (all `[X]`) · **merged** · **propagated `032 → dev`**; **`dev → main` PENDING (approval)**.
+**Pipeline (all ✅)**: specify · spec-by-example (3 journeys) · research (D1–D12) · system-analysis (1 CLI interface; api/data NOOP) · dsl-refine (ADD `chat/using-tools-from-a-remote-mcp-server.feature` + 15 `chat/dsl.md` rows) · tasks (T001–T032) · implement (all `[X]`) · **merged** · **propagated `032 → dev` → `main`**.
 
 **Decisions locked (round 032)**: operator Q1–Q5 — **Q1 → 1** remote HTTP only; **Q2 → 1+3** fixed fast-fail bound + per-server `ENABLED`; **Q3 → 1** official MCP Go SDK (`v1.7.0`), confined behind the domain port; **Q4 → 1** full auth parity + reference naming; **Q5 → 1** MCP client only. Review folds: **B1–B3** (schema normalization; SDK-built fake in `mcptest/`; bounded injectable `tokenResolver`), **TD1–TD8**, **R1–R8**, the principal-review **tasks.md Phase-3 realignment**, the implementation-review **F1–F9 + N1**, and the **SC-002 live-check fix ([#67](https://github.com/gosharplite/tellme/issues/67))** — `MCP_SERVERS` `${VAR}` expansion (best-effort, non-fatal) + self-diagnosing skip warnings (`FR-022`; research D12).
 
@@ -20,7 +20,7 @@
 
 **Commits** (branch `032-mcp-client`, then merged): `cd882a2` (spec) · `6c622d2` (acceptance) · `37a12f3` (research+techstack) · `4bd6bad` (system-analysis) · `c63633a` (interface truth) · `c94c5ac` (tasks) · `912010d`/`313e11f`/`0b926c4`/`cb407ed` (plan+truth folds) · `4b4ca46` (principal fold — tasks realignment) · `3fa2a96` (implementation T001–T032) · `0a3ad9c` (impl-review F1–F9) · `a14e6f4` (N1) · `7a13a53` (RoundTrip blocker fold) · `2ced555` (SC-002 `${VAR}` fix, #67) · `c370433` (self-diagnosing skips). Frozen head **`c370433`**.
 
-**Propagation**: `032-mcp-client → dev` **DONE** (PR #66 merge `4376f79`). `dev → main` ⏳ **PENDING** (awaiting approval — Rule 8).
+**Propagation**: `032-mcp-client → dev` **DONE** (PR #66 merge `4376f79`) `→ main` **DONE (no-ff, `5b9d5fd`)**.
 
 ---
 
@@ -72,7 +72,7 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 | `001-*` … `032-mcp-client` | delivered / frozen | Each round's working branch — merged into `dev` via its PR, then propagated `dev → main`; frozen history. |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`; only a human merges the PR. Propagation is the no-ff merge `dev → main`.
-> **Propagation history**: rounds 026/027/028/029/030/031 — **DONE (no-ff)**; round **032** — `032-mcp-client → dev` **DONE** (PR #66 merge `4376f79`), **`dev → main` PENDING** (approval).
+> **Propagation history**: rounds 026/027/028/029/030/031 — **DONE (no-ff)**; round **032** — `032-mcp-client → dev` (`4376f79`) `→ main` (`5b9d5fd`) — **DONE (no-ff)**.
 > Read live heads with `git rev-parse --short main dev`.
 
 ## Roadmap — next slices
@@ -87,7 +87,7 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 
 ## Open items (non-blocking)
 
-- **Round 032 — delivered** (PR [#66](https://github.com/gosharplite/tellme/pull/66) merged into `dev` `4376f79`; frozen head `c370433`). **`dev → main` propagation: PENDING** (awaiting approval — Rule 8).
+- **Round 032 — delivered** (PR [#66](https://github.com/gosharplite/tellme/pull/66) merged into `dev` `4376f79`; propagated `dev → main` `5b9d5fd`; frozen head `c370433`).
 - **Round-032 forward items** — (a) **local stdio MCP transport** (`COMMAND`); (b) **cross-invocation tool caching**; (c) **MCP-backed MEMORY/PLUR** integration; (d) **MCP `-d` diagnostic** (non-dialing); (e) `mcptest/` to issue [#13](https://github.com/gosharplite/tellme/issues/13)'s coverage exclusion list; (f) the stale `make help` `verify-no-network` text; (g) a **dedicated credential-resolution bound** (the `gh` spawn shares the discovery fast-fail bound — a deliberate choice; a named bound is an option).
 - **Round-031 forward items (recorded on [#60](https://github.com/gosharplite/tellme/issues/60))** — (a) **typed schema construction** ([#60 · 5690778272](https://github.com/gosharplite/tellme/issues/60#issuecomment-5690778272)); (b) **recursive schema walk** ([#60 · 5690604951](https://github.com/gosharplite/tellme/issues/60#issuecomment-5690604951)); (c) **SC-002** — the **manual** live Vertex/Gemini confirmation (open, non-gating).
 - **Issue tracker (2026-09-16 closeout, session 17)** — **[#67](https://github.com/gosharplite/tellme/issues/67)** **CLOSED (completed)** — the `MCP_SERVERS` `${VAR}` gap, delivered by round 032 (folds `2ced555`/`c370433`; PR #66 merged `4376f79`); **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling). No revisions.
