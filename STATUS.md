@@ -14,11 +14,11 @@
 
 **Decisions locked (round 031)**: **Q1 → 1** (hermetic registry unit gate + a **manual** live Vertex/Gemini closeout check; keeps `make verify` offline); **Q2 → 1** (minimal fix — the shared `resourceSchema` declares the `reason` property; `execute_command` left inline, already compliant — plus a for-every-registered-tool `required ⊆ properties` unit gate).
 
-**Review (PR #65)**: plan+truth **APPROVED** with 5 findings to fold — **ARCH-1** (gate reads the non-overridable `agentTools()`, not the `newToolRegistry` DI seam) and **ARCH-3** (T002 must not re-hand-enumerate all six) folded into `tasks.md`; **ARCH-2** (flat-schema precondition + `#60` forward item), **ARCH-4** (this block reconciled), **ARCH-5** (acceptance-carrier divergence recorded) folded into the artifacts.
+**Review (PR #65)**: plan+truth **APPROVED** with 5 findings to fold — **ARCH-1** (gate reads the non-overridable `agentTools()`, not the `newToolRegistry` DI seam) and **ARCH-3** (T002 must not re-hand-enumerate all six) folded into `tasks.md`; **ARCH-2** (flat-schema precondition + `#60` forward item), **ARCH-4** (this block reconciled), **ARCH-5** (acceptance-carrier divergence recorded) folded into the artifacts. Implementation review **APPROVED** with **one required truth fold** (the **Agent tool-schema gate** row + bullet now name `agentTools()`, not the registry var — `truth-current`) + a vacuous-gate guard — folded (`c1190e9`).
 
 **Commits**: `0180f9c` (spec) · `cec72db` (research + techstack) · `f3dc75d` (system-analysis) · `c7efcfe` (tasks) · `e10b131` + `4a29cde` (review folds) · implementation (this session).
 
-**Next**: implementation review (PR #65 — reviewer re-engages on product/test code) → **manual** live Vertex/Gemini confirmation (SC-002) → closeout.
+**Next**: implementation review folded (`c1190e9`) → **manual** live Vertex/Gemini confirmation (SC-002) → closeout (human merge of PR #65).
 
 ## Round 030 — `030-provider-truncation-guard` (DELIVERED / FROZEN)
 
