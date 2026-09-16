@@ -748,4 +748,4 @@ A session on 2026-09-16: ran the round-033 implementation half (`/axb-implement`
 - None new (spec/acceptance complete; no PM-owned gaps).
 
 ### Issue tracker (closeout Step 8)
-Reconciled against the delivered state: **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling). Round 033 has **no anchor issue** (operator request); its work has landed → **no closes/revises** this closeout.
+Reconciled against the delivered state: **[#69](https://github.com/gosharplite/tellme/issues/69)** **open** (**new this session** — the `internal/cli` composition-root layer violations; a future refactor slice; left open, accurate); **[#60](https://github.com/gosharplite/tellme/issues/60)** open (dogfooding-enablement umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling). Round 033 has **no anchor issue** (operator request); its work has landed → **no closes/revises** this closeout.
