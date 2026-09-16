@@ -555,7 +555,7 @@ A session on 2026-09-16: the operator ran the round's **SC-002 manual live check
 | `/axb-implement` | already delivered earlier this day (`3fa2a96`, T001–T032 `[X]`) |
 | Merge | PR [#66](https://github.com/gosharplite/tellme/pull/66) **MERGED** into `dev` (`4376f79`, by `thptcnec`, 2026-09-16T06:20:44Z); frozen head `c370433` (18 commits) |
 | Binary | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` (round-032 head) |
-| Propagation | `032-mcp-client → dev` **DONE**; **`dev → main` PENDING** (awaiting approval — Rule 8) |
+| Propagation | `032-mcp-client → dev` (`4376f79`) `→ main` (`5b9d5fd`) — **DONE (no-ff)** |
 | Closeout | `gofmt`/`vet` clean · `make verify` **OK** · `go test -count=1 ./...` green · topology audit **PASSED** (43 features · 288 module rows · 1492 steps); `STATUS.md` updated; **#67 closed** |
 
 ### Work done
@@ -572,7 +572,7 @@ A session on 2026-09-16: the operator ran the round's **SC-002 manual live check
 | D2 | A skipped MCP server's warning carries a **safe cause hint** (fixed classification token only; base sentence preserved) — never the raw error (FR-017). |
 | D3 | An unresolved `${VAR}` in `MCP_SERVERS` emits a **non-fatal diagnostic** naming the field + variable (self-diagnosing). |
 | D4 | Round 032 **DELIVERED / FROZEN** on merge of PR #66 (`4376f79`); frozen head `c370433`. |
-| D5 | Propagation `dev → main` is **PENDING** — awaiting the operator's explicit approval (Closeout Rule 8). |
+| D5 | Propagation `dev → main` **DONE (no-ff, `5b9d5fd`)** — operator-approved. |
 
 ### Commits (branch `032-mcp-client`, then merged)
 | Commit | Note |
@@ -587,13 +587,13 @@ A session on 2026-09-16: the operator ran the round's **SC-002 manual live check
 - Topology audit **PASSED** — `--root specs/truth/features/cli`: 43 features · 288 module rows · 1492 steps (unchanged).
 
 ### Open items (non-blocking)
-- **`dev → main` propagation — PENDING** (awaiting approval).
+- **`dev → main` propagation — DONE** (no-ff, `5b9d5fd`).
 - **Round-032 forward items** — (a) local stdio MCP transport; (b) cross-invocation tool caching; (c) MCP-backed MEMORY/PLUR; (d) MCP `-d` diagnostic (non-dialing); (e) `mcptest/` → [#13](https://github.com/gosharplite/tellme/issues/13)'s coverage exclusion list; (f) stale `make help` `verify-no-network` text; (g) a dedicated credential-resolution bound (option).
 - Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items.
 - Future-slice candidates: [#60](https://github.com/gosharplite/tellme/issues/60) (dogfooding track), [#13](https://github.com/gosharplite/tellme/issues/13) (coverage tooling).
 
 ### Next steps
-1. (Operator) **Approve and run** the propagation `dev → main` (no-ff); then the round is delivered on both lines.
+1. Round 032 is **delivered on both lines** (`032-mcp-client → dev → main`, no-ff `5b9d5fd`).
 2. Start the next round `033-*` off `dev` via `/axb-specify` (candidates: [#60](https://github.com/gosharplite/tellme/issues/60) dogfooding track / [#13](https://github.com/gosharplite/tellme/issues/13)).
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
