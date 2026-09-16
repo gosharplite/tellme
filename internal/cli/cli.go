@@ -530,6 +530,14 @@ func resolve(homeDir, configPath string) (resolution, *resolveError) {
 	}
 	res.MaxHistoryTokens = budget
 
+	// Step 4d.1 — expand ${VAR} / ${VAR:-default} in the MCP_SERVERS string
+	// fields, best-effort (round-032 SC-002 / issue #67): a `TOKEN:
+	// "${GITHUB_TOKEN}"` entry authenticates instead of being sent literally (and
+	// then warn+skipped). An unresolved ${VAR} keeps its literal text, so the
+	// load never fails and the server is still warn+skipped, exactly as before.
+	// Expansion runs BEFORE validation so the validator sees the resolved values.
+	cfg.ExpandMCPServers()
+
 	// Step 4e — validate the MCP_SERVERS registry (round-032 FR-002/FR-013): a
 	// malformed REMOTE entry reuses the configuration-invalid class phrase (a
 	// stable, classed failure); a COMMAND (stdio) entry is warn+skipped, surfaced

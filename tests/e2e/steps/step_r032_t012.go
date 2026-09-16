@@ -2,6 +2,7 @@ package steps
 
 import (
 	"context"
+	"strings"
 
 	"github.com/cucumber/godog"
 
@@ -18,6 +19,13 @@ func init() {
 // givenMCPServerRequiresToken arranges a fake MCP server that rejects requests
 // without `Authorization: Bearer {token}` and records the token as the server's
 // TOKEN (怎麼做 / 權威狀態落地 / 回寫).
+//
+// The configured TOKEN is routed through a ${VAR} reference (issue #67 /
+// round-032 SC-002): the config carries `TOKEN: "${TELLME_E2E_MCP_TOKEN_<server>}"`
+// and the environment variable resolves to the token. This is the real-world
+// shape (`TOKEN: "${GITHUB_TOKEN}"`), and it makes the scenario a genuine witness
+// of MCP_SERVERS expansion — without it the literal string is sent, the server
+// 401s, and the "received the token" Then fails.
 func givenMCPServerRequiresToken(ctx context.Context, server, token, tool, result string) error {
 	sc := scenarioFrom(ctx)
 	fake := sc.startMCPFake(server, mcptest.Options{
@@ -25,6 +33,8 @@ func givenMCPServerRequiresToken(ctx context.Context, server, token, tool, resul
 		Result:        unescapeText(result),
 		RequiredToken: token,
 	})
-	sc.addMCPServer(server, mcpServerEntry{URL: fake.URL(), Token: token})
+	envName := "TELLME_E2E_MCP_TOKEN_" + strings.ToUpper(server)
+	sc.setEnv(envName, token)
+	sc.addMCPServer(server, mcpServerEntry{URL: fake.URL(), Token: "${" + envName + "}"})
 	return nil
 }

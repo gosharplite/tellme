@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -118,4 +119,56 @@ func validateMCPServerEntry(name string, s MCPServerConfig) (string, error) {
 		return "", fmt.Errorf("%w: MCP_SERVERS.%s.TIMEOUT cannot be negative", ErrInvalidValue, name)
 	}
 	return "", nil
+}
+
+// ExpandMCPServers expands ${VAR} / ${VAR:-default} expressions in the
+// MCP_SERVERS string fields, BEST-EFFORT (round-032 SC-002 / issue #67).
+//
+// The reference tell-me-go expands ${VAR} across MCP_SERVERS at config load, so
+// an entry such as `TOKEN: "${GITHUB_TOKEN}"` authenticates. tellme previously
+// sent the literal string (`Authorization: Bearer ${GITHUB_TOKEN}`), the endpoint
+// rejected it (401), and the server was warn+skipped — a misleading "could not be
+// reached" for what was actually an auth rejection.
+//
+// This is deliberately NON-FATAL: a variable that is unset without a default (or
+// a malformed expression) leaves the field's ORIGINAL text in place. An
+// unresolved ${VAR} therefore neither fails the load nor turns a would-be
+// warn+skip into a startup failure — the server simply fails its handshake and is
+// skipped, exactly as before. This mirrors round 003's tolerant-decode principle
+// ("never make tellme refuse to start").
+//
+// Only the credential/endpoint surface is expanded here (URL, TOKEN, USERNAME,
+// and COMMAND for surface consistency); the fields the deferred stdio transport
+// adds (ARGS/DIR/ENV) join this list when that transport lands. The resolved
+// values are NEVER logged (FR-017).
+func (c *Config) ExpandMCPServers() {
+	c.expandMCPServersWithLookup(os.LookupEnv)
+}
+
+// expandMCPServersWithLookup is the injectable-lookup form (round-003 review F1
+// precedent): tests drive an in-memory lookup so expansion stays a pure function
+// of its inputs and the table runs without os.Setenv.
+func (c *Config) expandMCPServersWithLookup(lookup EnvLookupFunc) {
+	for name, s := range c.MCPServers {
+		s.URL = expandBestEffort(s.URL, lookup)
+		s.Token = expandBestEffort(s.Token, lookup)
+		s.Username = expandBestEffort(s.Username, lookup)
+		s.Command = expandBestEffort(s.Command, lookup)
+		c.MCPServers[name] = s
+	}
+}
+
+// expandBestEffort expands ${VAR} / ${VAR:-default} in s, returning s UNCHANGED
+// when the expansion fails (an unset variable without a default, or malformed
+// syntax) or when there is nothing to expand — so expansion can never become a
+// startup failure (issue #67).
+func expandBestEffort(s string, lookup EnvLookupFunc) string {
+	if !strings.Contains(s, "${") {
+		return s
+	}
+	out, err := ExpandStringWithLookup(s, lookup)
+	if err != nil {
+		return s
+	}
+	return out
 }
