@@ -159,3 +159,17 @@ Feature: Presenting the post-turn status
       Then the post-turn status trails the answer
       And tellme prints the provider's answer "all good"
       And tellme exits successfully
+
+  Rule: The post-turn status is reported once per model request
+
+    Example: A tool-using turn reports a status tail for each request
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "notes.txt" whose text is "all good"
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good" and reports the token usage:
+        | prompt | cached | completion | thinking |
+        | 100000 | 60000  | 3000       | 2000     |
+      When the operator starts tellme with the prompt "read the notes"
+      Then the run reports the post-turn status once per model request
+      And the last post-turn status trails the answer
+      And tellme exits successfully

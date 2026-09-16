@@ -106,3 +106,15 @@ Feature: Presenting the turn
       And the turn frame is separated from the answer
       And tellme exits successfully
 
+
+  Rule: The turn is framed once per model request
+
+    Example: A tool-using turn shows a frame for every model request
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "notes.txt" whose text is "all good"
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good"
+      When the operator starts tellme with the prompt "read the notes"
+      Then the turn is framed once per model request
+      And the turn number advances from one frame to the next
+      And tellme exits successfully
