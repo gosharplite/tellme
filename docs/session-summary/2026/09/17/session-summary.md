@@ -203,3 +203,91 @@ A second session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` 
 
 ### Issue tracker (closeout Step 8)
 Reconciled against the delivered state: **[#74](https://github.com/gosharplite/tellme/issues/74) CLOSED (completed)** — delivered by round 036 (PR [#75](https://github.com/gosharplite/tellme/pull/75) merged `ddd6f7d`; the permanent-narrowing record was commented on #74 before it closed, with the durable home on [#69](https://github.com/gosharplite/tellme/issues/69)); **[#69](https://github.com/gosharplite/tellme/issues/69) open** — body extended to carry the spinner-yield-policy ownership, the port hook pair, the tool-log blank-reason-predicate single ownership, and the permanent E2E narrowing record; **[#60](https://github.com/gosharplite/tellme/issues/60) open** (dogfooding umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13) open** (coverage tooling). No other revisions needed.
+
+---
+
+## 10. Session 3 (2026-09-17) — round 037 `037-interactive-prompt-no-selection`: opened → full pipeline → **four-round review/fold chain → FINAL CERTIFICATION** → **merged (PR #77)** → propagated `dev → main`; closeout
+
+A third session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 036 delivered/frozen), answered an operator question about the `-i` prompt (empty box + first hint highlighted → `Ctrl+S` submits the **empty** editor, not the hint), then opened round **037** to align the `-i` suggestion cursor to the reference's **no-selection** (`-1`) state, ran the full AIxBDD pipeline, took **PR [#77](https://github.com/gosharplite/tellme/pull/77)** through a **four-round architectural review + fold chain to FINAL CERTIFICATION**, saw the human merge, propagated `dev → main`, refreshed the installed binary, and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`; Linux host).
+**Branch**: `037-interactive-prompt-no-selection` (off `dev`) → merged via PR [#77](https://github.com/gosharplite/tellme/pull/77) into `dev` (`3aacf32`, by `thptcnec`, 2026-09-17T03:16:05Z) → propagated `dev → main`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 036 delivered/frozen; active branch `dev`) |
+| Q&A | answered: `-i` empty box → `Ctrl+S` submits the **empty** editor (the highlight is never captured); reference parity check confirmed tellme's highlight is a **round-016 divergence** from the reference's `Index: -1` |
+| Round-037 theme | align the `-i` suggestion cursor to the reference: **no** pre-selection + **reset to no-choice on every refresh** |
+| Clarify | operator-locked **Q1** strict cursor-only scope · **Q2** exact reference arithmetic · **Q3** keep "current choice", invert the at-rest rule · **Q4** witness = unit pins + E2E `Then` flip |
+| Pipeline | specify ✅ · spec-by-example ✅ (the at-rest highlight is user-visible) · research ✅ (D1–D7) · system-analysis ✅ (1 CLI end → `/axb-dsl-refine`; api/data NOOP) · ui-plan (terminal) ✅ · dsl-refine ✅ (row flipped **in place**) · tasks ✅ (T001–T009) · implement ✅ |
+| Review chain (PR #77) | architectural review **APPROVE WITH FOLDS** (F-1…F-6) → fold `919adcd` → fold review (**G-1…G-3**) → fold `ff09aad` → fold review #2 (**H-1…H-3**) → fold `c06b576` → final fold review (**J-1**, non-gate) → fold `5754cf3` → **FINAL CERTIFICATION — MERGE-READY, loop CLOSED** |
+| Merge | PR [#77](https://github.com/gosharplite/tellme/pull/77) **MERGED** into `dev` (`3aacf32`, by `thptcnec`); frozen head **`5754cf3`** (13 commits) |
+| Propagation | `037-… → dev` (`3aacf32`) `→ main` — **DONE (no-ff)** |
+| Closeout | `gofmt`/`go vet` clean · `make verify` OK · `go test -count=1 ./...` green (22 packages) · topology audit PASSED · diff-level secret scan clean · `STATUS.md` refresh · **#76 filed** (nothing closed) |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — read the pillars, the reference trees (`tell-me-go` 8-item bootstrap, `aixbdd-tmg` domain model + README), `list_skills`, the in-group peers (self `butler`; `architect`/`coder`/`griller`/`pm`/`rd`), `STATUS.md`, and the last-5-days summaries.
+2. **Q&A → direction** — traced the `-i` empty-submit behaviour on both sides (`tellme`: quits exit 0; `tell-me-go`: no-op); operator chose to align the cursor to the reference's `-1` **no-selection**.
+3. **Round 037** — `/axb-specify` → `/axb-clarify` (Q1–Q4) → `/axb-spec-by-example` (new acceptance rule *The prompt pre-selects no suggestion*) → `/axb-technical-research` (D1–D7) → `/axb-system-analysis` → `/axb-ui-plan` (terminal screens) → `/axb-dsl-refine` (row flipped in place) → `/axb-tasks` → `/axb-implement` (RED → GREEN → REFACTOR). Committed per phase.
+4. **The fix** — `internal/ui/tui/prompt/suggester.go`: `const noChoice = -1`; `newSuggester()` → `suggester{cursor: noChoice}`; `set(items)` resets `cursor = noChoice` on every refresh; `selected()`/`cycle()`/`view()` unchanged. Truth: `techstack.md` (2 rows) + `presenting-the-interactive-prompt.feature` (at-rest `Then` in place) + `chat/dsl.md` (row rewritten + note).
+5. **Review loop (PR #77)** — four rounds, all folds documentation/evidence/predicate (no product-code/truth-semantics change): F-1 (predicate scope) → G-1 (**the proposed `┌`-frame mechanism was the reviewer's own error** — measured the harness paints once; `atRestFrame` was the identity) + G-2 (**exact `"  > "` cursor-row predicate**; a `> `-leading suggestion text was a reproduced false failure) + G-3 → H-1/H-2/H-3 (fixture-scoped row, corrected D4 premises, withdrawal markers) → J-1 (step doc comment). **Two false recorded claims were corrected rather than quietly dropped.**
+6. **Home the debt on live surfaces** — the empty-`Ctrl+S` divergence filed as **#76** (body sharpened with the display-only sharpening); the suggester selection-policy shape recorded on **#69**.
+7. **Merge + closeout** — PR #77 merged (`3aacf32`); `go install ./cmd/tellme` (refreshed from `5754cf3`); `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 037)
+| # | Decision |
+| --- | --- |
+| Q1 | **Strict scope** — the cursor no-selection only; the empty-`Ctrl+S` divergence → live issue [#76](https://github.com/gosharplite/tellme/issues/76). |
+| Q2 | **Exact reference arithmetic** — start + reset at no-choice (`cursor == -1`); first `Tab` → first item; `Shift+Tab` from no-choice follows `(i-1+n)%n` (`len-2` for `len ≥ 2`; the sole item for `len == 1`). |
+| Q3 | Keep "current choice"; the at-rest rule inverts to *no* suggestion; the after-`Tab` selection carried by the **unit pins** (no second rule). |
+| Q4 | Witness = unit pins + the E2E `Then` flip (cursor row directly observable). |
+| G-2 | The E2E predicate is the **exact `"  > "` cursor row** (not a `TrimLeft`+`> ` proxy); pinned at **two layers** (predicate + product rendering). |
+| G-1 | No frame arithmetic: the harness delivers the compose keys before the first paint, so a navigating capture carries one painted frame; the row is scoped to the rendered **suggestion block** with a fixture-scoped precondition. |
+
+### Commits (branch `037-interactive-prompt-no-selection`, then merged)
+| Commit | Note |
+| --- | --- |
+| `faf3e7a` | `docs(037)`: plan package and spec |
+| `a37d59f` | `docs(037)`: acceptance Gherkin (no chosen hint at rest) |
+| `38ab0a5` | `docs(037)`: anchor the empty-submit forward item to issue #76 |
+| `4bd19d0` | `docs(037)`: technical research + techstack truth |
+| `921261c` | `docs(037)`: system-analysis plan + api/data NOOP rows |
+| `81324f6` | `docs(037)`: terminal-mode ui screens |
+| `ebbeb80` | `docs(037)`: CLI interface truth — at-rest `Then` flips in place |
+| `54cf517` | `feat(037)`: open the `-i` suggestion list with no selection (T001–T008) |
+| `1368a79` | `docs(037)`: tasks.md + RED/GREEN/witness outcomes |
+| `919adcd` | `docs(037)`: fold PR #77 review — F-1…F-6 |
+| `ff09aad` | `docs(037)`: fold PR #77 review 2 — G-1…G-3 |
+| `c06b576` | `docs(037)`: fold PR #77 review 3 — H-1…H-3 |
+| `5754cf3` | `docs(037)`: fold PR #77 review 4 — J-1 |
+| `3aacf32` | PR [#77](https://github.com/gosharplite/tellme/pull/77) merge into `dev` (by `thptcnec`) |
+
+### Artifacts / truth
+- Plan package: `spec.md` (US1/US2 · FR-001–006 · SC-001–005 · operator Q1–Q4) · `checklists/requirements.md` · `research.md` (D1–D7) · `plan.md` · `tasks.md` (T001–T011) · `truth-delta.md` · `features/acceptance/showing-no-chosen-hint-at-rest.feature` · `ui/` (terminal-mode screens).
+- Truth: `techstack.md` MODIFY (interactive-prompt + suggestion-engine rows: no-choice start + reset-on-refresh) · `presenting-the-interactive-prompt.feature` MODIFY (at-rest `Then` flipped **in place**) · `chat/dsl.md` MODIFY (row rewritten to the no-selection row + round-037 note; **no new `DSLRow`**) · `contracts/**` + `data/**` NOOP.
+- Code: `internal/ui/tui/prompt/suggester.go` (+ `noChoice`); tests `internal/ui/tui/prompt/model_chrome_test.go` (+ `TestCycleArithmetic`, `TestModelUnselectedQuoteTextIsNotACursorRow`), `refresh_test.go`, `tests/e2e/steps/{step_t008…,tui_chrome.go,tui_chrome_test.go}`.
+
+### Verification (2026-09-17, on `dev` @ `3aacf32`)
+- `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (no test-sleep · offline witness · cross-compile 4/4 · `verify-mcp-sdk-confinement` · golangci-lint **0 issues** · govulncheck **0 reachable**).
+- `go test -count=1 ./...` green (22 packages — the new `tests/e2e/steps` predicate pin is the 22nd; godog E2E **ok**, 215/215).
+- Topology audit **PASSED** — 44 features · 6 modules · 16 root + **310** module rows · **1576** steps (unchanged, as intended).
+- Diff-level secret scan **clean**; `go.mod` / `go.sum` unchanged (stdlib-only).
+- **Falsifiability witnesses** (a) re-default the cursor to `0` · (b) remove the reset-on-refresh — reproduced then reverted (a re-confirmed non-vacuous under the exact-prefix predicate).
+
+### Open items (non-blocking)
+- **Round-037 forward items** — (a) the **empty-`Ctrl+S` divergence** → [#76](https://github.com/gosharplite/tellme/issues/76); (b) the suggester selection-policy shape (`set(items, cursor)` at the call site) → [#69](https://github.com/gosharplite/tellme/issues/69).
+- **Round-036 forward items** — the blank-reason-predicate single ownership + the permanent E2E narrowing → [#69](https://github.com/gosharplite/tellme/issues/69); `oneLine` relocated.
+- **Round-035 forward items** — the port hook overload + the spinner-yield-policy ownership → [#69](https://github.com/gosharplite/tellme/issues/69) (see the [2026-09-17 archive](docs/archives/status/2026-09-17.md)).
+- **Round-034 forward items** — the failed-turn display-only `Ready` overstatement (G2) + numbering skew; `BindToolOutput` ctor injection; `LoopObserver` segregation; the round-022 row→feature audit blind spot → [#60](https://github.com/gosharplite/tellme/issues/60).
+- Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; rounds 011–033 forward items (per-round in the archives).
+
+### Next steps
+1. Choose the `038-*` theme and start it via `/axb-specify` off `dev` (candidates: [#76](https://github.com/gosharplite/tellme/issues/76) — the empty-`Ctrl+S` lifecycle fix; [#69](https://github.com/gosharplite/tellme/issues/69) — now carries five scope items; [#60](https://github.com/gosharplite/tellme/issues/60); [#13](https://github.com/gosharplite/tellme/issues/13)).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled against the delivered state: **[#76](https://github.com/gosharplite/tellme/issues/76) OPEN (new this round)** — the empty-`Ctrl+S` divergence (body sharpened by the round-037 review); **[#69](https://github.com/gosharplite/tellme/issues/69) OPEN** — body carries the spinner-yield ownership + the port hook pair + the blank-reason-predicate single ownership + the suggestion-selection-policy ownership + the permanent E2E narrowing; **[#60](https://github.com/gosharplite/tellme/issues/60) OPEN** (dogfooding); **[#13](https://github.com/gosharplite/tellme/issues/13) OPEN** (coverage tooling). **No issues closed this closeout** (round 037 delivered no issue-tracked slice; nothing superseded). [#74](https://github.com/gosharplite/tellme/issues/74) closed (completed) by round 036; [#72](https://github.com/gosharplite/tellme/issues/72) closed by round 035.
