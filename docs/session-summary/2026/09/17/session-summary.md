@@ -885,3 +885,36 @@ Per the session-11 lessons (§19-c: the body is authored truth; comments are his
 
 ### PM follow-ups
 - None new.
+
+---
+
+## 21. Session 13 (2026-09-17) — umbrella #69 replaced by #92 (readable, gate-first split); STATUS + log reconciled
+
+A thirteenth session on the same calendar day (bootstrap Steps 1–8 complete; round 041 delivered/frozen; active branch `dev`): the operator found umbrella **[#69](https://github.com/gosharplite/tellme/issues/69)** hard to read (additive scope from five rounds had buried its main decision) and asked for a readable replacement whose **main theme is the split**.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Action | **[#92](https://github.com/gosharplite/tellme/issues/92) opened** — *"Composition-root extraction + presentation-policy single ownership — gate-first split (5 rounds)"*; **[#69](https://github.com/gosharplite/tellme/issues/69) CLOSED (not planned / superseded)** with a linking comment |
+| Main theme | the **split**: R1 layer gate → R2 composition-root extraction → R3 yield-policy owner + observer hook split → R4 blank-reason owner + presentation predicate → ride-alongs |
+| Preserved | the 7-workstream ledger (mapped to rounds with sizes), constraints (`agentTools()` parameterless/read-free), the **truth/process obligations** (`truth-current` sweep + a new ADR for the yield policy), acceptance criteria, non-goals, and the records (permanent E2E narrowing; coordinator one-concurrent-block; `End`-while-write-stalled) |
+| Repo docs | `STATUS.md` tracker refs #69→#92 (header · roadmap · round-039/040 forward items · issue-tracker · env-note candidates) + a session-13 tracker line; this §21 |
+
+### Why replace (not amend)
+Same durable-surface discipline as §20 (session-11 §19-c): the fix belongs in the **body**, and #69's body needed *reorganisation around the split*, not an appended section — a fresh issue is the readable form. #69 is closed as **not planned (superseded by #92)**; its five rounds of forward items are folded into #92's scope ledger + provenance section, so nothing is lost.
+
+### Decisions
+| # | Decision |
+| --- | --- |
+| D1 | **#69 CLOSED (not planned / superseded)**; the composition-root + presentation-policy track continues on **#92** (gate-first split as the main theme). |
+| D2 | The split's lead round is **R1 — the layer-discipline gate** (`verify-architecture` analogue + baseline), so every later round's DoD is falsifiable (7 → 0). |
+| D3 | `STATUS.md` tracker refs point at **#92**; the open tracker is now **#92 · #91 · #13**. |
+| D4 | **#92 is not on #91's critical path** — #91's blocker is *context management*. |
+
+### Open items (non-blocking)
+- **#92 decisions** (operator): whether to spin the split into separate rounds now, and the R1 gate's shape (a script + Makefile target, with a baseline file).
+- **Propagation** — `dev → main` for this docs commit: **pending operator approval**.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; the `di` sibling wall-clock-assertion class.
+
+### PM follow-ups
+- None new.
