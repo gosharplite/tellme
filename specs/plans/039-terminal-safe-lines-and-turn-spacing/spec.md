@@ -18,7 +18,7 @@
 - **Q1 → Generalize the control-sequence class to every `[Tool …]` formatter.** The class removed is exactly round 038's: every **7-bit** ESC-introduced sequence (CSI/SGR, OSC, any other ESC sequence) and every stray C0/DEL byte; TAB kept; interior CR dropped; bytes `≥ 0x80` untouched; the ESC consumption is ASCII-gated and the scan window bounded per kind, so the sanitizer never *introduces* invalid UTF-8. `FormatToolReason`, `FormatToolResult`, and `FormatToolAction` (keys **and** values) all become control-free, like `FormatToolOutputLine`.
 - **Q2 → Single-owned home.** The sanitizer (+ helpers) moves out of `tooloutput.go` into one dedicated `internal/ui` home (e.g. `sanitize.go`) and is consumed by **all four** `[Tool …]` formatters — exactly one definition of the class (the single-ownership theme also tracked on [#69](https://github.com/gosharplite/tellme/issues/69)).
 - **Q3 → Sanitize *before* the rune cap** (after the round-036 fold+trim), so the cap bounds the **visible** output and the round-036 one-line contract is unchanged.
-- **Q4 → The neutral-close restore stays `[Tool Output]`-scoped.** No per-line reset is added to the single-line formatters (a reset line per `[Tool Reason]`/`[Tool Result]`/`[Tool Action]` would be noise, and those formatters never leave a multi-line block). Recorded by amending **ADR 0007**.
+- **Q4 → The neutral-close restore stays `[Tool Output]`-scoped.** No per-line reset is added to the single-line formatters (a reset line per `[Tool Reason]`/`[Tool Result]`/`[Tool Action]` would be noise, and those formatters never leave a multi-line block). Recorded by **superseding ADR 0007** with the new **ADR 0008** (research D9 — not amended in place; an `Accepted` ADR is immutable but for its `Status` line).
 
 ### Workstream B — blank-line grouping (operator-requested)
 
@@ -116,7 +116,7 @@ As an operator reading a tool-using turn, I want the begin blocks, the trailing 
 
 ## Assumptions
 
-- **Truth ownership.** `specs/truth/features/cli/chat/**` + `chat/dsl.md` are `TruthArtifact`s owned by `/axb-dsl-refine`; `techstack.md` is owned by `/axb-technical-research`; **ADR 0007** is amended in place (governance, not truth); `/axb-api-plan` is a checked **NOOP** (no HTTP surface); `/axb-data-plan` is a checked **NOOP** (no persisted-state change). All edits are recorded in this round's `truth-delta.md`.
+- **Truth ownership.** `specs/truth/features/cli/chat/**` + `chat/dsl.md` are `TruthArtifact`s owned by `/axb-dsl-refine`; `techstack.md` is owned by `/axb-technical-research`; **ADR 0008** is ADDED and **supersedes ADR 0007** (governance, not truth; research D9 — 0007's `Status` flips to `Superseded by 0008`, it is not amended in place); `/axb-api-plan` is a checked **NOOP** (no HTTP surface); `/axb-data-plan` is a checked **NOOP** (no persisted-state change). All edits are recorded in this round's `truth-delta.md`.
 - **Frozen history.** Every earlier plan package (incl. `034-tool-call-log-parity`, `035-spinner-tail-residue`, `036-tool-reason-sanitize`, `038-tool-output-sanitize-and-empty-submit`) is never edited; 039 is a fresh package.
 - **`/axb-spec-by-example` is NOT a NOOP** — both workstreams are user-visible (a control-free line; a blank line), so 039 writes plan-side acceptance rules that `/axb-dsl-refine` maps onto interface rows (`acceptance-coverage`).
 - **`/axb-ui-plan` is skipped** — no TUI chrome change and no new screen; this is a text-stream change.

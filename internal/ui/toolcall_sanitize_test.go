@@ -97,6 +97,26 @@ func TestFormatToolAction_StripsControlSequencesInKeysAndValues(t *testing.T) {
 	}
 }
 
+func TestFormatToolAction_KeyOrderIsSanitizedThenSorted(t *testing.T) {
+	// Round-039 review RF-2: the key list is sorted AFTER sanitizing, so a raw key
+	// carrying control data cannot render out of ascending order. The raw keys are
+	// "\x1b[31mz" (0x1b sorts before 'a') and "a"; sorted-after-sanitize ⇒ "a", "z".
+	got := FormatToolAction(r034Clock, "write_file", `{"\u001b[31mz":1,"a":2}`)
+	if !strings.Contains(got, "a: 2, z: 1") {
+		t.Errorf("hostile-key order = %q; want the sanitized keys sorted ascending (a, z)", got)
+	}
+	assertControlFreeUTF8(t, got)
+}
+
+func TestFormatToolAction_FoldsKeyNewlineLikeAValue(t *testing.T) {
+	// Round-039 review RF-2: a key folds `\n` to a space exactly like a value (one
+	// input class, one rendering) — not deleted as before.
+	got := FormatToolAction(r034Clock, "write_file", `{"a\u000ab":1}`)
+	if !strings.Contains(got, "a b: 1") {
+		t.Errorf("key fold = %q; want the key newline folded to a space (a b)", got)
+	}
+}
+
 func TestToolReasonRenders(t *testing.T) {
 	cases := []struct {
 		in   string

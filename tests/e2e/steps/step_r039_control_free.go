@@ -18,7 +18,7 @@ import (
 func init() {
 	registrars = append(registrars, func(ctx *godog.ScenarioContext) {
 		ctx.Given(`^a configured provider "([^"]*)" whose endpoint asks tellme to read "([^"]*)" with a reason that carries terminal control data and then answers with "([^"]*)"$`, givenProviderReadWithControlReason)
-		ctx.Then(`^the run reported the reason for the tool call "([^"]*)" free of terminal control sequences$`, thenReasonControlFree)
+		ctx.Then(`^the run reported a reason line free of terminal control sequences$`, thenReasonControlFree)
 		ctx.Then(`^the run reported the result for the tool call "([^"]*)" free of terminal control sequences$`, thenResultControlFree)
 		ctx.Then(`^the run reported the action for the tool call "([^"]*)" free of terminal control sequences$`, thenActionControlFree)
 	})
@@ -64,8 +64,7 @@ func givenProviderReadWithControlReason(ctx context.Context, provider, path, ans
 	return sc.writeDefaultConfig(provider, map[string]string{provider: f.URL()})
 }
 
-func thenReasonControlFree(ctx context.Context, tool string) error {
-	_ = tool
+func thenReasonControlFree(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	lines := r039LinesContaining(sc.stderr, toolReasonMarker)
 	if len(lines) == 0 {

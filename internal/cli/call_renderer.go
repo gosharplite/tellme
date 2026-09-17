@@ -39,6 +39,13 @@ type callRenderer struct {
 	session  history.UsageSummary
 	turnCost float64
 
+	// renderedToolRound is set once the turn has produced a non-final call — i.e.
+	// the model requested tools (and it also covers the bound-reached path). It
+	// gates the round-039 post-status blank so a TOOL-LESS turn gains no blank
+	// (round-039 review B1: FR-009 / the edge-case list / ADR 0008 D5's closing
+	// sentence all say a non-tool turn is unchanged).
+	renderedToolRound bool
+
 	finalTail func()
 }
 
@@ -104,8 +111,12 @@ func (r *callRenderer) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []
 			return
 		}
 		// Round 039: the post-status group (measured payload + metrics + `Ready`)
-		// is preceded by exactly ONE blank line.
-		_, _ = fmt.Fprintln(r.env.stderr)
+		// is preceded by exactly ONE blank line — but ONLY on a turn that rendered
+		// a tool round (round-039 review B1: a tool-less turn is unchanged, so it
+		// gains no blank).
+		if r.renderedToolRound {
+			_, _ = fmt.Fprintln(r.env.stderr)
+		}
 		_, _ = fmt.Fprintln(r.env.stderr, ui.FormatPayloadStatus(r.env.now(), usage.PromptTokens, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, false))
 		r.emitMetrics(usage)
 	}
@@ -113,6 +124,7 @@ func (r *callRenderer) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []
 		r.finalTail = emit
 		return
 	}
+	r.renderedToolRound = true
 	emit()
 }
 

@@ -19,6 +19,7 @@ func init() {
 		ctx.Then(`^the action of the call without a reason begins after a blank line$`, thenReasonlessActionBeginsAfterBlank)
 		ctx.Then(`^the trailing reason summary follows a blank line$`, thenTrailingReasonSummaryFollowsBlank)
 		ctx.Then(`^the turn's closing status follows a blank line$`, thenTurnClosingStatusFollowsBlank)
+		ctx.Then(`^the turn shows no doubled blank line$`, thenTurnClosingStatusNoBlank)
 	})
 }
 
@@ -103,14 +104,31 @@ func thenTrailingReasonSummaryFollowsBlank(ctx context.Context) error {
 func thenTurnClosingStatusFollowsBlank(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	lines := stderrLines(sc.stderr)
+	found := false
 	for i, l := range lines {
 		if !strings.Contains(l, "Payload: ") || strings.Contains(l, "Payload: ~") {
 			continue // only the measured (~-less) payload line starts the post-status group
 		}
+		found = true
 		if i == 0 || lines[i-1] != "" {
 			return fmt.Errorf("the turn's closing status was not preceded by a blank line; stderr=%q", sc.stderr)
 		}
-		return nil
 	}
-	return fmt.Errorf("standard error carried no measured payload status line; stderr=%q", sc.stderr)
+	if !found {
+		return fmt.Errorf("standard error carried no measured payload status line; stderr=%q", sc.stderr)
+	}
+	return nil
+}
+
+// thenTurnClosingStatusNoBlank (round 039 review B1): a TOOL-LESS turn gains no
+// blank before its post-status group. The round-017 frame gap already puts exactly
+// one blank between the pre-flight estimate and the measured payload, so the
+// observable is that no TWO consecutive blank lines run (a doubled blank would be
+// the extra post-status blank the bug added).
+func thenTurnClosingStatusNoBlank(ctx context.Context) error {
+	sc := scenarioFrom(ctx)
+	if strings.Contains(sc.stderr, "\n\n\n") {
+		return fmt.Errorf("a tool-less turn showed a doubled blank line (an extra post-status blank); stderr=%q", sc.stderr)
+	}
+	return nil
 }

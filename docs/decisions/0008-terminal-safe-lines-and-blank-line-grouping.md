@@ -37,11 +37,11 @@ ADR 0007 recorded its scope boundary as a consequence and stated it is supersede
 
 | # | Site | Rule |
 | --- | --- | --- |
-| 1 | call begin | exactly one blank line before the call block's **first** line — the `[Tool Reason]` line, else the `[Tool Action]` line — **per call** (a `k`-call round emits `k` blanks) |
+| 1 | call begin | exactly one blank line before the call block's **first** line — the `[Tool Reason]` line, else the `[Tool Action]` line — **per call** (a `k`-call round emits `k` blanks). The round-level `[HH:MM:SS] [Tool Engine] Step i/M` marker sits in the **header group** *before* these blanks, not inside block 1 |
 | 2 | post-call tail | exactly one blank line before the grouped `[Tool Reason]` block, and **no** blank line between its lines (only when the block is non-empty) |
-| 3 | post-status | exactly one blank line before the measured `Payload:` line + metrics line + `Ready` footer (only when that group is written) |
+| 3 | post-status | exactly one blank line before the measured `Payload:` line + metrics line + `Ready` footer — **only on a turn that rendered a tool round** (a tool-less turn gains no blank; FR-009 / the edge case) and only when that group is written |
 
-The blanks are plain `\n` on the `stderr` diagnostic stream; nothing is added to a non-tool turn, `stdout`, a persisted record, or the offline paths.
+The blanks are plain `\n` on the `stderr` diagnostic stream; nothing is added to a non-tool turn, `stdout`, a persisted record, or the offline paths. The post-status blank is gated by a `renderedToolRound` marker the renderer sets on a **non-final** call (round-039 review **B1**), so the *"nothing is added to a non-tool turn"* guarantee holds in the code, not just in prose.
 
 **D6 — Recorded divergences (two).** tell-me-go **sanitizes nothing** in its tool log (its only `sanitizeForTerminal` is a LaTeX→Unicode helper) **and** writes its tool-log lines **without** these blanks (`internal/ui/renderer_metrics.go` `LogToolCall`/`LogToolResult`/`renderPostCallStatus`). tellme deliberately diverges on both counts: the sanitize closes a real terminal-affecting leak present in both; the spacing is an operator-requested readability choice. Divergences of this class are recorded here and in the `techstack.md` rows (the ADR 0005 D6 / ADR 0007 D6 precedent).
 

@@ -115,7 +115,7 @@ Feature: Watching the tool loop work
       And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" with a reason that carries terminal control data and then answers with "done"
       When the operator starts tellme with the prompt "Read notes.txt."
-      Then the run reported the reason for the tool call "read_files" free of terminal control sequences
+      Then the run reported a reason line free of terminal control sequences
       And tellme exits successfully
 
     Example: A result that carries control data is shown as plain text

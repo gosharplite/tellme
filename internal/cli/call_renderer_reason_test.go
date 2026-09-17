@@ -86,3 +86,23 @@ func TestCallTailBlanksBeforeReasonsAndPostStatus(t *testing.T) {
 		t.Errorf("more than one blank line before the post-status group; out=%q", out)
 	}
 }
+
+// Round 039 review B1: a TOOL-LESS turn (only a final call, no rendered tool
+// round) must gain NO blank before its post-status group — FR-009 / the
+// edge-case list / ADR 0008 D5's closing sentence all say a non-tool turn is
+// unchanged.
+func TestCallTailNoBlankBeforePostStatusWithoutToolRound(t *testing.T) {
+	var buf bytes.Buffer
+	r := newTestCallRenderer(&buf)
+	// The tool-less path: the loop fires exactly one final call, whose tail is
+	// deferred; nothing sets renderedToolRound.
+	r.OnCallEnd(0, llm.Usage{Reported: true, PromptTokens: 10, CompletionTokens: 5}, nil, true)
+	r.EmitFinalTail()
+	out := buf.String()
+	if strings.HasPrefix(out, "\n") {
+		t.Errorf("a tool-less turn gained a leading blank line before the post-status group; out=%q", out)
+	}
+	if !strings.HasPrefix(out, "[08:00:00] Payload: 10/") {
+		t.Errorf("the post-status group should start flush for a tool-less turn; out=%q", out)
+	}
+}

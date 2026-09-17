@@ -24,6 +24,19 @@ Feature: Presenting the post-turn status
       And the reported metrics line shows 40000 missed, 60000 cached, 3000 completed, and 2000 reasoning tokens
       And tellme exits successfully
 
+    Example: A tool-less turn's closing status is not blank-separated
+      # Round 039 (review B1): the blank-line grouping applies only to a tool-using turn — a tool-less
+      # turn is unchanged, so its post-status group gains no leading blank.
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured provider "test-model" whose endpoint answers with "all good" and reports the token usage:
+        | prompt | cached | completion | thinking |
+        | 100000 | 60000  | 3000       | 2000     |
+      When the operator starts tellme with the prompt "hi"
+      Then the run reports the token metrics of the request that just completed
+      And the turn shows no doubled blank line
+      And tellme exits successfully
+
     Example: The provider reports no reasoning tokens
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
