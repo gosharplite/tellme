@@ -53,6 +53,16 @@
 
 ## Issues & corrections
 
+- **PR [#97](https://github.com/gosharplite/tellme/pull/97) review `5242446755` — B-1…B-4 · TD-1 · R-1…R-3, all folded before merge:**
+  - **B-1** `GOFLAGS=-trimpath` is **green before** the change → reclassified as a **neutralisation assertion**; the witness set is now **four red→green** cases (`GOENV` file, `GO111MODULE=off`, `GOWORK`, `GOTOOLCHAIN`) (SC-001/FR-013/`research.md` D7/ADR D7/truth row).
+  - **B-2** the gate's **direct** invocation: `childEnv` keeps only the **verdict** hermetic; the outer `go test`/`go vet` are non-hermetic (R1) (§Q6/FR-008/ADR D6/`research.md` D5).
+  - **B-3** the two sites' invariant is **coverage**, not equality (different mechanisms); `childEnv`'s non-re-set names (`GOARM`/`GOEXPERIMENT` + the new names) are residual **R4** (FR-008/ADR D6/D8/`research.md` D5/D8); no "drift witness" (it would fail by design).
+  - **B-4** the neutralise set is **criterion-derived** (ADR D2 inclusion criterion) and gains `GOTOOLCHAIN` (+ micro-arch family, `GOFIPS140`, `GODEBUG`) (FR-002/§Q3/truth row).
+  - **TD-1** parse-time `$(shell …)`/`$(eval …)`/command-line variables are outside the boundary — keep `go` out of `$(shell …)` (ADR D1/R5, edge case, FR-009d).
+  - **R-1** `CGO_ENABLED` *preserved from the caller* (not pinned); scope *unconditional for **ambient** input* with the **command-line** hatch; `make GOENV=<file>` escapes while `make GOFLAGS=…` is neutralised; no `HERMETIC=0` switch.
+  - **R-2** FR-008's **MUST** stands — the `plan.md`/T003 "optional"/"foldable" hedge is dropped.
+  - **R-3** the scope figure is corrected to **25 `grep` lines / 16 executed invocations**.
+
 - **`GOENV=off` is load-bearing** — recorded explicitly (FR-002, research D4): unsetting/emptying `GOFLAGS` does **not** neutralise a persisted `go env -w GOFLAGS=…` (Go falls back to the env file for unset **and** empty values — round-042 F-2). This is the issue's exact failing case.
 - **Not V2 (global `CGO_ENABLED=0`)** — would be a behaviour change (excludes future cgo-tagged code) and violate the "no behaviour change for a clean env" criterion (research D2/Q3).
 - **The round-042 `childEnv` is retained as defence-in-depth** (research D5), so `tools/arch/**` behaviour is unchanged (frozen round-042 history); only a cross-reference **comment** may be added.

@@ -33,7 +33,7 @@ CLI contract). No `contracts/**` change — `/axb-api-plan` **NOOP**. No `data/*
 Makefile                            # CHANGED — one top-of-file hermetic `export`/`unexport` block (above the `$(shell command -v …)` probes)
 docs/decisions/0012-hermetic-make-go-env.md    # NEW — the neutralise/preserve policy; index row in docs/decisions/README.md
 specs/truth/techstack.md            # MODIFY — Build & Tooling: a Hermetic toolchain invocation row + a note on the Task runner row ✓ done
-tools/arch/arch_test.go             # a cross-reference COMMENT only (behaviour unchanged — round-042 frozen history) [optional, at implementation]
+tools/arch/arch_test.go             # a cross-reference COMMENT only (behaviour unchanged — round-042 frozen history) — FR-008 MUST (not optional)
 go.mod / go.sum                     # unchanged — no new dependency
 internal/** , cmd/** , tests/**      # unchanged — no product code / no CLI behaviour change
 ```
@@ -85,28 +85,40 @@ the round's delivery is the `Makefile` hermetic block + ADR 0012 + the `techstac
 
 ### The boundary the round installs
 
-**Neutralise/replace** — `GOENV` → `off`; `GOWORK` → `off`; `GOFLAGS`, `GO111MODULE`, `GOEXPERIMENT` →
-**unset**; ambient `GOOS`, `GOARCH`, `GOARM` → **unset**.
+**Neutralise/replace** — derived from the **D2 inclusion criterion** (*neutralise the ambient build
+context; preserve the plumbing*): `GOENV` → `off`; `GOWORK` → `off`; `GOFLAGS`, `GO111MODULE`,
+`GOEXPERIMENT`, `GOTOOLCHAIN`, `GOFIPS140`, `GODEBUG` → **unset**; the ambient **target triple** —
+`GOOS`, `GOARCH` **and** the micro-architecture family (`GOARM`/`GOARM64`/`GOAMD64`/`GO386`/`GOMIPS`/
+`GOMIPS64`/`GOPPC64`/`GORISCV64`/`GOWASM`) → **unset**.
 
 **Preserve** — `PATH`, `HOME`, `GOPATH`, `GOMODCACHE`, `GOCACHE` (warm-cache) **and** `GOPROXY`,
 `GOSUMDB`, `GOPRIVATE`, `GONOSUMDB`, `GOINSECURE` (network/checksum).
 
-**`CGO_ENABLED`** — **host default**; the only cgo pinning remains `verify-cross-compile`'s inline
-`CGO_ENABLED=0` **for its own recipe** (PR #46 TD1), which the block MUST NOT clobber (RULE: a recipe's
-inline assignment wins for that recipe).
+**`CGO_ENABLED`** — **preserved from the caller** (the block neither sets nor unsets it — *not* globally
+pinned); the only cgo pinning remains `verify-cross-compile`'s inline `CGO_ENABLED=0` **for its own
+recipe** (PR #46 TD1), which the block MUST NOT clobber (RULE: a recipe's inline assignment wins for that
+recipe).
 
 **Why `GOENV=off` is load-bearing**: Go falls back to the env **file** for a variable that is unset **or
 empty**, so unsetting `GOFLAGS` does not neutralise a persisted `go env -w GOFLAGS=-mod=vendor` — the
 issue's exact failing case (round-042 F-2, ADR 0011 D5). Policy: **ADR 0012**.
 
-**Ownership (two definitions, one owner).** The `Makefile` block is the **primary owner**; round-042's
-`tools/arch` `childEnv` (ADR 0011 D5) is retained as **defence-in-depth** for the gate's documented
-**direct** invocation (which bypasses `make`). Cross-reference comments in both places; an optional drift
-witness (the two literal sets agree) is folded into `/axb-tasks`.
+**Ownership (two mechanisms, one invariant).** The `Makefile` block is the **primary owner**; round-042's
+`tools/arch` `childEnv` (ADR 0011 D5) is retained as **defence-in-depth** for the gate's **verdict** on its
+documented **direct** invocation (which bypasses `make`; the direct path's **outer** `go test`/`go vet`
+remain non-hermetic — R1). Cross-reference comments in both places. The two sites neutralise by
+**different mechanisms** (the block *disables the env file* + unsets; `childEnv` *re-sets explicit values*),
+so their invariant is **coverage** — *every neutralised name is re-set by `childEnv` or recorded as a known
+non-covered name* — **not** equality (PR #97 review B-3); the non-re-set names are residual R4.
 
-**Verified by**: four hostile-env witnesses (`GOENV=<file: GOFLAGS=-mod=vendor>`, `GOFLAGS=-trimpath`,
-`GO111MODULE=off`, a stray `GOWORK`; red → green, reverted) + two positive controls (`verify-cross-compile`
-4/4 under the hermetic env; `tidy`/`fmt` no-diff in a clean env).
+**Boundary limit**: `export`/`unexport` govern recipes + descendants, **not** parse-time `$(shell …)`/
+`$(eval …)`/`include`d makefiles/command-line variables — keep `go` out of `$(shell …)` (TD-1/R5).
+
+**Verified by**: **four red→green witnesses** (`GOENV=<file: GOFLAGS=-mod=vendor>`, `GO111MODULE=off`,
+a stray `GOWORK`, `GOTOOLCHAIN=go1.99.9`; red → green, reverted) + **neutralisation assertions** for
+green-before inputs (`GOFLAGS=-trimpath` + the long-tail names — asserted absent from the recipe env, *not*
+witnesses; PR #97 review B-1) + **aggregate-level** evidence (`GOENV=<file> make verify` ⇒ exit 0) + two
+positive controls (`verify-cross-compile` 4/4 under the hermetic env; `tidy`/`fmt` no-diff in a clean env).
 
 ---
 
