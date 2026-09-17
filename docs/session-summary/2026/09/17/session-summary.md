@@ -849,3 +849,72 @@ An eleventh session on the same calendar day: bootstrapped, opened round **041**
 
 ### PM follow-ups
 - None new (spec/acceptance complete; no PM-owned gaps).
+
+---
+
+## 20. Session 12 (2026-09-17) — issue-tracker refresh: umbrella #60 replaced by #91 (closed not_planned); STATUS + log reconciled
+
+A twelfth session on the same calendar day (bootstrap Steps 1–8 complete; round 041 delivered/frozen; active branch `dev`): the operator asked whether umbrella **[#60](https://github.com/gosharplite/tellme/issues/60)** was still up to date.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Audit | #60's capability table was verified **2026-09-16** (round-028 era) and went stale across rounds 029–041 |
+| Stale items found | write tools ❌→✅ (round 029) · MCP ❌→✅ (round 032) · skills ❌→🟡 on-demand, injection deliberately deferred (round 033) · "four tools" → **seven** · obsolete round track (030/031/033 divergence) · `STATUS.md` anchor (028→041) · option-A DoD premised "skills *injected*" |
+| Action | **[#91](https://github.com/gosharplite/tellme/issues/91) opened** (refreshed umbrella, detailed body; title avoids "dog") · **[#60](https://github.com/gosharplite/tellme/issues/60) CLOSED (not planned / superseded)** with a linking comment · #60's four forward comments folded into #91 |
+| Repo docs | `STATUS.md` tracker refs #60→#91 + a session-12 tracker line; this §20 |
+
+### Why replace (not amend) — the durable-surface rule
+Per the session-11 lessons (§19-c: the body is authored truth; comments are history), the fix belongs in the **body**, not a comment. But #60's body was stale in its *capability table, round track, decisions and definition of done* — a rewrite that changes the issue's whole framing is cleanest as a **fresh issue** (the same disposition the repo uses for a retired parent). #60 is closed as **not planned (superseded by #91)**; the tracked intent continues on #91, which carries the corrected body + the folded forward items.
+
+### #91 — the refreshed umbrella
+- Title: *"Driving `tellme` development with `tellme` (retire `tell-me-go` as the dev driver)"* — no "dog" in the title.
+- Body: capability table with **per-item round provenance** (Read ✅ · Execute ✅ · Write ✅ *029* · Skills 🟡 *033, on-demand* · MCP ✅ *032* · Context ❌ · Sub-agents ❌ · git/AST ❌ · Persona ✅ · TUI ✅ · usage instrumentation ✅ *026*); the remaining critical path (**context management** = last hard gap; **skills shape** = on-demand vs injection); Options A/B (**B is unblocked now** by round 029); updated round track; three decisions to lock; a DoD reworded to on-demand-or-injected skills; non-goals; and **#60's four forward items folded in** (data-gated tool pruning; recursive schema walk; typed schema construction; row→feature audit guard).
+
+### Decisions
+| # | Decision |
+| --- | --- |
+| D1 | **#60 CLOSED (not planned / superseded)**; the umbrella continues on **#91** (refreshed body). |
+| D2 | The durable fix is a **fresh issue body**, not a comment (session-11 §19-c). |
+| D3 | `STATUS.md` tracker refs point at **#91**; the open tracker is now **#69 · #91 · #13**. |
+
+### Open items (non-blocking)
+- **#91 decisions to lock** (operator): target bar (A/B); skills shape (on-demand vs injection); next round theme (context management vs skills injection).
+- **Propagation** — `dev → main` for this docs commit: **pending operator approval** (round 041's own propagation is done, `692a4e6`).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; the `di` sibling wall-clock-assertion class.
+
+### PM follow-ups
+- None new.
+
+---
+
+## 21. Session 13 (2026-09-17) — umbrella #69 replaced by #92 (readable, gate-first split); STATUS + log reconciled
+
+A thirteenth session on the same calendar day (bootstrap Steps 1–8 complete; round 041 delivered/frozen; active branch `dev`): the operator found umbrella **[#69](https://github.com/gosharplite/tellme/issues/69)** hard to read (additive scope from five rounds had buried its main decision) and asked for a readable replacement whose **main theme is the split**.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Action | **[#92](https://github.com/gosharplite/tellme/issues/92) opened** — *"Composition-root extraction + presentation-policy single ownership — gate-first split (5 rounds)"*; **[#69](https://github.com/gosharplite/tellme/issues/69) CLOSED (not planned / superseded)** with a linking comment |
+| Main theme | the **split**: R1 layer gate → R2 composition-root extraction → R3 yield-policy owner + observer hook split → R4 blank-reason owner + presentation predicate → ride-alongs |
+| Preserved | the 7-workstream ledger (mapped to rounds with sizes), constraints (`agentTools()` parameterless/read-free), the **truth/process obligations** (`truth-current` sweep + a new ADR for the yield policy), acceptance criteria, non-goals, and the records (permanent E2E narrowing; coordinator one-concurrent-block; `End`-while-write-stalled) |
+| Repo docs | `STATUS.md` tracker refs #69→#92 (header · roadmap · round-039/040 forward items · issue-tracker · env-note candidates) + a session-13 tracker line; this §21 |
+
+### Why replace (not amend)
+Same durable-surface discipline as §20 (session-11 §19-c): the fix belongs in the **body**, and #69's body needed *reorganisation around the split*, not an appended section — a fresh issue is the readable form. #69 is closed as **not planned (superseded by #92)**; its five rounds of forward items are folded into #92's scope ledger + provenance section, so nothing is lost.
+
+### Decisions
+| # | Decision |
+| --- | --- |
+| D1 | **#69 CLOSED (not planned / superseded)**; the composition-root + presentation-policy track continues on **#92** (gate-first split as the main theme). |
+| D2 | The split's lead round is **R1 — the layer-discipline gate** (`verify-architecture` analogue + baseline), so every later round's DoD is falsifiable (7 → 0). |
+| D3 | `STATUS.md` tracker refs point at **#92**; the open tracker is now **#92 · #91 · #13**. |
+| D4 | **#92 is not on #91's critical path** — #91's blocker is *context management*. |
+
+### Open items (non-blocking)
+- **#92 decisions** (operator): whether to spin the split into separate rounds now, and the R1 gate's shape (a script + Makefile target, with a baseline file).
+- **Propagation** — `dev → main` for this docs commit: **pending operator approval**.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; the `di` sibling wall-clock-assertion class.
+
+### PM follow-ups
+- None new.
