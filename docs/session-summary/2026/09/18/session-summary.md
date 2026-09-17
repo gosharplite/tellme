@@ -5,8 +5,8 @@
 **Status file**: [`STATUS.md`](../../../../../STATUS.md) *(back-link — the single live-state source)*
 **Workspace**: `…/mbp-johndoe-niffler/ait-tellme` (`$TELL_ME_HOME`); darwin/arm64 host.
 **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation)
-**Branch**: `042-layer-discipline-gate-plan` (off `dev`) — **PR [#94](https://github.com/gosharplite/tellme/pull/94) open** (plan half; awaiting human merge).
-**Status at end of session**: round 042 (**`042-layer-discipline-gate`**, R1 of [#92](https://github.com/gosharplite/tellme/issues/92) → [#93](https://github.com/gosharplite/tellme/issues/93)) — the **plan half** is delivered (specify → clarify → spec-by-example NOOP → technical-research → system-analysis → dsl-refine NOOP) and has absorbed the **PR #94 architect review folds**. **Not merged; not implemented.**
+**Branches**: `042-layer-discipline-gate-plan` (PR [#94](https://github.com/gosharplite/tellme/pull/94), merged `a82237a`) + `042-implement-layer-discipline-gate` (PR [#95](https://github.com/gosharplite/tellme/pull/95), merged `f4b53f6`); active line `dev`.
+**Status at end of day**: round 042 (**`042-layer-discipline-gate`**, R1 of [#92](https://github.com/gosharplite/tellme/issues/92) → [#93](https://github.com/gosharplite/tellme/issues/93)) **DELIVERED / FROZEN** — plan half (§1) + implementation half (§2) both merged to `dev`; a `verify-architecture` layer-discipline **gate** + an **8-entry** committed baseline, **tooling/truth only, zero product code**; **ADR 0011**. `#93` closed; `#96` filed; propagated `dev → main`.
 
 ---
 
@@ -93,3 +93,101 @@ Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 041 delivered/frozen; ac
 ### PM follow-ups
 
 - None new (no user-facing business journey — `/axb-spec-by-example` NOOP; the spec/acceptance boundary is RD-side for a dev gate).
+
+---
+
+## 2. Session 15 (2026-09-18) — round 042 implementation half (R1 of #92): `/axb-tasks` → `/axb-implement` → PR #95 → four review rounds → **merged** → propagated `dev → main`; closeout
+
+A second session on the same calendar day: continued round 042 through the **implementation half** (`/axb-tasks` → `/axb-implement` on a fresh branch off `dev`), took **PR [#95](https://github.com/gosharplite/tellme/pull/95)** through a **four-round architectural review/fold chain to FINAL CERTIFICATION**, saw the **human merge** of PR #95 into `dev` (plan half #94 was already merged), deleted the branch, propagated `dev → main`, refreshed the installed binary (`go install`), and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+**Workspace**: `…/mbp-johndoe-niffler/ait-tellme` (`$TELL_ME_HOME`); darwin/arm64 host.
+**Branch**: `042-implement-layer-discipline-gate` (off `dev`) → merged via PR [#95](https://github.com/gosharplite/tellme/pull/95) into `dev` (`f4b53f6`) → propagated `dev → main`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | continued round 042 (plan half merged as `a82237a`); implementation branch off `dev` |
+| `/axb-tasks` | `tasks.md` — **T001–T007** (Foundational omitted — stdlib-only; Phase 3 gate RED-first; Phase 4 verification/regression; the PR #94 certification's **N-1…N-3** folded); Pre-Delivery Orphan Sweep **0** |
+| `/axb-implement` | One-Shot over T001–T007 — **all `[X]`**; `tools/arch/{doc.go, arch_test.go, baseline.txt}` + `Makefile` wiring |
+| Product | **none** — tooling/truth only (`tools/arch/` NEW; `Makefile` CHANGED; truth + ADR already from the plan half) |
+| Review chain (PR #95) | review #1 (`5721461410`, APPROVE+2 blockers) → fold; fold-review #2 (`5721537481`) → fold; fold-review #3 (`5721591781`) → fold; fold-review #4 (`5721639279`, ONE fold) → fold; **FINAL CERTIFICATION** (`5721691958`) — **MERGE-READY, review loop CLOSED** |
+| Merge | PR [#95](https://github.com/gosharplite/tellme/pull/95) **MERGED** into `dev` (`f4b53f6`; head `61414fc`; 9 files, +864/−9); remote branch deleted |
+| Propagation | `dev → main` — **DONE (no-ff)** |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `f4b53f6`; `--version` → `dev` |
+| Closeout | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** · `go test -count=1 ./...` green · topology audit **PASSED** (44 · 6 · 16+327 · 1674) · diff-level secret scan clean · `STATUS.md` refreshed + Rule-12 split (round 041 detail → `docs/archives/status/2026-09-18.md`) · **#93 CLOSED** |
+
+### Work done
+
+1. **`/axb-tasks`** — created the implementation branch off `dev`; wrote `tasks.md` (T001–T007) folding the plan-half certification's **N-1** (baseline-generation affordance), **N-2** (absent/empty baseline ⇒ fail), **N-3** (the entry test covers all three properties).
+2. **`/axb-implement`** — One-Shot: `tools/arch/doc.go` (untagged doc) + `tools/arch/arch_test.go` (`//go:build arch` gate: tier table, two-part predicate, module-root-anchored `go list`, `CROSS_TARGETS` union, filtered child env, SCC, baseline read/write/diff, predicate self-test, single entry test) + generated `tools/arch/baseline.txt` (**8** lines) + `Makefile` `verify-architecture`/`verify-architecture-update` (member of `verify`).
+3. **Witnesses** — (a) new illegal import ⇒ red; (b1) baseline line removed ⇒ red (new); (b2) bogus line ⇒ red (stale); red-first: absent baseline ⇒ fail. Reproduced then reverted.
+4. **Review chain (PR #95) — four rounds, every fold verified as behaviour:**
+   - **#1:** **F-1** the ratchet's terminal endpoint unreachable (empty baseline ⇒ always fail) → fail on empty **iff** violations exist; **F-2** `drop` ≠ `neutralise` → explicit non-empty `GOFLAGS`/`GO111MODULE`/`GOWORK`; **F-3** `moduleRoot` broke under `-trimpath` → resolve from **CWD** (fallback `runtime.Caller`); **F-4** `internal/agent` subtree prefix; **N-a/N-b** recorded; **N-c** `go vet -tags=arch` in the target; **N-e** body names the code SHA.
+   - **#2:** **Fold 1** test-import coverage **implemented** (`.Imports`+`.TestImports`+`.XTestImports`; **0** baseline churn); **Fold 2** outer-env residual **filed as [#96](https://github.com/gosharplite/tellme/issues/96)**; N-d + nits recorded.
+   - **#3:** **Fold 1** the test-import merge made the SCC fail on **legal** test-only cycles → **two graphs**: the rule evaluates the merged graph, `cycles()` evaluates the **production-only** union; **Fold 2** `-count=1` + `go vet` documented in `doc.go` + the baseline header (regenerated); R3/R4 test-edge friction recorded.
+   - **#4:** **Fold 1** the `-count=1` trap in the **authority** artifacts (`techstack.md` Layer-discipline gate row + `research.md` D2) → both record the shipped invocation (truth-owner fold + a `truth-delta.md` MODIFY row); **N-1** the tagged guard is now inside lint coverage (`golangci-lint run --build-tags=arch`); **N-2** fold-review sections renumbered `#1…#4`.
+   - **Final certification** (`5721691958`) — 9 files, **0** under `docs/decisions/`, **zero product code**, `go.mod`/`go.sum` unchanged; **MERGE-READY**.
+5. **Merge + propagation** — PR #95 merged (`f4b53f6`); remote branch deleted; local branch deleted; `dev → main` propagated (no-ff).
+6. **Closeout (Steps 1–8)** — see below.
+
+### Decisions locked (round 042, implementation)
+
+| # | Decision |
+| --- | --- |
+| Rule | The **two-part predicate (A–D)**; the gate's **tier table** is the normative machine-readable ranking source (ADR 0011 D7). |
+| Baseline | **8** entries (7 RULE-B `cli → infrastructure` + 1 RULE-A `agent → ui`); a **fail-on-stale** ratchet; an emptied baseline fails **iff** violations exist. |
+| Enumeration | Anchored to the **module root** (CWD-first, trimpath-immune); the **union over `CROSS_TARGETS`**. |
+| Child env | **Neutralised with explicit non-empty values** + preserved warm-cache set. |
+| Graphs | The **rule** evaluates the merged (production+test) graph; **acyclicity** evaluates the **production-only** union. |
+| Invocation | `go vet -tags=arch` + `golangci-lint --build-tags=arch` + `go test -count=1 -tags=arch …` (the `-count=1` is load-bearing — the test cache cannot see the whole-module `go list`). |
+| ADR | **ADR 0011** recorded the rule + baseline policy in the plan half; now **immutable** except its `Status` line + index (mechanism refinements live in `tasks.md`). |
+| Forward | **#96** filed (outer-env hermeticity). |
+
+### Commits (branch `042-implement-layer-discipline-gate`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `dd41de7` | `docs(042)`: tasks.md (implementation half — T001–T007; N-1..N-3 folded) |
+| `8147cc3` | `feat(042)`: layer-discipline gate (`tools/arch`, `-tags=arch`) + committed baseline + Makefile wiring (T001–T007; F-1 `-count=1`) |
+| `471ef96` | `docs(042)`: STATUS — plan half merged (#94); implementation half PR #95 open |
+| `b0c71d2` | `fix(042)`: fold PR #95 review — F-1…F-4; N-a/N-b recorded, N-c `vet -tags=arch` |
+| `7d15478` | `fix(042)`: fold PR #95 review #2 — test-import coverage; #96 filed; N-d + nit records |
+| `4d9fa4c` | `fix(042)`: fold PR #95 fold-review #2 — SCC over production-only union; `-count=1` + vet documented |
+| `61414fc` | `docs(042)`: fold PR #95 fold-review #3 — truth row + `research.md` D2 record the shipped invocation; N-1 tagged lint; N-2 labels |
+| `f4b53f6` | PR [#95](https://github.com/gosharplite/tellme/pull/95) merge into `dev` (by the operator) |
+| *(closeout)* | `docs(042)`: day close — round 042 delivered + propagated; STATUS + daily summary + archive split |
+
+### Artifacts / truth
+
+- Code: `tools/arch/doc.go` (**NEW**), `tools/arch/arch_test.go` (**NEW**), `tools/arch/baseline.txt` (**NEW**), `Makefile` (CHANGED).
+- Plan package: `specs/plans/042-layer-discipline-gate/` (`spec.md` · `checklists/requirements.md` · `research.md` D1–D12 · `plan.md` · `tasks.md` T001–T007 + the four-review fold ledger · `truth-delta.md`).
+- Truth: `specs/truth/techstack.md` (Build & Tooling — **Layer-discipline gate** row + **Task runner** `verify` aggregate).
+- Governance: **ADR 0011** (`docs/decisions/0011-layer-discipline-gate.md` + index row) — now immutable.
+- **No product code**; `go.mod`/`go.sum` unchanged; `internal/**`/`cmd/**` untouched.
+
+### Verification (2026-09-18, on `dev` @ `f4b53f6`)
+
+- `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (incl. `verify-architecture`: `go vet -tags=arch` + tagged lint 0 issues + the `-count=1` gate — 8 baselined · 0 new · 0 stale · 0 cycles; golangci-lint 0 issues; govulncheck clean; cross-compile 4/4).
+- `go test -count=1 ./...` green (`tools/arch` = `[no test files]` under default tags).
+- Topology audit **PASSED** — 44 features · 6 modules · 16 root + 327 module rows · 1674 steps (unchanged).
+- Diff-level secret scan **clean**; `go.mod`/`go.sum` unchanged.
+- `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `f4b53f6`; `--version` → `dev`.
+
+### Open items (non-blocking)
+
+- **Round-042 forward items** — **(a) #96** (outer-env hermeticity: the parent `go test`/`go vet` still inherit a persisted/ambient Go env — repo-wide, every gate); **(b)** the baseline's remaining entries are removed by **R2** (the 7) and **R3/R4** (the 8th); **(c)** recorded friction for R3/R4 (an `internal/agent` **test** importing `internal/ui` reds as RULE-A — desirable); **(d)** no `modelith-layers` analogue; **(e)** custom build-tag-gated imports out of scope.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; round-011 forward items; the round-022 row→feature audit blind spot → **#91**.
+
+### Next steps
+
+1. Open round **`043-*`** off `dev` via `/axb-specify` — recommended: **R2 of [#92](https://github.com/gosharplite/tellme/issues/92)** (composition-root extraction; the 7 `cli → infrastructure` baseline entries → 0, proven by the round-042 gate).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no user-facing business journey — a dev gate; spec/acceptance boundary is RD-side).
+
+### Issue tracker (closeout Step 8)
+
+Reconciled against the delivered state: **[#93](https://github.com/gosharplite/tellme/issues/93) CLOSED (completed)** — delivered by round 042 (PR [#95](https://github.com/gosharplite/tellme/pull/95) merged `f4b53f6`); **[#96](https://github.com/gosharplite/tellme/issues/96) OPEN (new)** — the Makefile-gate env hermeticity residual; **[#92](https://github.com/gosharplite/tellme/issues/92) OPEN** — R1 delivered, R2–R4 + ride-alongs remain; **[#91](https://github.com/gosharplite/tellme/issues/91) OPEN** (self-development umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13) OPEN** (coverage tooling); PR #16 **Obs 1** open. No revisions needed beyond the #93 close.
