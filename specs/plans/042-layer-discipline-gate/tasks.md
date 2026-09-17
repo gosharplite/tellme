@@ -60,7 +60,7 @@
 - guard 之 tier 表為唯一權威來源；`techstack.md` 以 predicate 指涉並 cite ADR 0011（RF-3）。
 - review 啟動 subagent；通過前不解鎖 Phase 4。
 
-- [ ] T001 建立 `tools/arch/` guard（`//go:build arch` test + untagged `doc.go`）
+- [X] T001 建立 `tools/arch/` guard（`//go:build arch` test + untagged `doc.go`）
   - Read:
     - `specs/plans/042-layer-discipline-gate/research.md` -> D1, D2, D4, D5, D6, D8, D9, D10, D11, D12
     - `docs/decisions/0011-layer-discipline-gate.md` -> D1, D2, D4, D5, D6, D7, D8, D9, D10
@@ -77,7 +77,7 @@
   - RED-first 期望：**未**提交 baseline 前，`readBaseline` 以 absent/empty → **fail**（證明「gate 未自帶 baseline 即紅」，對應 A2 atomic-delivery / N-2）。
   - 不做：不改 `Makefile`（T003）；不提交 baseline（T002 產生）；不碰產品碼／truth／既有 gate；不引入相依。
 
-- [ ] T002 產生並提交 `tools/arch/baseline.txt`（generated，非手抄）
+- [X] T002 產生並提交 `tools/arch/baseline.txt`（generated，非手抄）
   - Read:
     - `specs/plans/042-layer-discipline-gate/research.md` -> D3, D10
     - `docs/decisions/0011-layer-discipline-gate.md` -> D3, D9（worked example）
@@ -86,7 +86,7 @@
   - 驗證：重跑 `go test -tags=arch -run TestVerifyRealArchitecture ./tools/arch` → **綠**（baseline 與 gate 輸出相符）。
   - 不做：不手改任何 baseline 行；不為了綠而移除違規。
 
-- [ ] T003 `Makefile`：新增 `verify-architecture` + `verify-architecture-update` 並接入 `verify`
+- [X] T003 `Makefile`：新增 `verify-architecture` + `verify-architecture-update` 並接入 `verify`
   - Read:
     - `specs/truth/techstack.md` -> Build & Tooling（Layer-discipline gate row；Task runner row）
     - `docs/decisions/0011-layer-discipline-gate.md` -> Consequences（New）
@@ -97,7 +97,7 @@
     - 將 **`verify-architecture`** 加入 `verify` aggregate（置於 `verify-cross-compile`/`verify-mcp-sdk-confinement` 之後，維持 warm cache）、`.PHONY` 與 `help` 文字；`verify-architecture-update` 只進 `.PHONY` + `help`，**不**進 `verify`。
   - 不做：不改既有 target 行為；不把 `-update-baseline` 放進 `verify`（避免 gate 自我改寫 baseline）；不加相依。
 
-- [ ] T004 subagent review (phase quality gate)
+- [X] T004 subagent review (phase quality gate)
   - Read: `tools/arch/doc.go`、`tools/arch/arch_test.go`、`tools/arch/baseline.txt`、`Makefile`、`research.md` -> D1–D12、`docs/decisions/0011-layer-discipline-gate.md`
   - 檢驗：predicate 為兩段式且 **能導出** 8 行 baseline；enumeration 錨定 module root 且 self-test 斷言 graph 本身；union over `CROSS_TARGETS`；env 過濾含 drop **與** preserve 兩集；baseline 缺／空／不可解析 → fail；entry test 涵蓋三性質並顯式斷言；無 undefined 行為；未動產品碼／truth／既有 gate。有 issues 修正再 review，直到零問題。通過前不解鎖 Phase 4。
 
@@ -107,14 +107,14 @@
 
 **Test Scope**: `tools/arch/**`（unit；`-tags=arch`）；whole-suite `go test ./...`；`make verify`；Gherkin/DSL topology audit。
 
-- [ ] T005 [REGRESSION] 可偽性見證 (a) 新違規 ⇒ 紅 / (b) stale 條目 ⇒ 紅
+- [X] T005 [REGRESSION] 可偽性見證 (a) 新違規 ⇒ 紅 / (b) stale 條目 ⇒ 紅
   - Read: `research.md` -> D3, D11；`docs/decisions/0010-test-deadline-decoupling.md`（見證 doctrine）；`tools/arch/arch_test.go`
   - 做：
     - **(a) 新違規**：暫時在一個受治理套件加入一個 illegal import（例如於 `internal/domain/llm` 暫時 import `internal/config`；或於 `internal/cli` 暫時 import 另一個 `internal/infrastructure/*`）→ `make verify-architecture` **非零失敗並列出** 該 `src -> dst`；**還原**後確認綠。
     - **(b) stale**：暫時自 `tools/arch/baseline.txt` 移除一行（其違規仍在）→ gate 回報**新 violation** 而紅；改成暫時修掉一個 baselined 違規（或自 baseline 保留一行卻讓該行不再違規）→ gate 回報 **stale** 而紅；兩種皆觀察到即**還原**，重跑確認綠。
   - 不做：不放寬任何 assertion 以「讓它過」；見證後必須還原到 HEAD。
 
-- [ ] T006 [REGRESSION] 全量回歸 + `make verify` + topology audit + 範圍檢查
+- [X] T006 [REGRESSION] 全量回歸 + `make verify` + topology audit + 範圍檢查
   - Read: `research.md` -> D3, D7, D12；`specs/truth/techstack.md` -> 兩 row
   - 做：
     - `make verify-architecture` → 綠（8 baselined、0 new、0 stale、0 cycles）。
@@ -124,12 +124,45 @@
     - `gofmt -l .` clean；`git diff --name-only origin/dev..HEAD` 確認僅動 `Makefile` + `tools/arch/**`（+ 文件）；`go.mod`／`go.sum` 不變；`internal/**`／`cmd/**` 產品碼未動。
   - 不做：不為了綠而放寬 assertion、改產品碼或 baseline 手抄。
 
-- [ ] T007 subagent review (round quality gate)
+- [X] T007 subagent review (round quality gate)
   - Read:
     - `tools/arch/doc.go`、`tools/arch/arch_test.go`、`tools/arch/baseline.txt`、`Makefile`
     - `specs/truth/techstack.md`（Layer-discipline gate row；Task runner row）、`docs/decisions/0011-layer-discipline-gate.md`
     - `specs/plans/042-layer-discipline-gate/{spec.md,research.md,plan.md,truth-delta.md}`
   - 檢驗：`dev` 上綠；**新違規 ⇒ 紅**；**stale ⇒ 紅**；baseline absent/empty ⇒ fail；三性質皆有跑（N-3）；tier 表為唯一權威且與 `techstack.md` predicate 一致；env 過濾含 drop+preserve；union 四 target；無新相依；既有 gate 語意與 `stdout`/`stderr` 未變；**無產品碼變更**；`techstack.md` 與 `truth-delta.md` 一致。
+
+---
+
+## Execution outcome (T001–T007)
+
+**Delivered** (`tools/arch/` NEW + `Makefile` CHANGED; **zero product code**; `go.mod`/`go.sum` unchanged):
+
+- `tools/arch/doc.go` — untagged package doc (keeps the dir buildable under default tags).
+- `tools/arch/arch_test.go` — `//go:build arch`; the gate: tier table (normative ranking), `evaluate` (two-part predicate A–D), `moduleRoot` (walk-up to `go.mod`), `childEnv` (drop/neutralise + preserve), `enumerate` (`go list` union over `CROSS_TARGETS`), `cycles` (Tarjan SCC), `readBaseline`/`writeBaseline`, `selfTestPredicate`, and the single entry test `TestVerifyRealArchitecture` (enumeration + predicate self-test + default-deny coverage + ranking diff + acyclicity + an explicit “all three properties ran” assertion, N-3).
+- `tools/arch/baseline.txt` — **generated** from the gate (`-args -update-baseline`), **8** lines (7 `internal/cli -> internal/infrastructure/*` + `internal/agent -> internal/ui`), matching ADR 0011's worked example line-for-line.
+- `Makefile` — `verify-architecture` (member of `verify`, after `verify-mcp-sdk-confinement`), `verify-architecture-update` (baseline regeneration; **not** in `verify`), `.PHONY` + `help`.
+
+### Phase-3 review outcome (T004)
+
+- **Reviewer**: the session (inline self-review — **disclosed deviation**, the round-029/8 and round-041 precedent: no parallel-subagent substrate in this session).
+- **Result**: **PASS**. The predicate derives the 8-line baseline by recomputation (7 RULE-B + 1 RULE-A); the enumeration is anchored to the module root and the self-test asserts the graph itself (count + named governed packages) before ranking; the child env carries **both** the drop-set and the preserve-set; an absent/empty/unparsable baseline fails; the entry test covers all three properties.
+
+### Round review outcome (T007)
+
+- **Result**: **PASS** — `dev` green, new violation ⇒ red, stale ⇒ red, baseline absent ⇒ fail, 0 cycles, no new dependency, no product code changed.
+
+### Folds raised during execution (recorded)
+
+- **F-1 (correctness — the Go test cache made the gate vacuous).** The first `Makefile` wiring used the ADR's literal command `go test -tags=arch -run TestVerifyRealArchitecture ./tools/arch`. Because the gate's verdict depends on the **whole module** (read via `go list`), which Go's test cache **cannot** see, a *cached* result let an added illegal import pass silently (witness (a) initially printed `ok (cached)` — the round-009 *"vacuous pass"* trap in gate form). **Fix**: the target now runs with **`-count=1`** (`go test -count=1 -tags=arch …`), which disables the test-result cache — mirroring the existing `verify-no-network` gate's `-count=1`. This is a **refinement** of the ADR's command, not a contradiction (the ADR is immutable; the mechanism detail is recorded here). Witness (a) was re-run uncached: **red**, naming `internal/domain/llm -> internal/infrastructure/mcp`.
+- **F-2 (test-local).** `min()` (Go 1.21 builtin) is used for the Tarjan `low` update; `maps.Keys`/`slices.Sorted` give deterministic iteration order.
+
+### Evidence
+
+- Witness (a) — a temporary illegal import (`internal/domain/llm` importing `internal/infrastructure/mcp`) → `make verify-architecture` **FAIL**, naming `internal/domain/llm -> internal/infrastructure/mcp` (uncached); removed → green.
+- Witness (b1) — a baseline line removed while its violation remains (`internal/cli -> internal/infrastructure/tools`) → **FAIL** (`1 new violation(s) not in the baseline`); restored → green.
+- Witness (b2) — a bogus baseline line (`internal/domain/llm -> internal/config`, not a violation) → **FAIL** (`1 stale baseline entr(ies) … remove them from the baseline`); restored → green.
+- Red-first: the gate with **no** baseline file → `baseline unreadable … an absent/unreadable baseline MUST fail` (**N-2** atomic-delivery).
+- `make verify-architecture` green (8 baselined, 0 new, 0 stale, 0 cycles); `go test -count=1 ./...` green (`tools/arch` = `[no test files]` under default tags); `make verify` **OK** (existing gates + `verify-architecture`; golangci-lint 0 issues; govulncheck clean; cross-compile 4/4); topology audit **PASSED** and unchanged (44 features · 6 modules · 16 root + 327 module rows · 1674 steps); `gofmt -l .` clean; `go.mod`/`go.sum` unchanged; no `internal/**`/`cmd/**` changed.
 
 ---
 

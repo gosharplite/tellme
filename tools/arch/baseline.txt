@@ -1,0 +1,17 @@
+# tools/arch/baseline.txt — layer-discipline gate baseline (ADR 0011).
+#
+# Generated from the gate's own output — NEVER hand-edit. Regenerate with:
+#   make verify-architecture-update
+#   (= go test -tags=arch -run TestVerifyRealArchitecture ./tools/arch -args -update-baseline)
+#
+# A line `<src> -> <dst>` is a known, baselined RULE-A/B/C violation. This is a
+# ratchet that only shrinks: a violation not listed here FAILS the gate, and a
+# listed line that no longer violates (stale) FAILS the gate too.
+internal/agent -> internal/ui
+internal/cli -> internal/infrastructure/di
+internal/cli -> internal/infrastructure/history
+internal/cli -> internal/infrastructure/llm
+internal/cli -> internal/infrastructure/mcp
+internal/cli -> internal/infrastructure/skills
+internal/cli -> internal/infrastructure/telemetry
+internal/cli -> internal/infrastructure/tools

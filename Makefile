@@ -9,7 +9,7 @@ STATICCHECK := $(shell command -v staticcheck 2>/dev/null)
 GOLANGCI := $(shell command -v golangci-lint 2>/dev/null)
 GOVULNCHECK := $(shell command -v govulncheck 2>/dev/null)
 
-.PHONY: help build fmt vet staticcheck tidy lint vulncheck test verify verify-no-test-sleep verify-no-network verify-cross-compile verify-mcp-sdk-confinement
+.PHONY: help build fmt vet staticcheck tidy lint vulncheck test verify verify-no-test-sleep verify-no-network verify-cross-compile verify-mcp-sdk-confinement verify-architecture verify-architecture-update
 
 help:
 	@echo "tellme development tasks:"
@@ -25,7 +25,9 @@ help:
 	@echo "  make verify-no-network    - build-graph capability guard: no net/net/http in ./cmd/tellme closure"
 	@echo "  make verify-cross-compile - build + vet the module for every supported POSIX target (linux/darwin, amd64/arm64)"
 	@echo "  make verify-mcp-sdk-confinement - verify the MCP Go SDK is imported only under internal/infrastructure/mcp/"
-	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + vet + verify-cross-compile + verify-mcp-sdk-confinement + lint + vulncheck"
+	@echo "  make verify-architecture  - layer-discipline gate: import-direction over the pinned layer ranking (ADR 0011)"
+	@echo "  make verify-architecture-update - regenerate tools/arch/baseline.txt from the gate's own output"
+	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + vet + verify-cross-compile + verify-mcp-sdk-confinement + verify-architecture + lint + vulncheck"
 
 # NOTE: `VERSION ?= dev` is the local/release default ONLY.
 # The E2E harness must build explicitly with the sentinel
@@ -127,7 +129,23 @@ verify-mcp-sdk-confinement:
 	fi
 	@echo "  ✓ MCP Go SDK imports confined to internal/infrastructure/mcp/"
 
+# Layer-discipline gate (round 042, ADR 0011): an import-direction check over the
+# pinned layer ranking (domain -> config/home -> app -> infrastructure -> agent ->
+# ui -> cli; cmd/tests/tools exempt), evaluated as the union over CROSS_TARGETS so
+# an OS-gated illegal import cannot hide. The committed tools/arch/baseline.txt is
+# a fail-on-stale ratchet: a new violation fails, and a stale baseline line fails.
+verify-architecture:
+	@echo "verify-architecture: layer-discipline gate (import-direction over the pinned ranking; ADR 0011) ..."
+	@go test -count=1 -tags=arch -run TestVerifyRealArchitecture ./tools/arch
+	@echo "  ✓ no layer violation beyond the baseline; no import cycles"
+
+# Regenerate the committed baseline from the gate's own output (never hand-edit).
+# Not part of `verify` — the ratchet must not rewrite its own baseline.
+verify-architecture-update:
+	@echo "verify-architecture-update: regenerating tools/arch/baseline.txt from the gate ..."
+	@go test -count=1 -tags=arch -run TestVerifyRealArchitecture ./tools/arch -args -update-baseline
+
 # `vet` runs before `verify-cross-compile` for fail-fast on host-local errors;
 # `verify-cross-compile` then re-covers the host target as part of the matrix.
-verify: verify-no-test-sleep verify-no-network vet verify-cross-compile verify-mcp-sdk-confinement lint vulncheck
+verify: verify-no-test-sleep verify-no-network vet verify-cross-compile verify-mcp-sdk-confinement verify-architecture lint vulncheck
 	@echo "verify: OK"
