@@ -78,33 +78,51 @@ func escSequenceLen(s string) int {
 		return 1
 	}
 	switch s[1] {
-	case '[': // CSI: parameter/intermediate bytes then a final byte 0x40–0x7E
-		for i := 2; i < len(s); i++ {
-			if s[i] >= 0x40 && s[i] <= 0x7e {
-				return i + 1
-			}
-		}
-		return len(s)
-	case ']': // OSC: terminated by BEL (0x07) or ST (ESC \)
-		for i := 2; i < len(s); i++ {
-			if s[i] == 0x07 {
-				return i + 1
-			}
-			if s[i] == 0x1b && i+1 < len(s) && s[i+1] == '\\' {
-				return i + 2
-			}
-		}
-		return len(s)
-	default: // a generic ESC sequence: optional intermediates (0x20–0x2F) + a final byte
-		i := 1
-		for i < len(s) && s[i] >= 0x20 && s[i] <= 0x2f {
-			i++
-		}
-		if i < len(s) {
-			i++
-		}
-		return i
+	case '[':
+		return csiLen(s)
+	case ']':
+		return oscLen(s)
+	default:
+		return genericEscLen(s)
 	}
+}
+
+// csiLen returns the length of a CSI (ESC `[`) sequence: parameter/intermediate
+// bytes then a final byte 0x40–0x7E (to the end when unterminated).
+func csiLen(s string) int {
+	for i := 2; i < len(s); i++ {
+		if s[i] >= 0x40 && s[i] <= 0x7e {
+			return i + 1
+		}
+	}
+	return len(s)
+}
+
+// oscLen returns the length of an OSC (ESC `]`) sequence: terminated by BEL
+// (0x07) or ST (ESC `\`), or the whole string when unterminated.
+func oscLen(s string) int {
+	for i := 2; i < len(s); i++ {
+		if s[i] == 0x07 {
+			return i + 1
+		}
+		if s[i] == 0x1b && i+1 < len(s) && s[i+1] == '\\' {
+			return i + 2
+		}
+	}
+	return len(s)
+}
+
+// genericEscLen returns the length of a generic ESC sequence: ESC + optional
+// intermediates (0x20–0x2F) + a final byte.
+func genericEscLen(s string) int {
+	i := 1
+	for i < len(s) && s[i] >= 0x20 && s[i] <= 0x2f {
+		i++
+	}
+	if i < len(s) {
+		i++
+	}
+	return i
 }
 
 // ToolOutputWriter streams a shell command's complete output lines as a
