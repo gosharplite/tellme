@@ -48,7 +48,7 @@
 
 ## Issues & corrections
 
-- Baseline count restated as **8** (broad rule): the 7 `cli → infrastructure` edges + `internal/agent → internal/ui`.
+- Baseline count restated as **8** (two-part predicate): the 7 RULE-B `cli → infrastructure` edges + the RULE-A `internal/agent → internal/ui` edge.
 - **PR #94 review fold (B-1):** the rule is now a **two-part predicate** (A direction + B application target rule + C domain purity + D default-deny) — the earlier one-part "no upward import" statement could not reproduce the 7 `cli → infrastructure` entries; the baseline is now **derivable from the rule**. Worked examples in **ADR 0011**.
 - Ratchet refinement recorded: the `agent → ui` entry is R3/R4's to remove, so the count reaches **0 across R2–R4**, not R2 alone (how [#92](https://github.com/gosharplite/tellme/issues/92) AC1 is to be read).
 - The baseline MUST be re-measured from the gate's own output at freeze (no hand-transcription); it is **generated**, not transcribed.

@@ -23,7 +23,7 @@ Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 041 delivered/frozen; ac
 | Clarify (one at a time) | **Q1 → Option 2** (broad import-direction rule; `agent → ui` counts) · **Q2 → resolved by measurement** (package scope does not change the baseline) · **Q3 → Option 1** (a **stale** baseline entry **fails**) |
 | Pipeline | specify ✅ · spec-by-example **NOOP** · technical-research ✅ (+ `techstack.md` MODIFY + **ADR 0011**) · system-analysis ✅ (0 interfaces; api/data/dsl-refine **NOOP**) · **tasks/implement → a later branch off `dev`** |
 | Branch / PR | `042-layer-discipline-gate-plan` (off `dev`); **PR [#94](https://github.com/gosharplite/tellme/pull/94)** open |
-| Review | PR #94 architect review (comment `5721081695`) — **REQUEST CHANGES: 2 blockers (B-1/B-2) + TD-1…TD-4 + RF-1…RF-3 + nits** → **folded**; then the **fold-review** (`5721177805`) — **APPROVE WITH REQUIRED FOLDS** (B-1/B-2 verified closed by recomputation) → **folded** (R-1…R-6/R-8) |
+| Review | PR #94 architect review (comment `5721081695`) — **REQUEST CHANGES: 2 blockers (B-1/B-2) + TD-1…TD-4 + RF-1…RF-3 + nits** → **folded**; **fold-review #1** (`5721177805`) — **APPROVE WITH REQUIRED FOLDS** (B-1/B-2 verified closed by recomputation) → **folded (R-1…R-6/R-8)**; **fold-review #2** (`5721236804`) — **APPROVE WITH SMALL REQUIRED FOLDS** → **folded (F-1…F-5)** |
 | Process note | review §13: `STATUS.md` was stale → refreshed (this branch) + this summary |
 
 ### Clarify round 1 (locked — one question at a time)
@@ -49,6 +49,10 @@ Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 041 delivered/frozen; ac
 | **RF-3** one machine-readable ranking source | The guard's **tier table** is normative; truth cites it; a self-test asserts table coverage |
 | Nits | FR-008's third clause collapsed into FR-006 (FR-006 = baseline file · FR-007 = not-an-allow-list · FR-008 = stale); cold-cache qualified (warm cache); `-tags=arch` not vetted elsewhere recorded |
 
+**Fold-review #1 (R-1…R-6/R-8; comment `5721177805`):** R-1 `spec.md` brought along (the 4 surfaces agree; `tools/**` exempt); R-2 five drifted FR citations fixed; R-3 `research.md` fold-note IDs corrected to D7…D12; R-4 the child-env sanitisation folded into FR-004/D5/ADR D5/truth; R-5 ADR **D6** reworded (the guard itself is the only custom-tagged file) + Consequences collapsed; R-6 ledger corrected (`4b340a1`; 7 commits; FR-008; TD-4/AC2 done-not-deferred); R-8 `STATUS.md` header regenerated as one unit. Plus **ADR 0011 D10** added ("what the rule is *not*").
+
+**Fold-review #2 (F-1…F-5; comment `5721236804`):** **F-1** the env is now a **filtered overlay** — a **drop/neutralise set** (`GOOS`/`GOARCH`/`GOARM`/`CGO_ENABLED` per target; `GOFLAGS`/`GO111MODULE`/`GOEXPERIMENT`/`GOWORK` neutralised) **and a preserve set** (`PATH`/`HOME`/`GOPATH`/`GOMODCACHE`/`GOCACHE`) — stated in FR-004 / `research.md` D5 / ADR D5 / the truth row, so FR-005's child-error rule cannot become a spurious-red generator; **F-2** the truth row's tag residual mirrors the ADR (the guard itself); **F-3** `tools/**` added to the two prose sites; **F-4** the two "broad rule" spots reworded to *two-part predicate*; **F-5** the `STATUS.md` section retitled **`## Last delivered round — 041 …`** (042 is the live round).
+
 ### Commits (branch `042-layer-discipline-gate-plan`)
 
 | Commit | Note |
@@ -60,7 +64,8 @@ Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 041 delivered/frozen; ac
 | `80d803f` | `docs(042)`: system-analysis plan + api/data/dsl-refine NOOP |
 | `e186fbd` | `docs(042)`: fold PR #94 review — B-1/B-2 · TD-1…TD-4 · RF-1…RF-3 (+ nits) |
 | `4b340a1` | `docs(042)`: STATUS round 042 in flight + #93 + 09/18 daily log (review §13) |
-| *(fold-review)* | `docs(042)`: fold PR #94 fold-review — R-1…R-6/R-8 (rule surfaces, FR citations, decision IDs, child-env, ADR wording, ledger, STATUS header) |
+| `221c7a6` | `docs(042)`: fold PR #94 fold-review — R-1…R-6/R-8 (rule surfaces, FR citations, decision IDs, child-env, ADR wording, ledger, STATUS header) |
+| *(fold-review #2)* | `docs(042)`: fold PR #94 fold-review #2 — F-1 (env drop+preserve sets), F-2 (truth tag residual), F-3 (tools/** prose), F-4 (two-part wording), F-5 (STATUS heading) |
 
 ### Artifacts / truth
 

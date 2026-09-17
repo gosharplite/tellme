@@ -40,7 +40,7 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
 
 ## Decision 5: Host-independence is the union over `CROSS_TARGETS` (TD-1)
 
-- **Decision**: the guard evaluates the import graph as the **union** over `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64` (round 020's `CROSS_TARGETS`) — 4 × `go list`, each run with an **explicit, sanitised child environment** (`GOOS`/`GOARCH` set per target, `CGO_ENABLED=0`, `GOFLAGS` cleared and other ambient build exports dropped) — so an **OS-gated** illegal import cannot hide, the single committed baseline is genuinely host-free, and an ambient export (e.g. a CI image's `GOFLAGS=-mod=vendor`) cannot fail the gate spuriously (the `verify-cross-compile` **PR #46 TD1** precedent — review **R-4**).
+- **Decision**: the guard evaluates the import graph as the **union** over `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64` (round 020's `CROSS_TARGETS`) — 4 × `go list`, each run with the **inherited environment filtered**: a **drop/neutralise set** (`GOOS`/`GOARCH`/`GOARM`/`CGO_ENABLED` set or cleared per target; `GOFLAGS`/`GO111MODULE`/`GOEXPERIMENT`/`GOWORK` neutralised) so an ambient build export (a CI image's `GOFLAGS=-mod=vendor`, `GOWORK=…`, or `GO111MODULE=off`) cannot fail the gate spuriously, **and a preserve set** (`PATH`/`HOME`/`GOPATH`/`GOMODCACHE`/`GOCACHE`) so the warm module cache is still found (an `env -i` child fails with *module cache not found*; the `verify-cross-compile` **PR #46 TD1** precedent, generalised — review **R-4** + fold-review #2 **F-1**) — so an **OS-gated** illegal import cannot hide and the single committed baseline is genuinely host-free.
 - **Rationale**: `go list {{.Imports}}` resolves in the **host** build context: files excluded by `GOOS`/`GOARCH` land in `.IgnoredGoFiles` and their imports vanish (measured: on darwin, `internal/infrastructure/telemetry` reports `ignored=system_metrics_linux.go`, and its import set is OS-dependent). The verdict is identical across GOOS × CGO **today** only because both sampler files import downward — an OS-gated upward import would go red on one host, green on another, against a single baseline. The union closes that.
 - **Alternatives considered**: **downgrade FR-004/SC-004 to "host-context-relative"** — honest but loses the property; the union is cheap (seconds) and matches `verify-cross-compile`'s rationale — rejected in favour of the union.
 
@@ -90,7 +90,7 @@ Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), co
 
 ## Residual risks / forward links
 
-- **Custom build-tag-gated imports** are out of scope (D6) — none today; a future tagged file needs a decision.
+- **Custom build-tag-gated imports** are out of scope (D6) — the only custom-tagged file is the guard itself (`//go:build arch`), in the exempt `tools/**` tree; a future tagged file needs a decision.
 - **`go list` cost** — the union is 4 × `go list` (seconds); a cold module cache resolves modules like any build (no new module/service).
 - **Guard self-exclusion** — `tools/arch` is exempt and imports only stdlib + `os/exec`; the self-test pins that the guard adds no violation.
 - **`-tags=arch` compiled by no other gate** — `go vet ./...`/`verify-cross-compile` never compile the guard file (host-compiled only): a compile error surfaces only when the gate runs (accepted; recorded in `techstack.md`/ADR 0011 so a future "why isn't this vetted?" has an answer).
