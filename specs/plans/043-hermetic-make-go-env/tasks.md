@@ -60,7 +60,7 @@
 - 只改 `Makefile`（新增 block，**不新增 target**）；可選地在 `tools/arch/arch_test.go` 加**一行註解**（cross-reference；**零行為變更**）；**不**碰任何產品碼、**不**改既有 gate 語意、**不**改 truth。
 - review 啟動 subagent；通過前不解鎖 Phase 4。
 
-- [ ] T001 [WITNESS-RED] 先行擷取 hostile-env 的 RED 基線（未修復的樹上）
+- [X] T001 [WITNESS-RED] 先行擷取 hostile-env 的 RED 基線（未修復的樹上）
   - Read:
     - `specs/plans/043-hermetic-make-go-env/research.md` -> D4, D7
     - `docs/decisions/0010-test-deadline-decoupling.md`（見證 doctrine）；`docs/decisions/0011-layer-discipline-gate.md` -> D5（child-env 紀律）
@@ -76,7 +76,7 @@
   - 不做：不為讓它綠而改樹；不建立任何 committed 見證檔（本輪**不新增 artifact** —— `plan.md`）。
   - **Red-first 期望**：`GOENV` 案 **FAIL**（exit ≠ 0）；此為 T002 的對照基線。
 
-- [ ] T002 [MECH] 落 `Makefile` 的 hermetic `export`/`unexport` block
+- [X] T002 [MECH] 落 `Makefile` 的 hermetic `export`/`unexport` block
   - Read:
     - `specs/plans/043-hermetic-make-go-env/research.md` -> D1, D2, D3, D4, D5, D10
     - `docs/decisions/0012-hermetic-make-go-env.md` -> D1, D2, D3, D4, D5
@@ -91,7 +91,7 @@
   - 驗證：`gofmt` n/a（Makefile）；clean env 下 `make help` 正常；T001 的 4 案（至少 `GOENV` 案）由 **FAIL → PASS**（Phase 4 逐一對照）。
   - 不做：不新增 target；不改 `verify` aggregate 名單；不 touch `CGO_ENABLED`（全域）；不覆蓋 `verify-cross-compile` 的行內 per-target 賦值；不改任何 recipe 指令本身。
 
-- [ ] T003 [DOC] `tools/arch/arch_test.go` 加一行 cross-reference 註解（選配；**零行為變更**）
+- [X] T003 [DOC] `tools/arch/arch_test.go` 加一行 cross-reference 註解（選配；**零行為變更**）
   - Read:
     - `docs/decisions/0012-hermetic-make-go-env.md` -> D6（ownership: primary = Makefile block；childEnv = defence-in-depth）
     - `tools/arch/arch_test.go` -> `childEnv` / `droppedBuildEnv` 上方的註解塊
@@ -100,7 +100,7 @@
   - 不做：不改 `droppedBuildEnv`／`childEnv` 的任何值或邏輯（round-042 frozen 行為）。
   - **可折疊**：若 review 認為此註解非必要，可整條移除而不影響本輪交付。
 
-- [ ] T004 subagent review (phase quality gate)
+- [X] T004 subagent review (phase quality gate)
   - Read: `Makefile`（新 block）、`tools/arch/arch_test.go`（註解）、`research.md` -> D1–D12、`docs/decisions/0012-hermetic-make-go-env.md`
   - 檢驗：block 落在 `$(shell …)` 之上且**不 touch `PATH`**；neutralise set 含 `GOENV=off`（load-bearing）且 preserve set 未被觸及；`CGO_ENABLED` 未被全域 pin；**無新 target**、`verify` 名單不變；recipe 行內 per-target 賦值未被覆蓋；無產品碼／truth／既有 gate 語意變更。有 issues 修正再 review，直到零問題。通過前不解鎖 Phase 4。
 
@@ -110,7 +110,7 @@
 
 **Test Scope**: `make` 呼叫（hostile／clean env）；`make verify`；`go test ./...`；Gherkin/DSL topology audit。
 
-- [ ] T005 [REGRESSION] 可偽性見證：4 個 hostile-env 由 RED → GREEN；還原 block ⇒ 再 RED
+- [X] T005 [REGRESSION] 可偽性見證：4 個 hostile-env 由 RED → GREEN；還原 block ⇒ 再 RED
   - Read: `research.md` -> D4, D7；`docs/decisions/0010-test-deadline-decoupling.md`；`spec.md` -> SC-001
   - 做：
     - (a) 對 T001 的 4 案逐一在**已落 block** 的樹上重跑 → 全部 **exit 0**（`GOENV=<file -mod=vendor>` 由 *inconsistent vendoring* → green）；另跑 `GOENV=/tmp/goenv043 make verify-architecture` → green。
@@ -118,7 +118,7 @@
     - (c) **drift witness**：以 `grep` 斷言 `Makefile` block 中和的變數集合（`GOENV`/`GOWORK`/`GOFLAGS`/`GO111MODULE`/`GOEXPERIMENT`/`GOOS`/`GOARCH`/`GOARM`）**涵蓋** `tools/arch` `droppedBuildEnv` 的變數集合（不 silent drift；Q6/D6）——記錄為人工／scripted 檢查，**不** commit 見證檔。
   - 不做：不放寬任何斷言以「讓它過」；見證後必須還原到 HEAD（僅保留 T002 block）。
 
-- [ ] T006 [REGRESSION] 正向控制 + 全量回歸 + 範圍檢查
+- [X] T006 [REGRESSION] 正向控制 + 全量回歸 + 範圍檢查
   - Read: `research.md` -> D7, D9；`spec.md` -> SC-002–SC-005；`specs/truth/techstack.md` -> 兩 row
   - 做：
     - **正向控制 1（cross-compile）**：clean env 下 `make verify-cross-compile` → **4/4**（行內 `CGO_ENABLED=0 GOOS=… GOARCH=…` 未被 block 覆蓋）。
@@ -129,7 +129,7 @@
     - `gofmt -l .` clean；`git diff --name-only origin/dev..HEAD` 確認僅動 `Makefile`（+ 選配的 `tools/arch` 註解 + plan/truth 文件）；`go.mod`／`go.sum` 不變；`internal/**`／`cmd/**`／`tests/**` 產品碼未動。
   - 不做：不為了綠而改產品碼或放寬斷言。
 
-- [ ] T007 subagent review (round quality gate)
+- [X] T007 subagent review (round quality gate)
   - Read:
     - `Makefile`（新 block）、`tools/arch/arch_test.go`（註解，若有）、`specs/truth/techstack.md`（Hermetic toolchain invocation + Task runner rows）、`docs/decisions/0012-hermetic-make-go-env.md`
     - `specs/plans/043-hermetic-make-go-env/{spec.md,research.md,plan.md,truth-delta.md}`
@@ -137,14 +137,54 @@
 
 ---
 
-## Execution outcome (T001–T007)
+## Execution outcome (T001–T007) — `/axb-implement` complete
 
-> **Pending `/axb-implement`.** 本檔案於 `/axb-tasks` 產出（task list only）；執行結果（RED→GREEN 原始輸出、positive-control 數據、review 結論、任何 fold）於 `/axb-implement` 依序回寫此節。
+**Delivered** (`Makefile` CHANGED + `tools/arch/arch_test.go` comment-only; **zero product code**; no new target; `go.mod`/`go.sum` unchanged):
 
-### Deviations (recorded at /axb-tasks time)
+- **`Makefile`** — a labelled `export`/`unexport` block at the top (after `VERSION ?= dev`, **above** the `$(shell command -v …)` probes): `export GOENV := off`, `export GOWORK := off`, `unexport GOFLAGS GO111MODULE GOEXPERIMENT GOOS GOARCH GOARM` + a comment block stating the neutralise set, the preserve set, the `GOENV=off` rationale, the host-default `CGO_ENABLED` (recipe-inline wins), and the `tools/arch` `childEnv` cross-reference (ADR 0012).
+- **`tools/arch/arch_test.go`** — a **comment-only** cross-reference (`droppedBuildEnv`): the `Makefile` block is the primary owner; this filter covers the gate's documented **direct** invocation; the two sets must not drift silently. **No logic/value change** (round-042 frozen behaviour preserved).
+- **No new target; the `verify` aggregate list is unchanged** (`plan.md` Structure Decision).
 
-- **No parallel-subagent substrate in this session** — T004／T007 的 subagent review 將以 **inline self-review** 執行（round-029/041/042 已記錄的 deviation）。於 `/axb-implement` 於此節披露。
-- **No committed witness artifact** — 依 `plan.md` Structure Decision（本輪不新增 target、不新增 artifact），4 個 hostile-env 見證為 **reproduced-then-reverted**（記錄於 T005），與 round-042 T005 的見證同型。
+### Evidence
+
+**T001 — RED baseline (unfixed tree, `make vet`):**
+
+| # | Hostile env | exit (before) | note |
+| --- | --- | --- | --- |
+| 1 | `GOENV=<file: GOFLAGS=-mod=vendor>` | **2** | *inconsistent vendoring* — the #96 headline |
+| 2 | `GOFLAGS=-trimpath` | 0 | harmless on this tree (recorded; still neutralised) |
+| 3 | `GO111MODULE=off` | **2** | GOPATH-mode resolution failure |
+| 4 | `GOWORK=/tmp/gowork043` | **2** | *directory prefix . does not contain modules listed in go.work* |
+| 1b | `GOENV=<file>` + `make verify-architecture` | **2** | matches #96's reproduction verbatim |
+
+**T005(a) — GREEN after the block:** cases 1, 2, 3, 4 and 1b all **exit 0** (case 1b: `0 issues` + `ok tools/arch` + the gate's success line).
+
+**T005(b) — revert witness (non-vacuity):** with the block temporarily removed (`git checkout -- Makefile`), case 1 returned **exit 2**; with the block restored, **exit 0**. The witness is bound to the block, not to environment accident.
+
+**T005(c) — drift witness:** the `Makefile` neutralise set = `{GOENV, GOWORK, GOFLAGS, GO111MODULE, GOEXPERIMENT, GOOS, GOARCH, GOARM}`; `tools/arch` `droppedBuildEnv` = the same set **+ `CGO_ENABLED`**. The only difference is `CGO_ENABLED` — the **documented host-default exception** (ADR 0012 D4; the gate pins it per target because it must cross-evaluate). **No silent drift.**
+
+**T006 — positive controls + regression:**
+
+- `make verify-cross-compile` → **exit 0** (linux/amd64 · linux/arm64 · darwin/amd64 · darwin/arm64 built + vetted — the recipe's inline `CGO_ENABLED=0 GOOS=… GOARCH=…` still wins).
+- `make tidy` → exit 0, **no diff**; `make fmt` → exit 0, **no diff** (`git status` shows only the two intended files).
+- `make verify` → **OK** (all existing gates + `verify-architecture`; golangci-lint 0 issues; govulncheck 0 reachable).
+- `go test -count=1 ./...` → **green** (22 packages `ok`, **0** `FAIL`; incl. godog E2E).
+- Gherkin/DSL topology audit → **PASSED & unchanged** (44 features · 6 modules · 16 root + 327 module rows · **1674** steps).
+- `gofmt -l .` clean; `go.mod`/`go.sum` unchanged; the working-tree change set is exactly `Makefile` + `tools/arch/arch_test.go` (comment-only); no `internal/**`/`cmd/**`/`tests/**` product code touched.
+- Tool probes intact: `STATICCHECK`/`GOLANGCI`/`GOVULNCHECK` still resolve from `PATH` (the block is above the `$(shell …)` probes and does not touch `PATH`).
+
+### Reviews (T004 / T007)
+
+- **Execution**: the session (inline self-review — **disclosed deviation**: no parallel-subagent substrate; round-029/041/042 precedent).
+- **T004 (phase gate)**: **PASS** — the block sits above the `$(shell …)` probes; the neutralise set includes `GOENV=off` (load-bearing) and does not touch the preserve set; `CGO_ENABLED` is not globally pinned; **no new target** and the `verify` list is unchanged; recipe-inline per-target assignments are not clobbered; no product code / truth / existing-gate semantics changed.
+- **T007 (round gate)**: **PASS** — 4 hostile envs red→green with a revert witness; clean env unchanged; `verify-cross-compile` 4/4; `tidy`/`fmt` no-diff; drift witness passes with the documented `CGO_ENABLED` exception; `tasks.md`/`techstack.md`/ADR 0012 consistent.
+- **Folds raised during execution**: **none** (no plan/truth change was required).
+
+### Deviations (recorded)
+
+- **No parallel-subagent substrate in this session** — T004/T007 ran **inline self-review** (round-029/041/042 precedent).
+- **No committed witness artifact** — per `plan.md`'s Structure Decision (no new target/artifact), the four hostile-env witnesses are **reproduced-then-reverted** (recorded here), the round-042 witness style. The temp env files (`/tmp/goenv043`, `/tmp/gowork043`) are scratch, not committed.
+- **T003 kept** (not folded) — the one-line cross-reference comment is landed so both ownership sites are greppable.
 
 ---
 
