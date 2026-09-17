@@ -25,7 +25,7 @@
 - **Q5 → Blank before each call's begin-block.** One blank line precedes the **first** line of the call-begin block — the `[Tool Reason]` line when the call states a reason, else the `[Tool Action]` line (Q6). This is **per call**, so a round with `k` tool calls shows `k` blanks in its begin sequence (the blank before the round's first reason is just the first instance — no separate round-level blank).
 - **Q6 → A reason-less call still separates.** When a call states **no** reason (blank reasons are suppressed since round 036), the blank precedes its `[Tool Action]` line — i.e. the blank is tied to the call block, not to the reason line's presence.
 - **Q7 → One blank before the grouped tail block, none inside it.** The trailing re-emitted `[Tool Reason]` block gets exactly **one** blank line before it and **no** blanks between its lines.
-- **Q8 → One blank before the post-status group.** The grouped measured `Payload:` line + metrics line + `Ready` footer get exactly **one** blank line before them (emitted only when the group is written — the usage-reporting gate).
+- **Q8 → One blank before the post-status group.** The grouped measured `Payload:` line + metrics line + `Ready` footer get exactly **one** blank line before them (emitted only when the group is written — the usage-reporting gate). *(Refined by review **B1** (PR #81): **tool-using turns only** — a tool-less turn gains no blank, per FR-009 / the edge case. The original Q8 wording had no tool condition; the refinement is recorded here rather than silently rewritten because Q8 is operator-locked.)*
 
 **Scope note**: two independent `stderr`-presentation changes (a generalization of an existing sanitize policy; an additive spacing policy). Neither changes a CLI flag, exit code, the frozen class-phrase vocabulary, the tool surface, the provider transport, any persisted record, the tool **result** fed to the model, or a `stdout` byte.
 
@@ -67,13 +67,13 @@ As an operator reading a tool-using turn, I want the begin blocks, the trailing 
 
 1. **Given** a turn whose round makes `k` tool calls each stating a reason, **When** the run logs the calls, **Then** a blank line precedes each call's `[Tool Reason]` line (and, within a call, the `[Tool Action]`/`[Tool Result]` lines follow the reason with no blank between them).
 2. **Given** a call that states **no** reason, **When** the run logs it, **Then** a blank line precedes its `[Tool Action]` line.
-3. **Given** a non-final call's tail, **When** the run emits the grouped `[Tool Reason]` block, **Then** exactly **one** blank line precedes the block and **no** blank line separates its lines; **And** when a measured post-status group follows, exactly **one** blank line precedes it.
+3. **Given** a non-final call's tail, **When** the run emits the grouped `[Tool Reason]` block, **Then** exactly **one** blank line precedes the block and **no** blank line separates its lines; **And** when a measured post-status group follows on a turn that rendered a tool round, exactly **one** blank line precedes it (a tool-less turn gains no blank — FR-009).
 
 **Functional Requirements**:
 
 - **FR-006**: Exactly one blank line MUST precede each executed call's **begin block** — the `[Tool Reason]` line when the call states a reason, else the `[Tool Action]` line. Per call, so a `k`-call round emits `k` such blanks.
 - **FR-007**: Exactly one blank line MUST precede the grouped post-call **tail** `[Tool Reason]` block, when that block is non-empty; **no** blank line may separate the block's lines.
-- **FR-008**: Exactly one blank line MUST precede the **post-status group** (measured `Payload:` line + metrics line + `Ready` footer), emitted only when that group is written (the usage-reporting gate).
+- **FR-008**: Exactly one blank line MUST precede the **post-status group** (measured `Payload:` line + metrics line + `Ready` footer) — **on a turn that rendered a tool round**; a **tool-less** turn is unchanged (FR-009), so it gains no blank. Emitted only when that group is written (the usage-reporting gate).
 
 ### Edge cases
 
@@ -110,7 +110,7 @@ As an operator reading a tool-using turn, I want the begin blocks, the trailing 
 
 - **SC-001**: Hostile-fixture unit pins show `FormatToolReason`, `FormatToolResult`, and `FormatToolAction` output is control-free and valid UTF-8, with visible text and the rune caps preserved (US1).
 - **SC-002**: An E2E run whose reason/result carry an escape emits control-free `[Tool Reason]` / `[Tool Result]` lines (US1).
-- **SC-003**: E2E assertions pin the exact blank-line positions for a multi-call round, a reason-less call, the grouped tail block, and the post-status group (US2).
+- **SC-003**: E2E assertions pin the exact blank-line positions for a multi-call round, a reason-less call, the grouped tail block, and the post-status group — **on a tool-using turn only** (a tool-less turn's closing status is asserted to gain no blank).
 - **SC-004**: `make verify`, the E2E suite, and the Gherkin/DSL topology audit (re-run after the truth MODIFY) are green.
 - **SC-005**: The change has **falsifiability witnesses**: reverting a sibling's sanitize fails its unit pin; removing a blank fails the corresponding E2E position assertion; narrowing the reason guard back to the raw value fails the escape-only-reason pin — each reproduced then reverted.
 

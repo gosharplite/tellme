@@ -120,15 +120,31 @@ func thenTurnClosingStatusFollowsBlank(ctx context.Context) error {
 	return nil
 }
 
-// thenTurnClosingStatusNoBlank (round 039 review B1): a TOOL-LESS turn gains no
-// blank before its post-status group. The round-017 frame gap already puts exactly
-// one blank between the pre-flight estimate and the measured payload, so the
-// observable is that no TWO consecutive blank lines run (a doubled blank would be
-// the extra post-status blank the bug added).
+// thenTurnClosingStatusNoBlank (round 039 review B1; hardening per the fold
+// review): a TOOL-LESS turn gains no blank before its post-status group. The
+// round-017 frame gap already puts exactly ONE blank between the pre-flight
+// estimate and the measured payload, so the assertion is TARGETED — the line
+// immediately before the measured `Payload:` line must be that single frame-gap
+// blank whose own predecessor is the pre-flight (`Payload: ~…`) line. A global
+// `\n\n\n` absence would go silent if the frame gap were ever retuned; this form
+// fails visibly in both directions (it asserts the separation is exactly the frame
+// gap, not an added blank).
 func thenTurnClosingStatusNoBlank(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
-	if strings.Contains(sc.stderr, "\n\n\n") {
-		return fmt.Errorf("a tool-less turn showed a doubled blank line (an extra post-status blank); stderr=%q", sc.stderr)
+	lines := stderrLines(sc.stderr)
+	found := false
+	for i, l := range lines {
+		if !strings.Contains(l, "Payload: ") || strings.Contains(l, "Payload: ~") {
+			continue // only the measured (~-less) payload line starts the post-status group
+		}
+		found = true
+		if i >= 2 && lines[i-1] == "" && strings.Contains(lines[i-2], "Payload: ~") {
+			continue // exactly the round-017 frame gap — the correct, unchanged shape
+		}
+		return fmt.Errorf("a tool-less turn's closing status was not preceded by exactly the frame gap (an extra blank?); stderr=%q", sc.stderr)
+	}
+	if !found {
+		return fmt.Errorf("standard error carried no measured payload status line; stderr=%q", sc.stderr)
 	}
 	return nil
 }

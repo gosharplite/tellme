@@ -56,7 +56,7 @@ Recorded so it is not silently re-litigated. The ADR is superseded (see D9) to c
 | --- | --- | --- | --- |
 | 1 | call begin | one blank before the call block's **first** line — the `[Tool Reason]` line, else the `[Tool Action]` line | `agentloop.logAction` writes a leading `\n` (via the existing `withToolLog` guard) before the reason/action; **per call** (a `k`-call round ⇒ `k` blanks; the blank before the round's first reason is just the first instance) |
 | 2 | post-call tail | one blank before the grouped `[Tool Reason]` block, **none inside it** | `callRenderer.OnCallEnd` `emit` writes one `\n` before the reason loop, only when `roundReasons` is non-empty |
-| 3 | post-status | one blank before the measured `Payload:` + metrics + `Ready` group | the same `emit` writes one `\n` before the measured payload line, only when `usage.Reported` |
+| 3 | post-status | one blank before the measured `Payload:` + metrics + `Ready` group, **only on a turn that rendered a tool round** (a tool-less turn gains no blank — refined by review **B1**, PR #81) | the same `emit` writes one `\n` before the measured payload line when `renderedToolRound` is set and `usage.Reported` (the marker is set on a non-final `OnCallEnd` — the loop's "tools were requested" signal) |
 
 A reason-less call (no `[Tool Reason]` line) still gets a blank before its `[Tool Action]` (Q6) — the blank is tied to the **call block**, not the reason line. The blank lines are plain `\n` on `stderr`; nothing is added to a non-tool turn, `stdout`, a persisted record, or the offline paths.
 
