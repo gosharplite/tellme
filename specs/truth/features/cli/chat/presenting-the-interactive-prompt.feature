@@ -3,10 +3,17 @@ Feature: Presenting the interactive prompt
   # Interface truth (CLI end, `chat` module). The `-i` interactive TUI prompt presents the
   # tell-me-go surface — a bordered multi-line editor above a suggestion list, with the keybinding
   # hints in the placeholder and NO session metrics header. Acceptance journeys:
-  # features/acceptance/seeing-a-prompt-that-matches-the-reference.feature and
+  # features/acceptance/seeing-a-prompt-that-matches-the-reference.feature,
+  # features/acceptance/showing-no-chosen-hint-at-rest.feature, and
   # features/acceptance/fitting-the-terminal-window.feature. Driven end-to-end through the
   # `TELL_ME_FORCE_STDIN_TTY` seam with a scripted key sequence; the chrome Thens assert
   # presence/absence in the captured output (not exact ANSI bytes).
+  #
+  # Round 037: the suggestion list opens with NO suggestion pre-selected (the selection starts at a
+  # no-choice sentinel and resets on every refresh), so the at-rest assertion is "marks NO suggestion
+  # as the current choice". This SUPERSEDES round 016's "marks one suggestion as the current choice"
+  # (which followed the reference's mockup; the reference's code never pre-selects). The first `Tab`
+  # still selects the first suggestion — carried by the accept journey in prompting-with-suggestions.feature.
 
   Rule: The interactive prompt frames a multi-line editor above a suggestion list
 
@@ -18,7 +25,7 @@ Feature: Presenting the interactive prompt
       When the operator opens the interactive prompt
       Then the interactive prompt is framed around a multi-line editor
       And the interactive prompt lists suggestions beneath the editor
-      And the interactive prompt marks one suggestion as the current choice
+      And the interactive prompt marks no suggestion as the current choice
       And tellme exits successfully
 
   Rule: The interactive prompt shows no session metrics header
