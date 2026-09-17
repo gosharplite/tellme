@@ -814,6 +814,7 @@ An eleventh session on the same calendar day: bootstrapped, opened round **041**
 | Review #1 | PR #88 architect review (`c88ee46`) — **APPROVE WITH REQUIRED FOLDS** (R-1…R-5) → fold `b5197a0` + ledger `48b5bbc` |
 | Review #1 re-review | (`3cb8ec8`) **CERTIFIED** + R-6/R-7/R-8/R-9 → fold `ba935af` |
 | Review #2 re-review | (`ba935af`) R-6/R-7/R-8/R-9 **verified landed** + **R-10** (PR title/body) + R-11/R-12/R-13 (closeout-log lessons) |
+| Review #3 re-review | (`9e1cc50`) R-10 **verified landed** + **F-1/F-2** (ledger row split; edit-stable fold refs) + F-3/F-4 (§19 wording) + **§19-e** (narrative ownership) |
 
 ### The two folds that mattered
 - **R-1 / R-6 / R-10 — one premise, three durable surfaces.** The round's premise called the test's 2 s literal *"the production fast-fail constant"*. It is **not**: production's bound is `mcpDiscoveryBound = 3 s`, and the 2 s figure is the sibling `ghWaitDelay` (round-032 `0a3ad9c`). The correction had to reach **ADR 0010** (R-1), **issue #87's body** (R-6, the durable surface per §15), and **PR #88's title + body** (R-10, the merge record).
@@ -824,13 +825,15 @@ An eleventh session on the same calendar day: bootstrapped, opened round **041**
 
 ### Process lessons (R-9 / R-11 / R-12 / R-13) — to carry into the closeout lesson set
 
-> **§19-a — ledger rows name heads, not their own SHA (R-9/R-13).** A ledger row names the **reviewed head** + the **content-fold head**; the ledger commit identifies itself by **content** (*"the row's introducing commit"*), never by its own SHA. Convention is **forward-only** (legacy rows keep their explicit SHAs).
+> **§19-a — ledger rows name heads + edit-stable fold refs (R-9/R-13, sharpened by F-2/F-3).** A ledger row names the **reviewed head** (a SHA that never changes) **+ the fold's commit subject** (a message string that never changes) — it never cites its own SHA **and never relies on its own mutable row text** (F-2: “the row's introducing commit” resolved one row away once the row was later edited). Convention is **forward-only for the row form/SHAs** (legacy rows keep their explicit SHAs); any self-reference must be **edit-stable by design**, not by hope. **One row per review**, each naming its own reviewed head + fold.
 
 > **§19-b — report a fold as landed only after the commit exists and the artifact is re-read (R-11).** A fold report is itself a claim subject to the standard it demands of others (R-1/R-8): the round's fold report at 13:18:45 preceded the #87 body edit (13:19:31) and the commit (13:19:49).
 
-> **§19-c — the body is authored truth; comments are history (R-12).** Comments are **not** retro-edited — except a comment whose *premise* is **disproved**, which gets an in-place **Superseded** banner pointing at the corrected body.
+> **§19-c — the body is authored truth; comments are history (R-12, +F-4).** Comments are **not** retro-edited — except (i) a comment whose *premise* is **disproved**, which gets an in-place **Superseded** banner pointing at the corrected body, and (ii) an **accidental publication** (placeholder text, a tooling slip, a duplicated post) — corrected in place or deleted, since it never carried content, so there is no history to preserve.
 
 > **§19-d — verify against the call site; a claim is not evidence (R-1/R-6/R-10/R-8).** Neither a plausible-looking constant, nor a disproved hypothesis left standing, nor a reviewer's summary, nor a narration of work-not-yet-done, is evidence. This round generated **three instances** of *narrate-then-verify* (the ADR premise, the STATUS head block, the fold report) — the verification doctrine encoded in **ADR 0010** must apply to the round's own claims.
+
+> **§19-e — one owning artifact per measured claim (structural; R-3 class, workstream next round).** This round's premise (*“the production fast-fail constant”*) was written into, and had to be corrected in, **13 surfaces** (ADR 0010 · `spec.md` · `research.md` · `plan.md` · `tasks.md` · `truth-delta.md` · `techstack.md` · `STATUS.md` · the 2026-09-17 archive · this log · the PR title · the PR body · issue #87) — 11 commits for a one-file, test-only change, each sweep finding what the last missed, because **no single artifact owns the round's narrative**. Proposed rule (the narrative sibling of `truth-single-owner`): **a measured claim has exactly one owning artifact** (the ADR owns the rule + its measured evidence); every other surface carries a **one-line headline + a link**. Measurable form: **a measured value may appear in at most two places — its owner and one headline.** Under that rule R-2/R-5/R-6/R-10 would each have been **one** edit. Owner for future rounds: **ADR** = rule + evidence; `STATUS.md`/archives/daily-log/PR/issue = headline + link only.
 
 ### Verification (2026-09-17, on `ba935af`)
 - `gofmt` clean · `go vet` clean · `go test -count=1 ./internal/infrastructure/di/` **ok**.
