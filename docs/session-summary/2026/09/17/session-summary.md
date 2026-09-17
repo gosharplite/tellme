@@ -918,3 +918,28 @@ Same durable-surface discipline as §20 (session-11 §19-c): the fix belongs in 
 
 ### PM follow-ups
 - None new.
+
+---
+
+## 22. Session 13 (cont., 2026-09-17) — propagation `dev → main` DONE (no-ff, `150627d`)
+
+Post-closeout propagation, user-approved. The session-12/13 tracker-refresh docs (`e2f841a`, `3dc7033`) plus the closeout STATUS commit (`131715f`) were propagated.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Command | `git checkout main` → `git merge --no-ff dev` → `git push origin main` |
+| Merge commit | **`150627d`** *"Merge branch 'dev' into main (tracker refresh: #60→#91, #69→#92)"* |
+| Content | 2 files, +77/−6 (`STATUS.md` + this daily log) |
+| Verified | `main^{tree}` == `dev^{tree}` → **IDENTICAL**; `main` was `c60a1b2`, `dev` 3 commits ahead before the merge |
+| Returned to | `dev` |
+
+### Decisions
+| # | Decision |
+| --- | --- |
+| D1 | Propagation `dev → main` (no-ff) **DONE** at `150627d`; `main` now tracks `dev` for the session-12/13 tracker refresh. |
+| D2 | Closeout docs continue to land on **`dev`**; `main` follows by no-ff merge on approval. |
+
+### Next steps
+1. Open **`042-*`** off `dev` via `/axb-specify` — recommended: **R1 of [#92](https://github.com/gosharplite/tellme/issues/92)** (layer-discipline gate + baseline; a ratchet, not a switch — today's 7 violations allow-listed so `dev` stays green).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
