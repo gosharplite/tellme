@@ -42,11 +42,18 @@ func tuiSuggestionsBeneath(out string) bool {
 // vacuous — the round-012 TD1 pattern).
 const suggesterHeaderLiteral = "Suggestions:"
 
-// tuiCursorRows counts suggestion rows carrying the `>` selection cursor.
+// tuiCursorRows counts suggestion rows carrying the `>` selection cursor. The
+// rendered cursor row is exactly the padded `"  > "` row (modelStyle Padding(1,1)
+// + suggesterStyle Padding(0,1) = 2 leading spaces, then the `> ` cursor prefix).
+// An UNselected row renders its `  ` row prefix (4 leading spaces), so a
+// suggestion whose TEXT itself begins with `> ` (e.g. `> quoted reply`) renders
+// as `"    > quoted reply"` and is correctly NOT counted — an exact-prefix match,
+// not a `TrimLeft` "any `> `-leading line" proxy (round-037 review G-2; the proxy
+// produced a false failure when the flipped exclusion ran on such a suggestion).
 func tuiCursorRows(out string) int {
 	n := 0
 	for _, ln := range tuiVisibleLines(out) {
-		if strings.HasPrefix(strings.TrimLeft(ln, " "), "> ") {
+		if strings.HasPrefix(ln, "  > ") {
 			n++
 		}
 	}
