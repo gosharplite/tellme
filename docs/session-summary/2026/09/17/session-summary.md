@@ -849,3 +849,39 @@ An eleventh session on the same calendar day: bootstrapped, opened round **041**
 
 ### PM follow-ups
 - None new (spec/acceptance complete; no PM-owned gaps).
+
+---
+
+## 20. Session 12 (2026-09-17) — issue-tracker refresh: umbrella #60 replaced by #91 (closed not_planned); STATUS + log reconciled
+
+A twelfth session on the same calendar day (bootstrap Steps 1–8 complete; round 041 delivered/frozen; active branch `dev`): the operator asked whether umbrella **[#60](https://github.com/gosharplite/tellme/issues/60)** was still up to date.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Audit | #60's capability table was verified **2026-09-16** (round-028 era) and went stale across rounds 029–041 |
+| Stale items found | write tools ❌→✅ (round 029) · MCP ❌→✅ (round 032) · skills ❌→🟡 on-demand, injection deliberately deferred (round 033) · "four tools" → **seven** · obsolete round track (030/031/033 divergence) · `STATUS.md` anchor (028→041) · option-A DoD premised "skills *injected*" |
+| Action | **[#91](https://github.com/gosharplite/tellme/issues/91) opened** (refreshed umbrella, detailed body; title avoids "dog") · **[#60](https://github.com/gosharplite/tellme/issues/60) CLOSED (not planned / superseded)** with a linking comment · #60's four forward comments folded into #91 |
+| Repo docs | `STATUS.md` tracker refs #60→#91 + a session-12 tracker line; this §20 |
+
+### Why replace (not amend) — the durable-surface rule
+Per the session-11 lessons (§19-c: the body is authored truth; comments are history), the fix belongs in the **body**, not a comment. But #60's body was stale in its *capability table, round track, decisions and definition of done* — a rewrite that changes the issue's whole framing is cleanest as a **fresh issue** (the same disposition the repo uses for a retired parent). #60 is closed as **not planned (superseded by #91)**; the tracked intent continues on #91, which carries the corrected body + the folded forward items.
+
+### #91 — the refreshed umbrella
+- Title: *"Driving `tellme` development with `tellme` (retire `tell-me-go` as the dev driver)"* — no "dog" in the title.
+- Body: capability table with **per-item round provenance** (Read ✅ · Execute ✅ · Write ✅ *029* · Skills 🟡 *033, on-demand* · MCP ✅ *032* · Context ❌ · Sub-agents ❌ · git/AST ❌ · Persona ✅ · TUI ✅ · usage instrumentation ✅ *026*); the remaining critical path (**context management** = last hard gap; **skills shape** = on-demand vs injection); Options A/B (**B is unblocked now** by round 029); updated round track; three decisions to lock; a DoD reworded to on-demand-or-injected skills; non-goals; and **#60's four forward items folded in** (data-gated tool pruning; recursive schema walk; typed schema construction; row→feature audit guard).
+
+### Decisions
+| # | Decision |
+| --- | --- |
+| D1 | **#60 CLOSED (not planned / superseded)**; the umbrella continues on **#91** (refreshed body). |
+| D2 | The durable fix is a **fresh issue body**, not a comment (session-11 §19-c). |
+| D3 | `STATUS.md` tracker refs point at **#91**; the open tracker is now **#69 · #91 · #13**. |
+
+### Open items (non-blocking)
+- **#91 decisions to lock** (operator): target bar (A/B); skills shape (on-demand vs injection); next round theme (context management vs skills injection).
+- **Propagation** — `dev → main` for this docs commit: **pending operator approval** (round 041's own propagation is done, `692a4e6`).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; the `di` sibling wall-clock-assertion class.
+
+### PM follow-ups
+- None new.
