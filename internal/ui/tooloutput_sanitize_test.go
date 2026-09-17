@@ -1,0 +1,157 @@
+package ui
+
+import (
+	"strings"
+	"testing"
+	"time"
+	"unicode/utf8"
+)
+
+// Round-038 unit pins (issues #78): the [Tool Output] content is sanitized of
+// terminal control data (FR-001), and the block always closes in a neutral state
+// (FR-005). Hostile fixture at the pure formatter/writer layer — no pty, no
+// process (research D5).
+
+func TestFormatToolOutputLineStripsControlSequences(t *testing.T) {
+	cases := []struct{ name, in, want string }{
+		{"sgr set with no reset", "\x1b[31mERROR: failed", "ERROR: failed"},
+		{"sgr set with reset", "\x1b[1;31mERROR\x1b[0m: failed", "ERROR: failed"},
+		{"osc window title (bel)", "\x1b]0;title\x07visible", "visible"},
+		{"osc window title (st)", "\x1b]0;title\x1b\\visible", "visible"},
+		{"cursor hide", "\x1b[?25lworking...", "working..."},
+		{"stray bel", "ding\x07", "ding"},
+		{"esc charset designation", "\x1b(Bplain", "plain"},
+		{"tab preserved", "a\tb", "a\tb"},
+		{"utf8 preserved", "héllo — 世界", "héllo — 世界"},
+		// Round-038 review B1: ESC + a multi-byte rune must drop only the ESC,
+		// never decapitate the rune into invalid UTF-8.
+		{"esc before a multibyte rune", "\x1b日本", "日本"},
+		{"esc inside text before a multibyte rune", "a\x1bé", "aé"},
+		// Round-038 review RF-2: an unterminated CSI must not swallow the line.
+		{"unterminated csi keeps the text", "\x1b[12", "[12"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := FormatToolOutputLine(r034Clock, tc.in)
+			want := "[20:29:51] [Tool Output] " + tc.want
+			if got != want {
+				t.Errorf("FormatToolOutputLine(%q) = %q; want %q", tc.in, got, want)
+			}
+			if strings.ContainsRune(got, 0x1b) {
+				t.Errorf("content line still carries an ESC byte: %q", got)
+			}
+			if !utf8.ValidString(got) {
+				t.Errorf("content line is not valid UTF-8: %q", got)
+			}
+		})
+	}
+}
+
+// contentLines returns the emitted `[Tool Output] <text>` content lines
+// (excluding the header), so a check can be scoped off the block's own close
+// restore (a deliberate ESC).
+func contentLines(stream string) []string {
+	var out []string
+	for _, ln := range strings.Split(stream, "\n") {
+		i := strings.Index(ln, "] [Tool Output] ")
+		if i < 0 {
+			continue
+		}
+		if strings.HasPrefix(ln[i+len("] [Tool Output] "):], "Executing... (Output shown below)") {
+			continue
+		}
+		out = append(out, ln)
+	}
+	return out
+}
+
+func TestToolOutputWriterStripsSequenceSplitAcrossWrites(t *testing.T) {
+	var sb strings.Builder
+	w := &ToolOutputWriter{W: &sb, Now: func() time.Time { return r034Clock }}
+	w.Begin()
+	// The colour set is split across two Writes and completed by the newline; the
+	// writer assembles the line before sanitizing.
+	_, _ = w.Write([]byte("\x1b[3"))
+	_, _ = w.Write([]byte("1mboom\n"))
+	w.End()
+
+	lines := contentLines(sb.String())
+	if len(lines) != 1 {
+		t.Fatalf("want exactly one content line; got %d: %q", len(lines), sb.String())
+	}
+	if strings.ContainsRune(lines[0], 0x1b) {
+		t.Errorf("split escape survived into the content line: %q", lines[0])
+	}
+	if !strings.Contains(lines[0], "boom") {
+		t.Errorf("visible text lost: %q", lines[0])
+	}
+}
+
+func TestToolOutputWriterBoundsUnterminatedSequence(t *testing.T) {
+	// RF-2: a very long unterminated CSI must not swallow the line — only the ESC
+	// is dropped and the visible text survives.
+	in := "\x1b[" + strings.Repeat("0", 200)
+	got := FormatToolOutputLine(r034Clock, in)
+	want := "[20:29:51] [Tool Output] " + "[" + strings.Repeat("0", 200)
+	if got != want {
+		t.Errorf("unterminated CSI swallowed the line: got %q", got)
+	}
+}
+
+func TestFormatToolOutputLineStripsLongTerminatedSequences(t *testing.T) {
+	// TD-3: a long-but-TERMINATED sequence must still be removed in full — its
+	// parameters must not leak as visible text. The per-kind windows (CSI 128,
+	// OSC 1024) are wide enough for real CSI parameters, OSC titles, and OSC-8
+	// hyperlink URLs (the last legitimately exceed the old single 64-byte cap).
+	cases := []struct{ name, in, want string }{
+		{
+			"osc-8 hyperlink with a long url",
+			"\x1b]8;;https://github.com/gosharplite/tellme/issues/80-with-a-long-query-string?x=1\x1b\\click me",
+			"click me",
+		},
+		{"long osc title", "\x1b]0;" + strings.Repeat("T", 400) + "\x07body", "body"},
+		{"long sgr parameter run", "\x1b[" + strings.Repeat("1;", 40) + "31mPARAMS", "PARAMS"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := FormatToolOutputLine(r034Clock, tc.in)
+			want := "[20:29:51] [Tool Output] " + tc.want
+			if got != want {
+				t.Errorf("FormatToolOutputLine(long) = %q; want %q", got, want)
+			}
+			if strings.ContainsRune(got, 0x1b) {
+				t.Errorf("a long terminated sequence left an ESC byte: %q", got)
+			}
+		})
+	}
+}
+
+func TestToolOutputWriterEndRestoresNeutralState(t *testing.T) {
+	var sb strings.Builder
+	w := &ToolOutputWriter{W: &sb, Now: func() time.Time { return r034Clock }}
+	w.Begin()
+	_, _ = w.Write([]byte("\x1b[31mx\x1b[0m\n"))
+	w.End()
+
+	got := sb.String()
+	lastSep := strings.LastIndex(got, ToolOutputSeparator)
+	if lastSep < 0 {
+		t.Fatalf("no closing separator: %q", got)
+	}
+	reset := strings.LastIndex(got, ToolOutputReset)
+	if reset < 0 || reset > lastSep {
+		t.Errorf("no neutral restore before the closing separator: %q", got)
+	}
+}
+
+func TestToolOutputWriterStartFailureRestoresNeutralState(t *testing.T) {
+	// The command start-failure shape: Begin then End with no output still closes
+	// neutral.
+	var sb strings.Builder
+	w := &ToolOutputWriter{W: &sb, Now: func() time.Time { return r034Clock }}
+	w.Begin()
+	w.End()
+	if !strings.Contains(sb.String(), ToolOutputReset) {
+		t.Errorf("start-failure close emitted no restore: %q", sb.String())
+	}
+}

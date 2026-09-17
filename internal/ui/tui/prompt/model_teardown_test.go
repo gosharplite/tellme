@@ -45,13 +45,23 @@ func TestModelViewClearsOnAbort(t *testing.T) {
 	}
 }
 
-// TestModelEmptySubmitKeepsFrame (round-023 FR-004): an empty Ctrl+S does NOT
-// submit, so the frame stays rendered (the operator keeps editing).
+// TestModelEmptySubmitKeepsFrame (round-023 FR-004; tightened by round 038,
+// PR #79 review RF-3): an empty Ctrl+S does NOT submit AND returns NO command —
+// the frame stays rendered and the prompt keeps running (the operator keeps
+// editing). The `cmd == nil` assertion is the observable that carries the
+// control-flow half of the invariant: the round-023 state-only assertions held
+// even while issue #76 was live (the pre-fix code set `submitted=false` and then
+// quit unconditionally). The Ctrl+S/Alt+Enter/whitespace/non-empty/abort matrix
+// is owned by `model_submit_test.go` (round 038); this pin keeps the
+// frame-not-cleared half.
 func TestModelEmptySubmitKeepsFrame(t *testing.T) {
 	m := New(context.Background(), strings.NewReader(""), &strings.Builder{}, &fakeSource{items: []string{"hi"}})
-	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyCtrlS})
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlS})
 	if m.WasSubmitted() {
 		t.Fatalf("an empty Ctrl+S must not submit")
+	}
+	if cmd != nil {
+		t.Fatalf("an empty Ctrl+S returned a command; want nil (the prompt must keep running)")
 	}
 	if m.View() == "" {
 		t.Fatalf("the frame was cleared on an empty submit")

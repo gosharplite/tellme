@@ -30,3 +30,4 @@ Typo- and editorial-only fixes do not need an ADR.
 | [0004](0004-user-global-prompt-log.md) | User-global interactive prompt log (`~/.tellme/global_prompts.jsonl`) | Accepted |
 | [0005](0005-tool-call-log-parity.md) | Tool-call log parity: per-call frame cadence, CLI-computed per-call estimate, rune-safe rendering | Accepted |
 | [0006](0006-tool-reason-fold-and-cap.md) | Tool reason fold, trim, and cap: the model-authored reason joins its sibling sanitize+cap family | Accepted |
+| [0007](0007-terminal-control-sanitization.md) | Terminal-control sanitization of the `[Tool Output]` block: a new stderr presentation invariant, and a deliberate reference divergence | Accepted |
