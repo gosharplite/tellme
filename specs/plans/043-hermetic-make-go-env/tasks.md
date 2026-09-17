@@ -183,10 +183,33 @@
 
 - **No parallel-subagent substrate in this session** — T004/T007 ran **inline self-review** (round-029/041/042 precedent).
 - **No committed witness artifact** — per `plan.md`'s Structure Decision (no new target/artifact), the four hostile-env witnesses are **reproduced-then-reverted** (recorded here), the round-042 witness style. The temp env files (`/tmp/goenv043`, `/tmp/gowork043`) are scratch, not committed.
-- **T003 kept** (not folded) — the one-line cross-reference comment is landed so both ownership sites are greppable.
+- **T003 kept** (not folded) — the one-line cross-reference comment is landed so both ownership sites are greppable. *(Post-fold: the comment now records the **coverage-not-equality** invariant and the ADR 0012 **R1** scope — see the fold note below.)*
 - **`make test` under the hermetic env** — **exit 0**, **22 packages `ok`, 0 `FAIL`** (the E2E harness builds the binary as a child of `make` → a **nested `go build`**, the case A1 was chosen to cover; this is the strongest evidence that the block does not disturb the suite).
 
-### Considered and deliberately out of scope (recorded, not silently omitted)
+### Fold applied after the operator's PR #97 review (supersedes the notes below)
+
+The operator's review of PR [#97](https://github.com/gosharplite/tellme/pull/97) (**B-1…B-4, TD-1, R-1…R-3**, plan branch `d014da0`) replaced the **incident-list** set with a **criterion-derived** one (ADR 0012 **D2**): *neutralise the ambient **build context** (what / which toolchain builds), preserve the **plumbing***. Consequences for this task file:
+
+1. **The neutralise set is wider than T002's original** — it now also unsets `GOTOOLCHAIN`, `GOFIPS140`, `GODEBUG`, and the **micro-architecture family** (`GOARM64`, `GOAMD64`, `GO386`, `GOMIPS`, `GOMIPS64`, `GOPPC64`, `GORISCV64`, `GOWASM`) alongside `GOFLAGS`/`GO111MODULE`/`GOEXPERIMENT`/`GOOS`/`GOARCH`/`GOARM`. `CGO_ENABLED` remains **preserved-from-the-caller** (not globally pinned — V1 unchanged).
+2. **T005(c)'s drift witness is superseded** by the **coverage invariant** (ADR 0012 **D6**): the two sites neutralise by *different mechanisms* (the `Makefile` block disables the env file + unsets; `tools/arch`'s `childEnv` re-sets explicit values), so the relation is **coverage** — every name the block neutralises is either re-set by `childEnv` or **recorded as a known non-covered name** — **not** set-equality.
+3. **T001's table stands**; re-validated against the folded block (see below).
+
+**Re-validation against the folded block (read-only; ambient vars ⇒ `make vet`):**
+
+| Ambient env | `make vet` |
+| --- | --- |
+| `GOTOOLCHAIN=go1.99.9` | exit 0 |
+| `GOAMD64=v4` | exit 0 |
+| `GODEBUG=inittrace=1` | exit 0 |
+| `GOFIPS140=latest` | exit 0 |
+| `GOENV=<file: GOFLAGS=-mod=vendor>` | exit 0 |
+| `GOFLAGS=-trimpath` · `GO111MODULE=off` · `GOWORK=<stray>` | exit 0 |
+
+**Escape hatch (ADR 0012 scope note) holds:** an explicit per-invocation assignment still wins — `make GOENV=/tmp/goenv043 vet` ⇒ **exit 2** (*inconsistent vendoring*), i.e. the boundary is deliberately overridable by the caller.
+
+### Superseded: the original "considered and deliberately out of scope" note (kept for the record)
+
+> The note below was written at `/axb-implement` time, **before** the PR #97 review. Its `GOTOOLCHAIN` / micro-arch line is **superseded** by the criterion-derived set above (the review's R-1(1)/B-4); the `CGO_ENABLED` line still stands.
 
 - **`CGO_ENABLED`** — deliberately **not** neutralised (Q3→V1; ADR 0012 D4): a global pin would be a behaviour change vs future cgo-tagged code. The `tools/arch` gate pins it **per target** because it cross-evaluates; that is the only divergence in the drift witness.
 - **`GOTOOLCHAIN`** — a *toolchain-selection* input, not a build-context one. Neutralising it as `local` could break a module that requires a newer toolchain (it would fail instead of fetching); leaving it ambient keeps the property incomplete (recorded). Out of #96's stated scope (`go env -w` / `GOENV` / `GOFLAGS` / `GO111MODULE` / `GOWORK`); a candidate for a future hardening round if the operator wants it.
