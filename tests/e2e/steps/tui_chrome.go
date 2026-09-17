@@ -53,6 +53,26 @@ func tuiCursorRows(out string) int {
 	return n
 }
 
+// atRestFrame returns the FIRST painted frame of the accumulated capture — the
+// frame before any key is delivered, so NO navigation has happened yet — and is
+// the correct scope for the at-rest selection rule ("marks no suggestion as the
+// current choice"). The `-i` prompt renders frame-by-frame; successive frames are
+// delimited by the editor's top-left border rune `┌` (the round-016 border; a
+// later frame can legitimately carry the cursor after a `Tab`, which the at-rest
+// rule must NOT reject — round-037 review F-1). When no border is present (the
+// prompt never painted) the whole capture is returned.
+func atRestFrame(out string) string {
+	start := strings.Index(out, "┌")
+	if start < 0 {
+		return out
+	}
+	rest := out[start+len("┌"):]
+	if next := strings.Index(rest, "┌"); next >= 0 {
+		return out[:start+len("┌")+next]
+	}
+	return out
+}
+
 // tuiHasMetricsHeader reports whether any line matches the round-015 dashboard
 // pattern `provider … | tokens … | turns …` (round-016 F3: a SPECIFIC pattern, not
 // a bare `tokens`/`turns` substring).

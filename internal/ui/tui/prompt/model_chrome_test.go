@@ -2,6 +2,7 @@ package prompt
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -79,6 +80,43 @@ func TestTabFromNoChoiceSelectsFirst(t *testing.T) {
 	}
 	if got := m.ed.value(); got != "deploy to staging" {
 		t.Fatalf("first Tab insert = %q, want %q", got, "deploy to staging")
+	}
+}
+
+// TestCycleArithmetic (round-037 T004 / review F-4): freezes the reference's exact
+// `(cursor+delta+len)%len` arithmetic for the no-choice sentinel and both directions,
+// including the deliberate `Shift+Tab`-from-no-choice landing on `len-2` (NOT the last
+// row) — the round's most surprising user-visible behaviour — and the `len == 1` case
+// (Go's `%` truncates toward zero, so any integer mod 1 is 0 → the sole item IS
+// selectable by both keys, not "no selection"). FR-003's wrap + `Shift+Tab` clauses.
+func TestCycleArithmetic(t *testing.T) {
+	cases := []struct {
+		name        string
+		n, cursor   int
+		delta, want int
+	}{
+		{"len1 Tab", 1, noChoice, +1, 0},
+		{"len1 ShiftTab", 1, noChoice, -1, 0},
+		{"len2 Tab", 2, noChoice, +1, 0},
+		{"len2 ShiftTab", 2, noChoice, -1, 0},
+		{"len3 Tab", 3, noChoice, +1, 0},
+		{"len3 ShiftTab", 3, noChoice, -1, 1},
+		{"len3 wrap back from first", 3, 0, -1, 2},
+		{"len3 wrap forward from last", 3, 2, +1, 0},
+	}
+	for _, tc := range cases {
+		items := make([]string, tc.n)
+		for i := range items {
+			items[i] = fmt.Sprintf("i%d", i)
+		}
+		s := suggester{items: items, cursor: tc.cursor}
+		s.cycle(tc.delta)
+		if s.cursor != tc.want {
+			t.Errorf("%s: cycle(%d) from cursor %d with len %d = %d, want %d", tc.name, tc.delta, tc.cursor, tc.n, s.cursor, tc.want)
+		}
+		if tc.cursor == noChoice && s.selected() == "" {
+			t.Errorf("%s: a key from no-choice left no selection (cursor %d, len %d)", tc.name, s.cursor, tc.n)
+		}
 	}
 }
 

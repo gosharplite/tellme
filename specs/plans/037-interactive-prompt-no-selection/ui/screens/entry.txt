@@ -15,7 +15,7 @@ every refresh; this frame supersedes round 016's pre-selected first row.
 │                                                                        │
 └────────────────────────────────────────────────────────────────────────┘
  Suggestions:
-   deploy to staging with version 016
+   deploy to staging with version 037
    review the last two commits
    summarize the last release
 
@@ -34,6 +34,6 @@ choice (the `>` cursor); accepting it inserts it into the editor:
 │                                                                        │
 └────────────────────────────────────────────────────────────────────────┘
  Suggestions:
- > deploy to staging with version 016
+ > deploy to staging with version 037
    review the last two commits
    summarize the last release

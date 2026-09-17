@@ -28,6 +28,15 @@ var (
 // reference's `suggester{Index: -1}` (which supersedes round 016's "the first item
 // is the current choice"); a fresh list, and every refreshed list, carry no
 // highlight until the operator cycles.
+//
+// Invariant: `cursor ∈ {noChoice} ∪ [0, len(items))`. It is written in exactly
+// three places — `newSuggester` and `set` (both `noChoice`) and `cycle` (which
+// keeps `(cursor+delta+len)%len` in `[0, len)`) — so `view()`'s bare
+// `i == s.cursor` never matches a stray index and `selected()`'s `cursor < 0`
+// guard is exactly the no-choice test. (Review F-3 asked for this invariant to be
+// explicit; the "a refresh resets the selection" policy is hardcoded here and
+// recorded for single-ownership on #69, not refactored in-round per the scope
+// guard.)
 type suggester struct {
 	items  []string
 	cursor int

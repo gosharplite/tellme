@@ -46,12 +46,12 @@ As an operator, when I press `Tab` once on the no-selection list, I want the **f
 
 **Why this priority**: it is the required companion to no-selection; without it, "no selection" would be indistinguishable from a broken cursor. It is carried by the existing accept journey rather than a new rule.
 
-**Independent verification**: unit-pin `suggester.Next()` from the no-choice state to land on index `0`; the existing E2E accept journey (`… accepts the current suggestion` → *the interactive prompt holds the accepted suggestion "{text}"*) proves the first `Tab` selected the top suggestion.
+**Independent verification**: the **unit pin** `TestTabFromNoChoiceSelectsFirst` (a **two-item** fixture — the only carrier that can distinguish `-1 → 0` from another landing index) is the authority that the first `Tab` selects the **first** suggestion; the table-driven `TestCycleArithmetic` freezes the wrap/`Shift+Tab` arithmetic. The existing E2E accept journey (`… accepts the current suggestion` → *the interactive prompt holds the accepted suggestion "{text}"*) carries **insertion** of the selected text (its hermetic one-candidate log cannot distinguish which index was selected).
 
 **Acceptance Scenarios**:
 
 1. **Given** the prompt shows no current choice, **When** the operator presses `Tab`, **Then** the **first** suggestion becomes the current choice.
-2. **Given** the operator accepted a suggestion, **When** the run completes, **Then** the accepted suggestion is present in the editor (today's accept journey, now provably reached from the no-selection state).
+2. **Given** the operator accepted a suggestion, **When** the run completes, **Then** the accepted suggestion is present in the editor (today's accept journey — it proves *insertion* of the selected text; *which* index is selected is proven by the unit pin).
 
 **Functional Requirements**:
 

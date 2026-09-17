@@ -79,3 +79,22 @@
 - **Phase 4 GREEN (recorded)**: `internal/ui/tui/prompt/suggester.go` — `const noChoice = -1`; `newSuggester()` → `suggester{cursor: noChoice}`; `set(items)` resets `cursor = noChoice` on every refresh; `selected()`/`cycle()` unchanged. `go test ./tests/e2e/` → **ok** (215/215). `go test ./internal/ui/tui/prompt/...` → ok.
 - **Phase 4 REGRESSION (recorded)**: `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (no test-sleep · offline witness · cross-compile 4/4 · `verify-mcp-sdk-confinement` · golangci-lint 0 issues · govulncheck 0 reachable) · `go test -count=1 ./...` green (21 packages) · topology audit **PASSED** (44 features · 6 modules · 16 root + 310 module rows · 1576 steps — unchanged, as intended).
 - **Phase 4 WITNESS (recorded)**: (A) re-defaulting `set`'s reset to `0` fails the at-rest unit pins; (B) removing the reset-on-refresh (clamping instead) fails `TestRefreshResetsSelection` (`a refresh did not reset the selection to no-choice: "alpha"`). Each reproduced then reverted.
+
+---
+
+## T010 — PR #77 review fold (2026-09-17)
+
+Architectural review of PR [#77](https://github.com/gosharplite/tellme/pull/77) (`pullrequestreview-5230205073`): **APPROVE WITH REQUIRED FOLDS** — no product-code/truth-semantics change; the reference-parity premise was verified against `tell-me-go`, and the gates were independently reproduced. All folds landed:
+
+| # | Finding | Resolution |
+| --- | --- | --- |
+| **F-1** | `step_t008` predicate scope wider than the rule (whole stream, both streams) | Added `atRestFrame(out)` (`tests/e2e/steps/tui_chrome.go`) — the first painted frame, delimited by the editor border `┌`; `thenMarksNoCurrentChoice` now asserts `tuiCursorRows(atRestFrame(...)) == 0`. Re-verified non-vacuous (witness A still fails the at-rest Example, `-count=1`). |
+| **F-2** | `research.md` D2 residual-risk claim arithmetically false (`len == 1` → "no selection") | Reworded to the true statement: `Shift+Tab` from no-choice → `len-2` for `len ≥ 2` **and `0` (the sole item) for `len == 1`** (Go `%` mod 1 = 0); now carried by the new table-driven pin. |
+| **F-3** | Selection policy hardcoded in `suggester.set` (no named owner) | (a) stated the `cursor ∈ {noChoice} ∪ [0, len)` invariant in `suggester.go`'s doc; (b) recorded the shape (mirror the reference's `Update(items, index)`) as a **single-ownership item on [#69](https://github.com/gosharplite/tellme/issues/69)** — no in-round refactor (scope guard). |
+| **F-4** | FR-003's wrap / `Shift+Tab`-from-no-choice clause had **no carrier** | Added `TestCycleArithmetic` (table-driven: `len ∈ {1,2,3}`, both deltas, both wrap directions) — closes FR-003 and witnesses the F-2 correction. |
+| **F-5** | DSL row wording vs assertion scope not isomorphic | Narrowed the assertion to the at-rest frame (F-1) and rewrote the `chat/dsl.md` row to scope to the **at-rest frame** and name the **unit pin** as the first-`Tab` authority. |
+| **F-6** | `STATUS.md` not updated (Step 7 would have checked out `dev`, dropping round-037 artifacts) | Refreshed `STATUS.md`: Active branch `037-interactive-prompt-no-selection`; round 037 current-round section + pipeline position (T001–T009 `[X]`; T010 = this review; T011 open); `#76` recorded; round-036 detail relocated **verbatim** to the [2026-09-17 archive](docs/archives/status/2026-09-17.md). |
+
+**Also folded (non-numbered):** the evidence-carrier overstatement (US2 / research D3–D4) now names the **unit pin** `TestTabFromNoChoiceSelectsFirst` (two items) as the first-`Tab`-index authority, with the accept journey carrying *insertion* only; the cross-round note landed as a **body edit on [#76](https://github.com/gosharplite/tellme/issues/76)** (display-only sharpening + unambiguous fix direction); the plan-side nit (`ui/screens/entry.txt` seeds `version 037`).
+
+**Re-verification after the folds:** `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** · `go test -count=1 ./...` green (21 packages) · E2E **ok (215/215)** · topology audit **PASSED** (44 features · 16 root + 310 module rows · 1576 steps).
