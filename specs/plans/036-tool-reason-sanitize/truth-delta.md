@@ -9,7 +9,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `specs/truth/techstack.md` — Turn tool-call log (operator) | — | — |
+| MODIFY | `specs/truth/techstack.md` — **Agent tool loop** row | The per-call `[Tool Reason]` now folds (`\n`/`\r` → space) + trims the model-authored reason and caps it at **200 rendered runes** (one U+2026 counted inside the cap, rune-safe, evaluated on the folded value), exactly like the result snippet, and emits **no** reason line when the folded reason is blank (empty/whitespace-only). The cap set grows from `{189, 200}` to `{189, 200, 200}`. Fix restores round-022 **B1**'s fold guarantee that round 034 dropped **unrecorded**; the drop + this round's decision are recorded in the new **ADR 0006** (`docs/decisions/0006-tool-reason-fold-and-cap.md`). | Issue #74; `spec.md` FR-001/FR-002/FR-005; `research.md` D1/D2/D3/D5. |
 
 ## /axb-api-plan
 
