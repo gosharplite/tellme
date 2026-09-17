@@ -31,7 +31,7 @@ Feature: Keeping the tool reports plain
     Example: An argument that carries control data is shown as plain text
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And a configured provider "test-model" whose endpoint creates the file "out.txt" with a name that carries terminal control data and then answers with "done"
+      And a configured provider "test-model" whose endpoint creates the file "out.txt" with the content "\x1b[31mhello\x1b[0m" and then answers with "done"
       When the operator starts tellme with the prompt "Create the file."
       Then the run's action report is shown as plain text
       And tellme exits successfully

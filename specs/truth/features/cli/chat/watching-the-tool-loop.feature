@@ -102,3 +102,72 @@ Feature: Watching the tool loop work
       Then the run streamed the command's output free of terminal control sequences
       And the terminal is left in its default state
       And tellme exits successfully
+
+  Rule: Every tool-loop line is free of terminal control sequences
+
+    # Round 039 (issue #80): the control-sequence sanitization is a single-owned `internal/ui` policy applied
+    # by EVERY `[Tool …]` formatter, not just `[Tool Output]`. A model-authored reason, a result snippet, or
+    # an argument key/value that carries terminal control data is shown as plain text.
+
+    Example: A reason that carries control data is shown as plain text
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" with a reason that carries terminal control data and then answers with "done"
+      When the operator starts tellme with the prompt "Read notes.txt."
+      Then the run reported the reason for the tool call "read_files" free of terminal control sequences
+      And tellme exits successfully
+
+    Example: A result that carries control data is shown as plain text
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "colour.txt" whose text is "\x1b[31mthe launch code is ORANGE\x1b[0m"
+      And a configured provider "test-model" whose endpoint asks tellme to read "colour.txt" and then answers with "done"
+      When the operator starts tellme with the prompt "Read colour.txt."
+      Then the run reported the result for the tool call "read_files" free of terminal control sequences
+      And tellme exits successfully
+
+    Example: An argument that carries control data is shown as plain text
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured provider "test-model" whose endpoint creates the file "out.txt" with the content "\x1b[31mhello\x1b[0m" and then answers with "done"
+      When the operator starts tellme with the prompt "Create out.txt."
+      Then the run reported the action for the tool call "write_file" free of terminal control sequences
+      And tellme exits successfully
+
+  Rule: The live turn output is grouped by blank lines
+
+    # Round 039 (operator spacing request): the live turn output is grouped — a blank line precedes EACH call's
+    # begin block (the `[Tool Reason]` line, else the `[Tool Action]` line), a blank line precedes the trailing
+    # grouped `[Tool Reason]` block (with no blanks inside it), and a blank line precedes the post-status group
+    # (the measured payload line + metrics line + `Ready`). A recorded divergence from the reference, which
+    # writes these lines densely.
+
+    Example: A round of two calls separates each call's report
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a sub-folder "src"
+      And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
+      And a configured provider "test-model" whose endpoint shows the folder tree and then reads "notes.txt" and then answers with "the launch code is ORANGE"
+      When the operator starts tellme with the prompt "Survey the project, then read notes.txt."
+      Then each tool call's report begins after a blank line
+      And tellme exits successfully
+
+    Example: A call that states no reason still starts a fresh block
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "done"
+      When the operator starts tellme with the prompt "Read notes.txt."
+      Then the action of the call without a reason begins after a blank line
+      And tellme exits successfully
+
+    Example: The trailing reason summary and the closing status each follow a blank line
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" with the reason "checking the launch code" and then answers with "The launch code is ORANGE"
+      When the operator starts tellme with the prompt "Read notes.txt and summarise it."
+      Then the trailing reason summary follows a blank line
+      And the turn's closing status follows a blank line
+      And tellme exits successfully

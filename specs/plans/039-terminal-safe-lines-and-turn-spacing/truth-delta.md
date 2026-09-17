@@ -38,7 +38,7 @@
 | --- | --- | --- | --- |
 | MODIFY | `specs/truth/features/cli/chat/watching-the-tool-loop.feature` — new `Rule: Every tool-loop line is free of terminal control sequences` | ADD a Rule with Examples: an escape-bearing reason yields a control-free `[Tool Reason]` line; an escape-bearing result yields a control-free `[Tool Result]` line; an escape-bearing argument yields a control-free `[Tool Action]` line. | `spec.md` FR-001/FR-002/FR-005; `research.md` D1–D4. |
 | MODIFY | `specs/truth/features/cli/chat/watching-the-tool-loop.feature` — new `Rule: The live turn output is grouped by blank lines` | ADD a Rule with Examples: a multi-call round puts a blank before each call's begin block; a reason-less call's action line is still preceded by a blank; the grouped tail reason block and the post-status group are each preceded by exactly one blank. | `spec.md` FR-006/FR-007/FR-008; `research.md` D6/D7. |
-| MODIFY | `specs/truth/features/cli/chat/dsl.md` — new `Then` rows (control-free line; blank-line positions) + a round-039 note | ADD rows matching exactly one step each (`dsl-exact-one-match`); `dsl-single-authority` preserved (new rows, no duplication). | `spec.md` FR-001/FR-006/FR-007/FR-008; `research.md` D5. |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` — **1** new `Given` (an escape-bearing reason fixture) + **7** new `Then` (3 control-free line assertions + 4 blank-line-position assertions) + a round-039 note (two sections: `## Given (round 039)`, `## Then (round 039)`) | ADD rows matching exactly one step each (`dsl-exact-one-match`); `dsl-single-authority` preserved (new rows, no duplication). | `spec.md` FR-001/FR-006/FR-007/FR-008; `research.md` D7. |
 
 ## Governance (ADR)
 
