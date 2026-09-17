@@ -11,7 +11,7 @@
   - **省略 Phase 1 `Setup`** —— 本輪不新增技術（`research.md` D7；`go.mod`／`go.sum` 不動）。
   - **省略 Phase 2 `Foundational`** —— 落點（`internal/ui/toolcall.go`、`internal/agent/agentloop.go`、`internal/cli/call_renderer.go`、新檔 `internal/ui/toolcall_reason_test.go`）皆由下方任務直接交付；無 stepdef 落點骨架、無並行調度需求。
   - **Phase 3 只有 `[UNIT]`** —— 本輪沒有待處理 DSL 句；測試層工作是**新增 hostile-fixture unit pins 並讓它們 RED**（operator Q1：unit-pin-only witness；**不新增 E2E Example**）。
-  - **Phase 4 只有一個 MODIFY phase** —— 產品端讓 formatter + 兩個 caller 滿足 reason row 的新文案／契約（`[BDD-GREEN] -> [BDD-REFACTOR]`）。
+  - **Phase 4 只有一個 MODIFY phase** —— 產品端讓 formatter + 三個抑制站點滿足 reason row 的新文案／契約（`[BDD-GREEN] -> [BDD-REFACTOR]`）。
   - 交付物是 **`FormatToolReason` 的 fold + trim + cap**（`internal/ui/toolcall.go`，新常數 `reasonValueCap = 200`）與 **blank-reason 抑制的三個站點**（`internal/agent/agentloop.go` `logAction`、`internal/agent/agentloop.go` `reasonsOf`（tail 的來源清單；生產路徑過濾器）、`internal/cli/call_renderer.go` `OnCallEnd` 內 `emit` closure 的**防禦性**守衛——生產不可達，見 `spec.md` FR-006 與 [#69](https://github.com/gosharplite/tellme/issues/69)）；truth 變更為 `specs/truth/techstack.md`（Agent tool loop row，by `/axb-technical-research`）與 `specs/truth/features/cli/chat/dsl.md`（reason row + note，by `/axb-dsl-refine`）。
 - 每個開發任務的 `Read` 須涵蓋 `research.md` 對應 Decision 與 `specs/truth/techstack.md` 對應 section。
 - Truth 參照使用 `specs/truth/**` 路徑；plan 參照使用當前 plan package 相對路徑。
@@ -21,9 +21,10 @@
 
 > 來自 operator Q1/Q2、`spec.md` FR-001..FR-008 / SC-001..SC-005、`research.md` D1–D7。
 
-- **[SINGLE-SITE]** fold + trim 落在**純 formatter** `FormatToolReason` 內（重用既有 `oneLine`），兩個 caller 不各自重複（`research.md` D1）；單點修復即修好兩條表面（loop action line + per-call tail）。
+- **[SINGLE-SITE]** fold + trim 落在**純 formatter** `FormatToolReason` 內（重用既有 `oneLine`），其**兩個 caller**（`logAction`、`OnCallEnd` 內 `emit` closure）不各自重複（`research.md` D1）；單點修復即修好兩條表面（loop action line + per-call tail）。
+  - **用語（TD-2 澄清）**：**caller** = `FormatToolReason` 的呼叫者（**兩個**：`logAction`、`emit` closure；`reasonsOf` 不呼叫 formatter）；**site** = blank-reason 抑制站點（**三個**：`logAction`、`reasonsOf`、`emit` closure）。
 - **[CAP]** `const reasonValueCap = 200`；render = `capRunes(oneLine(reason), reasonValueCap)`（單一 U+2026 計入 cap、rune 邊界切、對 folded 值評估），與 `FormatToolResult`（200）同機制（`research.md` D2）。
-- **[BLANK]** 空或全空白（fold + trim 後）的 reason **不輸出** `[Tool Reason]` 行；抑制在**兩個 caller** 以 trim 後值判斷（`strings.TrimSpace(reason) != ""` 取代現行 raw `reason != ""`），`FormatToolReason` 保持**純**（不得回傳空字串 sentinel —— tail caller 用 `Fprintln`，會印出裸換行）（`research.md` D3）。
+- **[BLANK]** 空或全空白（fold + trim 後）的 reason **不輸出** `[Tool Reason]` 行；抑制在**三個站點**以 trim 後值判斷（`strings.TrimSpace(reason) != ""` 取代現行 raw `reason != ""`；`logAction`、`reasonsOf`、`emit` closure），`FormatToolReason` 保持**純**（不得回傳空字串 sentinel —— tail 的 `emit` closure 用 `Fprintln`，會印出裸換行）（`research.md` D3）。
 - **[WITNESS]** hostile-fixture **unit pins**（`\n`、`\r`、全空白、201-rune over-cap）+ blank-reason 抑制 pins（action line + tail）；**不新增 E2E Example、不新增 `DSLRow`**（Q1 Option 1；E2E 對此缺陷類結構性失明，count 公式各漏一項）。
 - **[RED-FIRST]** 新 unit pins 今日必須對現行缺陷**非真空地失敗**（assertion-only，非 undefined、非 parse error），再於 `[BDD-GREEN]` 修復後轉綠。
 - **[SCOPE]** 範圍守門（`research.md` D7）：只改 `stderr` 工具日誌的 reason 呈現；sibling formatters、`FormatToolResult` 行為、class-phrase vocabulary、`stdout` 皆**不動**；`agentloop_reason_test.go` 的 loop-tier pin 若被 trim/fold 觸及須同批更新（clean reason 應 byte-identical）。
@@ -110,7 +111,7 @@
 
 ## Phase 4: MODIFY — the reason row contract (formatter + callers)
 
-**Goal**: 以最小產品變更讓 T001/T002 轉綠：`FormatToolReason` fold + trim + cap；兩個 caller 對 blank reason 抑制；並與 `chat/dsl.md` 的 reason row 新文案一致。不改 sibling formatters、不改任何 line format/cadence、`stdout` byte-exact。
+**Goal**: 以最小產品變更讓 T001/T002 轉綠：`FormatToolReason` fold + trim + cap；三個抑制站點（`logAction`、`reasonsOf`、`OnCallEnd` 內 `emit` closure）對 blank reason 抑制；並與 `chat/dsl.md` 的 reason row 新文案一致。不改 sibling formatters、不改任何 line format/cadence、`stdout` byte-exact。
 
 **Shared Must Read**:
 - `specs/truth/features/cli/chat/dsl.md` -> reason row（single-line 保證 + `reasonValueCap`）
@@ -134,7 +135,7 @@
   - Read: `research.md` -> `Decision 1`, `Decision 2`, `Decision 3`；`internal/ui/toolcall.go`；`internal/agent/agentloop.go`；`internal/cli/call_renderer.go`
   - 做：
     - `FormatToolReason` 套用 `capRunes(oneLine(strings.TrimSpace(reason)), reasonValueCap)`（`reasonValueCap = 200`）。
-    - 兩個 caller 的 guard 改為 sanitized-value（`strings.TrimSpace(reason) != ""`）。
+    - 三個抑制站點的 guard 改為 sanitized-value（`strings.TrimSpace(reason) != ""`）：`logAction`、`reasonsOf`、`OnCallEnd` 內 `emit` closure（第三站為防禦性）。
   - 驗證：T001/T002 轉綠；`TestFormatToolReason` 與 `agentloop_reason_test.go` 續綠（clean reason byte-identical）；`go test ./...` 全綠；`stdout` byte-exact。
   - 不做：不改 sibling formatters；不新增相依；不改 format/cadence；不在 caller 重複 fold/cap。
 
@@ -184,6 +185,13 @@
 - **N-1 / N-3 / N-4**：tail 空輸出改用 `buf.Len() != 0` 直接斷言；`r036Clock` 補上存在理由；`reasonsOf` 補上「以 trimmed 值過濾、append raw 值」的註解。
 - 驗證：`gofmt -l .` clean · `go build ./...` OK · `go test -count=1 ./...` 全綠（E2E OK）· 可偽性見證 (a)/(b) 重現後還原。
 
+### PR #75 fold-review residuals（head `d7567e1`）
+
+- **F-1**：`tasks.md` 與 `research.md` 的殘餘「兩個 caller」字樣已清（`tasks.md` :14 / :26 / :113 / :137 / orphan-sweep row、`research.md` D3 heading），並加上用語澄清：**caller** = formatter 的呼叫者（兩個）；**site** = blank-reason 抑制站點（三個）。
+- **F-2**：truth 再認證——`specs/truth/features/cli/chat/dsl.md` 的 **reason row（`:181`）byte-identical**；fold 僅改 **note prose（`:55`）**；`specs/truth/techstack.md` 自 `048bb28` 起**未改**。權威 row 語意自 review head 起**未再開啟**。
+- **F-3**：Go 原始碼的硬編 issue URL 改回既有慣例 `issue #69`（`internal/cli/call_renderer.go`、`internal/cli/call_renderer_reason_test.go`）——本 repo 曾重新編號 issue（#13、#53），URL 會靜默失效。
+- **F-4**：見證 **(c)「還原 raw guard → blank-reason pins 失敗」已於 fold head 重跑**並重現（loop 兩站迴歸為 raw `reason != ""` → `TestLogOmitsReasonLineForWhitespaceOnlyReason` FAIL），還原後綠；見證 (a)/(b) 為 comment-only fold 未觸及的產品碼，已於 fold head 重跑確認。
+
 ---
 
 ## Pre-Delivery Orphan Coverage Sweep
@@ -200,7 +208,7 @@
 | `truth-delta.md` -> `/axb-data-plan` NOOP (`specs/truth/data/**`) | 豁免（NOOP 不建任務；無資料變更） | PASS |
 | `research.md` -> Decision 1（single-site fold in the pure formatter） | T001（pin 契約）、T004（交付）、T007 | PASS |
 | `research.md` -> Decision 2（`reasonValueCap = 200`；capRunes/oneLine 機制） | T001（cap pin）、T004（交付）、T006、T007 | PASS |
-| `research.md` -> Decision 3（blank-reason 抑制於兩 caller；formatter 保持純） | T002（pin）、T004（交付）、T007 | PASS |
+| `research.md` -> Decision 3（blank-reason 抑制於**三個站點**：`logAction`、`reasonsOf`、`emit` closure；formatter 保持純） | T002（pin）、T004（交付）、T007 | PASS |
 | `research.md` -> Decision 4（witness = hostile-fixture unit；無 E2E） | T001/T002（unit pins）、T003（0 undefined 驗證） | PASS |
 | `research.md` -> Decision 5（ADR 0006；不編輯 0005） | T005/T007（Read ADR 0006）、T006（一致性） | PASS |
 | `research.md` -> Decision 6（tidy：`oneLine` 搬入 `toolcall.go`） | T005（交付 tidy）、T007 | PASS |

@@ -85,7 +85,7 @@ func (r *callRenderer) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []
 			// never carries a blank here (round-036 review TD-1). It stays (rather
 			// than being dropped) so the tail is safe if that upstream filter ever
 			// moves; its single-ownership consolidation is tracked on
-			// https://github.com/gosharplite/tellme/issues/69. The check lives here
+			// issue #69. The check lives here
 			// (not in the pure formatter) because Fprintln on an empty return would
 			// still print a bare newline.
 			if strings.TrimSpace(reason) == "" {

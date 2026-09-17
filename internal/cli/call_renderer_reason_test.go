@@ -17,7 +17,7 @@ import (
 // agent.reasonsOf, which filters blanks upstream (round-036 review TD-1). The
 // real-path witness is the loop-tier TestLogOmitsReasonLineForWhitespaceOnlyReason;
 // the single-ownership consolidation of this redundant predicate is tracked on
-// https://github.com/gosharplite/tellme/issues/69.
+// issue #69.
 //
 // A blank reason must emit NO `[Tool Reason]` line here (and no bare newline — the
 // caller-side trim check is what keeps the pure formatter from being asked to
