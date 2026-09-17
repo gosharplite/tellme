@@ -48,8 +48,8 @@
 - **Anchored + folded**: issue [#82](https://github.com/gosharplite/tellme/issues/82) is the anchor (WS-A); issue [#83](https://github.com/gosharplite/tellme/issues/83) is the folded second workstream (WS-B) — both requested by the operator on 2026-09-17 (the round-038 #78+#76 / round-039 #80+spacing precedent).
 - **Supersession, not amendment**: WS-A changes round-034 FR-012/G8 + **ADR 0005 D7** (the whole-block pause). Recorded via a **new ADR superseding D7** (an `Accepted` ADR is immutable but for its `Status`). WS-B **amends** round-019 D4 ("never reset").
 - **Recorded divergence**: `tell-me-go` shows no turn-scoped **dual** timer and never re-activates a spinner inside its streamed output; both are recorded divergences.
-- **Interaction of the two workstreams**: a resumed indicator during a streaming block must keep the turn-scoped total and the per-call turn figure **consistent across the pause/resume** — pinned by an E2E that combines a quiet command with a second call.
-- **Witness layering**: WS-A's idle-gap mechanism is observable at both the unit layer (injected `newTicker`) and the E2E layer (a forced idle threshold + scripted quiet command); WS-B's arithmetic is a unit-layer pin (injected `now`) plus an E2E two-figure assertion.
+- **Interaction of the two workstreams**: a resumed indicator during a streaming block must keep the turn-scoped total and the per-call **model-call** figure **consistent across the pause/resume** — pinned by an E2E that combines a quiet command with a second call.
+- **Witness layering**: WS-A's idle-gap mechanism is observable at both the unit layer (injected `newTicker`, incl. the race + anti-vacuity cases) and the E2E layer (a **real** idle gap: a small nonzero forced threshold + a **child** `sleep` exceeding `N + 2·P` with margin); WS-B's arithmetic is a unit-layer pin (injected `now`) plus an E2E two-figure assertion.
 - **Width safety**: the two-figure line is longer than the round-019/025 line, so the round-025 rune-based `rowsForLine`/`eraseRows` bound is the carrier for "no residue" and must be re-witnessed.
 
 ## Ready verdict

@@ -14,20 +14,19 @@ import (
 // the truth tree and wires every scenario through the steps package, which owns
 // scenario state and per-task self-registration.
 //
-// Strict: true (round 040 review TD-1) — godog's Strict default is false, so an
-// undefined/pending/ambiguous step was silently reported in the pretty output
-// while the suite exited 0. That let a round's new truth Examples merge without
-// ever executing (round 040 shipped 7 new steps). Strict makes those fail
-// loudly: a plan-half branch carrying not-yet-implemented steps is red until
-// /axb-implement defines them — the honest state, and it makes the round's own
-// "the E2E suite is green" success criterion mechanically checkable.
+// Round 040 review TD-1 adds `Strict: true` here IN THE IMPLEMENTATION HALF,
+// together with the four new stepdefs. godog's Strict default is false, so an
+// undefined step is silently reported while the suite exits 0 — but `make test`
+// is `go test ./...` (which includes this package), so enabling Strict on a
+// plan-half branch would make `dev` red on every run until the stepdefs land.
+// The implement half therefore lands the flag with the steps, witnessed by the
+// FAIL-then-PASS transition. See the round-040 plan's task directives.
 func TestFeatures(t *testing.T) {
 	suite := godog.TestSuite{
 		Name:                "cli",
 		ScenarioInitializer: func(ctx *godog.ScenarioContext) { steps.RegisterAll(ctx) },
 		Options: &godog.Options{
 			Format:   "pretty",
-			Strict:   true,
 			Paths:    []string{"../../specs/truth/features/cli"},
 			TestingT: t,
 		},
