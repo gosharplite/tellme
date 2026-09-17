@@ -2,6 +2,7 @@ package prompt
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -27,10 +28,11 @@ func maxLineLen(s string) int {
 	return max
 }
 
-// TestModelRendersReferenceChrome (round-016 T017): the model renders the framed
-// editor + styled suggestion list (the `>` cursor on EXACTLY ONE row), and NO
-// session metrics header (strict parity). The exact cursor count is asserted on
-// the single View() frame (round-016 implementation-review BLOCKER: the E2E
+// TestModelRendersReferenceChrome (round-016 T017; round 037): the model renders the
+// framed editor + styled suggestion list with NO session metrics header (strict parity),
+// and — round 037 — NO suggestion pre-selected (the `>` cursor appears on ZERO rows at
+// rest, aligning to the reference's `suggester{Index: -1}`). The exact cursor count is
+// asserted on the single View() frame (round-016 implementation-review BLOCKER: the E2E
 // capture accumulates frames, so exactness lives here).
 func TestModelRendersReferenceChrome(t *testing.T) {
 	m := New(context.Background(), strings.NewReader(""), &strings.Builder{}, &fakeSource{items: []string{"deploy to staging with version 016"}})
@@ -44,8 +46,8 @@ func TestModelRendersReferenceChrome(t *testing.T) {
 	if !strings.Contains(view, suggesterHeader) {
 		t.Fatalf("View() missing the %q header: %q", suggesterHeader, view)
 	}
-	if n := strings.Count(view, "> "); n != 1 {
-		t.Fatalf("View() selection cursor count = %d, want exactly 1: %q", n, view)
+	if n := strings.Count(view, "> "); n != 0 {
+		t.Fatalf("View() selection cursor count = %d, want exactly 0 (no pre-selection): %q", n, view)
 	}
 	lower := strings.ToLower(view)
 	if strings.Contains(lower, "tokens:") || strings.Contains(lower, "turns:") {
@@ -53,12 +55,93 @@ func TestModelRendersReferenceChrome(t *testing.T) {
 	}
 }
 
-// TestModelCursorDefaultsToFirstItem (round-016 T008/T017, architect D4): with
-// items present, exactly the first is the current choice.
-func TestModelCursorDefaultsToFirstItem(t *testing.T) {
+// TestModelCursorStartsNoChoice (round-037 T002; supersedes round-016 T008/T017,
+// architect D4): with items present, NO suggestion is the current choice at rest.
+func TestModelCursorStartsNoChoice(t *testing.T) {
 	m := New(context.Background(), strings.NewReader(""), &strings.Builder{}, &fakeSource{items: []string{"a", "b"}})
-	if got := m.sug.selected(); got != "a" {
-		t.Fatalf("cursor default = %q, want the first item %q", got, "a")
+	if got := m.sug.selected(); got != "" {
+		t.Fatalf("cursor default = %q, want no selection (empty)", got)
+	}
+	if n := strings.Count(m.View(), "> "); n != 0 {
+		t.Fatalf("a fresh prompt marked %d suggestion row(s), want 0", n)
+	}
+}
+
+// TestTabFromNoChoiceSelectsFirst (round-037 T002): the first Tab from the no-choice
+// state selects (and inserts) the FIRST suggestion (reference arithmetic: -1 -> 0).
+func TestTabFromNoChoiceSelectsFirst(t *testing.T) {
+	m := New(context.Background(), strings.NewReader(""), &strings.Builder{}, &fakeSource{items: []string{"deploy to staging", "review the last commit"}})
+	if m.sug.selected() != "" {
+		t.Fatalf("expected no pre-selection, got %q", m.sug.selected())
+	}
+	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	if got := m.sug.selected(); got != "deploy to staging" {
+		t.Fatalf("first Tab selected %q, want the first suggestion %q", got, "deploy to staging")
+	}
+	if got := m.ed.value(); got != "deploy to staging" {
+		t.Fatalf("first Tab insert = %q, want %q", got, "deploy to staging")
+	}
+}
+
+// TestCycleArithmetic (round-037 T004 / review F-4): freezes the reference's exact
+// `(cursor+delta+len)%len` arithmetic for the no-choice sentinel and both directions,
+// including the deliberate `Shift+Tab`-from-no-choice landing on `len-2` (NOT the last
+// row) — the round's most surprising user-visible behaviour — and the `len == 1` case
+// (Go's `%` truncates toward zero, so any integer mod 1 is 0 → the sole item IS
+// selectable by both keys, not "no selection"). FR-003's wrap + `Shift+Tab` clauses.
+func TestCycleArithmetic(t *testing.T) {
+	cases := []struct {
+		name        string
+		n, cursor   int
+		delta, want int
+	}{
+		{"len1 Tab", 1, noChoice, +1, 0},
+		{"len1 ShiftTab", 1, noChoice, -1, 0},
+		{"len2 Tab", 2, noChoice, +1, 0},
+		{"len2 ShiftTab", 2, noChoice, -1, 0},
+		{"len3 Tab", 3, noChoice, +1, 0},
+		{"len3 ShiftTab", 3, noChoice, -1, 1},
+		{"len3 wrap back from first", 3, 0, -1, 2},
+		{"len3 wrap forward from last", 3, 2, +1, 0},
+	}
+	for _, tc := range cases {
+		items := make([]string, tc.n)
+		for i := range items {
+			items[i] = fmt.Sprintf("i%d", i)
+		}
+		s := suggester{items: items, cursor: tc.cursor}
+		s.cycle(tc.delta)
+		if s.cursor != tc.want {
+			t.Errorf("%s: cycle(%d) from cursor %d with len %d = %d, want %d", tc.name, tc.delta, tc.cursor, tc.n, s.cursor, tc.want)
+		}
+		if tc.cursor == noChoice && s.selected() == "" {
+			t.Errorf("%s: a key from no-choice left no selection (cursor %d, len %d)", tc.name, s.cursor, tc.n)
+		}
+	}
+}
+
+// TestModelUnselectedQuoteTextIsNotACursorRow (round-037 review G-2): a suggestion
+// whose TEXT begins with "> " is an UNSELECTED row and must not render the cursor-row
+// prefix. The rendered cursor row is exactly `"  > "` (modelStyle Padding(1,1) +
+// suggesterStyle Padding(0,1) = 2 leading spaces, then the `> ` cursor); an
+// unselected row renders the 4-space row prefix, so `"> quoted reply"` renders
+// `"    > quoted reply"` — this pins the spacing the E2E cursor predicate relies on.
+func TestModelUnselectedQuoteTextIsNotACursorRow(t *testing.T) {
+	m := New(context.Background(), strings.NewReader(""), &strings.Builder{}, &fakeSource{items: []string{"> quoted reply", "deploy to staging"}})
+	view := m.View()
+	if strings.Contains(view, "\n  > ") {
+		t.Fatalf("an unselected '> '-leading suggestion rendered the cursor-row prefix: %q", view)
+	}
+	if !strings.Contains(view, "    > quoted reply") {
+		t.Fatalf("expected the unselected '> '-leading suggestion to render with the 4-space row prefix: %q", view)
+	}
+	// A real cursor row renders `"  > "` (selecting the first suggestion).
+	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	if got := m.sug.selected(); got != "> quoted reply" {
+		t.Fatalf("Tab selected %q, want the first suggestion %q", got, "> quoted reply")
+	}
+	if !strings.Contains(m.View(), "\n  > ") {
+		t.Fatalf("the selected row did not render the cursor-row prefix: %q", m.View())
 	}
 }
 
@@ -74,9 +157,10 @@ func TestModelResizeReflowsWidth(t *testing.T) {
 	}
 }
 
-// TestModelTabInsertsSuggestion (round-016 T017, FR-007): Tab inserts the
+// TestModelTabInsertsSuggestion (round-016 T017, FR-007; round 037): Tab inserts the
 // current choice — whole-line replace, and last-token replace for a multi-word
-// line with a single-token suggestion (F2 unit pin).
+// line with a single-token suggestion (F2 unit pin). Round 037: the first Tab now
+// selects the first suggestion from the no-choice state.
 func TestModelTabInsertsSuggestion(t *testing.T) {
 	whole := New(context.Background(), strings.NewReader(""), &strings.Builder{}, &fakeSource{items: []string{"deploy to staging"}})
 	whole.ed.setValue("deploy")
