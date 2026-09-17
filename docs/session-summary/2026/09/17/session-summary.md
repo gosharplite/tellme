@@ -740,7 +740,7 @@ The `/axb-implement` PR [#86](https://github.com/gosharplite/tellme/pull/86) was
 
 ## 18. Session 10 (cont.) — round 040 **DELIVERED** (PR #86 merged into `dev` `87af8c8`) + `go install` + `SESSION-CLOSEOUT.md`
 
-The delivery + end-of-day closeout for round 040: the operator merged PR [#86](https://github.com/gosharplite/tellme/pull/86) into `dev`, the installed binary was refreshed, and `SESSION-CLOSEOUT.md` Steps 1–8 ran. **Propagation `dev → main` is the one remaining step, pending the operator's approval.**
+The delivery + end-of-day closeout for round 040: the operator merged PR [#86](https://github.com/gosharplite/tellme/pull/86) into `dev`, the installed binary was refreshed, and `SESSION-CLOSEOUT.md` Steps 1–8 ran. **Propagated `dev → main` (no-ff, `40a3abb`) — round 040 is delivered on both lines.**
 
 ### At a glance
 | Area | Outcome |
@@ -753,7 +753,7 @@ The delivery + end-of-day closeout for round 040: the operator merged PR [#86](h
 | Closeout Step 4 | this §18 |
 | Closeout Step 5 | `STATUS.md` ↔ §18 reconciled (same round position, heads, decisions, open items) |
 | Closeout Step 6 | committed + pushed on `dev` |
-| Closeout Step 7 | **Propagation `dev → main` PENDING operator approval** (the only open closeout step) |
+| Closeout Step 7 | **Propagated `dev → main`** (no-ff `40a3abb`, operator-approved) — **DONE** |
 | Closeout Step 8 | **#82 CLOSED** + **#83 CLOSED** (delivered); **#87** open (new, pre-existing `di` flake); #69/#60/#13 open (accurate) |
 
 ### Decisions
@@ -763,7 +763,7 @@ The delivery + end-of-day closeout for round 040: the operator merged PR [#86](h
 | D2 | `go install` refreshes the installed binary from the delivered head (`436bd70`). |
 | D3 | Closeout docs land on **`dev`** (round branches frozen). |
 | D4 | **`di` flake attribution protocol** applied to the delivery gate (per the architect's #87 recommendation): on whole-suite red, run `di` standalone; green ⇒ attribute to **#87** and re-run the gate rather than treating delivery as failed. |
-| D5 | Propagation `dev → main` (no-ff) **held pending the operator's explicit approval** (closeout Rule 8). |
+| D5 | Propagation `dev → main` (no-ff) **approved and DONE** (`40a3abb`); `dev` is an ancestor of `main`, trees identical. |
 | D6 | Round-040's own detail **stays** in `STATUS.md` as the (delivered) current round until round `041-*` opens, then relocates to [`2026-09-17.md`](../../../../archives/status/2026-09-17.md) (Rule 12). |
 
 ### Commits (branch `dev`)
@@ -771,6 +771,7 @@ The delivery + end-of-day closeout for round 040: the operator merged PR [#86](h
 | --- | --- |
 | `87af8c8` | PR [#86](https://github.com/gosharplite/tellme/pull/86) merge into `dev` (by the operator) |
 | *(this closeout)* | `docs(040)`: day close — round 040 delivered + STATUS + daily summary |
+| `40a3abb` | propagation `dev → main` (no-ff) |
 
 ### Verification (2026-09-17, on `dev` @ `87af8c8`)
 - `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (no-test-sleep · offline witness · cross-compile 4/4 · mcp-sdk-confinement · golangci-lint 0 · govulncheck clean).
@@ -779,12 +780,12 @@ The delivery + end-of-day closeout for round 040: the operator merged PR [#86](h
 - Diff-level secret scan **clean**; `go.mod`/`go.sum` unchanged (stdlib-only).
 
 ### Open items (non-blocking)
-- **Propagation `dev → main` — PENDING** (awaits the operator's go-ahead).
+- **Propagation `dev → main` — DONE (no-ff, `40a3abb`)**.
 - **Round-040 forward items** — the one-concurrent-block limit → **#69**; the `End`-while-write-stalled accepted residual (in `coordinator.go`); the fixed 3 s idle default; the two-figure soft-wrap residual; the fail-loud header-marker content keying.
 - Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; older-round forward items (in the archives).
 
 ### Next steps
-1. **Operator approves** → propagate `dev → main` (no-ff) — the final closeout step.
+1. ~~Operator approves → propagate `dev → main`~~ — **DONE** (no-ff, `40a3abb`); each subsequent closeout-doc commit is propagated the same way so `main` tracks `dev`.
 2. Next session: open round **`041-*`** off `dev` via `/axb-specify` (candidates: [#69](https://github.com/gosharplite/tellme/issues/69) — now carries seven scope items; [#87](https://github.com/gosharplite/tellme/issues/87); [#60](https://github.com/gosharplite/tellme/issues/60); [#13](https://github.com/gosharplite/tellme/issues/13)).
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
