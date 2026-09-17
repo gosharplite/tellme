@@ -57,7 +57,52 @@ func TestCallTailStillRendersANonBlankReasonLine(t *testing.T) {
 	var buf bytes.Buffer
 	r := newTestCallRenderer(&buf)
 	r.OnCallEnd(0, llm.Usage{Reported: false}, []string{"because"}, false)
-	if got := buf.String(); got != "[08:00:00] [Tool Reason] because\n" {
-		t.Errorf("tail reason rendering = %q; want one [Tool Reason] line", got)
+	// Round 039: the trailing grouped reason block is preceded by exactly one
+	// blank line.
+	if got := buf.String(); got != "\n[08:00:00] [Tool Reason] because\n" {
+		t.Errorf("tail reason rendering = %q; want a blank line then one [Tool Reason] line", got)
+	}
+}
+
+// Round 039: the post-status group (measured payload + metrics + `Ready`) is
+// preceded by exactly one blank line, after the trailing reason block (which is
+// itself preceded by one blank).
+func TestCallTailBlanksBeforeReasonsAndPostStatus(t *testing.T) {
+	var buf bytes.Buffer
+	r := newTestCallRenderer(&buf)
+	r.OnCallEnd(0, llm.Usage{Reported: true, PromptTokens: 10, CompletionTokens: 5}, []string{"checking"}, false)
+	out := buf.String()
+
+	// Exactly one blank line before the reason block, reason line right after it.
+	if !strings.HasPrefix(out, "\n[08:00:00] [Tool Reason] checking\n") {
+		t.Errorf("expected one blank line before the reason block; out=%q", out)
+	}
+	// Exactly one blank line before the measured payload line (post-status group).
+	if !strings.Contains(out, "checking\n\n[08:00:00] Payload: 10/") {
+		t.Errorf("expected one blank line before the post-status group; out=%q", out)
+	}
+	// No blank inside the reason block and no double blank before the payload.
+	if strings.Contains(out, "checking\n\n\n") {
+		t.Errorf("more than one blank line before the post-status group; out=%q", out)
+	}
+}
+
+// Round 039 review B1: a TOOL-LESS turn (only a final call, no rendered tool
+// round) must gain NO blank before its post-status group — FR-009 / the
+// edge-case list / ADR 0008 D5's closing sentence all say a non-tool turn is
+// unchanged.
+func TestCallTailNoBlankBeforePostStatusWithoutToolRound(t *testing.T) {
+	var buf bytes.Buffer
+	r := newTestCallRenderer(&buf)
+	// The tool-less path: the loop fires exactly one final call, whose tail is
+	// deferred; nothing sets renderedToolRound.
+	r.OnCallEnd(0, llm.Usage{Reported: true, PromptTokens: 10, CompletionTokens: 5}, nil, true)
+	r.EmitFinalTail()
+	out := buf.String()
+	if strings.HasPrefix(out, "\n") {
+		t.Errorf("a tool-less turn gained a leading blank line before the post-status group; out=%q", out)
+	}
+	if !strings.HasPrefix(out, "[08:00:00] Payload: 10/") {
+		t.Errorf("the post-status group should start flush for a tool-less turn; out=%q", out)
 	}
 }
