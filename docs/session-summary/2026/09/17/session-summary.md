@@ -795,3 +795,53 @@ The delivery + end-of-day closeout for round 040: the operator merged PR [#86](h
 
 ### Issue tracker (closeout Step 8)
 **[#82](https://github.com/gosharplite/tellme/issues/82) CLOSED (completed)** + **[#83](https://github.com/gosharplite/tellme/issues/83) CLOSED (completed)** — delivered by round 040 (PR [#86](https://github.com/gosharplite/tellme/pull/86) merged `87af8c8`; linking comments posted). **[#87](https://github.com/gosharplite/tellme/issues/87) OPEN (new)** — the `di` gh-token-resolver test flake (pre-existing; proved on the pre-PR base `dev` `802e51c`; out of round-040 scope; its own round). **[#69](https://github.com/gosharplite/tellme/issues/69) OPEN** — the single-ownership refactor, now also carrying the round-040 one-concurrent-block forward item. **[#60](https://github.com/gosharplite/tellme/issues/60) OPEN** (dogfooding) · **[#13](https://github.com/gosharplite/tellme/issues/13) OPEN** (coverage tooling). No revisions needed.
+
+---
+
+## 19. Session 11 (2026-09-17) — round 041 `041-di-resolver-test-load-tolerance` (IN FLIGHT): implementation delivered + two review-fold chains; process lessons
+
+An eleventh session on the same calendar day: bootstrapped, opened round **041** from issue **#87** (the `di` gh-token-resolver test flake), ran the pipeline (`/axb-specify` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-tasks` → `/axb-implement`), pushed **PR [#88](https://github.com/gosharplite/tellme/pull/88)** → `dev`, and folded two architect re-reviews.
+
+**Branch**: `041-di-resolver-test-load-tolerance` (off `dev`) — PR **#88 open** (awaiting merge at closeout).
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Round theme | the `di` bounded `gh`-token-resolver **unit-test flake** (**#87**): a whole-suite run reddened ~½ of the time with `signal: killed` at exactly `2.00s` |
+| Root cause (measured) | the **positive** test **hardcoded its own `2 * time.Second`** budget — **not** the caller's bound (production: `mcpDiscoveryBound = 3 s`; the 2 s literal mirrors the sibling `ghWaitDelay = 2 s`); a ≈**14–17×** host-speed factor under whole-suite load |
+| Fix (D1–D4) | **D1** generous test-local bound (`generousResolverBound = 30 s`); **D2** dominant `PATH` in `writeFakeGh` (retires the round-032 **N1** contortion); **D3** `_Bounded` = sole boundedness carrier (200 ms + an **exit-code** non-vacuity pin — signal-killed child, `ExitCode() == -1` — + a 2 s ceiling); **D4** missing-`gh` recorded non-change |
+| Pipeline | specify ✅ · technical-research ✅ (ADR **0010**) · system-analysis ✅ (**0 interfaces**; api/data/dsl-refine **NOOP**) · tasks ✅ (T001–T006; orphan sweep 0) · implement ✅ (witnesses (a)/(b)/(c); `-count=20 -timeout 30m ./...` **exit 0**) |
+| Review #1 | PR #88 architect review (`c88ee46`) — **APPROVE WITH REQUIRED FOLDS** (R-1…R-5) → fold `b5197a0` + ledger `48b5bbc` |
+| Review #1 re-review | (`3cb8ec8`) **CERTIFIED** + R-6/R-7/R-8/R-9 → fold `ba935af` |
+| Review #2 re-review | (`ba935af`) R-6/R-7/R-8/R-9 **verified landed** + **R-10** (PR title/body) + R-11/R-12/R-13 (closeout-log lessons) |
+
+### The two folds that mattered
+- **R-1 / R-6 / R-10 — one premise, three durable surfaces.** The round's premise called the test's 2 s literal *"the production fast-fail constant"*. It is **not**: production's bound is `mcpDiscoveryBound = 3 s`, and the 2 s figure is the sibling `ghWaitDelay` (round-032 `0a3ad9c`). The correction had to reach **ADR 0010** (R-1), **issue #87's body** (R-6, the durable surface per §15), and **PR #88's title + body** (R-10, the merge record).
+- **R-2** — the F-1 fold (the vacuity pin became an **exit-code** check, because the planned `elapsed >= bound` **flaked to PASS** at a 200 ms bound) had only reached 4 of ~12 sites; swept.
+- **R-3/R-7** — the 2 s ceiling's margin is a **recorded residual** (validated in the `-count=20 <pkg>`-under-e2e config; whole-suite package parallelism not covered; adds no discriminating power under D3) — an ADR **D2** forward pointer names it.
+- **R-4** — the production bound's headroom for a real `gh` (unmeasured) → **issue [#89](https://github.com/gosharplite/tellme/issues/89)**.
+- **R-8** — the provenance lesson re-attributed: the phrase was **inherited** from #87's root-cause comment (`5713960582`) and **ratified unverified**; the lesson is now *"a reviewer's claim is not evidence either"*.
+
+### Process lessons (R-9 / R-11 / R-12 / R-13) — to carry into the closeout lesson set
+
+> **§19-a — ledger rows name heads, not their own SHA (R-9/R-13).** A ledger row names the **reviewed head** + the **content-fold head**; the ledger commit identifies itself by **content** (*"the row's introducing commit"*), never by its own SHA. Convention is **forward-only** (legacy rows keep their explicit SHAs).
+
+> **§19-b — report a fold as landed only after the commit exists and the artifact is re-read (R-11).** A fold report is itself a claim subject to the standard it demands of others (R-1/R-8): the round's fold report at 13:18:45 preceded the #87 body edit (13:19:31) and the commit (13:19:49).
+
+> **§19-c — the body is authored truth; comments are history (R-12).** Comments are **not** retro-edited — except a comment whose *premise* is **disproved**, which gets an in-place **Superseded** banner pointing at the corrected body.
+
+> **§19-d — verify against the call site; a claim is not evidence (R-1/R-6/R-10/R-8).** Neither a plausible-looking constant, nor a disproved hypothesis left standing, nor a reviewer's summary, nor a narration of work-not-yet-done, is evidence. This round generated **three instances** of *narrate-then-verify* (the ADR premise, the STATUS head block, the fold report) — the verification doctrine encoded in **ADR 0010** must apply to the round's own claims.
+
+### Verification (2026-09-17, on `ba935af`)
+- `gofmt` clean · `go vet` clean · `go test -count=1 ./internal/infrastructure/di/` **ok**.
+- `go test -count=20 -timeout 30m ./...` → **exit 0** (16 m 15 s; 22 packages `ok`); `go test -count=20 ./internal/infrastructure/di/` green **under contention** (10.2 s, concurrent with 3 whole-suite passes).
+- `make verify` **OK**; topology audit **PASSED & unchanged** (44 · 6 · 16 + 327 · 1674).
+- Changed-file set vs `dev`: **only** `internal/infrastructure/di/mcp_factory_test.go` in Go (`mcp_factory.go` byte-identical) + docs; `go.mod`/`go.sum` unchanged.
+
+### Open items (non-blocking)
+- **PR #88 open** — awaiting human merge; then propagate `dev → main` (no-ff), `go install ./cmd/tellme`, close **#87**, and finish the closeout (absorb §19-a…§19-d into the lesson set).
+- **#89** — the bound-headroom measurement + wiring pin (forward).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; the `di` sibling wall-clock-assertion class (round-041 **Q6**, its own round).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
