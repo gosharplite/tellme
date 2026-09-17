@@ -31,8 +31,12 @@ var updateBaseline = flag.Bool("update-baseline", false,
 // a third-party import and is out of scope for the layer rule.
 const modulePath = "github.com/gosharplite/tellme/"
 
-// listFormat is the `go list` template: one `importPath|imports` line per package.
-const listFormat = `{{.ImportPath}}|{{join .Imports " "}}`
+// listFormat is the `go list` template. It carries three import sets: production
+// imports, in-package test imports (`.TestImports`), and external test-package
+// imports (`.XTestImports`). Test imports ARE evaluated (spec.md Q2: "`_test.go`
+// imports in `internal/**` are also governed") — `.Imports` alone would miss a
+// test-only upward import (review Fold 1).
+const listFormat = `{{.ImportPath}}|{{join .Imports " "}}|{{join .TestImports " "}}|{{join .XTestImports " "}}`
 
 // crossTargets mirrors the Makefile's CROSS_TARGETS. The gate evaluates the
 // UNION over every supported target so an OS-gated illegal import cannot hide
@@ -306,7 +310,7 @@ func enumerate(t *testing.T, root string) map[string]map[string]bool {
 			if line == "" {
 				continue
 			}
-			pkg, imps, _ := strings.Cut(line, "|")
+			pkg, rest, _ := strings.Cut(line, "|")
 			rp, ok := rel(pkg)
 			if !ok {
 				continue
@@ -314,9 +318,15 @@ func enumerate(t *testing.T, root string) map[string]map[string]bool {
 			if graph[rp] == nil {
 				graph[rp] = map[string]bool{}
 			}
-			for _, imp := range strings.Fields(imps) {
-				if rd, ok := rel(imp); ok {
-					graph[rp][rd] = true
+			// Merge production + in-package test + external test-package imports
+			// (Fold 1): a test file's import is an edge from the package it lives in.
+			imps, rest, _ := strings.Cut(rest, "|")
+			testImps, xTestImps, _ := strings.Cut(rest, "|")
+			for _, group := range []string{imps, testImps, xTestImps} {
+				for _, imp := range strings.Fields(group) {
+					if rd, ok := rel(imp); ok {
+						graph[rp][rd] = true
+					}
 				}
 			}
 		}
