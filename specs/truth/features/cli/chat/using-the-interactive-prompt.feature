@@ -29,3 +29,19 @@ Feature: Using the interactive prompt
       When the operator aborts the interactive prompt
       Then tellme sends no request to the provider "test-model"
       And tellme exits successfully
+
+  Rule: An empty submit at the interactive prompt is ignored
+
+    # Round 038 (issue #76): submitting an empty (or whitespace-only) editor with Ctrl+S / Alt+Enter
+    # is a no-op — the prompt stays open (reference parity); only a non-empty submit runs a turn.
+
+    Example: An accidental empty submit is ignored and the next submit runs
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the operator is working at an interactive terminal
+      And a configured provider "test-model" whose endpoint answers with "ok"
+      When the operator submits an empty prompt then submits the prompt "hi" at the interactive prompt
+      Then the interactive prompt is shown
+      And tellme sends exactly one request to the provider "test-model"
+      And tellme prints the provider's answer "ok"
+      And tellme exits successfully

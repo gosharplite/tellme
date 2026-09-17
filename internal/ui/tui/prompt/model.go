@@ -115,11 +115,9 @@ func (m *Model) handleKey(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.aborted = true
 		return m, tea.Quit
 	case key.Type == tea.KeyCtrlS:
-		m.submitted = strings.TrimSpace(m.ed.value()) != ""
-		return m, tea.Quit
+		return m, m.trySubmit()
 	case key.Type == tea.KeyEnter && key.Alt:
-		m.submitted = strings.TrimSpace(m.ed.value()) != ""
-		return m, tea.Quit
+		return m, m.trySubmit()
 	case key.Type == tea.KeyTab:
 		m.accept(1)
 		return m, nil
@@ -147,6 +145,19 @@ func (m *Model) handleKey(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 // synchronously on each change — the hermetic E2E seam (TELL_ME_TUI_DEBOUNCE=0),
 // so the scripted keys observe suggestions without a timing pause (round-016).
 func (m *Model) SetDebounce(d time.Duration) { m.debounce = d }
+
+// trySubmit submits the composed prompt when the editor holds non-whitespace
+// text. Round 038 (issue #76): an EMPTY (or whitespace-only) submit is a no-op —
+// it returns no command so the model keeps running (the prompt stays open),
+// mirroring the reference's submit() (which returns false and keeps the model
+// running). A real submit marks the model submitted and returns tea.Quit.
+func (m *Model) trySubmit() tea.Cmd {
+	if strings.TrimSpace(m.ed.value()) == "" {
+		return nil // empty submit: stay in the prompt
+	}
+	m.submitted = true
+	return tea.Quit
+}
 
 // accept inserts the current choice into the editor: it replaces only the last
 // token when the line is multi-word and the suggestion is a single token,
