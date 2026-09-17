@@ -31,7 +31,7 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 | `040-implement-spinner-liveness-and-turn-timer` | **merged into `dev`** (`/axb-tasks` half; PR [#85](https://github.com/gosharplite/tellme/pull/85) → `07c88ea`, fast-forward) | Round 040's **`/axb-tasks`** branch — off `dev`; carried `tasks.md` (T001–T016) + the ten review folds (**zero product code**). **`/axb-implement` runs next session on a fresh branch off `dev`.** |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`; only a human merges the PR. Propagation is the no-ff merge `dev → main`.
-> **Propagation history**: rounds 026–039 — **DONE (no-ff)**; round 040 — **PENDING** (the plan half merged to `dev`; propagation waits on **delivery**).
+> **Propagation history**: rounds 026–039 — **DONE (no-ff)**; round 040 — **PENDING** (plan+truth+tasks merged to `dev`; propagation waits on **delivery**).
 > Read live heads with `git rev-parse --short origin/main origin/dev` (this clone has no local `main`/`dev` refs — only `origin/*`).
 
 ## Roadmap — next slices
