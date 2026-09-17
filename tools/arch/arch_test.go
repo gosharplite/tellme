@@ -52,6 +52,11 @@ var crossTargets = []struct{ goos, goarch string }{
 // (an ambient export must not be able to redden the gate). Everything else —
 // notably PATH/HOME/GOPATH/GOMODCACHE/GOCACHE, which carry the warm module cache
 // — is preserved (ADR 0011 D5, review F-1).
+//
+// Defence-in-depth: the Makefile's hermetic `export`/`unexport` block (ADR 0012)
+// is the PRIMARY owner for `make`-launched invocations; this filter covers the
+// gate's documented DIRECT invocation (`go test -count=1 -tags=arch … ./tools/arch`),
+// which bypasses `make`. The two variable sets MUST NOT drift silently.
 var droppedBuildEnv = map[string]bool{
 	"GOOS":         true,
 	"GOARCH":       true,

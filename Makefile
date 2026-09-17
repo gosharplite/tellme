@@ -5,6 +5,32 @@
 
 VERSION ?= dev
 
+# ---- Hermetic Go-toolchain environment (ADR 0012; issue #96) -----------------
+# Every recipe — and every nested `go` a scripted recipe spawns (e.g. `make test`
+# via the E2E harness, `verify-no-network`) — launches the Go toolchain through
+# this boundary, so a persisted (`go env -w`) or exported Go setting cannot
+# redden a target for reasons unrelated to the tree.
+#
+# NEUTRALISE:
+#   * GOENV=off is load-bearing — Go falls back to the env *file* for a variable
+#     that is unset OR empty, so unsetting GOFLAGS does NOT neutralise a persisted
+#     `go env -w GOFLAGS=-mod=vendor` (round-042 F-2 / ADR 0011 D5);
+#   * GOWORK=off — a stray go.work must not redirect the build;
+#   * GOFLAGS/GO111MODULE/GOEXPERIMENT unset; ambient GOOS/GOARCH/GOARM unset
+#     (host-native builds).
+# PRESERVE (untouched): PATH/HOME/GOPATH/GOMODCACHE/GOCACHE (the warm module
+# cache), and GOPROXY/GOSUMDB/GOPRIVATE/GONOSUMDB/GOINSECURE (a cold-cache or
+# proxied build still resolves).
+# CGO_ENABLED stays at the host default; a recipe's INLINE per-target assignment
+# still wins for that recipe (e.g. verify-cross-compile's `CGO_ENABLED=0 GOOS=…
+# GOARCH=… go build`).
+# Defence-in-depth for a gate run DIRECTLY (bypassing `make`): tools/arch's own
+# `childEnv` filter (ADR 0011 D5) — the two variable sets MUST NOT drift silently.
+export GOENV := off
+export GOWORK := off
+unexport GOFLAGS GO111MODULE GOEXPERIMENT GOOS GOARCH GOARM
+# -----------------------------------------------------------------------------
+
 STATICCHECK := $(shell command -v staticcheck 2>/dev/null)
 GOLANGCI := $(shell command -v golangci-lint 2>/dev/null)
 GOVULNCHECK := $(shell command -v govulncheck 2>/dev/null)
