@@ -6,29 +6,48 @@
 VERSION ?= dev
 
 # ---- Hermetic Go-toolchain environment (ADR 0012; issue #96) -----------------
-# Every recipe — and every nested `go` a scripted recipe spawns (e.g. `make test`
-# via the E2E harness, `verify-no-network`) — launches the Go toolchain through
-# this boundary, so a persisted (`go env -w`) or exported Go setting cannot
-# redden a target for reasons unrelated to the tree.
+# Every recipe — and every descendant process a recipe spawns (e.g. the E2E
+# harness's `go build` behind `make test`, the witness behind `verify-no-network`)
+# — launches the Go toolchain through this boundary, so a persisted (`go env -w`)
+# or exported Go setting cannot redden a target for reasons unrelated to the tree.
+#
+# The set is CRITERION-DERIVED (ADR 0012 D2): NEUTRALISE the ambient build
+# context — whatever changes WHAT the toolchain builds or WHICH toolchain builds
+# it; PRESERVE the plumbing — whatever only lets that build happen.
 #
 # NEUTRALISE:
 #   * GOENV=off is load-bearing — Go falls back to the env *file* for a variable
 #     that is unset OR empty, so unsetting GOFLAGS does NOT neutralise a persisted
 #     `go env -w GOFLAGS=-mod=vendor` (round-042 F-2 / ADR 0011 D5);
 #   * GOWORK=off — a stray go.work must not redirect the build;
-#   * GOFLAGS/GO111MODULE/GOEXPERIMENT unset; ambient GOOS/GOARCH/GOARM unset
-#     (host-native builds).
+#   * GOFLAGS/GO111MODULE/GOEXPERIMENT unset — module mode + build flags;
+#   * GOTOOLCHAIN/GOFIPS140/GODEBUG unset — toolchain selection, build-mode
+#     switch, runtime defaults (an exported GOTOOLCHAIN pin selects a different
+#     toolchain: `GOTOOLCHAIN=go1.99.9 make vet` is exit 2 without this);
+#   * the target triple — GOOS/GOARCH AND the micro-architecture family
+#     (GOARM/GOARM64/GOAMD64/GO386/GOMIPS/GOMIPS64/GOPPC64/GORISCV64/GOWASM) —
+#     unset (host-native; "host-native" for an unset GOOS/GOARCH covers the
+#     OS/arch PAIR only, not the micro-arch level).
 # PRESERVE (untouched): PATH/HOME/GOPATH/GOMODCACHE/GOCACHE (the warm module
 # cache), and GOPROXY/GOSUMDB/GOPRIVATE/GONOSUMDB/GOINSECURE (a cold-cache or
 # proxied build still resolves).
-# CGO_ENABLED stays at the host default; a recipe's INLINE per-target assignment
-# still wins for that recipe (e.g. verify-cross-compile's `CGO_ENABLED=0 GOOS=…
-# GOARCH=… go build`).
+# CGO_ENABLED is preserved from the caller (neither set nor unset — NOT globally
+# pinned); a recipe's INLINE per-target assignment still wins for that recipe
+# (e.g. verify-cross-compile's `CGO_ENABLED=0 GOOS=… GOARCH=… go build`).
+# SCOPE: recipes and their descendants only — parse-time `$(shell …)`/`$(eval …)`
+# and make command-line variables are OUTSIDE this boundary (keep `go` out of
+# `$(shell …)`); an already-exported name is overridden by a command-line
+# assignment (`make GOENV=<file> …` — the escape hatch).
 # Defence-in-depth for a gate run DIRECTLY (bypassing `make`): tools/arch's own
-# `childEnv` filter (ADR 0011 D5) — the two variable sets MUST NOT drift silently.
+# `childEnv` filter (ADR 0011 D5) keeps that gate's VERDICT hermetic. The two
+# sites neutralise by different mechanisms (here: disable the env file + unset;
+# there: re-set explicit values), so their invariant is COVERAGE — every name
+# below is re-set by `childEnv` or recorded as a known non-covered name — and
+# NOT set-equality (ADR 0012 D6).
 export GOENV := off
 export GOWORK := off
-unexport GOFLAGS GO111MODULE GOEXPERIMENT GOOS GOARCH GOARM
+unexport GOFLAGS GO111MODULE GOEXPERIMENT GOTOOLCHAIN GOFIPS140 GODEBUG
+unexport GOOS GOARCH GOARM GOARM64 GOAMD64 GO386 GOMIPS GOMIPS64 GOPPC64 GORISCV64 GOWASM
 # -----------------------------------------------------------------------------
 
 STATICCHECK := $(shell command -v staticcheck 2>/dev/null)
