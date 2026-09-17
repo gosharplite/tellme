@@ -646,7 +646,7 @@ Across all ten passes **not one** review required a change to scope, mechanism, 
 | — | Round 040's **plan + truth + tasks** are all on `dev` (`146210d` then `07c88ea`); the **implementation half** (`/axb-implement`, T001–T016) is the **next session's** work on a fresh branch off `dev`. |
 | — | **Propagation `dev → main` stays PENDING** — it runs at **delivery**, not at the plan/tasks merges. |
 | — | E-1/E-2 folded (log hygiene only); `tasks.md`'s fold-log headers now carry the two-SHA per-review label project-wide. |
-| — | **PM-owned, pending operator ratification**: `spec.md` **SC-003** (TD-5) and **SC-005** (R-14) wording. |
+| — | **PM-owned, pending operator ratification**: `spec.md` **SC-003** (TD-5) and **SC-005** (R-14) wording. *(→ **RATIFIED 2026-09-17** — see §18.)* |
 
 ### Commits (branch `dev`)
 | Commit | Note |
@@ -764,6 +764,7 @@ The delivery + end-of-day closeout for round 040: the operator merged PR [#86](h
 | D3 | Closeout docs land on **`dev`** (round branches frozen). |
 | D4 | **`di` flake attribution protocol** applied to the delivery gate (per the architect's #87 recommendation): on whole-suite red, run `di` standalone; green ⇒ attribute to **#87** and re-run the gate rather than treating delivery as failed. |
 | D5 | Propagation `dev → main` (no-ff) **approved and DONE** (`40a3abb`); `dev` is an ancestor of `main`, trees identical. |
+| D7 | **PM ratification recorded** for the two PM-owned `spec.md` wording fixes (**SC-003** / TD-5; **SC-005** / R-14) — operator-approved 2026-09-17; the text already landed, so the sign-off is recorded on the live surfaces + the PR (no edit to the frozen package). |
 | D6 | Round-040's own detail **stays** in `STATUS.md` as the (delivered) current round until round `041-*` opens, then relocates to [`2026-09-17.md`](../../../../archives/status/2026-09-17.md) (Rule 12). |
 
 ### Commits (branch `dev`)
@@ -790,7 +791,7 @@ The delivery + end-of-day closeout for round 040: the operator merged PR [#86](h
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
 ### PM follow-ups
-- **Two PM-owned `spec.md` wording ratifications remain outstanding** (carried from sessions 9–10): **SC-003** (TD-5 — shape-only claim + the unit pin) and **SC-005** (R-14 — the reset witness attributed to the unit layer). Both are accuracy fixes; worth clearing so round 040's package freezes cleanly.
+- **PM-owned `spec.md` wording ratifications — RATIFIED (operator, 2026-09-17).** **SC-003** (TD-5 — the **shape-only** claim + the unit-layer reset pin) and **SC-005** (R-14 — the reset witness attributed to the **unit** layer) were reviewed, accepted as accuracy fixes, and **ratified by the operator** at closeout. The reworded criteria already **landed in the delivered `spec.md`** (SC-003/SC-005, merged in the plan+truth half `146210d`); the ratification is the formal sign-off and is **recorded here + in the PR** rather than by re-editing the delivered package (`plan-package-frozen` / closeout **Rule 4**). **No PM-owned items remain open for round 040.**
 
 ### Issue tracker (closeout Step 8)
 **[#82](https://github.com/gosharplite/tellme/issues/82) CLOSED (completed)** + **[#83](https://github.com/gosharplite/tellme/issues/83) CLOSED (completed)** — delivered by round 040 (PR [#86](https://github.com/gosharplite/tellme/pull/86) merged `87af8c8`; linking comments posted). **[#87](https://github.com/gosharplite/tellme/issues/87) OPEN (new)** — the `di` gh-token-resolver test flake (pre-existing; proved on the pre-PR base `dev` `802e51c`; out of round-040 scope; its own round). **[#69](https://github.com/gosharplite/tellme/issues/69) OPEN** — the single-ownership refactor, now also carrying the round-040 one-concurrent-block forward item. **[#60](https://github.com/gosharplite/tellme/issues/60) OPEN** (dogfooding) · **[#13](https://github.com/gosharplite/tellme/issues/13) OPEN** (coverage tooling). No revisions needed.
