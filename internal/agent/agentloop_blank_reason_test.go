@@ -36,11 +36,14 @@ func TestLogOmitsReasonLineForWhitespaceOnlyReason(t *testing.T) {
 		if strings.Contains(log, "[Tool Reason]") {
 			t.Errorf("a whitespace-only reason %q rendered a [Tool Reason] line; log=%q", reason, log)
 		}
-		if strings.Contains(log, "\n\n") {
-			t.Errorf("a whitespace-only reason %q left a blank line; log=%q", reason, log)
-		}
 		if !strings.Contains(log, "[Tool Action] read_files(") {
 			t.Errorf("the action line was not rendered for reason %q; log=%q", reason, log)
+		}
+		// Round 039: a reason-less call's action line is still the start of its
+		// begin block, so a blank line precedes it (the round-036 "no spurious
+		// blank" assertion is superseded by the per-call blank-line grouping).
+		if !lineBeforeContains(log, "[Tool Action] read_files(", "") {
+			t.Errorf("the reason-less call's [Tool Action] line was not preceded by a blank line; log=%q", log)
 		}
 	}
 }

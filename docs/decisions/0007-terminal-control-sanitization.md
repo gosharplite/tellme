@@ -1,6 +1,6 @@
 # ADR 0007 — Terminal-control sanitization of the `[Tool Output]` block: a new stderr presentation invariant, and a deliberate reference divergence
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR 0008](0008-terminal-safe-lines-and-blank-line-grouping.md)
 - **Date:** 2026-09-17
 - **Deciders:** tellme owner
 - **Supersedes:** —
