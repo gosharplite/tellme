@@ -43,3 +43,25 @@ No other interface is touched: there is **no HTTP/API surface** and **no persist
 The witness set is **unit** pins (the two-figure arithmetic under an injected `now`; the idle-gap resume/clear under an injected ticker; the row-aware clear for the longer line) **plus** the E2E `Then`s (a forced idle threshold + a scripted quiet command; a multi-call turn's two figures) — `research.md` D6.
 
 `truth-delta.md` carries the explicit rows; `specs/truth/techstack.md` (**Turn progress spinner** row) and **ADR 0009** (superseding ADR 0005 **D7**, amending round-019 D4) are owned by `/axb-technical-research` (already folded).
+
+## Acceptance-rule → carrier mapping (round-040 review RF-1)
+
+Four of the six new round-040 acceptance rules are carried by a truth Rule with the same subject; the two "*both times while tools run / a single-call answer shows both times*" journeys and one "*the indicator leaves no trace*" leg reuse Examples under Rules whose named subject is the tool label/resource (rounds 034/039 precedent — recorded here because the row→feature audit blind spot is already a `#60` item).
+
+| Acceptance rule (plan package) | Truth carrier (`specs/truth/features/cli/chat/presenting-the-progress-spinner.feature`) |
+| --- | --- |
+| A quiet stretch of a command's output shows the progress indicator again | `Rule: A quiet command's output still shows the progress spinner` — Example *The indicator returns while a long-running command stays quiet* |
+| The indicator leaves no trace once the command finishes | the same Example (the whole-stream `the run shows no progress spinner` Then) |
+| The indicator is not shown when the operator is not watching a terminal | the interface-root `the run shows no progress spinner` negative (unchanged) |
+| The indicator shows the total wait and the current model call's time | `Rule: The spinner shows the total time and the current model call's time` — Example *A single-call answer shows both times* |
+| A tool-using answer restarts the model-call time for each call | the same Rule — Example *A tool-using answer shows both times on each model call* (the per-call reset is a **unit** pin) |
+| Both times are shown while tools run, alongside the resource usage | the two amended tool-phase Examples (`Rule: The spinner names the tools and the resources while tools run`) — cross-Rule carrier, recorded |
+
+## Task-list directives (for `/axb-tasks` — reviewer RF-1)
+
+The task list MUST carry, beyond the four new stepdefs:
+
+- **[BDD-REMOVE]** retire the now-dead stepdef `tests/e2e/steps/step_r034_t016_chat_then_no_spinner_while_streaming.go` (0 matching feature steps after the Rule replacement; its helpers `toolOutputBlockIndexes` / `hasSpinnerStatusBetween` in `toolcall_log.go` become unused — remove with it).
+- **[BDD-ALIGN]/[BDD-RED]** the four new sentences of D9's burn-down list.
+- the **coordinator extraction** (the `internal/ui` sink+spinner coordinator), the **lock-order comment**, the **race/no-interleave + anti-vacuity unit stress**, the **dual-timer arithmetic + injected-clock pins**, and the **two-figure 3+-digit row-aware-clear re-witness** (QB3).
+- keep `tests/e2e/suite_test.go` `Strict: true` (TD-1) — the branch stays red until these stepdefs land.

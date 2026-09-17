@@ -11,7 +11,7 @@ Feature: Keeping the progress indicator visible while a command streams
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the diagnostics are shown at a terminal
-      And a configured provider "test-model" whose endpoint runs a command that prints a line and then stays quiet for a while and then answers with "all good"
+      And a configured provider "test-model" whose endpoint runs a command that prints a line and then stays quiet and then answers with "all good"
       When the operator starts tellme with the prompt "run it"
       Then the run shows the progress indicator again while the command stays quiet
       And tellme exits successfully
@@ -20,7 +20,7 @@ Feature: Keeping the progress indicator visible while a command streams
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the diagnostics are shown at a terminal
-      And a configured provider "test-model" whose endpoint runs a command that prints a line and then stays quiet for a while and then answers with "all good"
+      And a configured provider "test-model" whose endpoint runs a command that prints a line and then stays quiet and then answers with "all good"
       When the operator starts tellme with the prompt "run it"
       Then the run shows no leftover indicator once the command finishes
       And tellme exits successfully
@@ -33,7 +33,7 @@ Feature: Keeping the progress indicator visible while a command streams
     Example: A quiet command's output is unaffected when the diagnostics are not a terminal
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And a configured provider "test-model" whose endpoint runs a command that prints a line and then stays quiet for a while and then answers with "all good"
+      And a configured provider "test-model" whose endpoint runs a command that prints a line and then stays quiet and then answers with "all good"
       When the operator starts tellme with the prompt "run it"
       Then the run streamed the command's output on its diagnostic output
       And the run shows no progress spinner

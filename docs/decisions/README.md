@@ -28,7 +28,7 @@ Typo- and editorial-only fixes do not need an ADR.
 | [0002](0002-first-presentation-dependency.md) | First presentation dependency: glamour | Accepted |
 | [0003](0003-terminal-detection-isatty.md) | Terminal detection: a real isatty (`golang.org/x/term`) | Accepted |
 | [0004](0004-user-global-prompt-log.md) | User-global interactive prompt log (`~/.tellme/global_prompts.jsonl`) | Accepted |
-| [0005](0005-tool-call-log-parity.md) | Tool-call log parity: per-call frame cadence, CLI-computed per-call estimate, rune-safe rendering | Accepted |
+| [0005](0005-tool-call-log-parity.md) | Tool-call log parity: per-call frame cadence, CLI-computed per-call estimate, rune-safe rendering | Accepted (**D7 superseded by [0009](0009-spinner-dual-timer-and-streaming-liveness.md)**) |
 | [0006](0006-tool-reason-fold-and-cap.md) | Tool reason fold, trim, and cap: the model-authored reason joins its sibling sanitize+cap family | Accepted |
 | [0007](0007-terminal-control-sanitization.md) | Terminal-control sanitization of the `[Tool Output]` block: a new stderr presentation invariant, and a deliberate reference divergence | Superseded by [0008](0008-terminal-safe-lines-and-blank-line-grouping.md) |
 | [0008](0008-terminal-safe-lines-and-blank-line-grouping.md) | Terminal-safe `[Tool …]` line policy (generalized) + live turn-output blank-line grouping | Accepted |

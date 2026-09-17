@@ -31,7 +31,7 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`; only a human merges the PR. Propagation is the no-ff merge `dev → main`.
 > **Propagation history**: rounds 026–039 — **DONE (no-ff)**; round 040 — **PENDING** (not delivered).
-> Read live heads with `git rev-parse --short main dev`.
+> Read live heads with `git rev-parse --short origin/main origin/dev` (this clone has no local `main`/`dev` refs — only `origin/*`).
 
 ## Roadmap — next slices
 
@@ -60,7 +60,8 @@ Per-round detail lives in the archives (001–002 in [`2026-09-11.md`](docs/arch
 
 ## Environment notes
 
-- **Round-040 branch (this session)** — `040-spinner-liveness-and-turn-timer` (off `dev`) is **pushed** (tracking `origin/…`); **PR [#84](https://github.com/gosharplite/tellme/pull/84)** is open → `dev`. The branch carries the **plan + truth half only** (no product code); `/axb-tasks`/`/axb-implement` are deliberately not run yet. Working tree clean.
+- **Round-040 branch (this session)** — `040-spinner-liveness-and-turn-timer` (off `dev`) is **pushed** (tracking `origin/…`); **PR [#84](https://github.com/gosharplite/tellme/pull/84)** is open → `dev`. The branch carries the **plan + truth half** (docs/truth + a one-line E2E-harness change; no product code); `/axb-tasks`/`/axb-implement` are deliberately not run yet.
+- **PR #84 review fold (architect, APPROVE WITH REQUIRED FOLDS)** — folded in-round: **TD-1** `tests/e2e/suite_test.go` gains `Strict: true` (undefined steps now fail) · **TD-2** truth states **mutual exclusion + join** (not "single-writer") · **TD-3** the block critical section does not span a frame write · **TD-4** the watcher poll period is pinned (~200 ms) · **TD-5** the idle seam is named/pinned (`TELL_ME_FORCE_TOOLOUTPUT_IDLE_MS`, ms, `0` = admit immediately) and the Given is renamed to a world state · **TD-6** the second figure is renamed **"the current model call's elapsed"** (turn vs model-call terms) · **TD-7** the spinner feature header is refreshed · **TD-8** this recipe + the commit counts · **RF-1** the acceptance-rule→carrier mapping + the task-list directives (incl. the dead-stepdef `[BDD-REMOVE]`) · **RF-2** ADR 0005's **index** row annotated (no body edit) · **RF-3** the no-label resume is a defined no-op · **RF-4** `turnEpoch` stays internal (no sixth ctor seam) · **RF-5** #69's body updated · **QB3/QB4** the 3+-digit row-aware-clear re-witness + "unlabelled by design" recorded. **Consequence of TD-1:** this plan-half branch's E2E now reports the 4 not-yet-implemented steps as failures until `/axb-implement` lands them (the honest state); `make verify` does not run the E2E, so the guard set is unaffected.
 - **Dev tooling — `tellme.sh` (external)**: the Niffler-style manager driving the `tellme` binary lives at `~/tmp/dualnets/seed/notebooks/{beta-niffler,mbp-johndoe-niffler}/tellme.sh`; invoke via `source tellme.sh` or the `tm` alias. Its banner is round-agnostic (current-state pointer = this `STATUS.md`).
 - **Host / toolchain**: Go 1.26; `golangci-lint` / `staticcheck` / `govulncheck` in `$GOPATH/bin`; the `tellme` binary is installed at `$(go env GOPATH)/bin/tellme` (**refreshed** from the merged round-039 head `ca14276`). Sandbox: `unshare -n` unavailable → the offline-path guard uses the unprivileged canary + hostile-env differential.
 - **MCP client dependency (round 032)**: `github.com/modelcontextprotocol/go-sdk` **v1.7.0** (vendored), confined to `internal/infrastructure/mcp/**` behind the `tools.MCPClient` port (`verify-mcp-sdk-confinement`); the hermetic fake lives in `internal/infrastructure/mcp/mcptest/`.

@@ -3,14 +3,16 @@ Feature: Presenting the progress spinner
   # Interface truth (CLI end, `chat` module) — while a prompt-bearing turn on the non-TUI surfaces is
   # waiting (awaiting the model, or running tools) the run shows a live progress spinner on the
   # diagnostic stream (`stderr`): a braille frame, a phase label naming the model or the tool(s), and a
-  # whole-seconds elapsed counter; while tools run the line also reports the machine's CPU/memory. The
-  # spinner is drawn only when the diagnostic stream (`stderr`) is a terminal and `-r` is off (`the operator
-  # is watching a terminal` arranges the round-019 `stderr` terminal seam); it yields the line to the answer. The
+  # **dual** whole-seconds elapsed counter (round 040: the total since prompt capture + the current model
+  # call's elapsed); while tools run the line also reports the machine's CPU/memory. The
+  # spinner is drawn only when the diagnostic stream (`stderr`) is a terminal and `-r` is off (`the diagnostics
+  # are shown at a terminal` arranges the round-019 `stderr` terminal seam); it yields the line to the answer. The
   # negatives are carried by the interface root (`the run shows no progress spinner`) on the `diagnostics`
   # and `history` modules (round 023 removes the `-i` surface from the negatives — the `-i` submit now
   # draws the spinner). Acceptance journeys:
   # features/acceptance/showing-a-progress-indicator.feature, labelling-the-progress-indicator.feature,
-  # and keeping-the-progress-indicator-bounded.feature.
+  # keeping-the-progress-indicator-bounded.feature, keeping-the-progress-visible.feature (round 040),
+  # and timing-the-current-model-call.feature (round 040).
 
   Rule: A prompt-bearing run shows a live progress spinner while it waits
 
@@ -53,7 +55,7 @@ Feature: Presenting the progress spinner
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good"
       When the operator starts tellme with the prompt "read the notes"
       Then the progress spinner names the tool it is running
-      And the progress spinner shows the time since the prompt and the current turn's time
+      And the progress spinner shows the time since the prompt and the current model call's time
       And the progress spinner reports the machine's resource usage
       And tellme exits successfully
 
@@ -64,7 +66,7 @@ Feature: Presenting the progress spinner
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and "todo.txt" and then answers with "all good"
       When the operator starts tellme with the prompt "read the notes and the todo"
       Then the progress spinner names the first tool and counts the remaining tools
-      And the progress spinner shows the time since the prompt and the current turn's time
+      And the progress spinner shows the time since the prompt and the current model call's time
       And the progress spinner reports the machine's resource usage
       And tellme exits successfully
 
@@ -113,14 +115,17 @@ Feature: Presenting the progress spinner
   Rule: A quiet command's output still shows the progress spinner
 
     # Round 040 (issue #82): the whole-block pause (round 034 FR-012/G8, ADR 0005 D7) is narrowed — the
-    # indicator resumes after an idle gap and is cleared before the next output line. (The forced-idle
-    # Given arranges the hermetic idle seam; the no-residue / no-interleave contract is a unit pin.)
+    # indicator resumes after an idle gap and is cleared before the next output line. The invariant is
+    # mutual exclusion + join (not "single-writer"): the resume is admitted under the block writer's
+    # mutex; the clear is the presenter's synchronous, goroutine-joined deactivate(). The E2E observes a
+    # REAL idle gap (a small nonzero forced threshold + a child sleep); the no-interleave / no-residue /
+    # anti-vacuity facets are unit pins.
 
     Example: The indicator returns while a long-running command stays quiet
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the diagnostics are shown at a terminal
-      And the spinner resumes without waiting for an idle gap
+      And the command stays quiet for longer than the spinner's idle gap
       And a configured provider "test-model" whose endpoint runs a command that prints a line and then stays quiet and then answers with "all good"
       When the operator starts tellme with the prompt "run it"
       Then the run shows the progress spinner again while the command stays quiet
@@ -138,10 +143,10 @@ Feature: Presenting the progress spinner
       Then the run shows no progress spinner
       And tellme exits successfully
 
-  Rule: The spinner shows the total time and the current turn's time
+  Rule: The spinner shows the total time and the current model call's time
 
     # Round 040 (issue #83): the elapsed display is a dual timer — the total since prompt capture plus
-    # the current turn's duration, reset at each AI-endpoint call. (The per-call reset arithmetic is a
+    # the current model call's elapsed, reset at each AI-endpoint call. (The per-call reset arithmetic is a
     # unit pin; the E2E asserts the two-figure shape on the captured frames.)
 
     Example: A single-call answer shows both times
@@ -150,7 +155,7 @@ Feature: Presenting the progress spinner
       And the diagnostics are shown at a terminal
       And a configured provider "test-model" whose endpoint answers with "all good"
       When the operator starts tellme with the prompt "hi"
-      Then the progress spinner shows the time since the prompt and the current turn's time
+      Then the progress spinner shows the time since the prompt and the current model call's time
       And tellme exits successfully
 
     Example: A tool-using answer shows both times on each model call
@@ -160,5 +165,5 @@ Feature: Presenting the progress spinner
       And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good"
       When the operator starts tellme with the prompt "read the notes"
-      Then the progress spinner shows the time since the prompt and the current turn's time
+      Then the progress spinner shows the time since the prompt and the current model call's time
       And tellme exits successfully
