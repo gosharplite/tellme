@@ -581,11 +581,19 @@ The architect reviewed the task list and it was folded plan-side in `tasks.md` (
 
 **Fold 5 (`FOLDS ACCEPTED`; R-10/R-11 + N-12/N-13):** **R-10** deleted T009's stale `lastLine`-stamp clause (contradicted R-9) · **R-11** the idle **query** gets the locked path **`withLock(fn func(idle time.Duration))`** (check+admit in one critical section; a self-locking `IdleSince` would deadlock) + the **`Begin`-seeded `lastLine`** + **T007(b′)** the **zero-output** case · **N-12** the STATUS B1 annotation restored · **N-13** recorded why `Begin` needs no hook (runs before `cmd.Start()`). The R-4/R-8/R-11 family is **closed** (line path · admit · `End` · idle query).
 
-**Fold 7 (`c9f6ba7`; CERTIFICATION CONFIRMED; R-14 + B-1/B-2 + N-15):** R-14 re-attributed the per-call-reset witness to the **unit** layer (T015(b) + `spec.md` SC-005) · B-1 reordered the daily-log fold notes oldest→newest · B-2 added the STATUS ledger #6 · N-15 primed Core Inputs with "one lock owner, three entry points"; then the **optional N-16** corrected T015(a)'s witness-set parenthetical (the reviewer's own mis-phrasing). **Review loop CLOSED at `c9f6ba7`.**
-
 **Fold 6 (`CERTIFICATION: implementation-ready`; R-12/R-13 + N-14):** **R-12** T002's entry point (ii) now carries the R-11 signature `withLock(fn func(idle time.Duration))` (one definition per entry point) · **R-13** T007's clauses `(b′)`/`(g)`/`(h)` are back **inside the T007 checkbox** in order (the `(g)`/`(h)` text had detached into an unmarkered bullet) · **N-14** T009's parenthetical no longer names the removed `IdleSince` shape. **Architect certified the task list implementation-ready** — `/axb-implement` is the operator's call. Seam model **closed**.
 
+**Fold 7 (`c9f6ba7`; CERTIFICATION CONFIRMED; R-14 + B-1/B-2 + N-15):** R-14 re-attributed the per-call-reset witness to the **unit** layer (T015(b) + `spec.md` SC-005) · B-1 reordered the daily-log fold notes oldest→newest · B-2 added the STATUS ledger #6 · N-15 primed Core Inputs with "one lock owner, three entry points"; then the **optional N-16** corrected T015(a)'s witness-set parenthetical (the reviewer's own mis-phrasing). **Review loop CLOSED at `c9f6ba7`.**
+
+**Fold 8 (`af86f3a`; CERTIFICATION FINAL — review loop CLOSED; N-16):** the architect corrected its **own** review #6 mis-phrasing — `T015(a)` now states the layer-correct witness-set reading ((a) is the only one of the three witnesses with an **E2E carrier**, non-vacuous only because of R-1's closing-separator bound; T007(b′)/(c) additionally cover it at the **unit** layer). **Process lesson recorded** (§15): the session saw **three recurrences of one class** (round-040 TD-11's vocabulary sweep · R-7's disposition sweep · B-1→C-3) — each a new entry **appended at an unstable anchor** (the first `### PM follow-ups`; the tail of the previous fold row) rather than the **end of the structure it belongs to**, leaving stale statements behind. Durable fix: **one append anchor per artifact** (end of the fold-log / end of the session section) + **one row per review naming both the reviewed head and the fold head**.
+
 `/axb-implement` remains held.
+
+### Process lesson (session 8 — durable append anchors)
+
+Three recurrences of one class in this session — round-040 **TD-11** (vocabulary sweep), **R-7** (disposition sweep), and **B-1 → C-3** (fold-log order) — all share one root cause: a new entry was **appended at an unstable anchor** (the first `### PM follow-ups` block; the tail of the previous fold row) instead of the **end of the structure it belongs to**, so each fold left one or two stale statements behind that a later pass had to sweep.
+
+**Durable fix (procedural, not editorial):** one **append anchor per artifact** — the **end of the fold-log** / the **end of the session section** — and **one row per review naming both the reviewed head and the fold head** (e.g. `Review #7 (reviewed 9e02442 → fold c9f6ba7)`), so the ledger cannot attribute a fold to the wrong review and the ordering is intrinsic.
 
 ### PM follow-ups
 - None new (spec/acceptance complete; no PM-owned gaps).

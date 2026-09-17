@@ -131,13 +131,15 @@ Plan-side fold (no truth, no ADR, no code) applying the architect fold review `C
 
 Plan-side fold (no truth, no ADR, no code) applying the architect fold review `certification CONFIRMED + R-14 + B-1/B-2 + N-15`:
 
-- **R-14 [required]** — the **per-call-reset witness** is re-attributed to the **unit** layer: `T015(b)` now reads *"freeze the second figure ⇒ the **unit** pin fails (T006's second-`OnInferenceStart` sub-assertion, SC-001) — the WS-B E2E Example asserts the shape only (SC-003)"*; `T015(a)` notes the WS-A E2E is the sole detector (with T007's (a)/(c) pins). `spec.md` **SC-005** reworded the same (PM-owned; the TD-11/SC-004 and TD-5/SC-003 precedent).
+- **R-14 [required]** — the **per-call-reset witness** is re-attributed to the **unit** layer: `T015(b)` now reads *"freeze the second figure ⇒ the **unit** pin fails (T006's second-`OnInferenceStart` sub-assertion, SC-001) — the WS-B E2E Example asserts the shape only (SC-003)"*; `T015(a)` notes the WS-A E2E is the (only) E2E-carried witness — T007's (b′)/(c) also cover it at the unit layer. `spec.md` **SC-005** reworded the same (PM-owned; the TD-11/SC-004 and TD-5/SC-003 precedent).
 - **B-1 [bookkeeping]** — the daily-log fold notes are **reordered oldest → newest** (they had read 1 → 6 → 5 → 4 → 3 → 2), and Fold 2's label now names its own fold commit (`f9e1ac9`).
 - **B-2 [bookkeeping]** — the `STATUS.md` fold ledger gains the **#6** entry.
 - **N-15 [nit]** — Core Inputs' primer reads **"one lock owner, three entry points"** (it had said "one lock-scoped entry point").
 - **Position:** the content certification **stands** (no scope/mechanism/seam/truth/acceptance change); the review loop is closed at this artifact.
 
-## Round-040 tasks fold review #7 (PR #85, `c9f6ba7`) — **CERTIFICATION CONFIRMED — review loop CLOSED**
+## Round-040 tasks fold review #8 (PR #85, `c9f6ba7` → fold) — **CERTIFICATION CONFIRMED — review loop CLOSED**
+
+Plan-side fold (no truth, no ADR, no code) applying the architect final pass `CERTIFICATION CONFIRMED + N-16`:
 
 - **N-16 [optional, reviewer's own mis-phrasing]** — `T015(a)`'s parenthetical corrected from *"its carrier is the only witness where the E2E is the sole detector, alongside T007's (a)/(c) pins"* (self-contradictory) to *"(a) is the only one of the three witnesses with an **E2E carrier** (the WS-A Example — non-vacuous only because of R-1's closing-separator bound); (b) and (c) are unit-only; and T007(b′)/(c) additionally cover (a) at the unit layer."* No task's action changes.
 - **Position:** content certification **CONFIRMED**; the architect's review loop on `/axb-tasks` is **CLOSED**. `/axb-implement` is the operator's call to unlock.
