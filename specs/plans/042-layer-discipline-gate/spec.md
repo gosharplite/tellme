@@ -29,8 +29,7 @@
 | 4 Agent | `internal/agent` | |
 | 5 Presentation | `internal/ui`, `internal/ui/tui/**` | ranked **above** `agent` ⇒ `agent→ui` is a violation |
 | 6 CLI | `internal/cli` | |
-| 7 Composition | `cmd/tellme` | top (unranked/exempt from the gate) |
-| — | `tests/**` | test-support (exempt) |
+| — | `cmd/tellme` (composition top), `tests/**` (test-support), `tools/**` (guard tree) | **exempt — not tiered** |
 
 **Resulting baseline = 8** — derivable from the **two-part** predicate (B-1): **RULE-B** yields the 7 `internal/cli → internal/infrastructure/{history, llm, skills, telemetry, tools, di, mcp}` edges (downward imports the upward-only rule would leave legal); **RULE-A** yields `internal/agent → internal/ui`; RULE-C/RULE-D yield 0 today. Measured 2026-09-17: 30 packages, **8** violations, **0** unranked governed packages, **0** cycles. Normative rule + worked examples: **ADR 0011**; the gate's own **tier table** is the normative machine-readable ranking source.
 
@@ -40,9 +39,9 @@
 
 ## Grounded in the current system
 
-- **`internal/cli` is both the application layer and the composition root.** `internal/cli/cli.go` (~1236 lines) directly imports five `internal/infrastructure/*` packages (`history`, `llm`, `skills`, `telemetry`, `tools`) and holds package-level factory vars (`newGateway`, `newHistoryStore`, `newUsageStore`, `newToolUsageStore`, `newToolRegistry`, `newRenderer`, `newTUIPromptRunner`, `userHomeDir`); `internal/cli/mcp_discovery.go` imports `internal/infrastructure/di` + `internal/infrastructure/mcp`. Static analysis reports **7 layer violations (0 cycles)** — these exact 7 edges:
+- **`internal/cli` is both the application layer and the composition root.** `internal/cli/cli.go` (~1236 lines) directly imports five `internal/infrastructure/*` packages (`history`, `llm`, `skills`, `telemetry`, `tools`) and holds package-level factory vars (`newGateway`, `newHistoryStore`, `newUsageStore`, `newToolUsageStore`, `newToolRegistry`, `newRenderer`, `newTUIPromptRunner`, `userHomeDir`); `internal/cli/mcp_discovery.go` imports `internal/infrastructure/di` + `internal/infrastructure/mcp`. Static analysis reports **7 layer violations (0 cycles)** — the **7 RULE-B violations** (`internal/cli` importing `internal/infrastructure/**`), these exact 7 edges:
 
-  | # | File | Illegal import |
+  | # | File | Import (violates **RULE-B**) |
   | --- | --- | --- |
   | 1 | `internal/cli/cli.go` | `internal/infrastructure/history` |
   | 2 | `internal/cli/cli.go` | `internal/infrastructure/llm` |
@@ -52,11 +51,11 @@
   | 6 | `internal/cli/mcp_discovery.go` | `internal/infrastructure/di` |
   | 7 | `internal/cli/mcp_discovery.go` | `internal/infrastructure/mcp` |
 
-- **+ the 8th edge (from the Q1 broad rule)**: `internal/agent → internal/ui` — the agent loop importing the presentation layer. **Baseline = 8.** (Re-measure from the gate's own output before freezing; never hand-transcribe.)
+- **+ the 8th edge — the only RULE-A (upward) violation**: `internal/agent → internal/ui` — the agent loop importing the presentation layer (tier 5 > 4). **Baseline = 8.** (Re-measure from the gate's own output before freezing; never hand-transcribe.)
 
 - **`make verify` detects no layer violation today.** The aggregate is `verify-no-test-sleep + verify-no-network + vet + verify-cross-compile + verify-mcp-sdk-confinement + lint + vulncheck` (`Makefile`). None checks import direction, so a ninth illegal import would pass every gate — only a human reviewer would notice.
 
-- **Measured package scope (2026-09-17, whole module)**: no `internal/**` test file imports upward; the outward `tests/e2e` harness imports are test-support. The broad rule's other candidate edges (`infrastructure/* → config`) are **legal** under the pinned tier-1 ranking.
+- **Measured package scope (2026-09-17, whole module)**: no `internal/**` test file imports upward; the outward `tests/e2e` harness imports are test-support. The rule's other candidate edges (`infrastructure/* → config`) are **legal** under the pinned tier-1 ranking.
 
 - **Two established gate shapes already exist** to model on: the **Makefile grep** (`verify-mcp-sdk-confinement`) and the **make → `go test -run …`** delegation (`verify-no-network`). The reference `tell-me-go` ships a **build-tagged Go guard** (`make verify-architecture` → `go test -tags=arch -run TestVerifyRealArchitecture ./internal/tools/analysis -args -strict-arch=true` + `modelith-layers`) — `SESSION-BOOTSTRAP.md` §2.2. Guard form is an RD decision (A4).
 
@@ -85,7 +84,7 @@ As a maintainer, I want `make verify` to fail when a change introduces a new ill
 - **FR-001**: The quality pipeline MUST include a **layer-discipline gate** that computes the module's import graph and flags, over the **pinned ranking** (below), every **violation** of the **two-part predicate**: **(A)** an import of a **higher** tier; **(B)** an import of `internal/infrastructure/**` by an application tier (`internal/app/**`, `internal/cli`); **(C)** a `internal/domain/**` package importing outside the domain; **(D)** an `internal/**` package matching **no** tier (*default-deny*). It MUST also assert **0 import cycles** (a direction-only rule cannot detect a same-tier cycle).
 - **FR-002**: On any violation **beyond the baseline**, the gate MUST exit non-zero and MUST identify the offending source package and import in a **machine- and human-readable** form (one sorted line per violation: `<source> -> <import>`, module-relative, ASCII delimiter).
 - **FR-003**: The gate MUST be a member of the aggregate verification command (`make verify`), so a new violation fails the standard gate.
-- **FR-004**: The gate MUST be **hermetic and host-independent**: it MUST evaluate the import graph as the **union over the supported targets** (`linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`) so an OS-gated illegal import cannot hide, MUST NOT depend on host `GOOS`/`GOARCH`/`CGO_ENABLED`, and MUST NOT use the network with a **warm module cache** (the `verify` aggregate runs it after `vet`/`verify-cross-compile`, which warm the cache). It MUST add no dependency or tool beyond the Go toolchain and `make`.
+- **FR-004**: The gate MUST be **hermetic and host-independent**: it MUST evaluate the import graph as the **union over the supported targets** (`linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`) so an OS-gated illegal import cannot hide, and MUST run the child `go list` with an **explicit, sanitised environment** — `GOOS`/`GOARCH` set per target, `CGO_ENABLED=0`, `GOFLAGS` cleared — so an ambient export (e.g. `GOFLAGS=-mod=vendor`, common in CI images) cannot make the gate fail spuriously (the `verify-cross-compile` **PR #46 TD1** precedent). It MUST NOT use the network with a **warm module cache** (the `verify` aggregate runs it after `vet`/`verify-cross-compile`, which warm the cache). It MUST add no dependency or tool beyond the Go toolchain and `make`.
 - **FR-005**: The gate MUST anchor its enumeration to the **module root** (resolve it once; run the child `go list` with `cmd.Dir = <moduleRoot>`), never to the process CWD, and MUST treat a child error or an empty graph as a **failure** (never a vacuous pass).
 
 **Non-Functional Requirements**:
@@ -151,8 +150,8 @@ As a maintainer/operator, I want the layer-discipline gate recorded in `specs/tr
 
 - **Gate lands before its baseline** → forbidden: the gate and its baseline MUST land as **one atomic delivery** (round-040 **TD-1** precedent).
 - **Host `GOOS`/`GOARCH` or ambient `CGO_ENABLED`** → the gate's verdict MUST be identical on every host (mirrors `verify-cross-compile`'s hermeticity rationale).
-- **A *new* violation while the baseline lists others** → fail on the new one (FR-006).
-- **A *fixed* violation still in the baseline (stale)** → **fail**, naming the entry (FR-007, Q3).
+- **A *new* violation while the baseline lists others** → fail on the new one (FR-007).
+- **A *fixed* violation still in the baseline (stale)** → **fail**, naming the entry (FR-008, Q3).
 - **`_test.go` imports and the `tests/**` harness** → `internal/**` test files are governed (they add no entries); `tests/**` and `cmd/tellme` are exempt (scope pinned in `research.md`).
 - **OS/build-tag-gated files** → the gate MUST evaluate the **union over the supported targets** (`CROSS_TARGETS`) so an OS-gated illegal import (`//go:build linux`/`darwin`) cannot hide; **custom build-tag**-gated files (e.g. `//go:build arch`) are a **recorded out-of-scope residual** (none today — `research.md` D6), not a claim that "build tags are respected".
 - **Unranked `internal/**` package** → MUST **fail** (default-deny, RULE-D): the gate never treats "unknown" as "allowed".

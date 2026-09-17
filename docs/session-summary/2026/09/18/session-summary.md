@@ -23,7 +23,7 @@ Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 041 delivered/frozen; ac
 | Clarify (one at a time) | **Q1 → Option 2** (broad import-direction rule; `agent → ui` counts) · **Q2 → resolved by measurement** (package scope does not change the baseline) · **Q3 → Option 1** (a **stale** baseline entry **fails**) |
 | Pipeline | specify ✅ · spec-by-example **NOOP** · technical-research ✅ (+ `techstack.md` MODIFY + **ADR 0011**) · system-analysis ✅ (0 interfaces; api/data/dsl-refine **NOOP**) · **tasks/implement → a later branch off `dev`** |
 | Branch / PR | `042-layer-discipline-gate-plan` (off `dev`); **PR [#94](https://github.com/gosharplite/tellme/pull/94)** open |
-| Review | PR #94 architect review (comment `5721081695`) — **REQUEST CHANGES: 2 blockers (B-1/B-2) + TD-1…TD-4 + RF-1…RF-3 + nits** → **folded** |
+| Review | PR #94 architect review (comment `5721081695`) — **REQUEST CHANGES: 2 blockers (B-1/B-2) + TD-1…TD-4 + RF-1…RF-3 + nits** → **folded**; then the **fold-review** (`5721177805`) — **APPROVE WITH REQUIRED FOLDS** (B-1/B-2 verified closed by recomputation) → **folded** (R-1…R-6/R-8) |
 | Process note | review §13: `STATUS.md` was stale → refreshed (this branch) + this summary |
 
 ### Clarify round 1 (locked — one question at a time)
@@ -43,11 +43,11 @@ Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 041 delivered/frozen; ac
 | **TD-1** "host-independent" held only for today's tree | Evaluate the **union over `CROSS_TARGETS`** (linux/darwin × amd64/arm64) |
 | **TD-2** "respects build tags" was **false** (tags don't propagate to a child `go list`) | Claim **withdrawn**; custom-tag-gated files **out of scope**, recorded (in D6 + truth) |
 | **TD-3** unranked-package policy unspecified (fail-open) | **Default-deny** (RULE-D): an unranked `internal/**` package **fails** |
-| **TD-4** AC4's "0 cycles" carried by no FR/SC; AC6 implicit | **SCC (Tarjan) acyclicity assertion** added; domain purity an **explicit** assertion; AC2's 7→8 revision stated on [#93](https://github.com/gosharplite/tellme/issues/93) |
+| **TD-4** AC4's "0 cycles" carried by no FR/SC; AC6 implicit | **SCC (Tarjan) acyclicity assertion** added; domain purity an **explicit** assertion; AC2's 7→8 revision **already stated on [#93](https://github.com/gosharplite/tellme/issues/93)'s body** (the durable surface — done, not deferred) |
 | **RF-1** "no ADR" contradicts the repo ADR policy | **ADR 0011** added (`docs/decisions/0011-layer-discipline-gate.md` + index row) |
 | **RF-2** baseline-format determinism | Sort in Go (`sort.Strings`), module-relative packages, ASCII ` -> `, **generated** not transcribed |
 | **RF-3** one machine-readable ranking source | The guard's **tier table** is normative; truth cites it; a self-test asserts table coverage |
-| Nits | FR-007's third clause collapsed into FR-006; cold-cache qualified (warm cache); `-tags=arch` not vetted elsewhere recorded |
+| Nits | FR-008's third clause collapsed into FR-006 (FR-006 = baseline file · FR-007 = not-an-allow-list · FR-008 = stale); cold-cache qualified (warm cache); `-tags=arch` not vetted elsewhere recorded |
 
 ### Commits (branch `042-layer-discipline-gate-plan`)
 
@@ -59,7 +59,8 @@ Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 041 delivered/frozen; ac
 | `1dda553` | `docs(042)`: technical research + techstack truth (layer-discipline gate row; verify aggregate) |
 | `80d803f` | `docs(042)`: system-analysis plan + api/data/dsl-refine NOOP |
 | `e186fbd` | `docs(042)`: fold PR #94 review — B-1/B-2 · TD-1…TD-4 · RF-1…RF-3 (+ nits) |
-| *(pending)* | `docs(042)`: STATUS + this daily log (review §13) |
+| `4b340a1` | `docs(042)`: STATUS round 042 in flight + #93 + 09/18 daily log (review §13) |
+| *(fold-review)* | `docs(042)`: fold PR #94 fold-review — R-1…R-6/R-8 (rule surfaces, FR citations, decision IDs, child-env, ADR wording, ledger, STATUS header) |
 
 ### Artifacts / truth
 
@@ -70,12 +71,12 @@ Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 041 delivered/frozen; ac
 
 ### Verification (plan half)
 
-- Docs/truth only → no `make verify`/E2E in this half. The gate's **rule** was verified against the module's own import graph (30 packages · **8** violations · **0** unranked · **0** cycles), so the baseline is derivable from the rule. Working tree clean; branch is 6 commits off `dev`.
+- Docs/truth only → no `make verify`/E2E in this half. The gate's **rule** was verified against the module's own import graph (30 packages · **8** violations · **0** unranked · **0** cycles), so the baseline is derivable from the rule. Working tree clean; the branch was **7 commits off `dev`** at the fold head (`90af96c · 783bcf7 · 32a84df · 1dda553 · 80d803f · e186fbd · 4b340a1`), plus the fold-review commit.
 
 ### Open items (non-blocking)
 
 - **PR [#94](https://github.com/gosharplite/tellme/pull/94)** awaits human merge → then the **implementation half** (`/axb-tasks` + `/axb-implement`) on its own branch off `dev` (ship gate + baseline + Makefile wiring in **one** PR; generate the baseline from the shipping gate; reproduce the two witnesses then revert).
-- [#93](https://github.com/gosharplite/tellme/issues/93) stays **open** until the implementation lands; the AC2 7→8 revision must be stated on its body (durable surface).
+- [#93](https://github.com/gosharplite/tellme/issues/93) stays **open** until the implementation lands; its body **already carries** the AC2 7→8 revision + the two-part rule (the durable surface — done).
 - Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; the `di` sibling wall-clock-assertion class.
 
 ### Next steps

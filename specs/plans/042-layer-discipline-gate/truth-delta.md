@@ -9,8 +9,8 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| MODIFY | `specs/truth/techstack.md` — **Build & Tooling** table | Adds a **Layer-discipline gate** row: the pinned layer ranking; the **two-part predicate** (A direction · B application-target · C domain purity · D default-deny); the `go list`-based guard anchored to the module root and evaluated over the **`CROSS_TARGETS` union**; the committed sorted **baseline** (8 known violations) with the **fail-on-stale** ratchet; the acyclicity assertion; the tag-scope residual; a citation of **ADR 0011** as the normative host; and the `modelith-layers` recorded divergence. | round 042 FR-010; `research.md` D1–D11. |
-| MODIFY | `specs/truth/techstack.md` — **Task runner** row | Extends the `verify` aggregate list to `verify-no-test-sleep + verify-no-network + vet + verify-cross-compile + verify-mcp-sdk-confinement + verify-architecture + lint + vulncheck` (adds the new member; also corrects the pre-existing round-032 omission of `verify-mcp-sdk-confinement`). | round 042 FR-009/FR-010; `research.md` D5. |
+| MODIFY | `specs/truth/techstack.md` — **Build & Tooling** table | Adds a **Layer-discipline gate** row: the pinned layer ranking; the **two-part predicate** (A direction · B application-target · C domain purity · D default-deny); the `go list`-based guard anchored to the module root and evaluated over the **`CROSS_TARGETS` union**; the committed sorted **baseline** (8 known violations) with the **fail-on-stale** ratchet; the acyclicity assertion; the tag-scope residual; a citation of **ADR 0011** as the normative host; and the `modelith-layers` recorded divergence. | round 042 FR-010; `research.md` D1–D12. |
+| MODIFY | `specs/truth/techstack.md` — **Task runner** row | Extends the `verify` aggregate list to `verify-no-test-sleep + verify-no-network + vet + verify-cross-compile + verify-mcp-sdk-confinement + verify-architecture + lint + vulncheck` (adds the new member; also corrects the pre-existing round-032 omission of `verify-mcp-sdk-confinement`). | round 042 FR-010/FR-011; `research.md` D7. |
 
 ## /axb-api-plan
 

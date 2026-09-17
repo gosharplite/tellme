@@ -26,7 +26,7 @@
 - [x] Every user story is independently verifiable
 - [x] Every user story carries acceptance scenarios
 - [x] Story-specific FR/NFR attached under the story
-- [x] Global requirements hold only cross-story items (FR-011, FR-012, NFR-005)
+- [x] Global requirements hold only cross-story items (FR-012, FR-013, NFR-005)
 - [x] No formal requirement duplicated between story sections and global requirements
 
 ## Gaps & clarify strategy
@@ -37,7 +37,7 @@
 - [x] No remaining `NEEDS CLARIFICATION` — round-1 answers **locked**:
   - **Q1 → Option 2** — a **broad** import-direction rule (baseline = **8**, incl. `internal/agent → internal/ui`); the pinned layer ranking is in `spec.md`.
   - **Q2 → measured** — package scope pinned (production `internal/**`; `cmd/**` + `tests/**` exempt); baseline unchanged by scope.
-  - **Q3 → Option 1** — a **stale** baseline entry **fails** the gate (FR-007).
+  - **Q3 → Option 1** — a **stale** baseline entry **fails** the gate (FR-008).
 
 ## Verifiability & success criteria
 
