@@ -84,3 +84,8 @@ _(none — stdlib-only; no new dependency, no build/SDL change.)_
 - **Rename** — the step pattern `the turn shows no doubled blank line` no longer matched its hardened (targeted) assertion, so it was renamed to **`the closing status is preceded by exactly the frame gap`** (registration + `presenting-the-post-turn-status.feature` + the `dsl.md` row), and the row notes the step is *valid only on a tool-less turn* — keeping the DSL index honest as the reuse surface `dsl-exact-one-match` assumes.
 - **Shared helper** — added `measuredPayloadIndexes(lines) []int`, now used by both `thenTurnClosingStatusFollowsBlank` and `thenTurnClosingStatusNoBlank`, so the measured-payload predicate cannot drift between them.
 - Verification: `make verify` **OK**; `go test -count=1 ./...` green (E2E 226 / 1679); topology audit **PASSED**; no orphan reference to the old pattern.
+
+## Round-039 fold review #3 (PR #81) — vacuous sibling-row clause
+
+- **Micro-nit** — the sibling row `the turn's closing status follows a blank line` claimed *"the measured `~`-less `Payload:` line, **or the metrics line when there is no measured line**"*, but its step (`thenTurnClosingStatusFollowsBlank` -> `measuredPayloadIndexes`) has **no** metrics-line fallback, and the alternative is **unreachable** (`emit` returns early when `!usage.Reported`, so a post-status group always carries a measured payload line). Dropped the parenthetical and stated the invariant instead. Closes the last "a row promises more than its step asserts" instance in the two rows round 039 touched (RF-3 -> the rename -> this).
+- Verification: `make verify` **OK**; `go test -count=1 ./...` green (E2E 226 / 1679); topology audit **PASSED**.
