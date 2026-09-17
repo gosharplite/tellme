@@ -15,13 +15,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `specs/truth/contracts/**` | — | — |
+| NOOP (checked) | `specs/truth/contracts/**` | Inspected: tellme has a single CLI end and **no** OpenAPI/HTTP surface; this round changes only a `stderr` diagnostic rendering (the `[Tool Reason]` line). | `contract-authoritative` holds vacuously; `spec.md` FR-007; `plan.md`. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `specs/truth/data/data-model.dbml` | — | — |
+| NOOP (checked) | `specs/truth/data/data-model.dbml` — inspected `history_entry` / `history_step` / `usage_record` and the `output/<mode>/tokens.log` cadence | No persisted-state change: the fix alters only **how the model-authored reason is rendered** to the terminal (fold + trim + cap on the `[Tool Reason]` line) — no field, record shape, or cadence moves. | `spec.md` FR-007; `research.md` D7; `plan.md`. |
 
 ## /axb-dsl-refine
 
