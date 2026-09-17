@@ -154,7 +154,9 @@ func oscLen(s string) int {
 // intermediates (0x20–0x2F) + one **ASCII** final byte (ADR 0007 B1: the final
 // byte is ASCII-gated, so ESC + a multi-byte rune drops the ESC and keeps the
 // rune intact instead of decapitating it into invalid UTF-8). The intermediate
-// run is itself bounded so a long one cannot swallow the line.
+// run is bounded by the CSI window (a shared constant — the final byte is a single
+// ASCII byte, so the run is the only unbounded part) so a long one cannot swallow
+// the line.
 func genericEscLen(s string) int {
 	i := 1
 	for i < len(s) && i < csiScanLimit && s[i] >= 0x20 && s[i] <= 0x2f {
