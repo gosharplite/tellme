@@ -136,6 +136,7 @@ verify-mcp-sdk-confinement:
 # a fail-on-stale ratchet: a new violation fails, and a stale baseline line fails.
 verify-architecture:
 	@echo "verify-architecture: layer-discipline gate (import-direction over the pinned ranking; ADR 0011) ..."
+	@go vet -tags=arch ./tools/arch
 	@go test -count=1 -tags=arch -run TestVerifyRealArchitecture ./tools/arch
 	@echo "  ✓ no layer violation beyond the baseline; no import cycles"
 

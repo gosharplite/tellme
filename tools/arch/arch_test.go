@@ -66,7 +66,7 @@ func tier(rel string) (int, bool) {
 	switch {
 	case rel == "internal/config" || rel == "internal/home":
 		return 1, true
-	case rel == "internal/agent":
+	case rel == "internal/agent" || strings.HasPrefix(rel, "internal/agent/"):
 		return 4, true
 	case rel == "internal/ui" || strings.HasPrefix(rel, "internal/ui/"):
 		return 5, true
@@ -221,32 +221,45 @@ func cycles(graph map[string]map[string]bool) [][]string {
 	return out
 }
 
-// moduleRoot walks up from this file to the directory holding go.mod, so the
-// child `go list` is anchored to the module root rather than the test's CWD (a
-// Go test binary runs with CWD = its package directory; B-2).
+// moduleRoot walks up from the test process's CWD (a Go test's CWD is its
+// package directory, inside the module) to the directory holding go.mod. CWD is
+// used first so the resolution survives `-trimpath` (which rewrites
+// runtime.Caller's path to a module-relative form); the caller path is a
+// fallback.
 func moduleRoot(t *testing.T) string {
 	t.Helper()
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("cannot resolve the guard's own source path")
+	var starts []string
+	if wd, err := os.Getwd(); err == nil {
+		starts = append(starts, wd)
 	}
-	dir := filepath.Dir(file)
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			t.Fatalf("go.mod not found above %s", filepath.Dir(file))
-		}
-		dir = parent
+	if _, file, _, ok := runtime.Caller(0); ok {
+		starts = append(starts, filepath.Dir(file))
 	}
+	for _, start := range starts {
+		dir := start
+		for {
+			if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+				return dir
+			}
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				break
+			}
+			dir = parent
+		}
+	}
+	t.Fatalf("go.mod not found above the test CWD or the guard's source path")
+	return ""
 }
 
-// childEnv filters the inherited environment for one target: build-context
-// inputs are neutralised; the warm-cache/runtime variables are preserved.
+// childEnv filters the inherited environment for one target. Build-context
+// inputs are NEUTRALISED with explicit non-empty values (deleting a key does not
+// neutralise a persisted `go env -w` setting — Go falls back to the env file for
+// unset AND empty values, review F-2): GOFLAGS=-mod=readonly, GO111MODULE=on,
+// GOWORK=off. The warm-cache/runtime variables (PATH/HOME/GOPATH/GOMODCACHE/
+// GOCACHE) are preserved (ADR 0011 D5, review F-1).
 func childEnv(goos, goarch string) []string {
-	env := make([]string, 0, len(os.Environ())+3)
+	env := make([]string, 0, len(os.Environ())+9)
 	for _, kv := range os.Environ() {
 		key, _, _ := strings.Cut(kv, "=")
 		if droppedBuildEnv[key] {
@@ -254,7 +267,14 @@ func childEnv(goos, goarch string) []string {
 		}
 		env = append(env, kv)
 	}
-	return append(env, "GOOS="+goos, "GOARCH="+goarch, "CGO_ENABLED=0")
+	return append(env,
+		"GOOS="+goos,
+		"GOARCH="+goarch,
+		"CGO_ENABLED=0",
+		"GOFLAGS=-mod=readonly",
+		"GO111MODULE=on",
+		"GOWORK=off",
+	)
 }
 
 func runGoList(t *testing.T, root, goos, goarch string) string {
@@ -304,8 +324,11 @@ func enumerate(t *testing.T, root string) map[string]map[string]bool {
 	return graph
 }
 
-// readBaseline parses the committed baseline. An absent, unreadable, empty, or
-// unparsable baseline is a FAILURE — never "no baseline configured" (N-2).
+// readBaseline parses the committed baseline. An absent, unreadable, or
+// unparsable baseline is a FAILURE — never "no baseline configured" (N-2). A
+// well-formed baseline with no entries is allowed here; whether it is acceptable
+// depends on the violation set (assertNoNewOrStale / the caller) — a genuine
+// zero-violation endpoint must be green (review F-1).
 func readBaseline(t *testing.T, path string) []string {
 	t.Helper()
 	data, err := os.ReadFile(path)
@@ -322,9 +345,6 @@ func readBaseline(t *testing.T, path string) []string {
 			t.Fatalf("malformed baseline line %q in %s (want `<src> -> <dst>`)", line, path)
 		}
 		lines = append(lines, line)
-	}
-	if len(lines) == 0 {
-		t.Fatalf("baseline %s is empty — a baseline must list the known violations", path)
 	}
 	sort.Strings(lines)
 	return lines
@@ -483,5 +503,11 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	}
 
 	baseline := readBaseline(t, path)
+	// An emptied baseline is a FAILURE only while violations exist (anti-bypass,
+	// N-2). At the ratchet's terminal state — 0 violations — a well-formed
+	// header-only baseline is the correct, green state (review F-1).
+	if len(violations) > 0 && len(baseline) == 0 {
+		t.Fatalf("baseline %s lists no violations but %d exist — an emptied baseline MUST fail", path, len(violations))
+	}
 	assertNoNewOrStale(t, path, violations, baseline)
 }

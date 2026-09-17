@@ -28,7 +28,7 @@
 - **[DEFAULT-DENY / D8, TD-3]** 未分級的 `internal/**` package → violation。
 - **[ACYCLIC / D11, TD-4]** 額外以 stdlib **SCC** 斷言 **0 cycles**（cycles **無** baseline，必為 0）。
 - **[N-1]** baseline **generation affordance**：guard 提供 `-args -update-baseline`（測試旗標），並加 `Makefile` 目標 `verify-architecture-update`；於 `tools/arch/baseline.txt` 檔頭引用之，讓 R2–R4 不必各自發明。
-- **[N-2]** **absent / unreadable / empty / 不可解析** 的 baseline → **fail**（**never** 當「未設定 baseline」）；self-test 斷言 committed baseline 非空且每行可解析為 ` -> `。
+- **[N-2]** **absent / unreadable / 不可解析** 的 baseline → **fail**（**never** 當「未設定 baseline」）；**empty** → 僅在**存在違規時** fail（ratchet 的終點 = 0 違規時，header-only baseline 必須綠，PR #95 review **F-1**）；self-test 斷言 committed baseline 的每行可解析為 ` -> `。
 - **[N-3]** entry test（`TestVerifyRealArchitecture`）**必須一次涵蓋三性質**（enumeration · ranking/baseline diff · acyclicity），且**顯式斷言三者都跑到**（`-run TestVerifyRealArchitecture` 是契約的一部分；不得讓某性質落在別的 test 函式而被 `-run` 靜默略過）。
 - **[TRUTH / D7]** truth（`specs/truth/techstack.md` 兩 row + ADR 0011）已於 plan half 交付；本輪**不**再改 truth，只交付 gate + baseline + 接線。
 - **[NO-DEP]** stdlib-only；`go.mod`／`go.sum` 不動；POSIX-only。
@@ -150,6 +150,17 @@
 ### Round review outcome (T007)
 
 - **Result**: **PASS** — `dev` green, new violation ⇒ red, stale ⇒ red, baseline absent ⇒ fail, 0 cycles, no new dependency, no product code changed.
+
+### Fold review (PR #95 review #1, comment `5721461410` — APPROVE WITH REQUIRED FOLDS; all folded)
+
+- **F-1 [TECHNICAL DEBT → folded] the ratchet's terminal state is unreachable.** `readBaseline` rejected *any* empty baseline, but `writeBaseline` writes header-only at 0 violations ⇒ the round's own endpoint (count → 0) had no acceptable state. **Fix:** `readBaseline` no longer fails on empty; the caller fails only when `len(violations) > 0 && len(baseline) == 0`. The N-2 anti-bypass intent is preserved exactly (an emptied baseline while 8 violations exist still fails — witnessed), and a genuine zero is green. (Mechanism refinement; **ADR 0011 D3 unchanged**.) **Witness:** header-only baseline with 8 violations ⇒ `lists no violations but 8 exist — an emptied baseline MUST fail`.
+- **F-2 [TECHNICAL DEBT → folded] `drop` is not `neutralise`.** Deleting a key does not neutralise a persisted (`go env -w`) setting — Go falls back to the env file for unset **and** empty values. **Fix:** `childEnv` now sets explicit **non-empty** values — `GOFLAGS=-mod=readonly`, `GO111MODULE=on`, `GOWORK=off` — so the artifacts' word *neutralise* is true of the mechanism (chosen over `GOENV=off`, which would discard a persisted `GOMODCACHE`/`GOPATH` and undermine the preserve-set). **Witness:** with a persisted `GOENV` file holding `GOFLAGS=-mod=vendor` and the outer given an explicit `GOFLAGS=-mod=readonly`, the gate is green (the child's explicit value wins over the file). *(The **outer** `go test`/`go vet` inheriting the environment is a repo-wide property, true of every gate in this Makefile — out of scope.)*
+- **F-3 [TECHNICAL DEBT → folded] `moduleRoot` broke under `-trimpath`.** `runtime.Caller(0)` returns a module-relative path under `-trimpath`, so the walk-up found no `go.mod`. **Fix:** resolve the root from the test process's **CWD** first (a Go test's CWD is its package dir, inside the module — trimpath-immune), keeping the caller path as a fallback. **Witness:** `GOFLAGS=-trimpath make verify-architecture` ⇒ green.
+- **F-4 [REFACTOR → folded] `internal/agent` was exact-match while its siblings are prefix-match.** **Fix:** `tier()` now ranks the `internal/agent` **subtree** by prefix (`internal/agent` or `internal/agent/`), so a future `internal/agent/*` restructure (R3/R4) does not trip RULE-D by accident. (`internal/config`/`internal/home` stay exact-match — leaf packages; RULE-D flags any new subpackage actionably.) **Witness:** adding `internal/agent/zz_tmp_sub` leaves the gate green (tier 4). ADR 0011 D10 already carries the wider "RULE-D will tell you" record; the ADR is merged/immutable, so the mechanism refinement lives here.
+- **N-a [CONSISTENCY → recorded]** the exemption is **symmetric and silent**: `evaluate` skips *any* internal → non-internal edge, so `internal/** → cmd|tests|tools` is never flagged (recorded so the choice is explicit, not accidental).
+- **N-b [FALSIFIABILITY wording → recorded]** two cycle paths: a **same-target** cycle is caught first by the child `go list` error (`runGoList`'s `t.Fatalf`); only a **cross-target** cycle (a→b on linux, b→a on darwin) reaches the **SCC** pass. Both fail the gate.
+- **N-c [HARDENING → folded]** the `verify-architecture` target now runs `go vet -tags=arch ./tools/arch` before the test, so a compile/vet error in the build-tagged guard surfaces locally (the guard file is compiled by no other gate).
+- **N-e [ACCOUNT-KEEPING → folded into the PR body]** the verification header names the **code** SHA and notes the docs commit.
 
 ### Folds raised during execution (recorded)
 
