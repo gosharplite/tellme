@@ -713,7 +713,7 @@ See the at-a-glance row; the witnesses: (a) freeze the idle-gap resume → the W
 ### PM follow-ups
 - Ratify the two PM-owned `spec.md` wording fixes (SC-003 TD-5 shape-only; SC-005 R-14 unit-layer reset witness) — unchanged from session 9.
 
-### Session 10 (cont.) — round 040 PR #86 architect review folded (`c888f0d`)
+### Session 10 (cont.) — round 040 PR #86 architect review folded (`c888f0d` + ledger `b1ecc6d`) ⇒ re-review CERTIFIED
 
 The `/axb-implement` PR [#86](https://github.com/gosharplite/tellme/pull/86) was architecturally reviewed (head `1d563be`): **APPROVE WITH REQUIRED FOLDS** — 3 required + 5 non-blocking, no architectural blocker (the reviewer independently reproduced the gates and traced the WS-A E2E carrier's non-vacuity).
 
@@ -727,6 +727,8 @@ The `/axb-implement` PR [#86](https://github.com/gosharplite/tellme/pull/86) was
 | **N-40-3** | `c888f0d` | The `coordinator.go` `#69` claim corrected: the **block-scoped** yield only was consolidated (the loop's `withToolLog` + `compositeObserver.yieldIndicatorBeforeTail` remain). |
 | **N-40-4** | `c888f0d` | The `End`-while-write-stalled accepted residual named in `coordinator.go` (not only `tasks.md`). |
 | **N-40-5** | `c888f0d` | A mutex-guarded `spinnerRunning()` accessor replaces the unlocked test reads. |
+
+**Re-review (PR #86, reviewed fold head `b1ecc6d`) — `CERTIFIED — READY TO MERGE`**: all 3 required + all 5 non-blocking verified as landed; witness (a) **re-reproduced independently** by the reviewer in a scratch export (unfrozen ⇒ PASS; admit frozen ⇒ FAIL, proving non-vacuity); **N-40-6** (two-SHA fold label — adopted: `→ fold c888f0d + b1ecc6d`) + **N-40-7** (advisory: `toolOutputHeaderMarker` is content-keyed — recorded at `toolcall_log.go`, fail-loud direction, no change). The reviewer independently reproduced the `di` flake and **proved it pre-existing** on the pre-PR base `dev` `802e51c` (same test, same `signal: killed`, same 2.00 s) → filed as [#87](https://github.com/gosharplite/tellme/issues/87).
 
 **Re-verification at `c888f0d`**: `go test -count=1 ./...` green · `go test -race -count=1 ./internal/ui/...` ok · `make verify` OK (cross-compile 4/4 · lint 0 · govulncheck clean) · topology audit PASSED (44 · 6 · 16 + 327 · 1674) · witness (a) re-confirmed non-vacuous under the new bound.
 

@@ -168,6 +168,15 @@ var spinnerStatusRe = regexp.MustCompile(`[\x{2800}-\x{28FF}] (Thinking|Executin
 
 // toolOutputHeaderMarker is the `[Tool Output]` block HEADER tail (a line
 // containing it is a header, not an output line).
+//
+// N-40-7 (recorded, advisory — PR #86 re-review): this discriminator is
+// CONTENT-keyed, so an output line whose content happens to be exactly
+// `Executing... (Output shown below)` is byte-identical to a header and would end
+// the span early. Harmless by direction (N-40-1): a truncated span can only make
+// the WS-A positive assertion harder to satisfy (a false FAIL), never easier — so
+// the pre-fold unbounded form (which could WIDEN the span → false PASS) was the
+// dangerous direction, and this one is fail-loud. The round-040 fixture cannot
+// trigger it; no change made.
 const toolOutputHeaderMarker = "] [Tool Output] Executing... (Output shown below)"
 
 // closingSeparatorIndex returns the line index of the `[Tool Output]` block's
