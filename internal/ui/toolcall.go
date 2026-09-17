@@ -31,16 +31,27 @@ const argValueCap = 189
 // (FR-004): fold first, truncate iff > 200 runes → first 199 runes + one U+2026.
 const resultValueCap = 200
 
+// reasonValueCap is the maximum total rendered rune length of the model-authored
+// reason (round 036, issue #74, ADR 0006): fold + trim first, truncate iff > 200
+// runes → first 199 runes + one U+2026. It mirrors resultValueCap, so the reason
+// joins its sibling sanitize+cap family (cap set {189, 200, 200}).
+const reasonValueCap = 200
+
 // FormatToolEngine renders the per-executed-round step marker (FR-001):
 // `[HH:MM:SS] [Tool Engine] Step <step>/<total>`.
 func FormatToolEngine(t time.Time, step, total int) string {
 	return fmt.Sprintf("[%s] [Tool Engine] Step %d/%d", formatClock(t), step, total)
 }
 
-// FormatToolReason renders one reason line (FR-002/FR-005):
-// `[HH:MM:SS] [Tool Reason] <reason>`.
+// FormatToolReason renders one reason line (FR-002/FR-005, round 036):
+// `[HH:MM:SS] [Tool Reason] <reason>`. The reason is the ONLY model-authored
+// free-text field in the tool log, so it is sanitized + capped like its siblings
+// (ADR 0006): folded (`\n`/`\r` → space) and trimmed to a single line, then
+// rune-capped at reasonValueCap (one U+2026 inside the cap). A blank (empty /
+// whitespace-only) reason is suppressed by the CALLERS (not here), so this stays
+// a pure formatter and never returns an empty-string sentinel.
 func FormatToolReason(t time.Time, reason string) string {
-	return fmt.Sprintf("[%s] [Tool Reason] %s", formatClock(t), reason)
+	return fmt.Sprintf("[%s] [Tool Reason] %s", formatClock(t), capRunes(oneLine(strings.TrimSpace(reason)), reasonValueCap))
 }
 
 // FormatToolAction renders the action line — the tool name plus its sorted,
@@ -106,6 +117,15 @@ func renderArgValue(v any) string {
 		}
 		return string(b)
 	}
+}
+
+// oneLine folds newlines to spaces so a multi-line value cannot break the
+// single-line log contract. It is shared by the round-034 decomposed formatters
+// (`FormatToolAction` / `FormatToolResult`) and, since round 036, by
+// `FormatToolReason` (which also trims). Relocated here round 036 (issue #74)
+// from the now-retired `toollog.go` — its sole consumer family is in this file.
+func oneLine(s string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(s, "\n", " "), "\r", " ")
 }
 
 // capRunes truncates s to at most max RUNES, keeping the first max-1 runes plus

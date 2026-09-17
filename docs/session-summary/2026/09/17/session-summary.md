@@ -116,3 +116,90 @@ Two lessons this round, both about **where a finding must live to survive**:
 - `go test -count=1 ./...` green — godog E2E **215 scenarios (215 passed) · 1600 steps (1600 passed)**, 0 undefined.
 - Topology audit **PASSED** — 44 features · 6 modules · 16 root + **310** module rows · **1576** steps.
 - Diff-level secret scan **clean**; `go.mod` / `go.sum` unchanged (stdlib-only).
+
+---
+
+## 9. Session 2 (2026-09-17) — round 036 `036-tool-reason-sanitize`: opened → full pipeline → review loop → **merged (PR #75)** → propagated `dev → main`; closeout
+
+A second session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8), opened round **036** to fix issue [#74](https://github.com/gosharplite/tellme/issues/74) (the `FormatToolReason` fold/cap defect round 035's fold-review had surfaced — G1), ran the **full AIxBDD pipeline**, took **PR [#75](https://github.com/gosharplite/tellme/pull/75)** through a **four-round architectural review + fold chain to FINAL CERTIFICATION**, saw the **human merge**, propagated `dev → main`, refreshed the installed binary, and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`; Linux host).
+**Branch**: `036-tool-reason-sanitize` (off `dev`) → merged via PR [#75](https://github.com/gosharplite/tellme/pull/75) into `dev` (`ddd6f7d`, by `thptcnec`, 2026-09-17T01:23:05Z) → propagated `dev → main`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 035 delivered/frozen; active branch `dev`) |
+| Round-036 theme | `FormatToolReason` sanitize + cap (issue [#74](https://github.com/gosharplite/tellme/issues/74)) — the model-authored `reason` must not break its own one-line `[Tool Reason]` row |
+| Clarify | 1 round, 2 questions, operator-locked: **Q1 → Option 1** unit-pin-only witness (no new E2E exemplar/`DSLRow`); **Q2 → Option 1** a blank reason emits no line |
+| Pipeline | specify ✅ · spec-by-example **NOOP** (contract carried by the reason row; a new plan-side rule would break `acceptance-coverage`) · research ✅ (D1–D7 + **ADR 0006**) · system-analysis ✅ (1 CLI end → `/axb-dsl-refine`; api/data NOOP) · dsl-refine ✅ (reason row + note) · tasks ✅ (T001–T007) · implement ✅ |
+| Directory/review | PR #75: architectural review **APPROVE WITH NON-BLOCKING FOLDS** → fold `d7567e1` → fold review **FOLD-ACCEPTED + F-1…F-4** → sweep `11fa93b` (**all four cleared, hash-verified**) → N-5 `11356db` → **FINAL CERTIFICATION — MERGE-READY, loop CLOSED** |
+| Merge | PR [#75](https://github.com/gosharplite/tellme/pull/75) **MERGED** into `dev` (`ddd6f7d`, by `thptcnec`); frozen head **`11356db`** (12 commits) |
+| Propagation | `036-tool-reason-sanitize → dev` (`ddd6f7d`) `→ main` — **DONE (no-ff)** |
+| Closeout | `gofmt`/`go vet` clean · `make verify` OK · `go test -count=1 ./...` green · diff-level secret scan clean · `STATUS.md` refresh + Rule-12 split · **#74 closed (completed)** |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — read the pillars, the reference trees (`tell-me-go` 8-item bootstrap, `aixbdd-tmg` domain model + README), `list_skills`, the in-group peers (self `butler`; `architect`/`coder`/`griller`/`pm`/`rd`), `STATUS.md`, and the last-5-days summaries.
+2. **Round 036** — opened from operator tasking (`fix bug issue #74`); ran the pipeline: `/axb-specify` → `/axb-clarify` (Q1/Q2) → `/axb-spec-by-example` (NOOP) → `/axb-technical-research` (+ **ADR 0006**; ADR 0005 left immutable) → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` (RED → GREEN → REFACTOR). Committed per phase.
+3. **The fix** — `internal/ui/toolcall.go`: `FormatToolReason` = `capRunes(oneLine(strings.TrimSpace(reason)), reasonValueCap)` + `const reasonValueCap = 200`; **blank-reason suppression** at three sites (`agentloop.logAction`, `agentloop.reasonsOf`, a defensive `callRenderer.OnCallEnd` `emit` guard); `oneLine` relocated out of the retired orphan `internal/ui/toollog.go`. Sibling formatters/caps, flags, exit codes, cadence, schemas, transport, persisted records, `stdout` **unchanged**.
+4. **Review loop (PR #75)** — architectural review (TD-1/TD-2/TD-3 + RF-1/RF-2 + N-1…N-4) → fold `d7567e1` (TD-1/TD-3/RF-1/RF-2/N-1/N-3/N-4; TD-2 partial) → fold review (F-1…F-4) → sweep `11fa93b` (all cleared; truth **hash-re-certified** byte-identical; `issue #NN` prose restored in Go source; witness (c) re-run) → N-5 + record correction `11356db` → **FINAL CERTIFICATION**.
+5. **Home the debt on live surfaces** — **#69** body extended with *single ownership of the tool-log blank-reason predicate* (three sites, one dead), the spinner-yield-policy ownership, the port hook pair, and the **permanent E2E narrowing** record; the narrowing is also commented on **#74** before it closes (round-035 G3 lesson).
+6. **Merge + closeout** — PR #75 merged (`ddd6f7d`); `go install ./cmd/tellme`; `SESSION-CLOSEOUT.md` Steps 1–8 (STATUS refresh + Rule-12 split; §2; tracker → **#74 closed**).
+
+### Decisions locked (round 036)
+| # | Decision |
+| --- | --- |
+| Q1 → Option 1 | Witness = **hostile-fixture unit pin** (`\n`, `\r`, trim, combined, over-cap, mid-rune boundary); **no** new E2E Example / `DSLRow` |
+| Q2 → Option 1 | A **blank** reason (empty/whitespace-only after fold+trim) emits **no** `[Tool Reason]` line; suppression at the call sites (formatter stays pure) |
+| D1 | Fold + trim **single-site** inside the pure `FormatToolReason` |
+| D2 | Cap `reasonValueCap = **200**` runes (one U+2026 inside the cap; rune-safe; folded value) |
+| D3 | Defensive third suppression site documented in-code; **single ownership** parked on [#69](https://github.com/gosharplite/tellme/issues/69) (no in-round refactor) |
+| D5 | The round-034 drop + this decision are recorded in **new ADR 0006** (ADR 0005 stays `Accepted`/immutable) |
+| D6 | `oneLine` relocated into `toolcall.go`; `toollog.go` deleted |
+| D7 | Scope guard: sibling caps, `FormatToolResult`, flags, exit codes, cadence, schemas, transport, records, `stdout` unchanged; stdlib-only |
+
+### Commits (branch `036-tool-reason-sanitize`, then merged)
+| Commit | Note |
+| --- | --- |
+| `c8c2bd2` | `docs(036)`: plan package + spec |
+| `54d6436` | `docs(036)`: record spec-by-example NOOP (contract carried by the reason row) |
+| `6892d98` | `docs(036)`: technical research + ADR 0006 + techstack truth (reason fold/trim/cap) |
+| `d0ed6d9` | `docs(036)`: system-analysis plan + api/data NOOP truth-delta rows |
+| `7896b2d` | `docs(036)`: CLI interface truth — reason row single-line guarantee + `reasonValueCap` |
+| `15317db` | `docs(036)`: tasks.md (T001–T007) |
+| `55ca9df` | `test(036)`: Phase 3 RED — hostile-fixture reason pins + blank-reason suppression pins |
+| `f1ff767` | `feat(036)`: fold + trim + cap the tool reason; suppress a blank reason (T004–T005) |
+| `048bb28` | `docs(036)`: mark tasks done + record phase-3 and round review outcomes |
+| `d7567e1` | `docs(036)`: fold PR #75 review — TD-1/TD-2/TD-3 + RF-1/RF-2 + N-1/N-3/N-4 |
+| `11fa93b` | `docs(036)`: fold PR #75 fold-review — F-1…F-4 (TD-2 wording, truth re-cert, issue-prose, witness (c)) |
+| `11356db` | `docs(036)`: clear N-5 stray ordinal + correct the PR-body record note |
+| `ddd6f7d` | PR [#75](https://github.com/gosharplite/tellme/pull/75) merge into `dev` (by `thptcnec`) |
+
+### Artifacts / truth
+- Plan package: `spec.md` (US1/US2 · FR-001–008 · NFR-001–002 · SC-001–005) · `checklists/requirements.md` · `research.md` (D1–D7 + residual risks) · `plan.md` · `tasks.md` (T001–T007) · `truth-delta.md`.
+- Truth: `techstack.md` MODIFY (Agent tool loop row — reason fold/trim/cap + blank suppression; cap set `{189, 200}` → `{189, 200, 200}`) · `chat/dsl.md` MODIFY (reason row single-line guarantee + `reasonValueCap` note; **no new `DSLRow`/Example**) · `contracts/**` + `data/**` NOOP.
+- Governance: **ADR 0006** ADD (`docs/decisions/0006-tool-reason-fold-and-cap.md`) + the decisions index row.
+- Code: `internal/ui/toolcall.go` (fold+trim+cap + `reasonValueCap` + relocated `oneLine`) · `internal/agent/agentloop.go` (`logAction`, `reasonsOf` guards) · `internal/cli/call_renderer.go` (defensive tail guard) · `internal/ui/toollog.go` **deleted**; tests `internal/ui/toolcall_reason_test.go`, `internal/agent/agentloop_blank_reason_test.go`, `internal/cli/call_renderer_reason_test.go`.
+
+### Verification (2026-09-17, on `dev` @ `ddd6f7d`)
+- `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (no test-sleep · offline witness · cross-compile 4/4 · `verify-mcp-sdk-confinement` · golangci-lint **0 issues** · govulncheck **0 reachable**).
+- `go test -count=1 ./...` green (21 packages; godog E2E **ok**).
+- Topology audit **PASSED** — 44 features · 6 modules · 16 root + **310** module rows · **1576** steps (unchanged, as intended).
+- Diff-level secret scan **clean**; `go.mod` / `go.sum` unchanged (stdlib-only).
+- **Falsifiability witnesses** (a) remove fold · (b) remove cap · (c) restore the raw guard — reproduced then reverted.
+
+### Open items (non-blocking)
+- **Round-036 forward items** — (a) `[TECHNICAL DEBT]` the blank-reason predicate's **single ownership** (three sites, one dead) → [#69](https://github.com/gosharplite/tellme/issues/69); (b) the **permanent E2E narrowing** record (the `\n`/`\r` class has no E2E carrier) → [#69](https://github.com/gosharplite/tellme/issues/69) + [#74](https://github.com/gosharplite/tellme/issues/74); (c) `oneLine` relocated (orphan `toollog.go` deleted).
+- **Round-035 forward items** — the port hook overload + the spinner-yield-policy ownership → [#69](https://github.com/gosharplite/tellme/issues/69) (see the [2026-09-17 archive](docs/archives/status/2026-09-17.md)).
+- **Round-034 forward items** — the failed-turn display-only `Ready` overstatement (G2) + numbering skew; `BindToolOutput` ctor injection → [#69](https://github.com/gosharplite/tellme/issues/69); `LoopObserver` segregation; the round-022 row→feature audit blind spot → [#60](https://github.com/gosharplite/tellme/issues/60).
+- Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; rounds 011–033 forward items (per-round in the archives).
+
+### Next steps
+1. Choose the `037-*` theme and start it via `/axb-specify` off `dev` (candidates: [#69](https://github.com/gosharplite/tellme/issues/69) — now carries four scope items; [#60](https://github.com/gosharplite/tellme/issues/60); [#13](https://github.com/gosharplite/tellme/issues/13)).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled against the delivered state: **[#74](https://github.com/gosharplite/tellme/issues/74) CLOSED (completed)** — delivered by round 036 (PR [#75](https://github.com/gosharplite/tellme/pull/75) merged `ddd6f7d`; the permanent-narrowing record was commented on #74 before it closed, with the durable home on [#69](https://github.com/gosharplite/tellme/issues/69)); **[#69](https://github.com/gosharplite/tellme/issues/69) open** — body extended to carry the spinner-yield-policy ownership, the port hook pair, the tool-log blank-reason-predicate single ownership, and the permanent E2E narrowing record; **[#60](https://github.com/gosharplite/tellme/issues/60) open** (dogfooding umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13) open** (coverage tooling). No other revisions needed.
