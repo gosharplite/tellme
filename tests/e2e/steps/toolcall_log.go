@@ -166,20 +166,31 @@ func modelRequestCount(sc *scenarioContext) int {
 // pin: the resumed frame inside a `[Tool Output]` block.
 var spinnerStatusRe = regexp.MustCompile(`[\x{2800}-\x{28FF}] (Thinking|Executing)`)
 
+// toolOutputHeaderMarker is the `[Tool Output]` block HEADER tail (a line
+// containing it is a header, not an output line).
+const toolOutputHeaderMarker = "] [Tool Output] Executing... (Output shown below)"
+
 // closingSeparatorIndex returns the line index of the `[Tool Output]` block's
 // CLOSING separator — the last line at/after the header carrying the fixed
-// 60-hyphen separator literal — or -1 when the header/separator is absent. Round
-// 040 (T004, R-1): the WS-A liveness Then bounds its span on the CLOSING
-// SEPARATOR, not the last `[Tool Output]` marker line, because the resumed frame
-// shares the reset+separator `\n`-line and carries no `[Tool Output]` marker.
+// 60-hyphen separator literal, **bounded to the FIRST block** (N-40-1: it stops at
+// a second block's HEADER — a line carrying the header tail, which an output line
+// does NOT — so a future stderr carrying two blocks cannot silently widen the
+// WS-A span) — or -1 when the header/separator is absent. Round 040 (T004, R-1):
+// the WS-A liveness Then bounds its span on the CLOSING SEPARATOR, not the last
+// `[Tool Output]` marker line, because the resumed frame shares the
+// reset+separator `\n`-line and carries no `[Tool Output]` marker.
 func closingSeparatorIndex(stderr string) int {
 	head, _ := toolOutputBlockIndexes(stderr)
 	if head < 0 {
 		return -1
 	}
+	lines := stderrLines(stderr)
 	idx := -1
-	for i, l := range stderrLines(stderr) {
-		if i >= head && strings.Contains(l, ui.ToolOutputSeparator) {
+	for i := head; i < len(lines); i++ {
+		if i > head && strings.Contains(lines[i], toolOutputHeaderMarker) {
+			break // a second block's header ends the first block's span
+		}
+		if strings.Contains(lines[i], ui.ToolOutputSeparator) {
 			idx = i
 		}
 	}

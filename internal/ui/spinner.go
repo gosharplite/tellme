@@ -295,12 +295,17 @@ func (s *Spinner) AdmitResume() {
 	}
 	s.running = true
 	s.frameIdx = 0
-	s.stopCh = make(chan struct{})
-	s.doneCh = make(chan struct{})
+	// Capture the channels as LOCALS and pass them to the goroutine (R-40-1): a
+	// later AdmitResume/activate sets the FIELDS under the mutex, so reading the
+	// fields after unlocking would be an unsynchronized read — the harmful
+	// interleaving being a mismatched stop/done pair (a wedged deactivate or a
+	// "close of closed channel" panic). activate() already passes locals.
+	stopCh, doneCh := make(chan struct{}), make(chan struct{})
+	s.stopCh, s.doneCh = stopCh, doneCh
 	tick, stopTicker := s.newTicker()
 	s.stopTicker = stopTicker
 	s.mu.Unlock()
-	go s.loop(tick, s.stopCh, s.doneCh, true)
+	go s.loop(tick, stopCh, doneCh, true)
 }
 
 // resume restores the indicator after interleaved output. The turn-scoped epoch

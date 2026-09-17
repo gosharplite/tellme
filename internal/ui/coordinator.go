@@ -8,10 +8,12 @@ import (
 
 // Round 040 WS-A — the `[Tool Output]` block coordinator (ADR 0009 D3/D4). It is
 // the single `internal/ui` object that owns the block writer AND the progress
-// spinner, so `internal/cli` binds ONE value to the command tool's sink (the #69
-// pay-down: the spinner-yield policy no longer lives in three homes). During a
-// block it resumes the indicator after an idle gap and clears it before the next
-// output line (WS-A liveness, issue #82).
+// spinner, so `internal/cli` binds ONE value to the command tool's sink. It
+// consolidates the **block-scoped** yield only (the `[Tool Output]` resume/clear):
+// the other spinner yields remain where they are — the loop's `withToolLog`
+// (Before/AfterToolLog) and `compositeObserver.yieldIndicatorBeforeTail` (round
+// 035) — so the spinner-yield policy still has those homes (a `#69` ledger item;
+// this change does not claim to have collapsed all of them).
 //
 // The writer stays the SOLE owner of the block mutex + row state (T002 B1: one
 // lock owner, three entry points — WriteWith, EndWith, withLock); the coordinator
@@ -22,6 +24,20 @@ import (
 // block-writer mutex → spinner mutex. The block critical section never spans a
 // frame write: the resume draws its first frame on the redraw goroutine
 // (Spinner.AdmitResume).
+//
+// ACCEPTED RESIDUAL (N-40-4, recorded here so the next reader finds it): `End`
+// while an output-line write is stuck on a wedged `stderr` cannot be resolved —
+// `stopWatcher` joins the watcher, which may itself be parked inside `w.mu`
+// (`withLock`), so nothing can abandon a blocked underlying write. The behaviour
+// is bounded-then-accepted, not repaired: the stream is assumed to make progress
+// (a real terminal / pipe does). The unit stress
+// `TestCoordinatorEndWhileLineWriteInFlight` exercises the **released** writer,
+// i.e. the recoverable shape of this case.
+//
+// The coordinator models ONE concurrent block (one writer + one watcher); if
+// concurrent tool execution ever lands, a second open block plus the composite's
+// unconditional `AfterToolLog` resume would break the idle-gap invariant (frames
+// between output lines) — a `#69` forward item.
 
 // DefaultToolOutputIdleGap is the default idle-gap threshold for the WS-A
 // resume (ADR 0009 D3): the indicator reappears after N seconds with no new

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"io"
 	"regexp"
 	"strings"
 	"sync"
@@ -72,11 +73,19 @@ func drainWrites(w *signalWriter) {
 	}
 }
 
-func newTestCoordinator(w *signalWriter, clock *uiTestClock, sp *Spinner, idle time.Duration) (*ToolOutputCoordinator, chan time.Time) {
+func newTestCoordinator(w io.Writer, clock *uiTestClock, sp *Spinner, idle time.Duration) (*ToolOutputCoordinator, chan time.Time) {
 	c := NewToolOutputCoordinator(w, clock.now, sp, idle)
 	tick := make(chan time.Time, 16)
 	c.newTicker = func() (<-chan time.Time, func()) { return tick, func() {} }
 	return c, tick
+}
+
+// spinnerRunning reads the spinner's live flag under its mutex (N-40-5), so the
+// test assertion itself cannot race a concurrent writer.
+func spinnerRunning(s *Spinner) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.running
 }
 
 // TestCoordinatorResumeClearsBeforeLineAndLeavesNoResidue covers (b′) the
@@ -102,7 +111,7 @@ func TestCoordinatorResumeClearsBeforeLineAndLeavesNoResidue(t *testing.T) {
 	if !uiSpinnerStatusRe.MatchString(sw.String()[afterBegin:]) {
 		t.Fatalf("no resumed frame after the idle gap (zero-output case): %q", sw.String()[afterBegin:])
 	}
-	if !s.running {
+	if !spinnerRunning(s) {
 		t.Fatal("the resume did not start the presenter")
 	}
 
@@ -112,7 +121,7 @@ func TestCoordinatorResumeClearsBeforeLineAndLeavesNoResidue(t *testing.T) {
 		t.Fatal(err)
 	}
 	seg := sw.String()[beforeLine:]
-	if s.running {
+	if spinnerRunning(s) {
 		t.Fatal("the spinner is still live after an output line")
 	}
 	wantLine := FormatToolOutputLine(clock.now(), "hello") + "\n"
@@ -162,7 +171,7 @@ func TestCoordinatorContinuousOutputDrawsNoFrame(t *testing.T) {
 	if uiSpinnerStatusRe.MatchString(sw.String()[afterBegin:]) {
 		t.Fatalf("a frame appeared between continuous output lines: %q", sw.String()[afterBegin:])
 	}
-	if s.running {
+	if spinnerRunning(s) {
 		t.Fatal("the spinner remained live during continuous output")
 	}
 	coord.End()
@@ -198,7 +207,7 @@ func TestSpinnerAdmitResumeNoLabelNoop(t *testing.T) {
 	s.newTicker = func() (<-chan time.Time, func()) { return make(chan time.Time), func() {} }
 	s.now = func() time.Time { return time.Date(2026, 9, 17, 12, 0, 0, 0, time.UTC) }
 	s.AdmitResume() // status "" → no-op
-	if s.running {
+	if spinnerRunning(s) {
 		t.Fatal("AdmitResume started a label-less presenter")
 	}
 	if sw.String() != "" {
@@ -282,7 +291,7 @@ func TestCoordinatorEndWhileLineWriteInFlight(t *testing.T) {
 	s.now = clock.now
 	s.OnToolsStart([]string{"execute_command"})
 
-	coord, _ := newTestCoordinator2(gw, clock, s, 50*time.Millisecond)
+	coord, _ := newTestCoordinator(gw, clock, s, 50*time.Millisecond)
 	coord.Begin()
 	gw.armGate() // the NEXT write (the clear + the output line) blocks until released
 
@@ -321,12 +330,4 @@ func TestCoordinatorEndWhileLineWriteInFlight(t *testing.T) {
 	if uiSpinnerStatusRe.MatchString(uiVisible(gw.String())) {
 		t.Fatalf("a stranded frame survived the stalled-writer close: %q", uiVisible(gw.String()))
 	}
-}
-
-// newTestCoordinator2 is newTestCoordinator for an arbitrary io.Writer sink.
-func newTestCoordinator2(w *gatedWriter, clock *uiTestClock, sp *Spinner, idle time.Duration) (*ToolOutputCoordinator, chan time.Time) {
-	c := NewToolOutputCoordinator(w, clock.now, sp, idle)
-	tick := make(chan time.Time, 16)
-	c.newTicker = func() (<-chan time.Time, func()) { return tick, func() {} }
-	return c, tick
 }
