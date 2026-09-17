@@ -78,3 +78,9 @@ _(none — stdlib-only; no new dependency, no build/SDL change.)_
 - **TD-3 (process)** — extended issue **#69**'s **durable body** with a round-039 bullet (the three items: loop control flow on a `ui` predicate; the ≈3×/call predicate; the missing layer-discipline gate), with a link to the elaboration comment — matching the round-035/036/037 body-entry shape (the body, not a comment, is what `/axb-specify` reads).
 - **RF (hardening)** — `thenTurnClosingStatusNoBlank` no longer uses a global `\n\n\n` absence (which would go silent if the round-017 frame gap were retuned); it now asserts the measured `Payload:` line is preceded by **exactly** the frame gap (a single blank whose predecessor is the pre-flight `Payload: ~…` line). Fails loudly in both directions (verified: gate removed ⇒ the Example fails with `…tokens\n\n\n[measured]`). DSL row updated to match.
 - **Note (no action)** — the field name `renderedToolRound` reads per-call at first glance; the comment states it is per-**turn** ("the turn rendered a tool round"), so the semantic holds; left as-is.
+
+## Round-039 fold review #2 (PR #81) — consistency rename + shared helper
+
+- **Rename** — the step pattern `the turn shows no doubled blank line` no longer matched its hardened (targeted) assertion, so it was renamed to **`the closing status is preceded by exactly the frame gap`** (registration + `presenting-the-post-turn-status.feature` + the `dsl.md` row), and the row notes the step is *valid only on a tool-less turn* — keeping the DSL index honest as the reuse surface `dsl-exact-one-match` assumes.
+- **Shared helper** — added `measuredPayloadIndexes(lines) []int`, now used by both `thenTurnClosingStatusFollowsBlank` and `thenTurnClosingStatusNoBlank`, so the measured-payload predicate cannot drift between them.
+- Verification: `make verify` **OK**; `go test -count=1 ./...` green (E2E 226 / 1679); topology audit **PASSED**; no orphan reference to the old pattern.

@@ -19,7 +19,7 @@ func init() {
 		ctx.Then(`^the action of the call without a reason begins after a blank line$`, thenReasonlessActionBeginsAfterBlank)
 		ctx.Then(`^the trailing reason summary follows a blank line$`, thenTrailingReasonSummaryFollowsBlank)
 		ctx.Then(`^the turn's closing status follows a blank line$`, thenTurnClosingStatusFollowsBlank)
-		ctx.Then(`^the turn shows no doubled blank line$`, thenTurnClosingStatusNoBlank)
+		ctx.Then(`^the closing status is preceded by exactly the frame gap$`, thenTurnClosingStatusNoBlank)
 	})
 }
 
@@ -101,21 +101,31 @@ func thenTrailingReasonSummaryFollowsBlank(ctx context.Context) error {
 	return nil
 }
 
+// measuredPayloadIndexes returns the line indexes of every measured (`~`-less)
+// `Payload:` line — the first line of a post-status group. Shared by the two
+// closing-status assertions so their predicate cannot drift (round-039 fold
+// review).
+func measuredPayloadIndexes(lines []string) []int {
+	var idx []int
+	for i, l := range lines {
+		if strings.Contains(l, "Payload: ") && !strings.Contains(l, "Payload: ~") {
+			idx = append(idx, i)
+		}
+	}
+	return idx
+}
+
 func thenTurnClosingStatusFollowsBlank(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	lines := stderrLines(sc.stderr)
-	found := false
-	for i, l := range lines {
-		if !strings.Contains(l, "Payload: ") || strings.Contains(l, "Payload: ~") {
-			continue // only the measured (~-less) payload line starts the post-status group
-		}
-		found = true
+	idx := measuredPayloadIndexes(lines)
+	if len(idx) == 0 {
+		return fmt.Errorf("standard error carried no measured payload status line; stderr=%q", sc.stderr)
+	}
+	for _, i := range idx {
 		if i == 0 || lines[i-1] != "" {
 			return fmt.Errorf("the turn's closing status was not preceded by a blank line; stderr=%q", sc.stderr)
 		}
-	}
-	if !found {
-		return fmt.Errorf("standard error carried no measured payload status line; stderr=%q", sc.stderr)
 	}
 	return nil
 }
@@ -128,23 +138,19 @@ func thenTurnClosingStatusFollowsBlank(ctx context.Context) error {
 // blank whose own predecessor is the pre-flight (`Payload: ~…`) line. A global
 // `\n\n\n` absence would go silent if the frame gap were ever retuned; this form
 // fails visibly in both directions (it asserts the separation is exactly the frame
-// gap, not an added blank).
+// gap, not an added blank). This step is valid only on a TOOL-LESS turn.
 func thenTurnClosingStatusNoBlank(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	lines := stderrLines(sc.stderr)
-	found := false
-	for i, l := range lines {
-		if !strings.Contains(l, "Payload: ") || strings.Contains(l, "Payload: ~") {
-			continue // only the measured (~-less) payload line starts the post-status group
-		}
-		found = true
+	idx := measuredPayloadIndexes(lines)
+	if len(idx) == 0 {
+		return fmt.Errorf("standard error carried no measured payload status line; stderr=%q", sc.stderr)
+	}
+	for _, i := range idx {
 		if i >= 2 && lines[i-1] == "" && strings.Contains(lines[i-2], "Payload: ~") {
 			continue // exactly the round-017 frame gap — the correct, unchanged shape
 		}
 		return fmt.Errorf("a tool-less turn's closing status was not preceded by exactly the frame gap (an extra blank?); stderr=%q", sc.stderr)
-	}
-	if !found {
-		return fmt.Errorf("standard error carried no measured payload status line; stderr=%q", sc.stderr)
 	}
 	return nil
 }

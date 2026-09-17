@@ -34,7 +34,7 @@ Feature: Presenting the post-turn status
         | 100000 | 60000  | 3000       | 2000     |
       When the operator starts tellme with the prompt "hi"
       Then the run reports the token metrics of the request that just completed
-      And the turn shows no doubled blank line
+      And the closing status is preceded by exactly the frame gap
       And tellme exits successfully
 
     Example: The provider reports no reasoning tokens
