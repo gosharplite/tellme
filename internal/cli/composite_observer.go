@@ -26,10 +26,36 @@ func (c compositeObserver) OnCallBegin(callIndex int, messages []llm.Message) {
 	}
 }
 
-// OnCallEnd forwards the call-end hook to the call observer.
+// OnCallEnd forwards the call-end hook to the call observer, yielding the
+// progress indicator first on a non-final call.
+//
+// Round 035 (issue #72): a PHASE-BOUNDARY yield. The round-034 per-call tail is
+// written by the `call` half while the round-019/025 spinner is still live (the
+// loop's Spinner.OnToolsEnd is a no-op), so the tail's first line shares the
+// spinner's frame row and the frame residue survives the finished turn. The
+// indicator is synchronously CLEARED before the tail write and NOT resumed — at
+// this boundary the next waiting phase (the next call's OnInferenceStart) or the
+// turn's Stop() re-activates it. A clear+resume would only relocate the residue
+// (the next call's frame write opens with a bare "\n", stranding the resumed
+// frame on the row above). The FINAL call's tail is deferred past the answer
+// (ADR 0005 G5), so nothing is written at its call-end and it must not touch the
+// spinner — keeping the final path byte-identical.
 func (c compositeObserver) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []string, final bool) {
+	if !final {
+		c.yieldIndicatorBeforeTail()
+	}
 	if c.call != nil {
 		c.call.OnCallEnd(callIndex, usage, roundReasons, final)
+	}
+}
+
+// yieldIndicatorBeforeTail synchronously clears the progress indicator so a
+// non-final tail write starts on its own cleared line (round 035). It is
+// nil-safe (a gated-off spinner is a no-op). It deliberately does NOT resume —
+// see OnCallEnd for why (the phase boundary owns re-activation).
+func (c compositeObserver) yieldIndicatorBeforeTail() {
+	if c.spinner != nil {
+		c.spinner.BeforeToolLog()
 	}
 }
 
