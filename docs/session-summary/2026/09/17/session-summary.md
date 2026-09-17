@@ -815,6 +815,7 @@ An eleventh session on the same calendar day: bootstrapped, opened round **041**
 | Review #1 re-review | (`3cb8ec8`) **CERTIFIED** + R-6/R-7/R-8/R-9 → fold `ba935af` |
 | Review #2 re-review | (`ba935af`) R-6/R-7/R-8/R-9 **verified landed** + **R-10** (PR title/body) + R-11/R-12/R-13 (closeout-log lessons) |
 | Review #3 re-review | (`9e1cc50`) R-10 **verified landed** + **F-1/F-2** (ledger row split; edit-stable fold refs) + F-3/F-4 (§19 wording) + **§19-e** (narrative ownership) |
+| Final approval | (`bbd7ead`) **✅ ARCHITECTURAL APPROVAL — merge-ready; review loop CLOSED** (review `pullrequestreview-5236335495`); reviewer independently ran `go test -count=1 ./...` → exit 0 at the head |
 
 ### The two folds that mattered
 - **R-1 / R-6 / R-10 — one premise, three durable surfaces.** The round's premise called the test's 2 s literal *"the production fast-fail constant"*. It is **not**: production's bound is `mcpDiscoveryBound = 3 s`, and the 2 s figure is the sibling `ghWaitDelay` (round-032 `0a3ad9c`). The correction had to reach **ADR 0010** (R-1), **issue #87's body** (R-6, the durable surface per §15), and **PR #88's title + body** (R-10, the merge record).
@@ -842,7 +843,7 @@ An eleventh session on the same calendar day: bootstrapped, opened round **041**
 - Changed-file set vs `dev`: **only** `internal/infrastructure/di/mcp_factory_test.go` in Go (`mcp_factory.go` byte-identical) + docs; `go.mod`/`go.sum` unchanged.
 
 ### Open items (non-blocking)
-- **PR #88 open** — awaiting human merge; then propagate `dev → main` (no-ff), `go install ./cmd/tellme`, close **#87**, and finish the closeout (absorb §19-a…§19-d into the lesson set).
+- **PR #88 MERGED** (`ca792d7`, by `thptcnec`, 2026-09-17T13:34:19Z; head `bbd7ead`) → `dev`; **#87 CLOSED (completed)**; **#90** filed (narrative ownership / the doctrine's owning artifact). **Propagation `dev → main` (no-ff)** + `go install ./cmd/tellme` at this closeout. The round-041 review-fold history was relocated from `STATUS.md` into `docs/archives/status/2026-09-17.md` (Rule 12).
 - **#89** — the bound-headroom measurement + wiring pin (forward).
 - Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; the `di` sibling wall-clock-assertion class (round-041 **Q6**, its own round).
 
