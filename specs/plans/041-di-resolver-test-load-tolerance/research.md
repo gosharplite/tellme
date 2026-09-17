@@ -57,8 +57,10 @@ Consequence for the issue’s suggested fixes: option **A** (absolute interprete
 `TestNewGhTokenResolver_Bounded` remains the **sole falsifiability carrier**: bound stays **200 ms**; the shim genuinely hangs (3 s); assertions become:
 
 1. `err != nil` (a hanging `gh` is bounded to an error);
-2. **`elapsed >= bound`** (the **non-vacuity pin** — a shim that exits instantly, e.g. exit 127 from an unresolved `sleep`, can no longer pass the test vacuously; the resolver must have actually waited out the deadline);
+2. **non-vacuity** — the child was **killed by the deadline** (`exec.ExitError` with `ProcessState.ExitCode() == -1`, i.e. signalled), **not** exited on its own with a real status (an instant `exit 1`/127 shim — the round-032 N1 vacuity — is rejected);
 3. `elapsed <= boundedCeiling` where **`boundedCeiling = 2 * time.Second`** (raised from the round-032 `> 1 s`).
+
+**Fold (implementation discovery, this round).** D3's original wording was a bare **`elapsed >= bound`** pin. Witness (c) showed it is **unreliable at a 200 ms bound**: a vacuous shim's own fork+exec costs ≈0.14–0.2 s on the measured host — i.e. ≈ the bound — so `elapsed >= bound` **passes for an instantly-failing shim** (it flaked to PASS in the reproduction). The robust discriminator is the **failure's shape**: the deadline's SIGKILL yields `ExitCode() == -1` (signalled), whereas a self-exit yields a real code (1, 127, …). Assertion (2) was therefore changed to the exit-code check (dropping the fragile elapsed pin — which could also false-red at `elapsed ≈ bound`). `research.md`/ADR 0010 D3 carry the corrected rule.
 
 **Rationale**: the ceiling must clear the same ≈14–17× host-speed factor that delayed the positive test’s spawn, otherwise a **correct** resolver can false-red under load (the knife-edge the issue comment flagged: 0.2 s actual vs a 1 s ceiling, only 5× margin). At 2 s the margin over the 200 ms bound is 10×, while **falsifiability survives**: an **unbounded** resolver measures ≈3 s (the child’s sleep) `> 2 s` ⇒ red. Pin (2) closes the round-032 N1 hazard permanently and independently of PATH.
 
@@ -79,7 +81,7 @@ No `t.Skip`, no retry loop, no relaxed/vacuous assertion (**FR-005**); the shim�
 
 | Layer | Witness |
 | --- | --- |
-| Whole-suite, **under contention** | `go test -count=20 ./...` run **concurrently with a full `./tests/e2e` run** stays green (SC-001) — the discriminating criterion; a quiet-host run cannot tell “fixed” from “quiet”. |
+| Whole-suite, **under contention** | `go test -count=20 ./...` run **concurrently with a full `./tests/e2e` run** stays green (SC-001) — the discriminating criterion; a quiet-host run cannot tell “fixed” from “quiet”. **Fold (measured this round):** the literal `-count=20 ./...` **cannot complete** under Go's default 10-minute test timeout — the `tests/e2e` package re-runs 20× (≈50 s/pass) and panics `test timed out after 10m0s`; the acceptance is therefore `go test -count=20 -timeout 30m ./...`, plus `go test -count=20 ./internal/infrastructure/di/` under contention (the affected package). |
 | Falsifiability (a) | revert the positive test to `2 * time.Second` ⇒ **under load** the positive test reddens (`TrimsToken (2.00s)` `signal: killed`) — **already reproduced** on the unfixed head (attempt #1; issue §observed). |
 | Falsifiability (b) | make the resolver unbounded (`bound` ignored) ⇒ the bounded test measures ≈3 s `> boundedCeiling (2 s)` ⇒ red. |
 | Falsifiability (c) | make the bounded shim vacuous (an instant exit-127 shim) ⇒ `elapsed >= bound` fails ⇒ red (the N1 hazard is now pinned). |

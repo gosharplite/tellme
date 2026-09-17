@@ -21,7 +21,7 @@
 
 - **[D1 / Q1]** 正向測試 `TestNewGhTokenResolver_TrimsToken` 改用**寬鬆的 test-local bound**（`generousResolverBound = 30 * time.Second`），**不得**再用生產 2s fast-fail 常數。
 - **[D2 / Q2]** `writeFakeGh` 給 shim **dominant PATH**（shim 目錄在前 + 繼承 PATH；繼承值須在 `t.Setenv` 前取得）；hanging shim 化簡為 `exec sleep 3`，並移除 round-032 N1 的 in-shim PATH 還原與其註解。
-- **[D3 / Q3]** `TestNewGhTokenResolver_Bounded` 維持 `200 ms` bound，新增 **non-vacuity pin**（`elapsed >= bound`），ceiling 由 `1s` 改為 `boundedCeiling = 2 * time.Second`。
+- **[D3 / Q3]** `TestNewGhTokenResolver_Bounded` 維持 `200 ms` bound，新增 **non-vacuity pin**（判定 child 是被 deadline **SIGKILL**：`exec.ExitError` 且 `ProcessState.ExitCode() == -1`；**fold**：原 `elapsed >= bound` 在 200ms 下不可靠），ceiling 由 `1s` 改為 `boundedCeiling = 2 * time.Second`。
 - **[D4]** `TestNewGhTokenResolver_MissingGh` = **recorded non-change**（不 spawn child）。
 - **[D5]** 無 `t.Skip`／無 retry／無 vacuous assertion；無 Go `time.Sleep`（shim 的 shell `sleep` 不算）；stdlib-only。
 - **[D6 / Q4]** 見證：`go test -count=20 ./...` **under contention** 綠；可偽性 (a)/(b)/(c) 各自重現後還原。
@@ -44,7 +44,7 @@
 
 **DSL 參照**: 本輪無 Gherkin／`dsl.md` row（`/axb-dsl-refine` NOOP）；驗證語言為 Go unit test。
 
-- [ ] T001 [UNIT] 重調 resolver harness 的三處斷言與 fixture（RED-first）
+- [X] T001 [UNIT] 重調 resolver harness 的三處斷言與 fixture（RED-first）
   - Read:
     - `specs/plans/041-di-resolver-test-load-tolerance/research.md` -> D1, D2, D3, D4, D5
     - `specs/truth/techstack.md` -> Testing & Verification（Host test harness；Pure-helper unit tests）
@@ -53,7 +53,7 @@
   - 做（**測試檔內**，不動產品碼）：
     - 新增 test-local 常數：`generousResolverBound = 30 * time.Second`、`boundedCeiling = 2 * time.Second`（與 `boundedResolverBound = 200 * time.Millisecond` 並列，附 ADR 0010 一行註解）。
     - `TestNewGhTokenResolver_TrimsToken`：bound 由 `2 * time.Second` → `generousResolverBound`（D1）。
-    - `TestNewGhTokenResolver_Bounded`：ceiling 由 `time.Second` → `boundedCeiling`，**新增 non-vacuity pin** `if elapsed < boundedResolverBound { t.Fatalf(...) }`（D3）。
+    - `TestNewGhTokenResolver_Bounded`：ceiling 由 `time.Second` → `boundedCeiling`，**新增 non-vacuity pin**（D3）＝斷言 child 是被 deadline **SIGKILL**（`exec.ExitError` 且 `ProcessState.ExitCode() == -1`，即 signalled），而非自行以真實 exit code 結束。**Fold note**：原 `elapsed >= bound` 版本在 200ms bound 下不可靠（vacuous shim 自身的 fork+exec ≈0.14–0.2s ≈ bound，會誤判通過），故改用**失敗形狀**判別；並移除易在 `elapsed ≈ bound` 邊界誤紅的 elapsed pin。
     - `writeFakeGh`：`t.Setenv("PATH", dir + string(os.PathListSeparator) + inherited)`（`inherited := os.Getenv("PATH")` 於 `t.Setenv` **之前**取得）（D2）；更新 fixture 註解（shadow-vs-resolve）。
     - `TestNewGhTokenResolver_Bounded` 的 shim 由 `PATH="/usr/bin:/bin"; exec sleep 3` 化簡為 `exec sleep 3`；移除 N1 的 PATH 還原與其註解（D2）。
     - `TestNewGhTokenResolver_MissingGh`：確認**不需**變更（recorded non-change，D4）。
@@ -66,38 +66,50 @@
 
 **Test Scope**: `internal/infrastructure/di/mcp_factory_test.go`（unit）；whole-suite `go test ./...`；`./tests/e2e`（作為 contention 來源）。
 
-- [ ] T002 [UNIT] 可偽性見證 (a) —— 正向 bound 未放寬即紅（under load）
+- [X] T002 [UNIT] 可偽性見證 (a) —— 正向 bound 未放寬即紅（under load）
   - Read: `research.md` -> D1, D6(a)；`internal/infrastructure/di/mcp_factory_test.go`
   - 做：暫時把 `TestNewGhTokenResolver_TrimsToken` 的 bound 還原為 `2 * time.Second`，在 **contention** 下（同時跑 `go test ./tests/e2e/`）執行 whole-suite（或至少 `./internal/infrastructure/di/` 於 whole-suite 情境）→ 觀察 `TestNewGhTokenResolver_TrimsToken` 以 `signal: killed` / `2.00s` **紅**；**還原**為 `generousResolverBound` 後再跑一次確認綠。
   - 不做：不改任何其他斷言以「讓它過」；不用 retry 掩蓋。
 
-- [ ] T003 [UNIT] 可偽性見證 (b) —— unbounded resolver ⇒ ceiling 紅
+- [X] T003 [UNIT] 可偽性見證 (b) —— unbounded resolver ⇒ ceiling 紅
   - Read: `research.md` -> D3, D6(b)；`internal/infrastructure/di/mcp_factory.go`（唯讀）、`mcp_factory_test.go`
   - 做：暫時讓 resolver 忽略 `bound`（unbounded，例如 `context.WithTimeout(ctx, time.Hour)` 的 local 變體 **僅在測試** 或以測試內等效方式模擬），使 shim 真的 `sleep 3` 完成 → `TestNewGhTokenResolver_Bounded` 量得 ≈3s `> boundedCeiling (2s)` → **紅**；**還原**後確認綠。
   - 不做：不提交任何產品碼變更（見證後必須還原到 HEAD）。
 
-- [ ] T004 [UNIT] 可偽性見證 (c) —— vacuous shim ⇒ vacuity pin 紅
+- [X] T004 [UNIT] 可偽性見證 (c) —— vacuous shim ⇒ vacuity pin 紅
   - Read: `research.md` -> D3, D6(c)；`internal/infrastructure/di/mcp_factory_test.go`
-  - 做：暫時把 bounded test 的 shim 改成**立即失敗**（例如 `exit 1` 或一個 child 解析不到的 `sleep`），使 resolver 幾乎立即回錯、`elapsed < boundedResolverBound` → **non-vacuity pin** 觸發 **紅**（證明 pin 非真空）；**還原**後確認綠。
+  - 做：暫時把 bounded test 的 shim 改成**立即失敗**（`exit 1`）→ resolver 幾乎立即回錯，child 以真實 exit code 1 自行結束 → **non-vacuity pin（exit-code 判別）** 觸發 **紅**（證明 pin 非真空）；**還原**後確認綠。**已重現**：`the shim exited 1 on its own … the bound was never exercised (vacuous)`。
   - 不做：不留任何 vacuous／放寬的 assertion。
 
-- [ ] T005 [REGRESSION] under-contention acceptance + 全 gate + 範圍檢查
+- [X] T005 [REGRESSION] under-contention acceptance + 全 gate + 範圍檢查
   - Read:
     - `specs/plans/041-di-resolver-test-load-tolerance/research.md` -> D5, D6, D8
     - `specs/truth/techstack.md` -> Testing & Verification（Host test harness；Pure-helper unit tests）
   - 做：
-    - **under contention**：並行執行一個 `go test -count=1 ./tests/e2e/`（壓力來源）與 `go test -count=20 ./internal/infrastructure/di/`（或 `go test -count=20 ./...`），全程 `internal/infrastructure/di` **綠**（SC-001）。
+    - **under contention**：並行執行 `go test -count=1 ./tests/e2e/`（壓力來源）與 `go test -count=20 ./internal/infrastructure/di/`，全程 `internal/infrastructure/di` **綠**（SC-001）。**Fold（實測）**：不加 `-timeout` 的 `go test -count=20 ./...` 在此 repo **無法**通過——`tests/e2e` 重跑 20 次（每次 ≈50s）會撞到 Go 預設 10 分鐘 test timeout（`test timed out after 10m0s`）；因此整輪判準記為 `go test -count=20 -timeout 30m ./...`（並另以受影響套件的 `-count=20` 見證）。
     - `go test -count=1 ./...` 綠；`make verify`（`verify-no-test-sleep` + `verify-no-network` + `vet` + `verify-cross-compile` 4/4 + `verify-mcp-sdk-confinement` + `lint` + `vulncheck`）**OK**。
     - Gherkin/DSL topology audit 重跑 → **unchanged**（44 features · 16 root + 327 module rows · 1674 steps）。
     - `gofmt -l .` clean；`git diff --name-only origin/dev..HEAD` 確認**未動任何產品 Go 檔**（僅 `mcp_factory_test.go` + docs）；`go.mod`／`go.sum` 不變。
   - 不做：不為了讓 gate 綠而放寬 assertion 或改產品碼。
 
-- [ ] T006 subagent review (round quality gate)
+- [X] T006 subagent review (round quality gate)
   - Read:
     - `internal/infrastructure/di/mcp_factory_test.go`
     - `specs/truth/techstack.md`（Testing & Verification）、`docs/decisions/0010-test-deadline-decoupling.md`
     - `specs/plans/041-di-resolver-test-load-tolerance/{spec.md,research.md,plan.md,truth-delta.md}`
   - 檢驗：正向測試已與生產常數解耦；bounded test 為唯一 falsifiability carrier（200ms + vacuity pin + 2s ceiling，且 2s < unbounded ≈3s）；dominant PATH 且 `gh` 仍被 shadow；無 `t.Skip`／retry／`time.Sleep`；**無產品碼變更**；`techstack.md` 與 `truth-delta.md` 一致；既有 gate 語意未變。
+
+### Review outcome (round quality gate — T006)
+
+- **Reviewer**: the session (inline self-review — **disclosed deviation**, the round-029/session-8 precedent: no parallel subagent substrate in this session).
+- **Result**: **PASS**. Verified: (i) `generousResolverBound` decouples the trimming test from the production 2 s constant; (ii) `TestNewGhTokenResolver_Bounded` is the **sole** boundedness carrier and its **exit-code non-vacuity pin** rejects an instantly-failing shim (witness (c) reproduced: `the shim exited 1 on its own … (vacuous)`), while the 2 s ceiling stays below the ≈3 s unbounded measurement (witness (b) reproduced: `FAIL … (3.15s)`); (iii) `writeFakeGh` is dominant-PATH and `gh` remains shadowed; (iv) **no production file changed** (`mcp_factory.go` byte-identical to `dev`); (v) `make verify` OK, topology audit PASSED and unchanged, `go.mod`/`go.sum` unchanged.
+- **Folds raised during execution (recorded)**: **F-1** the D3 non-vacuity discriminator was changed from the planned bare `elapsed >= bound` to the **exit-code** check (the elapsed form is unreliable at a 200 ms bound where spawn cost ≈ 0.14–0.2 s — it flaked to PASS for an instant shim); swept into `research.md` D3, **ADR 0010 D3**, `techstack.md`, `truth-delta.md`, and this task. **F-2** `ee.ProcessState.ExitCode()` → `ee.ExitCode()` (golangci-lint **QF1008**). **F-3** the SC-001 acceptance wording gains an explicit **`-timeout 30m`** — an unqualified `-count=20 ./...` cannot pass (the `tests/e2e` package re-runs 20× and exceeds Go's default 10-minute test timeout: `test timed out after 10m0s`); measured `go test -count=20 -timeout 30m ./...` → **exit 0** in 16m15s (22 packages `ok`, 0 FAIL).
+- **Evidence**:
+  - Witness (a): positive bound reverted to 2 s → whole-suite red `TestNewGhTokenResolver_TrimsToken (2.00s) signal: killed`; restored → green.
+  - Witness (b): resolver made unbounded (`WithTimeout(ctx, time.Hour)`, temporary) → `TestNewGhTokenResolver_Bounded (3.15s)` FAIL; restored → green (product file byte-identical).
+  - Witness (c): bounded shim made vacuous (`exit 1`) → `the shim exited 1 on its own … (vacuous)` FAIL; restored → green.
+  - Under contention: `go test -count=20 ./internal/infrastructure/di/` green (10.2 s) while 3 whole-suite passes ran in parallel (all green).
+  - Acceptance: `go test -count=20 -timeout 30m ./...` **exit 0**; `make verify` OK; topology audit PASSED (44 features · 16 root + 327 module rows · 1674 steps — unchanged); `gofmt` clean.
 
 ---
 
