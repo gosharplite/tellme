@@ -15,9 +15,9 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| MODIFY | `specs/truth/techstack.md` — **Turn progress spinner** row | The elapsed counter becomes a **dual timer**: the total since prompt capture (turn-scoped; never resets) plus the **current AI-endpoint call's** duration (reset per call). While a `[Tool Output]` block streams, the indicator is no longer hidden for the whole block: it resumes after an idle gap and clears on the next output line (single-writer safe). Presentation-only. | `spec.md` FR-001..FR-008; `research.md` D… |
-| ADD | `docs/decisions/0009-….md` | Records the dual-timer policy and the idle-gap liveness (with the single-writer constraint); **supersedes ADR 0005 D7**'s whole-block pause and **amends** round-019 D4's "never reset". | `spec.md` FR-001/FR-007; `research.md` D… |
-| SUPERSEDE | `docs/decisions/0005-tool-call-log-parity.md` — `D7` | The whole-block pause decision is closed by the idle-gap liveness; 0005 is not edited except its `Status`/`D7` annotation per its own immutability clause. | `research.md` D… |
+| MODIFY | `specs/truth/techstack.md` — **Turn progress spinner** row | The elapsed display becomes a **dual timer** `({total}s {turn}s)`: the **total** since prompt capture (turn-scoped; **never reset** — round-019 D4 preserved) **plus** the **current turn's** duration, **reset at each AI-endpoint call** (stamped in `OnInferenceStart`; an **amendment** to round-019 D4). And, during a `[Tool Output]` block, the spinner is **no longer hidden for the whole block**: after an **idle gap** (default 3 s, a hermetic env seam) the indicator **resumes**, and the next complete output line is preceded by a **synchronous clear** (single-writer safe) — a **supersession of round-034's whole-block pause** (ADR 0005 D7). Presentation-only. | `spec.md` FR-001..FR-008; `research.md` D1–D5. |
+| ADD | `docs/decisions/0009-spinner-dual-timer-and-streaming-liveness.md` (+ the `docs/decisions/README.md` index row) | Records the dual-timer policy (per-AI-call reset; the round-019-D4 amendment) and the idle-gap liveness (single-writer; the presenter's goroutine-joined clear); **supersedes ADR 0005 D7** and carries the two recorded reference divergences. | `spec.md` FR-001/FR-007; `research.md` D1–D5/D8. |
+| SUPERSEDE (partial) | `docs/decisions/0005-tool-call-log-parity.md` — **`D7` only** | The whole-block pause decision is narrowed to an idle-gap pause. **D7 only** — the rest of ADR 0005 (D1–D6, D8…) stands, so 0005's overall `Status` stays `Accepted` and its **body is not edited**; the supersession is named in ADR 0009 and in the decisions index (research D8). | `research.md` D8. |
 
 ## /axb-api-plan
 
@@ -43,5 +43,5 @@
 
 | Action | Artifact | Change Summary | Reason |
 | --- | --- | --- | --- |
-| ADD | `docs/decisions/0009-….md` (+ the `docs/decisions/README.md` index row) | Records the dual-timer policy and the idle-gap liveness; supersedes ADR 0005 D7; amends round-019 D4. | The change to two `Accepted` decisions needs a durable, citable home (not a frozen plan package). |
-| SUPERSEDE | `docs/decisions/0005-tool-call-log-parity.md` — `D7` (pause) | Closed by WS-A; 0005 stays otherwise immutable. | The ADR immutability rule (0008→0007 precedent). |
+| ADD | `docs/decisions/0009-spinner-dual-timer-and-streaming-liveness.md` (+ the `docs/decisions/README.md` index row) | Records the dual-timer policy (per-AI-call reset; the round-019-D4 amendment) and the idle-gap liveness (single-writer; goroutine-joined clear); supersedes ADR 0005 D7; carries the two recorded reference divergences. | The change to two `Accepted` decisions needs a durable, citable home (not a frozen plan package). |
+| SUPERSEDE (partial) | `docs/decisions/0005-tool-call-log-parity.md` — **`D7` only** | The whole-block pause is narrowed to an idle-gap pause; 0005 stays otherwise immutable and its body is not edited (the supersession is named in ADR 0009 + the decisions index). | The ADR immutability rule (0008→0007 precedent), applied to a single decision. |
