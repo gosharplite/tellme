@@ -198,8 +198,6 @@ A second session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` 
 1. Choose the `037-*` theme and start it via `/axb-specify` off `dev` (candidates: [#69](https://github.com/gosharplite/tellme/issues/69) — now carries four scope items; [#60](https://github.com/gosharplite/tellme/issues/60); [#13](https://github.com/gosharplite/tellme/issues/13)).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
-### /axb-tasks review fold (PR #85)
-The architect reviewed the task list (**APPROVE WITH REQUIRED FOLDS**) and it was folded plan-side in `tasks.md` (no truth/code): **B1** name the block-mutex seam (`ToolOutputWriter` = sole lock/state owner + one lock-scoped `withLock` entry point; never reach into `w.mu` — non-reentrant) · **B2** T003 retires **only** the dead stepdef (keep `toolOutputBlockIndexes`/`hasSpinnerStatusBetween` for T004) · **B3** register the new idle seam in `scenario_context.go`'s `envUnset` · **B4** own the in-code superseded-citation sweep (T009/T010) · **TD-1** T014's gate = `go test -count=1 ./...` + `make verify` · **TD-2** the three pre-existing unit pins are **adapted** (named in T011) · **TD-3** the no-label + gated-off no-op sub-cases (T007) · **TD-4** reword T013 (the sink binding itself is not dead) · **TD-5** reword `spec.md` SC-003 to shape-only + the unit pin (PM-owned; raised for ratification) · **N-1..N-3** · the stalled-writer residual risk as T007(f). `/axb-implement` remains held.
 
 ### PM follow-ups
 - None new (spec/acceptance complete; no PM-owned gaps).
@@ -565,9 +563,20 @@ An eighth session on the same calendar day: after PR [#84](https://github.com/go
 | — | Setup omitted; the harness `Strict: true` lands **with** the stepdefs (T008), per TD-1 option (a). |
 
 ### Next steps
-1. Operator review of the `/axb-tasks` PR (`tasks.md` T001–T016).
+1. Operator review of the `/axb-tasks` PR (`tasks.md` T001–T016) — the task list now carries the **two PR #85 review folds** (B1–B4 + TD-1…TD-5 + N-1…N-3; then R-1/R-1b/R-2/R-3 + N-4/N-5).
 2. On approval: `/axb-implement` (the tasks above; the implementation PR follows).
 3. Human merges; then propagate `dev → main`; close **#82** + **#83** at closeout.
+
+
+### /axb-tasks review folds (PR #85)
+
+The architect reviewed the task list and it was folded plan-side in `tasks.md` (no truth/code).
+
+**Fold 1 (`f37a175`; APPROVE WITH REQUIRED FOLDS — B1–B4 + TD-1…TD-5 + N-1…N-3):** **B1** name the block-mutex seam (`ToolOutputWriter` = sole lock/state owner + one lock-scoped entry point; never reach into `w.mu` — non-reentrant) · **B2** T003 retires **only** the dead stepdef (keep `toolOutputBlockIndexes`/`hasSpinnerStatusBetween` for T004) · **B3** register the new idle seam in `scenario_context.go`'s `envUnset` · **B4** own the in-code superseded-citation sweep (T009/T010) · **TD-1** T014's gate = `go test -count=1 ./...` + `make verify` · **TD-2** the pre-existing unit pins are **adapted** (named in T011) · **TD-3** the no-label + gated-off no-op sub-cases (T007) · **TD-4** reword T013 · **TD-5** reword `spec.md` SC-003 to shape-only + the unit pin (PM-owned).
+
+**Fold 2 (`FOLDS ACCEPTED`; R-1/R-1b/R-2/R-3 + N-4/N-5):** **R-1** corrected T004's positive-polarity bound — anchor on the **closing separator** (`closingSeparatorIndex` → `hasSpinnerStatusBetween(lines, head, closingIdx+1)`), since the resumed frame shares the reset+separator `\n`-line and carries no `[Tool Output]` marker (the old bound made the assertion **vacuously false**) · **R-1b** `End` = stop watcher → **clear** → separator → resume · **R-2** the coordinator seam is the hook-parameterized `WriteWith(p, beforeLine)` (line-splitting stays inside the writer's `buf`) · **R-3** T007(g) the `\r`-only accepted-limitation pin · **TD-2 self-correction** (`spinner_width_test.go` **expected unchanged**; the two genuine breaks stay in `spinner_test.go`) · **TD-5** accepted as an accuracy fix (PM-owned; operator ratification).
+
+`/axb-implement` remains held.
 
 ### PM follow-ups
 - None new (spec/acceptance complete; no PM-owned gaps).
