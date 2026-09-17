@@ -1,7 +1,7 @@
 # tellme — Status
 
 **Last updated**: 2026-09-18 (session 16 — **round 043 `043-hermetic-make-go-env` IN FLIGHT — plan+truth half** (anchor [#96](https://github.com/gosharplite/tellme/issues/96): a hermetic `make` Go-toolchain invocation environment; tooling/truth only; **ADR 0012**); prior: session 15 / day close — **round 042 `042-layer-discipline-gate` DELIVERED / FROZEN** — **R1 of [#92](https://github.com/gosharplite/tellme/issues/92)**, anchor [#93](https://github.com/gosharplite/tellme/issues/93): a **layer-discipline gate** + a committed violation **baseline**, **tooling/truth only, zero product code**; **ADR 0011**. Delivered in two PRs — **plan half** [#94](https://github.com/gosharplite/tellme/pull/94) (`dev` `a82237a`) + **implementation half** [#95](https://github.com/gosharplite/tellme/pull/95) (`dev` `f4b53f6`; head `61414fc`; the review printed **FINAL CERTIFICATION — MERGE-READY** after four review rounds / nine verified folds). `#93` **CLOSED (completed)** on this merge; **#96** filed (outer-env hermeticity residual). **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation)).
-**Active branch**: `043-hermetic-make-go-env` (round 043 plan+truth half in flight, off `dev`; round 042 delivered/frozen)
+**Active branch**: `043-implement-hermetic-make-go-env` (round 043 `/axb-tasks` half; plan+truth half on `043-hermetic-make-go-env`, PR [#97](https://github.com/gosharplite/tellme/pull/97); off `dev`; round 042 delivered/frozen)
 **Daily log**: [`docs/session-summary/2026/09/18/session-summary.md`](docs/session-summary/2026/09/18/session-summary.md)
 **Archive**: [`2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002) · [`2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012) · [`2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–019) · [`2026-09-15.md`](docs/archives/status/2026-09-15.md) (rounds 020–026) · [`2026-09-16.md`](docs/archives/status/2026-09-16.md) (rounds 027–034) · [`2026-09-17.md`](docs/archives/status/2026-09-17.md) (rounds 035–040 + the round-040 review-fold history) · [`2026-09-18.md`](docs/archives/status/2026-09-18.md) (round 041 detail + its PR #88 review-fold history).
 
@@ -16,7 +16,7 @@
 | 041 | `041-di-resolver-test-load-tolerance` | PR [#88](https://github.com/gosharplite/tellme/pull/88) (`ca792d7`, merge; head `bbd7ead`) |
 | 042 | `042-layer-discipline-gate-plan` + `042-implement-layer-discipline-gate` | PR [#94](https://github.com/gosharplite/tellme/pull/94) (`a82237a`, plan+truth) · PR [#95](https://github.com/gosharplite/tellme/pull/95) (`f4b53f6`, merge; head `61414fc`) |
 
-Per-round detail lives in the archives; **042 is the most recent delivered round; no round is in flight** (the next round `043-*` opens off `dev`).
+Per-round detail lives in the archives; **043 is in flight** (plan+truth half in PR [#97](https://github.com/gosharplite/tellme/pull/97) + `/axb-tasks` on `043-implement-hermetic-make-go-env`); the most recent **delivered** round is **042**. The `043-*` implementation half (`/axb-implement`) follows.
 
 ## Delivered round — 042 `042-layer-discipline-gate` (DELIVERED / FROZEN — PR #95 merged into `dev` `f4b53f6`; frozen head `61414fc`)
 
