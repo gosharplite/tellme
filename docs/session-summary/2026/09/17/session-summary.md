@@ -453,7 +453,7 @@ A seventh session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md`
 | Round-040 theme | two folded spinner workstreams: **WS-A #82** = liveness while a `[Tool Output]` block streams (idle-gap resume); **WS-B #83** = a dual elapsed timer `({total}s {turn}s)` (per-AI-endpoint-call reset) |
 | Clarify | **QB1 locked** (per AI-endpoint call); **QA1–QA3 + QB2/QB3 proposed** (idle-gap mechanism/threshold/scope; format/phases) — pending the operator's review gate |
 | Pipeline | specify ✅ · spec-by-example ✅ · technical-research ✅ (D1–D8 + **ADR 0009**) · system-analysis ✅ (1 CLI end → `/axb-dsl-refine`; api/data NOOP; ui skipped) · dsl-refine ✅ · **tasks ⏸ held** · implement ⏸ |
-| Delivery | branch `040-…` (6 commits, pushed); **PR [#84](https://github.com/gosharplite/tellme/pull/84) open — human-only merge** |
+| Delivery | branch `040-…` (8 commits, pushed); **PR [#84](https://github.com/gosharplite/tellme/pull/84) open — human-only merge** |
 | Docs | `STATUS.md` revised (round-040 live state; round-039 detail relocated to `docs/archives/status/2026-09-17.md` per Rule 12); this §14 |
 
 ### Work done
@@ -483,6 +483,14 @@ A seventh session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md`
 | `a8cd6c1` | `docs(040)`: system-analysis plan |
 | `4834e03` | `docs(040)`: CLI interface truth (quiet-command liveness + dual elapsed timer) |
 | `8026441` | `docs(040)`: STATUS — round 040 in flight; relocate the round-039 detail (Rule 12) |
+| `7f1d2ab` | `docs(040)`: daily log — session 7 |
+| `b8a5f16` | `docs(040)`: fold PR #84 review — TD-1 (E2E `Strict: true`), TD-2..TD-8, RF-1..RF-5, QB3/QB4 |
+
+### PR #84 review fold (architect — **APPROVE WITH REQUIRED FOLDS**)
+
+Folded in-round (`b8a5f16`): **TD-1** `tests/e2e/suite_test.go` gains `Strict: true` (godog's default is `false`, so undefined steps were reported-and-ignored; the suite now **fails** on the round's 4 not-yet-implemented sentences — verified locally: 5 undefined scenarios fail, 56s) · **TD-2** the truth states **mutual exclusion + join** (not "single-writer") + the lock order + the anti-vacuity unit stress · **TD-3** the block critical section no longer spans a frame write (admit under the mutex; the redraw goroutine draws the first frame) · **TD-4** the watcher poll period is pinned (~200 ms) · **TD-5** the idle seam is named/pinned (`TELL_ME_FORCE_TOOLOUTPUT_IDLE_MS`, ms, `0` = admit immediately) and the Given is renamed to the world state `the command stays quiet for longer than the spinner's idle gap` · **TD-6** the second figure is renamed **"the current model call's elapsed"** (turn vs model-call terms; truth + acceptance + ADR) · **TD-7** the spinner feature header refreshed · **TD-8** the STATUS head recipe (`origin/main origin/dev`) + the commit counts · **RF-1** the acceptance-rule→carrier mapping + the task-list directives (incl. the dead-stepdef `[BDD-REMOVE]` and its unused helpers) · **RF-2** ADR 0005's **index** row annotated (no body edit) · **RF-3** the no-label resume is a defined no-op · **RF-4** `turnEpoch` stays internal (no sixth ctor seam) · **RF-5** #69's body updated · **QB3/QB4** the two-figure 3+-digit row-aware-clear re-witness + "unlabelled by design" recorded.
+
+**Consequence of TD-1 (disclosed):** this plan-half branch's E2E now reports the 4 not-yet-implemented steps as failures until `/axb-implement` defines them — the honest state the review asked for. `make verify` does **not** run the E2E, so the guard set is unaffected; if the operator merges the plan half before the implement half, `dev`'s E2E suite is red until then.
 
 ### Artifacts / truth
 - Plan package: `spec.md` · `checklists/requirements.md` · `research.md` (D1–D8) · `plan.md` · `features/acceptance/keeping-the-progress-visible.feature` · `features/acceptance/timing-the-current-turn.feature` · `truth-delta.md`.
