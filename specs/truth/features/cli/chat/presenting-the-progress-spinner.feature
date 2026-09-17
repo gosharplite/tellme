@@ -53,6 +53,7 @@ Feature: Presenting the progress spinner
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good"
       When the operator starts tellme with the prompt "read the notes"
       Then the progress spinner names the tool it is running
+      And the progress spinner shows the time since the prompt and the current turn's time
       And the progress spinner reports the machine's resource usage
       And tellme exits successfully
 
@@ -63,6 +64,7 @@ Feature: Presenting the progress spinner
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and "todo.txt" and then answers with "all good"
       When the operator starts tellme with the prompt "read the notes and the todo"
       Then the progress spinner names the first tool and counts the remaining tools
+      And the progress spinner shows the time since the prompt and the current turn's time
       And the progress spinner reports the machine's resource usage
       And tellme exits successfully
 
@@ -108,15 +110,21 @@ Feature: Presenting the progress spinner
       Then the run shows no progress spinner
       And tellme exits successfully
 
-  Rule: The spinner is paused while a command's output streams
+  Rule: A quiet command's output still shows the progress spinner
 
-    Example: A command streams its output without the spinner flipping
+    # Round 040 (issue #82): the whole-block pause (round 034 FR-012/G8, ADR 0005 D7) is narrowed — the
+    # indicator resumes after an idle gap and is cleared before the next output line. (The forced-idle
+    # Given arranges the hermetic idle seam; the no-residue / no-interleave contract is a unit pin.)
+
+    Example: The indicator returns while a long-running command stays quiet
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the diagnostics are shown at a terminal
-      And a configured provider "test-model" whose endpoint runs a command and then answers with "all good"
+      And the spinner resumes without waiting for an idle gap
+      And a configured provider "test-model" whose endpoint runs a command that prints a line and then stays quiet and then answers with "all good"
       When the operator starts tellme with the prompt "run it"
-      Then the progress spinner does not appear while the command's output streams
+      Then the run shows the progress spinner again while the command stays quiet
+      And the run shows no progress spinner
       And tellme exits successfully
 
   Rule: The spinner leaves no residue on a tool-using turn
@@ -128,4 +136,29 @@ Feature: Presenting the progress spinner
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good"
       When the operator starts tellme with the prompt "read the notes"
       Then the run shows no progress spinner
+      And tellme exits successfully
+
+  Rule: The spinner shows the total time and the current turn's time
+
+    # Round 040 (issue #83): the elapsed display is a dual timer — the total since prompt capture plus
+    # the current turn's duration, reset at each AI-endpoint call. (The per-call reset arithmetic is a
+    # unit pin; the E2E asserts the two-figure shape on the captured frames.)
+
+    Example: A single-call answer shows both times
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the diagnostics are shown at a terminal
+      And a configured provider "test-model" whose endpoint answers with "all good"
+      When the operator starts tellme with the prompt "hi"
+      Then the progress spinner shows the time since the prompt and the current turn's time
+      And tellme exits successfully
+
+    Example: A tool-using answer shows both times on each model call
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the diagnostics are shown at a terminal
+      And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good"
+      When the operator starts tellme with the prompt "read the notes"
+      Then the progress spinner shows the time since the prompt and the current turn's time
       And tellme exits successfully
