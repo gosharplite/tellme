@@ -1,4 +1,4 @@
-# Technical Research: resolver test load tolerance — decouple the unit tests from production fast-fail constants (round 041)
+# Technical Research: resolver test load tolerance — decouple the unit tests from a tight hardcoded wall-clock budget (round 041)
 
 **Plan Package**: `specs/plans/041-di-resolver-test-load-tolerance`
 
@@ -10,7 +10,7 @@ Anchor: issue [#87](https://github.com/gosharplite/tellme/issues/87) — `intern
 
 ### Root cause (settled — measured, not hypothesised)
 
-The resolver is deterministic **given its deadline**. `NewGhTokenResolver(bound)` runs `exec.CommandContext(cctx, "gh", "auth", "token")` in its own process group with `cmd.Cancel = kill(-pgid, SIGKILL)` and `ghWaitDelay = 2 s`; when `bound` elapses, `cmd.Output()` returns an `*exec.ExitError` whose text is exactly `signal: killed`. The **positive** trimming test passes `2 * time.Second` — the **production fast-fail constant** — as *its own* budget, and under whole-suite contention the (instant) shim’s **fork+exec** is delayed past 2 s, so the deadline fires and the kill surfaces as the failure. Evidence measured on this host (darwin/arm64, 8 CPU, Go 1.26.6):
+The resolver is deterministic **given its deadline**. `NewGhTokenResolver(bound)` runs `exec.CommandContext(cctx, "gh", "auth", "token")` in its own process group with `cmd.Cancel = kill(-pgid, SIGKILL)` and `ghWaitDelay = 2 s`; when `bound` elapses, `cmd.Output()` returns an `*exec.ExitError` whose text is exactly `signal: killed`. The **positive** trimming test **hardcodes its own `2 * time.Second`** budget, and under whole-suite contention the (instant) shim’s **fork+exec** is delayed past it, so the deadline fires and the kill surfaces as the failure. That literal is **not** the caller's bound: production's fast-fail bound is **`mcpDiscoveryBound = 3 * time.Second`** (`internal/cli/mcp_discovery.go:19`, the sole call site `di.NewGhTokenResolver(mcpDiscoveryBound)` at `:46`); the 2 s figure is the *sibling* `ghWaitDelay = 2 s`, and both entered in the same commit (round-032 `0a3ad9c`) — the test literal mirrored its sibling. Evidence measured on this host (darwin/arm64, 8 CPU, Go 1.26.6):
 
 | Observation | Value |
 | --- | --- |
@@ -23,7 +23,7 @@ The resolver is deterministic **given its deadline**. `NewGhTokenResolver(bound)
 | Whole-suite attempt **#3** (unfixed) | PASS — package 2.693 s (the positive test squeaked in just under 2 s) |
 | Whole-suite attempt **#2** (positive bound **widened to 30 s**) | **PASS** — package 2.951 s (the positive test ran ≈2.4 s, well inside 30 s) |
 
-⇒ a **≈14–17× host-speed factor** between the quiet and the contended host, i.e. the same margin the issue observed (3 of 5 runs red; ~50 % here). The failure is **the bounded resolver working as designed** on a child that had not finished within the production budget — **not** a PATH-resolution defect and **not** a product defect. The defect is that a **test** paces itself on a **production fast-fail constant**.
+⇒ a **≈14–17× host-speed factor** between the quiet and the contended host, i.e. the same margin the issue observed (3 of 5 runs red; ~50 % here). The failure is **the bounded resolver working as designed** on a child that had not finished within the production budget — **not** a PATH-resolution defect and **not** a product defect. The defect is that a **test** hardcodes a **tight wall-clock budget that is not its subject** (and that mis-identifies itself as a production constant — R-1).
 
 Consequence for the issue’s suggested fixes: option **A** (absolute interpreter + absolute `sleep`) does **not** address the cause (the deadline — not PATH lookup — is what fired); option **C** (“bound them tighter”) is backwards for the positive test; option **B** (dominant PATH) is genuine **hygiene** but not load-bearing. The **load-bearing** fix is to **decouple the positive test from host speed**.
 
@@ -31,7 +31,7 @@ Consequence for the issue’s suggested fixes: option **A** (absolute interprete
 
 ### D1 — The positive test takes a generous, test-local bound (the load-bearing fix)
 
-`TestNewGhTokenResolver_TrimsToken` (subject = **token trimming**) takes a **generous** resolver bound from a **test-local named constant** (`generousResolverBound = 30 * time.Second`), **not** the production 2 s. 30 s is ~12× the worst observed loaded spawn (~2.4 s), so an instant shim can never be the variable under test. The bound is a **test fixture value**, not a production knob (the production bound is the caller’s; the `di` resolver is invoked by the CLI with the FR-020 discovery bound).
+`TestNewGhTokenResolver_TrimsToken` (subject = **token trimming**) takes a **generous** resolver bound from a **test-local named constant** (`generousResolverBound = 30 * time.Second`), **not** a hardcoded literal (production's caller bound is the FR-020 discovery bound, `mcpDiscoveryBound = 3 s`). 30 s is ~12× the worst observed loaded spawn (~2.4 s), so an instant shim can never be the variable under test. The bound is a **test fixture value**, not a production knob (the production bound is the caller’s; the `di` resolver is invoked by the CLI with the FR-020 discovery bound).
 
 **Rationale**: the test’s subject is the **trim** (`strings.TrimSpace`), so its deadline must be invisible; only `TestNewGhTokenResolver_Bounded` exercises boundedness. This removes the coupling that reddens the standard gate — and the round-040 closeout gate is `go test -count=1 ./...` (`SESSION-CLOSEOUT.md` Step 2, **Rule 1 forbids closing out on a red gate**).
 
@@ -67,7 +67,7 @@ Consequence for the issue’s suggested fixes: option **A** (absolute interprete
 **Alternatives considered**:
 - **Keep the 1 s ceiling** — rejected: the same class of host-speed coupling would reintroduce a load-dependent false red on the *bounded* test.
 - **A larger ceiling (≈3 s)** — rejected: the unbounded case measures ≈3 s, so a 3 s ceiling would straddle the falsifiability boundary (margin ≈1×); 2 s is the strongest ceiling that keeps a real gap to 3 s.
-- **No non-vacuity pin (rely on the shim restoring PATH)** — rejected: PATH-dependent vacuity is exactly what D2 removes; an explicit `elapsed >= bound` assertion is the robust invariant.
+- **No non-vacuity pin (rely on the shim restoring PATH)** — rejected: PATH-dependent vacuity is exactly what D2 removes; an explicit **exit-code** assertion (the child was **signal-killed** by the deadline) is the robust invariant.
 
 ### D4 — the missing-`gh` test is a recorded **non-change**
 
@@ -84,14 +84,14 @@ No `t.Skip`, no retry loop, no relaxed/vacuous assertion (**FR-005**); the shim�
 | Whole-suite, **under contention** | `go test -count=20 ./...` run **concurrently with a full `./tests/e2e` run** stays green (SC-001) — the discriminating criterion; a quiet-host run cannot tell “fixed” from “quiet”. **Fold (measured this round):** the literal `-count=20 ./...` **cannot complete** under Go's default 10-minute test timeout — the `tests/e2e` package re-runs 20× (≈50 s/pass) and panics `test timed out after 10m0s`; the acceptance is therefore `go test -count=20 -timeout 30m ./...`, plus `go test -count=20 ./internal/infrastructure/di/` under contention (the affected package). |
 | Falsifiability (a) | revert the positive test to `2 * time.Second` ⇒ **under load** the positive test reddens (`TrimsToken (2.00s)` `signal: killed`) — **already reproduced** on the unfixed head (attempt #1; issue §observed). |
 | Falsifiability (b) | make the resolver unbounded (`bound` ignored) ⇒ the bounded test measures ≈3 s `> boundedCeiling (2 s)` ⇒ red. |
-| Falsifiability (c) | make the bounded shim vacuous (an instant exit-127 shim) ⇒ `elapsed >= bound` fails ⇒ red (the N1 hazard is now pinned). |
+| Falsifiability (c) | make the bounded shim vacuous (an instant `exit 1` shim) ⇒ the **exit-code** pin fails (a real status, not a signal-kill) ⇒ red (the N1 hazard is now pinned). |
 
 Witnesses (a)–(c) are reproduced then reverted in `/axb-implement`, per house style.
 
 ### D7 — Governance: ADR 0010 records the rule; `techstack.md` records the harness
 
-- **ADD `docs/decisions/0010-test-deadline-decoupling.md`** (+ the `docs/decisions/README.md` index row): *“A test must not use a production fast-fail constant as its own deadline”* — with three sub-rules: **(i)** a test whose subject is not the bound uses a generous, test-local constant; **(ii)** a real-time **ceiling** assertion must clear a host-speed margin while preserving falsifiability against the unbounded case; **(iii)** a bound-under-test must assert **non-vacuity** (`elapsed >= bound`); **(iv)** a test’s `PATH` shim is **dominant** (shadow the target, resolve children).
-- **MODIFY `specs/truth/techstack.md` (Testing & Verification)**: extend the **Host test harness** row with the test-deadline rule (ADR 0010) and the **Pure-helper unit tests** row with the `di` resolver harness specifics (dominant-PATH `gh` shim; the generous positive bound; `_Bounded` as the sole boundedness carrier with the `elapsed >= bound` vacuity pin and the 2 s ceiling).
+- **ADD `docs/decisions/0010-test-deadline-decoupling.md`** (+ the `docs/decisions/README.md` index row): *“A test must not hardcode a tight wall-clock budget that is not its subject”* — with four sub-rules: **(i)** a test whose subject is not a wall-clock bound takes a generous, test-local deadline; **(ii)** a real-time **ceiling** assertion must clear a host-speed margin while preserving falsifiability against the unbounded case; **(iii)** a bound-under-test must assert **non-vacuity** by the **failure's shape** (the child was **signal-killed** by the deadline: `exec.ExitError` with `ExitCode() == -1`); **(iv)** a test’s `PATH` shim is **dominant** (shadow the target, resolve children).
+- **MODIFY `specs/truth/techstack.md` (Testing & Verification)**: extend the **Host test harness** row with the test-deadline rule (ADR 0010) and the **Pure-helper unit tests** row with the `di` resolver harness specifics (dominant-PATH `gh` shim; the generous positive bound; `_Bounded` as the sole boundedness carrier with the **exit-code** non-vacuity pin (signal-killed child, `ExitCode() == -1`) and the 2 s ceiling).
 
 **Rationale**: the round-035 session lesson — a forward item must live on a **durable, citable surface** (an ADR / truth row), not a frozen plan package.
 
@@ -108,7 +108,7 @@ Witnesses (a)–(c) are reproduced then reverted in `/axb-implement`, per house 
 
 - **A future host factor larger than ~14–17×** could still delay the positive shim beyond 30 s (or the bounded kill+reap beyond 2 s). The 30 s / 2 s choices carry ≥10× headroom over the measured worst case; a pathological host is out of scope (the issue’s acceptance is “20× under contention”, not “any host any load”).
 - **The non-vacuity pin assumes `bound` is the *only* reason the resolver waits** — true today (`context.WithTimeout` is the sole timer); a future resolver that waits for another reason would need the pin re-examined.
-- **The dominant PATH relies on the inherited PATH containing `sleep`**; if absent the shim exits 127 and the `elapsed >= bound` pin fails **loudly** (never vacuously) — the intended failure mode.
+- **The dominant PATH relies on the inherited PATH containing `sleep`**; if absent the shim exits 127 and the **exit-code** pin fails **loudly** (never vacuously — a real status is not a signal-kill) — the intended failure mode.
 - **The sibling wall-clock-assertion class elsewhere in the suite** (Q6) is **out of scope**, recorded as a forward item on `techstack.md`’s “Not Introduced Yet” / the round diff (its own round).
 
 ## Truth impact (ratified by the owners)

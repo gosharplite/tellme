@@ -1,4 +1,4 @@
-# Feature Specification: resolver test load tolerance — a test must not pace itself on a production fast-fail constant (round 041)
+# Feature Specification: resolver test load tolerance — a test must not hardcode a tight wall-clock budget that is not its subject (round 041)
 
 **Feature Branch**: `041-di-resolver-test-load-tolerance`
 
@@ -16,7 +16,7 @@
 
 - **Production seam (unchanged).** `internal/infrastructure/di/mcp_factory.go` — `NewGhTokenResolver(bound)` spawns `gh auth token` in its **own process group**, bounded by `bound`; on deadline it SIGKILLs the group (`cmd.Cancel = kill(-pgid, SIGKILL)`) with `ghWaitDelay = 2s`, so `cmd.Output()` returns an `*exec.ExitError` whose text is exactly `signal: killed`.
 - **The failing test.** `internal/infrastructure/di/mcp_factory_test.go`:
-  - `TestNewGhTokenResolver_TrimsToken` — subject: **token trimming**; the shim is `echo "tok-123"` (**instant**); but it passes `2 * time.Second` — the **production fast-fail constant** — as its own resolver bound (the coupling).
+  - `TestNewGhTokenResolver_TrimsToken` — subject: **token trimming**; the shim is `echo "tok-123"` (**instant**); but it **hardcodes its own `2 * time.Second`** budget — **not** the caller's bound (production's fast-fail bound is **`mcpDiscoveryBound = 3 * time.Second`**, `internal/cli/mcp_discovery.go`; the 2 s literal mirrors the sibling `ghWaitDelay = 2 s`).
   - `TestNewGhTokenResolver_Bounded` — subject: **boundedness**; the shim restores a real PATH then `exec sleep 3`; bound `200 ms`; ceiling assertion `elapsed > time.Second ⇒ fail`.
   - `TestNewGhTokenResolver_MissingGh` — subject: **absent `gh`**; PATH holds no `gh`, so `exec.LookPath` fails instantly and **no child is spawned**; bound `1 s`.
   - `writeFakeGh` sets `PATH` to **only** the shim dir (round-032 implementation-review N1), which forced the hanging shim to restore a real PATH internally.
@@ -26,11 +26,11 @@
 
 ## Operator-locked decisions (clarify — delegated; the operator accepted the recommendations)
 
-- **Q1 → widen the positive test's bound (the load-bearing fix).** `TestNewGhTokenResolver_TrimsToken` (subject = trimming) takes a **generous** resolver bound (e.g. `30 * time.Second`); its subject is trimming, so it must never be paced by a production fast-fail constant.
+- **Q1 → widen the positive test's bound (the load-bearing fix).** `TestNewGhTokenResolver_TrimsToken` (subject = trimming) takes a **generous** resolver bound (e.g. `30 * time.Second`); its subject is trimming, so it must never be paced by a tight hardcoded budget that is not its subject.
 - **Q2 → dominant PATH (issue option B; hygiene).** `writeFakeGh` sets `PATH = <shim-dir> + ":" + <inherited PATH>`, so the shim still **shadows** `gh` (its dir is first) while its children **resolve** normally — retiring the round-032 N1 in-shim PATH-restoration contortion. This is *not* the load-bearing fix (an instant shim can still blow a tight deadline).
 - **Q3 → bounded-test ceiling margin.** `TestNewGhTokenResolver_Bounded`'s wall-clock ceiling moves `> 1s → > 2s` (falsifiability survives: an unbounded resolver measures ≈3 s; the margin over the 200 ms bound grows 5× → 10×).
 - **Q4 → witness under contention.** Acceptance = `go test -count=20 ./...` green **under contention** (run concurrently with a full `./tests/e2e` run); **no `t.Skip`, no retry** masking. A **falsifiability witness** is required (revert the bound → the bounded test fails).
-- **Q5 → record the rule as ADR 0010.** A new ADR records the generalizable convention — *a test must not use a production fast-fail constant as its own deadline; real-time assertions must clear a host-speed margin* — authored by `/axb-technical-research`.
+- **Q5 → record the rule as ADR 0010.** A new ADR records the generalizable convention — *a test must not hardcode a tight wall-clock budget that is not its subject; real-time assertions must clear a host-speed margin* — authored by `/axb-technical-research`.
 - **Q6 → siblings recorded, not swept.** Other wall-clock assertions in the same class are **out of scope**; recorded as a forward item (its own round), not swept here.
 
 **Scope note**: this round changes **no** production code — not `NewGhTokenResolver`, not `ghWaitDelay`, not the MCP factory, the CLI, any `stdout`/`stderr`, any flag/exit code, or any persisted record. It retunes the **test fixture** (`writeFakeGh`) and **two test bounds/ceilings**, and records the rule in truth (ADR + `techstack.md`).
@@ -50,13 +50,13 @@ As a maintainer running `go test ./...` (or `make test`) on a loaded host, I wan
 **Acceptance Scenarios**:
 
 1. **Given** a saturated host (a full `./tests/e2e` run in flight), **When** `go test -count=20 ./...` runs, **Then** the `di` package passes every iteration with no `signal: killed` failure.
-2. **Given** the positive trimming test, **When** it runs on a loaded host, **Then** it is **not** paced by a production fast-fail constant — its resolver bound is generous (e.g. `30s`) — so an instant shim cannot exceed it.
+2. **Given** the positive trimming test, **When** it runs on a loaded host, **Then** it is **not** paced by a tight hardcoded budget — its resolver deadline is generous (e.g. `30s`) — so an instant shim cannot exceed it.
 3. **Given** the bounded test, **When** a correct resolver is measured under load, **Then** it passes (the kill+reap path clears the ceiling margin); **and** **When** the resolver's bound is disabled (an unbounded resolver), **Then** the test still **fails** (falsifiability preserved).
 4. **Given** the shim fixture, **When** it is written, **Then** `gh` is shadowed (the shim dir is first on PATH) **and** the shim's own children resolve on a normal PATH — no in-shim PATH restoration is required.
 
 **Functional Requirements**:
 
-- **FR-001**: The positive resolver test (`TestNewGhTokenResolver_TrimsToken`) MUST take a resolver bound that is **decoupled from host speed** — a generous value, not a production fast-fail constant — so an instant shim cannot exceed it under whole-suite contention.
+- **FR-001**: The positive resolver test (`TestNewGhTokenResolver_TrimsToken`) MUST take a resolver bound that is **decoupled from host speed** — a generous value, not a tight hardcoded literal — so an instant shim cannot exceed it under whole-suite contention.
 - **FR-002**: `TestNewGhTokenResolver_Bounded` MUST remain the **sole falsifiability carrier** of the resolver's boundedness: it keeps a tight bound (200 ms), and its assertions MUST still fail for an unbounded/incorrect resolver.
 - **FR-003**: The bounded test's wall-clock **ceiling** MUST clear a host-speed margin (raise `> 1s` to a value that is comfortably above the observed kill+reap cost) while preserving falsifiability (an unbounded resolver still exceeds it).
 - **FR-004**: The shim fixture (`writeFakeGh`) MUST give the shim a **dominant** PATH — the shim dir first, then the inherited PATH — so `gh` is shadowed while the shim's children resolve normally.
@@ -71,7 +71,7 @@ As a maintainer running `go test ./...` (or `make test`) on a loaded host, I wan
 
 ### User Story 2 - The determinism rule is recorded (ADR 0010 + techstack) (Priority: P2)
 
-As a maintainer / future round author, I want the "a test must not use a production fast-fail constant as its own deadline" rule recorded in the decision records and the technology-stack truth, so this class of coupling is not repeated.
+As a maintainer / future round author, I want the "a test must not hardcode a tight wall-clock budget that is not its subject" rule recorded in the decision records and the technology-stack truth, so this class of coupling is not repeated.
 
 **Why this priority**: it bounds the fix with a **durable, citable home** (not a frozen plan package — the round-035 session lesson), so a future test does not re-introduce the same host-speed coupling. It is a documentation + governance constraint on Story 1, not an independent capability.
 
@@ -107,7 +107,7 @@ As a maintainer / future round author, I want the "a test must not use a product
 
 - **Resolver test harness** — `writeFakeGh` + the `gh` shim (the test-side fixture; PATH-bound).
 - **Bounded resolver** — `NewGhTokenResolver(bound)` (the production seam under test; **unchanged**).
-- **Load-tolerance rule** — the recorded convention (ADR 0010) that a test must not pace itself on a production fast-fail constant.
+- **Load-tolerance rule** — the recorded convention (ADR 0010) that a test must not hardcode a tight wall-clock budget that is not its subject.
 
 ---
 
@@ -138,7 +138,7 @@ As a maintainer / future round author, I want the "a test must not use a product
 ### Measurable Outcomes
 
 - **SC-001**: `go test -count=20 ./...` is green **under contention** (concurrently with a full `./tests/e2e` run) — the **discriminating** criterion; a quiet-host run cannot distinguish "fixed" from "quiet". **Fold (measured):** an unqualified `-count=20 ./...` cannot pass on tellme because the `tests/e2e` package re-runs 20× and exceeds Go's **default 10-minute** test timeout (`panic: test timed out after 10m0s`) — the criterion therefore carries an explicit **`-timeout 30m`** (`go test -count=20 -timeout 30m ./...`), and the affected package is additionally witnessed as `go test -count=20 ./internal/infrastructure/di/` under contention. (covers FR-001, FR-004)
-- **SC-002**: The positive test no longer passes a production fast-fail constant as its bound, while the bounded test keeps its tight bound and remains the falsifiability carrier: reverting the positive bound reproduces the flake / red **under load** — reproduced as a falsifiability witness, then reverted. (covers FR-002)
+- **SC-002**: The positive test no longer hardcodes a tight budget that is not its subject, while the bounded test keeps its tight bound and remains the falsifiability carrier: reverting the positive bound reproduces the flake / red **under load** — reproduced as a falsifiability witness, then reverted. (covers FR-002)
 - **SC-003**: The bounded test's ceiling clears the host-speed margin **and** still fails an unbounded resolver — falsifiability preserved in both directions. (covers FR-003)
 - **SC-004**: ADR 0010 + the decisions index row + the `specs/truth/techstack.md` (Testing & Verification) note are present; every pre-round gate's behaviour is unchanged; **no production Go file** changed; `go.mod`/`go.sum` unchanged. (covers FR-005–FR-009, NFR-003–NFR-005)
 

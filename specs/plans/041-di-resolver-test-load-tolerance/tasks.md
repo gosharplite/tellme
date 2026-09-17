@@ -21,7 +21,7 @@
 
 - **[D1 / Q1]** 正向測試 `TestNewGhTokenResolver_TrimsToken` 改用**寬鬆的 test-local bound**（`generousResolverBound = 30 * time.Second`），**不得**再用生產 2s fast-fail 常數。
 - **[D2 / Q2]** `writeFakeGh` 給 shim **dominant PATH**（shim 目錄在前 + 繼承 PATH；繼承值須在 `t.Setenv` 前取得）；hanging shim 化簡為 `exec sleep 3`，並移除 round-032 N1 的 in-shim PATH 還原與其註解。
-- **[D3 / Q3]** `TestNewGhTokenResolver_Bounded` 維持 `200 ms` bound，新增 **non-vacuity pin**（判定 child 是被 deadline **SIGKILL**：`exec.ExitError` 且 `ProcessState.ExitCode() == -1`；**fold**：原 `elapsed >= bound` 在 200ms 下不可靠），ceiling 由 `1s` 改為 `boundedCeiling = 2 * time.Second`。
+- **[D3 / Q3]** `TestNewGhTokenResolver_Bounded` 維持 `200 ms` bound，新增 **non-vacuity pin**（判定 child 是被 deadline **SIGKILL**：`exec.ExitError` 且 `ExitCode() == -1`；**fold**：原 `elapsed >= bound` 在 200ms 下不可靠），ceiling 由 `1s` 改為 `boundedCeiling = 2 * time.Second`。
 - **[D4]** `TestNewGhTokenResolver_MissingGh` = **recorded non-change**（不 spawn child）。
 - **[D5]** 無 `t.Skip`／無 retry／無 vacuous assertion；無 Go `time.Sleep`（shim 的 shell `sleep` 不算）；stdlib-only。
 - **[D6 / Q4]** 見證：`go test -count=20 ./...` **under contention** 綠；可偽性 (a)/(b)/(c) 各自重現後還原。
@@ -53,7 +53,7 @@
   - 做（**測試檔內**，不動產品碼）：
     - 新增 test-local 常數：`generousResolverBound = 30 * time.Second`、`boundedCeiling = 2 * time.Second`（與 `boundedResolverBound = 200 * time.Millisecond` 並列，附 ADR 0010 一行註解）。
     - `TestNewGhTokenResolver_TrimsToken`：bound 由 `2 * time.Second` → `generousResolverBound`（D1）。
-    - `TestNewGhTokenResolver_Bounded`：ceiling 由 `time.Second` → `boundedCeiling`，**新增 non-vacuity pin**（D3）＝斷言 child 是被 deadline **SIGKILL**（`exec.ExitError` 且 `ProcessState.ExitCode() == -1`，即 signalled），而非自行以真實 exit code 結束。**Fold note**：原 `elapsed >= bound` 版本在 200ms bound 下不可靠（vacuous shim 自身的 fork+exec ≈0.14–0.2s ≈ bound，會誤判通過），故改用**失敗形狀**判別；並移除易在 `elapsed ≈ bound` 邊界誤紅的 elapsed pin。
+    - `TestNewGhTokenResolver_Bounded`：ceiling 由 `time.Second` → `boundedCeiling`，**新增 non-vacuity pin**（D3）＝斷言 child 是被 deadline **SIGKILL**（`exec.ExitError` 且 `ExitCode() == -1`，即 signalled），而非自行以真實 exit code 結束。**Fold note**：原 `elapsed >= bound` 版本在 200ms bound 下不可靠（vacuous shim 自身的 fork+exec ≈0.14–0.2s ≈ bound，會誤判通過），故改用**失敗形狀**判別；並移除易在 `elapsed ≈ bound` 邊界誤紅的 elapsed pin。
     - `writeFakeGh`：`t.Setenv("PATH", dir + string(os.PathListSeparator) + inherited)`（`inherited := os.Getenv("PATH")` 於 `t.Setenv` **之前**取得）（D2）；更新 fixture 註解（shadow-vs-resolve）。
     - `TestNewGhTokenResolver_Bounded` 的 shim 由 `PATH="/usr/bin:/bin"; exec sleep 3` 化簡為 `exec sleep 3`；移除 N1 的 PATH 還原與其註解（D2）。
     - `TestNewGhTokenResolver_MissingGh`：確認**不需**變更（recorded non-change，D4）。
@@ -102,7 +102,7 @@
 ### Review outcome (round quality gate — T006)
 
 - **Reviewer**: the session (inline self-review — **disclosed deviation**, the round-029/session-8 precedent: no parallel subagent substrate in this session).
-- **Result**: **PASS**. Verified: (i) `generousResolverBound` decouples the trimming test from the production 2 s constant; (ii) `TestNewGhTokenResolver_Bounded` is the **sole** boundedness carrier and its **exit-code non-vacuity pin** rejects an instantly-failing shim (witness (c) reproduced: `the shim exited 1 on its own … (vacuous)`), while the 2 s ceiling stays below the ≈3 s unbounded measurement (witness (b) reproduced: `FAIL … (3.15s)`); (iii) `writeFakeGh` is dominant-PATH and `gh` remains shadowed; (iv) **no production file changed** (`mcp_factory.go` byte-identical to `dev`); (v) `make verify` OK, topology audit PASSED and unchanged, `go.mod`/`go.sum` unchanged.
+- **Result**: **PASS**. Verified: (i) `generousResolverBound` decouples the trimming test from a tight hardcoded budget; (ii) `TestNewGhTokenResolver_Bounded` is the **sole** boundedness carrier and its **exit-code non-vacuity pin** rejects an instantly-failing shim (witness (c) reproduced: `the shim exited 1 on its own … (vacuous)`), while the 2 s ceiling stays below the ≈3 s unbounded measurement (witness (b) reproduced: `FAIL … (3.15s)`); (iii) `writeFakeGh` is dominant-PATH and `gh` remains shadowed; (iv) **no production file changed** (`mcp_factory.go` byte-identical to `dev`); (v) `make verify` OK, topology audit PASSED and unchanged, `go.mod`/`go.sum` unchanged.
 - **Folds raised during execution (recorded)**: **F-1** the D3 non-vacuity discriminator was changed from the planned bare `elapsed >= bound` to the **exit-code** check (the elapsed form is unreliable at a 200 ms bound where spawn cost ≈ 0.14–0.2 s — it flaked to PASS for an instant shim); swept into `research.md` D3, **ADR 0010 D3**, `techstack.md`, `truth-delta.md`, and this task. **F-2** `ee.ProcessState.ExitCode()` → `ee.ExitCode()` (golangci-lint **QF1008**). **F-3** the SC-001 acceptance wording gains an explicit **`-timeout 30m`** — an unqualified `-count=20 ./...` cannot pass (the `tests/e2e` package re-runs 20× and exceeds Go's default 10-minute test timeout: `test timed out after 10m0s`); measured `go test -count=20 -timeout 30m ./...` → **exit 0** in 16m15s (22 packages `ok`, 0 FAIL).
 - **Evidence**:
   - Witness (a): positive bound reverted to 2 s → whole-suite red `TestNewGhTokenResolver_TrimsToken (2.00s) signal: killed`; restored → green.

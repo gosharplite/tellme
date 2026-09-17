@@ -33,4 +33,4 @@ Typo- and editorial-only fixes do not need an ADR.
 | [0007](0007-terminal-control-sanitization.md) | Terminal-control sanitization of the `[Tool Output]` block: a new stderr presentation invariant, and a deliberate reference divergence | Superseded by [0008](0008-terminal-safe-lines-and-blank-line-grouping.md) |
 | [0008](0008-terminal-safe-lines-and-blank-line-grouping.md) | Terminal-safe `[Tool …]` line policy (generalized) + live turn-output blank-line grouping | Accepted |
 | [0009](0009-spinner-dual-timer-and-streaming-liveness.md) | Spinner dual elapsed timer + streaming liveness (supersedes ADR 0005 **D7** — the whole-block pause — only) | Accepted |
-| [0010](0010-test-deadline-decoupling.md) | Test deadlines: a test must not pace itself on a production fast-fail constant | Accepted |
+| [0010](0010-test-deadline-decoupling.md) | Test deadlines: a test must not hardcode a tight wall-clock budget that is not its subject | Accepted |

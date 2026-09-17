@@ -38,7 +38,7 @@ Makefile                                         # UNCHANGED — no gate semanti
 
 **Structure Decision**: Round 041 is a **test-harness determinism** change, not a runtime-interface change.
 It retunes the resolver's **unit-test fixture** (`writeFakeGh` → dominant PATH), the positive test's
-**bound** (a generous test-local constant, decoupled from the production 2 s fast-fail constant), and the
+**bound** (a generous test-local constant, decoupled from a tight hardcoded budget that is not its subject), and the
 bounded test's **ceiling + non-vacuity pin** — so the `di` package is load-tolerant without weakening the
 resolver's boundedness falsifiability. There is **no** new endpoint, **no** persisted state, **no** CLI
 behaviour change, **no** production code change, and **no** new dependency, consistent with `research.md`
@@ -103,13 +103,13 @@ truth to reconcile). The focus set:
   (`generousResolverBound = 30 * time.Second`) instead of the production `2 * time.Second`.
 - **D2 (hygiene)** — `writeFakeGh` sets a **dominant** `PATH` (`<shim-dir> + string(os.PathListSeparator) + <inherited PATH>`, the inherited value captured **before** `t.Setenv`); the hanging shim simplifies to a bare `exec sleep 3` (the round-032 N1 in-shim PATH restoration is retired; its explanatory comment is updated).
 - **D3 (falsifiability)** — `TestNewGhTokenResolver_Bounded` keeps the `200 ms` bound and gains the
-  **non-vacuity pin** (`elapsed >= bound`), and its ceiling moves `> 1s → > 2s` (`boundedCeiling`).
+  **non-vacuity pin** (the child must be **signal-killed** by the deadline: `exec.ExitError` with `ExitCode() == -1`), and its ceiling moves `> 1s → > 2s` (`boundedCeiling`).
 - **D4** — `TestNewGhTokenResolver_MissingGh` is a recorded **non-change** (spawns no child).
 - **D5** — no `t.Skip` / no retry / no vacuous assertion; no Go `time.Sleep` (the shim's shell `sleep` is
   not a Go call, so `make verify-no-test-sleep` stays green); stdlib-only.
 - **Witnesses (`research.md` D6)** — `go test -count=20 ./...` **under contention** (concurrent with a
   full `./tests/e2e` run) green; falsifiability (a) revert the positive bound ⇒ red under load,
-  (b) unbounded resolver ⇒ ≈3 s > 2 s ceiling ⇒ red, (c) vacuous shim ⇒ `elapsed >= bound` fails — each
+  (b) unbounded resolver ⇒ ≈3 s > 2 s ceiling ⇒ red, (c) vacuous shim ⇒ the exit-code pin fails — each
   reproduced then reverted.
 - **Truth/ADR** — `specs/truth/techstack.md` (Testing & Verification) + **ADR 0010** are owned by
   `/axb-technical-research` and already folded; `truth-delta.md` carries the owner rows.
