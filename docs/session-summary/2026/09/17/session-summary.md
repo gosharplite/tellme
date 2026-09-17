@@ -843,7 +843,7 @@ An eleventh session on the same calendar day: bootstrapped, opened round **041**
 - Changed-file set vs `dev`: **only** `internal/infrastructure/di/mcp_factory_test.go` in Go (`mcp_factory.go` byte-identical) + docs; `go.mod`/`go.sum` unchanged.
 
 ### Open items (non-blocking)
-- **PR #88 MERGED** (`ca792d7`, by `thptcnec`, 2026-09-17T13:34:19Z; head `bbd7ead`) → `dev`; **#87 CLOSED (completed)**; **#90** filed (narrative ownership / the doctrine's owning artifact). **Propagation `dev → main` (no-ff)** + `go install ./cmd/tellme` at this closeout. The round-041 review-fold history was relocated from `STATUS.md` into `docs/archives/status/2026-09-17.md` (Rule 12).
+- **PR #88 MERGED** (`ca792d7`, by `thptcnec`, 2026-09-17T13:34:19Z; head `bbd7ead`) → `dev`; **#87 CLOSED (completed)**; **#90** filed (narrative ownership / the doctrine's owning artifact). **Propagation `dev → main` (no-ff, `692a4e6`)** + `go install ./cmd/tellme` at this closeout. The round-041 review-fold history was relocated from `STATUS.md` into `docs/archives/status/2026-09-17.md` (Rule 12).
 - **#89** — the bound-headroom measurement + wiring pin (forward).
 - Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; the `di` sibling wall-clock-assertion class (round-041 **Q6**, its own round).
 
