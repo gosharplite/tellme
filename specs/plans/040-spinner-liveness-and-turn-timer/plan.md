@@ -61,7 +61,7 @@ Four of the six new round-040 acceptance rules are carried by a truth Rule with 
 
 The task list MUST carry, beyond the four new stepdefs:
 
-- **[BDD-REMOVE]** retire the now-dead stepdef `tests/e2e/steps/step_r034_t016_chat_then_no_spinner_while_streaming.go` (0 matching feature steps after the Rule replacement; its helpers `toolOutputBlockIndexes` / `hasSpinnerStatusBetween` in `toolcall_log.go` become unused — remove with it).
+- **[BDD-REMOVE]** retire the now-dead stepdef `tests/e2e/steps/step_r034_t016_chat_then_no_spinner_while_streaming.go` (0 matching feature steps after the Rule replacement; **keep** the helpers `toolOutputBlockIndexes` / `hasSpinnerStatusBetween` in `toolcall_log.go` — the round-040 liveness Then reuses them at positive polarity, bound on the **closing separator** (PR #85 fold B2/R-1; the helpers are **not** removed).
 - **[BDD-ALIGN]/[BDD-RED]** the four new sentences of D9's burn-down list.
 - the **coordinator extraction** (the `internal/ui` sink+spinner coordinator), the **lock-order comment**, the **race/no-interleave + anti-vacuity unit stress**, the **dual-timer arithmetic + injected-clock pins**, and the **two-figure 3+-digit row-aware-clear re-witness** (QB3).
 - **add `Strict: true` to `tests/e2e/suite_test.go`** (TD-1) **in the implementation half** — the plan half leaves the harness as-is so `dev` never goes red (`make test` = `go test ./...`, which includes `tests/e2e`); the implement half lands it together with the four stepdefs, witnessed by the FAIL-then-PASS transition.
