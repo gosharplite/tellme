@@ -373,3 +373,65 @@ Reconciled: **[#78](https://github.com/gosharplite/tellme/issues/78) CLOSED (com
 
 ### PM follow-ups
 - None new (spec/acceptance complete; no PM-owned gaps).
+
+---
+
+## 13. Session 6 (2026-09-17) — round 039 `039-terminal-safe-lines-and-turn-spacing`: two folded workstreams (#80 + a spacing request) → full pipeline → **four-round review/fold chain → FINAL CERTIFICATION** → **merged (PR #81)** → propagated `dev → main`; closeout
+
+A sixth session on the same calendar day: continued round 039 from plan package through the full AIxBDD pipeline and a **four-round architectural review/fold chain to FINAL CERTIFICATION**, saw the **human merge** of PR [#81](https://github.com/gosharplite/tellme/pull/81) into `dev`, propagated `dev → main`, refreshed the installed binary, and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`; Linux host).
+**Branch**: `039-terminal-safe-lines-and-turn-spacing` (off `dev`) → merged via PR [#81](https://github.com/gosharplite/tellme/pull/81) into `dev` (`d48ebbc`, by `thptcnec`, 2026-09-17T07:36:11Z) → propagated `dev → main`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 038 delivered/frozen; active branch `dev`) |
+| Round-039 theme | **(a)** close [#80](https://github.com/gosharplite/tellme/issues/80) — generalize the terminal-safe-line policy to every `[Tool …]` formatter; **(b)** an operator spacing request — blank-line grouping of the live turn output |
+| Clarify | operator-locked in-session (Q1–Q8, asked one at a time): strip the whole class · single-owned home · sanitize-before-cap · neutral-close stays `[Tool Output]`-scoped · blank per call · reason-less call still separates · one blank before the grouped tail · one blank before the post-status group |
+| Pipeline | specify ✅ · spec-by-example ✅ (both workstreams user-visible) · technical-research ✅ (D1–D9 + **ADR 0008**) · system-analysis ✅ (1 CLI end → `/axb-dsl-refine`; api/data NOOP; ui skipped) · dsl-refine ✅ (2 new Rules + dsl rows) · tasks ✅ (T001–T015) · implement ✅ |
+| Review chain (PR #81) | architectural review **APPROVE WITH FOLDS** (B1 · TD-1..TD-3 · RF-1..RF-3 · engine-marker) → fold `53d648d` → fold review #2 (**TD-4** · #69 process · witness hardening) → fold `accb56c` → fold review #3 (rename + shared helper) → fold `7ad4601` → fold review #4 → micro-nit → fold `ca14276` → **FINAL CERTIFICATION — MERGE-READY, no findings** |
+| Merge | PR [#81](https://github.com/gosharplite/tellme/pull/81) **MERGED** into `dev` (`d48ebbc`, by `thptcnec`); frozen head **`ca14276`** (10 commits) |
+| Propagation | `039-… → dev` (`d48ebbc`) `→ main` — **DONE (no-ff)** |
+| Closeout | `make verify` **OK** · `go test -count=1 ./...` green (E2E **226/226** · **1679/1679 steps**) · topology audit **PASSED** (44 features · 6 modules · 16 root + **324** module rows · **1655** steps) · diff secret scan clean · `STATUS.md` refreshed + Rule-12 split (round 038 → `docs/archives/status/2026-09-17.md`) · `go install` refreshed from `ca14276`; **#80 CLOSED** |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — read the pillars, the reference trees (`tell-me-go` 8-item bootstrap, `aixbdd-tmg` domain model + README), `list_skills`, the in-group peers (self `butler`; `architect`/`coder`/`griller`/`pm`/`rd`), `STATUS.md`, and the last-5-days summaries.
+2. **Operationalized the round** — created `039-terminal-safe-lines-and-turn-spacing` off `dev`; ran the pipeline; committed per phase.
+3. **The delivery** — (a) `sanitizeControl` + helpers moved **verbatim** into a single-owned `internal/ui/sanitize.go` and applied inside `FormatToolReason`/`FormatToolResult`/`FormatToolAction` (keys+values), order fold+trim → sanitize → cap; the `[Tool Action]` key path now folds + sorts **after** sanitizing; `ToolReasonRenders` derived from `toolReasonText`. (b) blank-line grouping: `agentloop.logAction` writes a leading blank **per call**; `callRenderer.OnCallEnd` `emit` writes one blank before the grouped tail block and one before the post-status group, **gated on a `renderedToolRound` marker** (tool-using turns only).
+4. **Witnesses** — hostile-fixture unit pins (`toolcall_sanitize_test.go`, `agentloop_spacing_test.go`, `call_renderer_reason_test.go`) + 8 E2E Examples; falsifiability (a/b/c) reproduced then reverted (incl. the frame-gap retune showing the old global `\n\n\n` form went silent).
+5. **Review loop (PR #81)** — four rounds. B1 (tool-less blank) fixed by gating the code (not superseding the ADR); TD-1..TD-4 recorded-claim corrections (incl. the *requirement* behind B1 and the #69 durable-body extension); RF-1 (single-source the reason transform); RF-2 (key fold + sort-after-sanitize); RF-3 + the rename (row/step drift); engine-marker clause. The reviewer **self-corrected** a network-disruption artifact (its "inline did not attach" report was a pagination miss — the two comments were present).
+6. **Home the debt on live surfaces** — extended **#69**'s **body** with the round-039 items (loop control flow on a `ui` predicate; the ≈3×/call predicate; the missing layer-discipline gate).
+7. **Merge + closeout** — PR #81 merged (`d48ebbc`); `go install ./cmd/tellme`; `SESSION-CLOSEOUT.md` Steps 1–8 (STATUS refresh + Rule-12 split; §13; tracker → **#80 CLOSED**).
+
+### Decisions locked (round 039)
+| # | Decision |
+| --- | --- |
+| Q1 | Strip the **whole** 7-bit ANSI/control class on every `[Tool …]` line (same class/order as round 038). |
+| Q2 | Single-owned home `internal/ui/sanitize.go`. |
+| Q3 | Sanitize **before** the rune cap (caps bound the visible output). |
+| Q4 | Neutral-close restore stays `[Tool Output]`-scoped (recorded non-change). |
+| Q5/Q6 | One blank before **each** call's begin block; a reason-less call still separates (blank tied to the call block). |
+| Q7 | One blank before the grouped tail block, **none** inside it. |
+| Q8 | One blank before the post-status group — *(refined by review **B1**: tool-using turns only; a tool-less turn gains no blank)*. |
+| D9 | **ADR 0008** supersedes ADR 0007 (an `Accepted` ADR is immutable but for its `Status` line). |
+
+### Commits (branch `039-…`, then merged)
+`cf4b681` plan package + spec · `f585edc` acceptance Gherkin · `6b0c1e4` technical research + techstack + ADR 0008 · `163d0c3` system-analysis plan · `cf1de73` CLI interface truth · `0068fc7` implement (T001–T015) · `53d648d` fold (B1/TD-1/2/RF-1..3) · `accb56c` fold #2 (TD-4 + #69 body + witness hardening) · `7ad4601` fold #3 (rename + helper) · `ca14276` fold #4 (closing-status row invariant) · `d48ebbc` PR [#81](https://github.com/gosharplite/tellme/pull/81) merge into `dev`.
+
+### Verification (2026-09-17, on `dev` @ `d48ebbc`)
+- `make verify` **OK** · `go test -count=1 ./...` green — E2E **226 scenarios (226 passed) · 1679 steps** · topology audit **PASSED** (44 · 6 · 16 + 324 · 1655) · `gofmt`/`go vet` clean · diff secret scan **clean** · `go.mod`/`go.sum` unchanged.
+
+### Open items (non-blocking)
+- **Round-039 forward items** — the loop control flow on a `ui` predicate + the ≈3×/call predicate + the missing layer-discipline gate → **[#69](https://github.com/gosharplite/tellme/issues/69)**.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; rounds 011–038 forward items (per-round in the archives).
+
+### Next steps
+1. Choose the `040-*` theme and start it via `/axb-specify` off `dev` (candidates: [#69](https://github.com/gosharplite/tellme/issues/69) — now carries six scope items; [#60](https://github.com/gosharplite/tellme/issues/60); [#13](https://github.com/gosharplite/tellme/issues/13)).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+Reconciled: **[#80](https://github.com/gosharplite/tellme/issues/80) CLOSED (completed)** — the terminal-safe line policy for the sibling `[Tool …]` formatters, delivered by round 039 (PR [#81](https://github.com/gosharplite/tellme/pull/81) merged `d48ebbc`); **[#69](https://github.com/gosharplite/tellme/issues/69) open** — body carries the round-039 items; [#60](https://github.com/gosharplite/tellme/issues/60) open (dogfooding); [#13](https://github.com/gosharplite/tellme/issues/13) open (coverage tooling). No issues superseded this closeout.
