@@ -22,7 +22,11 @@ const ToolOutputSeparator = "---------------------------------------------------
 
 // ToolOutputReset is the default-state (SGR reset) restore written when a block
 // closes, so the terminal can never be left in a non-default state (round 038
-// FR-005 — independent of FR-001's line sanitization).
+// FR-005 — independent of FR-001's line sanitization). It is written
+// UNCONDITIONALLY, including when the diagnostic stream is not a terminal (ADR
+// 0007 TD-2: a no-op visually on a non-terminal, but it keeps the invariant
+// independent of where the stream goes — see the ADR for the rejected
+// `isatty(stderr)` gating alternative).
 const ToolOutputReset = "\x1b[0m"
 
 // FormatToolOutputHeader renders the block header line (FR-010):
@@ -41,10 +45,22 @@ func FormatToolOutputLine(t time.Time, line string) string {
 }
 
 // sanitizeControl removes terminal control data from a streamed output line
-// (round 038 FR-001): every ANSI escape sequence (CSI/SGR, OSC, and any other
-// ESC-introduced sequence) and every stray C0/DEL control byte. TAB is kept, and
-// bytes ≥ 0x80 are never touched, so multibyte UTF-8 text survives intact. It is
-// pure and allocation-free on a control-free line.
+// (round 038 FR-001; ADR 0007). The removed class is precisely:
+//
+//   - every **7-bit** ANSI escape sequence introduced by ESC (0x1b): CSI
+//     (ESC `[` … final), OSC (ESC `]` … BEL | ESC `\`), and a generic ESC + optional
+//     intermediates (0x20–0x2F) + one **ASCII** final byte;
+//   - every stray C0 control byte (0x00–0x1F) **except TAB** (0x09) — this
+//     includes interior CR (0x0D), so in-place `\r` progress output concatenates;
+//   - DEL (0x7f).
+//
+// Out of scope (untouched): the 8-bit C1 control range (0x80–0x9F) and all other
+// bytes ≥ 0x80, so multibyte UTF-8 text survives intact and the result is always
+// valid UTF-8 (the ESC-consumption is ASCII-gated so it can never decapitate a
+// neighbouring multi-byte rune). An unterminated CSI/OSC is consumed for at most
+// escScanLimit bytes; beyond that only the ESC is dropped and scanning continues,
+// so a binary blob cannot swallow a whole line's visible text. Pure, and
+// allocation-free on a control-free line.
 func sanitizeControl(s string) string {
 	if !strings.ContainsFunc(s, isControlRune) {
 		return s
@@ -53,7 +69,7 @@ func sanitizeControl(s string) string {
 	b.Grow(len(s))
 	for i := 0; i < len(s); {
 		switch c := s[i]; {
-		case c == 0x1b: // ESC — consume the whole sequence
+		case c == 0x1b: // ESC — consume the whole (7-bit) sequence
 			i += escSequenceLen(s[i:])
 		case (c < 0x20 && c != '\t') || c == 0x7f:
 			i++ // drop a stray control byte
@@ -65,14 +81,20 @@ func sanitizeControl(s string) string {
 	return b.String()
 }
 
+// escScanLimit bounds how far an unterminated CSI/OSC scanner consumes before it
+// gives up and drops only the ESC (ADR 0007 — a mangled/binary fragment must not
+// swallow a line's visible text).
+const escScanLimit = 64
+
 // isControlRune reports whether r is terminal control data (ESC, a C0 control
 // other than TAB, or DEL).
 func isControlRune(r rune) bool {
 	return r == 0x1b || (r < 0x20 && r != '\t') || r == 0x7f
 }
 
-// escSequenceLen returns the byte length of the escape sequence starting at
-// s[0] == ESC (0x1b).
+// escSequenceLen returns the byte length of the 7-bit escape sequence starting
+// at s[0] == ESC (0x1b). It consumes ASCII only, so it never splits a multi-byte
+// rune.
 func escSequenceLen(s string) int {
 	if len(s) < 2 {
 		return 1
@@ -88,20 +110,23 @@ func escSequenceLen(s string) int {
 }
 
 // csiLen returns the length of a CSI (ESC `[`) sequence: parameter/intermediate
-// bytes then a final byte 0x40–0x7E (to the end when unterminated).
+// bytes then a final byte 0x40–0x7E. An unterminated sequence drops only the ESC
+// (returns 1) so it cannot swallow the line's remaining text.
 func csiLen(s string) int {
-	for i := 2; i < len(s); i++ {
+	limit := min(len(s), escScanLimit)
+	for i := 2; i < limit; i++ {
 		if s[i] >= 0x40 && s[i] <= 0x7e {
 			return i + 1
 		}
 	}
-	return len(s)
+	return 1
 }
 
 // oscLen returns the length of an OSC (ESC `]`) sequence: terminated by BEL
-// (0x07) or ST (ESC `\`), or the whole string when unterminated.
+// (0x07) or ST (ESC `\`). An unterminated sequence drops only the ESC (returns 1).
 func oscLen(s string) int {
-	for i := 2; i < len(s); i++ {
+	limit := min(len(s), escScanLimit)
+	for i := 2; i < limit; i++ {
 		if s[i] == 0x07 {
 			return i + 1
 		}
@@ -109,17 +134,19 @@ func oscLen(s string) int {
 			return i + 2
 		}
 	}
-	return len(s)
+	return 1
 }
 
 // genericEscLen returns the length of a generic ESC sequence: ESC + optional
-// intermediates (0x20–0x2F) + a final byte.
+// intermediates (0x20–0x2F) + one **ASCII** final byte (ADR 0007 B1: the final
+// byte is ASCII-gated, so ESC + a multi-byte rune drops the ESC and keeps the
+// rune intact instead of decapitating it into invalid UTF-8).
 func genericEscLen(s string) int {
 	i := 1
 	for i < len(s) && s[i] >= 0x20 && s[i] <= 0x2f {
 		i++
 	}
-	if i < len(s) {
+	if i < len(s) && s[i] < 0x80 {
 		i++
 	}
 	return i

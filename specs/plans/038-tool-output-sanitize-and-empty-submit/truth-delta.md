@@ -11,7 +11,7 @@
 >   - the **Interactive TUI prompt (`-i`)** row: submitting an **empty** editor (`Ctrl+S`/`Alt+Enter`) is a **no-op** — the prompt stays open (reference parity); only a non-empty submission submits.
 > - `/axb-api-plan` — **NOOP** (no HTTP surface).
 > - `/axb-data-plan` — checked **NOOP** (no persisted-state change).
-> - `/axb-dsl-refine` — **MODIFY** `specs/truth/features/cli/chat/watching-the-tool-loop.feature` (a new Rule: the streamed `[Tool Output]` carries no terminal control sequences) + `specs/truth/features/cli/chat/presenting-the-interactive-prompt.feature` (a new Rule: an empty submit is ignored) + the matching `specs/truth/features/cli/chat/dsl.md` rows.
+> - `/axb-dsl-refine` — **MODIFY** `specs/truth/features/cli/chat/watching-the-tool-loop.feature` (a new Rule: the streamed `[Tool Output]` carries no terminal control sequences) + `specs/truth/features/cli/chat/using-the-interactive-prompt.feature` (a new Rule: an empty submit is ignored) + the matching `specs/truth/features/cli/chat/dsl.md` rows.
 
 ## /axb-technical-research
 
@@ -39,3 +39,9 @@
 | MODIFY | `specs/truth/features/cli/chat/watching-the-tool-loop.feature` — new `Rule: A shell command's streamed output is free of terminal control sequences` | ADD a Rule with two Examples: a colouring command's streamed output is control-sequence-free (visible text preserved), and a command stopped mid-output leaves the terminal in its default state. | `spec.md` FR-001/FR-002/FR-005; `research.md` D1/D2/D3/D5. |
 | MODIFY | `specs/truth/features/cli/chat/using-the-interactive-prompt.feature` — new `Rule: An empty submit at the interactive prompt is ignored` | ADD a Rule: submitting an empty editor is a no-op; the following non-empty submit runs exactly one turn (reuses the existing shown/request/answer Thens). | `spec.md` FR-003/FR-004; `research.md` D4. |
 | MODIFY | `specs/truth/features/cli/chat/dsl.md` — +2 `Given` (colouring commands) + 1 `When` (empty-then-real submit) + 2 `Then` (control-sequence-free; terminal neutral) + a round-038 note | ADD the new rows, each matching exactly one step (`dsl-exact-one-match`); `dsl-single-authority` preserved (new rows, no duplication). | `spec.md` FR-001/FR-003/FR-005; `research.md` D5. |
+
+## Governance (ADR)
+
+| Action | Artifact | Change Summary | Reason |
+| --- | --- | --- | --- |
+| ADD | `docs/decisions/0007-terminal-control-sanitization.md` (+ the `docs/decisions/README.md` index row) | Records the new stderr presentation invariant (7-bit control class removed from the `[Tool Output]` content; the block closes neutral, unconditionally) and the deliberate reference divergence; carries D1–D6 plus the two scoped exclusions (the sibling `[Tool …]` formatters remain unsanitized → a live issue; the unconditional restore on a non-terminal stream). | round-038 review **B2** (the round's new policy + divergence needs a durable, citable home — the ADR 0005/0006 precedent); `research.md` D1–D7. |

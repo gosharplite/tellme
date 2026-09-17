@@ -46,3 +46,14 @@ _(none — stdlib-only; no new dependency, no SDL/build change.)_
 - **T014** — `make verify` **OK** (lint 0 issues) · `go test -count=1 ./...` green (E2E **218/218**).
 - **T015** — **falsifiability witnesses** (each reproduced then reverted): (a) sanitizer disabled → the split-escape unit pin + both tool-output E2E Examples fail (the pre-fix stream showed `[Tool Output] \x1b[31mERROR: failed` verbatim); (b) the `End()` restore removed → the start-failure unit pin + `the terminal is left in its default state` fail; (c) the unconditional `tea.Quit` restored → the whitespace-only unit pin + the empty-submit E2E Example fail.
 - **T016** — `STATUS.md` + daily summary updated; PR opened; #78/#76 close at merge (closeout Step 8).
+
+
+## Round-038 review fold (PR #79)
+
+- **B1** [blocker] — ASCII-gated the ESC final byte (`genericEscLen` consumes a final byte only when `< 0x80`), so ESC before a multi-byte rune can no longer decapitate it into invalid UTF-8; added the `"日本"` / `"aé"` fixtures with `utf8.ValidString`, and added `utf8.ValidString` to the E2E content-line predicate (the colouring command now carries a multibyte word).
+- **B2** [blocker, governance] — added **ADR 0007** (`docs/decisions/0007-terminal-control-sanitization.md`) + the index row, carrying D1–D6, the precise class (7-bit ESC/C0/DEL; C1 out of scope; interior CR dropped), the ASCII gate + bounded consumption, and the TD-1/TD-2 scope boundaries.
+- **TD-1** — homed the broader "sanitize every `[Tool …]` formatter" policy on live issue **[#80](https://github.com/gosharplite/tellme/issues/80)** (cited in ADR 0007 + the `techstack.md` row).
+- **TD-2** — decided to keep the neutral restore **unconditional** (stated in ADR 0007 D4, the `ToolOutputReset` code comment, and the `techstack.md` row; the `isatty`-gating alternative is recorded as rejected).
+- **RF-1/RF-2** — bounded the CSI/OSC scanners (`escScanLimit = 64`) so an unterminated sequence cannot swallow a line's text; the class definition (7-bit only; C1 untouched; interior CR dropped) is stated in the code comment + ADR.
+- **RF-3** — tightened the round-023 `TestModelEmptySubmitKeepsFrame` pin to assert the returned command is nil (the observable that carries the control-flow half), and documented the ownership split.
+- **N-1/N-2/N-3** — fixed the `truth-delta.md` cross-reference (`using-the-interactive-prompt.feature`), corrected the witness names in `research.md`, and anchored the E2E neutral-close predicate to the block's close line.

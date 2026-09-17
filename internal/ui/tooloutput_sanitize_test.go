@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 )
 
 // Round-038 unit pins (issues #78): the [Tool Output] content is sanitized of
@@ -22,6 +23,12 @@ func TestFormatToolOutputLineStripsControlSequences(t *testing.T) {
 		{"esc charset designation", "\x1b(Bplain", "plain"},
 		{"tab preserved", "a\tb", "a\tb"},
 		{"utf8 preserved", "héllo — 世界", "héllo — 世界"},
+		// Round-038 review B1: ESC + a multi-byte rune must drop only the ESC,
+		// never decapitate the rune into invalid UTF-8.
+		{"esc before a multibyte rune", "\x1b日本", "日本"},
+		{"esc inside text before a multibyte rune", "a\x1bé", "aé"},
+		// Round-038 review RF-2: an unterminated CSI must not swallow the line.
+		{"unterminated csi keeps the text", "\x1b[12", "[12"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -32,6 +39,9 @@ func TestFormatToolOutputLineStripsControlSequences(t *testing.T) {
 			}
 			if strings.ContainsRune(got, 0x1b) {
 				t.Errorf("content line still carries an ESC byte: %q", got)
+			}
+			if !utf8.ValidString(got) {
+				t.Errorf("content line is not valid UTF-8: %q", got)
 			}
 		})
 	}
@@ -74,6 +84,17 @@ func TestToolOutputWriterStripsSequenceSplitAcrossWrites(t *testing.T) {
 	}
 	if !strings.Contains(lines[0], "boom") {
 		t.Errorf("visible text lost: %q", lines[0])
+	}
+}
+
+func TestToolOutputWriterBoundsUnterminatedSequence(t *testing.T) {
+	// RF-2: a very long unterminated CSI must not swallow the line — only the ESC
+	// is dropped and the visible text survives.
+	in := "\x1b[" + strings.Repeat("0", 200)
+	got := FormatToolOutputLine(r034Clock, in)
+	want := "[20:29:51] [Tool Output] " + "[" + strings.Repeat("0", 200)
+	if got != want {
+		t.Errorf("unterminated CSI swallowed the line: got %q", got)
 	}
 }
 

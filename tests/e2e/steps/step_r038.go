@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/cucumber/godog"
 )
@@ -44,9 +45,14 @@ func r038ContentLines(stream string) []string {
 }
 
 // r038ControlFree reports whether every `[Tool Output]` content line is free of
-// terminal control data (ESC, a C0 control other than TAB, or DEL).
+// terminal control data (ESC, a C0 control other than TAB, or DEL) AND is valid
+// UTF-8 (round 038 review B1: the predicate must pin the contract — control-free
+// *and* valid UTF-8 — not just the absence of the ESC byte).
 func r038ControlFree(stream string) bool {
 	for _, ln := range r038ContentLines(stream) {
+		if !utf8.ValidString(ln) {
+			return false
+		}
 		for i := 0; i < len(ln); i++ {
 			c := ln[i]
 			if c == 0x1b || (c < 0x20 && c != '\t') || c == 0x7f {
@@ -57,22 +63,34 @@ func r038ControlFree(stream string) bool {
 	return true
 }
 
-// r038RestoredAfterBlock reports whether a default-state restore appears after
-// the last `[Tool Output]` line (the block closes neutral).
+// r038RestoredAfterBlock reports whether the block's close leaves a default-state
+// restore immediately after the last `[Tool Output]` line — the block's own close
+// line (round 038 review N-3: anchored to that interval, mirroring the unit pin,
+// so it cannot pass on a stray restore-shaped escape elsewhere in the stream).
 func r038RestoredAfterBlock(stream string) bool {
 	last := strings.LastIndex(stream, toolOutputMarker)
 	if last < 0 {
 		return false
 	}
-	return strings.Contains(stream[last:], "\x1b[0m")
+	nl := strings.IndexByte(stream[last:], '\n')
+	if nl < 0 {
+		return false
+	}
+	closeLine := stream[last+nl+1:]
+	if i := strings.IndexByte(closeLine, '\n'); i >= 0 {
+		closeLine = closeLine[:i]
+	}
+	return strings.Contains(closeLine, "\x1b[0m")
 }
 
 // --- Givens ---
 
 func givenRunsColouringCommand(ctx context.Context, provider, answer string) error {
 	sc := scenarioFrom(ctx)
+	// The command emits an SGR colour with no reset AND a multibyte word, so the
+	// sanitized content line is both control-free and valid UTF-8 (review B1).
 	return scriptToolThenAnswer(sc, provider, "execute_command",
-		commandArgs(map[string]any{"command": "printf '\\033[31mERROR: failed\\n'", "reason": "r"}), answer)
+		commandArgs(map[string]any{"command": "printf '\\033[31mFAILED: 失敗\\n'", "reason": "r"}), answer)
 }
 
 func givenRunsColouringCommandStopped(ctx context.Context, provider, answer string) error {
