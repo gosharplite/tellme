@@ -50,9 +50,11 @@ func TestRefreshDropsOverlongSuggestions(t *testing.T) {
 	}
 }
 
-// TestRefreshUsesDebounce (round-016 T018, FR-005): the refresh is debounced, so
-// the model carries the debounce duration and only recomputes on the debounce
-// message for the current value.
+// TestRefreshUsesDebounce (round-016 T018, FR-005; round 037): the refresh is
+// debounced, so the model carries the debounce duration and only recomputes on the
+// debounce message for the current value. Round 037: recomputation is asserted on
+// the ITEMS (the `selected()` cursor is no longer a valid identity probe once the
+// selection is reset to no-choice on every refresh).
 func TestRefreshUsesDebounce(t *testing.T) {
 	if DefaultDebounceDuration <= 0 {
 		t.Fatalf("the debounce duration must be positive")
@@ -62,14 +64,35 @@ func TestRefreshUsesDebounce(t *testing.T) {
 	// A debounce message for a stale value must not recompute.
 	src.items = []string{"changed"}
 	_, _ = m.Update(debounceMsg{value: "stale"})
-	if m.sug.selected() != "seed" {
-		t.Fatalf("a stale debounce message recomputed the list")
+	if len(m.sug.items) != 1 || m.sug.items[0] != "seed" {
+		t.Fatalf("a stale debounce message recomputed the list: %v", m.sug.items)
 	}
 	// A debounce message for the current value recomputes.
 	m.ed.setValue("seed")
 	_, _ = m.Update(debounceMsg{value: m.ed.value()})
-	if m.sug.selected() != "changed" {
-		t.Fatalf("the current-value debounce message did not recompute the list")
+	if len(m.sug.items) != 1 || m.sug.items[0] != "changed" {
+		t.Fatalf("the current-value debounce message did not recompute the list: %v", m.sug.items)
+	}
+}
+
+// TestRefreshResetsSelection (round-037 T003): a suggestions refresh resets the
+// selection to no-choice (the reference's `Update(msg, -1)`), even after the
+// operator had cycled onto a row.
+func TestRefreshResetsSelection(t *testing.T) {
+	src := &fakeSource{items: []string{"alpha", "beta"}}
+	m := New(context.Background(), strings.NewReader(""), &strings.Builder{}, src)
+	if m.sug.selected() != "" {
+		t.Fatalf("expected no pre-selection, got %q", m.sug.selected())
+	}
+	// Select the first item, then a debounce for the current value refreshes.
+	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	if m.sug.selected() != "alpha" {
+		t.Fatalf("Tab did not select the first item: %q", m.sug.selected())
+	}
+	m.ed.setValue("alpha")
+	_, _ = m.Update(debounceMsg{value: m.ed.value()})
+	if got := m.sug.selected(); got != "" {
+		t.Fatalf("a refresh did not reset the selection to no-choice: %q", got)
 	}
 }
 

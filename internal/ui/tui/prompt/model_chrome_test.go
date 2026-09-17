@@ -27,10 +27,11 @@ func maxLineLen(s string) int {
 	return max
 }
 
-// TestModelRendersReferenceChrome (round-016 T017): the model renders the framed
-// editor + styled suggestion list (the `>` cursor on EXACTLY ONE row), and NO
-// session metrics header (strict parity). The exact cursor count is asserted on
-// the single View() frame (round-016 implementation-review BLOCKER: the E2E
+// TestModelRendersReferenceChrome (round-016 T017; round 037): the model renders the
+// framed editor + styled suggestion list with NO session metrics header (strict parity),
+// and — round 037 — NO suggestion pre-selected (the `>` cursor appears on ZERO rows at
+// rest, aligning to the reference's `suggester{Index: -1}`). The exact cursor count is
+// asserted on the single View() frame (round-016 implementation-review BLOCKER: the E2E
 // capture accumulates frames, so exactness lives here).
 func TestModelRendersReferenceChrome(t *testing.T) {
 	m := New(context.Background(), strings.NewReader(""), &strings.Builder{}, &fakeSource{items: []string{"deploy to staging with version 016"}})
@@ -44,8 +45,8 @@ func TestModelRendersReferenceChrome(t *testing.T) {
 	if !strings.Contains(view, suggesterHeader) {
 		t.Fatalf("View() missing the %q header: %q", suggesterHeader, view)
 	}
-	if n := strings.Count(view, "> "); n != 1 {
-		t.Fatalf("View() selection cursor count = %d, want exactly 1: %q", n, view)
+	if n := strings.Count(view, "> "); n != 0 {
+		t.Fatalf("View() selection cursor count = %d, want exactly 0 (no pre-selection): %q", n, view)
 	}
 	lower := strings.ToLower(view)
 	if strings.Contains(lower, "tokens:") || strings.Contains(lower, "turns:") {
@@ -53,12 +54,31 @@ func TestModelRendersReferenceChrome(t *testing.T) {
 	}
 }
 
-// TestModelCursorDefaultsToFirstItem (round-016 T008/T017, architect D4): with
-// items present, exactly the first is the current choice.
-func TestModelCursorDefaultsToFirstItem(t *testing.T) {
+// TestModelCursorStartsNoChoice (round-037 T002; supersedes round-016 T008/T017,
+// architect D4): with items present, NO suggestion is the current choice at rest.
+func TestModelCursorStartsNoChoice(t *testing.T) {
 	m := New(context.Background(), strings.NewReader(""), &strings.Builder{}, &fakeSource{items: []string{"a", "b"}})
-	if got := m.sug.selected(); got != "a" {
-		t.Fatalf("cursor default = %q, want the first item %q", got, "a")
+	if got := m.sug.selected(); got != "" {
+		t.Fatalf("cursor default = %q, want no selection (empty)", got)
+	}
+	if n := strings.Count(m.View(), "> "); n != 0 {
+		t.Fatalf("a fresh prompt marked %d suggestion row(s), want 0", n)
+	}
+}
+
+// TestTabFromNoChoiceSelectsFirst (round-037 T002): the first Tab from the no-choice
+// state selects (and inserts) the FIRST suggestion (reference arithmetic: -1 -> 0).
+func TestTabFromNoChoiceSelectsFirst(t *testing.T) {
+	m := New(context.Background(), strings.NewReader(""), &strings.Builder{}, &fakeSource{items: []string{"deploy to staging", "review the last commit"}})
+	if m.sug.selected() != "" {
+		t.Fatalf("expected no pre-selection, got %q", m.sug.selected())
+	}
+	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	if got := m.sug.selected(); got != "deploy to staging" {
+		t.Fatalf("first Tab selected %q, want the first suggestion %q", got, "deploy to staging")
+	}
+	if got := m.ed.value(); got != "deploy to staging" {
+		t.Fatalf("first Tab insert = %q, want %q", got, "deploy to staging")
 	}
 }
 
@@ -74,9 +94,10 @@ func TestModelResizeReflowsWidth(t *testing.T) {
 	}
 }
 
-// TestModelTabInsertsSuggestion (round-016 T017, FR-007): Tab inserts the
+// TestModelTabInsertsSuggestion (round-016 T017, FR-007; round 037): Tab inserts the
 // current choice — whole-line replace, and last-token replace for a multi-word
-// line with a single-token suggestion (F2 unit pin).
+// line with a single-token suggestion (F2 unit pin). Round 037: the first Tab now
+// selects the first suggestion from the no-choice state.
 func TestModelTabInsertsSuggestion(t *testing.T) {
 	whole := New(context.Background(), strings.NewReader(""), &strings.Builder{}, &fakeSource{items: []string{"deploy to staging"}})
 	whole.ed.setValue("deploy")
