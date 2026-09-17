@@ -68,7 +68,7 @@
 **Parallel Hint**:
 - T001 與 T002 觸及不同斷言面向但可同檔合作；為求 Zero Shared Edits 與簡單性，序列執行：T001 → T002 → T003（subagent review）；T003 等 T001/T002 回來再啟動。
 
-- [ ] T001 [UNIT] `FormatToolReason` hostile-fixture pins（fold + trim + cap；RED）
+- [X] T001 [UNIT] `FormatToolReason` hostile-fixture pins（fold + trim + cap；RED）
   - Read:
     - `research.md` -> `Decision 1`, `Decision 2`, `Decision 4`
     - `internal/ui/toolcall.go` -> `FormatToolReason`、`argValueCap`/`resultValueCap`、`capRunes`
@@ -84,7 +84,7 @@
   - 邊界：這些斷言**今日必須失敗**（現行 `FormatToolReason` 不 fold、不 cap、不 trim）——**不得**放寬 assertion 讓它變綠（RED-first）；不寫產品碼；**不**修改既有 `toolcall_test.go`。
   - 不做：不改 `toolcall.go`（留 Phase 4）；不碰 sibling formatters；不新增 E2E。
 
-- [ ] T002 [UNIT] blank-reason 抑制 pins（action line + tail；RED）
+- [X] T002 [UNIT] blank-reason 抑制 pins（action line + tail；RED）
   - Read:
     - `research.md` -> `Decision 3`
     - `internal/agent/agentloop.go` -> `logAction`（現行 `if reason := toolReason(tc.Arguments); reason != ""`）
@@ -98,7 +98,7 @@
   - 邊界：**今日必須失敗**（現行 guard 只看 raw `reason != ""`，`"   "`／`"\n"` 會通過並輸出 dangling 行）——不得放寬 assertion（RED-first）；不寫產品碼。
   - 不做：不改 `agentloop.go`／`call_renderer.go`（留 Phase 4）；不動 pure formatter。
 
-- [ ] T003 subagent review (phase quality gate)
+- [X] T003 subagent review (phase quality gate)
   - Read: `internal/ui/toolcall_reason_test.go`、`internal/ui/toolcall.go`、`internal/agent/agentloop.go`、`internal/cli/call_renderer.go`、`specs/truth/features/cli/chat/dsl.md`、`research.md` -> `Decision 3`, `Decision 4`
   - 檢驗：
     - unit pins **非真空失敗**且點名 fold / trim / cap / blank-suppression；只動測試層。
@@ -106,7 +106,7 @@
     - clean reason 的既有 pin（`TestFormatToolReason`、`agentloop_reason_test.go`）仍成立（未被新檔覆寫）。
     - 有 issues 修正再 review，直到零問題；通過前不解鎖 Phase 4。
 
-> Phase-3 review 由 orchestrator 執行（本 session 無 parallel-subagent substrate）：新 unit pins 以現行 `FormatToolReason`／callers 跑得起來但**失敗**（無 fold/trim/cap；blank reason 仍輸出）；E2E suite 不含新句（0 undefined）。Gate PASSED —— Phase 4 解鎖。
+> Phase-3 review 由 orchestrator 執行（本 session 無 parallel-subagent substrate）：新 unit pins 以現行 `FormatToolReason`／callers 跑得起來但**失敗**（assertion-only）：`FoldsNewline`／`FoldsCarriageReturn`／`TrimsSurroundingWhitespace`／`CapsAndFoldsCombined`／`ValuesAreRuneCapped`／`CapCutOnRuneBoundary` 全部 RED（實測輸出顯示未 fold 的 `a\nb`、`a\rb`、未 trim 的 `  spaced  `、未 cap 的 201/300 runes）；`TestLogOmitsReasonLineForWhitespaceOnlyReason` RED（`[Tool Reason]    ` dangling row）；`TestCallTailOmitsBlankReasonLine` RED（`[Tool Reason]    ` + 裸換行）。E2E suite 不含新句（**0 undefined steps**，`go test ./tests/e2e/...` OK）。Gate PASSED —— Phase 4 解鎖。
 
 ## Phase 4: MODIFY — the reason row contract (formatter + callers)
 
@@ -130,7 +130,7 @@
 - `internal/ui/toolcall_test.go`（既有 `TestFormatToolReason` 續綠）
 - `internal/agent/agentloop_reason_test.go`（loop-tier pin 續綠；若 trim 觸及 fixture 則同批更新）
 
-- [ ] T004 [BDD-GREEN] 讓 Test Scope 全綠（fold + trim + cap + blank suppression）
+- [X] T004 [BDD-GREEN] 讓 Test Scope 全綠（fold + trim + cap + blank suppression）
   - Read: `research.md` -> `Decision 1`, `Decision 2`, `Decision 3`；`internal/ui/toolcall.go`；`internal/agent/agentloop.go`；`internal/cli/call_renderer.go`
   - 做：
     - `FormatToolReason` 套用 `capRunes(oneLine(strings.TrimSpace(reason)), reasonValueCap)`（`reasonValueCap = 200`）。
@@ -138,7 +138,7 @@
   - 驗證：T001/T002 轉綠；`TestFormatToolReason` 與 `agentloop_reason_test.go` 續綠（clean reason byte-identical）；`go test ./...` 全綠；`stdout` byte-exact。
   - 不做：不改 sibling formatters；不新增相依；不改 format/cadence；不在 caller 重複 fold/cap。
 
-- [ ] T005 [BDD-REFACTOR] 在綠燈下 tidy `oneLine` 的歸屬與註解
+- [X] T005 [BDD-REFACTOR] 在綠燈下 tidy `oneLine` 的歸屬與註解
   - Read: `research.md` -> `Decision 6`, `Decision 7`；`internal/ui/toollog.go`；`internal/ui/toolcall.go`
   - 做：將 `oneLine` 由 `internal/ui/toollog.go` 搬入 `internal/ui/toolcall.go`（其唯一 consumer 家族），刪除 `toollog.go`；確保 `toolcall.go` 頂部註解正確描述三條 formatter 皆 sanitize+cap（arg 189 / reason 200 / result 200）。保持輸出語意不變、gate 續綠。
   - 不做：不擴大重構範圍、不改任何輸出、不改 caller 契約。
@@ -156,7 +156,7 @@
 - 不改產品碼；只跑回歸與見證。
 - Witnesses（可偽性）：(a) **移除 fold**（`oneLine`）→ `\n`/`\r` pins 必須失敗；(b) **移除 cap** → over-cap pin 必須失敗；(c) **還原 raw guard**（`reason != ""`）→ blank-reason 抑制 pins 必須失敗。觀察到即還原，重跑確認綠燈。
 
-- [ ] T006 [REGRESSION] 跑全測試 + 見證 + `make verify` + 拓樸稽核
+- [X] T006 [REGRESSION] 跑全測試 + 見證 + `make verify` + 拓樸稽核
   - Read: `research.md` -> `Decision 4`, `Decision 5`, `Decision 7`；`specs/truth/techstack.md` -> Agent tool loop row；`docs/decisions/0006-tool-reason-fold-and-cap.md`
   - 做：
     - `go test -count=1 ./...` 全綠（unit + godog E2E）。
@@ -166,11 +166,11 @@
     - 確認 sibling caps（189/200）與 `FormatToolResult` 行為未變；clean reason 輸出 byte-identical。
   - 不做：不放寬任何 assertion；不為轉綠而移除見證。
 
-- [ ] T007 subagent review (round quality gate)
+- [X] T007 subagent review (round quality gate)
   - Read: `internal/ui/toolcall.go`、`internal/ui/toolcall_reason_test.go`、`internal/agent/agentloop.go`、`internal/cli/call_renderer.go`、`specs/truth/features/cli/chat/dsl.md`、`specs/truth/techstack.md`、`docs/decisions/0006-tool-reason-fold-and-cap.md`、`specs/plans/036-tool-reason-sanitize/{spec.md,research.md,plan.md,truth-delta.md}`
   - 檢驗：修復僅動 `toolcall.go`（+ caller guards + 新 test 檔）；sibling formatters／caps 未改；`FormatToolReason` 仍為純 formatter（無 sentinel）；blank reason 兩表面皆無行；未新增 E2E/DSL；ADR 0006 存在且與 truth 一致；無新相依；flags／exit codes／其他 formats／`stdout` 未變。
 
-> Round review 由 orchestrator 執行：修復只動 `internal/ui/toolcall.go`（含 `reasonValueCap`）、`internal/agent/agentloop.go`、`internal/cli/call_renderer.go` 的 guard，與測試檔；sibling caps（189/200）與 `FormatToolResult` **未改**；`go.mod`/`go.sum` 不變（stdlib-only）；`make verify` **OK**；拓樸稽核 **PASSED**（44 features · 16 root + 310 module rows · 1576 steps）；可偽性見證 (a)/(b)/(c) 重現後還原。
+> Round review 由 orchestrator 執行：修復只動 `internal/ui/toolcall.go`（新增 `reasonValueCap = 200`、`FormatToolReason` fold+trim+cap、`oneLine` 由已刪除的 `toollog.go` 遷入）、`internal/agent/agentloop.go`（`logAction` + `reasonsOf` sanitized guard）、`internal/cli/call_renderer.go`（tail emit 的 sanitized guard），與測試檔；`FormatToolAction`／`FormatToolResult`／`argValueCap`／`resultValueCap`／`capRunes` **未改**；`FormatToolReason` 仍為純 formatter（無 sentinel）；`go.mod`/`go.sum` 不變（stdlib-only）；`gofmt -l .` clean；`go test -count=1 ./...` 全綠（E2E OK）；`make verify` **OK**（no-test-sleep · offline witness · cross-compile 4/4 · MCP confinement · golangci-lint **0 issues** · govulncheck **0 reachable**）；拓樸稽核 **PASSED**（44 features · 6 modules · 16 root + 310 module rows · 1576 steps —— 與交付時相同）。可偽性見證 (a)/(b)/(c) 重現後還原（見 T006）。
 
 ---
 
