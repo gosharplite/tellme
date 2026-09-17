@@ -453,7 +453,7 @@ A seventh session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md`
 | Round-040 theme | two folded spinner workstreams: **WS-A #82** = liveness while a `[Tool Output]` block streams (idle-gap resume); **WS-B #83** = a dual elapsed timer `({total}s {call}s)` (per-AI-endpoint-call reset) |
 | Clarify | **QB1 locked** (per AI-endpoint call); **QA1–QA3 + QB2/QB3 proposed** (idle-gap mechanism/threshold/scope; format/phases) — pending the operator's review gate |
 | Pipeline | specify ✅ · spec-by-example ✅ · technical-research ✅ (D1–D9 + **ADR 0009**) · system-analysis ✅ (1 CLI end → `/axb-dsl-refine`; api/data NOOP; ui skipped) · dsl-refine ✅ · **tasks ⏸ held** · implement ⏸ |
-| Delivery | branch `040-…` (8 commits, pushed); **PR [#84](https://github.com/gosharplite/tellme/pull/84) open — human-only merge** |
+| Delivery | branch `040-…` (13 commits, pushed); **PR [#84](https://github.com/gosharplite/tellme/pull/84) MERGED** into `dev` (`146210d`, by `thptcnec`) — plan + truth half (16 files, +745/−30, **zero product code**); implementation half pending |
 | Docs | `STATUS.md` revised (round-040 live state; round-039 detail relocated to `docs/archives/status/2026-09-17.md` per Rule 12); this §14 |
 
 ### Work done
@@ -499,6 +499,7 @@ The architect re-verified every fold against the fold head and raised two residu
 - **TD-9 (vocabulary sweep)** — the TD-6/TD-2 rename had stopped at the truth layer; swept the pre-fold vocabulary from `plan.md`, `truth-delta.md`, `checklists/requirements.md`, `STATUS.md`, and this summary (`single-writer` → mutual-exclusion+join; "current turn's" → "current model call's"; D1–D8 → D1–D9; `timing-the-current-turn.feature` → `timing-the-current-model-call.feature`; "two divergences" → three).
 - **TD-10 (mechanism + timing)** — the "redraw goroutine draws the first frame" deferral is scoped to the **in-block resume** via a named **resume-only admission path** (`admitResume()`; `activate()` keeps its synchronous first frame so rounds 019/025/034/035 stay green), the resumed frame renders **immediately on start** (not on the first tick), and the E2E **timing budget** is pinned (the child's quiet stretch exceeds `N + 2·P` with margin — e.g. a 2 s child `sleep` at `N=50 ms`) in SC-002 + the `dsl.md` Given row; the `techstack.md` round-019 sentence gained the round-040 carve-out.
 - **TD-1 correction (taken as option (a))** — `make test` is `go test ./...`, which **includes** `tests/e2e`, so landing `Strict: true` on the plan half would make `dev` red on every run. The flag is therefore **not** landed here: it is pinned as an `/axb-implement` task directive and lands with the 4 stepdefs (witnessed by the FAIL-then-PASS transition). This branch's `make verify` **and** `make test` are green.
+- **PR #84 MERGED (plan + truth half)** — the architect's review loop closed with **CONFIRMED / no further findings**; PR [#84](https://github.com/gosharplite/tellme/pull/84) was merged into `dev` by `thptcnec` (`146210d`, 2026-09-17T09:02:31Z; head `092a89c`; 16 files, +745/−30, 13 commits, **zero product code**). Post-merge `dev`: `make verify` OK · E2E `ok` · topology audit PASSED · `gofmt`/`go build` clean. **Propagation PENDING** (waits on delivery); **#82/#83 stay OPEN** (they close on delivery). Local `dev` fast-forwarded to `146210d`.
 - **TD-11 (fold review #2)** — moving TD-1 to the implement half invalidated **five** statements still describing the old disposition; all five were swept: the **ADR 0009** Consequences bullet (fixed before the ADR becomes immutable at merge), **`STATUS.md:63`** ("no harness change"), the **daily log** (the self-contradicting paragraph replaced), **`spec.md` SC-004** (scoped to delivery), and the **`FormatSpinnerLine`** signature (`turn` → `call`). The architect's follow-up confirmed all five fixed at `9fe7a1d` and **closed the review loop** (no TD-12); three optional nits (the `callEpoch` field name, the TD-11 durable-record note, one blank line) were folded as `N-1..N-3`.
 
 **Consequence of TD-1 (option (a), corrected):** the plan half leaves the harness unchanged, so **`make verify` and `make test` are green** on this branch. The `Strict: true` flag lands in `/axb-implement` with the 4 stepdefs (FAIL→PASS); `dev` is never red.
@@ -517,10 +518,9 @@ The architect re-verified every fold against the fold head and raised two residu
 - Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; rounds 018–039 forward items (per-round in the archives).
 
 ### Next steps
-1. Operator/architect **review of PR [#84](https://github.com/gosharplite/tellme/pull/84)** (the plan + truth half) and the **QA/QB** gate items.
-2. On approval: **`/axb-tasks` → `/axb-implement`** on `040-spinner-liveness-and-turn-timer`; the implementation PR follows.
-3. Human merges; then propagate `040 → dev → main` and close [#82](https://github.com/gosharplite/tellme/issues/82) + [#83](https://github.com/gosharplite/tellme/issues/83) at closeout.
-4. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `040-spinner-liveness-and-turn-timer` until merged).
+1. **`/axb-tasks` → `/axb-implement`** (the implementation half) on a **fresh branch off `dev`** (the plan half is already merged at `146210d`); the implementation PR follows, landing the 4 stepdefs + `Strict: true`, the dead-stepdef `[BDD-REMOVE]` + its helpers, the `internal/ui` coordinator extraction (the `#69` pay-down), `admitResume()` + the lock-order comment, and the race/anti-vacuity stress.
+2. Human merges the implementation PR; then propagate `dev → main` and close [#82](https://github.com/gosharplite/tellme/issues/82) + [#83](https://github.com/gosharplite/tellme/issues/83) at closeout.
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
 ### PM follow-ups
 - None new (spec/acceptance complete; no PM-owned gaps).
