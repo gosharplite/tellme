@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/gosharplite/tellme/internal/ui"
 )
 
 // Round-034 decomposed tool-call log helpers (ADR 0005). Parse the diagnostic
@@ -104,12 +106,14 @@ func hasToolResultFor(stderr, tool string) bool {
 }
 
 // hasToolOutputBlock reports whether stderr carries the `[Tool Output]` header
-// (T010/T011/T016).
+// (T010/T011).
 func hasToolOutputBlock(stderr string) bool { return strings.Contains(stderr, toolOutputMarker) }
 
 // toolOutputBlockIndexes returns the [headerIdx, lastIdx] line range of the
 // first `[Tool Output]` block (the header's line through the last `[Tool Output]`
-// line), or (-1,-1) when absent (T016).
+// line), or (-1,-1) when absent. Round 040 pairs it with `closingSeparatorIndex`
+// (the true block bound) for the WS-A liveness pin (the last `[Tool Output]` line
+// is NOT the block's end — the closing separator follows it).
 func toolOutputBlockIndexes(stderr string) (int, int) {
 	idx := indexOfLines(stderr, toolOutputMarker)
 	if len(idx) == 0 {
@@ -158,12 +162,55 @@ func modelRequestCount(sc *scenarioContext) int {
 }
 
 // spinnerStatusRe matches a live spinner status line (`<braille> Thinking…` /
-// `<braille> Executing…`), used by the "spinner paused during a stream" pin
-// (T016).
+// `<braille> Executing…`). Round 040 (issue #82) reuses it for the WS-A liveness
+// pin: the resumed frame inside a `[Tool Output]` block.
 var spinnerStatusRe = regexp.MustCompile(`[\x{2800}-\x{28FF}] (Thinking|Executing)`)
 
+// toolOutputHeaderMarker is the `[Tool Output]` block HEADER tail (a line
+// containing it is a header, not an output line).
+//
+// N-40-7 (recorded, advisory — PR #86 re-review): this discriminator is
+// CONTENT-keyed, so an output line whose content happens to be exactly
+// `Executing... (Output shown below)` is byte-identical to a header and would end
+// the span early. Harmless by direction (N-40-1): a truncated span can only make
+// the WS-A positive assertion harder to satisfy (a false FAIL), never easier — so
+// the pre-fold unbounded form (which could WIDEN the span → false PASS) was the
+// dangerous direction, and this one is fail-loud. The round-040 fixture cannot
+// trigger it; no change made.
+const toolOutputHeaderMarker = "] [Tool Output] Executing... (Output shown below)"
+
+// closingSeparatorIndex returns the line index of the `[Tool Output]` block's
+// CLOSING separator — the last line at/after the header carrying the fixed
+// 60-hyphen separator literal, **bounded to the FIRST block** (N-40-1: it stops at
+// a second block's HEADER — a line carrying the header tail, which an output line
+// does NOT — so a future stderr carrying two blocks cannot silently widen the
+// WS-A span) — or -1 when the header/separator is absent. Round 040 (T004, R-1):
+// the WS-A liveness Then bounds its span on the CLOSING SEPARATOR, not the last
+// `[Tool Output]` marker line, because the resumed frame shares the
+// reset+separator `\n`-line and carries no `[Tool Output]` marker.
+func closingSeparatorIndex(stderr string) int {
+	head, _ := toolOutputBlockIndexes(stderr)
+	if head < 0 {
+		return -1
+	}
+	lines := stderrLines(stderr)
+	idx := -1
+	for i := head; i < len(lines); i++ {
+		if i > head && strings.Contains(lines[i], toolOutputHeaderMarker) {
+			break // a second block's header ends the first block's span
+		}
+		if strings.Contains(lines[i], ui.ToolOutputSeparator) {
+			idx = i
+		}
+	}
+	return idx
+}
+
 // hasSpinnerStatusBetween reports whether any line in (after, before) exclusive
-// carries a live spinner status line (T016).
+// carries a live spinner status line. Round 040 (T004) uses it at POSITIVE
+// polarity over the `[Tool Output]` block's span (header .. closing separator) to
+// witness the WS-A resume; the pre-round-040 negative pin (the retired whole-block
+// pause) is gone.
 func hasSpinnerStatusBetween(lines []string, after, before int) bool {
 	for i := after + 1; i < before && i < len(lines); i++ {
 		if spinnerStatusRe.MatchString(lines[i]) {

@@ -14,12 +14,13 @@ func init() {
 	})
 }
 
-// thenSpinnerShowsElapsed (必查 / 呈現結果): the spinner line carries an `(<n>s)`
-// elapsed segment (whole seconds). 不該發生: the elapsed segment must be missing.
+// thenSpinnerShowsElapsed (必查 / 呈現結果): the spinner line carries the round-040
+// DUAL `(<total>s <call>s)` elapsed segment (whole seconds). 不該發生: the elapsed
+// segment must be missing.
 func thenSpinnerShowsElapsed(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	if !reSpinnerElapsed.MatchString(sc.stderr) {
-		return fmt.Errorf("the spinner carries no elapsed segment: stderr=%q", sc.stderr)
+		return fmt.Errorf("the spinner carries no dual elapsed segment: stderr=%q", sc.stderr)
 	}
 	return nil
 }

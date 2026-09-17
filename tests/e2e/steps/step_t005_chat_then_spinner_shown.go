@@ -15,9 +15,10 @@ func init() {
 }
 
 // thenSpinnerShown (必查 / 呈現結果): the captured stderr carries a spinner line — a
-// braille frame followed by a phase status and an `(<n>s)` elapsed segment (the
-// carriage-return redraw leaves the latest frame; a fast turn may render a
-// single synchronous frame). 不該發生: the spinner must not be written to stdout.
+// braille frame followed by a phase status and the round-040 DUAL `(<total>s <call>s)`
+// elapsed segment (the carriage-return redraw leaves the latest frame; a fast turn
+// may render a single synchronous frame). 不該發生: the spinner must not be written
+// to stdout.
 func thenSpinnerShown(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	if !reSpinnerLine.MatchString(sc.stderr) {

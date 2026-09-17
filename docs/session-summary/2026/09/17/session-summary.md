@@ -190,7 +190,7 @@ A second session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` 
 
 ### Open items (non-blocking)
 - **Round-036 forward items** — (a) `[TECHNICAL DEBT]` the blank-reason predicate's **single ownership** (three sites, one dead) → [#69](https://github.com/gosharplite/tellme/issues/69); (b) the **permanent E2E narrowing** record (the `\n`/`\r` class has no E2E carrier) → [#69](https://github.com/gosharplite/tellme/issues/69) + [#74](https://github.com/gosharplite/tellme/issues/74); (c) `oneLine` relocated (orphan `toollog.go` deleted).
-- **Round-035 forward items** — the port hook overload + the spinner-yield-policy ownership → [#69](https://github.com/gosharplite/tellme/issues/69) (see the [2026-09-17 archive](docs/archives/status/2026-09-17.md)).
+- **Round-035 forward items** — the port hook overload + the spinner-yield-policy ownership → [#69](https://github.com/gosharplite/tellme/issues/69) (see the [2026-09-17 archive](../../../../archives/status/2026-09-17.md)).
 - **Round-034 forward items** — the failed-turn display-only `Ready` overstatement (G2) + numbering skew; `BindToolOutput` ctor injection → [#69](https://github.com/gosharplite/tellme/issues/69); `LoopObserver` segregation; the round-022 row→feature audit blind spot → [#60](https://github.com/gosharplite/tellme/issues/60).
 - Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; rounds 011–033 forward items (per-round in the archives).
 
@@ -278,7 +278,7 @@ A third session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` S
 ### Open items (non-blocking)
 - **Round-037 forward items** — (a) the **empty-`Ctrl+S` divergence** → [#76](https://github.com/gosharplite/tellme/issues/76); (b) the suggester selection-policy shape (`set(items, cursor)` at the call site) → [#69](https://github.com/gosharplite/tellme/issues/69).
 - **Round-036 forward items** — the blank-reason-predicate single ownership + the permanent E2E narrowing → [#69](https://github.com/gosharplite/tellme/issues/69); `oneLine` relocated.
-- **Round-035 forward items** — the port hook overload + the spinner-yield-policy ownership → [#69](https://github.com/gosharplite/tellme/issues/69) (see the [2026-09-17 archive](docs/archives/status/2026-09-17.md)).
+- **Round-035 forward items** — the port hook overload + the spinner-yield-policy ownership → [#69](https://github.com/gosharplite/tellme/issues/69) (see the [2026-09-17 archive](../../../../archives/status/2026-09-17.md)).
 - **Round-034 forward items** — the failed-turn display-only `Ready` overstatement (G2) + numbering skew; `BindToolOutput` ctor injection; `LoopObserver` segregation; the round-022 row→feature audit blind spot → [#60](https://github.com/gosharplite/tellme/issues/60).
 - Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; rounds 011–033 forward items (per-round in the archives).
 
@@ -435,3 +435,361 @@ A sixth session on the same calendar day: continued round 039 from plan package 
 
 ### Issue tracker (closeout Step 8)
 Reconciled: **[#80](https://github.com/gosharplite/tellme/issues/80) CLOSED (completed)** — the terminal-safe line policy for the sibling `[Tool …]` formatters, delivered by round 039 (PR [#81](https://github.com/gosharplite/tellme/pull/81) merged `d48ebbc`); **[#69](https://github.com/gosharplite/tellme/issues/69) open** — body carries the round-039 items; [#60](https://github.com/gosharplite/tellme/issues/60) open (dogfooding); [#13](https://github.com/gosharplite/tellme/issues/13) open (coverage tooling). No issues superseded this closeout.
+
+---
+
+## 14. Session 7 (2026-09-17) — round 040 `040-spinner-liveness-and-turn-timer`: two folded spinner workstreams (#82 + #83) → **plan + truth half delivered → PR #84 open** (operator review gate; `/axb-tasks` held); STATUS revised
+
+A seventh session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 039 delivered/frozen), answered an operator question (*is the missing spinner during a `[Tool Output]` block a bug?* — **no**, it is the round-034 FR-012/G8 + ADR 0005 D7 whole-block pause), **filed issue [#82](https://github.com/gosharplite/tellme/issues/82)** (the candidate) and **issue [#83](https://github.com/gosharplite/tellme/issues/83)** (a second requested spinner change), then opened round **040** to fold both, ran the **plan + truth half** through `/axb-dsl-refine`, and **stopped before `/axb-tasks`** at the operator's instruction (review the whole plan/truth first). Opened **PR [#84](https://github.com/gosharplite/tellme/pull/84)** (plan + truth half) and revised `STATUS.md`.
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`; Linux host).
+**Branch**: `040-spinner-liveness-and-turn-timer` (off `dev`) — **open**; PR [#84](https://github.com/gosharplite/tellme/pull/84) → `dev`, **awaiting human merge**.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 039 delivered/frozen; active branch `dev`) |
+| Operator Q&A | confirmed the missing spinner during streaming is **by design** (FR-012/G8; ADR 0005 D7); filed **#82** (candidate) |
+| Round-040 theme | two folded spinner workstreams: **WS-A #82** = liveness while a `[Tool Output]` block streams (idle-gap resume); **WS-B #83** = a dual elapsed timer `({total}s {call}s)` (per-AI-endpoint-call reset) |
+| Clarify | **QB1 locked** (per AI-endpoint call); **QA1–QA3 + QB2/QB3 proposed** (idle-gap mechanism/threshold/scope; format/phases) — pending the operator's review gate |
+| Pipeline | specify ✅ · spec-by-example ✅ · technical-research ✅ (D1–D9 + **ADR 0009**) · system-analysis ✅ (1 CLI end → `/axb-dsl-refine`; api/data NOOP; ui skipped) · dsl-refine ✅ · **tasks ⏸ held** · implement ⏸ |
+| Delivery | branch `040-…` (13 commits, pushed); **PR [#84](https://github.com/gosharplite/tellme/pull/84) MERGED** into `dev` (`146210d`, by `thptcnec`) — plan + truth half (16 files, +745/−30, **zero product code**); implementation half pending |
+| Docs | `STATUS.md` revised (round-040 live state; round-039 detail relocated to `docs/archives/status/2026-09-17.md` per Rule 12); this §14 |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — read the pillars, the reference trees (`tell-me-go` 8-item bootstrap, `aixbdd-tmg` domain model + README), `list_skills`, the in-group peers (self `butler`; `architect`/`coder`/`griller`/`pm`/`rd`), `STATUS.md`, and the last-5-days summaries (09/13–09/17).
+2. **Q&A → issues** — traced the spinner/`[Tool Output]` interaction in the code (`internal/cli/cli.go` sink wiring, `internal/ui/spinner.go`, `internal/infrastructure/tools/command.go` `runCaptured`, the composite observer) and the truth (the `presenting-the-progress-spinner` "paused while streaming" Rule; round-034 FR-012/G8; ADR 0005 D7) → confirmed **by design**; **filed #82** and, on the operator's second request, **filed #83** (dual timer).
+3. **Plan + truth half** — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine`; committed per phase. **Stopped before `/axb-tasks`** at the operator's instruction.
+4. **The truth changes** — `techstack.md` (Turn progress spinner row MODIFY); `presenting-the-progress-spinner.feature` (the `Rule: The spinner is paused while a command's output streams` **replaced** by `Rule: A quiet command's output still shows the progress spinner`; **new** `Rule: The spinner shows the total time and the current model call's time`; the two tool-phase Examples gain the dual-timer Then); `chat/dsl.md` (the streaming row modified **in place** → `the run shows the progress spinner again while the command stays quiet`; `## Given (round 040)` + `## Then (round 040)` + a round-040 note).
+5. **Governance** — **ADR 0009** (`docs/decisions/0009-spinner-dual-timer-and-streaming-liveness.md` + index row) records the dual-timer policy + the idle-gap liveness; it **supersedes ADR 0005 D7 only** (D1–D6/D8 stand; 0005's body is **not** edited, its overall `Status` stays `Accepted`) and **amends round-019 D4**.
+6. **PR + STATUS** — pushed the branch and opened **PR [#84](https://github.com/gosharplite/tellme/pull/84)** (plan + truth half); revised `STATUS.md` to the round-040 in-flight state (Rule-12 split: round-039 detail relocated into `docs/archives/status/2026-09-17.md`).
+
+### Decisions locked / proposed (round 040)
+| # | Decision |
+| --- | --- |
+| **QB1 (locked)** | The new **turn** figure resets **per AI-endpoint call** (round-027 turn semantics); rejected per-phase / per-tool. |
+| QA1 (proposed) | WS-A mechanism = **idle-gap resume** (rejected: output-progress marker; per-line yield). |
+| QA2 (proposed) | The idle threshold is a **small fixed value** (assumed **3 s**) with a **hermetic env seam** (E2E forces it). |
+| QA3 (proposed) | Scope = only a streaming `[Tool Output]` block; model-wait, block literals, non-TTY/`-r`, `-i` unchanged. |
+| QB2–QB4 (review-confirmed) | Both figures appear in the model-wait **and** tool-execution labels; format `({total}s {call}s)`, both **unlabelled** (QB4 — a recorded divergence). |
+| D8 (ADR lifecycle) | Partial supersession: ADR 0009 names the superseded decision (**0005 D7**) rather than flipping 0005's whole `Status`. |
+
+### Commits (branch `040-spinner-liveness-and-turn-timer`, then PR #84)
+| Commit | Note |
+| --- | --- |
+| `80743d1` | `docs(040)`: plan package + spec |
+| `a8fc6ee` | `docs(040)`: acceptance Gherkin |
+| `d2443e9` | `docs(040)`: technical research + techstack truth + ADR 0009 |
+| `a8cd6c1` | `docs(040)`: system-analysis plan |
+| `4834e03` | `docs(040)`: CLI interface truth (quiet-command liveness + dual elapsed timer) |
+| `8026441` | `docs(040)`: STATUS — round 040 in flight; relocate the round-039 detail (Rule 12) |
+| `7f1d2ab` | `docs(040)`: daily log — session 7 |
+| `b8a5f16` | `docs(040)`: fold PR #84 review — TD-1 (E2E `Strict: true`), TD-2..TD-8, RF-1..RF-5, QB3/QB4 |
+
+### PR #84 review fold (architect — **APPROVE WITH REQUIRED FOLDS**)
+
+Folded in-round (`b8a5f16`): **TD-1** `tests/e2e/suite_test.go` gains `Strict: true` (godog's default is `false`, so undefined steps were reported-and-ignored; the suite then **failed** on the round's 4 not-yet-implemented sentences — verified locally: 5 undefined scenarios fail, 56s). *(Later revised: TD-1's `Strict` was relocated to the implement half — see the fold-review notes below — so this branch stays green.)* · **TD-2** the truth states **mutual exclusion + join** (not "single-writer") + the lock order + the anti-vacuity unit stress · **TD-3** the block critical section no longer spans a frame write (admit under the mutex; the redraw goroutine draws the first frame) · **TD-4** the watcher poll period is pinned (~200 ms) · **TD-5** the idle seam is named/pinned (`TELL_ME_FORCE_TOOLOUTPUT_IDLE_MS`, ms, `0` = admit immediately) and the Given is renamed to the world state `the command stays quiet for longer than the spinner's idle gap` · **TD-6** the second figure is renamed **"the current model call's elapsed"** (turn vs model-call terms; truth + acceptance + ADR) · **TD-7** the spinner feature header refreshed · **TD-8** the STATUS head recipe (`origin/main origin/dev`) + the commit counts · **RF-1** the acceptance-rule→carrier mapping + the task-list directives (incl. the dead-stepdef `[BDD-REMOVE]` and its unused helpers) · **RF-2** ADR 0005's **index** row annotated (no body edit) · **RF-3** the no-label resume is a defined no-op · **RF-4** the second-epoch field stays internal (no sixth ctor seam; earlier draft named it `turnEpoch`, final name **`callEpoch`** per the N-1 nit) · **RF-5** #69's body updated · **QB3/QB4** the two-figure 3+-digit row-aware-clear re-witness + "unlabelled by design" recorded.
+
+
+
+### PR #84 fold reviews (architect — **FOLDS ACCEPTED**; TD-9 + TD-10 + the TD-1 correction; then **TD-11**)
+
+The architect re-verified every fold against the fold head and raised two residuals + one correction, all folded:
+
+- **TD-9 (vocabulary sweep)** — the TD-6/TD-2 rename had stopped at the truth layer; swept the pre-fold vocabulary from `plan.md`, `truth-delta.md`, `checklists/requirements.md`, `STATUS.md`, and this summary (`single-writer` → mutual-exclusion+join; "current turn's" → "current model call's"; D1–D8 → D1–D9; `timing-the-current-turn.feature` → `timing-the-current-model-call.feature`; "two divergences" → three).
+- **TD-10 (mechanism + timing)** — the "redraw goroutine draws the first frame" deferral is scoped to the **in-block resume** via a named **resume-only admission path** (`admitResume()`; `activate()` keeps its synchronous first frame so rounds 019/025/034/035 stay green), the resumed frame renders **immediately on start** (not on the first tick), and the E2E **timing budget** is pinned (the child's quiet stretch exceeds `N + 2·P` with margin — e.g. a 2 s child `sleep` at `N=50 ms`) in SC-002 + the `dsl.md` Given row; the `techstack.md` round-019 sentence gained the round-040 carve-out.
+- **TD-1 correction (taken as option (a))** — `make test` is `go test ./...`, which **includes** `tests/e2e`, so landing `Strict: true` on the plan half would make `dev` red on every run. The flag is therefore **not** landed here: it is pinned as an `/axb-implement` task directive and lands with the 4 stepdefs (witnessed by the FAIL-then-PASS transition). This branch's `make verify` **and** `make test` are green.
+- **PR #84 MERGED (plan + truth half)** — the architect's review loop closed with **CONFIRMED / no further findings**; PR [#84](https://github.com/gosharplite/tellme/pull/84) was merged into `dev` by `thptcnec` (`146210d`, 2026-09-17T09:02:31Z; head `092a89c`; 16 files, +745/−30, 13 commits, **zero product code**). Post-merge `dev`: `make verify` OK · E2E `ok` · topology audit PASSED · `gofmt`/`go build` clean. **Propagation PENDING** (waits on delivery); **#82/#83 stay OPEN** (they close on delivery). Local `dev` fast-forwarded to `146210d`.
+- **TD-11 (fold review #2)** — moving TD-1 to the implement half invalidated **five** statements still describing the old disposition; all five were swept: the **ADR 0009** Consequences bullet (fixed before the ADR becomes immutable at merge), **`STATUS.md:63`** ("no harness change"), the **daily log** (the self-contradicting paragraph replaced), **`spec.md` SC-004** (scoped to delivery), and the **`FormatSpinnerLine`** signature (`turn` → `call`). The architect's follow-up confirmed all five fixed at `9fe7a1d` and **closed the review loop** (no TD-12); three optional nits (the `callEpoch` field name, the TD-11 durable-record note, one blank line) were folded as `N-1..N-3`.
+
+**Consequence of TD-1 (option (a), corrected):** the plan half leaves the harness unchanged, so **`make verify` and `make test` are green** on this branch. The `Strict: true` flag lands in `/axb-implement` with the 4 stepdefs (FAIL→PASS); `dev` is never red.
+
+### Artifacts / truth
+- Plan package: `spec.md` · `checklists/requirements.md` · `research.md` (D1–D9) · `plan.md` · `features/acceptance/keeping-the-progress-visible.feature` · `features/acceptance/timing-the-current-model-call.feature` · `truth-delta.md`.
+- Truth: `techstack.md` MODIFY (**Turn progress spinner** row) · `presenting-the-progress-spinner.feature` MODIFY (1 Rule replaced + 1 Rule added + 2 Examples amended) · `chat/dsl.md` MODIFY (1 row in place + 2 new sections + note); `/axb-api-plan` + `/axb-data-plan` NOOP.
+- Governance: **ADR 0009** ADD + the decisions README index row.
+
+### Verification (2026-09-17, docs half)
+- Gherkin/DSL topology audit **PASSED** — 44 features · 6 modules · 16 root + **327** module rows · **1674** Gherkin steps.
+- Docs/plan only → no `make verify` / E2E in this half; `STATUS.md` relative links resolve; working tree clean.
+
+### Open items (non-blocking)
+- **Round-040 in-flight items** — (a) **QA1–QA3 + QB2/QB3 pending the operator's review gate** (QB1 locked); (b) **WS-A interleaving safety** is the highest-risk area (a unit stress + the `deactivate()`-goroutine-joined / block-mutex serialization must pin no-interleave & no-residue); (c) the idle threshold is a fixed small value with a hermetic seam; (d) the longer two-figure line's extra soft-wrap risk (bounded by the round-025 rune-based row count).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; rounds 018–039 forward items (per-round in the archives).
+
+### Next steps
+1. **`/axb-tasks` → `/axb-implement`** (the implementation half) on a **fresh branch off `dev`** (the plan half is already merged at `146210d`); the implementation PR follows, landing the 4 stepdefs + `Strict: true`, the dead-stepdef `[BDD-REMOVE]` + its helpers, the `internal/ui` coordinator extraction (the `#69` pay-down), `admitResume()` + the lock-order comment, and the race/anti-vacuity stress.
+2. Human merges the implementation PR; then propagate `dev → main` and close [#82](https://github.com/gosharplite/tellme/issues/82) + [#83](https://github.com/gosharplite/tellme/issues/83) at closeout.
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (session 7 — in-flight, not a closeout)
+- **[#82](https://github.com/gosharplite/tellme/issues/82) OPEN (new this session)** — WS-A (streaming liveness); closes only on round-040 delivery.
+- **[#83](https://github.com/gosharplite/tellme/issues/83) OPEN (new this session)** — WS-B (dual elapsed timer); closes only on round-040 delivery.
+- [#69](https://github.com/gosharplite/tellme/issues/69) open (single-ownership refactor) · [#60](https://github.com/gosharplite/tellme/issues/60) open (dogfooding) · [#13](https://github.com/gosharplite/tellme/issues/13) open (coverage tooling). No issues closed/superseded this session (nothing landed).
+
+---
+
+## 15. Session 8 (2026-09-17) — round 040 `/axb-tasks`: `tasks.md` (T001–T016) written on the implementation branch; PR open for operator review (`/axb-implement` held)
+
+An eighth session on the same calendar day: after PR [#84](https://github.com/gosharplite/tellme/pull/84) (the plan + truth half) was **merged** into `dev` (`146210d`, by `thptcnec`), the operator approved running **`/axb-tasks` only** (stop before `/axb-implement`). Created the **implementation branch** off `dev` and produced `tasks.md` per the skill SOP; opened a PR for review.
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`; Linux host).
+**Branch**: `040-implement-spinner-liveness-and-turn-timer` (off `dev` @ `704599c`) — **open**; `/axb-implement` **held** for operator review.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Plan half | MERGED (`#84` → `dev` `146210d`) |
+| `/axb-tasks` | ✅ `tasks.md` written — **Foundational T001–T002** · **Phase 3 T003–T008** · **Phase 4 T009–T013** · **T014–T016** regression/falsifiability/close; Pre-Delivery Orphan Sweep **0** |
+| Phase 1 inventory | 4 sentences / 7 occurrences, each with exactly one `DSLRow` (no hand-back to `/axb-dsl-refine`) |
+| Setup | **omitted** (stdlib-only) |
+| Branch | `040-implement-spinner-liveness-and-turn-timer` (off `dev`); PR open |
+| `/axb-implement` | ⏸ **NOT run** (operator gate) |
+
+### The task list (T001–T016)
+- **Foundational** — T001 the two E2E stepdef landing skeletons (Zero Shared Edits); T002 the unit-test landing files + the `internal/ui` coordinator seam skeleton.
+- **Phase 3 (Red first)** — T003 `[BDD-REMOVE]` the dead stepdef `step_r034_t016_…go` (**keeping** its helpers for T004); T004 `[BDD-RED]` the idle-gap Given + the quiet-command provider Given + the liveness Then (real idle gap, child `sleep`, the `N + 2·P` budget); T005 `[BDD-RED]` the dual-timer Then (×4); T006 `[UNIT]` the dual-timer arithmetic (injected clock); T007 `[UNIT]` the race + anti-vacuity + no-residue stress + the 3+-digit row-aware clear (SC-006); T008 the review gate **+ `Strict: true` in the same change** (TD-1).
+- **Phase 4** — T009 `[BDD-GREEN]` WS-A (the `internal/ui` coordinator extraction; `admitResume()` immediate-on-start; mutual-exclusion+join; the idle seam); T010 `[BDD-REFACTOR]`; T011 `[BDD-GREEN]` WS-B (`FormatSpinnerLine(… total, call, …)` + `callEpoch`); T012 `[BDD-REFACTOR]`; T013 `[CODE-REMOVE]` the retired whole-block pause.
+- **Regression** — T014 `[REGRESSION]`; T015 falsifiability witnesses (a/b/c); T016 STATUS + PR + close #82/#83.
+
+### Decisions
+| # | Decision |
+| --- | --- |
+| — | `/axb-tasks` authored on the **implementation** branch off `dev` (the plan branch is already merged); `/axb-implement` held for the operator. |
+| — | Setup omitted; the harness `Strict: true` lands **with** the stepdefs (T008), per TD-1 option (a). |
+
+### Next steps
+1. Operator review of the `/axb-tasks` PR (`tasks.md` T001–T016) — the task list now carries the **two PR #85 review folds** (B1–B4 + TD-1…TD-5 + N-1…N-3; then R-1/R-1b/R-2/R-3 + N-4/N-5).
+2. On approval: `/axb-implement` (the tasks above; the implementation PR follows).
+3. Human merges; then propagate `dev → main`; close **#82** + **#83** at closeout.
+
+
+### /axb-tasks review folds (PR #85)
+
+The architect reviewed the task list and it was folded plan-side in `tasks.md` (no truth/code).
+
+**Review #1 (reviewed `7f070d0` → fold `f37a175`) — APPROVE WITH REQUIRED FOLDS (B1–B4 + TD-1…TD-5 + N-1…N-3):** **B1** name the block-mutex seam (`ToolOutputWriter` = sole lock/state owner + one lock-scoped entry point; never reach into `w.mu` — non-reentrant) · **B2** T003 retires **only** the dead stepdef (keep `toolOutputBlockIndexes`/`hasSpinnerStatusBetween` for T004) · **B3** register the new idle seam in `scenario_context.go`'s `envUnset` · **B4** own the in-code superseded-citation sweep (T009/T010) · **TD-1** T014's gate = `go test -count=1 ./...` + `make verify` · **TD-2** the pre-existing unit pins are **adapted** (named in T011) · **TD-3** the no-label + gated-off no-op sub-cases (T007) · **TD-4** reword T013 · **TD-5** reword `spec.md` SC-003 to shape-only + the unit pin (PM-owned).
+
+**Review #2 (reviewed `f37a175` → fold `f9e1ac9`) — FOLDS ACCEPTED (R-1/R-1b/R-2/R-3 + N-4/N-5):** **R-1** corrected T004's positive-polarity bound — anchor on the **closing separator** (`closingSeparatorIndex` → `hasSpinnerStatusBetween(lines, head, closingIdx+1)`), since the resumed frame shares the reset+separator `\n`-line and carries no `[Tool Output]` marker (the old bound made the assertion **vacuously false**) · **R-1b** `End` = stop watcher → **clear** → separator → resume · **R-2** the coordinator seam is the hook-parameterized `WriteWith(p, beforeLine)` (line-splitting stays inside the writer's `buf`) · **R-3** T007(g) the `\r`-only accepted-limitation pin · **TD-2 self-correction** (`spinner_width_test.go` **expected unchanged**; the two genuine breaks stay in `spinner_test.go`) · **TD-5** accepted as an accuracy fix (PM-owned; operator ratification).
+
+**Review #3 (reviewed `f9e1ac9` → fold `771e057`) — FOLDS ACCEPTED (R-4…R-7 + N-6…N-9):** **R-4** the watcher's **admit** gets a real lock-scoped entry point (`withLock(fn)` bookkeeping path — the admit fires when **no `WriteWith` is in flight**, so it cannot use the byte path — alongside the `WriteWith(p, beforeLine)` line path; R-2's claim scoped to the line path) · **R-5** `T007(g)` settles the `\r`-only case as **required** (FR-001 is line-scoped; a `\r`-only stream is visually silent; byte-arrival stamping rejected) · **R-6** the back-pressure residual sharpened (the spinner mutex can be held inside a blocking frame write) + `T007(f)` self-limiting · **R-7** the B2 disposition sweep (helpers **kept**, not removed) across `plan.md`/`STATUS.md`/this log · **N-6** changed-file set includes `spec.md` · **N-7** stray blank removed · **N-8** `dev` **15** commits ahead (measured) · **N-9** `T014` records why the existing long-quiet scenarios stay green (`timeout: 1` < N).
+
+**Review #4 (reviewed `771e057` → fold `188d9e6`) — FOLDS ACCEPTED (R-8/R-9 + N-10/N-11):** **R-8** the `End` path gets a lock-scoped hook `EndWith(beforeSeparator)` (clear **inside** the writer's critical section; the watcher is **stopped AND joined** before the clear) — required because the sink's contract is *after the child is **reaped*** while the trim/timeout `abortCapture` waits only under the bounded `commandWaitDelay` (2 s), so a drain can still be inside `Write` at `End`; new **T007(h)** pins End-while-Write-in-flight · **R-9** the idle clock moves into the writer (`IdleSince`) · **N-10** T002 reworded ("one lock owner, three entry points") · **N-11** the fold-1 B1 note annotated. Seam model **complete** (line path · watcher admit · `End`).
+
+**Review #5 (reviewed `188d9e6` → fold `8b71463`) — FOLDS ACCEPTED (R-10/R-11 + N-12/N-13):** **R-10** deleted T009's stale `lastLine`-stamp clause (contradicted R-9) · **R-11** the idle **query** gets the locked path **`withLock(fn func(idle time.Duration))`** (check+admit in one critical section; a self-locking `IdleSince` would deadlock) + the **`Begin`-seeded `lastLine`** + **T007(b′)** the **zero-output** case · **N-12** the STATUS B1 annotation restored · **N-13** recorded why `Begin` needs no hook (runs before `cmd.Start()`). The R-4/R-8/R-11 family is **closed** (line path · admit · `End` · idle query).
+
+**Review #6 (reviewed `8b71463` → fold `9e02442`) — CERTIFICATION: implementation-ready (R-12/R-13 + N-14):** **R-12** T002's entry point (ii) now carries the R-11 signature `withLock(fn func(idle time.Duration))` (one definition per entry point) · **R-13** T007's clauses `(b′)`/`(g)`/`(h)` are back **inside the T007 checkbox** in order (the `(g)`/`(h)` text had detached into an unmarkered bullet) · **N-14** T009's parenthetical no longer names the removed `IdleSince` shape. **Architect certified the task list implementation-ready** — `/axb-implement` is the operator's call. Seam model **closed**.
+
+**Review #7 (reviewed `9e02442` → fold `c9f6ba7`) — CERTIFICATION CONFIRMED (R-14 + B-1/B-2 + N-15):** R-14 re-attributed the per-call-reset witness to the **unit** layer (T015(b) + `spec.md` SC-005) · B-1 reordered the daily-log fold notes oldest→newest · B-2 added the STATUS ledger #6 · N-15 primed Core Inputs with "one lock owner, three entry points".
+
+**Review #8 (reviewed `c9f6ba7` → fold `af86f3a`) — CERTIFICATION FINAL / review loop CLOSED (N-16):** the architect corrected its **own** review #6 mis-phrasing — `T015(a)` now states the layer-correct witness-set reading ((a) is the only one of the three witnesses with an **E2E carrier**, non-vacuous only because of R-1's closing-separator bound; T007(b′)/(c) additionally cover it at the **unit** layer). **Process lesson recorded** (§15): the session saw **three recurrences of one class** (round-040 TD-11's vocabulary sweep · R-7's disposition sweep · B-1→C-3) — each a new entry **appended at an unstable anchor** (the first `### PM follow-ups`; the tail of the previous fold row) rather than the **end of the structure it belongs to**, leaving stale statements behind. Durable fix: **one append anchor per artifact** (end of the fold-log / end of the session section) + **one row per review naming both the reviewed head and the fold head**.
+
+**Review #9 (reviewed `33aca91` → fold `c79eaca` + `07c88ea`) — log hygiene (C-1/C-2/C-3 + the append-anchor process lesson):** C-1 the `STATUS.md` ledger split into rows #6/#7/#8 (each naming the reviewed→fold heads) with the pointer → `af86f3a` · C-2 `tasks.md`'s second `#7` section renumbered `#8` · C-3 the daily-log fold notes reordered oldest→newest + Fold 8 appended · the **process lesson** recorded (three recurrences — TD-11 / R-7 / B-1→C-3 — share one root cause: an entry appended at an unstable anchor).
+
+`/axb-implement` remains held.
+
+### Process lesson (session 8 — durable append anchors)
+
+Three recurrences of one class in this session — round-040 **TD-11** (vocabulary sweep), **R-7** (disposition sweep), and **B-1 → C-3** (fold-log order) — all share one root cause: a new entry was **appended at an unstable anchor** (the first `### PM follow-ups` block; the tail of the previous fold row) instead of the **end of the structure it belongs to**, so each fold left one or two stale statements behind that a later pass had to sweep.
+
+**Durable fix (procedural, not editorial):** one **append anchor per artifact** — the **end of the fold-log** / the **end of the session section** — and **one row per review naming both the reviewed head and the fold head** (e.g. `Review #7 (reviewed 9e02442 → fold c9f6ba7)`), so the ledger cannot attribute a fold to the wrong review and the ordering is intrinsic.
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+---
+
+## 16. Session 9 (2026-09-17) — round 040 `/axb-tasks` **MERGED** (PR #85 → `dev` `07c88ea`); day close (`SESSION-CLOSEOUT.md`)
+
+A ninth session on the same calendar day: verified the **human merge** of PR [#85](https://github.com/gosharplite/tellme/pull/85) (the `/axb-tasks` half of round 040), folded the final log-hygiene items (**E-1**, **E-2**), and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`; Linux host).
+**Branch**: `dev` (round 040 plan+truth+tasks all merged) — implementation pending, next session.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Merge check | PR [#85](https://github.com/gosharplite/tellme/pull/85) **merged: true** (`thptcnec`, 2026-09-17T10:50:30Z) → `dev` **fast-forward** to `07c88ea`; base `dev` `704599c`, head `07c88ea`; **5 docs files, +235/−9, 12 commits, zero product code** |
+| Closeout Step 1 | Tree clean on `dev` (= `origin/dev`); no stray files; no frozen package touched |
+| Closeout Step 2 | `gofmt` clean · `go vet ./...` clean · `go build ./...` OK · topology audit **PASSED** (44 · 6 · 16+327 · 1674) · link check (fixed two pre-existing repo-relative archive links) · diff-level secret scan **clean** |
+| E-1/E-2 folded | E-1 named the true fold head (`Review #9 … → fold c79eaca + 07c88ea`); E-2 aligned `tasks.md`'s fold-log headers to the two-SHA form (`#1` reviewed `7f070d0` → fold `f37a175` … `#9` reviewed `33aca91` → fold `c79eaca` + `07c88ea`) + appended a `#9` section |
+| Step 3 | `STATUS.md` refreshed → round 040 plan+truth+tasks **all merged**; **implementation = next session**; active branch `dev`; issue-tracker line updated |
+| Step 4 | this §16 |
+| Step 5 | `STATUS.md` ↔ §16 reconciled (same round position, branches, decisions, open items) |
+| Step 6 | committed on `dev` |
+| Step 7 | **Propagation PENDING** (round 040 **not delivered** — implementation pending; `dev → main` waits on delivery) |
+| Step 8 | issue tracker: **nothing landed** → **no closes/revises** (#82/#83 remain open until delivery) |
+
+### Review fold chain (round 040 `/axb-tasks`, PR #85 — ten passes, CERTIFICATION FINAL)
+
+| Review | reviewed → fold | Outcome |
+| --- | --- | --- |
+| #1 | `7f070d0` → `f37a175` | APPROVE WITH REQUIRED FOLDS (B1–B4 + TD-1…TD-5 + N-1…N-3) |
+| #2 | `f37a175` → `f9e1ac9` | FOLDS ACCEPTED (R-1 closing-separator bound; R-1b `End` clear; R-2 `WriteWith`; R-3) |
+| #3 | `f9e1ac9` → `771e057` | FOLDS ACCEPTED (R-4 watcher-admit entry point; R-5; R-6; R-7) |
+| #4 | `771e057` → `188d9e6` | FOLDS ACCEPTED (R-8 `EndWith`; R-9 writer-owned clock) |
+| #5 | `188d9e6` → `8b71463` | FOLDS ACCEPTED (R-10; R-11 `withLock(fn func(idle))` + `Begin` seed + T007(b′)) |
+| #6 | `8b71463` → `9e02442` | **CERTIFICATION: implementation-ready** (R-12/R-13 + N-14) |
+| #7 | `9e02442` → `c9f6ba7` | CERTIFICATION CONFIRMED (R-14 unit-layer reset witness + B-1/B-2 + N-15) |
+| #8 | `c9f6ba7` → `af86f3a` | **CERTIFICATION FINAL / review loop CLOSED** (N-16) |
+| #9 | `33aca91` → `c79eaca` + `07c88ea` | log hygiene (C-1/C-2/C-3 + the append-anchor process lesson) |
+| E-1/E-2 | `07c88ea` → *(folds with this closeout commit)* | named the true fold head (#9 → `c79eaca` + `07c88ea`); aligned `tasks.md`'s headers to the two-SHA label |
+
+Across all ten passes **not one** review required a change to scope, mechanism, the seam model, the truth tree or the acceptance set — every finding was accuracy, seam definition or bookkeeping.
+
+### Decisions locked
+| # | Decision |
+| --- | --- |
+| — | Round 040's **plan + truth + tasks** are all on `dev` (`146210d` then `07c88ea`); the **implementation half** (`/axb-implement`, T001–T016) is the **next session's** work on a fresh branch off `dev`. |
+| — | **Propagation `dev → main` stays PENDING** — it runs at **delivery**, not at the plan/tasks merges. |
+| — | E-1/E-2 folded (log hygiene only); `tasks.md`'s fold-log headers now carry the two-SHA per-review label project-wide. |
+| — | **PM-owned, pending operator ratification**: `spec.md` **SC-003** (TD-5) and **SC-005** (R-14) wording. |
+
+### Commits (branch `dev`)
+| Commit | Note |
+| --- | --- |
+| `07c88ea` | (round-040 `/axb-tasks` head — **already on `dev`** via the PR #85 fast-forward merge) |
+| *(this closeout)* | `docs(040)`: day close — PR #85 merged; fold E-1/E-2; STATUS + daily log |
+
+### Verification (2026-09-17, on `dev` @ `07c88ea` + the closeout commit)
+- `gofmt` clean · `go vet ./...` clean · `go build ./...` OK · topology audit **PASSED** (44 features · 6 modules · 16 root + 327 module rows · 1674 steps) · `STATUS.md` links resolve · diff-level secret scan **clean** · `go.mod`/`go.sum` unchanged (stdlib-only).
+
+### Open items (non-blocking)
+- **Round-040 forward items** — the implementation's own forward items will surface in `/axb-implement`; none recorded yet.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; rounds 011–039 forward items (per-round in the archives).
+- **Propagation PENDING** — `dev → main` (waits on delivery).
+
+### Next steps
+1. **`/axb-implement`** on a **fresh branch off `dev`** — run tasks **T001–T016** (the `internal/ui` coordinator + the three lock-scoped entry points; WS-A liveness + WS-B dual timer; `Strict: true` + the 4 stepdefs; the dead-stepdef `[BDD-REMOVE]`); then the implementation PR.
+2. Human merges the implementation PR; then propagate `dev → main`; **close [#82](https://github.com/gosharplite/tellme/issues/82) + [#83](https://github.com/gosharplite/tellme/issues/83)** at closeout.
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- **Ratify (or amend) the two PM-owned `spec.md` wording fixes**: **SC-003** (TD-5, shape-only + unit pin) and **SC-005** (R-14, unit-layer reset witness). Both are accuracy fixes aligning the criteria with the accepted witness plan.
+
+### Issue tracker (closeout Step 8)
+**No changes this closeout (nothing landed).** [#82](https://github.com/gosharplite/tellme/issues/82) + [#83](https://github.com/gosharplite/tellme/issues/83) **OPEN** (round 040's anchors — close on **delivery**); [#69](https://github.com/gosharplite/tellme/issues/69) open (single-ownership refactor); [#60](https://github.com/gosharplite/tellme/issues/60) open (dogfooding); [#13](https://github.com/gosharplite/tellme/issues/13) open (coverage tooling). No issues closed/revised/superseded.
+
+---
+
+## 17. Session 10 (2026-09-17) — round 040 `/axb-implement` DELIVERED (branch `040-implement-v2-spinner-liveness-and-turn-timer`; PR open)
+
+A tenth session on the same calendar day: bootstrapped, resolved a branch-name collision (the frozen `/axb-tasks` branch already owned `040-implement-…`), renamed the implementation branch to `040-implement-v2-…`, and ran `/axb-implement` One-Shot over the round-040 tasks (T001–T016) to green.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Branch collision | local `040-implement-spinner-liveness-and-turn-timer` collided with the merged remote `/axb-tasks` branch (`07c88ea`) → renamed to **`040-implement-v2-spinner-liveness-and-turn-timer`** (pushed) |
+| `/axb-implement` | One-Shot over T001–T016 — all `[x]` |
+| Product | `internal/ui/coordinator.go` (WS-A: the writer + spinner coordinator; `WriteWith`/`EndWith`/`withLock`; the idle watcher; mutual exclusion + join) · `internal/ui/spinner.go` (dual `FormatSpinnerLine(… total, call, …)`; internal `callEpoch`; `AdmitResume`) · `internal/ui/tooloutput.go` (three lock-scoped entry points + the `Begin`-seeded idle clock) · `internal/cli/cli.go` (coordinator wiring + `toolOutputIdleGap()`) |
+| Tests | `internal/ui/spinner_round040_test.go` (dual-timer arithmetic + the SC-006 row-aware-clear re-witness) · `internal/ui/coordinator_test.go` (the WS-A race/anti-vacuity/zero-output/no-label/gated-off/`\r`-only/stalled-writer stress) · `tests/e2e/steps/step_r040_*.go` (4 sentences) · `tests/e2e/suite_test.go` (`Strict: true`) · the dead-stepdef `[BDD-REMOVE]` |
+| Wording | the adapted spinner pins; the E2E spinner regexes widened to the dual figure; the in-code citations swept to ADR 0009 |
+| Verification | `go test -count=1 ./...` green (incl. `tests/e2e`) · `make verify` OK (cross-compile 4/4 · lint 0 · govulncheck clean) · topology audit PASSED (44 · 6 · 16 + 327 · 1674) · witnesses (a)/(b)/(c) reproduced then reverted |
+| Delivery | branch pushed; **PR open** — a human merges; then propagate `dev → main` and close #82/#83 at closeout |
+
+### Decisions
+| # | Decision |
+| --- | --- |
+| D1 | The implementation branch is named **`040-implement-v2-…`** — the merged `/axb-tasks` branch name is **not reused** (it is frozen history). |
+| D2 | The resume path is `Spinner.AdmitResume()` (goroutine-drawn first frame); `activate()` keeps its synchronous first frame. |
+| D3 | The coordinator is the single `internal/ui` owner of the writer + spinner (the `#69` pay-down). |
+| D4 | `Strict: true` landed with the stepdefs (0 undefined), witnessed by the FAIL→PASS transition. |
+
+### Commits (branch `040-implement-v2-spinner-liveness-and-turn-timer`)
+| Commit | Note |
+| --- | --- |
+| *(this session)* | `feat(040)`: implement the spinner streaming liveness + dual elapsed timer (T001–T016) |
+
+### Verification (2026-09-17)
+See the at-a-glance row; the witnesses: (a) freeze the idle-gap resume → the WS-A Example fails (E2E carrier) · (b) freeze the per-call reset → the T006 unit pin fails · (c) drop the row-aware clear → the SC-006 pin fails.
+
+### Next steps
+1. **Human merges the implementation PR** → propagate `dev → main` (no-ff) → `SESSION-CLOSEOUT.md` (close **#82** + **#83**).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `040-implement-v2-…` until merged, then `dev`).
+
+### PM follow-ups
+- Ratify the two PM-owned `spec.md` wording fixes (SC-003 TD-5 shape-only; SC-005 R-14 unit-layer reset witness) — unchanged from session 9.
+
+### Session 10 (cont.) — round 040 PR #86 architect review folded (`c888f0d` + ledger `b1ecc6d`) ⇒ re-review CERTIFIED
+
+The `/axb-implement` PR [#86](https://github.com/gosharplite/tellme/pull/86) was architecturally reviewed (head `1d563be`): **APPROVE WITH REQUIRED FOLDS** — 3 required + 5 non-blocking, no architectural blocker (the reviewer independently reproduced the gates and traced the WS-A E2E carrier's non-vacuity).
+
+| Fold | Head | Note |
+| --- | --- | --- |
+| **R-40-1** | `c888f0d` | `AdmitResume` captures `stopCh`/`doneCh` as **locals** and passes them to the goroutine (no field read after `Unlock` — closes the latent mismatched-channel-pair race; `activate()` already did this). |
+| **R-40-2** | `c888f0d` | The two general spinner rows are updated **in place** to the dual `({total}s {call}s)` shape (both stepdefs share the widened `reSpinnerLine`/`reSpinnerElapsed`) + the round-019 note pointer + the two stepdef comments + a `truth-delta.md` MODIFY row (owner `/axb-dsl-refine`). |
+| **R-40-3** | `c888f0d` | `STATUS.md` pre-fold residue swept (the `⏸ held` / "PENDING — next session" clauses) + the dev-ahead figure corrected to the measured **29**. |
+| **N-40-1** | `c888f0d` | `closingSeparatorIndex` bounded to the **first** block — on the next block's **header tail** (an output line carries the `[Tool Output]` marker, so the naive marker bound truncates the span; that trap briefly turned the carrier red and was fixed). |
+| **N-40-2** | `c888f0d` | `newTestCoordinator(w io.Writer, …)`; `newTestCoordinator2` deleted. |
+| **N-40-3** | `c888f0d` | The `coordinator.go` `#69` claim corrected: the **block-scoped** yield only was consolidated (the loop's `withToolLog` + `compositeObserver.yieldIndicatorBeforeTail` remain). |
+| **N-40-4** | `c888f0d` | The `End`-while-write-stalled accepted residual named in `coordinator.go` (not only `tasks.md`). |
+| **N-40-5** | `c888f0d` | A mutex-guarded `spinnerRunning()` accessor replaces the unlocked test reads. |
+
+**Re-review (PR #86, reviewed fold head `b1ecc6d`) — `CERTIFIED — READY TO MERGE`**: all 3 required + all 5 non-blocking verified as landed; witness (a) **re-reproduced independently** by the reviewer in a scratch export (unfrozen ⇒ PASS; admit frozen ⇒ FAIL, proving non-vacuity); **N-40-6** (two-SHA fold label — adopted: `→ fold c888f0d + b1ecc6d`) + **N-40-7** (advisory: `toolOutputHeaderMarker` is content-keyed — recorded at `toolcall_log.go`, fail-loud direction, no change). The reviewer independently reproduced the `di` flake and **proved it pre-existing** on the pre-PR base `dev` `802e51c` (same test, same `signal: killed`, same 2.00 s) → filed as [#87](https://github.com/gosharplite/tellme/issues/87).
+
+**Re-verification at `c888f0d`**: `go test -count=1 ./...` green · `go test -race -count=1 ./internal/ui/...` ok · `make verify` OK (cross-compile 4/4 · lint 0 · govulncheck clean) · topology audit PASSED (44 · 6 · 16 + 327 · 1674) · witness (a) re-confirmed non-vacuous under the new bound.
+
+**Forward item posted on [#69](https://github.com/gosharplite/tellme/issues/69#issuecomment-5713770526)** (PR #86 review §5): the coordinator models **one** concurrent block; a future concurrent-tools round must re-scope it (a second open block + the composite's unconditional `AfterToolLog` resume would break the idle-gap invariant).
+
+**Environmental note (pre-existing, not this PR)**: `internal/infrastructure/di` `TestNewGhTokenResolver_TrimsToken` can flake with `signal: killed` under whole-suite resource pressure (a `gh`-resolution subprocess); passes standalone / on re-run; observed at both `1d563be` and `c888f0d`.
+
+---
+
+## 18. Session 10 (cont.) — round 040 **DELIVERED** (PR #86 merged into `dev` `87af8c8`) + `go install` + `SESSION-CLOSEOUT.md`
+
+The delivery + end-of-day closeout for round 040: the operator merged PR [#86](https://github.com/gosharplite/tellme/pull/86) into `dev`, the installed binary was refreshed, and `SESSION-CLOSEOUT.md` Steps 1–8 ran. **Propagation `dev → main` is the one remaining step, pending the operator's approval.**
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#86](https://github.com/gosharplite/tellme/pull/86) **MERGED** into `dev` → `87af8c8` ("Merge pull request #86 …"); frozen head **`436bd70`**; local `dev` fast-forwarded `802e51c → 87af8c8` |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `436bd70`; `--version` → `dev` |
+| Closeout Step 1 | Tree clean on `dev` (= `origin/dev`); no stray files; no frozen package touched |
+| Closeout Step 2 | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** · topology audit **PASSED** (44 · 6 · 16 + 327 · 1674) · diff-level secret scan **clean** · `go test -count=1 ./...` — run 1 red on the **`di` #87 flake**, attributed (standalone green 0.13 s vs 2.00 s) and **green on re-run** |
+| Closeout Step 3 | `STATUS.md` refreshed → round 040 **DELIVERED / FROZEN**; active branch `dev`; branch model + roadmap + issue tracker + env notes updated |
+| Closeout Step 4 | this §18 |
+| Closeout Step 5 | `STATUS.md` ↔ §18 reconciled (same round position, heads, decisions, open items) |
+| Closeout Step 6 | committed + pushed on `dev` |
+| Closeout Step 7 | **Propagation `dev → main` PENDING operator approval** (the only open closeout step) |
+| Closeout Step 8 | **#82 CLOSED** + **#83 CLOSED** (delivered); **#87** open (new, pre-existing `di` flake); #69/#60/#13 open (accurate) |
+
+### Decisions
+| # | Decision |
+| --- | --- |
+| D1 | Round 040 **DELIVERED / FROZEN** on merge of PR #86 (`87af8c8`); frozen head `436bd70`. |
+| D2 | `go install` refreshes the installed binary from the delivered head (`436bd70`). |
+| D3 | Closeout docs land on **`dev`** (round branches frozen). |
+| D4 | **`di` flake attribution protocol** applied to the delivery gate (per the architect's #87 recommendation): on whole-suite red, run `di` standalone; green ⇒ attribute to **#87** and re-run the gate rather than treating delivery as failed. |
+| D5 | Propagation `dev → main` (no-ff) **held pending the operator's explicit approval** (closeout Rule 8). |
+| D6 | Round-040's own detail **stays** in `STATUS.md` as the (delivered) current round until round `041-*` opens, then relocates to [`2026-09-17.md`](../../../../archives/status/2026-09-17.md) (Rule 12). |
+
+### Commits (branch `dev`)
+| Commit | Note |
+| --- | --- |
+| `87af8c8` | PR [#86](https://github.com/gosharplite/tellme/pull/86) merge into `dev` (by the operator) |
+| *(this closeout)* | `docs(040)`: day close — round 040 delivered + STATUS + daily summary |
+
+### Verification (2026-09-17, on `dev` @ `87af8c8`)
+- `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (no-test-sleep · offline witness · cross-compile 4/4 · mcp-sdk-confinement · golangci-lint 0 · govulncheck clean).
+- `go test -count=1 ./...` green (**after** the `di` (#87) attribution + re-run; `di` standalone green in 0.13 s).
+- Topology audit **PASSED** — 44 features · 6 modules · 16 root + 327 module rows · 1674 steps.
+- Diff-level secret scan **clean**; `go.mod`/`go.sum` unchanged (stdlib-only).
+
+### Open items (non-blocking)
+- **Propagation `dev → main` — PENDING** (awaits the operator's go-ahead).
+- **Round-040 forward items** — the one-concurrent-block limit → **#69**; the `End`-while-write-stalled accepted residual (in `coordinator.go`); the fixed 3 s idle default; the two-figure soft-wrap residual; the fail-loud header-marker content keying.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; older-round forward items (in the archives).
+
+### Next steps
+1. **Operator approves** → propagate `dev → main` (no-ff) — the final closeout step.
+2. Next session: open round **`041-*`** off `dev` via `/axb-specify` (candidates: [#69](https://github.com/gosharplite/tellme/issues/69) — now carries seven scope items; [#87](https://github.com/gosharplite/tellme/issues/87); [#60](https://github.com/gosharplite/tellme/issues/60); [#13](https://github.com/gosharplite/tellme/issues/13)).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- **Two PM-owned `spec.md` wording ratifications remain outstanding** (carried from sessions 9–10): **SC-003** (TD-5 — shape-only claim + the unit pin) and **SC-005** (R-14 — the reset witness attributed to the unit layer). Both are accuracy fixes; worth clearing so round 040's package freezes cleanly.
+
+### Issue tracker (closeout Step 8)
+**[#82](https://github.com/gosharplite/tellme/issues/82) CLOSED (completed)** + **[#83](https://github.com/gosharplite/tellme/issues/83) CLOSED (completed)** — delivered by round 040 (PR [#86](https://github.com/gosharplite/tellme/pull/86) merged `87af8c8`; linking comments posted). **[#87](https://github.com/gosharplite/tellme/issues/87) OPEN (new)** — the `di` gh-token-resolver test flake (pre-existing; proved on the pre-PR base `dev` `802e51c`; out of round-040 scope; its own round). **[#69](https://github.com/gosharplite/tellme/issues/69) OPEN** — the single-ownership refactor, now also carrying the round-040 one-concurrent-block forward item. **[#60](https://github.com/gosharplite/tellme/issues/60) OPEN** (dogfooding) · **[#13](https://github.com/gosharplite/tellme/issues/13) OPEN** (coverage tooling). No revisions needed.

@@ -157,6 +157,9 @@ func beforeScenario(ctx context.Context, _ *godog.Scenario) (context.Context, er
 			"TELL_ME_FORCE_STDERR_TTY":  true,
 			"TELL_ME_FORCE_STDERR_COLS": true,
 			"TELL_ME_TUI_DEBOUNCE":      true,
+			// Round 040 (B3): the WS-A idle-gap seam — unset by default so an
+			// ambient shell value cannot leak into a scenario.
+			"TELL_ME_FORCE_TOOLOUTPUT_IDLE_MS": true,
 		},
 		args:     nil,
 		exitCode: 0,
