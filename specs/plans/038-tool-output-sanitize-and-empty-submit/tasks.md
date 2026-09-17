@@ -67,4 +67,9 @@ _(none — stdlib-only; no new dependency, no SDL/build change.)_
 
 ## Round-038 fold review #3 (PR #79) — N-6
 
-- **N-6** — the ADR 0007 residual-risk bullet now states the consumption is **window-bounded** and names the residual class TD-3 bounded (a sequence whose terminator lies beyond its kind's window prints its parameter text, bounded ≤ 1024 bytes); the D2 bounded-consumption bullet names that `genericEscLen` reuses the **CSI** window for its intermediate run; the ADR consequences bullet uses the precise "never introduces invalid UTF-8" claim (N-4 consistency); and the `genericEscLen` code comment names the shared CSI-window constant.
+- **N-6** — the ADR 0007 residual-risk bullet now states the consumption is **window-bounded** and names the residual class TD-3 bounded (a sequence whose terminator lies beyond its kind's window prints its parameter text); the D2 bounded-consumption bullet names that `genericEscLen` reuses the **CSI** window for its intermediate run; the ADR consequences bullet uses the precise "never introduces invalid UTF-8" claim (N-4 consistency); and the `genericEscLen` code comment names the shared CSI-window constant.
+
+## Round-038 fold review #4 (PR #79) — N-7
+
+- **N-7** — corrected the ADR 0007 residual-risk sentence: the window bounds how much is **removed**, not what is **printed** — a beyond-window / unterminated sequence prints the **rest of the line**, so the residual is bounded by the **line** (ultimately the round-024 block byte budget), not by the window. Docs-only; code unchanged.
+
