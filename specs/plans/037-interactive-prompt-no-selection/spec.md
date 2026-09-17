@@ -83,7 +83,7 @@ As an operator, when I press `Tab` once on the no-selection list, I want the **f
 
 ### Out of scope (recorded)
 
-- The **empty-`Ctrl+S` divergence** (reference: no-op, stays in the prompt; tellme: quits with exit `0`) → **new live issue** (forward item); **not** in this round (Q1).
+- The **empty-`Ctrl+S` divergence** (reference: no-op, stays in the prompt; tellme: quits with exit `0`) → **live issue [#76](https://github.com/gosharplite/tellme/issues/76)** (forward item); **not** in this round (Q1).
 - Any change to the accept **heuristic** (whole-line vs last-token replacement, round-016 FR-007) or to the suggestion **sources/engines**.
 - The round-036 tool-reason and the round-035 spinner-yield surfaces.
 
@@ -102,5 +102,5 @@ As an operator, when I press `Tab` once on the no-selection list, I want the **f
 - **`/axb-ui-plan` (terminal mode).** The TUI end gets a terminal-mode `ui/` (textual screens) re-rendering the **at-rest** frame with **no** `>` cursor, supplied to `/axb-system-analysis` for review (not redone there). Plan-side only; never truth.
 - **`/axb-spec-by-example` is NOT a NOOP.** The at-rest highlight is a **user-visible acceptance** change, so 037 writes a new plan-side acceptance rule (*the prompt pre-selects no suggestion*), which `/axb-dsl-refine` maps 1:1 onto the flipped interface `Then` (`acceptance-coverage`). This is the correct contrast to round 036, whose violated guarantee was a code behaviour already carried at the contract level.
 - **Supersession.** The frozen round-016 acceptance (*exactly one suggestion is marked as the current choice at rest*) is **superseded** for the current system by 037's at-rest rule; the round-016 package stays frozen history and is never rewritten.
-- **Forward item (durable surface).** The empty-`Ctrl+S` divergence is filed as a **new live issue** this round (its statement, not a comment), so it survives the package freeze (round-035 G3 lesson).
+- **Forward item (durable surface).** The empty-`Ctrl+S` divergence is filed as a **new live issue [#76](https://github.com/gosharplite/tellme/issues/76)** this round (its statement, not a comment), so it survives the package freeze (round-035 G3 lesson).
 - **Cursor-sentinel semantics.** The no-choice state is represented by a negative cursor index (the reference's `-1`), and `selected()` already returns the empty string for it — so the change is confined to the **default** and the **reset-on-refresh**, plus the pins that assert them.
