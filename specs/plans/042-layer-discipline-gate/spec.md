@@ -165,7 +165,7 @@ As a maintainer/operator, I want the layer-discipline gate recorded in `specs/tr
 #### Functional Requirements
 
 - **FR-011**: The round MUST be **tooling + truth only**: it MUST add the gate, its self-tests, the baseline, and the truth/spec records, and MUST NOT modify any production Go behaviour or any existing gate's semantics.
-- **FR-012**: The round MUST pin the **layer ranking** (Q1, above) and the **package scope** (Q2: enterprise production `internal/**`; `cmd/**` + `tests/**` exempt) explicitly in `research.md`/`plan.md`, and MUST re-measure the baseline from the gate itself before freezing it. Shape: **ADD** — the round adds a gate + baseline + truth rows; it changes no existing truth row's meaning beyond the `verify` aggregate member.
+- **FR-012**: The round MUST pin the **layer ranking** (Q1, above) and the **package scope** (Q2: production `internal/**`; `cmd/**` + `tests/**` exempt) explicitly in `research.md`/`plan.md`, and MUST re-measure the baseline from the gate itself before freezing it. Shape: **ADD** — the round adds a gate + baseline + truth rows; it changes no existing truth row's meaning beyond the `verify` aggregate member.
 
 #### Non-Functional Requirements
 
