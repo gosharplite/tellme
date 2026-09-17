@@ -492,13 +492,15 @@ Folded in-round (`b8a5f16`): **TD-1** `tests/e2e/suite_test.go` gains `Strict: t
 
 
 
-### PR #84 fold review (architect — **FOLDS ACCEPTED**; TD-9 + TD-10 + the TD-1 correction)
+### PR #84 fold reviews (architect — **FOLDS ACCEPTED**; TD-9 + TD-10 + the TD-1 correction; then **TD-11**)
 
 The architect re-verified every fold against the fold head and raised two residuals + one correction, all folded:
 
 - **TD-9 (vocabulary sweep)** — the TD-6/TD-2 rename had stopped at the truth layer; swept the pre-fold vocabulary from `plan.md`, `truth-delta.md`, `checklists/requirements.md`, `STATUS.md`, and this summary (`single-writer` → mutual-exclusion+join; "current turn's" → "current model call's"; D1–D8 → D1–D9; `timing-the-current-turn.feature` → `timing-the-current-model-call.feature`; "two divergences" → three).
 - **TD-10 (mechanism + timing)** — the "redraw goroutine draws the first frame" deferral is scoped to the **in-block resume** via a named **resume-only admission path** (`admitResume()`; `activate()` keeps its synchronous first frame so rounds 019/025/034/035 stay green), the resumed frame renders **immediately on start** (not on the first tick), and the E2E **timing budget** is pinned (the child's quiet stretch exceeds `N + 2·P` with margin — e.g. a 2 s child `sleep` at `N=50 ms`) in SC-002 + the `dsl.md` Given row; the `techstack.md` round-019 sentence gained the round-040 carve-out.
 - **TD-1 correction (taken as option (a))** — `make test` is `go test ./...`, which **includes** `tests/e2e`, so landing `Strict: true` on the plan half would make `dev` red on every run. The flag is therefore **not** landed here: it is pinned as an `/axb-implement` task directive and lands with the 4 stepdefs (witnessed by the FAIL-then-PASS transition). This branch's `make verify` **and** `make test` are green.
+- **TD-11 (fold review #2)** — moving TD-1 to the implement half invalidated **five** statements still describing the old disposition; all five were swept: the **ADR 0009** Consequences bullet (fixed before the ADR becomes immutable at merge), **`STATUS.md:63`** ("no harness change"), the **daily log** (the self-contradicting paragraph replaced), **`spec.md` SC-004** (scoped to delivery), and the **`FormatSpinnerLine`** signature (`turn` → `call`). The architect's follow-up confirmed all five fixed at `9fe7a1d` and **closed the review loop** (no TD-12); three optional nits (the `callEpoch` field name, the TD-11 durable-record note, one blank line) were folded as `N-1..N-3`.
+
 **Consequence of TD-1 (option (a), corrected):** the plan half leaves the harness unchanged, so **`make verify` and `make test` are green** on this branch. The `Strict: true` flag lands in `/axb-implement` with the 4 stepdefs (FAIL→PASS); `dev` is never red.
 
 ### Artifacts / truth
