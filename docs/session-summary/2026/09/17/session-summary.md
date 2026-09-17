@@ -435,3 +435,97 @@ A sixth session on the same calendar day: continued round 039 from plan package 
 
 ### Issue tracker (closeout Step 8)
 Reconciled: **[#80](https://github.com/gosharplite/tellme/issues/80) CLOSED (completed)** — the terminal-safe line policy for the sibling `[Tool …]` formatters, delivered by round 039 (PR [#81](https://github.com/gosharplite/tellme/pull/81) merged `d48ebbc`); **[#69](https://github.com/gosharplite/tellme/issues/69) open** — body carries the round-039 items; [#60](https://github.com/gosharplite/tellme/issues/60) open (dogfooding); [#13](https://github.com/gosharplite/tellme/issues/13) open (coverage tooling). No issues superseded this closeout.
+
+---
+
+## 14. Session 7 (2026-09-17) — round 040 `040-spinner-liveness-and-turn-timer`: two folded spinner workstreams (#82 + #83) → **plan + truth half delivered → PR #84 open** (operator review gate; `/axb-tasks` held); STATUS revised
+
+A seventh session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 039 delivered/frozen), answered an operator question (*is the missing spinner during a `[Tool Output]` block a bug?* — **no**, it is the round-034 FR-012/G8 + ADR 0005 D7 whole-block pause), **filed issue [#82](https://github.com/gosharplite/tellme/issues/82)** (the candidate) and **issue [#83](https://github.com/gosharplite/tellme/issues/83)** (a second requested spinner change), then opened round **040** to fold both, ran the **plan + truth half** through `/axb-dsl-refine`, and **stopped before `/axb-tasks`** at the operator's instruction (review the whole plan/truth first). Opened **PR [#84](https://github.com/gosharplite/tellme/pull/84)** (plan + truth half) and revised `STATUS.md`.
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`; Linux host).
+**Branch**: `040-spinner-liveness-and-turn-timer` (off `dev`) — **open**; PR [#84](https://github.com/gosharplite/tellme/pull/84) → `dev`, **awaiting human merge**.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 039 delivered/frozen; active branch `dev`) |
+| Operator Q&A | confirmed the missing spinner during streaming is **by design** (FR-012/G8; ADR 0005 D7); filed **#82** (candidate) |
+| Round-040 theme | two folded spinner workstreams: **WS-A #82** = liveness while a `[Tool Output]` block streams (idle-gap resume); **WS-B #83** = a dual elapsed timer `({total}s {call}s)` (per-AI-endpoint-call reset) |
+| Clarify | **QB1 locked** (per AI-endpoint call); **QA1–QA3 + QB2/QB3 proposed** (idle-gap mechanism/threshold/scope; format/phases) — pending the operator's review gate |
+| Pipeline | specify ✅ · spec-by-example ✅ · technical-research ✅ (D1–D9 + **ADR 0009**) · system-analysis ✅ (1 CLI end → `/axb-dsl-refine`; api/data NOOP; ui skipped) · dsl-refine ✅ · **tasks ⏸ held** · implement ⏸ |
+| Delivery | branch `040-…` (8 commits, pushed); **PR [#84](https://github.com/gosharplite/tellme/pull/84) open — human-only merge** |
+| Docs | `STATUS.md` revised (round-040 live state; round-039 detail relocated to `docs/archives/status/2026-09-17.md` per Rule 12); this §14 |
+
+### Work done
+1. **Bootstrap (Steps 1–8)** — read the pillars, the reference trees (`tell-me-go` 8-item bootstrap, `aixbdd-tmg` domain model + README), `list_skills`, the in-group peers (self `butler`; `architect`/`coder`/`griller`/`pm`/`rd`), `STATUS.md`, and the last-5-days summaries (09/13–09/17).
+2. **Q&A → issues** — traced the spinner/`[Tool Output]` interaction in the code (`internal/cli/cli.go` sink wiring, `internal/ui/spinner.go`, `internal/infrastructure/tools/command.go` `runCaptured`, the composite observer) and the truth (the `presenting-the-progress-spinner` "paused while streaming" Rule; round-034 FR-012/G8; ADR 0005 D7) → confirmed **by design**; **filed #82** and, on the operator's second request, **filed #83** (dual timer).
+3. **Plan + truth half** — `/axb-specify` → `/axb-spec-by-example` → `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine`; committed per phase. **Stopped before `/axb-tasks`** at the operator's instruction.
+4. **The truth changes** — `techstack.md` (Turn progress spinner row MODIFY); `presenting-the-progress-spinner.feature` (the `Rule: The spinner is paused while a command's output streams` **replaced** by `Rule: A quiet command's output still shows the progress spinner`; **new** `Rule: The spinner shows the total time and the current model call's time`; the two tool-phase Examples gain the dual-timer Then); `chat/dsl.md` (the streaming row modified **in place** → `the run shows the progress spinner again while the command stays quiet`; `## Given (round 040)` + `## Then (round 040)` + a round-040 note).
+5. **Governance** — **ADR 0009** (`docs/decisions/0009-spinner-dual-timer-and-streaming-liveness.md` + index row) records the dual-timer policy + the idle-gap liveness; it **supersedes ADR 0005 D7 only** (D1–D6/D8 stand; 0005's body is **not** edited, its overall `Status` stays `Accepted`) and **amends round-019 D4**.
+6. **PR + STATUS** — pushed the branch and opened **PR [#84](https://github.com/gosharplite/tellme/pull/84)** (plan + truth half); revised `STATUS.md` to the round-040 in-flight state (Rule-12 split: round-039 detail relocated into `docs/archives/status/2026-09-17.md`).
+
+### Decisions locked / proposed (round 040)
+| # | Decision |
+| --- | --- |
+| **QB1 (locked)** | The new **turn** figure resets **per AI-endpoint call** (round-027 turn semantics); rejected per-phase / per-tool. |
+| QA1 (proposed) | WS-A mechanism = **idle-gap resume** (rejected: output-progress marker; per-line yield). |
+| QA2 (proposed) | The idle threshold is a **small fixed value** (assumed **3 s**) with a **hermetic env seam** (E2E forces it). |
+| QA3 (proposed) | Scope = only a streaming `[Tool Output]` block; model-wait, block literals, non-TTY/`-r`, `-i` unchanged. |
+| QB2–QB4 (review-confirmed) | Both figures appear in the model-wait **and** tool-execution labels; format `({total}s {call}s)`, both **unlabelled** (QB4 — a recorded divergence). |
+| D8 (ADR lifecycle) | Partial supersession: ADR 0009 names the superseded decision (**0005 D7**) rather than flipping 0005's whole `Status`. |
+
+### Commits (branch `040-spinner-liveness-and-turn-timer`, then PR #84)
+| Commit | Note |
+| --- | --- |
+| `80743d1` | `docs(040)`: plan package + spec |
+| `a8fc6ee` | `docs(040)`: acceptance Gherkin |
+| `d2443e9` | `docs(040)`: technical research + techstack truth + ADR 0009 |
+| `a8cd6c1` | `docs(040)`: system-analysis plan |
+| `4834e03` | `docs(040)`: CLI interface truth (quiet-command liveness + dual elapsed timer) |
+| `8026441` | `docs(040)`: STATUS — round 040 in flight; relocate the round-039 detail (Rule 12) |
+| `7f1d2ab` | `docs(040)`: daily log — session 7 |
+| `b8a5f16` | `docs(040)`: fold PR #84 review — TD-1 (E2E `Strict: true`), TD-2..TD-8, RF-1..RF-5, QB3/QB4 |
+
+### PR #84 review fold (architect — **APPROVE WITH REQUIRED FOLDS**)
+
+Folded in-round (`b8a5f16`): **TD-1** `tests/e2e/suite_test.go` gains `Strict: true` (godog's default is `false`, so undefined steps were reported-and-ignored; the suite then **failed** on the round's 4 not-yet-implemented sentences — verified locally: 5 undefined scenarios fail, 56s). *(Later revised: TD-1's `Strict` was relocated to the implement half — see the fold-review notes below — so this branch stays green.)* · **TD-2** the truth states **mutual exclusion + join** (not "single-writer") + the lock order + the anti-vacuity unit stress · **TD-3** the block critical section no longer spans a frame write (admit under the mutex; the redraw goroutine draws the first frame) · **TD-4** the watcher poll period is pinned (~200 ms) · **TD-5** the idle seam is named/pinned (`TELL_ME_FORCE_TOOLOUTPUT_IDLE_MS`, ms, `0` = admit immediately) and the Given is renamed to the world state `the command stays quiet for longer than the spinner's idle gap` · **TD-6** the second figure is renamed **"the current model call's elapsed"** (turn vs model-call terms; truth + acceptance + ADR) · **TD-7** the spinner feature header refreshed · **TD-8** the STATUS head recipe (`origin/main origin/dev`) + the commit counts · **RF-1** the acceptance-rule→carrier mapping + the task-list directives (incl. the dead-stepdef `[BDD-REMOVE]` and its unused helpers) · **RF-2** ADR 0005's **index** row annotated (no body edit) · **RF-3** the no-label resume is a defined no-op · **RF-4** the second-epoch field stays internal (no sixth ctor seam; earlier draft named it `turnEpoch`, final name **`callEpoch`** per the N-1 nit) · **RF-5** #69's body updated · **QB3/QB4** the two-figure 3+-digit row-aware-clear re-witness + "unlabelled by design" recorded.
+
+
+
+### PR #84 fold reviews (architect — **FOLDS ACCEPTED**; TD-9 + TD-10 + the TD-1 correction; then **TD-11**)
+
+The architect re-verified every fold against the fold head and raised two residuals + one correction, all folded:
+
+- **TD-9 (vocabulary sweep)** — the TD-6/TD-2 rename had stopped at the truth layer; swept the pre-fold vocabulary from `plan.md`, `truth-delta.md`, `checklists/requirements.md`, `STATUS.md`, and this summary (`single-writer` → mutual-exclusion+join; "current turn's" → "current model call's"; D1–D8 → D1–D9; `timing-the-current-turn.feature` → `timing-the-current-model-call.feature`; "two divergences" → three).
+- **TD-10 (mechanism + timing)** — the "redraw goroutine draws the first frame" deferral is scoped to the **in-block resume** via a named **resume-only admission path** (`admitResume()`; `activate()` keeps its synchronous first frame so rounds 019/025/034/035 stay green), the resumed frame renders **immediately on start** (not on the first tick), and the E2E **timing budget** is pinned (the child's quiet stretch exceeds `N + 2·P` with margin — e.g. a 2 s child `sleep` at `N=50 ms`) in SC-002 + the `dsl.md` Given row; the `techstack.md` round-019 sentence gained the round-040 carve-out.
+- **TD-1 correction (taken as option (a))** — `make test` is `go test ./...`, which **includes** `tests/e2e`, so landing `Strict: true` on the plan half would make `dev` red on every run. The flag is therefore **not** landed here: it is pinned as an `/axb-implement` task directive and lands with the 4 stepdefs (witnessed by the FAIL-then-PASS transition). This branch's `make verify` **and** `make test` are green.
+- **TD-11 (fold review #2)** — moving TD-1 to the implement half invalidated **five** statements still describing the old disposition; all five were swept: the **ADR 0009** Consequences bullet (fixed before the ADR becomes immutable at merge), **`STATUS.md:63`** ("no harness change"), the **daily log** (the self-contradicting paragraph replaced), **`spec.md` SC-004** (scoped to delivery), and the **`FormatSpinnerLine`** signature (`turn` → `call`). The architect's follow-up confirmed all five fixed at `9fe7a1d` and **closed the review loop** (no TD-12); three optional nits (the `callEpoch` field name, the TD-11 durable-record note, one blank line) were folded as `N-1..N-3`.
+
+**Consequence of TD-1 (option (a), corrected):** the plan half leaves the harness unchanged, so **`make verify` and `make test` are green** on this branch. The `Strict: true` flag lands in `/axb-implement` with the 4 stepdefs (FAIL→PASS); `dev` is never red.
+
+### Artifacts / truth
+- Plan package: `spec.md` · `checklists/requirements.md` · `research.md` (D1–D9) · `plan.md` · `features/acceptance/keeping-the-progress-visible.feature` · `features/acceptance/timing-the-current-model-call.feature` · `truth-delta.md`.
+- Truth: `techstack.md` MODIFY (**Turn progress spinner** row) · `presenting-the-progress-spinner.feature` MODIFY (1 Rule replaced + 1 Rule added + 2 Examples amended) · `chat/dsl.md` MODIFY (1 row in place + 2 new sections + note); `/axb-api-plan` + `/axb-data-plan` NOOP.
+- Governance: **ADR 0009** ADD + the decisions README index row.
+
+### Verification (2026-09-17, docs half)
+- Gherkin/DSL topology audit **PASSED** — 44 features · 6 modules · 16 root + **327** module rows · **1674** Gherkin steps.
+- Docs/plan only → no `make verify` / E2E in this half; `STATUS.md` relative links resolve; working tree clean.
+
+### Open items (non-blocking)
+- **Round-040 in-flight items** — (a) **QA1–QA3 + QB2/QB3 pending the operator's review gate** (QB1 locked); (b) **WS-A interleaving safety** is the highest-risk area (a unit stress + the `deactivate()`-goroutine-joined / block-mutex serialization must pin no-interleave & no-residue); (c) the idle threshold is a fixed small value with a hermetic seam; (d) the longer two-figure line's extra soft-wrap risk (bounded by the round-025 rune-based row count).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; rounds 018–039 forward items (per-round in the archives).
+
+### Next steps
+1. Operator/architect **review of PR [#84](https://github.com/gosharplite/tellme/pull/84)** (the plan + truth half) and the **QA/QB** gate items.
+2. On approval: **`/axb-tasks` → `/axb-implement`** on `040-spinner-liveness-and-turn-timer`; the implementation PR follows.
+3. Human merges; then propagate `040 → dev → main` and close [#82](https://github.com/gosharplite/tellme/issues/82) + [#83](https://github.com/gosharplite/tellme/issues/83) at closeout.
+4. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `040-spinner-liveness-and-turn-timer` until merged).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (session 7 — in-flight, not a closeout)
+- **[#82](https://github.com/gosharplite/tellme/issues/82) OPEN (new this session)** — WS-A (streaming liveness); closes only on round-040 delivery.
+- **[#83](https://github.com/gosharplite/tellme/issues/83) OPEN (new this session)** — WS-B (dual elapsed timer); closes only on round-040 delivery.
+- [#69](https://github.com/gosharplite/tellme/issues/69) open (single-ownership refactor) · [#60](https://github.com/gosharplite/tellme/issues/60) open (dogfooding) · [#13](https://github.com/gosharplite/tellme/issues/13) open (coverage tooling). No issues closed/superseded this session (nothing landed).
