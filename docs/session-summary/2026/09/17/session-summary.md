@@ -529,3 +529,42 @@ The architect re-verified every fold against the fold head and raised two residu
 - **[#82](https://github.com/gosharplite/tellme/issues/82) OPEN (new this session)** — WS-A (streaming liveness); closes only on round-040 delivery.
 - **[#83](https://github.com/gosharplite/tellme/issues/83) OPEN (new this session)** — WS-B (dual elapsed timer); closes only on round-040 delivery.
 - [#69](https://github.com/gosharplite/tellme/issues/69) open (single-ownership refactor) · [#60](https://github.com/gosharplite/tellme/issues/60) open (dogfooding) · [#13](https://github.com/gosharplite/tellme/issues/13) open (coverage tooling). No issues closed/superseded this session (nothing landed).
+
+---
+
+## 15. Session 8 (2026-09-17) — round 040 `/axb-tasks`: `tasks.md` (T001–T016) written on the implementation branch; PR open for operator review (`/axb-implement` held)
+
+An eighth session on the same calendar day: after PR [#84](https://github.com/gosharplite/tellme/pull/84) (the plan + truth half) was **merged** into `dev` (`146210d`, by `thptcnec`), the operator approved running **`/axb-tasks` only** (stop before `/axb-implement`). Created the **implementation branch** off `dev` and produced `tasks.md` per the skill SOP; opened a PR for review.
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`; Linux host).
+**Branch**: `040-implement-spinner-liveness-and-turn-timer` (off `dev` @ `704599c`) — **open**; `/axb-implement` **held** for operator review.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Plan half | MERGED (`#84` → `dev` `146210d`) |
+| `/axb-tasks` | ✅ `tasks.md` written — **Foundational T001–T002** · **Phase 3 T003–T008** · **Phase 4 T009–T013** · **T014–T016** regression/falsifiability/close; Pre-Delivery Orphan Sweep **0** |
+| Phase 1 inventory | 4 sentences / 7 occurrences, each with exactly one `DSLRow` (no hand-back to `/axb-dsl-refine`) |
+| Setup | **omitted** (stdlib-only) |
+| Branch | `040-implement-spinner-liveness-and-turn-timer` (off `dev`); PR open |
+| `/axb-implement` | ⏸ **NOT run** (operator gate) |
+
+### The task list (T001–T016)
+- **Foundational** — T001 the two E2E stepdef landing skeletons (Zero Shared Edits); T002 the unit-test landing files + the `internal/ui` coordinator seam skeleton.
+- **Phase 3 (Red first)** — T003 `[BDD-REMOVE]` the dead stepdef `step_r034_t016_…go` + its unused helpers; T004 `[BDD-RED]` the idle-gap Given + the quiet-command provider Given + the liveness Then (real idle gap, child `sleep`, the `N + 2·P` budget); T005 `[BDD-RED]` the dual-timer Then (×4); T006 `[UNIT]` the dual-timer arithmetic (injected clock); T007 `[UNIT]` the race + anti-vacuity + no-residue stress + the 3+-digit row-aware clear (SC-006); T008 the review gate **+ `Strict: true` in the same change** (TD-1).
+- **Phase 4** — T009 `[BDD-GREEN]` WS-A (the `internal/ui` coordinator extraction; `admitResume()` immediate-on-start; mutual-exclusion+join; the idle seam); T010 `[BDD-REFACTOR]`; T011 `[BDD-GREEN]` WS-B (`FormatSpinnerLine(… total, call, …)` + `callEpoch`); T012 `[BDD-REFACTOR]`; T013 `[CODE-REMOVE]` the retired whole-block pause.
+- **Regression** — T014 `[REGRESSION]`; T015 falsifiability witnesses (a/b/c); T016 STATUS + PR + close #82/#83.
+
+### Decisions
+| # | Decision |
+| --- | --- |
+| — | `/axb-tasks` authored on the **implementation** branch off `dev` (the plan branch is already merged); `/axb-implement` held for the operator. |
+| — | Setup omitted; the harness `Strict: true` lands **with** the stepdefs (T008), per TD-1 option (a). |
+
+### Next steps
+1. Operator review of the `/axb-tasks` PR (`tasks.md` T001–T016).
+2. On approval: `/axb-implement` (the tasks above; the implementation PR follows).
+3. Human merges; then propagate `dev → main`; close **#82** + **#83** at closeout.
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).
