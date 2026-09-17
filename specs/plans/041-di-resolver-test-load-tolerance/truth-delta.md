@@ -15,28 +15,30 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | | | |
+| MODIFY | `specs/truth/techstack.md` — **Host test harness** row (Testing & Verification) | Extends the determinism clause: in addition to "no `time.Sleep` for synchronization (ADR-036 parity)", it now records **"no test paced on a production fast-fail constant (ADR 0010)"** — a non-bound test takes a generous **test-local** deadline; a wall-clock **ceiling** clears a host-speed margin while staying below the unbounded-case measurement; a bound-asserting test also asserts **non-vacuity** (`elapsed >= bound`); a PATH-shadowing shim gets a **dominant** `PATH`. | Round 041 FR-006/FR-007; `research.md` D1–D3/D7 — the recorded project rule (the durable home for the round-035/040 flake class). |
+| MODIFY | `specs/truth/techstack.md` — **Pure-helper unit tests** row (Testing & Verification) | Appends `plus (round 041)`: the **bounded `gh`-token-resolver harness** in `internal/infrastructure/di` — the **dominant-PATH** `gh` shim (shadow the target, resolve its children; retires the round-032 N1 in-shim PATH restoration), the **generous test-local bound** on the trimming test (decoupled from the production fast-fail constant), and `TestNewGhTokenResolver_Bounded` as the **sole** carrier of the resolver's boundedness (200 ms bound + `elapsed >= bound` non-vacuity pin + 2 s ceiling below the ≈3 s unbounded case). | Round 041 FR-001–FR-004; `research.md` D1–D4/D7 — the harness's load tolerance. |
+| ADD | `docs/decisions/0010-test-deadline-decoupling.md` (+ the `docs/decisions/README.md` index row) | Records the test-deadline rule (D1 decouple non-bound tests from production constants; D2 ceilings clear a host-speed margin with falsifiability preserved; D3 a bound-under-test asserts non-vacuity; D4 dominant-PATH shims), with the measured ≈14–17× host-speed factor as evidence. | Round 041 Q5/FR-006; `research.md` D7 — a durable, citable home (the round-035 session lesson), not a frozen plan package. |
 
 ## /axb-api-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | | | |
+| NOOP (checked) | `specs/truth/contracts/**` | Inspected: tellme has a single CLI end and **no** OpenAPI/HTTP surface. This round changes a unit-test fixture + records a test rule. | `contract-authoritative` holds vacuously; `spec.md` FR-008; `research.md` D8. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | | | |
+| NOOP (checked) | `specs/truth/data/data-model.dbml` — inspected `history_entry`/`history_step`/`usage_record`/`prompt_log_entry` and the `~/.tellme/*.jsonl` record shapes | No persisted-state change: the round touches a Go unit-test fixture and documentation only. | `spec.md` FR-008/FR-009; `research.md` D8. |
 
 ## /axb-dsl-refine
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | | | |
+| NOOP (checked) | `specs/truth/features/cli/**` and `specs/truth/features/cli/chat/dsl.md` | No user-facing CLI interface behaviour changes — the carrier is a Go unit test plus the recorded rule; no feature Rule, Example, step, or `DSLRow` is added or changed (the Gherkin/DSL topology audit is unchanged). | `spec.md` A6; `research.md` D8 — the round-020/031 non-BDD-tooling precedent. |
 
 ## Governance (ADR)
 
 | Action | Artifact | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | | | |
+| ADD | `docs/decisions/0010-test-deadline-decoupling.md` (+ the `docs/decisions/README.md` index row) | Records the four test-deadline rules (decouple · ceiling margin · non-vacuity · dominant PATH) with the measured host-speed evidence; no existing ADR is superseded. | A project-level convention that other artifacts/rounds must be able to cite needs a durable home (`adr-index-consistent`); round 041 Q5. |
