@@ -66,13 +66,14 @@
     - `docs/decisions/0010-test-deadline-decoupling.md`（見證 doctrine）；`docs/decisions/0011-layer-discipline-gate.md` -> D5（child-env 紀律）
     - `Makefile`（現況 recipe）
   - 做（**不改任何檔案**，只觀察並記錄；RED-first 證明非空轉）：
-    - 以暫存檔建立 4 個 hostile ambient 環境，各對一個**便宜**的 toolchain target 取值（`vet`；`GOENV` 案另加 `verify-architecture` 對照）：
+    - 以暫存檔建立 **4 個 RED 見證** 的 hostile ambient 環境，各對一個**便宜**的 toolchain target 取值（`vet`；`GOENV` 案另加 `verify-architecture` 對照）：
       1. `printf 'GOFLAGS=-mod=vendor\n' > /tmp/goenv043; GOENV=/tmp/goenv043 make vet`（及 `… make verify-architecture`）
-      2. `GOFLAGS=-trimpath make vet`
-      3. `GO111MODULE=off make vet`
-      4. `printf 'go 1.26\n' > /tmp/gowork043; GOWORK=/tmp/gowork043 make vet`
-    - **期望 RED**：至少 `GOENV=<file -mod=vendor>` 案必須非零失敗並出現 *inconsistent vendoring*（即 #96 的 headline 重現）；其餘記錄其實際結果（可能綠——如 `-trimpath` 在不影響 build graph 時）。
-    - 把 4 案的原始輸出與 exit code 記入本任務（供 Phase 4 對照 `green after`）。
+      2. `GO111MODULE=off make vet`
+      3. `printf 'go 1.26\n' > /tmp/gowork043; GOWORK=/tmp/gowork043 make vet`
+      4. `GOTOOLCHAIN=go1.99.9 make vet`
+    - 另記錄 **green-before** 輸入（`GOFLAGS=-trimpath`）—— 它**不**是真見證（B-1），其非空轉性由 T005 的 `make`-level neutralisation assertion 承擔。
+    - **期望 RED**：四案皆非零失敗（`GOENV` → *inconsistent vendoring*；`GO111MODULE=off` → 解析失敗；`GOWORK` → *does not contain modules listed in go.work*；`GOTOOLCHAIN` → *toolchain not available*）。
+    - 把四案（及 `-trimpath`）的原始輸出與 exit code 記入本任務（供 Phase 4 對照 `green after`）。
   - 不做：不為讓它綠而改樹；不建立任何 committed 見證檔（本輪**不新增 artifact** —— `plan.md`）。
   - **Red-first 期望**：`GOENV` 案 **FAIL**（exit ≠ 0）；此為 T002 的對照基線。
 
@@ -112,7 +113,7 @@
 - [X] T005 [REGRESSION] 可偽性見證：4 個 red→green hostile-env（`GOENV`／`GO111MODULE`／`GOWORK`／`GOTOOLCHAIN`）+ neutralisation assertions；還原 block ⇒ 再 RED
   - Read: `research.md` -> D4, D7；`docs/decisions/0010-test-deadline-decoupling.md`；`spec.md` -> SC-001
   - 做：
-    - (a) 對 T001 的 3 案 + `GOTOOLCHAIN=go1.99.9` 逐一在**已落 block** 的樹上重跑 → 全部 **exit 0**（`GOENV=<file -mod=vendor>` 由 *inconsistent vendoring* → green；`GOTOOLCHAIN` 由 *toolchain not available* → green）；另跑 `GOENV=/tmp/goenv043 make verify-architecture` 與 `GOENV=/tmp/goenv043 make verify`（aggregate，全員綠）→ green；並以 `make`-level probe 斷言 `GOFLAGS=-trimpath` 與長尾名**不在 recipe env**（neutralisation assertion，非見證）。
+    - (a) 對 T001 的 **4 案** 逐一在**已落 block** 的樹上重跑 → 全部 **exit 0**（`GOENV=<file -mod=vendor>` 由 *inconsistent vendoring* → green；`GOTOOLCHAIN` 由 *toolchain not available* → green）；另跑 `GOENV=/tmp/goenv043 make verify-architecture` 與 `GOENV=/tmp/goenv043 make verify`（aggregate，全員綠）→ green；並以 `make`-level probe 斷言 neutralise 集合的名字**不在 recipe env**（neutralisation assertion，非見證）。
     - (b) **還原**（暫時移除 block）→ `GOENV` 案**再度 FAIL**；還原回 block → green（證明非空轉、且見證綁定於 block 而非環境偶然）。
     - (c) **coverage 檢查**（非 equality drift witness，B-3）：以 `grep` 斷言 `Makefile` block 的 neutralise 集合（`GOENV`/`GOWORK`/`GOFLAGS`/`GO111MODULE`/`GOEXPERIMENT`/`GOTOOLCHAIN`/`GOFIPS140`/`GODEBUG`/`GOOS`/`GOARCH`/micro-arch family）**覆蓋** `tools/arch` `droppedBuildEnv` 的集合，**除去** `CGO_ENABLED`（機制差異，已記錄）——記錄為人工／scripted 檢查，**不** commit 見證檔。
   - 不做：不放寬任何斷言以「讓它過」；見證後必須還原到 HEAD（僅保留 T002 block）。
@@ -186,7 +187,37 @@
 - **T003 kept** (not folded) — the one-line cross-reference comment is landed so both ownership sites are greppable. *(Post-fold: the comment now records the **coverage-not-equality** invariant and the ADR 0012 **R1** scope — see the fold note below.)*
 - **`make test` under the hermetic env** — **exit 0**, **22 packages `ok`, 0 `FAIL`** (the E2E harness builds the binary as a child of `make` → a **nested `go build`**, the case A1 was chosen to cover; this is the strongest evidence that the block does not disturb the suite).
 
-### Fold applied after the operator's PR #97 review (supersedes the notes below)
+### Neutralisation assertion (ADR 0012 D7) — `make`-level probe, non-vacuous
+
+Green-before inputs (`GOFLAGS=-trimpath`, the long-tail names) are **not** witnesses (B-1); the property they stand for is asserted directly against the **recipe environment**:
+
+```
+$ GOFLAGS=-trimpath GO111MODULE=off GOOS=plan9 GOTOOLCHAIN=go1.99.9 \
+    make --eval='.PHONY: __probe' \
+         --eval='__probe: ; @env | grep -E "^(GOFLAGS|GO111MODULE|GOEXPERIMENT|GOTOOLCHAIN|GOFIPS140|GODEBUG|GOOS|GOARCH|GOARM|GOARM64|GOAMD64|GO386|GOMIPS|GOMIPS64|GOPPC64|GORISCV64|GOWASM)=" || echo "NEUTRALISED: none present"' __probe
+NEUTRALISED: none present        # WITH the block
+```
+
+**Non-vacuity** — the same probe against a **block-stripped** `Makefile` (`make -f /tmp/Makefile.stripped …`) reports the hostile names **present** (`GOOS=plan9`, `GOTOOLCHAIN=go1.99.9`, `GOFLAGS=-trimpath`, `GO111MODULE=off`). The two neutral **exports** are present in the recipe env: `GOENV=off GOWORK=off`.
+
+### Coverage check (ADR 0012 D6) — coverage, not set-equality
+
+The `Makefile` neutralise set **covers** `tools/arch`'s `droppedBuildEnv` set, **except `CGO_ENABLED`** — the documented mechanism difference (the block *preserves from the caller*; the gate's `childEnv` *re-sets* it per target). Verified by scripted `grep`; recorded here, not committed as a witness file.
+
+### Widened-set validation (fold `d3c437f`, read-only)
+
+| Ambient env (hostile) | `make vet` |
+| --- | --- |
+| `GOTOOLCHAIN=go1.99.9` | exit 0 |
+| `GOAMD64=v4` | exit 0 |
+| `GODEBUG=inittrace=1` | exit 0 |
+| `GOFIPS140=latest` | exit 0 |
+| `GOENV=<file: GOFLAGS=-mod=vendor>` | exit 0 |
+| `GOFLAGS=-trimpath` · `GO111MODULE=off` · `GOWORK=<stray>` | exit 0 |
+
+**Escape hatch holds:** an explicit per-invocation assignment still wins — `make GOENV=/tmp/goenv043 vet` ⇒ **exit 2** (*inconsistent vendoring*).
+
+
 
 The operator's review of PR [#97](https://github.com/gosharplite/tellme/pull/97) (**B-1…B-4, TD-1, R-1…R-3**, plan branch `d014da0`) replaced the **incident-list** set with a **criterion-derived** one (ADR 0012 **D2**): *neutralise the ambient **build context** (what / which toolchain builds), preserve the **plumbing***. Consequences for this task file:
 
