@@ -43,15 +43,27 @@ func FormatToolEngine(t time.Time, step, total int) string {
 	return fmt.Sprintf("[%s] [Tool Engine] Step %d/%d", formatClock(t), step, total)
 }
 
-// FormatToolReason renders one reason line (FR-002/FR-005, round 036):
+// FormatToolReason renders one reason line (FR-002/FR-005, round 036; round 039):
 // `[HH:MM:SS] [Tool Reason] <reason>`. The reason is the ONLY model-authored
-// free-text field in the tool log, so it is sanitized + capped like its siblings
-// (ADR 0006): folded (`\n`/`\r` → space) and trimmed to a single line, then
-// rune-capped at reasonValueCap (one U+2026 inside the cap). A blank (empty /
-// whitespace-only) reason is suppressed by the CALLERS (not here), so this stays
-// a pure formatter and never returns an empty-string sentinel.
+// free-text field in the tool log, so it is sanitized + capped like its siblings:
+// folded (`\n`/`\r` → space), trimmed to a single line, **sanitized** (every
+// terminal control sequence removed — round 039, issue #80, ADR 0008), then
+// rune-capped at reasonValueCap (one U+2026 inside the cap), so the cap bounds the
+// VISIBLE output. A blank (empty / whitespace-only) reason is suppressed by the
+// CALLERS (not here), so this stays a pure formatter and never returns an
+// empty-string sentinel.
 func FormatToolReason(t time.Time, reason string) string {
-	return fmt.Sprintf("[%s] [Tool Reason] %s", formatClock(t), capRunes(oneLine(strings.TrimSpace(reason)), reasonValueCap))
+	return fmt.Sprintf("[%s] [Tool Reason] %s", formatClock(t), capRunes(sanitizeControl(oneLine(strings.TrimSpace(reason))), reasonValueCap))
+}
+
+// ToolReasonRenders reports whether a reason value renders a non-empty
+// `[Tool Reason]` line: it applies the SAME fold+trim+sanitize transform as
+// FormatToolReason and tests the result. It lets a caller suppress a reason that
+// would render as a dangling prefix row — an empty / whitespace-only reason
+// (round 036) or an escape-only reason (round 039, issue #80, ADR 0008) — without
+// the pure formatter returning an empty-string sentinel.
+func ToolReasonRenders(reason string) bool {
+	return strings.TrimSpace(sanitizeControl(oneLine(strings.TrimSpace(reason)))) != ""
 }
 
 // FormatToolAction renders the action line — the tool name plus its sorted,
@@ -63,14 +75,20 @@ func FormatToolAction(t time.Time, tool, arguments string) string {
 }
 
 // FormatToolResult renders the result line — the tool name plus the folded,
-// rune-capped result snippet (FR-004): `[HH:MM:SS] [Tool Result] <tool>: <snippet>`.
+// sanitized, rune-capped result snippet (FR-004; round 039): the result text is
+// sanitized (control sequences removed — ADR 0008) before it is rune-capped, so a
+// `read_files` of an escape-bearing file cannot tint the terminal via its snippet:
+// `[HH:MM:SS] [Tool Result] <tool>: <snippet>`.
 func FormatToolResult(t time.Time, tool, text string) string {
-	return fmt.Sprintf("[%s] [Tool Result] %s: %s", formatClock(t), tool, capRunes(oneLine(text), resultValueCap))
+	return fmt.Sprintf("[%s] [Tool Result] %s: %s", formatClock(t), tool, capRunes(sanitizeControl(oneLine(text)), resultValueCap))
 }
 
 // formatToolArgs renders the sorted, reason-excluded, rune-capped `k: v, k: v`
-// argument list (FR-003 / ADR 0005 D6). Unparseable / non-object / empty (after
-// removing `reason`) arguments render "".
+// argument list (FR-003 / ADR 0005 D6). Round 039 (issue #80, ADR 0008): both the
+// argument **keys** and the rendered **values** are sanitized (control sequences
+// removed) — a value is folded → sanitized → rune-capped so the cap bounds the
+// visible output. Unparseable / non-object / empty (after removing `reason`)
+// arguments render "".
 func formatToolArgs(arguments string) string {
 	dec := json.NewDecoder(strings.NewReader(arguments))
 	dec.UseNumber()
@@ -89,7 +107,7 @@ func formatToolArgs(arguments string) string {
 	sort.Strings(keys)
 	parts := make([]string, 0, len(keys))
 	for _, k := range keys {
-		parts = append(parts, k+": "+capRunes(oneLine(renderArgValue(raw[k])), argValueCap))
+		parts = append(parts, sanitizeControl(k)+": "+capRunes(sanitizeControl(oneLine(renderArgValue(raw[k]))), argValueCap))
 	}
 	return strings.Join(parts, ", ")
 }

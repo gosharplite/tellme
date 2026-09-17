@@ -162,12 +162,22 @@ Feature: Watching the tool loop work
       Then the action of the call without a reason begins after a blank line
       And tellme exits successfully
 
-    Example: The trailing reason summary and the closing status each follow a blank line
+    Example: The round's grouped reasons follow a blank line
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" with the reason "checking the launch code" and then answers with "The launch code is ORANGE"
       When the operator starts tellme with the prompt "Read notes.txt and summarise it."
       Then the trailing reason summary follows a blank line
-      And the turn's closing status follows a blank line
+      And tellme exits successfully
+
+    Example: The turn's closing status follows a blank line
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "done" and reports the token usage:
+        | prompt | cached | completion | thinking |
+        | 100000 | 60000  | 3000       | 2000     |
+      When the operator starts tellme with the prompt "Read notes.txt."
+      Then the turn's closing status follows a blank line
       And tellme exits successfully

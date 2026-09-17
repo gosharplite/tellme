@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	agentport "github.com/gosharplite/tellme/internal/domain/agent"
@@ -264,12 +263,14 @@ func (a *AgentLoop) notifyCallEnd(callIndex int, usage llm.Usage, roundReasons [
 func reasonsOf(calls []llm.ToolCall) []string {
 	var out []string
 	for _, tc := range calls {
-		// Round 036 (issue #74): a blank reason contributes no grouped tail line
-		// either. The guard tests the SANITIZED value but APPENDS THE RAW value —
-		// the pure formatter trims later, so the tail always shows the trimmed
-		// reason (round-036 review N-4). This is the production filter the tail
-		// relies on; the tail's own guard is defensive only (see call_renderer.go).
-		if r := toolReason(tc.Arguments); strings.TrimSpace(r) != "" {
+		// Round 036 (issue #74) + round 039 (issue #80): a reason that renders no
+		// line (empty / whitespace-only / escape-only after the formatter's
+		// fold+trim+sanitize) contributes no grouped tail line either. The guard
+		// tests the RENDERED value but APPENDS THE RAW value — the pure formatter
+		// sanitizes/trims later, so the tail always shows the formatted reason
+		// (round-036 review N-4). This is the production filter the tail relies
+		// on; the tail's own guard is defensive only (see call_renderer.go).
+		if r := toolReason(tc.Arguments); ui.ToolReasonRenders(r) {
 			out = append(out, r)
 		}
 	}
@@ -289,14 +290,18 @@ func (a *AgentLoop) logEngine(step, total int) {
 }
 
 // logAction emits the call's `[Tool Reason]` (when present) then its
-// `[Tool Action]` line at call begin.
+// `[Tool Action]` line at call begin. Round 039: a leading BLANK line separates
+// this call's begin block from the preceding output — per call, so a k-call round
+// emits k blanks; it precedes the block's FIRST line (the reason line when the
+// call states a renderable reason, else the action line).
 func (a *AgentLoop) logAction(tc llm.ToolCall) {
 	a.withToolLog(func() {
-		// Round 036 (issue #74): a blank reason (empty OR whitespace-only after
-		// folding+trimming) emits NO reason line — the round-022 B1 intent. The
-		// guard checks the SANITIZED value so a `"   "` / `"\n"` reason cannot
-		// render a dangling prefix row.
-		if reason := toolReason(tc.Arguments); strings.TrimSpace(reason) != "" {
+		_, _ = fmt.Fprintln(a.Stderr)
+		// Round 036 (issue #74) + round 039 (issue #80): a blank reason emits NO
+		// reason line. The guard checks the reason AFTER the formatter's
+		// fold+trim+sanitize transform, so a `"   "`, a `"\n"`, or an
+		// escape-only reason cannot render a dangling prefix row.
+		if reason := toolReason(tc.Arguments); ui.ToolReasonRenders(reason) {
 			_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolReason(a.now(), reason))
 		}
 		_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolAction(a.now(), tc.Name, tc.Arguments))

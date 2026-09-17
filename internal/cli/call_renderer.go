@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gosharplite/tellme/internal/agent"
@@ -78,24 +77,35 @@ func (r *callRenderer) OnCallBegin(callIndex int, messages []llm.Message) {
 // answer (G5).
 func (r *callRenderer) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []string, final bool) {
 	emit := func() {
+		// Round 039: the trailing grouped `[Tool Reason]` block is preceded by
+		// exactly ONE blank line and has NO blank between its lines.
+		reasons := make([]string, 0, len(roundReasons))
 		for _, reason := range roundReasons {
-			// Round 036 (issue #74): a blank reason emits NO tail line. This is a
-			// DELIBERATE defence-in-depth guard on the SANITIZED value — the
-			// production filter is upstream in agent.reasonsOf, so roundReasons
-			// never carries a blank here (round-036 review TD-1). It stays (rather
-			// than being dropped) so the tail is safe if that upstream filter ever
-			// moves; its single-ownership consolidation is tracked on
-			// issue #69. The check lives here
-			// (not in the pure formatter) because Fprintln on an empty return would
-			// still print a bare newline.
-			if strings.TrimSpace(reason) == "" {
-				continue
+			// Round 036 (issue #74) + round 039 (issue #80): a reason that renders
+			// no line is skipped. This is a defensive defence-in-depth guard on the
+			// RENDERED value — the production filter is upstream in
+			// agent.reasonsOf, so roundReasons never carries such a value here
+			// (round-036 review TD-1). It stays so the tail is safe if that
+			// upstream filter ever moves; its single-ownership consolidation is
+			// tracked on issue #69. The check lives here (not in the pure
+			// formatter) because Fprintln on an empty return would still print a
+			// bare newline.
+			if ui.ToolReasonRenders(reason) {
+				reasons = append(reasons, reason)
 			}
-			_, _ = fmt.Fprintln(r.env.stderr, ui.FormatToolReason(r.env.now(), reason))
+		}
+		if len(reasons) > 0 {
+			_, _ = fmt.Fprintln(r.env.stderr)
+			for _, reason := range reasons {
+				_, _ = fmt.Fprintln(r.env.stderr, ui.FormatToolReason(r.env.now(), reason))
+			}
 		}
 		if !usage.Reported {
 			return
 		}
+		// Round 039: the post-status group (measured payload + metrics + `Ready`)
+		// is preceded by exactly ONE blank line.
+		_, _ = fmt.Fprintln(r.env.stderr)
 		_, _ = fmt.Fprintln(r.env.stderr, ui.FormatPayloadStatus(r.env.now(), usage.PromptTokens, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, false))
 		r.emitMetrics(usage)
 	}
