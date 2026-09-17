@@ -712,3 +712,24 @@ See the at-a-glance row; the witnesses: (a) freeze the idle-gap resume → the W
 
 ### PM follow-ups
 - Ratify the two PM-owned `spec.md` wording fixes (SC-003 TD-5 shape-only; SC-005 R-14 unit-layer reset witness) — unchanged from session 9.
+
+### Session 10 (cont.) — round 040 PR #86 architect review folded (`c888f0d`)
+
+The `/axb-implement` PR [#86](https://github.com/gosharplite/tellme/pull/86) was architecturally reviewed (head `1d563be`): **APPROVE WITH REQUIRED FOLDS** — 3 required + 5 non-blocking, no architectural blocker (the reviewer independently reproduced the gates and traced the WS-A E2E carrier's non-vacuity).
+
+| Fold | Head | Note |
+| --- | --- | --- |
+| **R-40-1** | `c888f0d` | `AdmitResume` captures `stopCh`/`doneCh` as **locals** and passes them to the goroutine (no field read after `Unlock` — closes the latent mismatched-channel-pair race; `activate()` already did this). |
+| **R-40-2** | `c888f0d` | The two general spinner rows are updated **in place** to the dual `({total}s {call}s)` shape (both stepdefs share the widened `reSpinnerLine`/`reSpinnerElapsed`) + the round-019 note pointer + the two stepdef comments + a `truth-delta.md` MODIFY row (owner `/axb-dsl-refine`). |
+| **R-40-3** | `c888f0d` | `STATUS.md` pre-fold residue swept (the `⏸ held` / "PENDING — next session" clauses) + the dev-ahead figure corrected to the measured **29**. |
+| **N-40-1** | `c888f0d` | `closingSeparatorIndex` bounded to the **first** block — on the next block's **header tail** (an output line carries the `[Tool Output]` marker, so the naive marker bound truncates the span; that trap briefly turned the carrier red and was fixed). |
+| **N-40-2** | `c888f0d` | `newTestCoordinator(w io.Writer, …)`; `newTestCoordinator2` deleted. |
+| **N-40-3** | `c888f0d` | The `coordinator.go` `#69` claim corrected: the **block-scoped** yield only was consolidated (the loop's `withToolLog` + `compositeObserver.yieldIndicatorBeforeTail` remain). |
+| **N-40-4** | `c888f0d` | The `End`-while-write-stalled accepted residual named in `coordinator.go` (not only `tasks.md`). |
+| **N-40-5** | `c888f0d` | A mutex-guarded `spinnerRunning()` accessor replaces the unlocked test reads. |
+
+**Re-verification at `c888f0d`**: `go test -count=1 ./...` green · `go test -race -count=1 ./internal/ui/...` ok · `make verify` OK (cross-compile 4/4 · lint 0 · govulncheck clean) · topology audit PASSED (44 · 6 · 16 + 327 · 1674) · witness (a) re-confirmed non-vacuous under the new bound.
+
+**Forward item posted on [#69](https://github.com/gosharplite/tellme/issues/69#issuecomment-5713770526)** (PR #86 review §5): the coordinator models **one** concurrent block; a future concurrent-tools round must re-scope it (a second open block + the composite's unconditional `AfterToolLog` resume would break the idle-gap invariant).
+
+**Environmental note (pre-existing, not this PR)**: `internal/infrastructure/di` `TestNewGhTokenResolver_TrimsToken` can flake with `signal: killed` under whole-suite resource pressure (a `gh`-resolution subprocess); passes standalone / on re-run; observed at both `1d563be` and `c888f0d`.
