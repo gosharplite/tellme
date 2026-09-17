@@ -9,7 +9,9 @@ import (
 
 // Round-019 spinner unit tests (T013): the label/elapsed/resource formatters, the
 // frame advancement over injected ticks (no time.Sleep — a signalling writer plus
-// a bounded select), the turn-scoped elapsed counter, and the synchronous clear.
+// a bounded select), the elapsed counters (round 040: the dual timer — the total
+// is turn-scoped and never reset, the second figure resets per model call), and the
+// synchronous clear.
 
 func TestSpinnerLabels(t *testing.T) {
 	tests := []struct {
@@ -31,11 +33,13 @@ func TestSpinnerLabels(t *testing.T) {
 	}
 }
 
+// TestFormatSpinnerLine pins the round-040 DUAL-figure format (ADR 0009 D1): two
+// unlabelled whole-second figures inside one parentheses.
 func TestFormatSpinnerLine(t *testing.T) {
-	if got := FormatSpinnerLine("A", " Thinking [m]...", 3, ""); got != "A Thinking [m]... (3s)" {
-		t.Errorf("FormatSpinnerLine = %q, want %q", got, "A Thinking [m]... (3s)")
+	if got := FormatSpinnerLine("A", " Thinking [m]...", 3, 3, ""); got != "A Thinking [m]... (3s 3s)" {
+		t.Errorf("FormatSpinnerLine = %q, want %q", got, "A Thinking [m]... (3s 3s)")
 	}
-	if got := FormatSpinnerLine("A", " Executing [t]...", 0, " [CPU: 1.0% | MEM: 2.0%]"); got != "A Executing [t]... (0s) [CPU: 1.0% | MEM: 2.0%]" {
+	if got := FormatSpinnerLine("A", " Executing [t]...", 120, 21, " [CPU: 1.0% | MEM: 2.0%]"); got != "A Executing [t]... (120s 21s) [CPU: 1.0% | MEM: 2.0%]" {
 		t.Errorf("FormatSpinnerLine with resource = %q", got)
 	}
 }
@@ -94,14 +98,14 @@ func TestSpinnerAdvancesFramesAndClearsSynchronously(t *testing.T) {
 	// The first frame is drawn synchronously on start.
 	s.OnInferenceStart()
 	awaitWrite(t, w)
-	if !strings.Contains(w.String(), "⠋ Thinking [m]... (0s)") {
+	if !strings.Contains(w.String(), "⠋ Thinking [m]... (0s 0s)") {
 		t.Fatalf("first frame = %q, want the synchronous ⠋ Thinking frame", w.String())
 	}
 
 	// A tick advances the frame.
 	tick <- fixed
 	awaitWrite(t, w)
-	if !strings.Contains(w.String(), "⠙ Thinking [m]... (0s)") {
+	if !strings.Contains(w.String(), "⠙ Thinking [m]... (0s 0s)") {
 		t.Fatalf("after a tick = %q, want the advanced ⠙ frame", w.String())
 	}
 
@@ -132,10 +136,11 @@ func TestSpinnerStopIdempotentAndNoopWhenUnstarted(t *testing.T) {
 	}
 }
 
-// TestSpinnerElapsedIsTurnScoped pins round-019 research D4: the elapsed counter
-// counts from the turn's prompt-capture epoch and is NEVER reset — a phase
-// relabel and a clear→resume around interleaved output both keep counting from
-// that same epoch.
+// TestSpinnerElapsedIsTurnScoped pins round-019 research D4 AND round-040 ADR 0009
+// D1/D2: the TOTAL figure counts from the turn's prompt-capture epoch and is NEVER
+// reset (a phase relabel and a clear→resume keep counting); the SECOND figure (the
+// current model call's elapsed) is preserved within a call and RESET at each
+// AI-endpoint call (a second OnInferenceStart).
 func TestSpinnerElapsedIsTurnScoped(t *testing.T) {
 	w := newSignalWriter()
 	base := time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC)
@@ -144,30 +149,39 @@ func TestSpinnerElapsedIsTurnScoped(t *testing.T) {
 	s.newTicker = func() (<-chan time.Time, func()) { return make(chan time.Time), func() {} }
 	s.now = func() time.Time { return nowV }
 
-	s.OnInferenceStart() // (0s)
+	s.OnInferenceStart() // (0s 0s)
 	awaitWrite(t, w)
-	if !strings.Contains(w.String(), "Thinking [m]... (0s)") {
-		t.Fatalf("first frame = %q, want (0s)", w.String())
+	if !strings.Contains(w.String(), "Thinking [m]... (0s 0s)") {
+		t.Fatalf("first frame = %q, want (0s 0s)", w.String())
 	}
 
-	// A relabel while waiting preserves the turn-scoped counter (5s).
+	// A relabel while waiting preserves both counters (5s 5s).
 	nowV = base.Add(5 * time.Second)
 	s.OnToolsStart([]string{"read_files"})
 	awaitWrite(t, w)
-	if !strings.Contains(w.String(), "Executing [read_files]... (5s)") {
-		t.Fatalf("relabel = %q, want the turn-scoped (5s)", w.String())
+	if !strings.Contains(w.String(), "Executing [read_files]... (5s 5s)") {
+		t.Fatalf("relabel = %q, want (5s 5s)", w.String())
 	}
 
-	// Interleaved output: clear, then resume. The counter continues from the turn
-	// epoch (7s), NOT from 0 — this is the pin for research D4.
+	// Interleaved output: clear, then resume. Both figures continue from their
+	// epochs (7s 7s), NOT from 0 — the pin for research D4.
 	nowV = base.Add(6 * time.Second)
 	s.BeforeToolLog()
 	awaitWrite(t, w) // the clear write
 	nowV = base.Add(7 * time.Second)
 	s.AfterToolLog()
 	awaitWrite(t, w)
-	if !strings.Contains(w.String(), "Executing [read_files]... (7s)") {
-		t.Fatalf("resume = %q, want the turn-scoped (7s), not a reset to (0s)", w.String())
+	if !strings.Contains(w.String(), "Executing [read_files]... (7s 7s)") {
+		t.Fatalf("resume = %q, want (7s 7s), not a reset to (0s)", w.String())
+	}
+
+	// A SECOND AI-endpoint call: the total keeps growing (10s) while the second
+	// figure resets to that call's own elapsed (0s).
+	nowV = base.Add(10 * time.Second)
+	s.OnInferenceStart()
+	awaitWrite(t, w)
+	if !strings.Contains(w.String(), "Thinking [m]... (10s 0s)") {
+		t.Fatalf("second call = %q, want the total grown (10s) with the second figure reset (0s)", w.String())
 	}
 	s.Stop()
 }

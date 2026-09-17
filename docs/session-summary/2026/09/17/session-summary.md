@@ -672,3 +672,43 @@ Across all ten passes **not one** review required a change to scope, mechanism, 
 
 ### Issue tracker (closeout Step 8)
 **No changes this closeout (nothing landed).** [#82](https://github.com/gosharplite/tellme/issues/82) + [#83](https://github.com/gosharplite/tellme/issues/83) **OPEN** (round 040's anchors — close on **delivery**); [#69](https://github.com/gosharplite/tellme/issues/69) open (single-ownership refactor); [#60](https://github.com/gosharplite/tellme/issues/60) open (dogfooding); [#13](https://github.com/gosharplite/tellme/issues/13) open (coverage tooling). No issues closed/revised/superseded.
+
+---
+
+## 17. Session 10 (2026-09-17) — round 040 `/axb-implement` DELIVERED (branch `040-implement-v2-spinner-liveness-and-turn-timer`; PR open)
+
+A tenth session on the same calendar day: bootstrapped, resolved a branch-name collision (the frozen `/axb-tasks` branch already owned `040-implement-…`), renamed the implementation branch to `040-implement-v2-…`, and ran `/axb-implement` One-Shot over the round-040 tasks (T001–T016) to green.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Branch collision | local `040-implement-spinner-liveness-and-turn-timer` collided with the merged remote `/axb-tasks` branch (`07c88ea`) → renamed to **`040-implement-v2-spinner-liveness-and-turn-timer`** (pushed) |
+| `/axb-implement` | One-Shot over T001–T016 — all `[x]` |
+| Product | `internal/ui/coordinator.go` (WS-A: the writer + spinner coordinator; `WriteWith`/`EndWith`/`withLock`; the idle watcher; mutual exclusion + join) · `internal/ui/spinner.go` (dual `FormatSpinnerLine(… total, call, …)`; internal `callEpoch`; `AdmitResume`) · `internal/ui/tooloutput.go` (three lock-scoped entry points + the `Begin`-seeded idle clock) · `internal/cli/cli.go` (coordinator wiring + `toolOutputIdleGap()`) |
+| Tests | `internal/ui/spinner_round040_test.go` (dual-timer arithmetic + the SC-006 row-aware-clear re-witness) · `internal/ui/coordinator_test.go` (the WS-A race/anti-vacuity/zero-output/no-label/gated-off/`\r`-only/stalled-writer stress) · `tests/e2e/steps/step_r040_*.go` (4 sentences) · `tests/e2e/suite_test.go` (`Strict: true`) · the dead-stepdef `[BDD-REMOVE]` |
+| Wording | the adapted spinner pins; the E2E spinner regexes widened to the dual figure; the in-code citations swept to ADR 0009 |
+| Verification | `go test -count=1 ./...` green (incl. `tests/e2e`) · `make verify` OK (cross-compile 4/4 · lint 0 · govulncheck clean) · topology audit PASSED (44 · 6 · 16 + 327 · 1674) · witnesses (a)/(b)/(c) reproduced then reverted |
+| Delivery | branch pushed; **PR open** — a human merges; then propagate `dev → main` and close #82/#83 at closeout |
+
+### Decisions
+| # | Decision |
+| --- | --- |
+| D1 | The implementation branch is named **`040-implement-v2-…`** — the merged `/axb-tasks` branch name is **not reused** (it is frozen history). |
+| D2 | The resume path is `Spinner.AdmitResume()` (goroutine-drawn first frame); `activate()` keeps its synchronous first frame. |
+| D3 | The coordinator is the single `internal/ui` owner of the writer + spinner (the `#69` pay-down). |
+| D4 | `Strict: true` landed with the stepdefs (0 undefined), witnessed by the FAIL→PASS transition. |
+
+### Commits (branch `040-implement-v2-spinner-liveness-and-turn-timer`)
+| Commit | Note |
+| --- | --- |
+| *(this session)* | `feat(040)`: implement the spinner streaming liveness + dual elapsed timer (T001–T016) |
+
+### Verification (2026-09-17)
+See the at-a-glance row; the witnesses: (a) freeze the idle-gap resume → the WS-A Example fails (E2E carrier) · (b) freeze the per-call reset → the T006 unit pin fails · (c) drop the row-aware clear → the SC-006 pin fails.
+
+### Next steps
+1. **Human merges the implementation PR** → propagate `dev → main` (no-ff) → `SESSION-CLOSEOUT.md` (close **#82** + **#83**).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `040-implement-v2-…` until merged, then `dev`).
+
+### PM follow-ups
+- Ratify the two PM-owned `spec.md` wording fixes (SC-003 TD-5 shape-only; SC-005 R-14 unit-layer reset witness) — unchanged from session 9.

@@ -746,24 +746,17 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// Round 034 (ADR 0005 D1): the loop keeps a single observer — the composite
 	// composes the per-call block renderer with the round-019 spinner.
 	loop.Observer = compositeObserver{call: renderer, spinner: spinner}
-	// Round 034 (FR-010/FR-012): bind the live `[Tool Output]` sink on the prompt
-	// path. The block renders unconditionally; the sink yields the spinner once per
-	// call (single writer) around it.
-	uiWriter := &ui.ToolOutputWriter{W: env.stderr, Now: env.now}
+	// Round 034 (FR-010) + round 040 (ADR 0009 D3/D4): bind the live `[Tool Output]`
+	// sink on the prompt path through the internal/ui coordinator. The block renders
+	// unconditionally; the coordinator owns the writer + the spinner and applies the
+	// WS-A idle-gap liveness (resume after a quiet gap, a synchronous clear before
+	// the next line — the invariant is mutual exclusion + join), superseding the
+	// round-034 whole-block pause (ADR 0005 D7, superseded).
+	coord := ui.NewToolOutputCoordinator(env.stderr, env.now, sp, toolOutputIdleGap())
 	infratools.BindToolOutput(reg, infratools.ToolOutputSink{
-		Begin: func() {
-			if sp != nil {
-				sp.BeforeToolLog()
-			}
-			uiWriter.Begin()
-		},
-		Writer: uiWriter,
-		End: func() {
-			uiWriter.End()
-			if sp != nil {
-				sp.AfterToolLog()
-			}
-		},
+		Begin:  coord.Begin,
+		Writer: coord.Writer(),
+		End:    coord.End,
 	})
 	result, err := loop.Run(ctx, prompt, prior)
 	if sp != nil {
@@ -889,6 +882,19 @@ func stderrColumns(env runtimeEnv) func() int {
 		return func() int { return n }
 	}
 	return func() int { return terminalColumns(env.stderr) }
+}
+
+// toolOutputIdleGap resolves the round-040 WS-A idle-gap threshold (ADR 0009 D3):
+// the hermetic seam TELL_ME_FORCE_TOOLOUTPUT_IDLE_MS (milliseconds; 0 = admit
+// immediately; unset/invalid = the 3 s default). Resolved once at construction,
+// mirroring the stderrTTY / stderrColumns / tuiDebounceDuration seams.
+func toolOutputIdleGap() time.Duration {
+	if v := strings.TrimSpace(os.Getenv("TELL_ME_FORCE_TOOLOUTPUT_IDLE_MS")); v != "" {
+		if ms, err := strconv.Atoi(v); err == nil && ms >= 0 {
+			return time.Duration(ms) * time.Millisecond
+		}
+	}
+	return ui.DefaultToolOutputIdleGap
 }
 
 // dispatchReporting handles the offline reporting commands in precedence order

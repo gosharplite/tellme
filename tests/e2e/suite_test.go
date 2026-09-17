@@ -29,6 +29,10 @@ func TestFeatures(t *testing.T) {
 			Format:   "pretty",
 			Paths:    []string{"../../specs/truth/features/cli"},
 			TestingT: t,
+			// Round 040 TD-1: undefined steps FAIL the suite (they were previously
+			// reported-and-ignored). Landed here, with the round's stepdefs, so the
+			// FAIL→PASS transition witnesses the new Examples.
+			Strict: true,
 		},
 	}
 	if suite.Run() != 0 {

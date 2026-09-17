@@ -23,11 +23,13 @@ import (
 var reSpinnerFrame = regexp.MustCompile(`[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] (?:Thinking|Executing)`)
 
 // reSpinnerLine matches a full spinner line: a braille frame + a phase status +
-// an `(<n>s)` elapsed segment.
-var reSpinnerLine = regexp.MustCompile(`[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] (?:Thinking|Executing)[^\r\n]*\([0-9]+s\)`)
+// the round-040 DUAL elapsed segment `(<total>s <call>s)` (ADR 0009 D1).
+var reSpinnerLine = regexp.MustCompile(`[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] (?:Thinking|Executing)[^\r\n]*\([0-9]+s [0-9]+s\)`)
 
-// reSpinnerElapsed matches a spinner frame carrying an `(<n>s)` elapsed segment.
-var reSpinnerElapsed = regexp.MustCompile(`[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏][^\r\n]*\([0-9]+s\)`)
+// reSpinnerElapsed matches a spinner frame carrying the round-040 DUAL elapsed
+// segment `(<total>s <call>s)` — both figures unlabelled whole seconds (ADR 0009
+// D1 / QB4).
+var reSpinnerElapsed = regexp.MustCompile(`[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏][^\r\n]*\([0-9]+s [0-9]+s\)`)
 
 // hasSpinnerFrame reports whether s carries a spinner frame followed by a phase
 // status (the raw presence check).
