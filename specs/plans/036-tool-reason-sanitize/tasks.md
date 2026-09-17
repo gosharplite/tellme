@@ -192,6 +192,11 @@
 - **F-3**：Go 原始碼的硬編 issue URL 改回既有慣例 `issue #69`（`internal/cli/call_renderer.go`、`internal/cli/call_renderer_reason_test.go`）——本 repo 曾重新編號 issue（#13、#53），URL 會靜默失效。
 - **F-4**：見證 **(c)「還原 raw guard → blank-reason pins 失敗」已於 fold head 重跑**並重現（loop 兩站迴歸為 raw `reason != ""` → `TestLogOmitsReasonLineForWhitespaceOnlyReason` FAIL），還原後綠；見證 (a)/(b) 為 comment-only fold 未觸及的產品碼，已於 fold head 重跑確認。
 
+### PR #75 殘餘掃描驗證 fold（head `11fa93b`）
+
+- **N-5**：`research.md` D3 的贅字 `fourth-home` 已改為 `defence-in-depth`（站點數就是三個）；全包已無 `fourth` 序數殘留。
+- 記錄更正：先前的 fold 回應誤指「PR body 的 re-verification note 已更正」——PR **body** 未被修改（原本就已列 (a)/(b)/(c)）；該回應文字已就地更正。truth 於 `11fa93b` 後**未再變動**（本 fold 只動 plan 文件）。
+
 ---
 
 ## Pre-Delivery Orphan Coverage Sweep
