@@ -118,3 +118,14 @@ Feature: Presenting the progress spinner
       When the operator starts tellme with the prompt "run it"
       Then the progress spinner does not appear while the command's output streams
       And tellme exits successfully
+
+  Rule: The spinner leaves no residue on a tool-using turn
+
+    Example: The turn runs a tool and then answers
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the diagnostics are shown at a terminal
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good"
+      When the operator starts tellme with the prompt "read the notes"
+      Then the run shows no progress spinner
+      And tellme exits successfully
