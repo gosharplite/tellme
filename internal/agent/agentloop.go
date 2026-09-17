@@ -265,8 +265,10 @@ func reasonsOf(calls []llm.ToolCall) []string {
 	var out []string
 	for _, tc := range calls {
 		// Round 036 (issue #74): a blank reason contributes no grouped tail line
-		// either (the SANITIZED value is the guard, so `"   "` / `"\n"` never
-		// becomes a tail row).
+		// either. The guard tests the SANITIZED value but APPENDS THE RAW value —
+		// the pure formatter trims later, so the tail always shows the trimmed
+		// reason (round-036 review N-4). This is the production filter the tail
+		// relies on; the tail's own guard is defensive only (see call_renderer.go).
 		if r := toolReason(tc.Arguments); strings.TrimSpace(r) != "" {
 			out = append(out, r)
 		}

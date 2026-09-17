@@ -12,6 +12,12 @@ import (
 // whitespace, and cap the folded value at reasonValueCap runes (one U+2026 inside
 // the cap, rune-safe). These pins use HOSTILE fixtures (the round-022 B1 lesson:
 // the original regression was untested because the fixtures were single-line).
+//
+// The clean single-line case is deliberately NOT re-pinned here: the pre-existing
+// `TestFormatToolReason` in `toolcall_test.go` already asserts
+// `"checking the launch code"` byte-for-byte. Restating it verbatim here would be
+// a duplicate no-op pin — in the very round whose thesis is "the pin was a no-op"
+// (round-036 review RF-1).
 
 func TestFormatToolReason_FoldsNewline(t *testing.T) {
 	if got, want := FormatToolReason(r034Clock, "a\nb"), "[20:29:51] [Tool Reason] a b"; got != want {
@@ -76,12 +82,5 @@ func TestFormatToolReason_CapCutOnRuneBoundary(t *testing.T) {
 	}
 	if !utf8.ValidString(value) {
 		t.Errorf("the cap split a multi-byte rune; value=%q", value)
-	}
-}
-
-func TestFormatToolReason_CleanReasonUnchanged(t *testing.T) {
-	// A well-formed single-line in-cap reason renders byte-identically to before.
-	if got, want := FormatToolReason(r034Clock, "checking the launch code"), "[20:29:51] [Tool Reason] checking the launch code"; got != want {
-		t.Errorf("clean reason rendering = %q; want %q", got, want)
 	}
 }

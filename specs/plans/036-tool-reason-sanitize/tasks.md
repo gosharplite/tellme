@@ -12,7 +12,7 @@
   - **省略 Phase 2 `Foundational`** —— 落點（`internal/ui/toolcall.go`、`internal/agent/agentloop.go`、`internal/cli/call_renderer.go`、新檔 `internal/ui/toolcall_reason_test.go`）皆由下方任務直接交付；無 stepdef 落點骨架、無並行調度需求。
   - **Phase 3 只有 `[UNIT]`** —— 本輪沒有待處理 DSL 句；測試層工作是**新增 hostile-fixture unit pins 並讓它們 RED**（operator Q1：unit-pin-only witness；**不新增 E2E Example**）。
   - **Phase 4 只有一個 MODIFY phase** —— 產品端讓 formatter + 兩個 caller 滿足 reason row 的新文案／契約（`[BDD-GREEN] -> [BDD-REFACTOR]`）。
-  - 交付物是 **`FormatToolReason` 的 fold + trim + cap**（`internal/ui/toolcall.go`，新常數 `reasonValueCap = 200`）與**兩個 caller 的 blank-reason 抑制**（`internal/agent/agentloop.go` `logAction`、`internal/cli/call_renderer.go` `renderCallTail`）；truth 變更為 `specs/truth/techstack.md`（Agent tool loop row，by `/axb-technical-research`）與 `specs/truth/features/cli/chat/dsl.md`（reason row + note，by `/axb-dsl-refine`）。
+  - 交付物是 **`FormatToolReason` 的 fold + trim + cap**（`internal/ui/toolcall.go`，新常數 `reasonValueCap = 200`）與 **blank-reason 抑制的三個站點**（`internal/agent/agentloop.go` `logAction`、`internal/agent/agentloop.go` `reasonsOf`（tail 的來源清單；生產路徑過濾器）、`internal/cli/call_renderer.go` `OnCallEnd` 內 `emit` closure 的**防禦性**守衛——生產不可達，見 `spec.md` FR-006 與 [#69](https://github.com/gosharplite/tellme/issues/69)）；truth 變更為 `specs/truth/techstack.md`（Agent tool loop row，by `/axb-technical-research`）與 `specs/truth/features/cli/chat/dsl.md`（reason row + note，by `/axb-dsl-refine`）。
 - 每個開發任務的 `Read` 須涵蓋 `research.md` 對應 Decision 與 `specs/truth/techstack.md` 對應 section。
 - Truth 參照使用 `specs/truth/**` 路徑；plan 參照使用當前 plan package 相對路徑。
 - **不動** flags、exit codes、class-phrase vocabulary、其他 line formats、frame cadence、tool schemas/results、provider transport、`history.jsonl`、`stdout`；**不動** sibling caps（189/200）與 `FormatToolResult` 的 fold 行為。
@@ -84,16 +84,16 @@
   - 邊界：這些斷言**今日必須失敗**（現行 `FormatToolReason` 不 fold、不 cap、不 trim）——**不得**放寬 assertion 讓它變綠（RED-first）；不寫產品碼；**不**修改既有 `toolcall_test.go`。
   - 不做：不改 `toolcall.go`（留 Phase 4）；不碰 sibling formatters；不新增 E2E。
 
-- [X] T002 [UNIT] blank-reason 抑制 pins（action line + tail；RED）
+- [X] T002 [UNIT] blank-reason 抑制 pins（loop real path + tail defensive；RED）
   - Read:
     - `research.md` -> `Decision 3`
-    - `internal/agent/agentloop.go` -> `logAction`（現行 `if reason := toolReason(tc.Arguments); reason != ""`）
-    - `internal/cli/call_renderer.go` -> `renderCallTail` / `OnCallEnd`（tail 的 grouped reason 輸出）
+    - `internal/agent/agentloop.go` -> `logAction` 與 `reasonsOf`（現行 `if reason := toolReason(tc.Arguments); reason != ""`；`reasonsOf` 是 tail 的來源清單）
+    - `internal/cli/call_renderer.go` -> `OnCallEnd` 內的 `emit` closure（tail 的 grouped reason 輸出）
     - `internal/agent/agentloop_reason_test.go` -> 既有 loop-tier pin（`[12:34:56] [Tool Reason] because`）
     - `specs/truth/features/cli/chat/dsl.md` -> reason row（blank ⇒ no line）
-  - 做：新增抑制 pins（放於 `internal/ui/toolcall_reason_test.go` 或 loop/cli 對應測試檔，Zero Shared Edits）：
-    - **loop action line**：以 whitespace-only reason（`"   "`）與 newline-only reason（`"\n"`）驅動 `AgentLoop.logAction`，斷言 `stderr` **不含**任何 `[Tool Reason]` 行（也不多出空白行）；
-    - **tail**：以 whitespace-only reason 驅動 `callRenderer` 的 tail 路徑，斷言無 `[Tool Reason]` 行。
+  - 做：新增抑制 pins（放於新檔，Zero Shared Edits）：
+    - **loop real path**：以 whitespace-only reason（`"   "`）與 newline-only（`"\n"`）驅動**真實** `AgentLoop.Run`（同時觸及 `logAction` 與 `reasonsOf`），斷言 `stderr` **不含**任何 `[Tool Reason]` 行（也不多出空白行）；
+    - **tail defensive**：直接以 whitespace-only reason 呼叫 `callRenderer.OnCallEnd`，斷言無 `[Tool Reason]` 行（此站為防禦性、生產不可達——見 `spec.md` FR-006；其真實路徑由 `reasonsOf` 覆蓋）。
     - **clean 對照**：非空 reason 仍輸出一行（避免把抑制寫成一律不輸出）。
   - 邊界：**今日必須失敗**（現行 guard 只看 raw `reason != ""`，`"   "`／`"\n"` 會通過並輸出 dangling 行）——不得放寬 assertion（RED-first）；不寫產品碼。
   - 不做：不改 `agentloop.go`／`call_renderer.go`（留 Phase 4）；不動 pure formatter。
@@ -121,7 +121,7 @@
 
 **Boundary**:
 - 改 `internal/ui/toolcall.go`：新增 `const reasonValueCap = 200`；`FormatToolReason` 改為 `fmt.Sprintf("[%s] [Tool Reason] %s", formatClock(t), capRunes(oneLine(strings.TrimSpace(reason)), reasonValueCap))`；更新其 doc comment（fold + trim + cap，200）。
-- 改 `internal/agent/agentloop.go`（`logAction`）與 `internal/cli/call_renderer.go`（tail）：把 raw `reason != ""` guard 改為 sanitized-value guard（`strings.TrimSpace(reason) != ""`）；**不**在 caller 內 fold/cap（單點原則）。
+- 改 `internal/agent/agentloop.go`（`logAction` **與** `reasonsOf`）與 `internal/cli/call_renderer.go`（`OnCallEnd` 內 `emit` closure）：把 raw `reason != ""` guard 改為 sanitized-value guard（`strings.TrimSpace(reason) != ""`）；**不**在 caller 內 fold/cap（單點原則）。第三站（`emit` closure）為防禦性冗餘，生產不可達，其單一歸屬收斂記於 [#69](https://github.com/gosharplite/tellme/issues/69)（本輪不重構）。
 - **不動** `FormatToolAction`／`FormatToolResult`／`argValueCap`／`resultValueCap`／`capRunes` 語意、class phrase、exit codes、`stdout`、frame cadence、tool schema。
 - 不得為了轉綠而放寬 T001/T002 的 assertion。
 
@@ -171,6 +171,18 @@
   - 檢驗：修復僅動 `toolcall.go`（+ caller guards + 新 test 檔）；sibling formatters／caps 未改；`FormatToolReason` 仍為純 formatter（無 sentinel）；blank reason 兩表面皆無行；未新增 E2E/DSL；ADR 0006 存在且與 truth 一致；無新相依；flags／exit codes／其他 formats／`stdout` 未變。
 
 > Round review 由 orchestrator 執行：修復只動 `internal/ui/toolcall.go`（新增 `reasonValueCap = 200`、`FormatToolReason` fold+trim+cap、`oneLine` 由已刪除的 `toollog.go` 遷入）、`internal/agent/agentloop.go`（`logAction` + `reasonsOf` sanitized guard）、`internal/cli/call_renderer.go`（tail emit 的 sanitized guard），與測試檔；`FormatToolAction`／`FormatToolResult`／`argValueCap`／`resultValueCap`／`capRunes` **未改**；`FormatToolReason` 仍為純 formatter（無 sentinel）；`go.mod`/`go.sum` 不變（stdlib-only）；`gofmt -l .` clean；`go test -count=1 ./...` 全綠（E2E OK）；`make verify` **OK**（no-test-sleep · offline witness · cross-compile 4/4 · MCP confinement · golangci-lint **0 issues** · govulncheck **0 reachable**）；拓樸稽核 **PASSED**（44 features · 6 modules · 16 root + 310 module rows · 1576 steps —— 與交付時相同）。可偽性見證 (a)/(b)/(c) 重現後還原（見 T006）。
+
+### PR #75 架構審查 fold（round 036 — APPROVE WITH NON-BLOCKING FOLDS）
+
+> 審查 head `048bb28`；無 `[ARCHITECTURAL BLOCKER]`；單點純 formatter 修復、caller-side 抑制、successor ADR、doc-level truth 編輯皆獲認可。以下 folds 只讓**本輪自己的紀錄與程式碼一致**（**不**在輪內重構程式碼）。
+
+- **TD-2**：抑制站點數由「兩個」更正為**三個**（`logAction`、`reasonsOf`、`OnCallEnd` 內 `emit` closure），並以真實符號取代不存在的 `renderCallTail` — 已 fold 於 `spec.md` FR-006 + Key entities、`research.md` D3、`tasks.md` Phase-4 Boundary、`chat/dsl.md` round-036 note。
+- **TD-3**：permanent E2E narrowing 的永久歸宿改指向**活躍 issue**（`research.md` D4 → [#69](https://github.com/gosharplite/tellme/issues/69)，並於 #74 關閉前留言），因 plan package 於 merge 時凍結（round-035 G3 教訓）。
+- **TD-1**：`OnCallEnd` 的第三站為**生產不可達的防禦性冗餘** — 已在 code 加註指明上游生產過濾器為 `reasonsOf`，並將「blank-reason 述詞單一歸屬」記於 [#69](https://github.com/gosharplite/tellme/issues/69)（**本輪不重構**）。
+- **RF-1**：刪除與既有 `toolcall_test.go::TestFormatToolReason` 逐字重複的 `TestFormatToolReason_CleanReasonUnchanged`，改以註解引用既有 pin（Zero Shared Edits）。
+- **RF-2**：`spec.md` 兩條已被 supersede 的敘述加註（Q1 的 pin 檔路徑 → `toolcall_reason_test.go`；ADR 0005 車輛 → research D5 的 ADR 0006）。
+- **N-1 / N-3 / N-4**：tail 空輸出改用 `buf.Len() != 0` 直接斷言；`r036Clock` 補上存在理由；`reasonsOf` 補上「以 trimmed 值過濾、append raw 值」的註解。
+- 驗證：`gofmt -l .` clean · `go build ./...` OK · `go test -count=1 ./...` 全綠（E2E OK）· 可偽性見證 (a)/(b) 重現後還原。
 
 ---
 
