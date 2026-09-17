@@ -291,3 +291,85 @@ A third session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` S
 
 ### Issue tracker (closeout Step 8)
 Reconciled against the delivered state: **[#76](https://github.com/gosharplite/tellme/issues/76) OPEN (new this round)** — the empty-`Ctrl+S` divergence (body sharpened by the round-037 review); **[#69](https://github.com/gosharplite/tellme/issues/69) OPEN** — **title refreshed** this closeout to enumerate all five single-ownership items (was *spinner-yield + blank-reason predicate*); body carries the spinner-yield ownership + the port hook pair + the blank-reason-predicate single ownership + the suggestion-selection-policy ownership + the permanent E2E narrowing; **[#60](https://github.com/gosharplite/tellme/issues/60) OPEN** (dogfooding); **[#13](https://github.com/gosharplite/tellme/issues/13) OPEN** (coverage tooling). **No issues closed this closeout** (round 037 delivered no issue-tracked slice; nothing superseded). [#74](https://github.com/gosharplite/tellme/issues/74) closed (completed) by round 036; [#72](https://github.com/gosharplite/tellme/issues/72) closed by round 035.
+
+---
+
+## 11. Session 4 (2026-09-17) — round 038 `038-tool-output-sanitize-and-empty-submit`: two folded operator issues (#78 + #76) → full pipeline → implementation delivered; PR open
+
+A fourth session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 037 delivered/frozen), investigated an operator report (*"text colour leak in the terminal — I suspect `[Tool Output]`"*), **filed issue [#78](https://github.com/gosharplite/tellme/issues/78)** with a root-cause analysis, then folded it with issue **[#76](https://github.com/gosharplite/tellme/issues/76)** (verified still open) into round **038**, ran the full AIxBDD pipeline, and delivered the implementation. **PR open for human merge.**
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`; Linux host).
+**Branch**: `038-tool-output-sanitize-and-empty-submit` (off `dev`) — **implementation delivered; PR pending**.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 037 delivered/frozen; active branch `dev`) |
+| Investigation | Confirmed the `[Tool Output]` raw passthrough on the shared `stderr` (`command.go` `teeSink` → `ui.ToolOutputWriter` → `env.stderr`) leaks ANSI; reproduced at the writer level; **filed #78** |
+| #76 re-verified | The empty-`Ctrl+S` quit is **still present** on `dev` (`model.go` sets `submitted=false` but returns `tea.Quit`) → **kept open**, then folded into the round per the operator's direction |
+| Clarify | operator-locked **Q1** strip the whole ANSI/control class · **Q2** always close neutral · **Q3** empty submit = no-op (`1,1,1`) |
+| Pipeline | specify ✅ · spec-by-example ✅ · research ✅ (D1–D7) · system-analysis ✅ (1 CLI end → `/axb-dsl-refine`; api/data NOOP; ui-plan skipped) · dsl-refine ✅ (2 new Rules + rows) · tasks ✅ (T001–T016) · implement ✅ |
+| Product | `internal/ui/tooloutput.go` (`sanitizeControl` + `ToolOutputReset` + `End()` restore) · `internal/ui/tui/prompt/model.go` (`trySubmit`) |
+| Verification | `make verify` **OK** (lint 0 issues after splitting `escSequenceLen` for the `cyclop` gate) · `go test -count=1 ./...` green (E2E **218/218**, was 215) · 3 falsifiability witnesses reproduced then reverted |
+
+### Work done
+1. **Bootstrap + investigation** — traced the leak; filed #78; verified #76.
+2. **Round 038** — `/axb-specify` → `/axb-clarify` (Q1–Q3) → `/axb-spec-by-example` (2 acceptance features) → `/axb-technical-research` (+`techstack.md`) → `/axb-system-analysis` (`plan.md`) → `/axb-dsl-refine` (2 truth Rules + `chat/dsl.md`) → `/axb-tasks` → `/axb-implement`.
+3. **The fix** — (a) sanitize the streamed `[Tool Output]` content lines (all ESC-introduced sequences + stray C0/DEL; TAB kept; UTF-8 preserved) and always restore a neutral state at block close; presentation-only; (b) an empty `-i` submit is a no-op (mirrors the reference), only a non-empty submit submits.
+4. **Witnesses** — unit hostile fixtures (`tooloutput_sanitize_test.go`, `model_submit_test.go`) + 3 E2E Examples; falsifiability (a/b/c) reproduced then reverted.
+
+### Decisions locked (round 038)
+| # | Decision |
+| --- | --- |
+| Q1 | Strip the whole ANSI/control class (not SGR-only; not reset-only). |
+| Q2 | Always close the block in a neutral state (belt-and-braces over the dropped-partial-line / killed-mid-output cases). |
+| Q3 | An empty (or whitespace-only) `-i` submit is a no-op (reference parity); non-empty unchanged; abort unchanged. |
+| D6 | **Recorded divergence**: the reference has no output sanitizer. |
+
+### Open items (non-blocking)
+- **#78** and **#76** are fixed on the round-038 branch but **stay open until the PR merges** (closed at closeout Step 8).
+- Sanitizer is deliberately conservative; the block shows command output as plain text (no "preserve safe styling").
+
+### Next steps
+1. Human merges the round-038 PR → propagate `038 → dev → main` → close #78 + #76 → `SESSION-CLOSEOUT.md`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `038-…` until merged, then `dev`).
+
+---
+
+## 12. Session 5 (2026-09-17) — round 038 `038-tool-output-sanitize-and-empty-submit`: review/fold chain to FINAL CERTIFICATION → **merged (PR #79)** → propagated `dev → main`; closeout
+
+A fifth session on the same calendar day: continued round 038 through a **four-round review/fold chain to FINAL CERTIFICATION**, saw the **human merge** of PR [#79](https://github.com/gosharplite/tellme/pull/79) into `dev`, propagated `dev → main`, refreshed the installed binary, and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`; Linux host).
+**Branch**: `038-tool-output-sanitize-and-empty-submit` (off `dev`) → merged via PR [#79](https://github.com/gosharplite/tellme/pull/79) into `dev` (`a0b0653`, by `thptcnec`, 2026-09-17T05:30:30Z) → propagated `dev → main`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Review chain (PR #79) | architecture review **APPROVE WITH REQUIRED FOLDS** (B1 · B2 · TD-1 · TD-2 · RF-1/2/3 · N-1…N-3) → fold `5068c47` → fold review (**TD-3 · N-4 · N-5**) → fold `c040f9a` → **FINAL CERTIFICATION — MERGE-READY** → nit **N-6** → fold `a2339a4` → **CERTIFICATION STANDS** → nit **N-7** → fold `3da9ed0` → **CERTIFICATION STANDS (no further items)** |
+| Merge | PR [#79](https://github.com/gosharplite/tellme/pull/79) **MERGED** into `dev` (`a0b0653`, by `thptcnec`); frozen head **`3da9ed0`** (7 commits) |
+| Propagation | `038-… → dev` (`a0b0653`) `→ main` — **DONE (no-ff)** |
+| Closeout | `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (E2E **218/218**, 1623 steps) · diff secret scan clean · `STATUS.md` refreshed; **#78 + #76 CLOSED**, **#80 filed** |
+
+### Folds (product + docs)
+| Fold | Commit | Note |
+| --- | --- | --- |
+| B1 · B2 · TD-1 · TD-2 · RF-1/2/3 · N-1/2/3 | `5068c47` | ASCII-gate `genericEscLen` (never decapitates a multi-byte rune) + UTF-8 pins; **ADR 0007**; live issue **#80**; unconditional restore recorded; bounded scanners; tightened the round-023 pin; doc fixes |
+| TD-3 · N-4 · N-5 | `c040f9a` | per-kind scan windows (`csiScanLimit = 128`, `oscScanLimit = 1024`) so long **terminated** sequences are still removed in full + a terminated-but-long pin; "never introduces invalid UTF-8" wording; real E2E coverage of the adjacency path |
+| N-6 | `a2339a4` | ADR 0007 residual/consumption wording + `genericEscLen` window naming |
+| N-7 | `3da9ed0` | ADR 0007 residual-risk sentence: the window bounds what is *removed*, not what is *printed* |
+
+### Closeout verification (on `dev` @ `a0b0653`)
+- `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (no-test-sleep · offline witness · cross-compile 4/4 · `verify-mcp-sdk-confinement` · lint 0 · govulncheck 0 reachable).
+- `go test -count=1 ./...` green — E2E **218 scenarios (218 passed) · 1623 steps**.
+- Diff-level secret scan clean; `go install ./cmd/tellme` refreshed from `3da9ed0`.
+
+### Issue tracker (closeout Step 8)
+Reconciled: **[#78](https://github.com/gosharplite/tellme/issues/78) CLOSED (completed)** (delivered by PR #79) · **[#76](https://github.com/gosharplite/tellme/issues/76) CLOSED (completed)** (delivered by the same PR) · **[#80](https://github.com/gosharplite/tellme/issues/80) OPEN (new this round)** (the terminal-safe line policy for the sibling `[Tool …]` formatters) · [#69](https://github.com/gosharplite/tellme/issues/69) open (single-ownership refactor) · [#60](https://github.com/gosharplite/tellme/issues/60) open (dogfooding) · [#13](https://github.com/gosharplite/tellme/issues/13) open (coverage tooling).
+
+### Next steps
+1. Choose the `039-*` theme and start it via `/axb-specify` off `dev` (candidates: [#80](https://github.com/gosharplite/tellme/issues/80) — the terminal-safe line policy; [#69](https://github.com/gosharplite/tellme/issues/69); [#60](https://github.com/gosharplite/tellme/issues/60); [#13](https://github.com/gosharplite/tellme/issues/13)).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (spec/acceptance complete; no PM-owned gaps).

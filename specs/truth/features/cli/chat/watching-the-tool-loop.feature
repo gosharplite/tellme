@@ -78,3 +78,27 @@ Feature: Watching the tool loop work
       When the operator starts tellme with the prompt "Create out.txt."
       Then the run reported the action value for the tool call "write_file" shortened to at most 189 runes
       And tellme exits successfully
+
+  Rule: A shell command's streamed output is free of terminal control sequences
+
+    # Round 038 (issue #78): the streamed `[Tool Output]` block must not be able to change how the
+    # operator's terminal renders the rest of the run. The content lines are sanitized (ANSI escape
+    # sequences + stray control bytes removed) and the block always closes in a default state.
+
+    Example: A colouring command's output is shown as plain text
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured provider "test-model" whose endpoint runs a colouring command and then answers with "done"
+      When the operator starts tellme with the prompt "Run the colouring command."
+      Then the run streamed the command's output on its diagnostic output
+      And the run streamed the command's output free of terminal control sequences
+      And tellme exits successfully
+
+    Example: A command stopped mid-output leaves the terminal in its default state
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured provider "test-model" whose endpoint runs a colouring command that is stopped at its time limit and then answers with "done"
+      When the operator starts tellme with the prompt "Run the long colouring command."
+      Then the run streamed the command's output free of terminal control sequences
+      And the terminal is left in its default state
+      And tellme exits successfully
