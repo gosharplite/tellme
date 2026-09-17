@@ -9,7 +9,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| MODIFY | `specs/truth/techstack.md` — **Build & Tooling** table | Adds a **Layer-discipline gate** row: the pinned layer ranking, the `go list`-based import-direction guard (`Makefile` `verify-architecture`), the committed sorted **baseline** (8 known violations), the **fail-on-stale** ratchet policy, hermetic/host-independent/stdlib-only, and the `modelith-layers` recorded divergence. | round 042 FR-009; `research.md` D1–D3/D5–D8. |
+| MODIFY | `specs/truth/techstack.md` — **Build & Tooling** table | Adds a **Layer-discipline gate** row: the pinned layer ranking; the **two-part predicate** (A direction · B application-target · C domain purity · D default-deny); the `go list`-based guard anchored to the module root and evaluated over the **`CROSS_TARGETS` union**; the committed sorted **baseline** (8 known violations) with the **fail-on-stale** ratchet; the acyclicity assertion; the tag-scope residual; a citation of **ADR 0011** as the normative host; and the `modelith-layers` recorded divergence. | round 042 FR-010; `research.md` D1–D11. |
 | MODIFY | `specs/truth/techstack.md` — **Task runner** row | Extends the `verify` aggregate list to `verify-no-test-sleep + verify-no-network + vet + verify-cross-compile + verify-mcp-sdk-confinement + verify-architecture + lint + vulncheck` (adds the new member; also corrects the pre-existing round-032 omission of `verify-mcp-sdk-confinement`). | round 042 FR-009/FR-010; `research.md` D5. |
 
 ## /axb-api-plan
@@ -34,4 +34,4 @@
 
 | Action | Artifact | Change Summary | Reason |
 | --- | --- | --- | --- |
-| NOOP (checked, recorded) | `docs/decisions/*` + `docs/decisions/README.md` | Inspected: R1 settles **no** decision that other artifacts must cite as a superseding rule; the layer ranking + baseline policy live in `techstack.md`. The [#92](https://github.com/gosharplite/tellme/issues/92) ADR obligation attaches to **R3**'s yield policy, not here. | `spec.md` A5; `research.md` D8 — deferring keeps R1 minimal. |
+| ADD | `docs/decisions/0011-layer-discipline-gate.md` (+ the `docs/decisions/README.md` index row) | Records the **layer rule** (the two-part predicate A–D: direction + application target rule + domain purity + default-deny) and the **baseline policy** (a fail-on-stale ratchet), the enumeration anchor, the `CROSS_TARGETS` union, the acyclicity assertion, the deterministic format, and the worked **8-entry** baseline; no existing ADR is superseded. | round 042 FR-010; `research.md` D7 — `docs/decisions/README.md` names "a project-level rule … other artifacts (or future rounds) depend on and must be able to cite": R2–R4 must cite the rule. *(Replaces the earlier "no ADR" position — review RF-1.)* |

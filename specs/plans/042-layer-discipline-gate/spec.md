@@ -14,7 +14,7 @@
 
 ## Locked decisions (clarify round 1 — plus one resolved by measurement)
 
-- **Q1 → Option 2 — a BROAD import-direction rule.** The gate enforces a general *no-upward-import* rule over the module's layer ordering (the reference's `verify-architecture` shape), **not** a narrow `cli → infrastructure` prohibition. Consequence: `internal/agent → internal/ui` **is a violation**, so the baseline is **8** (see the pinned ranking).
+- **Q1 → Option 2 — a BROAD import-direction rule (stated in TWO parts).** The gate enforces a general rule over the module's layer ordering (the reference's `verify-architecture` shape), **not** a narrow `cli → infrastructure` prohibition. It is a **two-part predicate** — **(A)** no *upward* import (imported tier > importer tier) **and** **(B)** the application tiers (`internal/app/**`, `internal/cli`) MUST NOT import `internal/infrastructure/**` — plus **(C)** `internal/domain/**` purity and **(D)** default-deny for an unranked `internal/**` package. **Why two parts:** the 7 `cli → infrastructure` edges are **downward** imports that a one-part "no upward import" rule leaves **legal**, so the one-part form cannot produce the 7-row baseline it must; part (B) is the target rule [#93](https://github.com/gosharplite/tellme/issues/93) mechanised ("`internal/cli`: domain + stdlib + application utilities only"). Consequence: `internal/agent → internal/ui` **is a violation** (part A), so the baseline is **8** (see the pinned ranking and the worked examples in **ADR 0011**).
 - **Q2 → resolved by measurement (RD-recordable).** Whether the gate governs `_test.go` imports and the `tests/**` harness **does not change the baseline**: measured 2026-09-17, **no** `internal/**` test file imports anything upward, and the only outward harness importer is `tests/e2e` (+ `tests/e2e/steps`), which is test-support. **Scope is therefore pinned as**: the gate governs **production `internal/**`**; `_test.go` imports in `internal/**` are also governed (they add no entries); **`cmd/tellme` (composition top)** and **`tests/**` (test-support)** are **unranked/exempt**. Pinned in `research.md`.
 - **Q3 → Option 1 — a STALE baseline entry FAILS the gate.** When a committed baseline entry no longer corresponds to a violation, the gate exits non-zero and names the entry ("remove it from the baseline"). The baseline can only shrink toward truth; each fix *must* edit it (visible in the diff). This is what gives [#92](https://github.com/gosharplite/tellme/issues/92)'s "count decreases → 0" claim teeth (falsifiable).
 
@@ -32,7 +32,7 @@
 | 7 Composition | `cmd/tellme` | top (unranked/exempt from the gate) |
 | — | `tests/**` | test-support (exempt) |
 
-**Resulting baseline = 8** (`internal/cli → internal/infrastructure/{history, llm, skills, telemetry, tools}` ×5, `internal/cli/mcp_discovery.go → internal/infrastructure/{di, mcp}` ×2, **+ `internal/agent → internal/ui`**).
+**Resulting baseline = 8** — derivable from the **two-part** predicate (B-1): **RULE-B** yields the 7 `internal/cli → internal/infrastructure/{history, llm, skills, telemetry, tools, di, mcp}` edges (downward imports the upward-only rule would leave legal); **RULE-A** yields `internal/agent → internal/ui`; RULE-C/RULE-D yield 0 today. Measured 2026-09-17: 30 packages, **8** violations, **0** unranked governed packages, **0** cycles. Normative rule + worked examples: **ADR 0011**; the gate's own **tier table** is the normative machine-readable ranking source.
 
 > **Ratchet refinement (from Q1)**: [#92](https://github.com/gosharplite/tellme/issues/92) AC1 says the count "decreases as **R2** lands (→ 0)". Under the broad rule the 8th entry (`agent → ui`) is **R3/R4's** workstream, so the ratchet reaches **0 across R2–R4**, not R2 alone. R2 removes the 7 `cli → infrastructure` entries; R3/R4 removes the `agent → ui` entry. Recorded so AC1 is read correctly.
 
@@ -72,20 +72,21 @@ As a maintainer, I want `make verify` to fail when a change introduces a new ill
 
 **Why this priority**: it is the round's entire reason to exist and the precondition for every later round in [#92](https://github.com/gosharplite/tellme/issues/92) — without it, R2's "→ 0" claim is unfalsifiable. Today **no** gate in `make verify` checks import direction.
 
-**Independent verification**: add a *new* upward import somewhere the gate governs, run the aggregate `make verify` — it exits non-zero and names the offending `path → import`; revert and it exits 0.
+**Independent verification**: add a *new* illegal import somewhere the gate governs (upward, or an application-tier → `internal/infrastructure/**`), run the aggregate `make verify` — it exits non-zero and names the offending `package -> import`; revert and it exits 0.
 
 **Acceptance Scenarios**:
 
 1. **Given** the current tree, **When** `make verify` runs, **Then** the layer-discipline gate runs, reports **0** violations beyond the baseline, and the aggregate exits 0.
-2. **Given** a change that adds a new upward import under the gate's scope, **When** `make verify` runs, **Then** the gate exits non-zero and its output **names the offending source path and import**.
+2. **Given** a change that adds a new illegal import under the gate's scope, **When** `make verify` runs, **Then** the gate exits non-zero and its output **names the offending source package and import**.
 3. **Given** the aggregate command, **When** it runs, **Then** it includes the layer-discipline gate (a violation fails the standard gate, not a side command).
 
 **Functional Requirements**:
 
-- **FR-001**: The quality pipeline MUST include a **layer-discipline gate** that computes each governed package's internal imports and flags any that import a **higher** layer than the importer's own tier (the pinned ranking).
-- **FR-002**: On any violation **beyond the baseline**, the gate MUST exit non-zero and MUST identify the offending source path and import (machine- and human-readable).
+- **FR-001**: The quality pipeline MUST include a **layer-discipline gate** that computes the module's import graph and flags, over the **pinned ranking** (below), every **violation** of the **two-part predicate**: **(A)** an import of a **higher** tier; **(B)** an import of `internal/infrastructure/**` by an application tier (`internal/app/**`, `internal/cli`); **(C)** a `internal/domain/**` package importing outside the domain; **(D)** an `internal/**` package matching **no** tier (*default-deny*). It MUST also assert **0 import cycles** (a direction-only rule cannot detect a same-tier cycle).
+- **FR-002**: On any violation **beyond the baseline**, the gate MUST exit non-zero and MUST identify the offending source package and import in a **machine- and human-readable** form (one sorted line per violation: `<source> -> <import>`, module-relative, ASCII delimiter).
 - **FR-003**: The gate MUST be a member of the aggregate verification command (`make verify`), so a new violation fails the standard gate.
-- **FR-004**: The gate MUST be **hermetic and host-independent** — it MUST NOT depend on the host `GOOS`/`GOARCH`, on an ambient environment export, or on the network; it MUST add no dependency or tool beyond the Go toolchain and `make`.
+- **FR-004**: The gate MUST be **hermetic and host-independent**: it MUST evaluate the import graph as the **union over the supported targets** (`linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`) so an OS-gated illegal import cannot hide, MUST NOT depend on host `GOOS`/`GOARCH`/`CGO_ENABLED`, and MUST NOT use the network with a **warm module cache** (the `verify` aggregate runs it after `vet`/`verify-cross-compile`, which warm the cache). It MUST add no dependency or tool beyond the Go toolchain and `make`.
+- **FR-005**: The gate MUST anchor its enumeration to the **module root** (resolve it once; run the child `go list` with `cmd.Dir = <moduleRoot>`), never to the process CWD, and MUST treat a child error or an empty graph as a **failure** (never a vacuous pass).
 
 **Non-Functional Requirements**:
 
@@ -111,10 +112,10 @@ As a maintainer, I want the violations that already exist recorded in a committe
 
 **Functional Requirements**:
 
-- **FR-005**: A **baseline file** MUST be committed, listing the currently-known violations in the **gate's own output format**, so the gate is green on `dev` at delivery.
-- **FR-006**: The baseline MUST NOT be a blanket allow-list: a violation **not** present in the baseline MUST fail the gate (FR-002).
-- **FR-007**: A **stale** baseline entry (no longer a violation) MUST **fail** the gate and name the entry (Q3 = fail). The baseline MUST support removing **exactly one** entry per fixed violation.
-- **FR-008**: The gate MUST NOT forbid the legitimate, recorded seams (e.g. it MUST NOT flag `agentTools()` — the parameterless, read-free assembler consumed by the round-031 well-formedness gate).
+- **FR-006**: A **baseline file** MUST be committed, listing the currently-known violations in the **gate's own output format** — one **`sort.Strings`-ordered** (byte-wise, never shell `sort`, whose collation is locale-dependent), **ASCII-delimited** (` -> `), **module-relative-package** line per violation — so the gate is green on `dev` at delivery; the baseline is **generated from the gate**, never transcribed.
+- **FR-007**: The baseline MUST NOT be a blanket allow-list: a violation **not** present in the baseline MUST fail the gate (FR-002).
+- **FR-008**: A **stale** baseline entry (no longer a violation) MUST **fail** the gate and name the entry (Q3 = fail); a fixed violation's entry is removed one-for-one, so the baseline only shrinks.
+- **FR-009**: The gate MUST NOT forbid the legitimate, recorded seams (e.g. it MUST NOT flag `agentTools()` — the parameterless, read-free assembler consumed by the round-031 well-formedness gate); the baseline is the mechanism for the existing-but-unfixed edges.
 
 **Non-Functional Requirements**:
 
@@ -137,8 +138,8 @@ As a maintainer/operator, I want the layer-discipline gate recorded in `specs/tr
 
 **Functional Requirements**:
 
-- **FR-009**: The gate, the layer ranking, and the baseline policy MUST be recorded in `specs/truth/techstack.md` (Build & Tooling), and the **Task runner** row's `verify` aggregate list MUST name the new member.
-- **FR-010**: The round MUST NOT change the behaviour of any existing gate or the meaning of the aggregate `verify` beyond adding the new member; it MUST NOT change any `stdout`/`stderr` behaviour of the `tellme` binary, any flag, or any exit code.
+- **FR-010**: The gate, the layer ranking, and the baseline policy MUST be recorded in `specs/truth/techstack.md` (Build & Tooling) — the new gate row stating the **predicate** (citing **ADR 0011**) — and the **Task runner** row's `verify` aggregate list MUST name the new member. A new **ADR 0011** (`docs/decisions/0011-layer-discipline-gate.md`) MUST record the rule (what it is / is not) + the worked 8-entry baseline, with its `docs/decisions/README.md` index row.
+- **FR-011**: The round MUST NOT change the behaviour of any existing gate or the meaning of the aggregate `verify` beyond adding the new member; it MUST NOT change any `stdout`/`stderr` behaviour of the `tellme` binary, any flag, or any exit code.
 
 **Non-Functional Requirements**:
 
@@ -153,7 +154,9 @@ As a maintainer/operator, I want the layer-discipline gate recorded in `specs/tr
 - **A *new* violation while the baseline lists others** → fail on the new one (FR-006).
 - **A *fixed* violation still in the baseline (stale)** → **fail**, naming the entry (FR-007, Q3).
 - **`_test.go` imports and the `tests/**` harness** → `internal/**` test files are governed (they add no entries); `tests/**` and `cmd/tellme` are exempt (scope pinned in `research.md`).
-- **Build tags / files excluded on the host** → the gate MUST evaluate the module's package imports (not a naive per-file grep) so a build-tagged upward import cannot hide.
+- **OS/build-tag-gated files** → the gate MUST evaluate the **union over the supported targets** (`CROSS_TARGETS`) so an OS-gated illegal import (`//go:build linux`/`darwin`) cannot hide; **custom build-tag**-gated files (e.g. `//go:build arch`) are a **recorded out-of-scope residual** (none today — `research.md` D6), not a claim that "build tags are respected".
+- **Unranked `internal/**` package** → MUST **fail** (default-deny, RULE-D): the gate never treats "unknown" as "allowed".
+- **A cycle** (same-tier or any-tier) → the SCC pass **fails** (cycles have no baseline; must be 0).
 - **The round's own gate files** → the guard and its self-test MUST NOT themselves introduce a violation under the rule they enforce.
 
 ## Requirements *(mandatory)*
@@ -164,37 +167,37 @@ As a maintainer/operator, I want the layer-discipline gate recorded in `specs/tr
 
 #### Functional Requirements
 
-- **FR-011**: The round MUST be **tooling + truth only**: it MUST add the gate, its self-tests, the baseline, and the truth/spec records, and MUST NOT modify any production Go behaviour or any existing gate's semantics.
-- **FR-012**: The round MUST pin the **layer ranking** (Q1, above) and the **package scope** (Q2: production `internal/**`; `cmd/**` + `tests/**` exempt) explicitly in `research.md`/`plan.md`, and MUST re-measure the baseline from the gate itself before freezing it. Shape: **ADD** — the round adds a gate + baseline + truth rows; it changes no existing truth row's meaning beyond the `verify` aggregate member.
+- **FR-012**: The round MUST be **tooling + truth only**: it MUST add the gate, its self-tests, the baseline, the ADR, and the truth/spec records, and MUST NOT modify any production Go behaviour or any existing gate's semantics.
+- **FR-013**: The round MUST pin the **layer ranking** (Q1, above) and the **package scope** (Q2: production `internal/**`; `cmd/**` + `tests/**` + `tools/**` exempt) explicitly in `research.md`/`plan.md`, and MUST re-measure the baseline from the gate itself before freezing it. Shape: **ADD** — the round adds a gate + baseline + truth/ADR records; it changes no existing truth row's meaning beyond the `verify` aggregate member.
 
 #### Non-Functional Requirements
 
-- **NFR-005**: `make verify` (including `verify-no-test-sleep`, `verify-cross-compile` 4/4, `verify-mcp-sdk-confinement`, `lint`, `govulncheck`) and the Gherkin/DSL topology audit MUST be green; the round introduces **no** new Gherkin/DSL rows unless `/axb-dsl-refine` decides the gate's dev-observable behaviour is a CLI-truth interface (A6).
+- **NFR-005**: `make verify` (including `verify-no-test-sleep`, `verify-cross-compile` 4/4, `verify-mcp-sdk-confinement`, `lint`, `govulncheck`) and the Gherkin/DSL topology audit MUST be green; the round introduces **no** new Gherkin/DSL rows (`/axb-dsl-refine` NOOP — A6).
 
 ### Key Entities *(include if feature involves data)*
 
-- **Layer ranking**: the pinned tier order (`domain` → `config`/`home` → `app` → `infrastructure` → `agent` → `ui` → `cli`; `cmd`/`tests` exempt) that defines a legal import direction.
-- **Layer violation**: a governed package's internal import of a **higher** tier — reported as `source-path → imported-path`.
+- **Layer ranking**: the pinned tier order (`domain` → `config`/`home` → `app` → `infrastructure` → `agent` → `ui` → `cli`; `cmd`/`tests`/`tools` exempt) that defines a legal import direction. The gate's **tier table** is the normative machine-readable source.
+- **Layer violation**: a governed package's import that breaks the **two-part predicate** (upward import; application-tier → `internal/infrastructure/**`; domain-purity breach; unranked governed package) — reported as `source -> import`.
 - **Baseline**: the committed, sorted file listing the currently-known violations in the gate's format; a **ratchet** that only shrinks; a stale entry is a **failure**.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: `make verify` runs the layer-discipline gate; on `dev` it is **green** with the baseline listing the current **8** violations (the count is re-measured from the gate at freeze). (covers FR-001, FR-003, FR-005)
-- **SC-002**: A deliberately added **new** upward import makes the gate **fail** and name the offending `path → import` — reproduced as a falsifiability witness, then reverted (ADR 0010 doctrine). (covers FR-002, FR-006)
-- **SC-003**: The baseline is a self-policing **ratchet**: removing an entry for an unfixed violation fails the gate, **and** a stale entry (a fixed violation left in the baseline) **fails** the gate and names the entry. (covers FR-006, FR-007)
-- **SC-004**: The gate's verdict is identical across hosts (no dependence on host `GOOS`/`GOARCH`/`CGO_ENABLED`), is deterministic/sorted, and adds no dependency (`go.mod`/`go.sum` unchanged). (covers FR-004, NFR-001, NFR-002, NFR-004)
-- **SC-005**: `specs/truth/techstack.md` (Build & Tooling) records the gate + ranking + baseline policy and the `verify` aggregate member; every pre-round gate's behaviour is unchanged; **no production Go behaviour** changes; the Gherkin/DSL topology audit is unchanged/green. (covers FR-009, FR-010, FR-011, NFR-005)
+- **SC-001**: `make verify` runs the layer-discipline gate; on `dev` it is **green** with the baseline listing the current **8** violations (the count is re-measured from the gate at freeze, and is **derivable from the two-part predicate**). (covers FR-001, FR-003, FR-006)
+- **SC-002**: A deliberately added **new** illegal import — upward (RULE-A) **or** an application-tier → `internal/infrastructure/**` (RULE-B) — makes the gate **fail** and name the offending `package -> import` — reproduced as a falsifiability witness, then reverted (ADR 0010 doctrine). (covers FR-002, FR-007)
+- **SC-003**: The baseline is a self-policing **ratchet**: removing an entry for an unfixed violation fails the gate, **and** a stale entry (a fixed violation left in the baseline) **fails** the gate and names the entry. (covers FR-007, FR-008)
+- **SC-004**: The gate's verdict is identical across hosts — it is the **union over `CROSS_TARGETS`**, so an OS-gated illegal import is caught — is deterministic/sorted, does not depend on host `GOOS`/`GOARCH`/`CGO_ENABLED`, asserts **0 cycles**, and adds no dependency (`go.mod`/`go.sum` unchanged). (covers FR-004, FR-001, NFR-001, NFR-002, NFR-004)
+- **SC-005**: `specs/truth/techstack.md` (Build & Tooling) records the gate + predicate + baseline policy and the `verify` aggregate member; **ADR 0011** + its index row are present; every pre-round gate's behaviour is unchanged; **no production Go behaviour** changes; the Gherkin/DSL topology audit is unchanged/green. (covers FR-010, FR-011, FR-012, NFR-005)
 
 ## Assumptions
 
 - **A1 (intent)** — R1 is a **ratchet**, not a switch: today's violations are **baselined** (not fixed); fixing them is R2–R4. `dev` MUST be green at delivery.
 - **A2 (atomicity)** — the gate lands **together with** its baseline and wiring (round-040 TD-1 precedent).
-- **A3 (weak E2E carrier)** — because truth/DSL is expected ~NOOP, the **E2E suite is a weak acceptance carrier** here; the witness is **the gate + unit seams**, not "the suite is green" (the round-009 *"green suite = false confidence"* trap, restated in [#92](https://github.com/gosharplite/tellme/issues/92)). Per this, **`/axb-spec-by-example` is NOOP** (no user-facing business journey) — precedent: rounds 020/031/036/041.
-- **A4 (guard form)** — the exact guard form (a build-tagged Go import-graph test vs a Makefile grep vs a script) is an **RD** decision (`/axb-technical-research`); precedent: round-020 A3.
-- **A5 (ADR, optional)** — R1 likely needs **no** new ADR (the ADR obligation in [#92](https://github.com/gosharplite/tellme/issues/92) attaches to **R3**'s yield policy); a short layer-model ADR is an RD decision.
-- **A6 (no other interfaces)** — `/axb-api-plan` = **NOOP** (no HTTP surface); `/axb-data-plan` = **NOOP** (no persisted state — the baseline is a **repo artifact**, not runtime state; the `/axb-data-plan` owner ratifies); `/axb-ui-plan` skipped (no TUI surface). Whether `/axb-dsl-refine` is NOOP or adds a dev-observable contract is an RD decision.
+- **A3 (weak E2E carrier)** — because truth/DSL is expected ~NOOP, the **E2E suite is a weak acceptance carrier** here; the witness is **the gate + its self-tests**, not "the suite is green" (the round-009 *"green suite = false confidence"* trap, restated in [#92](https://github.com/gosharplite/tellme/issues/92)). Per this, **`/axb-spec-by-example` is NOOP** (no user-facing business journey) — precedent: rounds 020/031/036/041.
+- **A4 (guard form)** — the guard is a **build-tagged Go guard test** (`//go:build arch`) that shells stdlib `go list` from the module root; the exact file layout is an **RD** decision (`research.md` D2/D4), not an FR.
+- **A5 (ADR required)** — **ADR 0011** records the rule + baseline policy (per `docs/decisions/README.md`: a project-level rule other rounds must cite — R2–R4 will). *(This **replaces** the earlier "no ADR" position — review RF-1.)*
+- **A6 (no other interfaces)** — `/axb-api-plan` = **NOOP** (no HTTP surface); `/axb-data-plan` = **NOOP** (no persisted state — the baseline is a **repo artifact**, not runtime state; the `/axb-data-plan` owner ratifies); `/axb-dsl-refine` = **NOOP** (the gate is a **dev surface**, not the `tellme` CLI contract); `/axb-ui-plan` skipped (no TUI surface).
 
 ## Out of scope (recorded)
 
