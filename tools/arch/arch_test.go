@@ -298,11 +298,17 @@ func runGoList(t *testing.T, root, goos, goarch string) string {
 	return stdout.String()
 }
 
-// enumerate returns the union, over every supported target, of the module's
-// internal import edges (src -> set of dst).
-func enumerate(t *testing.T, root string) map[string]map[string]bool {
+// enumerate returns, for the union over every supported target, two edge sets:
+// the merged graph (production + in-package test + external test-package
+// imports) that the RULE evaluates, and the **production-only** graph that the
+// acyclicity assertion evaluates. The rule governs test imports too (spec.md Q2);
+// the cycle property is about code that must compile — Go permits cycles that
+// exist only in tests, so a legal same-tier mutual test import must not fail the
+// SCC (review Fold 1).
+func enumerate(t *testing.T, root string) (merged, prod map[string]map[string]bool) {
 	t.Helper()
-	graph := map[string]map[string]bool{}
+	merged = map[string]map[string]bool{}
+	prod = map[string]map[string]bool{}
 	for _, tg := range crossTargets {
 		out := runGoList(t, root, tg.goos, tg.goarch)
 		for _, line := range strings.Split(out, "\n") {
@@ -315,23 +321,30 @@ func enumerate(t *testing.T, root string) map[string]map[string]bool {
 			if !ok {
 				continue
 			}
-			if graph[rp] == nil {
-				graph[rp] = map[string]bool{}
+			if merged[rp] == nil {
+				merged[rp] = map[string]bool{}
+				prod[rp] = map[string]bool{}
 			}
-			// Merge production + in-package test + external test-package imports
-			// (Fold 1): a test file's import is an edge from the package it lives in.
+			// Field 1 is production imports; fields 2/3 are in-package and
+			// external test-package imports. A test file's import is an edge from
+			// the package it lives in (Fold 1).
 			imps, rest, _ := strings.Cut(rest, "|")
 			testImps, xTestImps, _ := strings.Cut(rest, "|")
-			for _, group := range []string{imps, testImps, xTestImps} {
+			for i, group := range []string{imps, testImps, xTestImps} {
 				for _, imp := range strings.Fields(group) {
-					if rd, ok := rel(imp); ok {
-						graph[rp][rd] = true
+					rd, ok := rel(imp)
+					if !ok {
+						continue
+					}
+					merged[rp][rd] = true
+					if i == 0 { // production edge
+						prod[rp][rd] = true
 					}
 				}
 			}
 		}
 	}
-	return graph
+	return merged, prod
 }
 
 // readBaseline parses the committed baseline. An absent, unreadable, or
@@ -368,7 +381,11 @@ func writeBaseline(t *testing.T, path string, violations []string) {
 	b.WriteString("#\n")
 	b.WriteString("# Generated from the gate's own output — NEVER hand-edit. Regenerate with:\n")
 	b.WriteString("#   make verify-architecture-update\n")
-	b.WriteString("#   (= go test -tags=arch -run TestVerifyRealArchitecture ./tools/arch -args -update-baseline)\n")
+	b.WriteString("#   (= go test -count=1 -tags=arch -run TestVerifyRealArchitecture ./tools/arch -args -update-baseline)\n")
+	b.WriteString("#\n")
+	b.WriteString("# Run the gate directly as:\n")
+	b.WriteString("#   go vet -tags=arch ./tools/arch\n")
+	b.WriteString("#   go test -count=1 -tags=arch -run TestVerifyRealArchitecture ./tools/arch\n")
 	b.WriteString("#\n")
 	b.WriteString("# A line `<src> -> <dst>` is a known, baselined RULE-A/B/C violation. This is a\n")
 	b.WriteString("# ratchet that only shrinks: a violation not listed here FAILS the gate, and a\n")
@@ -483,7 +500,7 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	properties := 0
 
 	// Property 1 — enumeration (B-2).
-	graph := enumerate(t, root)
+	graph, prodGraph := enumerate(t, root)
 	assertGraphEnumerated(t, graph)
 	properties++
 
@@ -491,12 +508,15 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	selfTestPredicate(t)
 	assertNoUnrankedGoverned(t, graph)
 
-	// Property 2 — ranking + baseline diff.
+	// Property 2 — ranking + baseline diff (rule evaluated on the merged graph,
+	// so test imports are governed).
 	violations := evaluate(graph)
 	properties++
 
-	// Property 3 — acyclicity (ADR 0011 D8 / issue #93 AC4).
-	if cyclic := cycles(graph); len(cyclic) > 0 {
+	// Property 3 — acyclicity (ADR 0011 D8 / issue #93 AC4), on the
+	// **production-only** union: Go permits test-only cycles, so the cycle
+	// property is about code that must compile (review Fold 1).
+	if cyclic := cycles(prodGraph); len(cyclic) > 0 {
 		t.Fatalf("import cycles detected (0 expected): %v", cyclic)
 	}
 	properties++

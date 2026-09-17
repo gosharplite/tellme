@@ -2,7 +2,11 @@
 #
 # Generated from the gate's own output — NEVER hand-edit. Regenerate with:
 #   make verify-architecture-update
-#   (= go test -tags=arch -run TestVerifyRealArchitecture ./tools/arch -args -update-baseline)
+#   (= go test -count=1 -tags=arch -run TestVerifyRealArchitecture ./tools/arch -args -update-baseline)
+#
+# Run the gate directly as:
+#   go vet -tags=arch ./tools/arch
+#   go test -count=1 -tags=arch -run TestVerifyRealArchitecture ./tools/arch
 #
 # A line `<src> -> <dst>` is a known, baselined RULE-A/B/C violation. This is a
 # ratchet that only shrinks: a violation not listed here FAILS the gate, and a
