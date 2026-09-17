@@ -27,4 +27,5 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending — the `chat/dsl.md` reason row is owned here)_ | `specs/truth/features/cli/chat/dsl.md` | — | — |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` — the reason row (`the run reported the reason "{reason}" for the tool call "{tool}"`) | The row now states the **single-line guarantee** explicitly (embedded `\n`/`\r` folded to spaces, surrounding whitespace trimmed, one line) and lands the cap constant `reasonValueCap = 200` (one U+2026 inside the cap, rune-safe), matching the sibling result/action rows; the blank-reason behaviour (no line) is recorded. **No new `DSLRow`** (row prose MODIFY only). | Issue #74; `spec.md` FR-001/FR-002/FR-005; `research.md` D2/D3. |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` — round-036 note | Added a round-036 note recording the fold+trim+cap (`reasonValueCap = 200`, cap set `{189, 200}` → `{189, 200, 200}`) and the blank-reason suppression; records that the fix **restores round-022 B1**'s fold guarantee (dropped unrecorded by round 034) and points at **ADR 0006**; states the witness is a hostile-fixture **unit pin** (no new row/Example — a deliberate permanent narrowing); notes independence from the round-035 yield. | `research.md` D1–D5; issue #74. |
