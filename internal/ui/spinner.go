@@ -14,15 +14,17 @@ import (
 // Round-019 turn progress spinner (specs/truth/features/cli/chat/presenting-the-progress-spinner.feature).
 // A live, animated indicator on the diagnostic stream (stderr) while a non-TUI
 // prompt turn waits: a braille frame advancing on a ~200 ms ticker, a phase
-// status label naming the model or the tool(s), and a whole-seconds elapsed
+// status label naming the model or the tool(s), and a DUAL whole-seconds elapsed
 // counter; the tool-execution state also reports the machine's CPU/memory. It is
 // hand-written (no dependency) and its frame updates share one I/O mutex, so
 // Stop()/Clear() are synchronous and no in-flight frame survives a clear
 // (round-019 research Decisions 1, 2, 4, 10).
 //
-// The elapsed counter is TURN-scoped (research D4): it counts from the turn's
-// prompt-capture epoch and is NEVER reset — an in-place relabel, or a clear +
-// resume around interleaved output, keeps counting from that same epoch.
+// The elapsed display is a DUAL timer (round 040, issue #83; amends round-019 D4;
+// ADR 0009 D1): the TOTAL since the turn's prompt-capture epoch — turn-scoped and
+// NEVER reset — plus the CURRENT MODEL CALL's elapsed, reset at each AI-endpoint
+// call (stamped in OnInferenceStart). Terminology: a turn is the whole prompt
+// exchange (1..k model calls); the second figure measures the current model call.
 //
 // Round 025 makes the line WIDTH-SAFE (research Decisions 1–3): the several-tool
 // status label is BOUNDED (` Executing tools [<first> and <N-1> more]...`), and
@@ -75,9 +77,22 @@ func ExecutingToolsLabel(names []string) string {
 	}
 }
 
-// FormatSpinnerLine renders one spinner line `{frame}{status} ({n}s){resource}`.
-func FormatSpinnerLine(frame, status string, elapsed int, resource string) string {
-	return fmt.Sprintf("%s%s (%ds)%s", frame, status, elapsed, resource)
+// wholeSecondsSince returns the whole seconds from t to now, floored at 0
+// (round 040 T012: the single elapsed-formatting site for both figures).
+func wholeSecondsSince(t, now time.Time) int {
+	s := int(now.Sub(t) / time.Second)
+	if s < 0 {
+		return 0
+	}
+	return s
+}
+
+// FormatSpinnerLine renders one spinner line
+// `{frame}{status} ({total}s {call}s){resource}`. Round 040 (ADR 0009 D1): the
+// elapsed segment carries TWO unlabelled whole-second figures — the total since
+// prompt capture, then the current model call's elapsed.
+func FormatSpinnerLine(frame, status string, total, call int, resource string) string {
+	return fmt.Sprintf("%s%s (%ds %ds)%s", frame, status, total, call, resource)
 }
 
 // FormatResourceSegment renders the tool-execution resource segment
@@ -144,9 +159,16 @@ type Spinner struct {
 	// clear; nil or <= 0 means the width is unknown (single-row best effort).
 	columns func() int
 
-	// epoch is the turn's prompt-capture time: the elapsed counter measures
-	// now − epoch for the WHOLE turn and is never reset (research D4).
+	// epoch is the turn's prompt-capture time: the TOTAL elapsed figure measures
+	// now − epoch for the WHOLE turn and is never reset (round-019 D4).
 	epoch time.Time
+
+	// callEpoch is the CURRENT model call's start (round 040, ADR 0009 D2): the
+	// SECOND elapsed figure measures now − callEpoch and is reset at each
+	// AI-endpoint call (OnInferenceStart). Initialised to epoch so the figure is
+	// valid before the first call. It is an INTERNAL epoch — NOT a sixth
+	// constructor seam (round-019 R-2).
+	callEpoch time.Time
 
 	// now and newTicker are the injected time seams (round-019 research D8); a
 	// nil newTicker falls back to the real ~200 ms ticker.
@@ -180,7 +202,10 @@ func NewSpinner(w io.Writer, model string, epoch time.Time, m metrics.SystemMetr
 		metrics: m,
 		columns: columns,
 		epoch:   epoch,
-		now:     time.Now,
+		// Round 040: the model-call epoch starts equal to the turn epoch, so the
+		// dual figures coincide until the first OnInferenceStart.
+		callEpoch: epoch,
+		now:       time.Now,
 		newTicker: func() (<-chan time.Time, func()) {
 			t := time.NewTicker(SpinnerInterval)
 			return t.C, t.Stop
@@ -188,10 +213,16 @@ func NewSpinner(w io.Writer, model string, epoch time.Time, m metrics.SystemMetr
 	}
 }
 
-// OnInferenceStart starts (or relabels) the model-phase indicator. The first
-// frame is drawn synchronously; an in-place relabel preserves the elapsed counter
-// (which is turn-scoped — research D4).
-func (s *Spinner) OnInferenceStart() { s.activate(ThinkingLabel(s.model), false) }
+// OnInferenceStart starts (or relabels) the model-phase indicator and STAMPS the
+// current model call's epoch (round 040, ADR 0009 D2). The loop fires it exactly
+// once per AI-endpoint call, so the second figure resets here; the total figure is
+// unaffected (turn-scoped, never reset). The first frame is drawn synchronously.
+func (s *Spinner) OnInferenceStart() {
+	s.mu.Lock()
+	s.callEpoch = s.now()
+	s.mu.Unlock()
+	s.activate(ThinkingLabel(s.model), false)
+}
 
 // OnInferenceEnd leaves the indicator running until the next phase or the final
 // clear (the CLI calls Stop before any interleaved write).
@@ -218,15 +249,17 @@ func (s *Spinner) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []strin
 func (s *Spinner) BeforeToolLog() { s.deactivate() }
 
 // AfterToolLog restores the indicator after a tool-loop log write. The elapsed
-// counter is turn-scoped, so it continues from the turn epoch (it does NOT reset
-// — research D4).
+// figures continue: the TOTAL is turn-scoped and never reset (round-019 D4); the
+// SECOND (the current model call's elapsed) is preserved within the call (round
+// 040, ADR 0009 D2).
 func (s *Spinner) AfterToolLog() { s.resume() }
 
 // Stop synchronously clears the indicator and stops its redraw. It is idempotent.
 func (s *Spinner) Stop() { s.deactivate() }
 
 // activate starts the redraw (drawing the first frame synchronously) or relabels
-// a running indicator. The elapsed epoch is turn-scoped and never reset.
+// a running indicator. The total epoch is turn-scoped and never reset; activate
+// preserves the current call's epoch (round 040).
 func (s *Spinner) activate(status string, toolPhase bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -243,7 +276,36 @@ func (s *Spinner) activate(status string, toolPhase bool) {
 	tick, stopTicker := s.newTicker()
 	s.stopTicker = stopTicker
 	s.renderLocked()
-	go s.loop(tick, s.stopCh, s.doneCh)
+	go s.loop(tick, s.stopCh, s.doneCh, false)
+}
+
+// AdmitResume is the round-040 WS-A resume-only admission path (ADR 0009 D4): it
+// starts the redraw for a live-but-stopped indicator WITHOUT drawing the first
+// frame synchronously — the redraw goroutine draws it immediately on start
+// (renderFirst), so no blocking frame write is held inside the caller's block
+// critical section (the coordinator admits under the block-writer mutex, TD-3).
+// It is a defined no-op when the indicator is already running or has no phase
+// label (RF-3), and never touches the turn/call epochs (they are preserved).
+func (s *Spinner) AdmitResume() {
+	s.mu.Lock()
+	status := s.status
+	if s.running || status == "" {
+		s.mu.Unlock()
+		return
+	}
+	s.running = true
+	s.frameIdx = 0
+	// Capture the channels as LOCALS and pass them to the goroutine (R-40-1): a
+	// later AdmitResume/activate sets the FIELDS under the mutex, so reading the
+	// fields after unlocking would be an unsynchronized read — the harmful
+	// interleaving being a mismatched stop/done pair (a wedged deactivate or a
+	// "close of closed channel" panic). activate() already passes locals.
+	stopCh, doneCh := make(chan struct{}), make(chan struct{})
+	s.stopCh, s.doneCh = stopCh, doneCh
+	tick, stopTicker := s.newTicker()
+	s.stopTicker = stopTicker
+	s.mu.Unlock()
+	go s.loop(tick, stopCh, doneCh, true)
 }
 
 // resume restores the indicator after interleaved output. The turn-scoped epoch
@@ -285,9 +347,22 @@ func (s *Spinner) deactivate() {
 	s.mu.Unlock()
 }
 
-// loop advances and redraws the frame on each tick until stopped.
-func (s *Spinner) loop(tick <-chan time.Time, stop, done chan struct{}) {
+// loop advances and redraws the frame on each tick until stopped. renderFirst
+// (round 040) draws one frame immediately on start — the WS-A resume path
+// (AdmitResume) uses it so the resumed frame appears without waiting a full poll
+// period; activate keeps renderFirst=false (its synchronous first frame is drawn
+// before the goroutine starts).
+func (s *Spinner) loop(tick <-chan time.Time, stop, done chan struct{}, renderFirst bool) {
 	defer close(done)
+	if renderFirst {
+		s.mu.Lock()
+		if !s.running {
+			s.mu.Unlock()
+			return
+		}
+		s.renderLocked()
+		s.mu.Unlock()
+	}
 	for {
 		select {
 		case <-stop:
@@ -305,19 +380,18 @@ func (s *Spinner) loop(tick <-chan time.Time, stop, done chan struct{}) {
 	}
 }
 
-// renderLocked writes one redrawn frame (the mutex must be held). The elapsed is
-// measured from the turn epoch (turn-scoped — research D4). Round 025 erases every
-// row the PREVIOUS frame occupied before drawing, and records the new frame's row
-// count so the next redraw / the clear can erase all of them.
+// renderLocked writes one redrawn frame (the mutex must be held). Round 040
+// measures TWO elapsed figures: the TOTAL from the turn epoch (turn-scoped, never
+// reset) and the CURRENT MODEL CALL's elapsed from callEpoch (reset per
+// AI-endpoint call). Round 025 erases every row the PREVIOUS frame occupied before
+// drawing, and records the new frame's row count so the next redraw / the clear
+// can erase all of them.
 func (s *Spinner) renderLocked() {
 	if s.w == nil {
 		return
 	}
 	frame := SpinnerFrames[s.frameIdx%len(SpinnerFrames)]
-	elapsed := int(s.now().Sub(s.epoch) / time.Second)
-	if elapsed < 0 {
-		elapsed = 0
-	}
+	now := s.now()
 	resource := ""
 	if s.toolPhase {
 		var cpu, mem float64
@@ -326,7 +400,7 @@ func (s *Spinner) renderLocked() {
 		}
 		resource = FormatResourceSegment(cpu, mem)
 	}
-	line := FormatSpinnerLine(frame, s.status, elapsed, resource)
+	line := FormatSpinnerLine(frame, s.status, wholeSecondsSince(s.epoch, now), wholeSecondsSince(s.callEpoch, now), resource)
 	// Erase every row the previous frame occupied (round 025; a single-row clear
 	// when lastRows <= 1), then draw the new frame and record its row count.
 	_, _ = io.WriteString(s.w, eraseRows(s.lastRows)+line)

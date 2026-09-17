@@ -204,9 +204,10 @@ func runCaptured(ctx context.Context, command string, budget int, sink ToolOutpu
 	if err != nil {
 		return "", fmt.Errorf("execute_command: stderr pipe: %w", err)
 	}
-	// Round 034 (FR-010): open the live `[Tool Output]` block before the child
-	// starts. The block renders unconditionally — the CLI's Begin stops the
-	// spinner and writes the header/separator; a nil spinner is a no-op.
+	// Round 034 (FR-010) + round 040 (ADR 0009 D3): open the live `[Tool Output]`
+	// block before the child starts. The block renders unconditionally — the
+	// coordinator clears the spinner, writes the header/separator, and starts the
+	// idle watcher; a nil spinner is a no-op.
 	if sink.Enabled() {
 		sink.Begin()
 	}
@@ -247,8 +248,10 @@ func runCaptured(ctx context.Context, command string, budget int, sink ToolOutpu
 	}
 	werr := cmd.Wait()
 	if sink.Enabled() {
-		// Close the block: the CLI writes the closing separator and drops any
-		// trailing partial line, then resumes the spinner (FR-010/FR-012).
+		// Close the block: the coordinator stops+joins the idle watcher, clears the
+		// indicator (inside the writer's critical section), writes the closing
+		// separator (dropping any trailing partial line), then resumes (FR-010;
+		// round 040 ADR 0009 D4 — no whole-block pause).
 		sink.End()
 	}
 

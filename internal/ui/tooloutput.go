@@ -16,6 +16,16 @@ import (
 // separator is 60 ASCII hyphens. A trailing partial line is DROPPED, never
 // flushed (FR-010). The writer owns its own mutex, because the child's stdout and
 // stderr each feed it from a separate io.Copy goroutine (ADR 0005 D7).
+//
+// Round 040 (ADR 0009 D3/D4 — supersedes ADR 0005 D7): the writer is ALSO the
+// block's sole lock/state owner for the WS-A idle-gap liveness. It exposes three
+// lock-scoped entry points — WriteWith (the line path, with a per-line clear
+// hook), EndWith (the close-path clear hook), and withLock (the bookkeeping/idle
+// query) — and stamps `lastLine` INSIDE the same critical section that emits a
+// line. The coordinator admits the resume under this mutex and clears/joins before
+// a line via these entry points, so the invariant is mutual exclusion + join (not
+// "single writer") with lock order block-writer mutex → spinner mutex — and the
+// coordinator never reaches into `mu`.
 
 // ToolOutputSeparator is the reference's fixed separator literal (60 hyphens).
 const ToolOutputSeparator = "------------------------------------------------------------"
@@ -58,6 +68,10 @@ type ToolOutputWriter struct {
 	mu   sync.Mutex
 	buf  []byte
 	open bool
+	// lastLine is when the block last emitted an output line (round 040, ADR 0009
+	// D3/D4): seeded at Begin and stamped in the same critical section that emits
+	// each line, so the WS-A idle query (withLock) measures the true quiet gap.
+	lastLine time.Time
 }
 
 // now returns the clock reading (falling back to time.Now).
@@ -69,7 +83,9 @@ func (w *ToolOutputWriter) now() time.Time {
 }
 
 // Begin writes the header and the opening separator (FR-010). It is a no-op on a
-// nil writer or a writer already open.
+// nil writer or a writer already open. Round 040 (ADR 0009 D3): it ALSO seeds the
+// idle clock (`lastLine`), so a command that prints nothing at all still resumes
+// the indicator after the idle gap (the zero-output case).
 func (w *ToolOutputWriter) Begin() {
 	if w.W == nil {
 		return
@@ -81,14 +97,25 @@ func (w *ToolOutputWriter) Begin() {
 	}
 	w.open = true
 	w.buf = w.buf[:0]
-	_, _ = fmt.Fprintln(w.W, FormatToolOutputHeader(w.now()))
+	now := w.now()
+	w.lastLine = now
+	_, _ = fmt.Fprintln(w.W, FormatToolOutputHeader(now))
 	_, _ = fmt.Fprintln(w.W, ToolOutputSeparator)
 }
 
 // Write assembles complete lines and emits each as a `[Tool Output]` line; a
-// trailing partial line is kept for the next call (or dropped at End). It
-// consumes all input and never errors (best-effort diagnostics).
-func (w *ToolOutputWriter) Write(p []byte) (int, error) {
+// trailing partial line is kept for the next call (or dropped at End). It is
+// WriteWith with no per-line hook.
+func (w *ToolOutputWriter) Write(p []byte) (int, error) { return w.WriteWith(p, nil) }
+
+// WriteWith is the round-040 line-path entry point (ADR 0009 D4): for each
+// COMPLETE output line it first calls beforeLine (the coordinator's synchronous
+// clear) and then writes the line and stamps the idle clock — all under the
+// writer's mutex, so a line can never be interleaved by a spinner frame and the
+// clear is atomic with respect to the line. A nil beforeLine is a plain write. It
+// consumes all input and never errors (best-effort diagnostics). The line
+// splitting stays inside this method over the private `buf` (R-2).
+func (w *ToolOutputWriter) WriteWith(p []byte, beforeLine func()) (int, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if w.W == nil || !w.open {
@@ -102,16 +129,29 @@ func (w *ToolOutputWriter) Write(p []byte) (int, error) {
 		}
 		line := strings.TrimRight(string(w.buf[:i]), "\r")
 		w.buf = w.buf[i+1:]
-		_, _ = fmt.Fprintln(w.W, FormatToolOutputLine(w.now(), line))
+		if beforeLine != nil {
+			beforeLine()
+		}
+		now := w.now()
+		_, _ = fmt.Fprintln(w.W, FormatToolOutputLine(now, line))
+		w.lastLine = now
 	}
 	return len(p), nil
 }
 
 // End drops the trailing partial line (never flushed) and writes the closing
-// separator (FR-010). It is idempotent. Round 038 (FR-005): it first restores the
-// terminal's default state (a reset), so a dropped trailing-partial-line reset or
-// a command killed mid-output cannot strand the terminal in a non-default state.
-func (w *ToolOutputWriter) End() {
+// separator (FR-010). It is EndWith with no hook. It is idempotent. Round 038
+// (FR-005): it first restores the terminal's default state (a reset), so a
+// dropped trailing-partial-line reset or a command killed mid-output cannot strand
+// the terminal in a non-default state.
+func (w *ToolOutputWriter) End() { w.EndWith(nil) }
+
+// EndWith is the round-040 close-path entry point (ADR 0009 D4, R-8): it calls
+// beforeSeparator (the coordinator's synchronous clear) INSIDE the writer's
+// critical section before the closing separator, so the clear is atomic with
+// respect to any in-flight line write (a drain goroutine can still be inside
+// Write at End on the trim/timeout paths). A nil hook is a plain close.
+func (w *ToolOutputWriter) EndWith(beforeSeparator func()) {
 	if w.W == nil {
 		return
 	}
@@ -122,6 +162,24 @@ func (w *ToolOutputWriter) End() {
 	}
 	w.open = false
 	w.buf = nil // drop the trailing partial line — never flushed
+	if beforeSeparator != nil {
+		beforeSeparator()
+	}
 	_, _ = fmt.Fprint(w.W, ToolOutputReset)
 	_, _ = fmt.Fprintln(w.W, ToolOutputSeparator)
+}
+
+// withLock is the round-040 bookkeeping/idle entry point (ADR 0009 D4, R-11): it
+// runs fn under the writer's mutex, handing it the current idle duration since the
+// last emitted line. The writer computes the idle under its own lock, so the
+// coordinator's check + admit is one critical section (a self-locking IdleSince
+// called inside would deadlock; an unlocked one would race). It is a no-op when
+// the block is not open.
+func (w *ToolOutputWriter) withLock(fn func(idle time.Duration)) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if !w.open {
+		return
+	}
+	fn(w.now().Sub(w.lastLine))
 }
