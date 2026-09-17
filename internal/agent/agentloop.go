@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	agentport "github.com/gosharplite/tellme/internal/domain/agent"
@@ -263,7 +264,10 @@ func (a *AgentLoop) notifyCallEnd(callIndex int, usage llm.Usage, roundReasons [
 func reasonsOf(calls []llm.ToolCall) []string {
 	var out []string
 	for _, tc := range calls {
-		if r := toolReason(tc.Arguments); r != "" {
+		// Round 036 (issue #74): a blank reason contributes no grouped tail line
+		// either (the SANITIZED value is the guard, so `"   "` / `"\n"` never
+		// becomes a tail row).
+		if r := toolReason(tc.Arguments); strings.TrimSpace(r) != "" {
 			out = append(out, r)
 		}
 	}
@@ -286,7 +290,11 @@ func (a *AgentLoop) logEngine(step, total int) {
 // `[Tool Action]` line at call begin.
 func (a *AgentLoop) logAction(tc llm.ToolCall) {
 	a.withToolLog(func() {
-		if reason := toolReason(tc.Arguments); reason != "" {
+		// Round 036 (issue #74): a blank reason (empty OR whitespace-only after
+		// folding+trimming) emits NO reason line — the round-022 B1 intent. The
+		// guard checks the SANITIZED value so a `"   "` / `"\n"` reason cannot
+		// render a dangling prefix row.
+		if reason := toolReason(tc.Arguments); strings.TrimSpace(reason) != "" {
 			_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolReason(a.now(), reason))
 		}
 		_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolAction(a.now(), tc.Name, tc.Arguments))
