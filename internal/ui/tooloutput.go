@@ -55,12 +55,17 @@ func FormatToolOutputLine(t time.Time, line string) string {
 //   - DEL (0x7f).
 //
 // Out of scope (untouched): the 8-bit C1 control range (0x80–0x9F) and all other
-// bytes ≥ 0x80, so multibyte UTF-8 text survives intact and the result is always
-// valid UTF-8 (the ESC-consumption is ASCII-gated so it can never decapitate a
-// neighbouring multi-byte rune). An unterminated CSI/OSC is consumed for at most
-// escScanLimit bytes; beyond that only the ESC is dropped and scanning continues,
-// so a binary blob cannot swallow a whole line's visible text. Pure, and
-// allocation-free on a control-free line.
+// bytes ≥ 0x80. The sanitizer only REMOVES bytes; it never INTRODUCES invalid
+// UTF-8 — the ESC consumption is ASCII-gated (so it can never split a multi-byte
+// rune), while the bytes it forwards are passed through verbatim (so a genuinely
+// binary source can still arrive as invalid UTF-8 and be forwarded unchanged).
+//
+// The ESC-scan window is bounded PER KIND (csiScanLimit / oscScanLimit): a
+// sequence whose terminator lies within its window is removed in FULL, however
+// long (an OSC-8 hyperlink's URL is legitimately hundreds of bytes), while a
+// sequence whose terminator lies beyond the window — or an unterminated one —
+// drops only the ESC and continues, so a mangled/binary fragment cannot swallow a
+// line's visible text. Pure, and allocation-free on a control-free line.
 func sanitizeControl(s string) string {
 	if !strings.ContainsFunc(s, isControlRune) {
 		return s
@@ -81,10 +86,16 @@ func sanitizeControl(s string) string {
 	return b.String()
 }
 
-// escScanLimit bounds how far an unterminated CSI/OSC scanner consumes before it
-// gives up and drops only the ESC (ADR 0007 — a mangled/binary fragment must not
-// swallow a line's visible text).
-const escScanLimit = 64
+// The per-kind bounds on the ESC-scan window (ADR 0007 D2). CSI parameters are
+// numeric/intermediate and short by nature; OSC carries a string — a window title
+// or an OSC-8 hyperlink URL — which is legitimately long, so its window is much
+// wider. Either way the window only bounds an UNTERMINATED (or terminator-beyond-
+// window) sequence so a blob cannot swallow the line; a terminated sequence inside
+// its window is always removed in full.
+const (
+	csiScanLimit = 128
+	oscScanLimit = 1024
+)
 
 // isControlRune reports whether r is terminal control data (ESC, a C0 control
 // other than TAB, or DEL).
@@ -110,10 +121,11 @@ func escSequenceLen(s string) int {
 }
 
 // csiLen returns the length of a CSI (ESC `[`) sequence: parameter/intermediate
-// bytes then a final byte 0x40–0x7E. An unterminated sequence drops only the ESC
-// (returns 1) so it cannot swallow the line's remaining text.
+// bytes then a final byte 0x40–0x7E, within the CSI window. A sequence whose
+// terminator lies beyond the window (or is absent) drops only the ESC (returns 1)
+// so it cannot swallow the line's remaining text.
 func csiLen(s string) int {
-	limit := min(len(s), escScanLimit)
+	limit := min(len(s), csiScanLimit)
 	for i := 2; i < limit; i++ {
 		if s[i] >= 0x40 && s[i] <= 0x7e {
 			return i + 1
@@ -123,9 +135,10 @@ func csiLen(s string) int {
 }
 
 // oscLen returns the length of an OSC (ESC `]`) sequence: terminated by BEL
-// (0x07) or ST (ESC `\`). An unterminated sequence drops only the ESC (returns 1).
+// (0x07) or ST (ESC `\`), within the OSC window. A sequence whose terminator lies
+// beyond the window (or is absent) drops only the ESC (returns 1).
 func oscLen(s string) int {
-	limit := min(len(s), escScanLimit)
+	limit := min(len(s), oscScanLimit)
 	for i := 2; i < limit; i++ {
 		if s[i] == 0x07 {
 			return i + 1
@@ -140,10 +153,11 @@ func oscLen(s string) int {
 // genericEscLen returns the length of a generic ESC sequence: ESC + optional
 // intermediates (0x20–0x2F) + one **ASCII** final byte (ADR 0007 B1: the final
 // byte is ASCII-gated, so ESC + a multi-byte rune drops the ESC and keeps the
-// rune intact instead of decapitating it into invalid UTF-8).
+// rune intact instead of decapitating it into invalid UTF-8). The intermediate
+// run is itself bounded so a long one cannot swallow the line.
 func genericEscLen(s string) int {
 	i := 1
-	for i < len(s) && s[i] >= 0x20 && s[i] <= 0x2f {
+	for i < len(s) && i < csiScanLimit && s[i] >= 0x20 && s[i] <= 0x2f {
 		i++
 	}
 	if i < len(s) && s[i] < 0x80 {

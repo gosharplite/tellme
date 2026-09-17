@@ -87,10 +87,12 @@ func r038RestoredAfterBlock(stream string) bool {
 
 func givenRunsColouringCommand(ctx context.Context, provider, answer string) error {
 	sc := scenarioFrom(ctx)
-	// The command emits an SGR colour with no reset AND a multibyte word, so the
-	// sanitized content line is both control-free and valid UTF-8 (review B1).
+	// The command emits an SGR colour with no reset AND (N-5) an ESC DIRECTLY
+	// followed by a multibyte rune, so the E2E sanitize predicate exercises both
+	// the CSI path and `genericEscLen`'s adjacency path (ESC + a rune → drop only
+	// the ESC); the content line must be control-free and valid UTF-8 (B1).
 	return scriptToolThenAnswer(sc, provider, "execute_command",
-		commandArgs(map[string]any{"command": "printf '\\033[31mFAILED: 失敗\\n'", "reason": "r"}), answer)
+		commandArgs(map[string]any{"command": "printf '\\033[31mFAILED\\033失敗\\n'", "reason": "r"}), answer)
 }
 
 func givenRunsColouringCommandStopped(ctx context.Context, provider, answer string) error {

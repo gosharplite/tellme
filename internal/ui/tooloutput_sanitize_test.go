@@ -98,6 +98,34 @@ func TestToolOutputWriterBoundsUnterminatedSequence(t *testing.T) {
 	}
 }
 
+func TestFormatToolOutputLineStripsLongTerminatedSequences(t *testing.T) {
+	// TD-3: a long-but-TERMINATED sequence must still be removed in full — its
+	// parameters must not leak as visible text. The per-kind windows (CSI 128,
+	// OSC 1024) are wide enough for real CSI parameters, OSC titles, and OSC-8
+	// hyperlink URLs (the last legitimately exceed the old single 64-byte cap).
+	cases := []struct{ name, in, want string }{
+		{
+			"osc-8 hyperlink with a long url",
+			"\x1b]8;;https://github.com/gosharplite/tellme/issues/80-with-a-long-query-string?x=1\x1b\\click me",
+			"click me",
+		},
+		{"long osc title", "\x1b]0;" + strings.Repeat("T", 400) + "\x07body", "body"},
+		{"long sgr parameter run", "\x1b[" + strings.Repeat("1;", 40) + "31mPARAMS", "PARAMS"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := FormatToolOutputLine(r034Clock, tc.in)
+			want := "[20:29:51] [Tool Output] " + tc.want
+			if got != want {
+				t.Errorf("FormatToolOutputLine(long) = %q; want %q", got, want)
+			}
+			if strings.ContainsRune(got, 0x1b) {
+				t.Errorf("a long terminated sequence left an ESC byte: %q", got)
+			}
+		})
+	}
+}
+
 func TestToolOutputWriterEndRestoresNeutralState(t *testing.T) {
 	var sb strings.Builder
 	w := &ToolOutputWriter{W: &sb, Now: func() time.Time { return r034Clock }}
