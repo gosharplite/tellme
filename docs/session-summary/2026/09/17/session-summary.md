@@ -735,3 +735,61 @@ The `/axb-implement` PR [#86](https://github.com/gosharplite/tellme/pull/86) was
 **Forward item posted on [#69](https://github.com/gosharplite/tellme/issues/69#issuecomment-5713770526)** (PR #86 review §5): the coordinator models **one** concurrent block; a future concurrent-tools round must re-scope it (a second open block + the composite's unconditional `AfterToolLog` resume would break the idle-gap invariant).
 
 **Environmental note (pre-existing, not this PR)**: `internal/infrastructure/di` `TestNewGhTokenResolver_TrimsToken` can flake with `signal: killed` under whole-suite resource pressure (a `gh`-resolution subprocess); passes standalone / on re-run; observed at both `1d563be` and `c888f0d`.
+
+---
+
+## 18. Session 10 (cont.) — round 040 **DELIVERED** (PR #86 merged into `dev` `87af8c8`) + `go install` + `SESSION-CLOSEOUT.md`
+
+The delivery + end-of-day closeout for round 040: the operator merged PR [#86](https://github.com/gosharplite/tellme/pull/86) into `dev`, the installed binary was refreshed, and `SESSION-CLOSEOUT.md` Steps 1–8 ran. **Propagation `dev → main` is the one remaining step, pending the operator's approval.**
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#86](https://github.com/gosharplite/tellme/pull/86) **MERGED** into `dev` → `87af8c8` ("Merge pull request #86 …"); frozen head **`436bd70`**; local `dev` fast-forwarded `802e51c → 87af8c8` |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `436bd70`; `--version` → `dev` |
+| Closeout Step 1 | Tree clean on `dev` (= `origin/dev`); no stray files; no frozen package touched |
+| Closeout Step 2 | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** · topology audit **PASSED** (44 · 6 · 16 + 327 · 1674) · diff-level secret scan **clean** · `go test -count=1 ./...` — run 1 red on the **`di` #87 flake**, attributed (standalone green 0.13 s vs 2.00 s) and **green on re-run** |
+| Closeout Step 3 | `STATUS.md` refreshed → round 040 **DELIVERED / FROZEN**; active branch `dev`; branch model + roadmap + issue tracker + env notes updated |
+| Closeout Step 4 | this §18 |
+| Closeout Step 5 | `STATUS.md` ↔ §18 reconciled (same round position, heads, decisions, open items) |
+| Closeout Step 6 | committed + pushed on `dev` |
+| Closeout Step 7 | **Propagation `dev → main` PENDING operator approval** (the only open closeout step) |
+| Closeout Step 8 | **#82 CLOSED** + **#83 CLOSED** (delivered); **#87** open (new, pre-existing `di` flake); #69/#60/#13 open (accurate) |
+
+### Decisions
+| # | Decision |
+| --- | --- |
+| D1 | Round 040 **DELIVERED / FROZEN** on merge of PR #86 (`87af8c8`); frozen head `436bd70`. |
+| D2 | `go install` refreshes the installed binary from the delivered head (`436bd70`). |
+| D3 | Closeout docs land on **`dev`** (round branches frozen). |
+| D4 | **`di` flake attribution protocol** applied to the delivery gate (per the architect's #87 recommendation): on whole-suite red, run `di` standalone; green ⇒ attribute to **#87** and re-run the gate rather than treating delivery as failed. |
+| D5 | Propagation `dev → main` (no-ff) **held pending the operator's explicit approval** (closeout Rule 8). |
+| D6 | Round-040's own detail **stays** in `STATUS.md` as the (delivered) current round until round `041-*` opens, then relocates to [`2026-09-17.md`](../../../../archives/status/2026-09-17.md) (Rule 12). |
+
+### Commits (branch `dev`)
+| Commit | Note |
+| --- | --- |
+| `87af8c8` | PR [#86](https://github.com/gosharplite/tellme/pull/86) merge into `dev` (by the operator) |
+| *(this closeout)* | `docs(040)`: day close — round 040 delivered + STATUS + daily summary |
+
+### Verification (2026-09-17, on `dev` @ `87af8c8`)
+- `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (no-test-sleep · offline witness · cross-compile 4/4 · mcp-sdk-confinement · golangci-lint 0 · govulncheck clean).
+- `go test -count=1 ./...` green (**after** the `di` (#87) attribution + re-run; `di` standalone green in 0.13 s).
+- Topology audit **PASSED** — 44 features · 6 modules · 16 root + 327 module rows · 1674 steps.
+- Diff-level secret scan **clean**; `go.mod`/`go.sum` unchanged (stdlib-only).
+
+### Open items (non-blocking)
+- **Propagation `dev → main` — PENDING** (awaits the operator's go-ahead).
+- **Round-040 forward items** — the one-concurrent-block limit → **#69**; the `End`-while-write-stalled accepted residual (in `coordinator.go`); the fixed 3 s idle default; the two-figure soft-wrap residual; the fail-loud header-marker content keying.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; older-round forward items (in the archives).
+
+### Next steps
+1. **Operator approves** → propagate `dev → main` (no-ff) — the final closeout step.
+2. Next session: open round **`041-*`** off `dev` via `/axb-specify` (candidates: [#69](https://github.com/gosharplite/tellme/issues/69) — now carries seven scope items; [#87](https://github.com/gosharplite/tellme/issues/87); [#60](https://github.com/gosharplite/tellme/issues/60); [#13](https://github.com/gosharplite/tellme/issues/13)).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- **Two PM-owned `spec.md` wording ratifications remain outstanding** (carried from sessions 9–10): **SC-003** (TD-5 — shape-only claim + the unit pin) and **SC-005** (R-14 — the reset witness attributed to the unit layer). Both are accuracy fixes; worth clearing so round 040's package freezes cleanly.
+
+### Issue tracker (closeout Step 8)
+**[#82](https://github.com/gosharplite/tellme/issues/82) CLOSED (completed)** + **[#83](https://github.com/gosharplite/tellme/issues/83) CLOSED (completed)** — delivered by round 040 (PR [#86](https://github.com/gosharplite/tellme/pull/86) merged `87af8c8`; linking comments posted). **[#87](https://github.com/gosharplite/tellme/issues/87) OPEN (new)** — the `di` gh-token-resolver test flake (pre-existing; proved on the pre-PR base `dev` `802e51c`; out of round-040 scope; its own round). **[#69](https://github.com/gosharplite/tellme/issues/69) OPEN** — the single-ownership refactor, now also carrying the round-040 one-concurrent-block forward item. **[#60](https://github.com/gosharplite/tellme/issues/60) OPEN** (dogfooding) · **[#13](https://github.com/gosharplite/tellme/issues/13) OPEN** (coverage tooling). No revisions needed.
