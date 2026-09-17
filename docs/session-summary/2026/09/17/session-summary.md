@@ -190,7 +190,7 @@ A second session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` 
 
 ### Open items (non-blocking)
 - **Round-036 forward items** — (a) `[TECHNICAL DEBT]` the blank-reason predicate's **single ownership** (three sites, one dead) → [#69](https://github.com/gosharplite/tellme/issues/69); (b) the **permanent E2E narrowing** record (the `\n`/`\r` class has no E2E carrier) → [#69](https://github.com/gosharplite/tellme/issues/69) + [#74](https://github.com/gosharplite/tellme/issues/74); (c) `oneLine` relocated (orphan `toollog.go` deleted).
-- **Round-035 forward items** — the port hook overload + the spinner-yield-policy ownership → [#69](https://github.com/gosharplite/tellme/issues/69) (see the [2026-09-17 archive](docs/archives/status/2026-09-17.md)).
+- **Round-035 forward items** — the port hook overload + the spinner-yield-policy ownership → [#69](https://github.com/gosharplite/tellme/issues/69) (see the [2026-09-17 archive](../../../../archives/status/2026-09-17.md)).
 - **Round-034 forward items** — the failed-turn display-only `Ready` overstatement (G2) + numbering skew; `BindToolOutput` ctor injection → [#69](https://github.com/gosharplite/tellme/issues/69); `LoopObserver` segregation; the round-022 row→feature audit blind spot → [#60](https://github.com/gosharplite/tellme/issues/60).
 - Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; rounds 011–033 forward items (per-round in the archives).
 
@@ -278,7 +278,7 @@ A third session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` S
 ### Open items (non-blocking)
 - **Round-037 forward items** — (a) the **empty-`Ctrl+S` divergence** → [#76](https://github.com/gosharplite/tellme/issues/76); (b) the suggester selection-policy shape (`set(items, cursor)` at the call site) → [#69](https://github.com/gosharplite/tellme/issues/69).
 - **Round-036 forward items** — the blank-reason-predicate single ownership + the permanent E2E narrowing → [#69](https://github.com/gosharplite/tellme/issues/69); `oneLine` relocated.
-- **Round-035 forward items** — the port hook overload + the spinner-yield-policy ownership → [#69](https://github.com/gosharplite/tellme/issues/69) (see the [2026-09-17 archive](docs/archives/status/2026-09-17.md)).
+- **Round-035 forward items** — the port hook overload + the spinner-yield-policy ownership → [#69](https://github.com/gosharplite/tellme/issues/69) (see the [2026-09-17 archive](../../../../archives/status/2026-09-17.md)).
 - **Round-034 forward items** — the failed-turn display-only `Ready` overstatement (G2) + numbering skew; `BindToolOutput` ctor injection; `LoopObserver` segregation; the round-022 row→feature audit blind spot → [#60](https://github.com/gosharplite/tellme/issues/60).
 - Carried: PR #16 **Obs 1** stdout TTY probe OPEN; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; rounds 011–033 forward items (per-round in the archives).
 
@@ -587,7 +587,7 @@ The architect reviewed the task list and it was folded plan-side in `tasks.md` (
 
 **Review #8 (reviewed `c9f6ba7` → fold `af86f3a`) — CERTIFICATION FINAL / review loop CLOSED (N-16):** the architect corrected its **own** review #6 mis-phrasing — `T015(a)` now states the layer-correct witness-set reading ((a) is the only one of the three witnesses with an **E2E carrier**, non-vacuous only because of R-1's closing-separator bound; T007(b′)/(c) additionally cover it at the **unit** layer). **Process lesson recorded** (§15): the session saw **three recurrences of one class** (round-040 TD-11's vocabulary sweep · R-7's disposition sweep · B-1→C-3) — each a new entry **appended at an unstable anchor** (the first `### PM follow-ups`; the tail of the previous fold row) rather than the **end of the structure it belongs to**, leaving stale statements behind. Durable fix: **one append anchor per artifact** (end of the fold-log / end of the session section) + **one row per review naming both the reviewed head and the fold head**.
 
-**Review #9 (reviewed `33aca91` → fold `c79eaca`) — log hygiene (C-1/C-2/C-3 + the append-anchor process lesson):** C-1 the `STATUS.md` ledger split into rows #6/#7/#8 (each naming the reviewed→fold heads) with the pointer → `af86f3a` · C-2 `tasks.md`'s second `#7` section renumbered `#8` · C-3 the daily-log fold notes reordered oldest→newest + Fold 8 appended · the **process lesson** recorded (three recurrences — TD-11 / R-7 / B-1→C-3 — share one root cause: an entry appended at an unstable anchor).
+**Review #9 (reviewed `33aca91` → fold `c79eaca` + `07c88ea`) — log hygiene (C-1/C-2/C-3 + the append-anchor process lesson):** C-1 the `STATUS.md` ledger split into rows #6/#7/#8 (each naming the reviewed→fold heads) with the pointer → `af86f3a` · C-2 `tasks.md`'s second `#7` section renumbered `#8` · C-3 the daily-log fold notes reordered oldest→newest + Fold 8 appended · the **process lesson** recorded (three recurrences — TD-11 / R-7 / B-1→C-3 — share one root cause: an entry appended at an unstable anchor).
 
 `/axb-implement` remains held.
 
@@ -599,3 +599,76 @@ Three recurrences of one class in this session — round-040 **TD-11** (vocabula
 
 ### PM follow-ups
 - None new (spec/acceptance complete; no PM-owned gaps).
+
+---
+
+## 16. Session 9 (2026-09-17) — round 040 `/axb-tasks` **MERGED** (PR #85 → `dev` `07c88ea`); day close (`SESSION-CLOSEOUT.md`)
+
+A ninth session on the same calendar day: verified the **human merge** of PR [#85](https://github.com/gosharplite/tellme/pull/85) (the `/axb-tasks` half of round 040), folded the final log-hygiene items (**E-1**, **E-2**), and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`; Linux host).
+**Branch**: `dev` (round 040 plan+truth+tasks all merged) — implementation pending, next session.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Merge check | PR [#85](https://github.com/gosharplite/tellme/pull/85) **merged: true** (`thptcnec`, 2026-09-17T10:50:30Z) → `dev` **fast-forward** to `07c88ea`; base `dev` `704599c`, head `07c88ea`; **5 docs files, +235/−9, 12 commits, zero product code** |
+| Closeout Step 1 | Tree clean on `dev` (= `origin/dev`); no stray files; no frozen package touched |
+| Closeout Step 2 | `gofmt` clean · `go vet ./...` clean · `go build ./...` OK · topology audit **PASSED** (44 · 6 · 16+327 · 1674) · link check (fixed two pre-existing repo-relative archive links) · diff-level secret scan **clean** |
+| E-1/E-2 folded | E-1 named the true fold head (`Review #9 … → fold c79eaca + 07c88ea`); E-2 aligned `tasks.md`'s fold-log headers to the two-SHA form (`#1` reviewed `7f070d0` → fold `f37a175` … `#9` reviewed `33aca91` → fold `c79eaca` + `07c88ea`) + appended a `#9` section |
+| Step 3 | `STATUS.md` refreshed → round 040 plan+truth+tasks **all merged**; **implementation = next session**; active branch `dev`; issue-tracker line updated |
+| Step 4 | this §16 |
+| Step 5 | `STATUS.md` ↔ §16 reconciled (same round position, branches, decisions, open items) |
+| Step 6 | committed on `dev` |
+| Step 7 | **Propagation PENDING** (round 040 **not delivered** — implementation pending; `dev → main` waits on delivery) |
+| Step 8 | issue tracker: **nothing landed** → **no closes/revises** (#82/#83 remain open until delivery) |
+
+### Review fold chain (round 040 `/axb-tasks`, PR #85 — ten passes, CERTIFICATION FINAL)
+
+| Review | reviewed → fold | Outcome |
+| --- | --- | --- |
+| #1 | `7f070d0` → `f37a175` | APPROVE WITH REQUIRED FOLDS (B1–B4 + TD-1…TD-5 + N-1…N-3) |
+| #2 | `f37a175` → `f9e1ac9` | FOLDS ACCEPTED (R-1 closing-separator bound; R-1b `End` clear; R-2 `WriteWith`; R-3) |
+| #3 | `f9e1ac9` → `771e057` | FOLDS ACCEPTED (R-4 watcher-admit entry point; R-5; R-6; R-7) |
+| #4 | `771e057` → `188d9e6` | FOLDS ACCEPTED (R-8 `EndWith`; R-9 writer-owned clock) |
+| #5 | `188d9e6` → `8b71463` | FOLDS ACCEPTED (R-10; R-11 `withLock(fn func(idle))` + `Begin` seed + T007(b′)) |
+| #6 | `8b71463` → `9e02442` | **CERTIFICATION: implementation-ready** (R-12/R-13 + N-14) |
+| #7 | `9e02442` → `c9f6ba7` | CERTIFICATION CONFIRMED (R-14 unit-layer reset witness + B-1/B-2 + N-15) |
+| #8 | `c9f6ba7` → `af86f3a` | **CERTIFICATION FINAL / review loop CLOSED** (N-16) |
+| #9 | `33aca91` → `c79eaca` + `07c88ea` | log hygiene (C-1/C-2/C-3 + the append-anchor process lesson) |
+| E-1/E-2 | `07c88ea` → *(folds with this closeout commit)* | named the true fold head (#9 → `c79eaca` + `07c88ea`); aligned `tasks.md`'s headers to the two-SHA label |
+
+Across all ten passes **not one** review required a change to scope, mechanism, the seam model, the truth tree or the acceptance set — every finding was accuracy, seam definition or bookkeeping.
+
+### Decisions locked
+| # | Decision |
+| --- | --- |
+| — | Round 040's **plan + truth + tasks** are all on `dev` (`146210d` then `07c88ea`); the **implementation half** (`/axb-implement`, T001–T016) is the **next session's** work on a fresh branch off `dev`. |
+| — | **Propagation `dev → main` stays PENDING** — it runs at **delivery**, not at the plan/tasks merges. |
+| — | E-1/E-2 folded (log hygiene only); `tasks.md`'s fold-log headers now carry the two-SHA per-review label project-wide. |
+| — | **PM-owned, pending operator ratification**: `spec.md` **SC-003** (TD-5) and **SC-005** (R-14) wording. |
+
+### Commits (branch `dev`)
+| Commit | Note |
+| --- | --- |
+| `07c88ea` | (round-040 `/axb-tasks` head — **already on `dev`** via the PR #85 fast-forward merge) |
+| *(this closeout)* | `docs(040)`: day close — PR #85 merged; fold E-1/E-2; STATUS + daily log |
+
+### Verification (2026-09-17, on `dev` @ `07c88ea` + the closeout commit)
+- `gofmt` clean · `go vet ./...` clean · `go build ./...` OK · topology audit **PASSED** (44 features · 6 modules · 16 root + 327 module rows · 1674 steps) · `STATUS.md` links resolve · diff-level secret scan **clean** · `go.mod`/`go.sum` unchanged (stdlib-only).
+
+### Open items (non-blocking)
+- **Round-040 forward items** — the implementation's own forward items will surface in `/axb-implement`; none recorded yet.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; rounds 011–039 forward items (per-round in the archives).
+- **Propagation PENDING** — `dev → main` (waits on delivery).
+
+### Next steps
+1. **`/axb-implement`** on a **fresh branch off `dev`** — run tasks **T001–T016** (the `internal/ui` coordinator + the three lock-scoped entry points; WS-A liveness + WS-B dual timer; `Strict: true` + the 4 stepdefs; the dead-stepdef `[BDD-REMOVE]`); then the implementation PR.
+2. Human merges the implementation PR; then propagate `dev → main`; **close [#82](https://github.com/gosharplite/tellme/issues/82) + [#83](https://github.com/gosharplite/tellme/issues/83)** at closeout.
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- **Ratify (or amend) the two PM-owned `spec.md` wording fixes**: **SC-003** (TD-5, shape-only + unit pin) and **SC-005** (R-14, unit-layer reset witness). Both are accuracy fixes aligning the criteria with the accepted witness plan.
+
+### Issue tracker (closeout Step 8)
+**No changes this closeout (nothing landed).** [#82](https://github.com/gosharplite/tellme/issues/82) + [#83](https://github.com/gosharplite/tellme/issues/83) **OPEN** (round 040's anchors — close on **delivery**); [#69](https://github.com/gosharplite/tellme/issues/69) open (single-ownership refactor); [#60](https://github.com/gosharplite/tellme/issues/60) open (dogfooding); [#13](https://github.com/gosharplite/tellme/issues/13) open (coverage tooling). No issues closed/revised/superseded.

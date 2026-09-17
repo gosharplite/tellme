@@ -59,7 +59,7 @@ _(none — stdlib-only; no new dependency, no build/SDL change.)_
 - `techstack.md` round-040 section (the dual timer + the idle-gap liveness + the carve-out) → T009/T011 + the `techstack.md` Read in Core Inputs. **Covered.**
 - **Orphans: 0.**
 
-## Round-040 tasks review fold (PR #85)
+## Round-040 tasks fold review #1 (reviewed `7f070d0` → fold `f37a175`; APPROVE WITH REQUIRED FOLDS)
 
 Plan-side fold (no truth, no ADR, no code) applying the architect review `APPROVE WITH REQUIRED FOLDS`:
 
@@ -75,7 +75,7 @@ Plan-side fold (no truth, no ADR, no code) applying the architect review `APPROV
 - **N-1** — Core Inputs cli.go range corrected to `:734–:767`. **N-2** — the `tooloutput.go` mutex/row-state ownership note added to Core Inputs. **N-3** — the converse guard added to **T008** (and the Parallel Hint).
 - **Residual risk recorded** — the back-pressure wording is sharpened: the **resume-admit** is bookkeeping only, but the **clear** runs `deactivate()` (join + erase) inside the block critical section, so a stalled `stderr` can hold the block mutex across one erase write (the in-mutex clear is still the right choice — an out-of-mutex clear could strand a frame, the round-035 defect class); carried as **T007(f)** (stalled-writer case).
 
-## Round-040 tasks fold review #2 (PR #85, `f37a175` → fold)
+## Round-040 tasks fold review #2 (reviewed `f37a175` → fold `f9e1ac9`; FOLDS ACCEPTED)
 
 Plan-side fold (no truth, no ADR, no code) applying the architect fold review `FOLDS ACCEPTED + R-1/R-1b/R-2/R-3/N-4/N-5`:
 
@@ -88,7 +88,7 @@ Plan-side fold (no truth, no ADR, no code) applying the architect fold review `F
 - **TD-2 self-correction** — `spinner_width_test.go` is **expected unchanged** (pure-function table + same row counts); the two genuine breaks stay in `spinner_test.go` (`TestFormatSpinnerLine`, `TestSpinnerElapsedIsTurnScoped`).
 - **TD-5** — accepted by the architect as an **accuracy fix**; remains PM-owned (operator ratification).
 
-## Round-040 tasks fold review #3 (PR #85, `f9e1ac9` → fold)
+## Round-040 tasks fold review #3 (reviewed `f9e1ac9` → fold `771e057`; FOLDS ACCEPTED)
 
 Plan-side fold (no truth, no ADR, no code) applying the architect fold review `FOLDS ACCEPTED + R-4..R-7 + N-6..N-9`:
 
@@ -98,7 +98,7 @@ Plan-side fold (no truth, no ADR, no code) applying the architect fold review `F
 - **R-7 [debt]** — the B2 disposition sweep (the helpers are **kept**, not removed): `plan.md` (the RF-1 directive), `STATUS.md`, and the daily log §15.
 - **N-6** — the changed-file set includes **`spec.md`** (`{tasks.md, spec.md, STATUS.md, session-summary}`). **N-7** — the stray double blank in the daily log removed. **N-8** — the `dev`-ahead count corrected to **15** (measured). **N-9** — `T014` records why the existing long-quiet scenarios stay green (their `timeout: 1` < N).
 
-## Round-040 tasks fold review #4 (PR #85, `771e057` → fold)
+## Round-040 tasks fold review #4 (reviewed `771e057` → fold `188d9e6`; FOLDS ACCEPTED)
 
 Plan-side fold (no truth, no ADR, no code) applying the architect fold review `FOLDS ACCEPTED + R-8/R-9 + N-10/N-11`:
 
@@ -108,7 +108,7 @@ Plan-side fold (no truth, no ADR, no code) applying the architect fold review `F
 - **N-11** — the `STATUS.md` fold-1 B1 note annotated `(→ two entry points per R-4)` to avoid reading as a contradiction with fold 3.
 - **Seam model complete:** with R-4 + R-8 the three coordinator/writer interactions (line path, watcher admit, `End`) all have a lock-scoped entry point.
 
-## Round-040 tasks fold review #5 (PR #85, `188d9e6` → fold)
+## Round-040 tasks fold review #5 (reviewed `188d9e6` → fold `8b71463`; FOLDS ACCEPTED)
 
 Plan-side fold (no truth, no ADR, no code) applying the architect fold review `FOLDS ACCEPTED + R-10/R-11 + N-12/N-13`:
 
@@ -118,7 +118,7 @@ Plan-side fold (no truth, no ADR, no code) applying the architect fold review `F
 - **N-13** — recorded **why `Begin` needs no hook**: `sink.Begin()` runs **before** `cmd.Start()` (no drain goroutine exists yet), so the header write cannot race a line or a frame — making the R-8 `End`-hook / no-`Begin`-hook asymmetry explicit.
 - **R-4/R-8/R-11 family CLOSED:** the four coordinator↔writer interactions (line path, admit, `End`, idle query) all have a lock-scoped path under the writer's single mutex.
 
-## Round-040 tasks fold review #6 (PR #85, `8b71463` → fold) — **CERTIFICATION: implementation-ready**
+## Round-040 tasks fold review #6 (reviewed `8b71463` → fold `9e02442`) — **CERTIFICATION: implementation-ready**
 
 Plan-side fold (no truth, no ADR, no code) applying the architect fold review `CERTIFICATION: implementation-ready + R-12/R-13 + N-14`:
 
@@ -127,7 +127,7 @@ Plan-side fold (no truth, no ADR, no code) applying the architect fold review `C
 - **N-14 [naming]** — `T009`'s parenthetical no longer names the removed `IdleSince` shape; it now reads *"the idle clock lives in the writer — read via the `withLock` idle closure"* (the negative `IdleSince` mentions that explain why the method is rejected remain).
 - **Certification:** the architect certified the task list **implementation-ready** for a One-Shot `/axb-implement` (scope, mechanism, seam model, witness set, truth/code boundary); `/axb-implement` is the operator's call.
 
-## Round-040 tasks fold review #7 (PR #85, `9e02442` → fold) — certification CONFIRMED
+## Round-040 tasks fold review #7 (reviewed `9e02442` → fold `c9f6ba7`) — CERTIFICATION CONFIRMED
 
 Plan-side fold (no truth, no ADR, no code) applying the architect fold review `certification CONFIRMED + R-14 + B-1/B-2 + N-15`:
 
@@ -137,9 +137,13 @@ Plan-side fold (no truth, no ADR, no code) applying the architect fold review `c
 - **N-15 [nit]** — Core Inputs' primer reads **"one lock owner, three entry points"** (it had said "one lock-scoped entry point").
 - **Position:** the content certification **stands** (no scope/mechanism/seam/truth/acceptance change); the review loop is closed at this artifact.
 
-## Round-040 tasks fold review #8 (PR #85, `c9f6ba7` → fold) — **CERTIFICATION CONFIRMED — review loop CLOSED**
+## Round-040 tasks fold review #8 (reviewed `c9f6ba7` → fold `af86f3a`) — **CERTIFICATION FINAL — review loop CLOSED**
 
 Plan-side fold (no truth, no ADR, no code) applying the architect final pass `CERTIFICATION CONFIRMED + N-16`:
 
 - **N-16 [optional, reviewer's own mis-phrasing]** — `T015(a)`'s parenthetical corrected from *"its carrier is the only witness where the E2E is the sole detector, alongside T007's (a)/(c) pins"* (self-contradictory) to *"(a) is the only one of the three witnesses with an **E2E carrier** (the WS-A Example — non-vacuous only because of R-1's closing-separator bound); (b) and (c) are unit-only; and T007(b′)/(c) additionally cover (a) at the unit layer."* No task's action changes.
 - **Position:** content certification **CONFIRMED**; the architect's review loop on `/axb-tasks` is **CLOSED**. `/axb-implement` is the operator's call to unlock.
+
+## Round-040 tasks fold review #9 (reviewed `33aca91` → fold `c79eaca` + `07c88ea`) — log hygiene (no gap)
+
+Plan-side fold: **C-1** the `STATUS.md` ledger split into one row per review (#6 `8b71463` · #7 `9e02442` · #8 `c9f6ba7`) with the pointer → `af86f3a` · **C-2** this file's second `#7` section renumbered `#8` · **C-3** the daily-log fold notes reordered oldest→newest + Fold 8 appended · **D-1** the daily-log Review #7 no longer absorbs N-16 · **D-2** the two-SHA per-review label adopted project-wide. **No gap**: `07c88ea` is the fold head (it carries the fold's *last* change) even though the ledger row was first written at `c79eaca`.
