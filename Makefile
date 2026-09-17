@@ -137,6 +137,11 @@ verify-mcp-sdk-confinement:
 verify-architecture:
 	@echo "verify-architecture: layer-discipline gate (import-direction over the pinned ranking; ADR 0011) ..."
 	@go vet -tags=arch ./tools/arch
+ifeq ($(GOLANGCI),)
+	@echo "  (skip) golangci-lint not found; the tagged guard is not lint-checked (go vet still ran)"
+else
+	@$(GOLANGCI) run --build-tags=arch ./tools/arch/...
+endif
 	@go test -count=1 -tags=arch -run TestVerifyRealArchitecture ./tools/arch
 	@echo "  ✓ no layer violation beyond the baseline; no import cycles"
 
