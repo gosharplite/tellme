@@ -15,15 +15,16 @@ func init() {
 	})
 }
 
-// thenMarksNoCurrentChoice (必查 呈現結果): the AT-REST frame — the first painted frame,
-// before any key is delivered — renders NO `>` selection cursor on any suggestion row
-// (round 037: the selection starts at a no-choice sentinel and resets on every refresh).
-// The scope is the at-rest frame, not the whole accumulated stream, so a legitimate
-// post-navigation cursor (a later frame after a `Tab`) cannot false-fail this rule
-// (round-037 review F-1); per-frame exactness remains the unit pin.
+// thenMarksNoCurrentChoice (必查 呈現結果): the rendered prompt's suggestion block carries
+// NO `>` cursor row at rest (round 037: the selection starts at a no-choice sentinel and
+// resets on every refresh). The carrier is the precise cursor-row predicate
+// (`tuiCursorRows`, an exact `"  > "`-prefix match — so a suggestion whose text begins
+// with `> ` is not miscounted; round-037 review G-2) over the captured output. The
+// after-`Tab` selection (a legitimate cursor row) is carried by the unit pins, not here;
+// per-frame exactness remains the unit pin too.
 func thenMarksNoCurrentChoice(ctx context.Context) error {
-	if n := tuiCursorRows(atRestFrame(renderedOutput(scenarioFrom(ctx)))); n != 0 {
-		return fmt.Errorf("the at-rest prompt marked %d suggestion(s) as the current choice, want 0", n)
+	if n := tuiCursorRows(renderedOutput(scenarioFrom(ctx))); n != 0 {
+		return fmt.Errorf("the rendered suggestion block marked %d suggestion(s) as the current choice, want 0", n)
 	}
 	return nil
 }

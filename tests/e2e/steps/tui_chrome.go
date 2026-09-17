@@ -42,35 +42,22 @@ func tuiSuggestionsBeneath(out string) bool {
 // vacuous — the round-012 TD1 pattern).
 const suggesterHeaderLiteral = "Suggestions:"
 
-// tuiCursorRows counts suggestion rows carrying the `>` selection cursor.
+// tuiCursorRows counts suggestion rows carrying the `>` selection cursor. The
+// rendered cursor row is exactly the padded `"  > "` row (modelStyle Padding(1,1)
+// + suggesterStyle Padding(0,1) = 2 leading spaces, then the `> ` cursor prefix).
+// An UNselected row renders its `  ` row prefix (4 leading spaces), so a
+// suggestion whose TEXT itself begins with `> ` (e.g. `> quoted reply`) renders
+// as `"    > quoted reply"` and is correctly NOT counted — an exact-prefix match,
+// not a `TrimLeft` "any `> `-leading line" proxy (round-037 review G-2; the proxy
+// produced a false failure when the flipped exclusion ran on such a suggestion).
 func tuiCursorRows(out string) int {
 	n := 0
 	for _, ln := range tuiVisibleLines(out) {
-		if strings.HasPrefix(strings.TrimLeft(ln, " "), "> ") {
+		if strings.HasPrefix(ln, "  > ") {
 			n++
 		}
 	}
 	return n
-}
-
-// atRestFrame returns the FIRST painted frame of the accumulated capture — the
-// frame before any key is delivered, so NO navigation has happened yet — and is
-// the correct scope for the at-rest selection rule ("marks no suggestion as the
-// current choice"). The `-i` prompt renders frame-by-frame; successive frames are
-// delimited by the editor's top-left border rune `┌` (the round-016 border; a
-// later frame can legitimately carry the cursor after a `Tab`, which the at-rest
-// rule must NOT reject — round-037 review F-1). When no border is present (the
-// prompt never painted) the whole capture is returned.
-func atRestFrame(out string) string {
-	start := strings.Index(out, "┌")
-	if start < 0 {
-		return out
-	}
-	rest := out[start+len("┌"):]
-	if next := strings.Index(rest, "┌"); next >= 0 {
-		return out[:start+len("┌")+next]
-	}
-	return out
 }
 
 // tuiHasMetricsHeader reports whether any line matches the round-015 dashboard

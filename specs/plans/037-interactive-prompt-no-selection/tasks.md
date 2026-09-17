@@ -98,3 +98,17 @@ Architectural review of PR [#77](https://github.com/gosharplite/tellme/pull/77) 
 **Also folded (non-numbered):** the evidence-carrier overstatement (US2 / research D3–D4) now names the **unit pin** `TestTabFromNoChoiceSelectsFirst` (two items) as the first-`Tab`-index authority, with the accept journey carrying *insertion* only; the cross-round note landed as a **body edit on [#76](https://github.com/gosharplite/tellme/issues/76)** (display-only sharpening + unambiguous fix direction); the plan-side nit (`ui/screens/entry.txt` seeds `version 037`).
 
 **Re-verification after the folds:** `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** · `go test -count=1 ./...` green (21 packages) · E2E **ok (215/215)** · topology audit **PASSED** (44 features · 16 root + 310 module rows · 1576 steps).
+
+---
+
+## T010 (cont.) — PR #77 fold review (`pullrequestreview-5230289661`)
+
+The fold review confirmed **F-2 / F-3 / F-4 / F-6** correct and verified, and raised three follow-ups (the reviewer also corrected **their own F-1 mechanism** — the `┌`-delimited-frame premise was wrong for this harness):
+
+| # | Finding | Resolution |
+| --- | --- | --- |
+| **G-1** | `atRestFrame` is the **identity** in every measured capture: the harness writes the compose keys (incl. any `Tab`) **before** the sync-marker wait (`tui_keys.go:45-50`; marker `┌`, `scenario_context.go:260`), so a navigated capture carries exactly **one** painted frame and the `next >= 0` branch never fires. The doc premise was false and the truth claimed a guarantee the code could not enforce. | **Dropped** `atRestFrame` + its dead branch; the E2E `Then` asserts `tuiCursorRows(renderedOutput(...)) == 0`. Corrected the `chat/dsl.md` row (scope = the rendered **suggestion block**), `research.md` D3/D4, and `STATUS.md`. |
+| **G-2** | The flipped predicate had a reproduced **false failure**: `TrimLeft` + `HasPrefix("> ")` counted any `> `-leading line, so a suggestion whose *text* is `> quoted reply` (rendered with the 4-space unselected prefix) miscounted as a cursor row. | `tuiCursorRows` now matches the exact rendered cursor row prefix `"  > "` (2-space model padding + the `> ` cursor prefix); an unselected `> `-leading text renders `"    > "` and is not counted. Added the unit pin `tests/e2e/steps/tui_chrome_test.go`. |
+| **G-3** | `STATUS.md` item (c) (plan-side `entry.txt` seeds `version 016`) was **stale in the commit that fixed it**. | Dropped item (c). |
+
+**Re-verification after the G-fold:** `gofmt -l .` clean · `go vet ./...` clean · `go test -count=1 ./tests/e2e/steps/` (new pin) green · E2E **ok (215/215)** · `make verify` OK · topology audit **PASSED**.

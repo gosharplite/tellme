@@ -120,6 +120,31 @@ func TestCycleArithmetic(t *testing.T) {
 	}
 }
 
+// TestModelUnselectedQuoteTextIsNotACursorRow (round-037 review G-2): a suggestion
+// whose TEXT begins with "> " is an UNSELECTED row and must not render the cursor-row
+// prefix. The rendered cursor row is exactly `"  > "` (modelStyle Padding(1,1) +
+// suggesterStyle Padding(0,1) = 2 leading spaces, then the `> ` cursor); an
+// unselected row renders the 4-space row prefix, so `"> quoted reply"` renders
+// `"    > quoted reply"` — this pins the spacing the E2E cursor predicate relies on.
+func TestModelUnselectedQuoteTextIsNotACursorRow(t *testing.T) {
+	m := New(context.Background(), strings.NewReader(""), &strings.Builder{}, &fakeSource{items: []string{"> quoted reply", "deploy to staging"}})
+	view := m.View()
+	if strings.Contains(view, "\n  > ") {
+		t.Fatalf("an unselected '> '-leading suggestion rendered the cursor-row prefix: %q", view)
+	}
+	if !strings.Contains(view, "    > quoted reply") {
+		t.Fatalf("expected the unselected '> '-leading suggestion to render with the 4-space row prefix: %q", view)
+	}
+	// A real cursor row renders `"  > "` (selecting the first suggestion).
+	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	if got := m.sug.selected(); got != "> quoted reply" {
+		t.Fatalf("Tab selected %q, want the first suggestion %q", got, "> quoted reply")
+	}
+	if !strings.Contains(m.View(), "\n  > ") {
+		t.Fatalf("the selected row did not render the cursor-row prefix: %q", m.View())
+	}
+}
+
 // TestModelResizeReflowsWidth (round-016 T012/T017): a WindowSizeMsg sets the
 // editor width, narrowing the frame.
 func TestModelResizeReflowsWidth(t *testing.T) {
