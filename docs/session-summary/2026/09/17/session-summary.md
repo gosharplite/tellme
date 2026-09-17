@@ -581,6 +581,8 @@ The architect reviewed the task list and it was folded plan-side in `tasks.md` (
 
 **Fold 5 (`FOLDS ACCEPTED`; R-10/R-11 + N-12/N-13):** **R-10** deleted T009's stale `lastLine`-stamp clause (contradicted R-9) · **R-11** the idle **query** gets the locked path **`withLock(fn func(idle time.Duration))`** (check+admit in one critical section; a self-locking `IdleSince` would deadlock) + the **`Begin`-seeded `lastLine`** + **T007(b′)** the **zero-output** case · **N-12** the STATUS B1 annotation restored · **N-13** recorded why `Begin` needs no hook (runs before `cmd.Start()`). The R-4/R-8/R-11 family is **closed** (line path · admit · `End` · idle query).
 
+**Fold 7 (`c9f6ba7`; CERTIFICATION CONFIRMED; R-14 + B-1/B-2 + N-15):** R-14 re-attributed the per-call-reset witness to the **unit** layer (T015(b) + `spec.md` SC-005) · B-1 reordered the daily-log fold notes oldest→newest · B-2 added the STATUS ledger #6 · N-15 primed Core Inputs with "one lock owner, three entry points"; then the **optional N-16** corrected T015(a)'s witness-set parenthetical (the reviewer's own mis-phrasing). **Review loop CLOSED at `c9f6ba7`.**
+
 **Fold 6 (`CERTIFICATION: implementation-ready`; R-12/R-13 + N-14):** **R-12** T002's entry point (ii) now carries the R-11 signature `withLock(fn func(idle time.Duration))` (one definition per entry point) · **R-13** T007's clauses `(b′)`/`(g)`/`(h)` are back **inside the T007 checkbox** in order (the `(g)`/`(h)` text had detached into an unmarkered bullet) · **N-14** T009's parenthetical no longer names the removed `IdleSince` shape. **Architect certified the task list implementation-ready** — `/axb-implement` is the operator's call. Seam model **closed**.
 
 `/axb-implement` remains held.

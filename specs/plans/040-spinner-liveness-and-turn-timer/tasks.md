@@ -40,7 +40,7 @@ _(none — stdlib-only; no new dependency, no build/SDL change.)_
 ## Regression & falsifiability
 
 - [ ] **T014** `[REGRESSION]` — **the gate set is `go test -count=1 ./...` (unit packages AND `tests/e2e`) + `make verify`** (TD-1: `make verify` runs **no unit tests**, so it would leave the T006/T007 pins unrun). **N-9 note:** the 3 s default idle resume activates **globally**, so "existing long-quiet scenarios stay green" is safe **because** every such scenario carries `timeout: 1` (**< N**, the child is killed before the gap) and must force the spinner on to draw at all — record this bound against future drift (a scenario with a `timeout > N` would need the seam pinned). `stdout` byte-exact; every existing spinner/tool-loop Example unchanged-green (the round-019/025/034/035/039 pins, with the T011-adapted unit pins). Re-run the Gherkin/DSL topology audit (`--root specs/truth/features/cli`) and confirm PASSED.
-- [ ] **T015** — Falsifiability witnesses (each reproduced then reverted): (a) remove the idle-gap resume → the WS-A Example fails (its carrier is the **only** witness where the E2E is the sole detector, alongside T007's (a)/(c) pins); (b) freeze the second figure (no per-call reset) ⇒ the **unit** pin fails (T006's second-`OnInferenceStart` sub-assertion, SC-001) — the WS-B E2E Example asserts the two-figure **shape** only, so a frozen `callEpoch` still passes it (SC-003); (c) drop the row-aware clear → a residue frame survives the 3+-digit frame → the SC-006 pin fails.
+- [ ] **T015** — Falsifiability witnesses (each reproduced then reverted): (a) remove the idle-gap resume → the WS-A Example fails — **(a) is the only one of the three witnesses with an E2E carrier** (the WS-A Example, non-vacuous only because of R-1's closing-separator bound), and T007(b′)/(c) additionally cover it at the unit layer; (b) freeze the second figure (no per-call reset) ⇒ the **unit** pin fails (T006's second-`OnInferenceStart` sub-assertion, SC-001) — the WS-B E2E Example asserts the two-figure **shape** only, so a frozen `callEpoch` still passes it (SC-003); (c) drop the row-aware clear → a residue frame survives the 3+-digit frame → the SC-006 pin fails.
 - [ ] **T016** — Update `STATUS.md` + the daily summary; open the implementation PR; close **#82** + **#83** at closeout (delivery).
 
 ## Boundary
@@ -136,3 +136,8 @@ Plan-side fold (no truth, no ADR, no code) applying the architect fold review `c
 - **B-2 [bookkeeping]** — the `STATUS.md` fold ledger gains the **#6** entry.
 - **N-15 [nit]** — Core Inputs' primer reads **"one lock owner, three entry points"** (it had said "one lock-scoped entry point").
 - **Position:** the content certification **stands** (no scope/mechanism/seam/truth/acceptance change); the review loop is closed at this artifact.
+
+## Round-040 tasks fold review #7 (PR #85, `c9f6ba7`) — **CERTIFICATION CONFIRMED — review loop CLOSED**
+
+- **N-16 [optional, reviewer's own mis-phrasing]** — `T015(a)`'s parenthetical corrected from *"its carrier is the only witness where the E2E is the sole detector, alongside T007's (a)/(c) pins"* (self-contradictory) to *"(a) is the only one of the three witnesses with an **E2E carrier** (the WS-A Example — non-vacuous only because of R-1's closing-separator bound); (b) and (c) are unit-only; and T007(b′)/(c) additionally cover (a) at the unit layer."* No task's action changes.
+- **Position:** content certification **CONFIRMED**; the architect's review loop on `/axb-tasks` is **CLOSED**. `/axb-implement` is the operator's call to unlock.
