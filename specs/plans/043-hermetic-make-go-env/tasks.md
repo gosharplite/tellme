@@ -21,13 +21,13 @@
 > 來自 `research.md` D1–D12、`spec.md`（FR-001–013 / NFR-001–004 / SC-001–005，Q1–Q8）與 **ADR 0012**（D1–D9）。
 
 - **[MECH / Q2 → A1, D1]** neutralisation 只定義**一次**：`Makefile` 頂部（**在 `$(shell command -v …)` probes 之上**、在任何 recipe 之前）的一個 `export`/`unexport` block。這使**每個** recipe、以及 scripted recipe 內**巢狀 spawn** 的 `go`（`make test` 的 E2E harness、`verify-no-network` 的見證）都繼承到已消毒環境；**不得**改成 per-recipe `$(HERMETIC_ENV)` 前綴。
-- **[NEUTRALISE / Q3 → V1, D2]** **drop/neutralise**：`GOENV` → **`off`**（**load-bearing** —— Go 對「unset **或** empty」都會 fallback 到 env **file**，故單純 unset `GOFLAGS` **無法**中和 persisted `go env -w GOFLAGS=-mod=vendor`；round-042 F-2 / ADR 0011 D5）；`GOWORK` → `off`；`GOFLAGS`／`GO111MODULE`／`GOEXPERIMENT` → **unset**；ambient `GOOS`／`GOARCH`／`GOARM` → **unset**（host-native）。
+- **[NEUTRALISE / Q3 → V1, D2（criterion-derived；PR #97 review B-4）]** **drop/neutralise**（依 ADR D2 inclusion criterion）：`GOENV` → **`off`**（**load-bearing** —— Go 對「unset **或** empty」都會 fallback 到 env **file**，故單純 unset `GOFLAGS` **無法**中和 persisted `go env -w GOFLAGS=-mod=vendor`；round-042 F-2 / ADR 0011 D5）；`GOWORK` → `off`；`GOFLAGS`／`GO111MODULE`／`GOEXPERIMENT`／`GOTOOLCHAIN`／`GOFIPS140`／`GODEBUG` → **unset**；ambient **target triple** —— `GOOS`／`GOARCH` **及** micro-arch family（`GOARM`／`GOARM64`／`GOAMD64`／`GO386`／`GOMIPS`／`GOMIPS64`／`GOPPC64`／`GORISCV64`／`GOWASM`）→ **unset**（host-native）。
 - **[PRESERVE / Q3 → V1, D3]** 原樣傳遞：`PATH`／`HOME`／`GOPATH`／`GOMODCACHE`／`GOCACHE`（warm-cache／runtime set）**與** `GOPROXY`／`GOSUMDB`／`GOPRIVATE`／`GONOSUMDB`／`GOINSECURE`（network／checksum set）—— cold-cache 或 proxy 環境仍可解析（通用化 `verify-cross-compile` 的 PR #46 TD1 教訓）。
-- **[CGO / Q3 → V1, D4]** `CGO_ENABLED` **維持 host default**；**唯一**的 cgo pin 仍是 `verify-cross-compile` recipe 內的**行內** `CGO_ENABLED=0`（**僅作用於該 recipe**）。block **不得**覆蓋 recipe 的行內 per-target 賦值（recipe 的行內賦值對該 recipe 勝出，FR-012）。
+- **[CGO / Q3 → V1, D4（R-1(1) 校正）]** `CGO_ENABLED` **preserved from the caller**（block 既不 set 也不 unset —— **非**全域 pin）；**唯一**的 cgo pin 仍是 `verify-cross-compile` recipe 內的**行內** `CGO_ENABLED=0`（**僅作用於該 recipe**）。block **不得**覆蓋 recipe 的行內 per-target 賦值（recipe 的行內賦值對該 recipe 勝出，FR-012）。
 - **[SCOPE / Q4 → S1, D5]** **無條件、全 targets**（含 mutating 的 `fmt`／`tidy`）；無 per-target opt-out。
-- **[OWNERSHIP / Q6 → D1, D6]** `Makefile` block 為**唯一主要 owner**；round-042 的 `tools/arch/arch_test.go` `childEnv`（ADR 0011 D5）**保留**為 **defence-in-depth**，涵蓋 gate 的**直接**呼叫路徑（繞過 `make`）。兩處**互相 cross-reference 註解**；兩份字面集合**不得 silent drift**（見 T004 的 drift witness 檢查）。
-- **[VERIFY / D7, Q7 → R2]** 驗收證據 = (a) **四個 hostile-env 見證**（`GOENV=<file: GOFLAGS=-mod=vendor>`、`GOFLAGS=-trimpath`、`GO111MODULE=off`、stray `GOWORK=<path>`；**red before / green after**，重現後還原，ADR 0010 doctrine）+ (b) **兩個 positive control**：`make verify-cross-compile` 在 hermetic env 下仍 **4/4**（證明只移除 ambient 輸入、未覆蓋行內 per-target 覆寫）；clean env 下 `make tidy`／`make fmt` **no-diff**、`go.mod`／`go.sum` 不變（證明未破壞 mutating targets）。
-- **[RESIDUALS / Q7 → R1+R3, D8]** 需記錄於 ADR 0012／truth row（已於 plan half 寫入）：(R1) **繞過 `make` 的裸 `go`** 仍非 hermetic（hermeticity 是 `make`-boundary 性質）；(R3) `GOENV=off` 亦忽略**正當**的 operator `go env -w`，escape hatch = 每次呼叫顯式 export（`GOPROXY=… make verify`）。
+- **[OWNERSHIP / Q6 → D1, D6（B-2/B-3 校正）]** `Makefile` block 為**唯一主要 owner**；round-042 的 `tools/arch/arch_test.go` `childEnv`（ADR 0011 D5）**保留**為 **defence-in-depth**，只使 gate 的**verdict** 在其**直接**呼叫路徑（繞過 `make`）保持 hermetic —— 該路徑的**外層** `go test`/`go vet` 仍非 hermetic（R1）。兩處**互相 cross-reference 註解**；兩者為**互補機制**（block：關 env file + unset；`childEnv`：重設顯式值），故其不變量為 **coverage**（每個 neutralised 名已被 `childEnv` 重設、或被記錄為已知未覆蓋名 —— 如 frozen round-042 下的 `GOARM`/`GOEXPERIMENT`，R4），**非**集合相等（見 T005(c)）。
+- **[VERIFY / D7（B-1 校正）, Q7 → R2]** 驗收證據 = (a) **四個 red→green 見證**（`GOENV=<file: GOFLAGS=-mod=vendor>`、`GO111MODULE=off`、stray `GOWORK=<path>`、`GOTOOLCHAIN=go1.99.9`；**red before / green after**，重現後還原，ADR 0010 doctrine）**＋ neutralisation assertions**（green-before 的 `GOFLAGS=-trimpath` 與長尾名 —— 斷言其**不在 recipe env** 中；**不**計為見證）**＋ aggregate-level**（`GOENV=<file> make verify` ⇒ exit 0，全員綠）+ (b) **兩個 positive control**：`make verify-cross-compile` 在 hermetic env 下仍 **4/4**（證明只移除 ambient 輸入、未覆蓋行內 per-target 覆寫）；clean env 下 `make tidy`／`make fmt` **no-diff**、`go.mod`／`go.sum` 不變（證明未破壞 mutating targets）。
+- **[RESIDUALS / Q7 → R1+R3；PR #97 review → R4+R5, D8]** 已於 plan half 寫入 ADR 0012／truth row：**(R1)** 繞過 `make` 的裸 `go`（含 gate 直接呼叫路徑的**外層** `go test`/`go vet`）仍非 hermetic（hermeticity 是 `make`-boundary 性質）；**(R3)** escape hatch 為**逐變數類別**（已 export 名靠 command-line assignment；plumbing 名靠顯式 export；unexported 名只能直接呼叫或改 block）；**(R4)** frozen round-042 guard 內 `childEnv` **drop 但不 re-set** `GOARM`/`GOEXPERIMENT`（及本輪新增名），故直接路徑上 env-file 值仍可達其 child `go list` —— 記錄、不修；**(R5)** parse-time `$(shell …)`/`$(eval …)`/command-line 變數在 boundary 之外（keep `go` out of `$(shell …)`）。
 - **[GOVERNANCE / Q5 → G1, D6]** rule 已記於 **ADR 0012** + `specs/truth/techstack.md`（Build & Tooling 兩 row）；本輪**不**再改 truth，只交付 `Makefile` block（+ 選配的一行 cross-reference 註解）。
 - **[ORDERING / Q8 → O1]** 本輪 = `043-*`；**R2 of [#92](https://github.com/gosharplite/tellme/issues/92) 順延為 `044-*`**（`STATUS.md` roadmap 已於 plan half 更新）。
 - **[NO-DEP / D10]** 僅 `make` + Go toolchain；**無新相依**；`go.mod`／`go.sum` 不動；POSIX-only。
@@ -76,7 +76,7 @@
   - 不做：不為讓它綠而改樹；不建立任何 committed 見證檔（本輪**不新增 artifact** —— `plan.md`）。
   - **Red-first 期望**：`GOENV` 案 **FAIL**（exit ≠ 0）；此為 T002 的對照基線。
 
-- [X] T002 [MECH] 落 `Makefile` 的 hermetic `export`/`unexport` block
+- [X] T002 [MECH] 落 `Makefile` 的 hermetic `export`/`unexport` block（criterion-derived 全集合）
   - Read:
     - `specs/plans/043-hermetic-make-go-env/research.md` -> D1, D2, D3, D4, D5, D10
     - `docs/decisions/0012-hermetic-make-go-env.md` -> D1, D2, D3, D4, D5
@@ -85,20 +85,19 @@
   - 做（在 `Makefile` 頂部、`VERSION ?= dev` 之後、`$(shell command -v …)` probes 之前，加一段帶註解的 block）：
     - `export GOENV := off`（load-bearing；註解說明 env-file fallback 對 unset **與** empty 都生效 —— round-042 F-2）
     - `export GOWORK := off`
-    - `unexport GOFLAGS GO111MODULE GOEXPERIMENT GOOS GOARCH GOARM`（僅 **ambient** build-context 被清除；host 維持 native）
-    - 一段區塊註解：**目的**（#96；generalises ADR 0011 D5 + round-020 TD1）、**neutralise set**、**preserve set**（`PATH`/`HOME`/`GOPATH`/`GOMODCACHE`/`GOCACHE` + `GOPROXY`/`GOSUMDB`/`GOPRIVATE`/`GONOSUMDB`/`GOINSECURE` —— **不**被 touch）、**`CGO_ENABLED` 維持 host default** 且 recipe 行內賦值仍勝出、**cross-reference** 指向 `tools/arch` 的 `childEnv`（defence-in-depth）與 **ADR 0012**。
+    - `unexport GOFLAGS GO111MODULE GOEXPERIMENT GOTOOLCHAIN GOFIPS140 GODEBUG` + `unexport GOOS GOARCH GOARM GOARM64 GOAMD64 GO386 GOMIPS GOMIPS64 GOPPC64 GORISCV64 GOWASM`（ADR D2 criterion-derived；僅 **ambient** build-context 被清除；host 維持 native）
+    - 一段區塊註解：**目的**（#96；generalises ADR 0011 D5 + round-020 TD1）、**neutralise set**、**preserve set**（`PATH`/`HOME`/`GOPATH`/`GOMODCACHE`/`GOCACHE` + `GOPROXY`/`GOSUMDB`/`GOPRIVATE`/`GONOSUMDB`/`GOINSECURE` —— **不**被 touch）、**`CGO_ENABLED` preserved from the caller**（非全域 pin）且 recipe 行內賦值仍勝出、**boundary 範圍**（recipes + descendants；parse-time `$(shell …)` 在外）、**coverage** 不變量（非 equality）、**cross-reference** 指向 `tools/arch` 的 `childEnv`（defence-in-depth；verdict-only）與 **ADR 0012**。
     - 確認 `$(shell command -v …)` probes 仍能解析 `PATH`（block 在其上、且不 touch `PATH`）。
-  - 驗證：`gofmt` n/a（Makefile）；clean env 下 `make help` 正常；T001 的 4 案（至少 `GOENV` 案）由 **FAIL → PASS**（Phase 4 逐一對照）。
+  - 驗證：`gofmt` n/a（Makefile）；clean env 下 `make help` 正常；T005 的 **4 案**（`GOENV`／`GO111MODULE`／`GOWORK`／`GOTOOLCHAIN`）由 **FAIL → PASS**（Phase 4 逐一對照）。
   - 不做：不新增 target；不改 `verify` aggregate 名單；不 touch `CGO_ENABLED`（全域）；不覆蓋 `verify-cross-compile` 的行內 per-target 賦值；不改任何 recipe 指令本身。
 
-- [X] T003 [DOC] `tools/arch/arch_test.go` 加一行 cross-reference 註解（選配；**零行為變更**）
+- [X] T003 [DOC] `tools/arch/arch_test.go` cross-reference 註解（**FR-008 MUST**；僅註解、**零行為變更**）
   - Read:
     - `docs/decisions/0012-hermetic-make-go-env.md` -> D6（ownership: primary = Makefile block；childEnv = defence-in-depth）
     - `tools/arch/arch_test.go` -> `childEnv` / `droppedBuildEnv` 上方的註解塊
-  - 做：在 `droppedBuildEnv`（或 `childEnv`）註解處補一句——*the `Makefile` hermetic block (ADR 0012) is the primary owner for `make`-launched invocations; this filter covers the gate's documented direct invocation*。**僅註解**，不改任何判斷式／常數。
+  - 做：在 `droppedBuildEnv` 註解處寫明——*the `Makefile` hermetic block (ADR 0012) is the primary owner; this filter keeps **this gate's VERDICT** hermetic on the documented **direct** invocation, and does **not** make that path's outer `go test`/`go vet` hermetic (R1); the relation is **coverage**, not equality (B-2/B-3)*。**僅註解**，不改任何判斷式／常數。
   - 驗證：`make verify-architecture` 仍綠；`git diff` 該檔**僅註解行**變動。
   - 不做：不改 `droppedBuildEnv`／`childEnv` 的任何值或邏輯（round-042 frozen 行為）。
-  - **可折疊**：若 review 認為此註解非必要，可整條移除而不影響本輪交付。
 
 - [X] T004 subagent review (phase quality gate)
   - Read: `Makefile`（新 block）、`tools/arch/arch_test.go`（註解）、`research.md` -> D1–D12、`docs/decisions/0012-hermetic-make-go-env.md`
@@ -110,12 +109,12 @@
 
 **Test Scope**: `make` 呼叫（hostile／clean env）；`make verify`；`go test ./...`；Gherkin/DSL topology audit。
 
-- [X] T005 [REGRESSION] 可偽性見證：4 個 hostile-env 由 RED → GREEN；還原 block ⇒ 再 RED
+- [X] T005 [REGRESSION] 可偽性見證：4 個 red→green hostile-env（`GOENV`／`GO111MODULE`／`GOWORK`／`GOTOOLCHAIN`）+ neutralisation assertions；還原 block ⇒ 再 RED
   - Read: `research.md` -> D4, D7；`docs/decisions/0010-test-deadline-decoupling.md`；`spec.md` -> SC-001
   - 做：
-    - (a) 對 T001 的 4 案逐一在**已落 block** 的樹上重跑 → 全部 **exit 0**（`GOENV=<file -mod=vendor>` 由 *inconsistent vendoring* → green）；另跑 `GOENV=/tmp/goenv043 make verify-architecture` → green。
+    - (a) 對 T001 的 3 案 + `GOTOOLCHAIN=go1.99.9` 逐一在**已落 block** 的樹上重跑 → 全部 **exit 0**（`GOENV=<file -mod=vendor>` 由 *inconsistent vendoring* → green；`GOTOOLCHAIN` 由 *toolchain not available* → green）；另跑 `GOENV=/tmp/goenv043 make verify-architecture` 與 `GOENV=/tmp/goenv043 make verify`（aggregate，全員綠）→ green；並以 `make`-level probe 斷言 `GOFLAGS=-trimpath` 與長尾名**不在 recipe env**（neutralisation assertion，非見證）。
     - (b) **還原**（暫時移除 block）→ `GOENV` 案**再度 FAIL**；還原回 block → green（證明非空轉、且見證綁定於 block 而非環境偶然）。
-    - (c) **drift witness**：以 `grep` 斷言 `Makefile` block 中和的變數集合（`GOENV`/`GOWORK`/`GOFLAGS`/`GO111MODULE`/`GOEXPERIMENT`/`GOOS`/`GOARCH`/`GOARM`）**涵蓋** `tools/arch` `droppedBuildEnv` 的變數集合（不 silent drift；Q6/D6）——記錄為人工／scripted 檢查，**不** commit 見證檔。
+    - (c) **coverage 檢查**（非 equality drift witness，B-3）：以 `grep` 斷言 `Makefile` block 的 neutralise 集合（`GOENV`/`GOWORK`/`GOFLAGS`/`GO111MODULE`/`GOEXPERIMENT`/`GOTOOLCHAIN`/`GOFIPS140`/`GODEBUG`/`GOOS`/`GOARCH`/micro-arch family）**覆蓋** `tools/arch` `droppedBuildEnv` 的集合，**除去** `CGO_ENABLED`（機制差異，已記錄）——記錄為人工／scripted 檢查，**不** commit 見證檔。
   - 不做：不放寬任何斷言以「讓它過」；見證後必須還原到 HEAD（僅保留 T002 block）。
 
 - [X] T006 [REGRESSION] 正向控制 + 全量回歸 + 範圍檢查
@@ -185,6 +184,13 @@
 - **No parallel-subagent substrate in this session** — T004/T007 ran **inline self-review** (round-029/041/042 precedent).
 - **No committed witness artifact** — per `plan.md`'s Structure Decision (no new target/artifact), the four hostile-env witnesses are **reproduced-then-reverted** (recorded here), the round-042 witness style. The temp env files (`/tmp/goenv043`, `/tmp/gowork043`) are scratch, not committed.
 - **T003 kept** (not folded) — the one-line cross-reference comment is landed so both ownership sites are greppable.
+- **`make test` under the hermetic env** — **exit 0**, **22 packages `ok`, 0 `FAIL`** (the E2E harness builds the binary as a child of `make` → a **nested `go build`**, the case A1 was chosen to cover; this is the strongest evidence that the block does not disturb the suite).
+
+### Considered and deliberately out of scope (recorded, not silently omitted)
+
+- **`CGO_ENABLED`** — deliberately **not** neutralised (Q3→V1; ADR 0012 D4): a global pin would be a behaviour change vs future cgo-tagged code. The `tools/arch` gate pins it **per target** because it cross-evaluates; that is the only divergence in the drift witness.
+- **`GOTOOLCHAIN`** — a *toolchain-selection* input, not a build-context one. Neutralising it as `local` could break a module that requires a newer toolchain (it would fail instead of fetching); leaving it ambient keeps the property incomplete (recorded). Out of #96's stated scope (`go env -w` / `GOENV` / `GOFLAGS` / `GO111MODULE` / `GOWORK`); a candidate for a future hardening round if the operator wants it.
+- **Arch micro-tuning vars** (`GOAMD64`, `GOARM64`, `GOPPC64`, …) — same family as `GOOS`/`GOARCH`/`GOARM`, which **are** neutralised; the set is kept to the round-042 `childEnv` set + `GOENV` (plus `GOEXPERIMENT`) so the two owners stay mutually checkable (the drift witness). Adding more vars is a one-line edit if a reviewer wants it.
 
 ---
 
