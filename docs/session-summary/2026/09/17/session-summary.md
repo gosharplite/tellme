@@ -785,7 +785,7 @@ The delivery + end-of-day closeout for round 040: the operator merged PR [#86](h
 - Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; older-round forward items (in the archives).
 
 ### Next steps
-1. **Operator approves** → propagate `dev → main` (no-ff) — the final closeout step.
+1. ~~Operator approves → propagate `dev → main`~~ — **DONE** (no-ff, `40a3abb`); each subsequent closeout-doc commit is propagated the same way so `main` tracks `dev`.
 2. Next session: open round **`041-*`** off `dev` via `/axb-specify` (candidates: [#69](https://github.com/gosharplite/tellme/issues/69) — now carries seven scope items; [#87](https://github.com/gosharplite/tellme/issues/87); [#60](https://github.com/gosharplite/tellme/issues/60); [#13](https://github.com/gosharplite/tellme/issues/13)).
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
