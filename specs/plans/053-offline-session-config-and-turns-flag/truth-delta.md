@@ -20,13 +20,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending — expected NOOP)_ | `specs/truth/` (**no `contracts/**`**) | tellme has a single CLI end and no OpenAPI/HTTP surface. | `spec.md` A5 |
+| NOOP (checked) | `specs/truth/` (**no `contracts/**`**) | Inspected: tellme has a single CLI end and no OpenAPI/HTTP surface. The round authors no request/response shape. | `contract-authoritative` holds vacuously; `spec.md` A5 |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending — expected MODIFY)_ | `specs/truth/data/data-model.dbml` | ADD a `turns_log` artifact (the per-session rendered turn chrome, `output/<mode>/turns.log`; archived on `--new`). | `spec.md` A4; Q1 → (C1) |
+| ADD | `specs/truth/data/data-model.dbml` — `turns_log_line` | Inspected `history_entry`/`history_step`/`usage_record`/`prompt_log_entry`: added the round-053 per-session **turn log** artifact — a plain-text line per rendered chrome line at `output/<mode>/turns.log`, read by `-t`, archived by `--new`. | `spec.md` US2 / FR-004, FR-006, FR-007; Q1 → (C1) |
 
 ## /axb-dsl-refine
 
