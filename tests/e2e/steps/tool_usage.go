@@ -130,7 +130,7 @@ func registeredToolNames() []string {
 	reg := domaintools.NewRegistry(append(
 		append(
 			append(infratools.NewFilesystemTools(), infratools.NewWriteTools()...),
-			infratools.NewCommandTool(),
+			infratools.NewCommandTool(nil),
 		),
 		infratools.NewSkillsTool(nil),
 	)...)

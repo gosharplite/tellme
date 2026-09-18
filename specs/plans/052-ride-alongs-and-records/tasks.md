@@ -6,29 +6,36 @@
 
 ## Phase 1 — Foundational
 
-- [ ] **T001** [FOUND] `internal/infrastructure/tools/command.go`: change `NewCommandTool` to `NewCommandTool(sink domaintools.OutputSink) domaintools.Tool`; make `executeCommand` hold `output domaintools.OutputSink` directly; pass `c.output` in `Execute`. (No behaviour change; `sinkOpen`/`sinkClose`/`teeSink` already nil-guard.)
-- [ ] **T002** [FOUND] Update the two external constructors: `cmd/tellme/deps.go` (`assembleAgentTools(sink)` → `NewCommandTool(sink)`) and `tests/e2e/steps/tool_usage.go` (`NewCommandTool(nil)`).
+- [X] **T001** [FOUND] `internal/infrastructure/tools/command.go`: `NewCommandTool(sink domaintools.OutputSink) domaintools.Tool`; `executeCommand{output domaintools.OutputSink}`; delete `toolOutputBox` + `sink()` + `BindToolOutput`; `Execute` passes `c.output`.
+- [X] **T002** [FOUND] External constructors: `cmd/tellme/deps.go` (`assembleAgentTools(sink)` → `NewCommandTool(sink)`) and `tests/e2e/steps/tool_usage.go` (`NewCommandTool(nil)`).
 
 ## Phase 3 — Test Alignment & Implementation
 
-- [ ] **T003** [UNIT-RED] New `internal/infrastructure/tools/command_sink_test.go`: a fake `domaintools.OutputSink` (records `Begin`/`End`, exposes a `Writer`) passed to `NewCommandTool(sink)` receives the `[Tool Output]` block when a command runs (and **not** when the sink is nil). Reproduce the red by reverting the injection.
-- [ ] **T004** [UNIT-RED] New `internal/ui/tui/prompt/suggester_set_test.go`: `set(items, noChoice)` leaves nothing selected; `set(items, 0)` selects the first item; `cycle` from `noChoice` lands on index 0 (the round-037 arithmetic unchanged).
-- [ ] **T005** [GREEN] `internal/infrastructure/tools/command.go`: delete `toolOutputBox`, the `sink()` accessor, and `BindToolOutput`. (Zero-shared-edits: the deletion is in the same file as T001.)
-- [ ] **T006** [GREEN] `cmd/tellme/deps.go`: extract `assembleAgentTools(sink domaintools.OutputSink) []domaintools.Tool`; `agentTools()` delegates with `nil` (stays parameterless + read-free); `newToolRegistry(sink)` uses `assembleAgentTools`; drop `BindToolOutput: infratools.BindToolOutput`.
-- [ ] **T007** [GREEN] `internal/app/deps/deps.go`: widen `NewToolRegistry func(sink domaintools.OutputSink) domaintools.Registry`; delete the `BindToolOutput` field.
-- [ ] **T008** [GREEN] `internal/cli/cli.go`: build `prog` before `reg`; `reg := dp.NewToolRegistry(prog.ToolOutput)`; delete `dp.BindToolOutput(reg, prog.ToolOutput)`; `renderToolUsage` calls its factory param with `nil` (`reg := newToolRegistry(nil)`), and its parameter type widens to `func(domaintools.OutputSink) domaintools.Registry`.
-- [ ] **T009** [GREEN] `internal/ui/tui/prompt/suggester.go` + `model.go`: `set(items []string, cursor int)`; the two callers pass `noChoice`.
-- [ ] **T010** [ALIGN] Update fixtures/tests for the widened seam: `internal/cli/cli_test.go`, `internal/cli/testdeps_test.go`, `cmd/tellme/deps_test.go` (`newToolRegistry(nil)`), and any `NewCommandTool` call.
-- [ ] **T011** [DOCS] `docs/decisions/0021-ride-alongs-and-records.md` (already drafted in the plan half) + the `docs/decisions/README.md` index row; `specs/truth/techstack.md` MODIFY ×3.
-- [ ] **T012** [DOCS] Relocate the three `#116` records into ADR 0021 §Records (verbatim + provenance); no edit to the frozen `036-*`/`040-*` packages.
+- [X] **T003** [UNIT-RED] New `internal/infrastructure/tools/command_sink_test.go` — a fake `domaintools.OutputSink` passed to `NewCommandTool(sink)` receives the block (Begin/End + the child bytes); a nil sink is a no-op.
+- [X] **T004** [UNIT-RED] New `internal/ui/tui/prompt/suggester_set_test.go` — `set(items, noChoice)` selects nothing; `set(items, 0)` selects the first row; a refresh replaces items+cursor; `cycle` from `noChoice` lands on index 0.
+- [X] **T005** [GREEN] `internal/infrastructure/tools/command.go`: the box/accessor/`BindToolOutput` deleted (same file as T001).
+- [X] **T006** [GREEN] `cmd/tellme/deps.go`: `assembleAgentTools(sink)`; `agentTools()` delegates with `nil` (parameterless + read-free); `newToolRegistry(sink)`; the `BindToolOutput` wiring dropped.
+- [X] **T007** [GREEN] `internal/app/deps/deps.go`: `NewToolRegistry func(sink domaintools.OutputSink) domaintools.Registry`; the `BindToolOutput` field deleted.
+- [X] **T008** [GREEN] `internal/cli/cli.go`: `prog` built before `reg`; `reg := dp.NewToolRegistry(prog.ToolOutput)`; the `dp.BindToolOutput` call deleted; `renderToolUsage` widened + calls its factory with `nil`.
+- [X] **T009** [GREEN] `internal/ui/tui/prompt/suggester.go` + `model.go`: `set(items, cursor)`; both callers pass `noChoice`.
+- [X] **T010** [ALIGN] Fixtures: `internal/cli/{cli,testdeps}_test.go`, `cmd/tellme/deps_test.go` (`newToolRegistry(nil)`), `tests/e2e/steps/tool_usage.go`.
+- [X] **T011** [DOCS] `docs/decisions/0021-ride-alongs-and-records.md` + the `docs/decisions/README.md` index row; `specs/truth/techstack.md` MODIFY ×3.
+- [X] **T012** [DOCS] The three `#116` records relocated into ADR 0021 §Records (copied verbatim + provenance); the frozen `036-*`/`040-*` packages untouched.
 
 ## Phase 4 — Verification & Regression
 
-- [ ] **T013** [VERIFY] `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (RULE-A/B/C 0; **RULE-E baseline 0**, 0 new / 0 stale; RULE-F consistent; 0 cycles; lint 0; cross-compile 4/4).
-- [ ] **T014** [VERIFY] `go test -count=1 ./...` green (incl. the godog E2E); the topology audit unchanged; `go.mod`/`go.sum` unchanged.
-- [ ] **T015** [WITNESS] Reproduce then revert: (a) the command-tool sink injection pin; (b) the `set(items, 0)` policy pin; (c) a governed-import probe ⇒ RULE-E red (the gate still has teeth at 0).
-- [ ] **T016** [CLOSE] `STATUS.md` + the daily summary; then close [#115](https://github.com/gosharplite/tellme/issues/115) and [#116](https://github.com/gosharplite/tellme/issues/116) (comment naming ADR 0021 for #116).
+- [X] **T013** [VERIFY] `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (RULE-A/B/C 0; **RULE-E baseline 0**, 0 new / 0 stale; RULE-F consistent; 0 cycles; lint 0; govulncheck clean; cross-compile 4/4).
+- [X] **T014** [VERIFY] `go test -count=1 ./...` **green** (24 pkgs incl. the godog E2E); `go.mod`/`go.sum` unchanged; no new Gherkin/DSL row.
+- [X] **T015** [WITNESS] Reproduced then reverted: **(a)** dropping the sink injection ⇒ `TestNewCommandToolCarriesInjectedOutputSink` FAILs (`Begin/End = 0/0`); **(b)** resetting the cursor inside `set` ⇒ `TestSuggesterSetOwnsTheCursor/an_explicit_cursor…` FAILs; **(c)** a governed `cli → ui` import at baseline 0 ⇒ the gate FAILs (RULE-F coverage + *"an emptied baseline MUST fail"*). All reverted clean.
+- [X] **T016** [CLOSE] `STATUS.md` + the daily summary; close [#115](https://github.com/gosharplite/tellme/issues/115) and [#116](https://github.com/gosharplite/tellme/issues/116) (comment naming ADR 0021 for #116).
+
+## Outcome (implementation)
+
+- **Product** — `internal/infrastructure/tools/command.go` (ctor-injected sink; box/rebind deleted) · `internal/app/deps/deps.go` (widened `NewToolRegistry`; `BindToolOutput` deleted) · `cmd/tellme/deps.go` (`assembleAgentTools` + sink-aware `newToolRegistry`; wiring) · `internal/cli/cli.go` (reorder + inject; rebind deleted) · `internal/ui/tui/prompt/{suggester,model}.go` (caller-owned cursor).
+- **Tests** — new `command_sink_test.go` + `suggester_set_test.go`; fixtures aligned.
+- **Docs/truth** — ADR 0021 (+ index) · `techstack.md` ×3 · this package.
+- **Gates** — `make verify` OK · `go test -count=1 ./...` green (24 pkgs) · witnesses (a)/(b)/(c) reproduced + reverted · `go.mod`/`go.sum` unchanged.
 
 ## Orphan sweep
 
-- Pre-delivery orphan sweep: **0** at plan time (the round deletes `toolOutputBox`/`BindToolOutput` and adds two files + two unit pins).
+- Post-delivery orphan sweep: **0** (no orphan symbols introduced; `BindToolOutput`/`toolOutputBox` removed with their sole callers).
