@@ -288,3 +288,82 @@ A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` S
 ### Issue tracker (closeout Step 8)
 
 Reconciled against the delivered state: **[#96](https://github.com/gosharplite/tellme/issues/96) CLOSED (completed)** — delivered by round 043 (PR [#99](https://github.com/gosharplite/tellme/pull/99) merged `a2fbafc`; its own reproduction is green at the merged head); **[#92](https://github.com/gosharplite/tellme/issues/92)** open — R1 delivered, R2–R4 + ride-alongs remain (accurate); **[#91](https://github.com/gosharplite/tellme/issues/91)** open (self-development umbrella — accurate); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling — accurate); PR #16 **Obs 1** open. No revisions needed beyond the #96 close.
+
+---
+
+## 4. Session 18 (2026-09-18) — round 044 `044-composition-root-extraction`: **R2 of [#92](https://github.com/gosharplite/tellme/issues/92)** — plan half + grill round + fold → `/axb-tasks` → `/axb-implement` → review folds → **merged (PR #102 + PR #104)** → propagated; closeout
+
+Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 043 delivered/frozen; active branch `dev`), created anchor **#100** (R2 detail issue, child of #92), locked clarify **Q1–Q7**, ran the plan half, ran the **first-ever grill round on `tellme`**, folded it, then ran the implementation half to the **engineered DoD — the layer-discipline baseline 8 → 1** — and closed out.
+
+**Workspace**: `$TELL_ME_HOME` = `…/beta-niffler/ait-tellme`; **linux/amd64** host (Go 1.26.6). **Session mode**: `butler`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Anchor / theme | [#100](https://github.com/gosharplite/tellme/issues/100) — **R2**: composition root out of `internal/cli` → `cmd/tellme`; inject a domain-typed `internal/app/deps.Dependencies` + `cli.Options`; **7 RULE-B edges → 0**; **ADR 0013** |
+| Clarify (one at a time) | **Q1** root = `cmd/tellme` · **Q2** new `internal/app/deps` struct · **Q3** relocate `agentTools()` + inject binders + `ToolOutputSink`→`domaintools.OutputSink` · **Q4** MCP discovery → `internal/infrastructure/mcp` + func-typed `MCPDiscoverer` · **Q5** DoD = the 7 RULE-B edges · **Q6** `deps` + `cli.Options`, all vars deleted · **Q7** strict form → [#101](https://github.com/gosharplite/tellme/issues/101) |
+| Plan half (PR [#102](https://github.com/gosharplite/tellme/pull/102) `4fd57fc`) | specify ✅ · clarify ✅ · **spec-by-example NOOP** · technical-research ✅ (+ `techstack.md` MODIFY + **ADR 0013**) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) |
+| **Grill round** (first on `tellme`) | architect ⚔ griller, seeded with `SESSION-BOOTSTRAP.md`; transcript gist https://gist.github.com/gosharplite/b3e8f0bc4d328187399cff800a738829 · summary [5723583247](https://github.com/gosharplite/tellme/pull/102#issuecomment-5723583247); **ROUND COMPLETE after Q8 — proceed with changes**; operator G1–G4 + **fixes 1–8** folded → the 7→0 DoD made reachable |
+| Implementation (PR [#104](https://github.com/gosharplite/tellme/pull/104) `8da0b88`) | `/axb-tasks` T001–T020 → `/axb-implement` all `[X]` — **baseline 8 → 1**; review `5243584043` → folds **F-1/F-2/F-3/F-5/F-9** + nits **N-1…N-4** → **certified merge-ready**, loop CLOSED |
+| Merge | PR [#102](https://github.com/gosharplite/tellme/pull/102) → `dev` `4fd57fc`; PR [#104](https://github.com/gosharplite/tellme/pull/104) → `dev` `8da0b88` (head `ba64508`); both branches deleted |
+| Closeout | `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (**23** pkgs) · topology audit PASSED (44·6·16+327·1674) · diff-level secret scan clean · `STATUS.md` refreshed + Rule-12 split (round-043 detail → `2026-09-18.md`) · **#100 CLOSED** · `go install` refreshed |
+
+### Work done
+1. **Anchor + clarify** — created [#100](https://github.com/gosharplite/tellme/issues/100) (grounded static read @ `dev` `a2fbafc`) with the seam inventory; locked **Q1–Q7**; filed the strict-scope follow-up **[#101](https://github.com/gosharplite/tellme/issues/101)**.
+2. **Plan half** — `/axb-specify` (spec · checklist · truth-delta) → `/axb-technical-research` (**ADR 0013** + techstack MODIFYs) → `/axb-system-analysis` (`plan.md`; 0 interfaces) → committed per phase → **PR [#102](https://github.com/gosharplite/tellme/pull/102)**.
+3. **Grill round (first on `tellme`)** — discovered the `-l` ignores `-c` engine gap (**filed [#103](https://github.com/gosharplite/tellme/issues/103)**) → adapted the SOP (`TELL_ME_MODE=<target>` on send+retrieve) → seeded architect ⚔ griller with bootstrap → 8 verified questions → **the plan's migration surface was under-recorded in 6 places + the pinned `OutputSink` literal omitted `Enabled()`** → operator G1–G4 + fixes 1–8 → **folded**.
+4. **Plan-half review + nits** — architect review `5243337430` (APPROVE WITH DIRECTIVES) → **TD-1** (widened `RunTUIPrompt` signature) + **RF-1** (`defaultTestDeps`) + **RF-2** (non-nil `UserHomeDir`) folded; re-review `5243391406` — **FINAL CERTIFICATION — ALL FOLDS VERIFIED, MERGE-READY**; **PR #102 MERGED** (`4fd57fc`).
+5. **`/axb-tasks`** — `tasks.md` **T001–T020** (Foundational · Phase 3 Implementation · Phase 4 Verification; Setup omitted, api/data/dsl-refine NOOP); Pre-Delivery Orphan Sweep **0**; **PR #104** opened.
+6. **`/axb-implement`** — one-shot T001–T020: `internal/app/deps` + `domaintools.OutputSink` + `mcp.Discover` + `cmd/tellme` composition root; **all 8 factory vars + `defaultMCPDiscovery` deleted**; `newRenderer` inlined; `dp` threaded; fixture/migration of the CLI tests; assembler gate relocated; **baseline regenerated 8 → 1**; falsifiability witnesses reproduced then reverted.
+7. **Implementation review + folds** — review `5243584043` (APPROVE WITH REQUIRED FOLDS) → **F-1/F-2/F-3/F-5/F-9** folded (`e28850f`, `052df22`); verification nits **N-1/N-2/N-3/N-4** folded (`ba64508`); the non-blocking **F-4/F-6/F-7/F-8** recorded on [#101](https://github.com/gosharplite/tellme/issues/101)'s body → **review loop CLOSED, merge-ready** (`5724287998`); **PR #104 MERGED** (`8da0b88`).
+8. **Closeout** — Steps 1–8 (tree/gates → STATUS + Rule-12 split → this summary → commit → propagate-if-approved → tracker); **#100 CLOSED**; `go install` refreshed.
+
+### Decisions locked (round 044)
+| # | Decision |
+| --- | --- |
+| Q1 | Composition root = **`cmd/tellme`** (tier-table exempt) |
+| Q2 | Injected type = new **`internal/app/deps.Dependencies`** (domain-typed) |
+| Q3 | Relocate `agentTools()`; inject `NewToolRegistry`/`BindToolOutput`/`BindSkillsCatalog`; `ToolOutputSink` → **`domaintools.OutputSink`** (+ `Enabled()` method) |
+| Q4 | MCP discovery orchestration → **`internal/infrastructure/mcp`**; func-typed `deps.MCPDiscoverer` |
+| Q5 | DoD = the **7 RULE-B edges → 0** (gate-proven); strict form → **#101** |
+| Q6 | **`cli.Options{Deps; RunTUIPrompt}`**; **delete every factory var**; assembler gate → `cmd/tellme` |
+| Q7 | Strict-scope follow-up = **#101** (child of #92) |
+| G1–G4 | Accept wide `deps` bag (segregation → ADR 0013 *Alternatives*); `options`→`flags`; fold into the in-flight PR; fix both residuals |
+| F-5 | **`deps.Dependencies.Validate()`** (reflect) — a future 13th seam fails loudly instead of a nil-func deref |
+| TD-1 | `tuiPromptRunner func(ctx, res, env, dp deps.Dependencies) (string, bool, error)` (widened; `dp`, not `opts`) |
+| RF-1 / RF-2 | `defaultTestDeps` fixture (no infra imports); `UserHomeDir` wired unconditionally + non-nil in doubles |
+
+### Commits
+| Branch | Note |
+| --- | --- |
+| `044-composition-root-extraction` (PR #102) | `5b175a9` plan package + spec · `d306550` research + ADR 0013 + techstack · `b966908` system-analysis · `9a5f4f0` STATUS · `228936f` STATUS (fold) · `75fca1c`/`52ea053`/`21c2315` grill-fold · `88aa783` TD-1 · `ac48eb3` RF-1/RF-2 · `6d1a862` checklist TD-1 |
+| `044-implement-composition-root-extraction` (PR #104) | `3693af9` tasks.md · `d676b7a` domain OutputSink + deps + `cmd/tellme` · `5bc2fdc` MCP move + tools re-sign · `1f12ba9` `internal/cli` refactor · `d9543da` tests · `aacd4a0` baseline 8→1 · `69763a4` tasks `[X]` · `e28850f` folds F-1–F-3/F-5 · `052df22` F-9 · `ba64508` nits N-1–N-3 |
+| `dev` | `4fd57fc` PR #102 merge · `8da0b88` PR #104 merge |
+
+### Artifacts / truth
+- Plan package: `specs/plans/044-composition-root-extraction/` — `spec.md` (US1–US3 · FR-001–013 · NFR-001–006 · SC-001–007 · Q1–Q7 · grill fold G1–G4/fixes 1–8) · `checklists/requirements.md` · `research.md` (D1–D12b) · `plan.md` · `tasks.md` (T001–T020 + outcome) · `truth-delta.md`.
+- Truth: `specs/truth/techstack.md` MODIFY (CLI Application *Composition root* / *Project layout* / *Interactive TUI prompt* / *Agent command tool*; Skills *list_skills*; MCP Client *protocol library*/*tool discovery*/*credential resolver seam*; Testing *Agent tool-schema gate*).
+- Governance: **ADR 0013** (`docs/decisions/0013-composition-root-injection.md` + index) — now immutable.
+- Code: `internal/app/deps/` (NEW) · `internal/domain/tools/outputsink.go` (NEW) · `internal/infrastructure/mcp/discovery.go` (NEW) · `cmd/tellme/deps.go` (NEW) · `internal/cli/**` (refactored) · `internal/infrastructure/tools/{command.go,tooloutput.go}` · `tools/arch/baseline.txt` (8 → 1).
+
+### Verification (on `dev` @ `8da0b88`)
+- `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (incl. `verify-architecture`; lint 0; govulncheck clean; cross-compile 4/4).
+- `go test -count=1 ./...` green — **23** packages, 0 FAIL (incl. the ~60 s godog E2E).
+- Topology audit **PASSED** (44 · 6 · 16+327 · 1674) · diff-level secret scan clean · `go.mod`/`go.sum` unchanged · `specs/truth/features/**` untouched.
+- **Falsifiability witness**: re-introducing a `cli → infrastructure` import (even in a `_test.go`) ⇒ gate **red**; a stale baseline line ⇒ gate **red**; both reverted clean.
+- `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `8da0b88`; `--version` → `dev`.
+
+### Open items (non-blocking)
+- **Round-044 forward items** — (a) **#100 CLOSED**; (b) the last baseline entry (`internal/agent -> internal/ui`) is **R3/R4**'s (1 → 0); (c) **F-4/F-6/F-7/F-8** → [#101](https://github.com/gosharplite/tellme/issues/101); (d) `cmd/tellme` tier-table exemption — a candidate RULE-E → #101/#92; (e) `internal/cli`'s legitimate downward imports remain → #101.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; round-011 forward items; the round-022 row→feature audit blind spot → **#91**.
+
+### Next steps
+1. Open round **`045-*`** off `dev` via `/axb-specify` — recommended: **R3 of [#92](https://github.com/gosharplite/tellme/issues/92)** (yield-policy owner + observer hook split), then **R4** (which removes the last baseline entry → 1 → 0).
+2. **Propagation `dev → main`** — **PENDING** (recorded; waits on operator approval).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- None new (no user-facing business journey — structural refactor; spec/acceptance boundary is RD-side).
+
+### Issue tracker (closeout Step 8)
+Reconciled against the delivered state: **[#100](https://github.com/gosharplite/tellme/issues/100) CLOSED (completed)** — R2 delivered by round 044 (PR [#104](https://github.com/gosharplite/tellme/pull/104) merged `8da0b88`; DoD `make verify-architecture` green, baseline 8 → 1); **[#101](https://github.com/gosharplite/tellme/issues/101)** open — R5 strict de-coupling + the PR #104 review deferrals **F-4/F-6/F-7/F-8** (body updated); **[#103](https://github.com/gosharplite/tellme/issues/103)** open (new) — the `-l` ignores `-c` + no `-t` plumbing gap found by the first `tellme` grill round; **[#92](https://github.com/gosharplite/tellme/issues/92)** open — **R1 + R2 delivered**, R3/R4 + ride-alongs remain (accurate); **[#91](https://github.com/gosharplite/tellme/issues/91)** open; **[#13](https://github.com/gosharplite/tellme/issues/13)** open; PR #16 **Obs 1** open.
