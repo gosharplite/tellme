@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are filled by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked and names what it inspected (round-033 review-fold rule — no unevidenced NOOP).
 >
-> **Status**: `/axb-specify` has landed the skeleton (Q1 → B folded: the **TUI prompt** edge). No truth owner has run yet — the rows below are **provisional expectations**, to be finalised/ratified by each owner once **Q2 (port home)** / **Q3 (F-4)** are locked. Nothing here is a committed truth change yet.
+> **Status**: `/axb-specify` has landed the skeleton; clarify **Q1 → B** (the **TUI prompt** edge), **Q2 → A** (the port lives in `internal/domain/**`), **Q3 → A** (F-4 folded in) are **locked**. No truth owner has run yet — the rows below are **provisional expectations**, to be finalised/ratified by each owner at `/axb-technical-research`.
 
 ## /axb-technical-research
 

@@ -31,11 +31,13 @@
 
 ## Gaps & clarify strategy
 
-- [x] Only high-impact gaps escalated to `/axb-clarify` — **Q1 (slice selection)** was asked first; **Q2 (port home)** and **Q3 (F-4 ride-along)** are design-/scope-shaping
-- [x] Questions asked **one at a time** (Q1 answered; Q2/Q3 pending); capped at 1–3 per round
-- [x] Lower-impact undecided details disclosed as assumptions, not escalated (port shape A3; ADR number A4; NOOP set A5/A6)
-- [ ] **NEEDS CLARIFICATION (blocking)**: **Q2 — port home** (`internal/domain/**` vs `internal/app/**`) shapes the design + the ADR (a domain port must stay RULE-C-pure; the adapter stays inside `internal/ui/**` under RULE-A). **Q3 — F-4 ride-along** is a scope question (non-blocking, but bundled with Q2 for a single follow-up).
-  - **Q1 → B LOCKED**: slice = the **TUI prompt** edge; slug/branch `048-cli-tui-prompt-decoupling`.
+- [x] Only high-impact gaps escalated to `/axb-clarify` (Q1 slice selection · Q2 port home · Q3 F-4 ride-along)
+- [x] Questions asked **one at a time** (Q1 → Q2 → Q3); capped at 1–3 per round; **all answered**
+- [x] Lower-impact undecided details disclosed as assumptions, not escalated (port package/name A3; ADR number A4; NOOP set A5/A6)
+- [x] No remaining `NEEDS CLARIFICATION` — all three answers **locked**:
+  - **Q1 → B** — slice = the **TUI prompt** edge (`internal/cli → internal/ui/tui/prompt`); slug/branch `048-cli-tui-prompt-decoupling`; baseline 3 → 2.
+  - **Q2 → A** — the port lives in **`internal/domain/**`** (RULE-C-pure; adapter in a tier ≥ 5 / exempt `cmd/tellme`).
+  - **Q3 → A** — **F-4 folded in** (delete `cli.Options.RunTUIPrompt` + the `tuiPromptRunner` func type).
 
 ## Verifiability & success criteria
 
@@ -56,7 +58,7 @@
 
 ## Ready determination
 
-- [ ] Ready to proceed to downstream planning — **blocked on Q2**
-- [x] A high-impact requirement gap must be closed first — **Q2 (port home) blocks** (it fixes the design + ADR; Q3 rides along)
+- [x] Ready to proceed to downstream planning — clarify closed (Q1/Q2/Q3 locked)
+- [ ] A high-impact requirement gap must be closed first — **none remaining**
 
-**Note**: plan package updated with the Q1 fold. On the Q2/Q3 answers the spec will be finalised (port home + FR-002 refinement + F-4 riding along or not) and the pipeline continues to `/axb-technical-research` (with `/axb-spec-by-example` **NOOP** — no user-facing journey).
+**Note**: plan package final after the clarify fold. Next pipeline step is `/axb-technical-research` (its precondition is the spec; `/axb-spec-by-example` is **NOOP** — no user-facing journey). `/axb-system-analysis` must record this as a dev-surface structural refactor (0 CLI interfaces; api/data/dsl-refine NOOP).
