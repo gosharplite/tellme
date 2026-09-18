@@ -28,9 +28,18 @@ import (
 // real loop would, so the CLI's per-call renderer (frame + deferred tail) is
 // exercised.
 type fakeLoop struct {
-	result    agentport.Result
-	runErr    error
-	writes    []string // lines emitted to spec.Stderr during Run (loop diagnostic output)
+	result agentport.Result
+	runErr error
+	// writes are lines emitted to spec.Stderr during the first call (loop
+	// diagnostic output — e.g. the `[Tool Engine]` line). No timestamp is baked
+	// in, so the double does not drift against the fixture clock (round-050 fold
+	// N-4).
+	writes []string
+	// finals is the per-call `final` flag schedule fired through the observer.
+	// nil (the default) => a single final call. A `{false, true}` schedule drives
+	// a non-final tail followed by the deferred final tail — the runTurn wiring
+	// for the non-final branch (round-050 fold TD-2(ii)).
+	finals    []bool
 	gotSpec   agentport.LoopSpec
 	gotPrompt string
 	gotPrior  []history.Entry
@@ -38,19 +47,30 @@ type fakeLoop struct {
 
 func (f *fakeLoop) Run(_ context.Context, prompt string, prior []history.Entry) (agentport.Result, error) {
 	f.gotPrompt, f.gotPrior = prompt, prior
-	if f.gotSpec.Observer != nil {
-		f.gotSpec.Observer.OnCallBegin(0, []llm.Message{{Role: "user", Content: prompt}})
+	finals := f.finals
+	if len(finals) == 0 {
+		finals = []bool{true}
 	}
-	for _, w := range f.writes {
-		if f.gotSpec.Stderr != nil {
-			_, _ = fmt.Fprintln(f.gotSpec.Stderr, w)
+	for i, fin := range finals {
+		if f.gotSpec.Observer != nil {
+			f.gotSpec.Observer.OnCallBegin(i, []llm.Message{{Role: "user", Content: prompt}})
 		}
-	}
-	if f.runErr != nil {
-		return agentport.Result{}, f.runErr
-	}
-	if f.gotSpec.Observer != nil {
-		f.gotSpec.Observer.OnCallEnd(0, f.result.Usage, nil, true)
+		if i == 0 {
+			for _, w := range f.writes {
+				if f.gotSpec.Stderr != nil {
+					_, _ = fmt.Fprintln(f.gotSpec.Stderr, w)
+				}
+			}
+		}
+		if f.runErr != nil {
+			return agentport.Result{}, f.runErr
+		}
+		if f.gotSpec.Observer != nil {
+			// Non-final calls carry a reported usage so their tail (measured
+			// payload + metrics + Ready) actually renders; the CLI's per-call
+			// renderer owns that branch.
+			f.gotSpec.Observer.OnCallEnd(i, f.result.Usage, nil, fin)
+		}
 	}
 	return f.result, nil
 }

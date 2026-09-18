@@ -18,8 +18,9 @@ import (
 // the `internal/cli -> internal/agent` de-coupling. Round 049 (ADR 0018) had
 // already relocated the loop's crossing VALUES (Result/ErrIncomplete/ToolDefs)
 // here, leaving exactly one `internal/agent` reference in production code: the
-// `&agent.AgentLoop{…}` construction. This port removes that last reference, so
-// `internal/cli` depends only on the domain (plus stdlib) for the loop.
+// FORMER `&agent.AgentLoop{…}` construction in `internal/cli`. This port removes
+// that last reference (historical), so `internal/cli` depends only on the domain
+// (plus stdlib) for the loop; the construction now lives behind `agent.NewLoop`.
 //
 // RULE-C purity: the contract references only stdlib (context/io/time) and
 // domain (history/llm/tools) types — no `internal/agent` type crosses, so the

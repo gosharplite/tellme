@@ -855,7 +855,8 @@ func assertSurfaceCoversBaseline(t *testing.T, governedAppEdges []string) {
 func selfTestSurfaceCoverage(t *testing.T) {
 	t.Helper()
 	// Round 050: the `-> internal/agent` edge is gone (its key removed), so the
-	// sole tracked edge is `-> internal/ui`.
+	// sole tracked edge is `-> internal/ui` — the REAL residual edge (the only
+	// application-tier RULE-E violation left on the tree).
 	covered := []string{"internal/cli -> internal/ui"}
 	if u := uncoveredSurfaceEdges(covered); len(u) != 0 {
 		t.Fatalf("surface-coverage self-test: covered edges reported uncovered: %v", u)

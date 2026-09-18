@@ -79,7 +79,7 @@ func TestRunTurn_PrintsRawAnswerAndPersists(t *testing.T) {
 	// Round 050 (Q4 → A): the loop is the in-package fake; the CLI's orchestration
 	// (prompt/prior handoff, result persistence, answer rendering) is what is
 	// pinned here.
-	lp := &fakeLoop{result: agentport.Result{Answer: "the answer", Usage: llm.Usage{Reported: true}, Calls: []llm.Usage{{Reported: true}}}}
+	lp := &fakeLoop{result: agentport.Result{Answer: "the answer", Usage: llm.Usage{Reported: false}, Calls: []llm.Usage{{Reported: false}}}}
 	st := &fakeStore{}
 	code := runTurn(resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}, st, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithLoop(lp))
 	if code != Success {
@@ -94,7 +94,10 @@ func TestRunTurn_PrintsRawAnswerAndPersists(t *testing.T) {
 	if out.String() != "the answer\n" {
 		t.Errorf("stdout = %q, want %q", out.String(), "the answer\n")
 	}
-	if got := errOut.String(); !strings.HasPrefix(got, "[12:00:00] Payload: ~") || !strings.Contains(got, "/1000000 tokens - butler - deepseek-v4-flash\n") {
+	// Round-050 fold TD-2(i): HasSuffix restored — with an unreported usage the
+	// deferred post-turn status writes nothing, so the pre-flight payload line is
+	// the LAST stderr write before the answer (the position the Contains form lost).
+	if got := errOut.String(); !strings.HasPrefix(got, "[12:00:00] Payload: ~") || !strings.HasSuffix(got, "/1000000 tokens - butler - deepseek-v4-flash\n") {
 		t.Errorf("stderr = %q, want a pre-flight payload status line for butler/deepseek-v4-flash", got)
 	}
 	if len(st.appended) != 1 || st.appended[0].Prompt != "ping" || st.appended[0].Answer != "the answer" {
@@ -218,9 +221,10 @@ func TestRunTurn_ToolLoopLogPrecedesAnswer(t *testing.T) {
 	// CLI's ordering guarantee (loop output precedes the answer) against the fake
 	// loop's scripted writes.
 	var buf bytes.Buffer
+	// Round-050 fold N-4: no baked timestamp in the double's emitted line.
 	lp := &fakeLoop{
 		result: agentport.Result{Answer: "ANSWER", Usage: llm.Usage{Reported: true}, Calls: []llm.Usage{{Reported: true}, {Reported: true}}},
-		writes: []string{"[12:00:00] [Tool Engine] Step 1/1 read_files"},
+		writes: []string{"[Tool Engine] Step 1/1 read_files"},
 	}
 	res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}
 	e := runtimeEnv{stdout: &buf, stderr: &buf, renderer: &stubRenderer{out: "ANSWER"},
@@ -240,6 +244,37 @@ func TestRunTurn_ToolLoopLogPrecedesAnswer(t *testing.T) {
 	}
 	if tool >= answer {
 		t.Fatalf("write order = tool(%d) answer(%d), want tool < answer: %q", tool, answer, out)
+	}
+}
+
+// TestRunTurn_NonFinalTailPrecedesAnswer pins the round-050 fold TD-2(ii): the
+// runTurn wiring for a NON-final call. With a `{false, true}` schedule the fake
+// loop drives a non-final call (whose tail renders immediately — measured payload
+// + metrics + Ready) followed by the final call (whose tail is DEFERRED past the
+// answer by the call renderer / EmitFinalTail). With stdout and stderr bound to
+// ONE interleaved buffer, the non-final tail's `Ready` precedes the answer and
+// the deferred final tail's `Ready` trails it.
+func TestRunTurn_NonFinalTailPrecedesAnswer(t *testing.T) {
+	var buf bytes.Buffer
+	lp := &fakeLoop{
+		result: agentport.Result{Answer: "ANSWER", Usage: llm.Usage{Reported: true, PromptTokens: 42}, Calls: []llm.Usage{{Reported: true, PromptTokens: 42}, {Reported: true, PromptTokens: 42}}},
+		finals: []bool{false, true},
+	}
+	res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Workspace: t.TempDir(), Provider: config.Provider{Model: "deepseek-v4-flash"}}
+	e := runtimeEnv{stdout: &buf, stderr: &buf, renderer: &stubRenderer{out: "ANSWER"},
+		clock: func() time.Time { return time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC) }}
+	if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, e, depsWithLoop(lp)); code != Success {
+		t.Fatalf("code = %d, want success", code)
+	}
+	out := buf.String()
+	firstReady := strings.Index(out, "Ready")
+	answer := strings.Index(out, "ANSWER")
+	lastReady := strings.LastIndex(out, "Ready")
+	if firstReady < 0 || answer < 0 || lastReady < 0 {
+		t.Fatalf("missing markers in output: %q", out)
+	}
+	if firstReady >= answer || answer >= lastReady {
+		t.Fatalf("write order = nonFinalTail(%d) answer(%d) finalTail(%d), want nonFinalTail < answer < finalTail: %q", firstReady, answer, lastReady, out)
 	}
 }
 

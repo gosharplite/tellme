@@ -17,7 +17,7 @@ Measured @ `dev` `684e41e`: the surviving `→ agent` site (`&agent.AgentLoop{�
 Declare in `internal/domain/agent` (peer of `LoopObserver`/`CallObserver`/`ToolLineRenderer`):
 
 - **`Loop`** — an interface: `Run(ctx context.Context, prompt string, prior []history.Entry) (Result, error)`. `Result`/`ErrIncomplete` are already domain-owned (round 049), so the interface is **RULE-C-pure**.
-- **`LoopSpec`** — a value struct carrying the loop's **9** construction inputs, every one already domain/stdlib-typed: `Gateway llm.Gateway`, `Registry tools.Registry`, `MaxLoops int`, `Stderr io.Writer`, `Now func() time.Time`, `EffectiveBudget int`, `ToolUsage history.ToolUsageSink`, `Lines ToolLineRenderer`, `Observer LoopObserver`.
+- **`LoopSpec`** — a value struct carrying the loop **struct's 9 fields** (the struct's fields, not the loop's whole config surface — package-level defaults like `agent.DefaultToolTimeout` are not expressible here), every one already domain/stdlib-typed: `Gateway llm.Gateway`, `Registry tools.Registry`, `MaxLoops int`, `Stderr io.Writer`, `Now func() time.Time`, `EffectiveBudget int`, `ToolUsage history.ToolUsageSink`, `Lines ToolLineRenderer`, `Observer LoopObserver`.
 - **`LoopFactory func(LoopSpec) Loop`** — the injected factory type.
 
 The adapter is a new exported constructor **`agent.NewLoop(spec agentport.LoopSpec) agentport.Loop`** in `internal/agent` (tier 4; imports `internal/domain/**` **downward** — RULE-A-clean); it assigns the spec's fields to the existing `AgentLoop` literal. `deps.Dependencies` gains a **func-typed** `LoopFactory` field bound at `cmd/tellme` (tier-table-exempt). **`Validate()` impact (FR-009):** the added field is func-typed, so the existing `Kind()==reflect.Func` predicate already covers it — **no** explicit interface-seam assertion is needed; ADR 0017 §Forward's interface-seam caveat stays latent. Rejected: **(ii)** a domain struct-of-funcs (the F-8 smell minted fresh); **(iii)** a `cmd/tellme` closure (hides the loop's field contract in `main`).
@@ -36,7 +36,7 @@ RULE-E evaluates the **merged** (production + in-process test) import graph (ADR
 
 `Loop`/`LoopSpec`/`LoopFactory` reference only **stdlib + domain** types — `context`, `io`, `time`, and the domain `llm`/`tools`/`history`/`agent` packages. **No** `internal/agent` type crosses (the loop struct stays private to `internal/agent`); **no** `internal/ui` type crosses (the `Lines`/`Observer` fields are the domain ports). Verified: the loop's 9 constructed fields are **already** all domain/stdlib-typed (there is nothing to re-type — the extraction is a pure seam).
 
-## Decision 6: The inversion is **behaviour-preserving** (the 9 fields, the hooks, the error, the tail)
+## Decision 6: The inversion is **behaviour-preserving** (the struct's 9 fields, the hooks, the error, the tail)
 
 The adapter assigns the same 9 fields to the same struct; the loop body is **unchanged**. The observer injection point (`loop.Observer = compositeObserver{…}`) is replaced by `LoopSpec.Observer` — the same value, so the call-hook ordering (per-call begin/end, final-tail deferral) is identical. The `errors.As(*agentport.ErrIncomplete)` classification (`internal/cli/cli.go:754`) and the `ToolDefs`-based pre-flight estimate are **already** domain-typed (round 049) and untouched. `stdout`/`stderr` stay **byte-identical**; exit codes and flags are unchanged. No behavioural assertion changes except where a test names a moved/renamed symbol.
 

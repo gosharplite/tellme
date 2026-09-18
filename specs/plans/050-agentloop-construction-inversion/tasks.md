@@ -17,6 +17,7 @@
   - `type Loop interface { Run(ctx context.Context, prompt string, prior []history.Entry) (Result, error) }`
   - `type LoopSpec struct { Gateway llm.Gateway; Registry tools.Registry; MaxLoops int; Stderr io.Writer; Now func() time.Time; EffectiveBudget int; ToolUsage history.ToolUsageSink; Lines ToolLineRenderer; Observer LoopObserver }`
   - `type LoopFactory func(LoopSpec) Loop`
+  - `LoopSpec` carries the loop **struct's** 9 fields (not the loop's whole config surface — package-level defaults like `agent.DefaultToolTimeout` are not expressible there) and stays a **capability contract** (an implementation-only knob does not enter it; ADR 0019 §Forward RF-1, round-050 fold).
   - Package-doc note: this is the loop's domain **construction/execution** contract (peer of the observer/renderer ports).
 - [x] **T002** `internal/domain/agent` — unit test: the port is a pure contract (compile-time `var _ Loop …`; a `LoopSpec` round-trip of a fake `Loop` proves the factory signature). (RULE-C-purity is verified by the gate.)
 - [x] **T003** `internal/agent` — add the adapter `func NewLoop(spec agentport.LoopSpec) agentport.Loop { return &AgentLoop{Gateway: spec.Gateway, Registry: spec.Registry, MaxLoops: spec.MaxLoops, Stderr: spec.Stderr, Now: spec.Now, EffectiveBudget: spec.EffectiveBudget, ToolUsage: spec.ToolUsage, Lines: spec.Lines, Observer: spec.Observer} }`. `internal/agent` keeps `AgentLoop`/`Run` **unchanged** (it already satisfies `agentport.Loop`).

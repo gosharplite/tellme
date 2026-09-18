@@ -6,6 +6,12 @@ package agent_test
 // Loop from a LoopSpec without naming a concrete implementation. RULE-C purity of
 // the contract is enforced by the layer-discipline gate (it imports stdlib +
 // domain only), not re-asserted here.
+//
+// Scope (round-050 fold N-1): this test's value is the SHAPE/compile pin (the
+// exported signatures + the factory round-trip); it exercises 2 of LoopSpec's 9
+// fields by design. The full field-by-field MAPPING (LoopSpec -> the concrete
+// loop) is owned by `internal/agent`'s TestNewLoop_CopiesEverySpecField (TD-1),
+// not here.
 
 import (
 	"context"

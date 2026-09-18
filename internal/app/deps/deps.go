@@ -63,10 +63,10 @@ type Dependencies struct {
 	MCPDiscoverer func(ctx context.Context, servers map[string]config.MCPServerConfig) (tools []domaintools.Tool, warnings []string, close func())
 
 	// LoopFactory builds the agent loop for a turn (round 050; R5.4 of #92;
-	// ADR 0019). It is the construction seam that inverts the former direct
-	// `&agent.AgentLoop{…}` build in internal/cli into an injected domain port,
-	// so the application layer names no internal/agent type. The precise field
-	// type is the domain port agentport.LoopFactory (LoopSpec -> Loop).
+	// ADR 0019). It is the construction seam that replaced the (now-removed)
+	// direct `&agent.AgentLoop{…}` build in internal/cli with an injected domain
+	// port, so the application layer names no internal/agent type. The precise
+	// field type is the domain port agentport.LoopFactory (LoopSpec -> Loop).
 	LoopFactory agentport.LoopFactory
 
 	// UserHomeDir resolves the user home (the `~/.tellme` root). It must be wired
