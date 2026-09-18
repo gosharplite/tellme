@@ -42,3 +42,4 @@ Typo- and editorial-only fixes do not need an ADR.
 | [0016](0016-application-import-ceiling.md) | Application import-ceiling gate (RULE-E): the application tiers' downward-import allow-list (R5 of #92) | Accepted |
 | [0017](0017-cli-tui-prompt-decoupling.md) | De-couple `internal/cli` from the TUI prompt: an injected domain `tui.Prompter` port (R5.2 of #92; closes review-deferral F-4) | Accepted |
 | [0018](0018-cli-agent-contracts-extraction.md) | De-couple `internal/cli` from the turn loop (re-cut sub-slice 1): extract the loop's crossing contracts to `internal/domain/agent` (R5.3 of #92; baseline unchanged — the edge move is sub-slice 2) | Accepted |
+| [0019](0019-agentloop-construction-inversion.md) | De-couple `internal/cli` from the turn loop (sub-slice 2): invert the `AgentLoop` construction/execution into an injected domain port (R5.4 of #92; baseline **2 → 1**; the `→ ui` edge retained) | Accepted |
