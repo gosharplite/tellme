@@ -691,6 +691,11 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		// Round 026: the user-global tool-usage sink. Best-effort; a turn that uses
 		// no tool leaves ~/.tellme untouched (the adapter creates the file lazily).
 		ToolUsage: dp.NewToolUsageStore(dp.UserHomeDir),
+		// Round 046 (R4 of #92, ADR 0015): the loop renders its four tool lines
+		// through the injected presentation port — internal/ui owns the bytes and
+		// the single-owned blank-reason predicate, so internal/agent imports no
+		// internal/ui (the final layer-discipline baseline entry is gone).
+		Lines: ui.ToolLineRenderer{},
 	}
 	// Round 019 — the live progress spinner: a diagnostic-stream-only indicator
 	// that labels / clears / restores per waiting phase. It is injected into the

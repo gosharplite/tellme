@@ -58,7 +58,7 @@ func TestAgentLoop_FiresCallHooksWithFusedMessages(t *testing.T) {
 	}}
 	reg := tools.NewRegistry(fakeTool{name: "read_files", result: "ORANGE"})
 	obs := &recordingObserver{}
-	a := &AgentLoop{Gateway: gw, Registry: reg, Observer: obs}
+	a := &AgentLoop{Gateway: gw, Registry: reg, Observer: obs, Lines: fakeRenderer{}}
 
 	if _, err := a.Run(context.Background(), "read notes.txt", nil); err != nil {
 		t.Fatalf("Run: %v", err)

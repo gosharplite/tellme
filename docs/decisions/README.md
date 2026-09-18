@@ -38,3 +38,4 @@ Typo- and editorial-only fixes do not need an ADR.
 | [0012](0012-hermetic-make-go-env.md) | A hermetic `make` Go-toolchain invocation environment (generalises ADR 0011 **D5**; round-020 TD1 is the precedent — its pin stays recipe-local) | Accepted |
 | [0013](0013-composition-root-injection.md) | Composition-root extraction: an injected, domain-typed `Dependencies` seam (R2 of #92) | Accepted |
 | [0014](0014-yield-policy-owner.md) | Yield-policy owner + `LoopObserver` hook split (R3 of #92; amends ADR 0005 **D1**) | Accepted |
+| [0015](0015-loop-presentation-port.md) | Loop presentation port: the loop owns the schedule, `internal/ui` owns the tool-line rendering + the blank-reason predicate (R4 of #92) | Accepted |

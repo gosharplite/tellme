@@ -16,7 +16,6 @@ import (
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/domain/tools"
-	"github.com/gosharplite/tellme/internal/ui"
 )
 
 // DefaultToolTimeout bounds each individual tool execution when the loop is not
@@ -85,6 +84,13 @@ type AgentLoop struct {
 	// (round 026) through the injected sink. Nil = a no-op; a sink error is
 	// swallowed (best-effort), so accounting never breaks a turn.
 	ToolUsage history.ToolUsageSink
+	// Lines, when set, renders the loop's four diagnostic tool lines (round 046 /
+	// ADR 0015). The loop owns the SCHEDULE (which lines, when, in what order,
+	// written to its own Stderr); the injected renderer owns the BYTES and the
+	// single-owned blank-reason predicate. Nil = no tool lines are written (and no
+	// blank / yield) — the documented nil-safe default; the composition site
+	// (internal/cli) always injects ui.ToolLineRenderer.
+	Lines agentport.ToolLineRenderer
 }
 
 // Run performs one prompt run. It sends the conversation (the replayed prior
@@ -147,7 +153,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 			return AgentResult{Answer: resp.Text, Steps: steps, Usage: resp.Usage, Calls: calls}, nil
 		}
 		if i >= maxLoops {
-			a.notifyCallEnd(i, resp.Usage, reasonsOf(resp.ToolCalls), false)
+			a.notifyCallEnd(i, resp.Usage, a.reasonsOf(resp.ToolCalls), false)
 			return AgentResult{Steps: steps, Calls: calls}, &ErrIncomplete{Reason: "the tool-loop bound was reached"}
 		}
 
@@ -189,7 +195,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 		// Round 034 (ADR 0005 D1): the call-end hook fires at the END of the
 		// call's phase (inference + its tool round), carrying the round's reasons
 		// so the CLI emits the grouped post-call tail after the results.
-		a.notifyCallEnd(i, resp.Usage, reasonsOf(resp.ToolCalls), false)
+		a.notifyCallEnd(i, resp.Usage, a.reasonsOf(resp.ToolCalls), false)
 	}
 }
 
@@ -260,32 +266,36 @@ func (a *AgentLoop) notifyCallEnd(callIndex int, usage llm.Usage, roundReasons [
 
 // reasonsOf returns the non-empty top-level `reason` of each requested call, in
 // call order (the grouped post-call tail; round 034 FR-005).
-func reasonsOf(calls []llm.ToolCall) []string {
+//
+// Round 046 (R4 of #92, ADR 0015): the blank-reason predicate is single-owned by
+// the injected renderer — the loop asks the owner (`Lines.ReasonLine`) and APPENDS
+// THE RAW value, so the tail keeps stamping its own timestamp at emit time
+// (research D7). The former dead defensive re-check in callRenderer.OnCallEnd is
+// removed (research D6): one owner on the real path, not defence-in-depth.
+func (a *AgentLoop) reasonsOf(calls []llm.ToolCall) []string {
+	if a.Lines == nil {
+		return nil
+	}
 	var out []string
 	for _, tc := range calls {
-		// Round 036 (issue #74) + round 039 (issue #80): a reason that renders no
-		// line (empty / whitespace-only / escape-only after the formatter's
-		// fold+trim+sanitize) contributes no grouped tail line either. The guard
-		// tests the RENDERED value but APPENDS THE RAW value — the pure formatter
-		// sanitizes/trims later, so the tail always shows the formatted reason
-		// (round-036 review N-4). This is the production filter the tail relies
-		// on; the tail's own guard is defensive only (see call_renderer.go).
-		if r := toolReason(tc.Arguments); ui.ToolReasonRenders(r) {
+		r := toolReason(tc.Arguments)
+		if _, renders := a.Lines.ReasonLine(a.now(), r); renders {
 			out = append(out, r)
 		}
 	}
 	return out
 }
 
-// Round-034 decomposed tool-call rendering (ADR 0005). Each piece is rendered by
-// a pure `internal/ui` formatter and stamped from the injected clock seam; the
-// Observer hooks still wrap every write (round-019). logEngine fires once per
+// Round-034 decomposed tool-call rendering (ADR 0005). Each line is rendered by
+// the injected `Lines` renderer (round 046 / ADR 0015: the loop owns the SCHEDULE,
+// `internal/ui` owns the bytes) and stamped from the loop's injected clock seam;
+// the Observer hooks still wrap every write (round-019). logEngine fires once per
 // EXECUTED round (FR-001); logAction fires per call at its begin — the reason,
 // then the action (FR-002/FR-003); logResult fires per call when it completes
 // (FR-004).
 func (a *AgentLoop) logEngine(step, total int) {
 	a.withToolLog(func() {
-		_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolEngine(a.now(), step, total))
+		_, _ = fmt.Fprintln(a.Stderr, a.Lines.EngineLine(a.now(), step, total))
 	})
 }
 
@@ -298,31 +308,35 @@ func (a *AgentLoop) logAction(tc llm.ToolCall) {
 	a.withToolLog(func() {
 		_, _ = fmt.Fprintln(a.Stderr)
 		// Round 036 (issue #74) + round 039 (issue #80): a blank reason emits NO
-		// reason line. The guard checks the reason AFTER the formatter's
-		// fold+trim+sanitize transform, so a `"   "`, a `"\n"`, or an
-		// escape-only reason cannot render a dangling prefix row.
-		if reason := toolReason(tc.Arguments); ui.ToolReasonRenders(reason) {
-			_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolReason(a.now(), reason))
+		// reason line. Round 046 (R4 of #92, ADR 0015): the decision is the
+		// injected renderer's single-owned predicate — ReasonLine returns the
+		// formatted line AND whether it renders, from ONE evaluation of the reason
+		// transform, so a `"   "`, a `"\n"`, or an escape-only reason cannot render
+		// a dangling prefix row.
+		if line, renders := a.Lines.ReasonLine(a.now(), toolReason(tc.Arguments)); renders {
+			_, _ = fmt.Fprintln(a.Stderr, line)
 		}
-		_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolAction(a.now(), tc.Name, tc.Arguments))
+		_, _ = fmt.Fprintln(a.Stderr, a.Lines.ActionLine(a.now(), tc.Name, tc.Arguments))
 	})
 }
 
 // logResult emits the call's `[Tool Result]` line once the tool has run.
 func (a *AgentLoop) logResult(tc llm.ToolCall, result string) {
 	a.withToolLog(func() {
-		_, _ = fmt.Fprintln(a.Stderr, ui.FormatToolResult(a.now(), tc.Name, result))
+		_, _ = fmt.Fprintln(a.Stderr, a.Lines.ResultLine(a.now(), tc.Name, result))
 	})
 }
 
 // withToolLog wraps one diagnostic write with the nil-Stderr guard and the
-// observer's yield/restore hooks, so the spinner yields the line. Round 045
-// (R3 of #92): the hooks are the intent-named YieldIndicator/RestoreIndicator
-// pair (replacing the log-named Before/AfterToolLog); the yield POLICY lives
-// with the presenter (ui.YieldController; ADR 0014), so this stays a plain
-// clear-before / restore-after wrap.
+// observer's yield/restore hooks, so the spinner yields the line. Round 046 (R4
+// of #92, ADR 0015): a nil `Lines` renderer also skips the write (no lines, no
+// blank, no yield) — the documented nil-safe default. Round 045 (R3 of #92): the
+// hooks are the intent-named YieldIndicator/RestoreIndicator pair (replacing the
+// log-named Before/AfterToolLog); the yield POLICY lives with the presenter
+// (ui.YieldController; ADR 0014), so this stays a plain clear-before /
+// restore-after wrap — R4 leaves it untouched.
 func (a *AgentLoop) withToolLog(fn func()) {
-	if a.Stderr == nil {
+	if a.Stderr == nil || a.Lines == nil {
 		return
 	}
 	if a.Observer != nil {

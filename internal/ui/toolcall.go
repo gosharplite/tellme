@@ -62,7 +62,16 @@ func toolReasonText(reason string) string {
 // reason is suppressed by the CALLERS (not here), so this stays a pure formatter
 // and never returns an empty-string sentinel.
 func FormatToolReason(t time.Time, reason string) string {
-	return fmt.Sprintf("[%s] [Tool Reason] %s", formatClock(t), toolReasonText(reason))
+	return formatToolReasonLine(t, toolReasonText(reason))
+}
+
+// formatToolReasonLine builds the `[HH:MM:SS] [Tool Reason] <text>` row from an
+// ALREADY-TRANSFORMED reason text. It is the ONE place the row's format literal
+// lives, shared by FormatToolReason (the pure formatter) and
+// ToolLineRenderer.ReasonLine (the port adapter), so the two can never drift
+// (round-046 review TD-6).
+func formatToolReasonLine(t time.Time, text string) string {
+	return fmt.Sprintf("[%s] [Tool Reason] %s", formatClock(t), text)
 }
 
 // ToolReasonRenders reports whether a reason value renders a non-empty
@@ -71,6 +80,12 @@ func FormatToolReason(t time.Time, reason string) string {
 // caller suppress a reason that would render as a dangling prefix row — an empty /
 // whitespace-only reason (round 036) or an escape-only reason (round 039, issue
 // #80, ADR 0008) — without the pure formatter returning an empty-string sentinel.
+//
+// Round 046 (R4 of #92, ADR 0015): the PRODUCTION owner of this predicate is now
+// ToolLineRenderer.ReasonLine (it evaluates `toolReasonText` once and returns both
+// the line and the decision), so this helper has no production caller — it is
+// retained as a TEST-FACING public helper (its own unit pin) and as the documented
+// statement of the predicate. A future round may fold it onto ReasonLine.
 func ToolReasonRenders(reason string) bool {
 	return strings.TrimSpace(toolReasonText(reason)) != ""
 }

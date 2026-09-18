@@ -477,3 +477,115 @@ The delivery + end-of-day closeout for round 045: PR [#106](https://github.com/g
 **Commit**: `docs(045)`: day close — round 045 delivered + propagated; STATUS + daily summary (+ Rule-12 split).
 
 **Next steps**: open round **`046-*`** off `dev` = **R4** (blank-reason owner + presentation predicate; removes the last baseline entry → **1 → 0**); re-read `SESSION-BOOTSTRAP.md`.
+
+---
+
+## Session 20 (2026-09-18, cont.) — round 046 `046-blank-reason-owner-and-presentation-decoupling` (R4 of #92): full pipeline → implementation delivered; PR open
+
+A further session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 045 delivered/frozen; active branch `dev`), opened round **046** from the new anchor **[#108](https://github.com/gosharplite/tellme/issues/108)** (a sub-issue of [#92](https://github.com/gosharplite/tellme/issues/92) — R4), ran the full AIxBDD pipeline, delivered the implementation, and opened a PR → `dev` (human-only merge).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`); linux/amd64 host (Go 1.26.6). **Session mode**: `butler`.
+**Branch**: `046-blank-reason-owner-and-presentation-decoupling` (off `dev` `1d36509`) — **PR open**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 045 delivered/frozen; active branch `dev`) |
+| Round-046 theme | **R4 of [#92](https://github.com/gosharplite/tellme/issues/92)** → anchor **[#108](https://github.com/gosharplite/tellme/issues/108)** — the blank-reason predicate's single owner + the loop's `internal/ui` de-coupling (baseline **1 → 0**) |
+| Clarify (locked) | **C-R4-1 → A** (an injected `agentport.ToolLineRenderer` port; the loop keeps the schedule + the round-045 yield bracket) · **C-R4-2 →** delete the dead tail guard · **C-R4-3 →** unit pins + the gate · **C-R4-4 →** a new **ADR 0015** |
+| Pipeline | specify ✅ · clarify ✅ · spec-by-example **NOOP** · technical-research ✅ (+ **ADR 0015** + techstack MODIFY ×2) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T011) · implement ✅ |
+| Product | `internal/domain/agent/presenter.go` (**NEW** — the `ToolLineRenderer` port) · `internal/ui/toolrenderer.go` (**NEW** — the adapter; the single-owned `ReasonLine`) · `internal/agent/agentloop.go` (drop the `internal/ui` import; route the log funcs through the port; `reasonsOf` → a method) · `internal/cli/{cli.go,call_renderer.go}` (inject the port; delete the dead tail guard) · `tools/arch/baseline.txt` (**1 → 0**) |
+| Verification | `make verify` **OK** (incl. `verify-architecture`: gate **0 new / 0 stale / 0 cycles**, baseline **header-only**; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (incl. the ~60 s godog E2E) · `gofmt`/`go vet` clean · **3 falsifiability witnesses** reproduced then reverted |
+| Delivery | branch `046-…`; **PR open — human-only merge** |
+
+### Decisions locked (round 046)
+
+| # | Decision |
+| --- | --- |
+| C-R4-1 | The loop stops importing `internal/ui` by rendering through an **injected `agentport.ToolLineRenderer`** port (declared in `internal/domain/agent`, implemented by `internal/ui`); the loop owns the **schedule** (same lines, order, per-call blank) **and** the round-045 yield bracket — **ADR 0014 untouched**; behaviour-preserving by construction. |
+| C-R4-2 | The blank-reason predicate's **single owner** is `ui.ToolLineRenderer.ReasonLine` (ONE `toolReasonText` evaluation → line + decision); the **dead** third site (`cli/call_renderer.go` `OnCallEnd`) is **deleted** (round-036 TD-1 paid down). |
+| C-R4-3 | Witness = **unit pins + the gate's 1 → 0**; **no** new E2E Example (weak-carrier precedent). |
+| C-R4-4 | **ADR 0015** records the loop/presenter split; relates to ADRs 0005 (D1 **reaffirmed**), 0013 (wiring), 0014 (**unchanged**). |
+
+### Commits (branch `046-…`)
+
+| Commit | Note |
+| --- | --- |
+| `4902d61` | `docs(046)`: plan package + spec |
+| `24ead79` | `docs(046)`: clarify lock (C-R4-1..4) + research + **ADR 0015** + truth MODIFYs + plan + tasks |
+| `3201296` | `feat(046)`: render the loop's tool lines through an injected port; single-own the blank-reason predicate (baseline 1 → 0) |
+| *(this)* | `docs(046)`: mark tasks `[X]` + STATUS + daily summary |
+
+### Falsifiability witnesses (reproduced then reverted, ADR 0010)
+
+- **(a)** re-add an `internal/agent → internal/ui` import ⇒ `verify-architecture` **fails** (the anti-bypass rule: a header-only baseline with 1 violation is red).
+- **(b)** diverge `ui.ToolLineRenderer.ReasonLine` from the format (render a line for a blank reason) ⇒ the `ui` port pin **fails**.
+- **(c)** add a stale baseline line at 0 ⇒ the gate **fails** (*"1 stale baseline entry"*).
+
+### Open items (non-blocking)
+
+- **Propagation PENDING** — `dev → main` after a human merges the PR; then close **#108** at closeout (Step 8).
+- **Round-046 forward item** — the port's `ReasonLine` is the single production owner of the predicate; a future second consumer must route through it (ADR 0015 *Consequences*). `ToolReasonRenders` stays exported for the ui tests.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; **R5** [#101](https://github.com/gosharplite/tellme/issues/101) (the deeper `internal/cli` strict de-coupling + F-4/F-6/F-7/F-8).
+
+### Next steps
+
+1. **Human merges PR** → propagate `dev → main` (no-ff) → close **#108** → `SESSION-CLOSEOUT.md`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session.
+
+### Session 20 (cont.) — PR #109 review fold (`8a39fc0`)
+
+The architect review ([5725563497](https://github.com/gosharplite/tellme/pull/109#issuecomment-5725563497)) returned **APPROVE WITH REQUIRED FOLDS — no blocker** and independently reproduced the DoD (gate **0 new / 0 stale / 0 cycles**, baseline header-only; `internal/agent` names no `internal/ui`; `ReasonLine` ≡ `FormatToolReason`; single `AgentLoop{}` composition site). All folds landed as `8a39fc0`:
+
+- **R-1** `spec.md` Status line reconciled to the C-R4-2 decision (the port's `ReasonLine` is the owner).
+- **R-2** the `chat/dsl.md:55` round-036 note reconciled to the single-owner reality (the deleted `OnCallEnd` guard no longer reads as live) + a **behaviour-aware** guard grep recorded in `truth-delta.md` (symbol-existence ≠ clause-truth).
+- **R-3** `STATUS.md` brought currency-aligned (branch-model `046` row; header reconciled; R4 dropped from the candidates; issue-tracker + env note refreshed).
+- **R-4** the pre-filtered-`roundReasons` precondition documented on `OnCallEnd`.
+- **TD-1…TD-7** folded (ADR 0015 *Consequences* gains the discarded-render cost, the port-shape-leak trade, and the no-release-valve policy; two new loop-tier pins — delegation + nil-`Lines`; `ToolReasonRenders` annotated test-facing; the `[Tool Reason]` format literal deduped via `formatToolReasonLine`; the gate truth row gains the release-valve sentence).
+
+Re-verified at `8a39fc0`: `make verify` **OK** · `go test -count=1 ./...` green (incl. godog E2E) · `gofmt`/`go vet` clean. **Propagation still PENDING** (human merge of PR [#109](https://github.com/gosharplite/tellme/pull/109) → then close #108).
+
+### Session 20 (cont.) — PR #109 fold-review fold (`91e1e23`)
+
+The fold review ([5725646775](https://github.com/gosharplite/tellme/pull/109#issuecomment-5725646775)) **verified all twelve folds** and returned **APPROVE with one required follow-up (F-1) + nits N-1/N-2** — it ran a mutation campaign and reproduced a real **witness-power regression**: R4's retarget onto a `("", false)` fake made the *suppression* direction of the round's own headline policy invisible (mutants B1/B2 reddened nothing, not even the 60 s E2E). Folded as `91e1e23`, **test-only** (production untouched):
+
+- **F-1(1)** the fake's suppressed case now returns a **distinguishable sentinel** (`"REASON suppressed " + reason`), so a loop that prints on a `false` decision reds the existing `!Contains(log, "REASON ")` assertions.
+- **F-1(2)** new tail-side pin **`TestTailReceivesOnlyRendererApprovedReasons`** (a blank reason must never reach `OnCallEnd`).
+- **F-1(3)** `!Contains(log, "\n\n\n")` added to the per-call blank assertion.
+- **N-1** dropped the born-stale `head f845625` pins from `STATUS.md`.
+- **N-2** added a fold addendum to the PR body.
+
+**Mutation re-run (reproduced then reverted):** **B1** ⇒ the two begin-line pins **fail**; **B2** ⇒ the new tail pin **fails**. Both directions of the headline policy are now witnessed. Re-verified at `91e1e23`: `make verify` **OK** · `go test -count=1 ./...` green · `gofmt`/`go vet` clean. **Propagation still PENDING** (human merge of PR [#109](https://github.com/gosharplite/tellme/pull/109)).
+
+### Session 20 (cont.) — PR #109 fold-review #2 fold (`a96fa20`); review loop CLOSED
+
+Fold review #2 ([5725703970](https://github.com/gosharplite/tellme/pull/109#issuecomment-5725703970)) re-ran the mutation campaign at `3e9ece8`: **F-1 CLOSED (verified by mutation — B1/B2/B3 all red; both suppression directions witnessed at the loop tier)** → **review loop CLOSED, MERGE-READY.** One non-blocking nit folded as `a96fa20`, **doc-only**:
+
+- **N-3** the port's `ReasonLine` postcondition ("a suppressed reason returns (`\"\"`, false)") disagreed with the contract-stressing fake (which returns a **non-empty** line on `renders == false`). Relaxed to the real invariant: when `renders` is false the `line` value is **UNSPECIFIED** (the production adapter returns `""`); callers MUST honour `renders`, never the line's content — so the suppression pin now exercises the contract, not outside it.
+
+Re-verified at `a96fa20`: `make verify` **OK** · `go test -count=1 ./...` green · `gofmt`/`go vet` clean. **Propagation still PENDING** (human merge of PR [#109](https://github.com/gosharplite/tellme/pull/109) → propagate `dev → main`; close #108).
+
+### Session 20 (cont.) — PR #109 fold-review #3: CLEARED FOR MERGE (`85fa321`)
+
+Fold review #3 ([5725736471](https://github.com/gosharplite/tellme/pull/109#issuecomment-5725736471)) verified **N-3 closed** (doc-only, `a96fa20`) and confirmed the layering *port = invariant · adapter = one conforming implementation · ui pin = the adapter's spelling*. Verdict: **nothing outstanding from the architect side — CLEARED FOR HUMAN MERGE.** One optional plan-side touch-up folded as `85fa321`: `research.md`'s witness item 2 retitled *"The adapter's contract"* (it describes the ui-tier pin) + an explicit note that the **port** postcondition is the weaker caller-facing invariant (a false `renders` ⇒ the `line` value is *unspecified*). Final gates at the head: `make verify` **OK** (gate **0 new / 0 stale / 0 cycles**) · `go test -count=1 ./...` green (incl. E2E) · `gofmt`/`go vet` clean · `MERGEABLE`/`CLEAN` vs `dev`. **Propagation PENDING** (human merge of PR [#109](https://github.com/gosharplite/tellme/pull/109) → `dev → main`; close #108).
+
+### Session 20 (cont.) — round 046 **DELIVERED** + `SESSION-CLOSEOUT.md` (Steps 1–8)
+
+PR [#109](https://github.com/gosharplite/tellme/pull/109) was **human-merged** into `dev` (`8ca4758`, by `thptcnec`, 2026-09-18T05:49:10Z; the merge was a fast-forward — `mergeCommit` == the round head) and the remote branch deleted. Closeout executed.
+
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#109](https://github.com/gosharplite/tellme/pull/109) **MERGED** into `dev` (`8ca4758`); remote branch deleted → **local branch deleted** (`git branch -D`; was `8ca4758`) |
+| Propagation | `dev → main` — **DONE (no-ff)** |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `8ca4758`; `--version` → `dev` |
+| Closeout Step 1 | tree clean on `dev`; no stray files; no frozen plan package touched (only `specs/plans/046-…`) |
+| Closeout Step 2 | `gofmt` clean · `go vet` clean · `make verify` **OK** (arch gate: baseline **header-only (0)**, 0 new / 0 stale / 0 cycles; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (incl. the ~60 s godog E2E) · diff-level secret scan clean · `go.mod`/`go.sum` unchanged |
+| Closeout Step 3 | `STATUS.md` → round 046 **DELIVERED / FROZEN**; the **round-045 detail relocated verbatim** to `docs/archives/status/2026-09-18.md` (Rule 12); header/branch-model/roadmap/open-items/env updated |
+| Closeout Step 4 | this section |
+| Closeout Step 5 | `STATUS.md` ↔ this log reconciled (same round position, heads, decisions, open items) |
+| Closeout Step 6 | committed + pushed on `dev` |
+| Closeout Step 7 | **propagated** `dev → main` (no-ff) |
+| Closeout Step 8 | **#108 CLOSED (completed)** (DoD met: the loop names no `internal/ui`; the blank-reason predicate has one owner; the baseline is header-only **0**) + a delivery comment on #92 |
+
+**Public binaries**: the merged head is `8ca4758`; the review chain (review → 3 fold reviews) ended **CLEARED FOR MERGE** with F-1 mutation-verified. **Next**: open round `047-*` off `dev` (candidates: **R5** [#101](https://github.com/gosharplite/tellme/issues/101) strict de-coupling; the #92 ride-alongs; [#103](https://github.com/gosharplite/tellme/issues/103); [#91](https://github.com/gosharplite/tellme/issues/91); [#13](https://github.com/gosharplite/tellme/issues/13)).
