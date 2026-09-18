@@ -33,11 +33,11 @@
 
 - [x] **Q1 → A LOCKED** — port-only inversion: the `→ agent` construction is inverted into a domain port; the `ui` wiring (Lines renderer, spinner, coordinator, composite observer) **stays in `internal/cli`** by design; baseline **2 → 1**; the `→ ui` edge is the later slice
 - [x] **Q2 → (i) LOCKED** — domain interface `agentport.Loop` (`Run(...) (Result, error)`) + domain `LoopSpec` + a **func-typed** factory in `deps.Dependencies` (`LoopFactory`), adapter `agent.NewLoop` in `internal/agent`; `Validate()` already covers a func-typed field (no interface-seam assertion needed)
-- [ ] **Q3 → TBD** — `Lines`/observer ownership
-- [x] Questions asked **one at a time**; capped at 1–3 per round
-- [x] High-impact gap scoped to a single first question (Q1), with options A/B/C
+- [x] **Q3 → (a) LOCKED** — the CLI keeps supplying `Lines` (`ui.ToolLineRenderer{}`) and its composite observer (`LoopObserver`) as **domain-typed** `LoopSpec` inputs; behaviour-preserving (identical tool-line/waiting-phase bytes); this is why the `→ ui` edge is retained (Q1 → A)
+- [x] Questions asked **one at a time** (Q1 → Q2 → Q3); capped at 1–3 per round; **all answered**
+- [x] High-impact gap scoped to a single first question (Q1), with options A/B/C; the operator chose **A** (then Q2 → i, Q3 → a)
 - [x] Lower-impact undecided details disclosed as assumptions, not escalated (port names A3; ADR number A4; NOOP set A5/A6)
-- [ ] No remaining `NEEDS CLARIFICATION` — **not yet**: Q1 pending → clarify round 1 **OPEN**
+- [x] No remaining `NEEDS CLARIFICATION` — clarify round 1 **CLOSED** (Q1/Q2/Q3 locked)
 
 ## Verifiability & success criteria
 
@@ -59,7 +59,7 @@
 
 ## Ready determination
 
-- [ ] Ready to proceed to downstream planning — **blocked on Q1** (clarify round 1 OPEN)
-- [x] A high-impact requirement gap must be closed first — **Q1** (the R-1 assembly split)
+- [x] Ready to proceed to downstream planning — **clarify round 1 CLOSED** (Q1 → A · Q2 → i · Q3 → a)
+- [ ] A high-impact requirement gap must be closed first — **none remaining**
 
-**Note**: plan package is the `/axb-specify` skeleton; it is **paused pending `/axb-clarify` Q1**. Next pipeline step after Q1–Q3 close: `/axb-technical-research` (its precondition is the spec; `/axb-spec-by-example` is **NOOP** — no user-facing journey). `/axb-system-analysis` must record this as a dev-surface structural refactor (0 CLI interfaces; api/data/dsl-refine NOOP).
+**Note**: plan package final after the clarify fold. Next pipeline step is `/axb-technical-research` (its precondition is the spec; `/axb-spec-by-example` is **NOOP** — no user-facing journey). `/axb-system-analysis` must record this as a dev-surface structural refactor (0 CLI interfaces; api/data/dsl-refine NOOP).
