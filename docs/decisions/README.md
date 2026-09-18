@@ -36,3 +36,4 @@ Typo- and editorial-only fixes do not need an ADR.
 | [0010](0010-test-deadline-decoupling.md) | Test deadlines: a test must not hardcode a tight wall-clock budget that is not its subject | Accepted |
 | [0011](0011-layer-discipline-gate.md) | Layer-discipline gate: the pinned layer rule + a fail-on-stale violation baseline | Accepted |
 | [0012](0012-hermetic-make-go-env.md) | A hermetic `make` Go-toolchain invocation environment (generalises ADR 0011 **D5**; round-020 TD1 is the precedent — its pin stays recipe-local) | Accepted |
+| [0013](0013-composition-root-injection.md) | Composition-root extraction: an injected, domain-typed `Dependencies` seam (R2 of #92) | Accepted |
