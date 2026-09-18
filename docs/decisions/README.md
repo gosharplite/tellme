@@ -40,3 +40,4 @@ Typo- and editorial-only fixes do not need an ADR.
 | [0014](0014-yield-policy-owner.md) | Yield-policy owner + `LoopObserver` hook split (R3 of #92; amends ADR 0005 **D1**) | Accepted |
 | [0015](0015-loop-presentation-port.md) | Loop presentation port: the loop owns the schedule, `internal/ui` owns the tool-line rendering + the blank-reason predicate (R4 of #92) | Accepted |
 | [0016](0016-application-import-ceiling.md) | Application import-ceiling gate (RULE-E): the application tiers' downward-import allow-list (R5 of #92) | Accepted |
+| [0017](0017-cli-tui-prompt-decoupling.md) | De-couple `internal/cli` from the TUI prompt: an injected domain `tui.Prompter` port (R5.2 of #92; closes review-deferral F-4) | Accepted |
