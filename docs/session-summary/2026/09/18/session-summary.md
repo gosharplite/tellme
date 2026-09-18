@@ -608,7 +608,7 @@ A session on 2026-09-18: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round
 | Pipeline | specify ✅ · clarify ✅ (Q1–Q5, **2 short rounds**) · spec-by-example **NOOP** · technical-research ✅ (+ **ADR 0016** + `techstack.md` MODIFY) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T006) · implement ✅ |
 | Review chain (PR #110) | architectural review `5727139961` — **APPROVE WITH REQUIRED FOLDS (no blocker)** → folded **`4c20c98`** (F-1 · F-2 · F-3 · TD-1…TD-5 · N-1…N-3) → fold review `5727200926` — **ALL FOLDS VERIFIED, cleared for merge** → N-1′/N-2′ + durable-home folded **`a546c89`** (ledger `d39cfb1`) → fold review #2 `5727264949` — **ALL THREE ITEMS VERIFIED, cleared for merge** |
 | Merge | PR [#110](https://github.com/gosharplite/tellme/pull/110) **MERGED** into `dev` (`6711e0a`, by `thptcnec`, 2026-09-18T08:21:02Z); remote branch deleted → **local branch deleted** (`d39cfb1`) |
-| Propagation | `dev → main` — **PENDING** (awaiting operator approval) |
+| Propagation | `dev → main` — **DONE (no-ff, `e47dbc4`)** |
 | `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `6711e0a`; `--version` → `dev` |
 | Closeout | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** · `go test -count=1 ./...` green (incl. the ~63 s E2E) · topology audit unchanged · `STATUS.md` refreshed + **Rule-12 split** (round-046 detail → `docs/archives/status/2026-09-18.md`) · **#101 stays OPEN** |
 
@@ -663,13 +663,13 @@ A session on 2026-09-18: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round
 
 ### Open items (non-blocking)
 
-- **Propagation PENDING** — `dev → main` (no-ff) awaits operator approval.
+- **Propagation DONE** — `dev → main` (no-ff, `e47dbc4`).
 - **Round-047 forward items** — (a) the 3 residual edges = the later **R5.x de-coupling slices**; (b) **F-4/F-6/F-7/F-8** → [#101](https://github.com/gosharplite/tellme/issues/101); (c) third-party app-tier imports are **outside RULE-E** (a live residual); (d) the sanctioned set may be **re-ruled** + the optional **per-rule row split** (both ADR 0016 §Forward); (e) custom build-tag-gated imports out of scope (ADR 0011 D6).
 - Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; round-011 forward items.
 
 ### Next steps
 
-1. Approve the `dev → main` propagation (no-ff) — then the round is fully delivered.
+1. ~~Approve the `dev → main` propagation~~ — **DONE** (no-ff, `e47dbc4`).
 2. Open round **`048-*`** off `dev` via `/axb-specify` — recommended: the **R5.x de-coupling slice** (the 3 residual edges), or [#103](https://github.com/gosharplite/tellme/issues/103)/[#91](https://github.com/gosharplite/tellme/issues/91)/[#13](https://github.com/gosharplite/tellme/issues/13).
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
@@ -680,3 +680,91 @@ A session on 2026-09-18: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round
 ### Issue tracker (closeout Step 8)
 
 Reconciled against the delivered state: **[#101](https://github.com/gosharplite/tellme/issues/101) OPEN** — **R5.1 delivered** by round 047 (PR [#110](https://github.com/gosharplite/tellme/pull/110) merged `6711e0a`); the R5.x de-coupling slices + F-4/F-6/F-7/F-8 remain; a delivery-record comment posted. **[#92](https://github.com/gosharplite/tellme/issues/92) OPEN** (R1–R4 delivered; ride-alongs remain) · **[#103](https://github.com/gosharplite/tellme/issues/103)** · **[#91](https://github.com/gosharplite/tellme/issues/91)** · **[#13](https://github.com/gosharplite/tellme/issues/13)** — all OPEN (accurate). No issues closed this closeout (round 047 delivered a slice of an already-open programme issue).
+
+---
+
+## Session 22 (2026-09-18, cont.) — round 048 `048-cli-tui-prompt-decoupling` (R5.2 of #101): full pipeline → implementation delivered → PR open
+
+A session on 2026-09-18: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 047 delivered/frozen; active branch `dev`), opened round **048** from **issue [#101](https://github.com/gosharplite/tellme/issues/101)** — the **first de-coupling slice** of the R5 programme (the round-047 RULE-E gate baselined the 3 residual edges) — ran the full AIxBDD pipeline, and delivered the implementation. **PR open for human merge.**
+
+**Workspace**: `$TELL_ME_HOME` = `…/beta-niffler/ait-tellme`; **linux/amd64** host (Go 1.26.6). **Session mode**: `butler`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 047 delivered/frozen; active branch `dev`) |
+| Anchor / theme | [#101](https://github.com/gosharplite/tellme/issues/101) — **R5.2**: remove the residual edge `internal/cli → internal/ui/tui/prompt` via an injected **domain port**; RULE-E baseline **3 → 2**; **F-4 closed**; behaviour-preserving; **ADR 0017** |
+| Clarify (one at a time) | **Q1 → B** (the TUI-prompt edge — the smallest, already behind the `tuiPromptRunner` seam) · **Q2 → A** (the port lives in `internal/domain/**`) · **Q3 → A** (F-4 folded in) |
+| Pipeline | specify ✅ · clarify ✅ · spec-by-example **NOOP** · technical-research ✅ (+ **ADR 0017** + `techstack.md` MODIFY ×3) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T012) · implement ✅ |
+| Product | `internal/domain/tui/prompter.go` (NEW port) · `internal/ui/tuiprompt.go` + `tuiprompt_test.go` (NEW adapter + pin) · `internal/cli/cli.go` (CHANGED — `Options{Deps; Prompter}`; port routed; nil-default removed) · `cmd/tellme/deps.go` (wires `ui.TUIPrompter{}`) · `internal/cli/{testdeps,tui_dispatch,tui_submit_chrome}_test.go` (fake port) · `tools/arch/baseline.txt` (**3 → 2**) |
+| Verification | `make verify` **OK** (RULE-E **0 new / 0 stale**, baseline **2**; RULE-A/B/C 0; 0 cycles; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (incl. the ~60 s godog E2E) · `gofmt`/`go vet` clean · **3 falsifiability witnesses** reproduced then reverted |
+| Delivery | branch `048-cli-tui-prompt-decoupling`; **PR open — human-only merge** |
+
+### Decisions locked (round 048)
+
+| # | Decision |
+| --- | --- |
+| Q1 → B | Slice = the **TUI prompt** edge (`internal/cli → internal/ui/tui/prompt`); baseline 3 → 2; slug/branch `048-cli-tui-prompt-decoupling`. |
+| Q2 → A | The port lives in **`internal/domain/**`** (`internal/domain/tui`: `Source{Suggest(ctx,query) []string}` + `Prompter{Run(...); DefaultDebounceDuration()}`; stdlib-only; RULE-C-pure). |
+| Q3 → A | **F-4 folded**: delete `cli.Options.RunTUIPrompt` + the `tuiPromptRunner` func type; both `Options` fields are exported types. |
+| D4 | The adapter lives in **`internal/ui`** (tier 5) — RULE-A forbids a lower tier importing `internal/ui/tui/prompt`. |
+| D5 | Wiring: `cmd/tellme` injects `ui.TUIPrompter{}`; the CLI nil-default is removed; a nil port returns the environment-error path (unreachable in production). |
+
+### Commits (branch `048-cli-tui-prompt-decoupling`)
+
+| Commit | Note |
+| --- | --- |
+| `92549ff` | `docs(048)`: plan package + spec (Q1 open) |
+| `9da8ed7` | `docs(048)`: fold Q1 → B (slice = the TUI prompt edge; baseline 3 → 2); rename slug |
+| `9fb3c83` | `docs(048)`: fold Q2 → A (domain port) + Q3 → A (F-4 folded); clarify closed |
+| `b7956d9` | `docs(048)`: technical research + **ADR 0017** + techstack truth (RULE-E baseline 3 → 2) |
+| `bab8bc0` | `docs(048)`: system-analysis plan (0 interfaces) |
+| `f83982b` | `docs(048)`: tasks.md (T001–T012) |
+| `dc31ac0` | `feat(048)`: de-couple `internal/cli` from the TUI prompt via an injected domain port (baseline 3 → 2; closes F-4) |
+| `5df2e1a` | `docs(048)`: record the `/axb-implement` outcome (gate 3 → 2; witnesses a/b/c) |
+
+### Falsifiability witnesses (reproduced then reverted, ADR 0010)
+
+- **(a)** a re-introduced `internal/cli → internal/ui/tui/prompt` import ⇒ `verify-architecture` **fails** (*"1 new violation(s) not in the baseline: internal/cli -> internal/ui/tui/prompt"*).
+- **(b)** a stale `tools/arch/baseline.txt` line ⇒ the gate **fails** (*"1 stale baseline entr(ies)"*).
+- **(c)** the nil-port path ⇒ the new `TestTUIDispatchFailsLoudlyWithoutPrompter` pin (EnvironmentError), pinned permanently.
+
+### Open items (non-blocking)
+
+- **Human merges the PR** → propagate `dev → main` → run `SESSION-CLOSEOUT.md`; then close nothing on [#101](https://github.com/gosharplite/tellme/issues/101) (it stays OPEN — a programme) but record R5.2 delivered.
+- **Round-048 forward items** — the **2 remaining residual edges** (`internal/cli → internal/agent`, `internal/cli → internal/ui`) + **F-6/F-7/F-8** → later R5.x slices on [#101](https://github.com/gosharplite/tellme/issues/101). The port pattern (domain interface + tier-≥5 adapter + composition-root injection) is the reusable template.
+- **Propagation PENDING** — `dev → main` after the human merge.
+
+### Next steps
+
+1. **Human merges the PR** → propagate `dev → main` (no-ff) → closeout.
+2. Open the next **R5.x** slice (the `internal/cli → internal/ui` edge is the natural next; the `→ agent` edge is the deepest).
+3. Re-read `SESSION-BOOTSTRAP.md` next session.
+
+### PM follow-ups
+
+- None new (no user-facing business journey — a structural de-coupling; the spec/acceptance boundary is RD-side).
+
+### Session 22 (cont.) — round 048 **DELIVERED** (PR #111 merged into `dev` `822e171`) + `SESSION-CLOSEOUT.md` (Steps 1–8) + `go install`
+
+The delivery + end-of-day closeout for round 048: PR [#111](https://github.com/gosharplite/tellme/pull/111) was **human-merged** into `dev` and the remote + local round branches deleted; the installed binary was refreshed; and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#111](https://github.com/gosharplite/tellme/pull/111) **MERGED** into `dev` (`822e171`, by `thptcnec`, 2026-09-18T09:05:13Z); frozen head **`36493a2`**; remote branch deleted → local branch deleted (`git branch -D`); `dev` fast-forwarded to `822e171` |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `822e171`; `--version` → `dev` |
+| Closeout Step 1 | Tree clean on `dev` (= `origin/dev`); no stray files; no frozen plan package touched |
+| Closeout Step 2 | `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (RULE-E **0 new / 0 stale**, baseline **2**; RULE-A/B/C 0; 0 cycles; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (incl. the ~61 s godog E2E) · diff-level secret scan clean · `go.mod`/`go.sum` unchanged · `specs/truth/features/**` untouched |
+| Closeout Step 3 | `STATUS.md` → round 048 **DELIVERED / FROZEN**; the **round-047 delivered-round detail + its branch-model row** and the **round-046 environment note** relocated **verbatim** into `docs/archives/status/2026-09-18.md` (Rule 12); header/branch-model/roadmap/open-items/env updated; the **round-048 Fold ledger row** added (review fold reviewer's **N-A**: `e9c9ea2 → 36493a2`) |
+| Closeout Step 4 | this section (session 22 closeout) |
+| Closeout Step 5 | `STATUS.md` ↔ this log reconciled (same round position, heads, decisions, open items) |
+| Closeout Step 6 | committed + pushed on `dev` |
+| Closeout Step 7 | **propagated** `dev → main` (no-ff) |
+| Closeout Step 8 | issue tracker reconciled — **nothing to close** (round 048 delivered a slice of the already-open programme [#101](https://github.com/gosharplite/tellme/issues/101); its body already carries the R5.2 delivery record + F-4 CLOSED); [#101](https://github.com/gosharplite/tellme/issues/101)/[#92](https://github.com/gosharplite/tellme/issues/92)/[#103](https://github.com/gosharplite/tellme/issues/103)/[#91](https://github.com/gosharplite/tellme/issues/91)/[#13](https://github.com/gosharplite/tellme/issues/13) left open (accurate) |
+
+**Commits**: PR #111 merge `822e171` (by `thptcnec`) · *(this closeout, on `dev`)* `docs(048)`: day close — round 048 delivered + STATUS split + daily summary · propagation `dev → main` (no-ff).
+
+**Next steps**: open round **`049-*`** off `dev` — recommended: the next **R5.x** de-coupling slice (the `internal/cli → internal/ui` edge is the natural next; the `cli → agent` edge is the deepest), **carrying the ADR 0017 §Forward sizing caution** (the `cli → ui` edge is ~20 call sites / 3 crossing value types / 4 stateful objects / 8 formatters → likely a re-cut: value types → `internal/domain/**` first). Re-read `SESSION-BOOTSTRAP.md` next session.
+
+**PM follow-ups**: none new (no user-facing business journey — a structural de-coupling; the spec/acceptance boundary is RD-side).
