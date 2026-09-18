@@ -22,7 +22,7 @@
 
 ## Gaps & clarify strategy
 
-- [ ] **Q1 OPEN — the parallelism default + timing protection** (blocks FR-001's default and FR-004's mechanism)
+- [x] **Q1 LOCKED → Option B** — parallelism **on by default** at `4`; the `TELL_ME_E2E_CONCURRENCY` override seam; the timing scenarios protected by ADR-0010 margins + shape-based non-vacuity (no serial pinning, no static timing list)
 - [ ] **Q2 OPEN — the subset's selector + non-gating contract** (blocks FR-005's selector and the target name)
 - [ ] **Q3 OPEN — the measurable bar + stability evidence N** (blocks SC-002/SC-003's numbers)
 - [x] Clarify budget respected: **3** questions, asked **one at a time**, within the 1–3/round and ≤5/session budget

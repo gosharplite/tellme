@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked and names what it inspected.
 >
-> **Status**: skeleton initialized by `/axb-specify`. **No truth has been written yet.** Clarify round 1 (Q1/Q2/Q3) is **OPEN**; the truth owners below are the *anticipated* impact, to be confirmed and recorded by each owner skill.
+> **Status**: skeleton initialized by `/axb-specify`. **No truth has been written yet.** Clarify round 1: **Q1 LOCKED → Option B** (parallelism on by default at `4` + the `TELL_ME_E2E_CONCURRENCY` seam; ADR-0010 timing protection); **Q2/Q3 OPEN**. The truth owners below are the *anticipated* impact, to be confirmed and recorded by each owner skill.
 
 ## /axb-technical-research
 

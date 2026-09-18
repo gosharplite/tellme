@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — produced by `/axb-specify` from operator tasking. **Three high-impact gaps are open** (see *Clarify round 1*); `/axb-clarify` is delegated and asked **one question at a time**. `NEEDS CLARIFICATION` markers below are **non-blocking for the plan shape** but **blocking for the acceptance/implementation decisions** they name.
+**Status**: Draft — produced by `/axb-specify` from operator tasking. **Clarify round 1, asked one question at a time**: **Q1 LOCKED → Option B** (parallelism **on by default** at a small fixed level + an override seam; the timing-sensitive scenarios protected per **ADR-0010** rather than pinned serial); **Q2/Q3 OPEN**. `NEEDS CLARIFICATION` markers below are **non-blocking for the plan shape** but **blocking for the acceptance/implementation decisions** they name.
 
 **Input (operator, 2026-09-19)**: *"Many time I see you do `full test` and takes more than 60 sec. Why so long?"* … *"Can these two be included in 055 together?"* → **Start 055 with both** (both = **US1** parallel scenario execution and **US2** the fast inner-loop subset).
 
@@ -32,7 +32,7 @@
 
 | # | Question | Status |
 | --- | --- | --- |
-| **Q1** | **What is the parallelism default, and how do timing-sensitive scenarios stay green?** — i.e. `Concurrency` default **1 (opt-in via env) vs >1 (on by default)**, and whether the timing observers are pinned (serial group / conservative margins) or re-margined. | ⏳ **OPEN** — [NEEDS CLARIFICATION: the default and the timing protection] |
+| **Q1** | **What is the parallelism default, and how do timing-sensitive scenarios stay green?** | ✅ **LOCKED → Option B** (operator, 2026-09-19): `Concurrency` is **on by default** at a small fixed level (`e2eDefaultConcurrency = 4`, clamped to ≥1) with an override seam `TELL_ME_E2E_CONCURRENCY`; the timing-sensitive scenarios are protected by **generous host-speed margins + shape-based non-vacuity (ADR-0010)**, **not** by serial pinning or a static timing-feature list. |
 | **Q2** | **Is the fast subset a *gate-excluded* convenience, and what selects it?** — the invariant "a subset selects for convenience, never excludes from the gate" is proposed; the selector is `-godog.paths` (name/tag filtering is unavailable/needs truth edits, see grounding). | ⏳ **OPEN** — [NEEDS CLARIFICATION: the subset's selector + its non-gating contract] |
 | **Q3** | **What is the *measurable* success bar?** — e.g. "the full gate is ≤ X s on the reference host with all 240 Examples still executed" and "N consecutive green runs to call it stable". | ⏳ **OPEN** — [NEEDS CLARIFICATION: the target and the stability evidence] |
 
@@ -59,10 +59,10 @@ As an **RD engineer**, I want the E2E suite to execute independent scenarios con
 
 **Functional Requirements**:
 
-- **FR-001**: The suite MUST be able to execute scenarios concurrently (godog `Concurrency`), with the concurrency level **externally controllable** (a fixed default + an override seam) — **the default value is Q1**.
+- **FR-001**: The suite MUST execute scenarios concurrently **by default** — godog `Concurrency = 4` (a small fixed default, clamped to ≥1), overridable by the `TELL_ME_E2E_CONCURRENCY` env seam (Q1 → B).
 - **FR-002**: Every Example under `Paths` MUST still be executed on a gate run — parallelism MUST NOT drop, filter, or skip any scenario.
 - **FR-003**: `Strict: true` MUST remain in force; an undefined/ambiguous step MUST still fail the suite.
-- **FR-004**: Timing-sensitive scenarios MUST remain **non-vacuous** under parallelism — their protection mechanism is Q1 (candidates: a serial-pinned group; conservative host-speed margins; the ADR-0010 pattern of asserting the failure's *shape* rather than a tight budget).
+- **FR-004**: Timing-sensitive scenarios MUST remain **non-vacuous** under parallelism (Q1 → B): a test whose subject is *not* the bound takes a **generous test-local margin** above measured host speed, and a bound-firing test asserts **non-vacuity by the failure's shape** (`exec.ExitError` with `ExitCode() == -1`) per **ADR-0010**; **no** scenario is pinned serial and **no** static timing-feature list is introduced.
 
 ---
 
