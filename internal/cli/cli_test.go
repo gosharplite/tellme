@@ -139,7 +139,7 @@ func TestRenderToolUsageDiagnosesReadError(t *testing.T) {
 	})
 
 	var out, errBuf bytes.Buffer
-	if code := renderToolUsage(runtimeEnv{stdout: &out, stderr: &errBuf}, dp); code != Success {
+	if code := renderToolUsage(runtimeEnv{stdout: &out, stderr: &errBuf}, dp.NewToolRegistry, dp.NewToolUsageStore, dp.UserHomeDir, dp.NewLines()); code != Success {
 		t.Fatalf("renderToolUsage = %d, want %d (success)", code, Success)
 	}
 	if !strings.Contains(errBuf.String(), "[tool-usage]") {

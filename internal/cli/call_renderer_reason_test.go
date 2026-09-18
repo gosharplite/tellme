@@ -8,7 +8,6 @@ import (
 
 	"github.com/gosharplite/tellme/internal/config"
 	"github.com/gosharplite/tellme/internal/domain/llm"
-	"github.com/gosharplite/tellme/internal/ui"
 )
 
 // Round 036 (issue #74, operator Q2): callRenderer.OnCallEnd re-emits the round's
@@ -26,7 +25,8 @@ func newTestCallRenderer(stderr *bytes.Buffer) *callRenderer {
 	return &callRenderer{
 		env:     runtimeEnv{stderr: stderr, clock: func() time.Time { return r036Clock }},
 		res:     resolution{Mode: "butler", Selected: "test", Provider: config.Provider{Model: "test-model"}},
-		pricing: ui.Pricing{},
+		lines:   fakeLines{},
+		pricing: llm.Pricing{},
 	}
 }
 

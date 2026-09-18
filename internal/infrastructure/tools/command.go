@@ -51,10 +51,10 @@ type executeCommand struct {
 	output *toolOutputBox
 }
 
-// sink returns the bound `[Tool Output]` sink, or a zero (disabled) sink.
+// sink returns the bound `[Tool Output]` sink, or nil (disabled) when unset.
 func (c executeCommand) sink() domaintools.OutputSink {
 	if c.output == nil {
-		return domaintools.OutputSink{}
+		return nil
 	}
 	return c.output.sink
 }
@@ -208,13 +208,9 @@ func runCaptured(ctx context.Context, command string, budget int, sink domaintoo
 	// block before the child starts. The block renders unconditionally — the
 	// coordinator clears the spinner, writes the header/separator, and starts the
 	// idle watcher; a nil spinner is a no-op.
-	if sink.Enabled() {
-		sink.Begin()
-	}
+	sinkOpen(sink)
 	if err := cmd.Start(); err != nil {
-		if sink.Enabled() {
-			sink.End()
-		}
+		sinkClose(sink)
 		return "", fmt.Errorf("execute_command: failed to start: %w", err)
 	}
 	// Reserve marker space so the whole result (bytes + terminator) stays within
@@ -247,13 +243,11 @@ func runCaptured(ctx context.Context, command string, budget int, sink domaintoo
 		abortCapture(cmd, stdout, stderr, finished)
 	}
 	werr := cmd.Wait()
-	if sink.Enabled() {
-		// Close the block: the coordinator stops+joins the idle watcher, clears the
-		// indicator (inside the writer's critical section), writes the closing
-		// separator (dropping any trailing partial line), then resumes (FR-010;
-		// round 040 ADR 0009 D4 — no whole-block pause).
-		sink.End()
-	}
+	// Close the block (FR-010; round 040 ADR 0009 D4 — no whole-block pause): the
+	// coordinator stops+joins the idle watcher, clears the indicator (inside the
+	// writer's critical section), writes the closing separator (dropping any
+	// trailing partial line), then resumes.
+	sinkClose(sink)
 
 	if trimmed {
 		// The byte budget was reached: a distinct "trimmed" outcome. The
@@ -271,11 +265,25 @@ func runCaptured(ctx context.Context, command string, budget int, sink domaintoo
 	return fmt.Sprintf("%sExit Code: %d\n", out, exitStatus(werr)), nil
 }
 
+// sinkOpen opens the `[Tool Output]` block if a live sink is bound (nil-safe).
+func sinkOpen(sink domaintools.OutputSink) {
+	if sink != nil && sink.Enabled() {
+		sink.Begin()
+	}
+}
+
+// sinkClose closes the `[Tool Output]` block if a live sink is bound (nil-safe).
+func sinkClose(sink domaintools.OutputSink) {
+	if sink != nil && sink.Enabled() {
+		sink.End()
+	}
+}
+
 // teeSink fans dst out to the sink's writer as well as the result buffer when a
 // sink is bound (round 034 FR-010); a zero sink returns dst unchanged.
 func teeSink(dst io.Writer, sink domaintools.OutputSink) io.Writer {
-	if sink.Enabled() {
-		return io.MultiWriter(dst, sink.Writer)
+	if sink != nil && sink.Enabled() {
+		return io.MultiWriter(dst, sink.Writer())
 	}
 	return dst
 }

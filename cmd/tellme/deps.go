@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"os"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/metrics"
+	"github.com/gosharplite/tellme/internal/domain/render"
 	domainskills "github.com/gosharplite/tellme/internal/domain/skills"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 	"github.com/gosharplite/tellme/internal/infrastructure/di"
@@ -58,10 +60,23 @@ func buildDeps() deps.Dependencies {
 			})
 		},
 		NewMetricsProvider: func() metrics.SystemMetricsProvider { return infratelemetry.NewSystemMetricsProvider() },
-		MCPDiscoverer: func(ctx context.Context, servers map[string]config.MCPServerConfig) ([]domaintools.Tool, []string, func()) {
-			return mcp.Discover(ctx, servers, mcpDiscoveryBound, di.NewRemoteClient, di.NewGhTokenResolver(mcpDiscoveryBound))
+		MCPDiscoverer: func(ctx context.Context, servers map[string]config.MCPServerConfig) deps.Discovery {
+			tools, warnings, closeFn := mcp.Discover(ctx, servers, mcpDiscoveryBound, di.NewRemoteClient, di.NewGhTokenResolver(mcpDiscoveryBound))
+			// F-7: the close is a visible field (round 051 / ADR 0020). Adapt the
+			// bare func() into an io.Closer.
+			var closer io.Closer
+			if closeFn != nil {
+				closer = closeFunc(closeFn)
+			}
+			return deps.Discovery{Tools: tools, Warnings: warnings, Closer: closer}
 		},
-		LoopFactory: func(spec agentport.LoopSpec) agentport.Loop { return agent.NewLoop(spec) },
+		LoopFactory:  func(spec agentport.LoopSpec) agentport.Loop { return agent.NewLoop(spec) },
+		NewLines:     func() render.Lines { return ui.Lines{} },
+		NewToolLines: func() agentport.ToolLineRenderer { return ui.ToolLines() },
+		NewAnswer:    func() render.Answer { return ui.NewAnswer() },
+		NewProgress: func(stream io.Writer, now func() time.Time, model string, epoch time.Time, columns func() int, idleGap time.Duration, enabled bool) render.TurnProgress {
+			return ui.NewTurnProgress(stream, now, model, epoch, infratelemetry.NewSystemMetricsProvider(), columns, idleGap, enabled)
+		},
 		UserHomeDir: os.UserHomeDir,
 	}
 }
@@ -90,3 +105,8 @@ func newToolRegistry() domaintools.Registry {
 func newTUIRegistry() domaintools.Registry {
 	return domaintools.NewRegistry(infratools.NewFilesystemTools()...)
 }
+
+// closeFunc adapts a bare close func() into an io.Closer (round 051 / F-7).
+type closeFunc func()
+
+func (f closeFunc) Close() error { f(); return nil }

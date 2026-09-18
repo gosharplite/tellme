@@ -8,8 +8,9 @@ import (
 	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
+	"github.com/gosharplite/tellme/internal/domain/metrics"
+	"github.com/gosharplite/tellme/internal/domain/render"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
-	"github.com/gosharplite/tellme/internal/ui"
 )
 
 // callRenderer is the round-034 per-AI-endpoint-call renderer (ADR 0005 D1/D3):
@@ -25,18 +26,19 @@ import (
 //     payload + metrics + `Ready`), EXCEPT for the final call whose tail is
 //     DEFERRED (stored and emitted after the answer — G5).
 //
-// The loop owns no estimator/persona; the CLI-computed estimate is the only path
-// to the number (ADR 0005 D2). The metrics/`Ready` session field is a recorded
-// DISPLAY-ONLY divergence (ADR 0005 D4): it folds each call as it arrives, even a
-// call the final persistence gate will not write.
+// Round 051 (R5.5 of #92; ADR 0020): the BYTES come from the injected domain
+// render.Lines port (internal/ui owns the formatting); the cost/metrics types
+// are domain types (llm.Pricing / metrics.UsageCounts / history.ToolUsageRow), so
+// internal/cli names no internal/ui type.
 type callRenderer struct {
 	env        runtimeEnv
 	res        resolution
 	reg        domaintools.Registry
+	lines      render.Lines
 	chrome     bool
 	priorCalls int
 
-	pricing  ui.Pricing
+	pricing  llm.Pricing
 	session  history.UsageSummary
 	turnCost float64
 
@@ -58,9 +60,10 @@ func newCallRenderer(env runtimeEnv, res resolution, reg domaintools.Registry, c
 		env:        env,
 		res:        res,
 		reg:        reg,
+		lines:      dp.NewLines(),
 		chrome:     chrome,
 		priorCalls: priorCalls,
-		pricing:    ui.Pricing{Hit: res.Pricing.HIT, Miss: res.Pricing.MISS, Comp: res.Pricing.COMP},
+		pricing:    llm.Pricing{Hit: res.Pricing.HIT, Miss: res.Pricing.MISS, Comp: res.Pricing.COMP},
 	}
 	if res.Workspace != "" {
 		r.session, _ = dp.NewUsageStore(res.Workspace).Totals()
@@ -72,12 +75,12 @@ func newCallRenderer(env runtimeEnv, res resolution, reg domaintools.Registry, c
 // CLI-computed per-call pre-flight estimate.
 func (r *callRenderer) OnCallBegin(callIndex int, messages []llm.Message) {
 	if r.chrome {
-		_, _ = fmt.Fprint(r.env.stderr, ui.FormatTurnOpening(r.priorCalls+callIndex+1, r.res.Mode))
+		_, _ = fmt.Fprint(r.env.stderr, r.lines.TurnOpening(r.priorCalls+callIndex+1, r.res.Mode))
 	}
 	estimate := llm.EstimatePayload(r.res.Person, agentport.ToolDefs(r.reg), messages)
-	_, _ = fmt.Fprintln(r.env.stderr, ui.FormatPayloadStatus(r.env.now(), estimate, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, true))
+	_, _ = fmt.Fprintln(r.env.stderr, r.lines.PayloadStatus(r.env.now(), estimate, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, true))
 	if r.chrome {
-		_, _ = fmt.Fprint(r.env.stderr, ui.FormatTurnGap())
+		_, _ = fmt.Fprint(r.env.stderr, r.lines.TurnGap())
 	}
 }
 
@@ -91,26 +94,20 @@ func (r *callRenderer) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []
 		// Round 046 (R4 of #92, ADR 0015): the blank-reason predicate is
 		// single-owned upstream — the loop filters the round's reasons through
 		// ui.ToolLineRenderer.ReasonLine, so roundReasons never carries a reason
-		// that renders no line. The former defensive re-check here (round-036
-		// review TD-1) is DELETED: one owner on the real path, not a dead
-		// defence-in-depth site (research D6).
+		// that renders no line.
 		if len(roundReasons) > 0 {
 			_, _ = fmt.Fprintln(r.env.stderr)
 			for _, reason := range roundReasons {
-				_, _ = fmt.Fprintln(r.env.stderr, ui.FormatToolReason(r.env.now(), reason))
+				_, _ = fmt.Fprintln(r.env.stderr, r.lines.ToolReason(r.env.now(), reason))
 			}
 		}
 		if !usage.Reported {
 			return
 		}
-		// Round 039: the post-status group (measured payload + metrics + `Ready`)
-		// is preceded by exactly ONE blank line — but ONLY on a turn that rendered
-		// a tool round (round-039 review B1: a tool-less turn is unchanged, so it
-		// gains no blank).
 		if r.renderedToolRound {
 			_, _ = fmt.Fprintln(r.env.stderr)
 		}
-		_, _ = fmt.Fprintln(r.env.stderr, ui.FormatPayloadStatus(r.env.now(), usage.PromptTokens, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, false))
+		_, _ = fmt.Fprintln(r.env.stderr, r.lines.PayloadStatus(r.env.now(), usage.PromptTokens, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, false))
 		r.emitMetrics(usage)
 	}
 	if final {
@@ -130,31 +127,28 @@ func (r *callRenderer) EmitFinalTail() {
 }
 
 // emitMetrics renders the call's metrics line and the `╰─⠿ Ready` session summary,
-// folding the call into the display-only session roll-up. It and persistTurnUsage
-// share ONE usage-record formula (usageRecordOf), so display and persistence can
-// never diverge (round 034 review REFACTOR-1).
+// folding the call into the display-only session roll-up.
 func (r *callRenderer) emitMetrics(usage llm.Usage) {
 	now := r.env.now()
 	rec, cost := usageRecordOf(r.pricing, r.res.Selected, r.res.Provider.Model, now.Format(time.RFC3339), usage)
 	r.turnCost += cost
 	r.session.Add(rec)
-	_, _ = fmt.Fprintln(r.env.stderr, ui.FormatMetrics(now, r.res.Selected, ui.UsageCounts{
+	_, _ = fmt.Fprintln(r.env.stderr, r.lines.Metrics(now, r.res.Selected, metrics.UsageCounts{
 		Miss:       rec.PromptTokens - rec.CachedTokens,
 		Hit:        rec.CachedTokens,
 		Completion: rec.ResponseTokens,
 		Thinking:   rec.ThinkingTokens,
 	}))
-	_, _ = fmt.Fprintln(r.env.stderr, ui.FormatReady(cost, r.turnCost, r.session.Cost, r.session.Miss, r.session.Hit, r.session.Out, ui.HitRate(r.session.Hit, r.session.Miss)))
+	_, _ = fmt.Fprintln(r.env.stderr, r.lines.Ready(cost, r.turnCost, r.session.Cost, r.session.Miss, r.session.Hit, r.session.Out, llm.HitRate(r.session.Hit, r.session.Miss)))
 }
 
 // usageRecordOf builds one call's persisted usage record and its cost from the
 // SINGLE-SOURCED formula (round 034 review REFACTOR-1): the miss is
 // `prompt − cached`, the cost is derived from the config `MODELS` pricing, and
-// the total is `prompt + response + thinking`. Both the display tail and the
-// persistence batch consume it, so a pricing/rounding change touches one place.
-func usageRecordOf(pricing ui.Pricing, selected, model, ts string, c llm.Usage) (history.UsageRecord, float64) {
+// the total is `prompt + response + thinking`.
+func usageRecordOf(pricing llm.Pricing, selected, model, ts string, c llm.Usage) (history.UsageRecord, float64) {
 	miss := c.PromptTokens - c.CachedTokens
-	cost := ui.ComputeCost(pricing, miss, c.CachedTokens, c.CompletionTokens, c.ThinkingTokens)
+	cost := llm.ComputeCost(pricing, miss, c.CachedTokens, c.CompletionTokens, c.ThinkingTokens)
 	return history.UsageRecord{
 		Timestamp:      ts,
 		Provider:       selected,
@@ -170,13 +164,12 @@ func usageRecordOf(pricing ui.Pricing, selected, model, ts string, c llm.Usage) 
 
 // persistTurnUsage writes the turn's usage ONCE (ADR 0005 D4/FR-010b): the
 // Reported subset of result.Calls in a single AppendBatch — never per call — and
-// ONLY when the FINAL call reports usage (the round-018 gate). A best-effort
-// write; an empty workspace writes nothing.
+// ONLY when the FINAL call reports usage (the round-018 gate).
 func persistTurnUsage(env runtimeEnv, res resolution, result agentport.Result, dp deps.Dependencies) {
 	if res.Workspace == "" || !result.Usage.Reported {
 		return
 	}
-	pricing := ui.Pricing{Hit: res.Pricing.HIT, Miss: res.Pricing.MISS, Comp: res.Pricing.COMP}
+	pricing := llm.Pricing{Hit: res.Pricing.HIT, Miss: res.Pricing.MISS, Comp: res.Pricing.COMP}
 	ts := env.now().Format(time.RFC3339)
 	records := make([]history.UsageRecord, 0, len(result.Calls))
 	for _, c := range result.Calls {

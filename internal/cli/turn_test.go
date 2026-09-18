@@ -14,6 +14,7 @@ import (
 	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
+	"github.com/gosharplite/tellme/internal/domain/render"
 )
 
 // fakeGateway is an in-memory llm.Gateway for runTurn tests (review finding #1:
@@ -57,7 +58,7 @@ func (f *fakeStore) Append(e history.Entry) error {
 }
 func (f *fakeStore) Archive() error { f.archived = true; return f.archiveErr }
 
-// stubRenderer is an answerRenderer whose behaviour the caller scripts.
+// stubRenderer is a render.Answer whose behaviour the caller scripts.
 type stubRenderer struct {
 	out      string
 	degraded bool
@@ -69,7 +70,7 @@ func (s *stubRenderer) WarnDegraded(io.Writer)            { s.warned = true }
 
 // env builds a runtimeEnv over the given buffers + renderer for a unit test.
 // The clock seam is fixed so the payload status line is deterministic.
-func env(out, errOut io.Writer, r answerRenderer) runtimeEnv {
+func env(out, errOut io.Writer, r render.Answer) runtimeEnv {
 	return runtimeEnv{stdout: out, stderr: errOut, renderer: r,
 		clock: func() time.Time { return time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC) }}
 }

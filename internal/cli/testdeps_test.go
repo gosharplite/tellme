@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/gosharplite/tellme/internal/app/deps"
@@ -12,6 +13,7 @@ import (
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/domain/metrics"
+	"github.com/gosharplite/tellme/internal/domain/render"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 	domaintui "github.com/gosharplite/tellme/internal/domain/tui"
 )
@@ -116,13 +118,19 @@ func defaultTestDeps(mods ...func(*deps.Dependencies)) deps.Dependencies {
 		BindToolOutput:     func(domaintools.Registry, domaintools.OutputSink) {},
 		BindSkillsCatalog:  func(domaintools.Registry, string) {},
 		NewMetricsProvider: func() metrics.SystemMetricsProvider { return nil },
-		MCPDiscoverer: func(context.Context, map[string]config.MCPServerConfig) ([]domaintools.Tool, []string, func()) {
-			return nil, nil, func() {}
+		MCPDiscoverer: func(context.Context, map[string]config.MCPServerConfig) deps.Discovery {
+			return deps.Discovery{}
 		},
 		LoopFactory: func(spec agentport.LoopSpec) agentport.Loop {
 			l := defaultFakeLoop()
 			l.gotSpec = spec
 			return l
+		},
+		NewLines:     func() render.Lines { return fakeLines{} },
+		NewToolLines: func() agentport.ToolLineRenderer { return noopToolLines{} },
+		NewAnswer:    func() render.Answer { return &stubRenderer{} },
+		NewProgress: func(stream io.Writer, now func() time.Time, model string, epoch time.Time, columns func() int, idleGap time.Duration, enabled bool) render.TurnProgress {
+			return render.TurnProgress{ToolOutput: fakeSink{}}
 		},
 		UserHomeDir: func() (string, error) { return "/tmp/tellme-test-home", nil },
 	}
@@ -184,3 +192,55 @@ func (noopPromptTracker) Recent(context.Context, int) ([]history.PromptLogEntry,
 	return nil, nil
 }
 func (noopPromptTracker) Close(context.Context) error { return nil }
+
+// fakeLines is an in-package render.Lines double: the real internal/ui formatters
+// are not importable from internal/cli tests (RULE-E merged-graph, round 050
+// Q4 → A), so a CLI-level test asserts orchestration against these stable stubs.
+type fakeLines struct{}
+
+func (fakeLines) InputCaptured(time.Time) string { return "[00:00:00] Input captured. Processing..." }
+func (fakeLines) TurnOpening(turn int, mode string) string {
+	return fmt.Sprintf("\n%s\n╭─⠿ Turn %d - %s\n", strings.Repeat("─", 80), turn, mode)
+}
+func (fakeLines) TurnGap() string { return "\n" }
+func (fakeLines) PayloadStatus(t time.Time, tokens, budget int, mode, model string, estimated bool) string {
+	tilde := ""
+	if estimated {
+		tilde = "~"
+	}
+	return fmt.Sprintf("[%s] Payload: %s%d/%d tokens - %s - %s", t.Format("15:04:05"), tilde, tokens, budget, mode, model)
+}
+func (fakeLines) Metrics(t time.Time, provider string, u metrics.UsageCounts) string {
+	return fmt.Sprintf("[%s] [%s] M: %d H: %d C: %d Th: %d", t.Format("15:04:05"), provider, u.Miss, u.Hit, u.Completion, u.Thinking)
+}
+func (fakeLines) Ready(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64) string {
+	return "╰─⠿ Ready"
+}
+func (fakeLines) ToolReason(t time.Time, reason string) string {
+	return fmt.Sprintf("[%s] [Tool Reason] %s", t.Format("15:04:05"), reason)
+}
+func (fakeLines) ToolUsage(rows []history.ToolUsageRow) string {
+	var b strings.Builder
+	b.WriteString("tool usage (all sessions):\n")
+	for _, r := range rows {
+		fmt.Fprintf(&b, "%s: total=%d ok=%d error=%d timeout=%d\n", r.Tool, r.Total(), r.OK(), r.Error(), r.Timeout())
+	}
+	return b.String()
+}
+func (fakeLines) DefaultToolOutputIdleGap() time.Duration { return 3 * time.Second }
+
+// noopToolLines is an in-package agentport.ToolLineRenderer no-op double.
+type noopToolLines struct{}
+
+func (noopToolLines) EngineLine(time.Time, int, int) string       { return "" }
+func (noopToolLines) ActionLine(time.Time, string, string) string { return "" }
+func (noopToolLines) ResultLine(time.Time, string, string) string { return "" }
+func (noopToolLines) ReasonLine(time.Time, string) (string, bool) { return "", false }
+
+// fakeSink is an in-package domaintools.OutputSink double (disabled).
+type fakeSink struct{}
+
+func (fakeSink) Begin()            {}
+func (fakeSink) Writer() io.Writer { return nil }
+func (fakeSink) End()              {}
+func (fakeSink) Enabled() bool     { return false }

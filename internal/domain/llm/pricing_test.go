@@ -1,4 +1,4 @@
-package ui
+package llm
 
 import (
 	"math"
@@ -12,7 +12,6 @@ func TestComputeCost(t *testing.T) {
 	if math.Abs(got-want) > 1e-15 {
 		t.Errorf("ComputeCost = %v, want %v", got, want)
 	}
-	// Thinking is billed at the completion rate: adding reasoning raises the cost.
 	if ComputeCost(p, 4, 6, 3, 5) <= ComputeCost(p, 4, 6, 3, 2) {
 		t.Errorf("thinking tokens must be billed at the completion rate")
 	}

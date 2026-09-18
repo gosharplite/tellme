@@ -103,6 +103,10 @@ func (c *ToolOutputCoordinator) Begin() {
 // clear hook wired (WriteWith).
 func (c *ToolOutputCoordinator) Writer() io.Writer { return coordinatorSink{c} }
 
+// Enabled reports whether the coordinator is bound to a stream (round 051 /
+// ADR 0020; F-8). It satisfies domaintools.OutputSink directly.
+func (c *ToolOutputCoordinator) Enabled() bool { return c.w.W != nil }
+
 // End closes the block (ADR 0009 D4, R-8/R-1b): stop the watcher AND join it →
 // clear (inside the writer's critical section, via EndWith's hook) → reset +
 // closing separator → resume. The clear runs inside the writer's mutex because a
