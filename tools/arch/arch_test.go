@@ -637,6 +637,18 @@ func selfTestPredicate(t *testing.T) {
 // Key: "<src> -> <dst>" (module-relative). Value: the allowed exported-identifier
 // set the src PRODUCTION sources may select from dst. The machine-readable home
 // of this list is this table (like the sanctioned set, ADR 0016 D1).
+//
+// Metric (round-049 fold review N-8): RULE-F counts DISTINCT package-qualified
+// SELECTORS (`alias.Ident`) — which named symbols cross the boundary — NOT call
+// sites, NOT method calls on type values, NOT struct fields. So `internal/cli`'s
+// `→ ui` surface is 19 identifiers while the edge carries ~29 `ui.X` occurrences
+// and ~4 method calls; the identifier count is deliberately NOT a call-site
+// measure (ADR 0017 §Forward scopes the `→ ui` slice by call sites).
+//
+// Growth (round-049 fold review N-6): unlike RULE-E's baseline, this table has NO
+// regeneration affordance — `make verify-architecture-update` rewrites
+// baseline.txt and never touches couplingSurface. Intentional growth (a new
+// tracked identifier) is therefore a guard-TABLE edit in the same PR.
 var couplingSurface = map[string]map[string]bool{
 	"internal/cli -> internal/agent": {"AgentLoop": true},
 	"internal/cli -> internal/ui": {
@@ -774,7 +786,7 @@ func assertCouplingSurface(t *testing.T, root string) {
 	for _, edge := range slices.Sorted(maps.Keys(couplingSurface)) {
 		fresh, stale := diffSurface(couplingSurface[edge], got[edge])
 		if len(fresh) > 0 {
-			t.Errorf("RULE-F: %s — NEW coupling-surface identifier(s) not in the allow-list: %v (a shrunk edge re-inflated; the coupling surface must stay edge-sized)", edge, fresh)
+			t.Errorf("RULE-F: %s — identifier(s) not in the coupling-surface allow-list: %v (a tracked edge's surface grew; if intentional, extend couplingSurface in the same PR — the edge ratchet's -update-baseline does not apply here)", edge, fresh)
 		}
 		if len(stale) > 0 {
 			t.Errorf("RULE-F: %s — STALE allow-list entr(ies) no longer referenced: %v (remove them from couplingSurface)", edge, stale)
@@ -799,16 +811,19 @@ func selfTestCouplingSurface(t *testing.T) {
 }
 
 // assertSurfaceCoversBaseline (round-049 fold review TD-2) asserts RULE-F's
-// coverage invariant: every baselined application-tier edge MUST have a
-// couplingSurface entry. Without it, RULE-F's protection is opt-in by memory — a
-// new application edge, once absorbed into the baseline via the documented
+// coverage invariant over the **governed application edges** — the application-
+// tier edges the gate currently SEES (the computed violation set, which subsumes
+// the baseline and, unlike reading the baseline file, also fires on a brand-new
+// not-yet-baselined edge). Every such edge MUST have a couplingSurface entry.
+// Without it, RULE-F's protection is opt-in by memory: a new application edge,
+// once absorbed into the baseline via the documented `-update-baseline`
 // regeneration path, would be governed by the edge ratchet but have an
 // unprotected identifier surface. This is the direct analogue of RULE-E's
 // assertSanctionedInUse (ADR 0016 D4).
-func assertSurfaceCoversBaseline(t *testing.T, baselined []string) {
+func assertSurfaceCoversBaseline(t *testing.T, governedAppEdges []string) {
 	t.Helper()
 	var uncovered []string
-	for _, line := range baselined {
+	for _, line := range governedAppEdges {
 		src, dst, ok := strings.Cut(line, " -> ")
 		if !ok || !isApplicationTier(src) || strings.Contains(dst, "(unranked") {
 			continue
@@ -819,7 +834,7 @@ func assertSurfaceCoversBaseline(t *testing.T, baselined []string) {
 	}
 	if len(uncovered) > 0 {
 		sort.Strings(uncovered)
-		t.Errorf("RULE-F coverage: baselined application edge(s) with no couplingSurface entry: %v — governed by the edge ratchet but with an unprotected identifier surface (add a couplingSurface entry)", uncovered)
+		t.Errorf("RULE-F coverage: governed application edge(s) with no couplingSurface entry: %v — governed by the edge ratchet but with an unprotected identifier surface (add a couplingSurface entry)", uncovered)
 	}
 }
 

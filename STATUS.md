@@ -1,7 +1,7 @@
 # tellme — Status
 
 **Last updated**: 2026-09-18 (session 23 — round **049** `049-cli-agent-decoupling` **in flight**: implementation delivered + **two review folds** applied (TD-1/TD-2/F-2/F-3/F-4/N-1…N-5); **PR [#112](https://github.com/gosharplite/tellme/pull/112) OPEN**, folds **VERIFIED** at the fold-review head; round **048** remains the most recently **delivered** round). **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation).
-**Active branch**: `049-cli-agent-decoupling` (round 049 **implementation delivered** — all `[X]`; review **APPROVE** → folds; fold-review **FOLDS VERIFIED, no further items**; **PR [#112](https://github.com/gosharplite/tellme/pull/112) OPEN** awaiting human merge)
+**Active branch**: `049-cli-agent-decoupling` (round 049 **implementation delivered** — all `[X]`; review **APPROVE** → folds; fold reviews **folds VERIFIED — no further verification items** (5 improvements folded across two rounds: TD-1/TD-2/F-2/F-3/F-4 + N-1…N-9); **PR [#112](https://github.com/gosharplite/tellme/pull/112) OPEN** awaiting human merge)
 
 ## Round in flight — 049 `049-cli-agent-decoupling` (IMPLEMENTATION DELIVERED — all tasks `[X]`; **PR [#112](https://github.com/gosharplite/tellme/pull/112) OPEN**)
 
