@@ -3,6 +3,9 @@ package steps
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -18,7 +21,22 @@ func init() {
 		ctx.When(`^the operator asks tellme to list the last messages without a count$`, whenListLastNoCount)
 		ctx.Then(`^the session chrome accents the tool reason, the mode, the measured tokens, and the session cost in green$`, thenChromeGreenAccents)
 		ctx.Then(`^the session chrome carries no colour$`, thenChromeNoColour)
+		ctx.Then(`^the session turn log carries no decoration$`, thenTurnLogNoDecoration)
 	})
+}
+
+// thenTurnLogNoDecoration (必查 權威狀態) — round 054 fold B-54-1: the persisted
+// session turn log stays control-free even when the stderr chrome was coloured.
+func thenTurnLogNoDecoration(ctx context.Context) error {
+	sc := scenarioFrom(ctx)
+	data, err := os.ReadFile(filepath.Join(sc.historyDir(), "turns.log"))
+	if err != nil {
+		return fmt.Errorf("the session turn log must exist: %w", err)
+	}
+	if strings.ContainsRune(string(data), '\x1b') {
+		return fmt.Errorf("the turn log must carry no control bytes; got %q", string(data))
+	}
+	return nil
 }
 
 // givenProviderReadReasonUsage scripts a usage-reporting fake that returns a

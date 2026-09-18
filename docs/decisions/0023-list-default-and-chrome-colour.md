@@ -25,7 +25,7 @@
 
 **Recorded divergence** — the reference's own layout greens only (4); its `[Tool Reason]` line is **gray**, its `Payload` mode is **gray**, and its token number goes yellow/red by budget ratio. tellme reuses the reference's **code** on **tellme's** element set.
 
-**D4 — `turns.log` stays plain.** The colour is applied at the `stderr` sink only (the adapters are built with the colour flag); the round-053 turn-log tee records the uncoloured chrome, so no ANSI enters the session artifact.
+**D4 — `turns.log` stays plain (the FILE leg is rendered with colour OFF).** The per-call renderer writes each chrome line to **two** sinks: the diagnostic stream via the **coloured** renderer, and the session `turns.log` via a **separate plain** renderer (`dp.NewLines(false)`), so the artifact is plain **by construction** — never produced by stripping colour after the fact (the stronger contract; a strip-at-writer would re-couple the artifact to "we remove our own colour"). `stdout` and the offline paths never carry colour.
 
 **D5 — the colour lives in the adapters.** The pure formatters keep their signatures (colour-aware siblings, plain `false` path byte-identical); `ui.Lines`/`ui.ToolLineRenderer` carry a `colour bool`; the deps seams widen to `NewLines func(colour bool)`/`NewToolLines func(colour bool)` — the bytes stay owned by `internal/ui` (RULE-E baseline stays **0**).
 
@@ -41,4 +41,4 @@
 - **RF-54-1** — colouring **any other** element (the `Ready` label, the metrics numbers, the turn header, the spinner) is out of scope; a future round decides per element.
 - **RF-54-2** — a **non-terminal** colour mode (e.g. an opt-in `--color=always`) is **not** provided; the gate is terminal-only (a caution: colouring a non-terminal path would break many E2E regex assertions).
 - **RF-54-3** — the round-053 self-diagnosing retrieve (RF-53-4) could adopt the same colour discipline if added.
-- **RF-54-4** — `-l`'s optional value is implemented via a bespoke pre-pass; if more optional-int flags appear (`-b`/`--back`-style), the pre-pass should be generalised.
+- **RF-54-4** — `-l`'s optional value is implemented via a bespoke pre-pass; if more optional-int flags appear (`-b`/`--back`-style), the pre-pass should be generalised. Its boundary cases (recorded): the pre-pass is **positional-agnostic** (`tellme "p" -l 5` → `-l=5` + prompt `p`) and **misses combined short flags** (`-rl 5` → `-l`=1 + prompt `5`); and `-l` wins the dispatch precedence over a preserved positional token (round-007), so `-l hello` lists and drops the prompt.

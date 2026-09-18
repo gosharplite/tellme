@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/gosharplite/tellme/internal/app/deps"
@@ -38,6 +39,12 @@ type callRenderer struct {
 	chrome     bool
 	priorCalls int
 
+	// fileLines is the PLAIN renderer for the turn-log file leg (round 054 fold
+	// B-54-1): the artifact is written with colour off, never stripped afterwards.
+	// turnsLog is the file writer (nil when no turn log is open).
+	fileLines render.Lines
+	turnsLog  io.Writer
+
 	pricing  llm.Pricing
 	session  history.UsageSummary
 	turnCost float64
@@ -61,6 +68,8 @@ func newCallRenderer(env runtimeEnv, res resolution, reg domaintools.Registry, c
 		res:        res,
 		reg:        reg,
 		lines:      dp.NewLines(colour),
+		fileLines:  dp.NewLines(false),
+		turnsLog:   env.turnsLog,
 		chrome:     chrome,
 		priorCalls: priorCalls,
 		pricing:    llm.Pricing{Hit: res.Pricing.HIT, Miss: res.Pricing.MISS, Comp: res.Pricing.COMP},
@@ -71,16 +80,40 @@ func newCallRenderer(env runtimeEnv, res resolution, reg domaintools.Registry, c
 	return r
 }
 
+// emit renders ONE chrome line through build for each sink (round 054 fold
+// B-54-1): the diagnostic stream gets the render from r.lines (coloured when the
+// gate is on), and — when a turn log is open — the FILE leg gets the render from
+// r.fileLines (PLAIN, colour off). build receives the renderer for its sink, so
+// the file leg is never produced by stripping colour after the fact.
+func (r *callRenderer) emit(newline bool, build func(l render.Lines) string) {
+	writeChromeLine(r.env.stderr, build(r.lines), newline)
+	if r.turnsLog != nil {
+		writeChromeLine(r.turnsLog, build(r.fileLines), newline)
+	}
+}
+
+// writeChromeLine writes one chrome line, with or without a trailing newline.
+func writeChromeLine(w io.Writer, s string, newline bool) {
+	if newline {
+		_, _ = fmt.Fprintln(w, s)
+		return
+	}
+	_, _ = fmt.Fprint(w, s)
+}
+
 // OnCallBegin emits the frame (rule + header + gap, chrome only) and the
 // CLI-computed per-call pre-flight estimate.
 func (r *callRenderer) OnCallBegin(callIndex int, messages []llm.Message) {
+	turn := r.priorCalls + callIndex + 1
 	if r.chrome {
-		_, _ = fmt.Fprint(r.env.diag(), r.lines.TurnOpening(r.priorCalls+callIndex+1, r.res.Mode))
+		r.emit(false, func(l render.Lines) string { return l.TurnOpening(turn, r.res.Mode) })
 	}
 	estimate := llm.EstimatePayload(r.res.Person, agentport.ToolDefs(r.reg), messages)
-	_, _ = fmt.Fprintln(r.env.diag(), r.lines.PayloadStatus(r.env.now(), estimate, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, true))
+	r.emit(true, func(l render.Lines) string {
+		return l.PayloadStatus(r.env.now(), estimate, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, true)
+	})
 	if r.chrome {
-		_, _ = fmt.Fprint(r.env.diag(), r.lines.TurnGap())
+		r.emit(false, func(l render.Lines) string { return l.TurnGap() })
 	}
 }
 
@@ -96,18 +129,20 @@ func (r *callRenderer) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []
 		// ui.ToolLineRenderer.ReasonLine, so roundReasons never carries a reason
 		// that renders no line.
 		if len(roundReasons) > 0 {
-			_, _ = fmt.Fprintln(r.env.diag())
+			r.emit(true, func(render.Lines) string { return "" })
 			for _, reason := range roundReasons {
-				_, _ = fmt.Fprintln(r.env.diag(), r.lines.ToolReason(r.env.now(), reason))
+				r.emit(true, func(l render.Lines) string { return l.ToolReason(r.env.now(), reason) })
 			}
 		}
 		if !usage.Reported {
 			return
 		}
 		if r.renderedToolRound {
-			_, _ = fmt.Fprintln(r.env.diag())
+			r.emit(true, func(render.Lines) string { return "" })
 		}
-		_, _ = fmt.Fprintln(r.env.diag(), r.lines.PayloadStatus(r.env.now(), usage.PromptTokens, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, false))
+		r.emit(true, func(l render.Lines) string {
+			return l.PayloadStatus(r.env.now(), usage.PromptTokens, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, false)
+		})
 		r.emitMetrics(usage)
 	}
 	if final {
@@ -133,13 +168,16 @@ func (r *callRenderer) emitMetrics(usage llm.Usage) {
 	rec, cost := usageRecordOf(r.pricing, r.res.Selected, r.res.Provider.Model, now.Format(time.RFC3339), usage)
 	r.turnCost += cost
 	r.session.Add(rec)
-	_, _ = fmt.Fprintln(r.env.diag(), r.lines.Metrics(now, r.res.Selected, metrics.UsageCounts{
+	counts := metrics.UsageCounts{
 		Miss:       rec.PromptTokens - rec.CachedTokens,
 		Hit:        rec.CachedTokens,
 		Completion: rec.ResponseTokens,
 		Thinking:   rec.ThinkingTokens,
-	}))
-	_, _ = fmt.Fprintln(r.env.diag(), r.lines.Ready(cost, r.turnCost, r.session.Cost, r.session.Miss, r.session.Hit, r.session.Out, llm.HitRate(r.session.Hit, r.session.Miss)))
+	}
+	r.emit(true, func(l render.Lines) string { return l.Metrics(now, r.res.Selected, counts) })
+	r.emit(true, func(l render.Lines) string {
+		return l.Ready(cost, r.turnCost, r.session.Cost, r.session.Miss, r.session.Hit, r.session.Out, llm.HitRate(r.session.Hit, r.session.Miss))
+	})
 }
 
 // usageRecordOf builds one call's persisted usage record and its cost from the

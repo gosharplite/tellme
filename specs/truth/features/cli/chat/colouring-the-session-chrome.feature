@@ -27,3 +27,14 @@ Feature: Colouring the session chrome
       When the operator starts tellme with the prompt "Say hi."
       Then the session chrome carries no colour
       And tellme exits successfully
+
+  Rule: The saved turn log stays free of decoration
+
+    Example: A coloured terminal turn keeps a plain turn log
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the diagnostics are shown at a terminal
+      And a configured provider "test-model" whose endpoint answers with "ok"
+      When the operator starts tellme with the prompt "Say hi."
+      Then the session turn log carries no decoration
+      And tellme exits successfully

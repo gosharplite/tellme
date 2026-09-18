@@ -69,7 +69,7 @@ As an **operator**, I want `tellme -l` (no value) to behave like `-l 1`, so the 
 
 **Functional Requirements**:
 
-- **FR-001**: Bare `-l` / `--last` MUST default to `1` (reference parity) — implemented as `NoOptDefVal = "1"` **plus** an args pre-pass that consumes an adjacent integer and leaves a non-integer token untouched (pflag's `NoOptDefVal` alone would parse `-l 5` as `-l=1` + positional `5`).
+- **FR-001**: Bare `-l` / `--list` MUST default to `1` (reference parity) — implemented as `NoOptDefVal = "1"` **plus** an args pre-pass that consumes an adjacent integer and leaves a non-integer token untouched (pflag's `NoOptDefVal` alone would parse `-l 5` as `-l=1` + positional `5`).
 - **FR-002**: An explicit non-positive value (`-l 0`, `-l -1`) MUST remain a **usage error** (round-007 unchanged).
 
 ---

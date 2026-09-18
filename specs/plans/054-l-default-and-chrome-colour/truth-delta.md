@@ -15,7 +15,7 @@
 | MODIFY | `specs/truth/techstack.md` — **Session lifecycle flags** row | **Round 054**: the `-l N` value is optional (bare `-l` = 1). | `spec.md` US1 / FR-001 |
 | MODIFY | `specs/truth/techstack.md` — **Turn chrome (operator)** row | **Round 054 (ADR 0023)**: round-017 D3 ("no ANSI") **superseded** for four elements — a terminal `stderr` with `-r` off greens the whole `[Tool Reason]` line, the `MODE` in both `Payload` lines, the measured token number, and the `Ready` session cost (the element set is tellme's own — a recorded divergence). | `spec.md` US2 / FR-003/004; `research.md` D2/D3 |
 | MODIFY | `specs/truth/techstack.md` — **Post-turn status lines (operator)** row | **Round 054**: the **session** cost inside `╰─⠿ Ready` is green on a terminal with `-r` off. | `spec.md` US2 / FR-003; `research.md` D3 |
-| NOOP (checked) | `specs/truth/techstack.md` — **Turn log (`turns.log`)** row | Inspected: the round keeps `turns.log` plain (Q3/FR-006) — the Note's "control-free" claim still holds. | `spec.md` FR-006; `research.md` D4 |
+| MODIFY | `specs/truth/techstack.md` — **Turn log (`turns.log`)** row | **Round 054 (ADR 0023, fold B-54-1): the file leg is rendered with colour OFF** — the round-053 tee now carries the **plain** chrome, so the artifact stays control-free while the `stderr` leg is coloured. Also **MODIFY** the **Agent tool loop** row: the round-039 "control-free" policy is **qualified** (it governs the model-authored value; the terminal-gated `[Tool Reason]` accent is a distinct class). | `spec.md` FR-006; `research.md` D4; PR #119 review B-54-1/F-54-2 |
 
 ## /axb-api-plan
 

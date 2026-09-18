@@ -28,9 +28,9 @@ The chrome is plain-text today (round-017 Decision 3). Colour is emitted only wh
 
 **Recorded divergence** — tell-me-go's own layout greens only (4); its `[Tool Reason]` line is **gray**, its `Payload` mode is **gray**, and its token number goes **yellow/red by budget ratio** (never green). tellme reuses the reference's **code** on **tellme's** element set.
 
-### D4 — `turns.log` stays plain (Q3; round-053 RF-53-1)
+### D4 — `turns.log` stays plain: the FILE leg is rendered with colour OFF (Q3; round-053 RF-53-1)
 
-The colour is applied at the `stderr` sink only: the `render.Lines`/`ToolLineRenderer` adapters are built with the colour flag, and the CLI's turn-log tee (round 053) records the **uncoloured** chrome. No ANSI enters the session artifact (`specs/truth/data/data-model.dbml` `turns_log_line` stays "control-free").
+The per-call renderer holds **two** `render.Lines`: the coloured one (stderr) and a **plain** one (`dp.NewLines(false)`) for the file leg, and `emit(build)` writes each line to both sinks — the file leg is rendered plain **by construction**, not stripped afterwards. The round-053 tee is the raw file writer (no `MultiWriter`). So no ANSI enters the session artifact, while the `stderr` leg is coloured. (This was the PR #119 review **B-54-1** blocker: the first implementation teed the *coloured* string to both sinks.)
 
 ### D5 — implementation shape: colour lives in the adapters, not the pure formatters
 

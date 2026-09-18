@@ -29,7 +29,7 @@
 
 ## Verifiability & success criteria
 
-- [x] Acceptance covers the success path + the gates (terminal colour; piped/`-r` plain; `turns.log` plain)
+- [x] Acceptance covers the success path + the gates (terminal colour; piped/`-r` plain; **`turns.log` plain — re-carried as its own Rule** by the PR #119 review fold B-54-1/F-54-4: acceptance Rule + interface Rule + DSL row + E2E carrier)
 - [x] SC measurable (byte-level on `stdout`; colour presence by `TELL_ME_FORCE_STDERR_TTY`; gates)
 - [x] Assumptions are premises only
 
