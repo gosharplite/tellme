@@ -28,7 +28,7 @@ internal/cli -> internal/ui
 | **Q2** | **Value-type homes**: **(i)** reuse existing domain packages (`ui.Pricing`→`internal/domain/llm`, `ui.UsageCounts`→`internal/domain/metrics`, `ui.ToolUsageRow`→`internal/domain/history`, folded onto `history.ToolUsageCounts`; `ComputeCost`/`HitRate` move with `Pricing` since persistence consumes them) · **(ii)** a new `internal/domain/pricing` for money · **(iii)** keep them ui-owned and invert everything through the port. | ✅ **(i)** |
 | **Q2** | **Value-type homes** (if any option above needs them): `ui.Pricing` → `internal/domain/llm` vs a new `internal/domain/pricing`; `ui.UsageCounts` → `internal/domain/metrics`; `ui.ToolUsageRow` → `internal/domain/history` (it mirrors `history.ToolUsageCounts`). | ⏳ TBD |
 | **Q3** | **The `→ ui` inversion mechanism**: a **single** injected presentation port (e.g. `domain/render.StatusRenderer` covering the turn frame/tail + tool-usage) vs **several** narrow ports (status / metrics / tool-usage) vs moving `call_renderer` wholesale into `internal/ui` behind one port. | ⏳ TBD |
-| **Q4** | **F-6/F-7/F-8**: fold them into this round (if the shape allows) or keep them a separate round; and for F-8 (`domaintools.OutputSink` struct-of-funcs → interface) — is the RULE-C-clean domain change acceptable now. | ⏳ TBD |
+| **Q4** | **F-6/F-7/F-8 shapes**: **(A)** all three as recommended — F-8 `domaintools.OutputSink` → an **interface** (`Begin()`/`Writer()`/`End()`/`Enabled()`) the `ui.ToolOutputCoordinator` satisfies directly; F-7 `MCPDiscoverer` → a named **`deps.Discovery{Tools, Warnings, Closer io.Closer}`**; F-6 → narrow the `Dependencies` seams so a leaf reads **≤2 fields**. **(B)** F-7/F-8 shapes only, F-6 recorded not coded. **(C)** other. | ✅ **(A)** |
 
 ### Q1 → D (LOCKED) — one round that closes [#101](https://github.com/gosharplite/tellme/issues/101)
 
@@ -37,6 +37,16 @@ Round 051 carries the **whole** remaining #101 scope in **one** delivery: (i) th
 ### Q2 → (i) (LOCKED) — reuse the existing domain packages; fold the tool-usage row
 
 The three crossing **value types** re-home into existing domain peers (no new package): `Pricing` (+ the pure `ComputeCost`/`HitRate` arithmetic) → **`internal/domain/llm`** (cost is a provider/model concern; persistence consumes it too, so it cannot live only behind a render port); `UsageCounts` → **`internal/domain/metrics`**; `ToolUsageRow` → **`internal/domain/history`**, **folded onto** the existing `history.ToolUsageCounts` (or an alias — one concept, one name). Rejected: **(ii)** a new `internal/domain/pricing` (over-structure for ~2 functions); **(iii)** ui-owned + fully port-inverted (pushes pricing arithmetic behind a *render* port and breaks `ComputeCost`'s use in persistence).
+
+### Q4 → (A) (LOCKED) — all three deferrals code-resolved
+
+- **F-8**: `domaintools.OutputSink` becomes an **interface** `{ Begin(); Writer() io.Writer; End(); Enabled() bool }`; the `ui.ToolOutputCoordinator` satisfies it **directly** — removing the struct-of-funcs bridge and the `BindToolOutput` partial-binding hole. RULE-C-clean (`internal/domain/tools` already imports `io`).
+- **F-7**: `MCPDiscoverer` returns a named **`deps.Discovery{Tools []domaintools.Tool; Warnings []string; Closer io.Closer}`** (the close is a visible field); `deps` (tier 2) may name `domaintools` + stdlib `io`.
+- **F-6**: the `Dependencies` seams are **narrowed** — a leaf function receives the **narrow seam(s)** it uses (e.g. `NewUsageStore`, a prompter), and only `run`/`runTurn` hold the wide bag; falsifiable acceptance: *"every function receiving `Dependencies` reads ≤2 of its fields."*
+
+Rejected: **(B)** (leaves F-6 recorded-only → #101 would not actually close).
+
+**Clarify round 1 — CLOSED** (Q1 → D · Q2 → (i) · Q3 → (ii) · Q4 → (A)); **no `NEEDS CLARIFICATION` remains**.
 
 > **Assumptions (not escalated — low impact, disclosed):** the ADR number (**0020**); the api/data/dsl-refine **NOOP** set; the `-count=1`/`-tags=arch` invocation stays as shipped; the sanctioned set (domain/config/home/app) is **not** re-ruled (no `internal/pkg` is introduced — ADR 0016 D1 governs).
 

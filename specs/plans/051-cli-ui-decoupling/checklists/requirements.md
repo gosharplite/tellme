@@ -33,12 +33,12 @@
 
 - [x] **Q1 → D LOCKED** — one round closing #101: the `→ ui` collapse (baseline 1 → 0) + F-6/F-7/F-8; internal sub-slice ordering is an RD decision (Q3); a blast-radius re-cut is the recorded caveat
 - [x] **Q2 → (i) LOCKED** — reuse existing domain peers: `Pricing`(+`ComputeCost`/`HitRate`)→`internal/domain/llm`; `UsageCounts`→`internal/domain/metrics`; `ToolUsageRow`→`internal/domain/history` (folded onto `history.ToolUsageCounts`)
-- [ ] **Q3 → TBD** — the `→ ui` inversion mechanism
-- [ ] **Q4 → TBD** — F-6/F-7/F-8 folding + F-8 acceptability
+- [x] **Q3 → (ii) LOCKED** — narrow lifecycle-grouped ports: a pure status/tail **lines** port; a `ProgressIndicator` port; a `ToolOutput` port; the answer `Renderer` + `ToolLineRenderer` via deps factories
+- [x] **Q4 → (A) LOCKED** — F-8 `OutputSink` → interface (`Begin`/`Writer`/`End`/`Enabled`); F-7 `MCPDiscoverer` → named `deps.Discovery{Tools, Warnings, Closer io.Closer}`; F-6 → narrow `Dependencies` seams (≤2 fields/leaf)
 - [x] Questions asked **one at a time**; capped at 1–3 per round (this round may need Q1–Q4 given the programme size — disclosed)
 - [x] High-impact gap scoped to a single first question (Q1), with options A/B/C/D
 - [x] Lower-impact undecided details disclosed as assumptions, not escalated (ADR number A4; NOOP set A5/A6; sanctioned set fixed A7)
-- [ ] No remaining `NEEDS CLARIFICATION` — **not yet**: Q1 pending
+- [x] No remaining `NEEDS CLARIFICATION` — clarify round 1 **CLOSED** (Q1/Q2/Q3/Q4 locked)
 
 ## Verifiability & success criteria
 
@@ -61,7 +61,7 @@
 
 ## Ready determination
 
-- [ ] Ready to proceed to downstream planning — **blocked on Q1** (clarify round 1 OPEN)
+- [x] Ready to proceed to downstream planning — **clarify round 1 CLOSED** (Q1 → D · Q2 → i · Q3 → ii · Q4 → A)
 - [x] A high-impact requirement gap must be closed first — **Q1** (the closing-programme shape)
 
 **Note**: plan package is the `/axb-specify` skeleton; it is **paused pending `/axb-clarify` Q1**. Next pipeline step after Q1–Q4 close: `/axb-technical-research` (its precondition is the spec; `/axb-spec-by-example` is **NOOP** — no user-facing journey). `/axb-system-analysis` must record this as a dev-surface structural refactor (0 CLI interfaces; api/data/dsl-refine NOOP).
