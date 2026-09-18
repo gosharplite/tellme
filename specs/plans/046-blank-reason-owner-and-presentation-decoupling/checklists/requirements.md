@@ -31,11 +31,11 @@
 
 ## Gaps & clarify strategy
 
-- [ ] **OPEN — clarify round 1 not yet run.** Four decisions to lock one at a time (on [#108](https://github.com/gosharplite/tellme/issues/108)):
-  - **C-R4-1** the mechanism that removes the loop's `internal/ui` import — (A) a domain-typed presentation port / (B) semantic tool-line hooks consumed by the CLI presenter / (C) as (B) + the presenter owns the yield wrapping (amends ADR 0014).
-  - **C-R4-2** the predicate's single owner + the dead site P3 (delete vs retain as documented defence-in-depth).
-  - **C-R4-3** the witness (unit pins + the gate at 1 → 0; no new E2E Example).
-  - **C-R4-4** governance (a new ADR 0015 recording the presentation-ownership rule).
+- [x] **Clarify round 1 LOCKED** (on [#108](https://github.com/gosharplite/tellme/issues/108)):
+  - **C-R4-1 → (A)** an injected domain-typed presentation port (`agentport.ToolLineRenderer`, implemented in `internal/ui`); the loop keeps its write schedule + the round-045 yield bracket → **ADR 0014 untouched**.
+  - **C-R4-2 → delete the dead site** (single owner): the predicate's owner is the port's `ReasonLine(reason) (line string, renders bool)`; the dead `callRenderer.OnCallEnd` re-check is removed.
+  - **C-R4-3 → unit pins + the gate** (the baseline's `1 → 0`); **no** new E2E Example.
+  - **C-R4-4 → a new ADR 0015** recording the loop/presenter ownership split.
 - [x] Lower-impact undecided details disclosed as assumptions, not escalated (mechanism is RD A2; ADR numbering A3; `/axb-dsl-refine` NOOP A5)
 
 ## Verifiability & success criteria
@@ -55,7 +55,7 @@
 
 ## Ready determination
 
-- [ ] Ready to proceed to downstream planning
-- [x] A high-impact requirement gap must be closed first — **C-R4-1 … C-R4-4 (clarify round 1)**
+- [x] Ready to proceed to downstream planning
+- [ ] A high-impact requirement gap must be closed first — **none remaining** (C-R4-1 … C-R4-4 locked)
 
 **Note**: this branch runs the full pipeline (`/axb-specify` → `/axb-clarify` → `/axb-spec-by-example` (expected NOOP) → `/axb-technical-research` → `/axb-system-analysis` → `/axb-tasks` → `/axb-implement`); the plan + implementation land on the single `046-blank-reason-owner-and-presentation-decoupling` branch (round-043/045 single-PR precedent).

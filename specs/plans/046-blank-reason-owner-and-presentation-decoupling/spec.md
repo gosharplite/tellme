@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-18
 
-**Status**: Draft — plan + truth half. Anchor issue [#108](https://github.com/gosharplite/tellme/issues/108) — **R4** of [#92](https://github.com/gosharplite/tellme/issues/92). Clarify round 1 (**C-R4-1 … C-R4-4**, below) **not yet locked** — see §Clarify.
+**Status**: Draft — plan + truth half. Anchor issue [#108](https://github.com/gosharplite/tellme/issues/108) — **R4** of [#92](https://github.com/gosharplite/tellme/issues/92). Clarify round 1 **locked** (**C-R4-1 → A** a domain-typed presentation port; **C-R4-2 →** the tail is the live predicate owner; **C-R4-3 →** unit pins + the gate; **C-R4-4 →** a new ADR 0015) — see §Locked decisions.
 
 **Input**: Issue [#108](https://github.com/gosharplite/tellme/issues/108) (R4 of the #92 gate-first split). #92's scope ledger item **#4**: *"Blank-reason predicate — single owner (3 sites, 1 dead) + drop the loop→`ui` predicate coupling"*, with #92 **AC6** (*"each policy has one named owner, with a unit witness on the real path"*). R1 ([#93](https://github.com/gosharplite/tellme/issues/93), round 042, ADR 0011) shipped the gate; R2 ([#100](https://github.com/gosharplite/tellme/issues/100), round 044, ADR 0013) ratcheted the baseline **8 → 1**; R3 ([#105](https://github.com/gosharplite/tellme/issues/105), round 045, ADR 0014) owned the **yield** axis and left the last entry deliberately. R4 **owns the last baseline entry** (`internal/agent -> internal/ui`, RULE-A) and the **blank-reason predicate**.
 
@@ -12,16 +12,18 @@
 
 ---
 
-## Clarify (round 1 — C-R4-1 … C-R4-4; **not yet locked**)
+## Locked decisions (clarify round 1 — C-R4-1 … C-R4-4)
 
-> The candidates are enumerated on [#108](https://github.com/gosharplite/tellme/issues/108). The issue states the **problem**; the mechanism is chosen one question at a time.
+> Locked one at a time; the candidates are enumerated on [#108](https://github.com/gosharplite/tellme/issues/108). The issue states the **problem**; the mechanism is chosen here.
 
-| # | Candidate | Options |
-| --- | --- | --- |
-| **C-R4-1** | **The mechanism that removes the loop's `internal/ui` import** (`agentloop.go` uses it for 4 formatters **and** the predicate) | **(A)** inject a **domain-typed presentation port** (the four formatters + the predicate) implemented in `internal/ui`; the loop keeps its own `Stderr` writes + the yield bracket — minimal, **ADR 0014 untouched** · **(B)** the loop **emits semantic tool-line hooks** through `LoopObserver` and the CLI `call` half formats + writes via `internal/ui`; the loop keeps the yield bracket — **ADR 0014 untouched**, larger blast radius · **(C)** as (B) but the presenter owns the yield wrapping too — **amends ADR 0014** |
-| **C-R4-2** | **The predicate's single owner + the dead site P3** | a: one evaluation on the real path + **delete** P3 (single owner) · b: one evaluation + keep P3 as documented defence-in-depth · c: other |
-| **C-R4-3** | **The witness** | a: unit pins (hostile-fixture reason rows + the loop's line ordering) + the gate's **1 → 0**; **no** new E2E Example (weak-carrier precedent) · b: also an E2E Example |
-| **C-R4-4** | **Governance** | a: a new **ADR 0015** recording the presentation-ownership rule (the loop emits semantics; the presenter owns formatting + the predicate), amending nothing · b: extend an existing ADR · c: no ADR |
+| # | Decision |
+| --- | --- |
+| **C-R4-1 → (A) presentation via an injected port** | The loop stops importing `internal/ui` by reaching the tool-line **formatters and the blank-reason predicate through an injected renderer port** (a small interface, implemented by `internal/ui`, wired by the composition root). The loop **keeps its write schedule** (the same four line kinds, written to its own `Stderr` at the same points) **and** the round-045 yield bracket (`YieldIndicator()`/`RestoreIndicator()` around `withToolLog`) — so **ADR 0014 is untouched** and the contract is behaviour-preserving **by construction** (no observable write site moves — the round-035/039 spacing class is out of the blast radius). Rejected: **(B)** relocating the writes into the presenter (purer ownership but a *write-site* migration the weak E2E carrier cannot catch — #92's own constraint) and **(C)** as (B) plus the presenter owning the yield wrapping (**amends ADR 0014**; churn on the pair R3 just split). |
+| **C-R4-2 → delete the dead site (single owner)** | The predicate's **one owner** is the port's `ReasonLine(reason) (line string, renders bool)` — the check **and** the format returned from a **single** evaluation of `ui.toolReasonText` (so the double-run inside `logAction` collapses). The **dead** third site **P3** (`cli/call_renderer.go` `OnCallEnd`) is **deleted** — its defensive re-check is superseded by the owner (single owner, not defence-in-depth). |
+| **C-R4-3 → unit pins + the gate (no new E2E Example)** | The witness is **unit pins** (hostile-fixture reason rows through the port; the loop's tool-line ordering via a recording fake renderer) **+ the gate's `1 → 0`** — **no** new E2E Example (the weak-carrier precedent: rounds 020/031/036/041/042/043/044/045). |
+| **C-R4-4 → a new ADR 0015** | A new **`docs/decisions/0015-*`** records the rule: *the agent loop renders its tool-line diagnostics through an injected **`ToolLineRenderer`** port; the **`internal/ui`** tier owns the formatting **and** the blank-reason predicate; the predicate is evaluated once per site.* It states its relation to ADR **0005 D1** (tool-call-log parity — partitions *rendering*, reaffirmed), ADR **0013** (composition-root injection — the wiring site), and ADR **0014** (yield-policy owner — **unchanged**, the loop keeps the bracket). |
+
+**Mechanism note (RD detail, `research.md`).** The port's home, its exact method set, and the recording-fake placement are RD decisions (A2). Intended shape: a port declared in **`internal/domain/agent`** (co-located with the existing `LoopObserver` — the loop's second presentation-facing port), implemented in **`internal/ui`** as an adapter over `toolReasonText` / the four formatters, injected on `AgentLoop` (nil-safe, like `Stderr`/`Observer`), wired from the composition root (ADR 0013). The tail's **timestamp** is deliberately left stamped at emit time in the presenter, so the loop passes the **raw** (filtered) reasons to `OnCallEnd` as today — pre-formatting the tail in the loop would move a clock reading and break byte-exactness.
 
 ---
 

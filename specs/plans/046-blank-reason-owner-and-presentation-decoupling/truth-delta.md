@@ -4,35 +4,34 @@
 **Truth Root**: `specs/truth`
 
 > Plan package truth-delta. Owner rows are filled by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked and names what it inspected (round-033 review-fold rule — no unevidenced NOOP).
->
-> **Status: skeleton** — initialized by `/axb-specify`; the owner rows are appended as each truth-owner skill runs. `/axb-technical-research` runs **after** clarify round 1 (**C-R4-1 … C-R4-4**), since the seam shape determines the techstack MODIFY text.
 
 ## /axb-technical-research
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending — clarify round 1)_ | `specs/truth/techstack.md` — **CLI Application / Agent tool loop** row (expected MODIFY) | The row names the loop's tool-line rendering / the `internal/ui` coupling; under R4 the loop owns no presentation, so the row is rewritten to name the new seam. | `truth-current`; round 046 FR-010; `spec.md` §Truth obligations. |
+| MODIFY | `specs/truth/techstack.md` — **CLI Application / Agent tool loop** row | The row (round-034/036/039/045 text) describes the `[Tool Reason]` blank-reason guard as living at `agentloop.logAction` + `agentloop.reasonsOf` **plus a defensive guard in the `callRenderer.OnCallEnd` emit closure**, and records that `internal/agent` imports `internal/ui`. R4 adds: the loop renders its four tool lines through the **injected `agentport.ToolLineRenderer`** port (declared in `internal/domain/agent`, implemented by `internal/ui`), so **`internal/agent` no longer imports `internal/ui`** (the RULE-A edge is gone → the layer baseline is header-only); and the blank-reason predicate is **single-owned** by `ui.ToolLineRenderer.ReasonLine` (ONE evaluation of `ui.toolReasonText` returns both the line and the render decision), consumed at the two live sites (begin line, tail filter) with the **dead** `callRenderer.OnCallEnd` re-check removed. | `truth-current`; round 046 FR-010; `research.md` D1/D2/D3/D6/D8. |
+| MODIFY | `specs/truth/techstack.md` — **Build & Tooling / Layer-discipline gate** row | The row states *"At delivery the baseline holds the 8 known violations … so the count reaches 0 across R2–R4."* R4 delivers that **terminal state**: R2 removed the 7 `cli → infrastructure` edges (**8 → 1**), R3 left the 8th (baseline stayed **1**), and R4 removes `internal/agent → internal/ui` (**1 → 0**) — the committed baseline is **header-only (0)**; a re-introduced `internal/agent → internal/ui` import **fails** the gate (the anti-bypass rule holds at 0). | `truth-current`; round 046 FR-004/FR-010; `research.md` D8. |
 
 ## /axb-api-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `specs/truth/` (**no `contracts/**` directory exists**) | Expected NOOP — tellme has a single CLI end and **no** OpenAPI/HTTP surface; the round relocates an internal presentation seam and authors no request/response shape. | `contract-authoritative` holds vacuously; `spec.md` A4. |
+| NOOP (checked) | `specs/truth/` (**no `contracts/**` directory exists**) | Inspected: tellme has a single CLI end and **no** OpenAPI/HTTP surface; `specs/truth/` contains only `data/`, `features/`, and `techstack.md`. This round replaces an internal presentation import with an injected port and consolidates a predicate — it authors no request/response shape. | `contract-authoritative` holds vacuously; `spec.md` A4 / `research.md` D9. |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `specs/truth/data/data-model.dbml` | Expected NOOP — no persisted/runtime state change (an in-memory presentation ownership move). | `spec.md` A4. |
+| NOOP (checked) | `specs/truth/data/data-model.dbml` — inspected `history_entry`/`history_step`/`usage_record`/`prompt_log_entry` and the `~/.tellme/*.jsonl` shapes | No persisted/runtime state change: the round is a structural consolidation (an in-memory presentation ownership move); no record field, file location, or lifecycle changes. | `spec.md` A4 / `research.md` D9. |
 
 ## /axb-dsl-refine
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `specs/truth/features/cli/**` and `specs/truth/features/cli/chat/dsl.md` | Expected NOOP — no user-facing CLI interface behaviour changes (behaviour-preserving); no feature Rule, Example, step, or `DSLRow` added or changed. **Stale-row guard (to be measured):** the round must `grep` `specs/truth/**` for the moved seam names (e.g. `ToolReasonRenders`, `FormatTool*` paths) and record the measured hit count — a renamed seam can leave a stale row passing green (the audit checks feature → row only). | `spec.md` A1/A5. |
+| NOOP (checked) | `specs/truth/features/cli/**` and `specs/truth/features/cli/chat/dsl.md` | No user-facing CLI interface behaviour changes — the round is behaviour-preserving; no feature Rule, Example, step, or `DSLRow` is added or changed (the Gherkin/DSL topology audit is unchanged; the class-phrase vocabulary is unchanged). **Stale-row guard (F-2, measured):** `grep -rn 'ToolReasonRenders\|FormatTool' specs/truth/` returns **one** hit — `features/cli/chat/dsl.md:55`, the round-036 **explanatory note** (not a `DSLRow`, not a step). After R4 the note's named symbols all survive: `FormatToolReason`/`FormatToolResult`/`FormatToolAction` stay **exported** in `internal/ui`, and `agentloop.logAction`/`agentloop.reasonsOf` still exist (the loop keeps the schedule; `reasonsOf` moves from a free function to a method, same name). So no truth row and no truth step is stale; the only changed symbol is the *internal route* (an injected port), which the truth tree never named. | `spec.md` A1/A5; `research.md` D9 — the round-020/031/041/042/043/044/045 non-BDD-refactor precedent. |
 
 ## Governance (ADR)
 
 | Action | Artifact | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending — C-R4-4)_ | `docs/decisions/0015-*.md` (+ the `docs/decisions/README.md` index row) | Expected ADD — records the presentation-ownership rule (the agent loop emits semantics; the presenter owns the tool-line formatting and the blank-reason predicate) and states its relation to ADRs 0005 (D1 partitions *rendering*), 0013 (composition root), and 0014 (yield-policy owner). | round 046 FR-009; a project-level rule future rounds must cite. |
+| ADD | `docs/decisions/0015-loop-presentation-port.md` (+ the `docs/decisions/README.md` index row) | Records the rule: the agent loop renders its tool-line diagnostics through an injected **`agentport.ToolLineRenderer`** port; the **`internal/ui`** tier owns the formatting **and** the blank-reason predicate; the predicate is evaluated once per site on the real path. States its relation to ADR **0005 D1** (tool-call-log parity — partitions *rendering*; **reaffirmed**: the CLI remains the renderer/accounting owner), ADR **0013** (composition-root injection — the wiring site), and ADR **0014** (yield-policy owner — **unchanged**: the loop keeps the `YieldIndicator`/`RestoreIndicator` bracket). Amends nothing; supersedes nothing. | round 046 FR-009; `research.md` D9 — a project-level rule future rounds (R5 [#101](https://github.com/gosharplite/tellme/issues/101)) must cite. |
