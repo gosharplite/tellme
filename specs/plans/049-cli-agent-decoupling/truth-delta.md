@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked and names what it inspected (round-033 review-fold rule — no unevidenced NOOP).
 >
-> **Status**: **initialized by `/axb-specify` (skeleton).** Round 1 clarify is **in progress** — **Q1 → (B) re-cut** is **locked**; **Q2** (sub-slice-1 boundary / alias-vs-reference) is **pending**, so **no truth owner has run** and the only row that can move is the **`TruthDelta` ledger's own section set**. The rows below are the **expected** shape once the round proceeds; they are **not** yet ratified.
+> **Status**: **initialized by `/axb-specify` (skeleton).** Round 1 clarify is **CLOSED** — **Q1 → (B) re-cut** · **Q2 → (i)** (all three crossing contracts → `internal/domain/agent`) · **Q3 → (a)** (reference + delete; no alias). **No truth owner has run yet** (the next pipeline step is `/axb-technical-research`); the rows below are the **expected** shape once the round proceeds and are **not** yet ratified.
 >
 > **Round shape (Q1 → B)**: this is the **re-cut sub-slice 1** of the `cli → agent` de-coupling. **The RULE-E baseline does NOT move this round** (still **2**); the baseline-moving round is **sub-slice 2** (the `AgentLoop` construction inversion, **2 → 1**).
 

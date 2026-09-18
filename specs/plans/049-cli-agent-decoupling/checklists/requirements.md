@@ -32,11 +32,12 @@
 ## Gaps & clarify strategy
 
 - [x] **Q1 → (B) LOCKED** — re-cut the `cli → agent` de-coupling into ordered sub-slices; this round = sub-slice 1 (contracts → domain); the construction inversion is sub-slice 2
-- [ ] **Q2 PENDING** — the sub-slice-1 boundary / contract set + the **alias-vs-reference** choice (must be resolved before this checklist can pass)
-- [x] Questions asked **one at a time** (Q1 locked; Q2 next); capped at 1–3 per round
-- [x] High-impact gap was scoped to a single first question (Q1), with options A/B/C; the operator chose **B**
-- [x] Lower-impact undecided details disclosed as assumptions, not escalated (contract package/type names A3; ADR number A4; NOOP set A5/A6)
-- [ ] No remaining `NEEDS CLARIFICATION` — **blocked on Q2** (the alias-vs-reference choice)
+- [x] **Q2 → (i) LOCKED** — extract **all three** crossing contracts to `internal/domain/agent` (turn-result + incomplete-turn error + the `ToolDefs` projection); CLI production `→ agent` references drop to exactly one (`AgentLoop`)
+- [x] **Q3 → (a) LOCKED** — `internal/agent` **references** the moved contracts directly (no alias, no forwarder); one name per concept
+- [x] Questions asked **one at a time** (Q1 → Q2 → Q3); capped at 1–3 per round; **all answered**
+- [x] High-impact gap was scoped to a single first question (Q1), with options A/B/C; the operator chose **B** (then Q2 → i, Q3 → a)
+- [x] Lower-impact undecided details disclosed as assumptions, not escalated (exact domain type names A3; ADR number A4; NOOP set A5/A6)
+- [x] No remaining `NEEDS CLARIFICATION` — clarify round 1 **CLOSED** (Q1/Q2/Q3 locked)
 
 ## Verifiability & success criteria
 
@@ -58,7 +59,7 @@
 
 ## Ready determination
 
-- [ ] Ready to proceed to downstream planning — **blocked on Q2**
-- [x] A high-impact requirement gap must be closed first — **Q2 (sub-slice-1 boundary / alias-vs-reference)**
+- [x] Ready to proceed to downstream planning — **clarify round 1 CLOSED** (Q1 → B · Q2 → i · Q3 → a)
+- [ ] A high-impact requirement gap must be closed first — **none remaining**
 
-**Note**: plan package initial; **do not** advance to `/axb-technical-research` until Q2 (and any Q3) are locked. `/axb-spec-by-example` is **NOOP** (no user-facing journey). `/axb-system-analysis` must record this as a dev-surface structural refactor (0 CLI interfaces; api/data/dsl-refine NOOP).
+**Note**: plan package final after the clarify fold. Next pipeline step is `/axb-technical-research` (its precondition is the spec; `/axb-spec-by-example` is **NOOP** — no user-facing journey). `/axb-system-analysis` must record this as a dev-surface structural refactor (0 CLI interfaces; api/data/dsl-refine NOOP).

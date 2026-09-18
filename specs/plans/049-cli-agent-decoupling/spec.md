@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-18
 
-**Status**: Draft — plan package created by `/axb-specify`. Anchor issue [#101](https://github.com/gosharplite/tellme/issues/101) (**R5** of [#92](https://github.com/gosharplite/tellme/issues/92)). **Clarify round 1**: **Q1 → B** (re-cut; locked) · **Q2 PENDING** (the sub-slice boundary / contract set). Round 047 = **R5.1** (the RULE-E gate + baseline); round 048 = **R5.2** (the `cli → ui/tui/prompt` edge).
+**Status**: Draft — plan package created by `/axb-specify`. Anchor issue [#101](https://github.com/gosharplite/tellme/issues/101) (**R5** of [#92](https://github.com/gosharplite/tellme/issues/92)). **Clarify round 1 CLOSED**: **Q1 → B** (re-cut) · **Q2 → (i)** (all three crossing contracts → `internal/domain/agent`) · **Q3 → (a)** (reference + delete; no alias). Round 047 = **R5.1** (the RULE-E gate + baseline); round 048 = **R5.2** (the `cli → ui/tui/prompt` edge).
 
 **Input**: Issue [#101](https://github.com/gosharplite/tellme/issues/101) — **R5**. The committed baseline records the **2** residual unsanctioned edges (measured 2026-09-18 @ `dev` `12964d6`):
 
@@ -19,11 +19,13 @@ internal/cli -> internal/ui
 
 ## Locked decisions (clarify round 1)
 
-> Locked **one at a time**. **Q1 is locked**; **Q2 is pending**. No `NEEDS CLARIFICATION` remains **outside** the pending Q2.
+> Locked **one at a time**; all three answered — no `NEEDS CLARIFICATION` remains.
 
 | # | Decision |
 | --- | --- |
 | **Q1 → (B) re-cut the `cli → agent` de-coupling** | The `cli → agent` edge is **not** inverted in one round. ADR 0017 §Forward classifies it as *"the deepest slice"* (measured: **4** crossing identifiers over 2 files — `agent.AgentLoop` constructed with 9 fields, `agent.AgentResult`, `agent.ErrIncomplete` type-asserted, `agent.ToolDefs` — versus round-048's single edge-sized seam). The de-coupling is therefore **re-cut into ordered sub-slices**, mirroring ADR 0017's own recipe for the `→ ui` edge (*"value types → `internal/domain/**` first, then the … factory"*): **sub-slice 1 (this round) = extract the loop's crossing *contracts* to `internal/domain/**`**; **sub-slice 2 (later) = invert the loop *construction/execution* into an injected domain port** (the round that actually drops the edge; baseline **2 → 1**). |
+| **Q2 → (i) extract all three crossing contracts** | Sub-slice 1 moves **all three** contracts to `internal/domain/agent` (peer of `LoopObserver`/`CallObserver`/`ToolLineRenderer`): the **turn-result** type (`Answer`/`Steps`/`Usage`/`Calls`), the **incomplete-turn error** type, **and** the **`ToolDefs`** pure projection. After the round, `internal/cli` production references **exactly one** `→ agent` identifier (`agent.AgentLoop`) — making sub-slice 2's claim (*"one construction call site"*) machine-checkable. Rejected: **(ii)** value-types-only (leaves `ToolDefs` on `internal/agent` → 2 identifiers, sub-slice 2 not edge-sized); **(iii)** also pre-placing an unused `LoopRunner` port (ships dead surface now). |
+| **Q3 → (a) reference + delete (no alias)** | `internal/agent` **deletes** its own `AgentResult`/`ErrIncomplete`/`ToolDefs` declarations and **references** the domain types directly (e.g. `Run(...) (domainagent.Result, error)`, `domainagent.ToolDefs(reg)`); its 3 test files are repointed to the domain types. **One concept → one name → one home** (the griller canon). Rejected: **(b)** alias re-export (`type AgentResult = domainagent.Result` + a `ToolDefs` forwarder) — zero test churn but keeps the three names *exported* from `internal/agent` (two spellings for one identity) and blurs the surviving-coupling measurement. Measured blast radius: **25 references across 4 files** (`agentloop.go` + 3 agent test files); **no** consumers outside `internal/agent` + `internal/cli`. |
 
 ### ⚠️ Consequence of Q1 → B (recorded up front)
 
@@ -136,7 +138,7 @@ As a maintainer/operator, I want the re-cut decision, the extracted domain contr
 
 **Acceptance Scenarios**:
 
-1. **Given** the round lands, **Then** a new **ADR** records the re-cut: the extracted domain contracts, the alias-vs-reference choice (Q2), the **deferred** construction inversion, the **baseline unchanged at 2** statement, and its relation to ADR 0011/0016/0017.
+1. **Given** the round lands, **Then** a new **ADR** records the re-cut: the extracted domain contracts, the **Q3 (a)** choice (the domain contracts referenced directly, **no alias**), the **deferred** construction inversion, the **baseline unchanged at 2** statement, and its relation to ADR 0011/0016/0017.
 2. **Given** the technology-stack truth, **Then** the Layer-discipline gate row records the re-cut + the **unchanged (2)** figure, and any CLI-architecture row naming the loop contracts reflects the domain-owned reality; the `verify` aggregate member is unchanged.
 3. **Given** the remaining slices, **Then** they stay recorded on the live issue [#101](https://github.com/gosharplite/tellme/issues/101).
 
@@ -153,7 +155,7 @@ As a maintainer/operator, I want the re-cut decision, the extracted domain contr
 ### Edge Cases
 
 - **A domain contract that would leak an `agent` type** → forbidden (FR-002); `AgentResult`/`ErrIncomplete` are re-expressed as domain types; `ToolDefs` returns `[]llm.ToolDef` (domain).
-- **Alias vs. two names** → if `internal/agent` keeps `type AgentResult = domainagent.TurnResult` (an **alias**) the concept keeps **one** identity; a *distinct* type would add a second name and a conversion — **the Q2 / RD decision** (one name per concept).
+- **Alias vs. two names (RESOLVED — Q3 → (a))** → `internal/agent` **references** the moved domain contracts directly (no alias): one concept keeps **one** name and **one** home. An alias re-export would leave the three names *exported* from `internal/agent` (two spellings for one identity) and muddy the surviving-coupling count.
 - **The `errors.As` type-assertion** → moving the incomplete-turn error to the domain MUST keep the *same* `errors.As`-based classification and the identical `emitToolError` `stderr` bytes.
 - **A partial extraction** (some contracts moved, one left) → forbidden (FR-005): it would leave a second `→ agent` coupling and defeat the edge-sizing of sub-slice 2.
 - **A test file importing `internal/agent`** → none today; if a test needs a moved symbol it must import the **domain** package, not re-introduce the edge.
@@ -199,7 +201,7 @@ As a maintainer/operator, I want the re-cut decision, the extracted domain contr
 
 - **A1 (programme slice)** — Q1 → **B**: this round is **re-cut sub-slice 1** (contracts → domain); the construction inversion (baseline 2 → 1) is **sub-slice 2**.
 - **A2 (no E2E change)** — no `tellme` CLI behaviour changes; `/axb-spec-by-example` is **NOOP** — precedent: rounds 020/031/036/041–048.
-- **A3 (contract home/naming is RD)** — the exact domain package/type names and the **alias vs. reference** choice are **RD** decisions (`research.md` D-x), subject to FR-002 / RULE-A·C (natural home: `internal/domain/agent`, peer of `LoopObserver`/`CallObserver`/`ToolLineRenderer`).
+- **A3 (contract home/naming is RD)** — **Q2 → (i)** fixes the extraction set (all three contracts) and the home (`internal/domain/agent`); **Q3 → (a)** fixes the reference-without-alias choice. The remaining naming detail (the exact domain type names — e.g. `Result` vs `TurnResult`) is an **RD** decision (`research.md` D-x), subject to FR-002 / RULE-A·C.
 - **A4 (ADR required)** — a new ADR records the re-cut (FR-007); the number is confirmed in research (next free after `0017`).
 - **A5 (no other interfaces)** — `/axb-api-plan` = **NOOP**; `/axb-data-plan` = **NOOP**; `/axb-ui-plan` **skipped**.
 - **A6 (`/axb-dsl-refine` NOOP)** — a `cli`-reader refactor is not a CLI-contract change; no `DSLRow` change.
