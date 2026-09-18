@@ -1,4 +1,4 @@
-# tools/arch/baseline.txt — layer-discipline gate baseline (ADR 0011).
+# tools/arch/baseline.txt — layer-discipline gate baseline (ADR 0011 + ADR 0016).
 #
 # Generated from the gate's own output — NEVER hand-edit. Regenerate with:
 #   make verify-architecture-update
@@ -8,6 +8,11 @@
 #   go vet -tags=arch ./tools/arch
 #   go test -count=1 -tags=arch -run TestVerifyRealArchitecture ./tools/arch
 #
-# A line `<src> -> <dst>` is a known, baselined RULE-A/B/C violation. This is a
-# ratchet that only shrinks: a violation not listed here FAILS the gate, and a
-# listed line that no longer violates (stale) FAILS the gate too.
+# A line `<src> -> <dst>` is a known, baselined layer violation: RULE-A/B/C/D
+# (ADR 0011) plus RULE-E, the application import ceiling (ADR 0016) — the
+# application tiers' residual unsanctioned edges. This is a ratchet that only
+# shrinks: a violation not listed here FAILS the gate, and a listed line that no
+# longer violates (stale) FAILS the gate too.
+internal/cli -> internal/agent
+internal/cli -> internal/ui
+internal/cli -> internal/ui/tui/prompt
