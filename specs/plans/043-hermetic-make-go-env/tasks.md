@@ -286,3 +286,22 @@ The operator's review of PR [#97](https://github.com/gosharplite/tellme/pull/97)
 | operator 拍板 Q1–Q8（A / A1 / V1 / S1 / G1 / D1 / R1+R2+R3 / O1） | T002（Q1–Q4）、T003（Q6）、T005（Q7）、T006（Q7-R2）、T007 | PASS |
 
 > 孤立產物件數：0。掃描通過，准予交付。
+
+---
+
+## Fold — PR [#99](https://github.com/gosharplite/tellme/pull/99) review (head `5fc8794`)
+
+| ID | Class | Fold applied |
+| --- | --- | --- |
+| **N-1** | false **measured** claim in ADR 0012 **D1** (+ `research.md` D1) | Re-measured myself (`$(shell …)` child vs recipe, GNU Make 4.3): a `$(shell …)`/`$(eval …)` child receives make's **original environment verbatim** — a makefile `export` does *not* reach it and `unexport` does *not* strip it, so parse-time expansion is outside the boundary **for every name**. ADR D1's scope clause now states exactly that (with the three-line measurement), the "neutralised on both paths" claim is dropped, and the `Makefile`/`research.md` D1 scope clauses are mirrored; the residual **R5** and the operational rule (*keep `go` out of `$(shell …)`*) are unchanged. The edge-case clause in `spec.md` (which implied only unexported names leak) is corrected the same way. |
+| **N-2** | stale round-020 TD1 framing (4 sites) | Reworded to *the `CGO_ENABLED=0` pin is the **precedent** generalised as an **invocation** rule; the pin itself stays **recipe-local** (D4)* in: ADR 0012 **Related** line · `docs/decisions/README.md` index row · `spec.md` §Behaviour intent · `research.md` §Lineage. (D4/FR-004 — `CGO_ENABLED` preserved from the caller — is unchanged.) |
+| **N-3** | coverage-sentence precision | The `Makefile` comment and the `techstack.md` row now say *"…or **recorded as a non-covered class** (ADR 0012 R4)"* rather than implying every name is individually re-set/recorded. |
+
+**Re-verification at the fold head** (the two probes the review named):
+
+```
+recipe env (14 hostile names set):  GOENV=off GOWORK=off  ; CGO_ENABLED=1 preserved ; no other GO* name
+parse-time  (same ambient set):     GOENV=<file> GOFLAGS=-mod=vendor GOTOOLCHAIN=go1.99.9  ← ambient (ADR D1 corrected)
+four red→green witnesses:           GOENV=<file> 0 · GO111MODULE=off 0 · GOWORK=<stray> 0 · GOTOOLCHAIN=go1.99.9 0   (each was 2)
+escape hatch:                       make GOENV=<file> vet 2  ·  make GOFLAGS=-mod=vendor vet 0  ·  make GOTOOLCHAIN=go1.99.9 vet 0
+```

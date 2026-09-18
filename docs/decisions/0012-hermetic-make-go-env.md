@@ -6,7 +6,7 @@
 - **Related:** issue [#96](https://github.com/gosharplite/tellme/issues/96) (the anchor — the *outer* half of round-042's F-2) ·
   PR [#95](https://github.com/gosharplite/tellme/pull/95) fold-review #2 (comment `5721537481`, Fold 2 — where the gap was found) ·
   **ADR 0011 D5** (round-042's gate child-env discipline — generalised here) ·
-  round-020 `verify-cross-compile` + PR #46 review **TD1** (the `CGO_ENABLED=0` pin for one target — completed here) ·
+  round-020 `verify-cross-compile` + PR #46 review **TD1** (the `CGO_ENABLED=0` pin for one target — the **precedent** generalised here as an **invocation** rule; the pin itself stays recipe-local, **D4**) ·
   round 043 (`specs/plans/043-hermetic-make-go-env` — this ADR's round) ·
   PR [#97](https://github.com/gosharplite/tellme/pull/97) review (comment `/pullrequestreview-5242446755` — B-1…B-4 + TD-1/R-1…R-3 folded below) ·
   **ADR 0010** (the falsifiability/verification doctrine the witnesses follow).
@@ -27,13 +27,17 @@ Round 042's gate already filters the environment of **its own** child `go list` 
 
 **D1 — One hermetic boundary, at the top of the `Makefile`.** The neutralisation is defined **once** — a GNU-make `export`/`unexport` block placed near the top of the `Makefile` (above the `$(shell command -v …)` toolchain probes and before any recipe) — so **every** recipe, and every descendant process a recipe spawns (e.g. the E2E harness's `go build` behind `make test`, the witness behind `verify-no-network`), runs with the sanitised environment. A target added later is hermetic **by construction**. The rule is **not** applied per recipe (a `$(HERMETIC_ENV)` prefix per invocation would miss descendant spawns and drift as recipes are added).
 
-**Scope of the boundary (what it does *not* govern).** `export`/`unexport` govern the environment of **recipes** (and their descendants). They do **not** govern parse-time expansion: `$(eval …)`, `include`d makefiles, and make variables supplied **on the command line**. Measured semantics (the clause this ADR records, per PR #97 review TD-1):
+**Scope of the boundary (what it does *not* govern).** `export`/`unexport` govern the environment of **recipes and their descendants** — and **nothing else**. A `$(shell …)` / `$(eval …)` child (and `include`d makefiles) receives make's **original environment verbatim**: a makefile `export` does **not** reach it, and `unexport` does **not** strip it. Parse-time expansion is therefore **outside** the boundary — for **every** name, not merely the unexported ones. Measured (GNU Make 4.3, this block in place; PR #99 review **N-1** corrected an earlier mis-statement of this clause):
 
-- `export VAR := value` sets `VAR` for recipes **and** for `$(shell …)` children — so the exported names (`GOENV`, `GOWORK`) are neutralised on both paths;
-- `unexport VAR` removes `VAR` from **recipe** environments, but a `$(shell …)` child still sees the **ambient** value (make imports an environment variable into its own table and does not strip it from `$(shell)`'s environment) — measured: with `UNEXPORTED=ambient`, `$(shell echo $$UNEXPORTED)` prints `ambient` while the recipe sees it empty;
-- a `VAR=…` on the make **command line** is not exported to recipes (verified: `make GOFLAGS=-mod=vendor vet` ⇒ neutralised), while an already-`export`ed name is **overridden** by it (verified: `make GOENV=<file> vet` ⇒ the file wins — the escape hatch, D8/R3).
+```
+ambient: GOENV=<file> GOFLAGS=-mod=vendor GOTOOLCHAIN=go1.99.9
+recipe:      GOENV=[off]            GOFLAGS=[]            GOTOOLCHAIN=[]          ← neutralised
+parse-time:  GOENV=[<file>]         GOFLAGS=[-mod=vendor] GOTOOLCHAIN=[go1.99.9]   ← ambient, untouched
+```
 
-**Consequence:** keep `go` **out of** `$(shell …)` — a parse-time `go` invocation reading a name outside the D2 set escapes the boundary, and a name inside it is covered for recipes but still visible to `$(shell …)` (it is `go`'s own use of it that is neutralised for recipes). Recorded as a residual (D8/R5).
+The command-line form behaves as follows (verified): a `VAR=…` on the make **command line** is not exported to recipes (`make GOFLAGS=-mod=vendor vet` ⇒ neutralised), while an already-`export`ed name is **overridden** by it (`make GOENV=<file> vet` ⇒ the file wins — the escape hatch, D8/R3).
+
+**Consequence:** keep `go` **out of** `$(shell …)` — a parse-time `go` invocation escapes the boundary entirely (it sees the ambient environment, whatever the name). Recorded as a residual (D8/R5).
 
 **D2 — The neutralise set, derived from an explicit inclusion criterion (not an incident list).** The criterion — the rule a reader applies to decide whether the *next* name belongs:
 

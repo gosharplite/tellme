@@ -42,7 +42,7 @@ VERSION ?= dev
 # `childEnv` filter (ADR 0011 D5) keeps that gate's VERDICT hermetic. The two
 # sites neutralise by different mechanisms (here: disable the env file + unset;
 # there: re-set explicit values), so their invariant is COVERAGE — every name
-# below is re-set by `childEnv` or recorded as a known non-covered name — and
+# below is re-set by `childEnv`, or recorded as a non-covered class (ADR 0012 R4) — and
 # NOT set-equality (ADR 0012 D6).
 export GOENV := off
 export GOWORK := off
