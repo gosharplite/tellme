@@ -639,6 +639,27 @@ func selfTestPredicate(t *testing.T) {
 // of this list is this table (like the sanctioned set, ADR 0016 D1).
 var couplingSurface = map[string]map[string]bool{
 	"internal/cli -> internal/agent": {"AgentLoop": true},
+	"internal/cli -> internal/ui": {
+		"ComputeCost":              true,
+		"DefaultToolOutputIdleGap": true,
+		"FormatInputCaptured":      true,
+		"FormatMetrics":            true,
+		"FormatPayloadStatus":      true,
+		"FormatReady":              true,
+		"FormatToolReason":         true,
+		"FormatToolUsage":          true,
+		"FormatTurnGap":            true,
+		"FormatTurnOpening":        true,
+		"HitRate":                  true,
+		"NewRenderer":              true,
+		"NewSpinner":               true,
+		"NewToolOutputCoordinator": true,
+		"Pricing":                  true,
+		"Spinner":                  true,
+		"ToolLineRenderer":         true,
+		"ToolUsageRow":             true,
+		"UsageCounts":              true,
+	},
 }
 
 // productionGoFiles returns the non-_test.go file paths directly under dir.
@@ -777,8 +798,33 @@ func selfTestCouplingSurface(t *testing.T) {
 	}
 }
 
-// TestVerifyRealArchitecture is the gate. It runs all three properties —
-// enumeration, ranking/baseline diff, acyclicity — and asserts they all ran, so
+// assertSurfaceCoversBaseline (round-049 fold review TD-2) asserts RULE-F's
+// coverage invariant: every baselined application-tier edge MUST have a
+// couplingSurface entry. Without it, RULE-F's protection is opt-in by memory — a
+// new application edge, once absorbed into the baseline via the documented
+// regeneration path, would be governed by the edge ratchet but have an
+// unprotected identifier surface. This is the direct analogue of RULE-E's
+// assertSanctionedInUse (ADR 0016 D4).
+func assertSurfaceCoversBaseline(t *testing.T, baselined []string) {
+	t.Helper()
+	var uncovered []string
+	for _, line := range baselined {
+		src, dst, ok := strings.Cut(line, " -> ")
+		if !ok || !isApplicationTier(src) || strings.Contains(dst, "(unranked") {
+			continue
+		}
+		if _, tracked := couplingSurface[line]; !tracked {
+			uncovered = append(uncovered, line)
+		}
+	}
+	if len(uncovered) > 0 {
+		sort.Strings(uncovered)
+		t.Errorf("RULE-F coverage: baselined application edge(s) with no couplingSurface entry: %v — governed by the edge ratchet but with an unprotected identifier surface (add a couplingSurface entry)", uncovered)
+	}
+}
+
+// TestVerifyRealArchitecture is the gate. It runs all four properties —
+// enumeration, ranking/baseline diff, acyclicity, coupling surface — and asserts they all ran, so
 // `-run TestVerifyRealArchitecture` alone cannot silently skip one (N-3).
 func TestVerifyRealArchitecture(t *testing.T) {
 	root := moduleRoot(t)
@@ -788,10 +834,13 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	// Property 1 — enumeration (B-2).
 	graph, prodGraph := enumerate(t, root)
 	assertGraphEnumerated(t, graph)
+	violations := evaluate(graph)
 	properties++
 
-	// The self-tests: the layer predicate (synthetic) + the two coverage
-	// assertions on the real graph. Each runs as a named subtest and the executed
+	// The self-tests: two synthetic predicates (the layer predicate, the
+	// coupling-surface diff predicate) plus four real-graph assertions (RULE-D
+	// tier coverage, RULE-E allow-list-in-use, RULE-F surface, RULE-F coverage).
+	// Each runs as a named subtest and the executed
 	// NAME SET is asserted, so a mutant that drops a call (or an edit that renames
 	// one) cannot slip through a hand-maintained counter the way M7 did — and a
 	// deleted call reds rather than silently passing (review N-2 / F-2).
@@ -800,9 +849,9 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	// below, so `make verify-architecture-update` cannot launder a stale allow-list
 	// entry into a freshly generated baseline (review §1). Keep them ahead of it.
 	// The name set is compared ORDER-SENSITIVELY (reflect.DeepEqual) by design:
-	// the load-bearing property is "all four run before the *updateBaseline
+	// the load-bearing property is "all seven run before the *updateBaseline
 	// branch", and the order is also pinned (review N-3′).
-	wantSelfTests := []string{"predicate", "allow-list", "tier-coverage", "sanctioned-in-use", "surface"}
+	wantSelfTests := []string{"predicate", "allow-list", "tier-coverage", "sanctioned-in-use", "surface-predicate", "surface", "surface-coverage"}
 	var ranSelfTests []string
 	runSelfTest := func(name string, fn func(*testing.T)) {
 		// Record the ATTEMPT, not the pass: run the subtest then append its name
@@ -816,14 +865,22 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	runSelfTest("allow-list", selfTestAllowList)                                             // RULE-E coverage predicate, synthetic (ADR 0016 D4 / review F-2)
 	runSelfTest("tier-coverage", func(t *testing.T) { assertNoUnrankedGoverned(t, graph) })  // RULE-D coverage, real graph
 	runSelfTest("sanctioned-in-use", func(t *testing.T) { assertSanctionedInUse(t, graph) }) // RULE-E allow-list in use, real graph (ADR 0016 D4)
-	runSelfTest("surface", func(t *testing.T) { selfTestCouplingSurface(t) })                // RULE-F diff predicate, synthetic (round 049 TD-1)
+	runSelfTest("surface-predicate", func(t *testing.T) { selfTestCouplingSurface(t) })      // RULE-F diff predicate, synthetic (round 049 TD-1)
+
+	// Property 4 — RULE-F: the application coupling surface. The baseline ratchet
+	// governs EDGES; RULE-F governs the IDENTIFIERS crossing a tracked edge, so a
+	// shrunk edge cannot silently re-inflate (round 049 TD-1). Wired as NAMED
+	// self-tests (not a bare call) so the name-set defence above protects them from
+	// a silent drop (review F-2), and they run BEFORE the `*updateBaseline` branch
+	// (regenerating the baseline must not launder a re-inflated surface green).
+	runSelfTest("surface", func(t *testing.T) { assertCouplingSurface(t, root) })                      // RULE-F identifier allow-list, real graph (round 049 TD-1)
+	runSelfTest("surface-coverage", func(t *testing.T) { assertSurfaceCoversBaseline(t, violations) }) // RULE-F coverage of baselined app edges, real graph (round 049 TD-2)
 	if !reflect.DeepEqual(ranSelfTests, wantSelfTests) {
 		t.Fatalf("internal error: expected self-tests %v to run, got %v", wantSelfTests, ranSelfTests)
 	}
 
 	// Property 2 — ranking + baseline diff (rule evaluated on the merged graph,
-	// so test imports are governed).
-	violations := evaluate(graph)
+	// so test imports are governed; `violations` is computed in Property 1).
 	properties++
 
 	// Property 3 — acyclicity (ADR 0011 D8 / issue #93 AC4), on the
@@ -834,16 +891,14 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	}
 	properties++
 
-	if properties != 3 {
-		t.Fatalf("internal error: expected all 3 properties to run, got %d", properties)
-	}
+	// Property 4 — RULE-F (the coupling surface + its coverage of baselined
+	// application edges) ran as the named self-tests `surface` / `surface-coverage`
+	// above; count the property here so a deletion of the whole block is caught.
+	properties++
 
-	// Property 4 — RULE-F: the application coupling surface (round 049 TD-1).
-	// The baseline ratchet governs EDGES; RULE-F governs the IDENTIFIERS crossing
-	// a tracked edge, so a shrunk edge cannot silently re-inflate. Runs before the
-	// `*updateBaseline` branch (regenerating the baseline must not launder a
-	// re-inflated surface into a green gate).
-	assertCouplingSurface(t, root)
+	if properties != 4 {
+		t.Fatalf("internal error: expected all 4 properties to run, got %d", properties)
+	}
 
 	path := filepath.Join(root, "tools", "arch", "baseline.txt")
 	if *updateBaseline {
