@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are filled by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked and names what it inspected (round-033 review-fold rule — no unevidenced NOOP).
 >
-> **Status**: `/axb-technical-research` has landed — the **techstack MODIFY** (Layer-discipline gate row) + the **ADR 0016 ADD** rows are filled below; the `/axb-api-plan`, `/axb-data-plan` and `/axb-dsl-refine` rows remain **PENDING** (expected `NOOP (checked)`) to be ratified by their owners in the system-analysis phase, per the anticipated shapes recorded at `/axb-specify`.
+> **Status**: `/axb-system-analysis` has landed — `plan.md` records **0** system interfaces + **no waves**; `/axb-api-plan`, `/axb-data-plan` and `/axb-dsl-refine` are ratified as **NOOP (checked)** below (their owners inspected the surfaces and confirmed no change). The round's truth changes are the **techstack MODIFY** (Layer-discipline gate row) + the **ADR 0016 ADD**.
 
 ## /axb-technical-research
 
@@ -18,19 +18,19 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| PENDING | `specs/truth/` (**no `contracts/**`**) | _to be ratified by `/axb-api-plan`_ | `contract-authoritative` holds vacuously; `spec.md` A5 |
+| NOOP (checked) | `specs/truth/` (**no `contracts/**`**) | Inspected: tellme has a single CLI end and **no** OpenAPI/HTTP surface (`specs/truth/` = only `data/`, `features/`, `techstack.md`). This round adds a build-pipeline rule (RULE-E); it authors no request/response shape. | `contract-authoritative` holds vacuously; `spec.md` A5; `research.md` D8 |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| PENDING | `specs/truth/data/data-model.dbml` | _to be ratified by `/axb-data-plan`_ | `spec.md` A5; the baseline is a repo artifact, not runtime state |
+| NOOP (checked) | `specs/truth/data/data-model.dbml` | Inspected `history_entry`/`history_step`/`usage_record`/`prompt_log_entry` and the `~/.tellme/*.jsonl` shapes: no persisted/runtime-state change — **the baseline is a repo artifact** (a committed text file), not runtime/persisted state, and the gate reads no state at run time. | `spec.md` A5; `research.md` D8; the baseline is a repo artifact, not runtime state |
 
 ## /axb-dsl-refine
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| PENDING | `specs/truth/features/cli/**` | _to be ratified by `/axb-dsl-refine`_ | `spec.md` A2/A6 — a dev-surface gate, not the `tellme` CLI contract |
+| NOOP (checked) | `specs/truth/features/cli/**` and `specs/truth/features/cli/chat/dsl.md` | Inspected: the gate is a **dev surface** (`make verify`), not the `tellme` binary's CLI contract — no feature Rule, Example, step, or `DSLRow` changes (the Gherkin/DSL topology audit is unchanged). The acceptance carrier is the gate + its self-tests. | `spec.md` A2/A6; `research.md` D8 — the rounds 020/031/036/041/042/043/044/045/046 non-BDD-tooling precedent |
 
 ## Governance (ADR)
 
