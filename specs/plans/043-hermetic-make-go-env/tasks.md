@@ -322,3 +322,9 @@ Three **non-blocking nits**, folded:
 - **b2 (minor)** — the **two-example** form of R4 (*"drops but does not re-set `GOARM`/`GOEXPERIMENT` (and the names added this round)"*) is aligned to *"the **14** non-covered names (ADR 0012 R4)"* at the three remaining sites: `research.md` **D8**, `spec.md` **FR-009(c)**, `specs/truth/techstack.md` (the truth row). `grep -rn 'drops but does not re-set'` now shows only the ADR **R4** (the enumerated home) and these aligned pointers.
 
 **Scope:** docs only (no `Makefile`/logic change); `go.mod`/`go.sum` untouched.
+
+## Fold — PR [#99](https://github.com/gosharplite/tellme/pull/99) re-review #3 (`/pullrequestreview-5242697414` at `694ba91`)
+
+- **N-5 (new; recorded as R6, option (i))** — make's **`-e` mode** (`make -e`, or an ambient `MAKEFLAGS=-e` / `GNUMAKEFLAGS=-e`) lets the ambient environment **override** the makefile, so it **resurrects the two `export`ed names** (`GOENV`, `GOWORK`) — reproduced here: `GOENV=<file> make -e vet` ⇒ **exit 2**; `MAKEFLAGS=-e …` ⇒ **exit 2**; `GNUMAKEFLAGS=-e …` ⇒ **exit 2**; the recipe env under `-e` shows `GOENV=[<file>] GOWORK=[<file>]` while `GOFLAGS`/`GO111MODULE`/`GOOS`/`GOTOOLCHAIN` stay neutralised (contrast: normal run `GOENV=[off] GOWORK=[off]`). This narrows D5's "unconditional" to **ambient *Go-env* input** — `-e` is a **make-mode** input. **Recorded, not closed**: option (ii) (`override export`) closes it but destroys the **R3** hatch (`make GOENV=<file> …`), and option (iii) (fail-loud `$(error …)`) adds a new failure mode — both a future decision, not this round's. Folded: **ADR 0012 D5** (scope qualifier) + **D8 (R6)** · `spec.md` **FR-009(e)** + **Q4** · `research.md` **D8** · the `techstack.md` truth row.
+
+**Scope:** docs only (no `Makefile`/logic change); `go.mod`/`go.sum` untouched.
