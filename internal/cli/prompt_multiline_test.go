@@ -69,7 +69,7 @@ func TestRun_InteractiveEmptyExitsSuccessfully(t *testing.T) {
 	var out, errOut bytes.Buffer
 	env := runtimeEnv{stdin: strings.NewReader(""), stdout: &out, stderr: &errOut,
 		isTTY: func(any) bool { return true }, renderer: &stubRenderer{}}
-	if code := run(nil, "dev", env); code != Success {
+	if code := run(nil, "dev", testOptions(), env); code != Success {
 		t.Fatalf("run(...) = %d, want Success", code)
 	}
 	if !strings.Contains(errOut.String(), "Reading multi-line input") {
@@ -88,7 +88,7 @@ func TestRun_InteractivePromptRoutesToTurn(t *testing.T) {
 	var out, errOut bytes.Buffer
 	env := runtimeEnv{stdin: strings.NewReader("hello\n"), stdout: &out, stderr: &errOut,
 		isTTY: func(any) bool { return true }, renderer: &stubRenderer{}}
-	if code := run(nil, "dev", env); code != EnvironmentError {
+	if code := run(nil, "dev", testOptions(), env); code != EnvironmentError {
 		t.Fatalf("run(...) = %d, want EnvironmentError (routed to the turn path)", code)
 	}
 }
@@ -161,7 +161,7 @@ func TestRun_NewInteractivePrintsHintThenRoutesToTurn(t *testing.T) {
 	var out, errOut bytes.Buffer
 	env := runtimeEnv{stdin: strings.NewReader("hello\n"), stdout: &out, stderr: &errOut,
 		isTTY: func(any) bool { return true }, renderer: &stubRenderer{}}
-	code := run([]string{"--new"}, "dev", env)
+	code := run([]string{"--new"}, "dev", testOptions(), env)
 	if code != ConfigError {
 		t.Fatalf("run(--new, tty) = %d, want ConfigError (routed to the turn path; no config)", code)
 	}
@@ -180,7 +180,7 @@ func TestRun_NewInteractiveEmptyArchivesAndSucceeds(t *testing.T) {
 	var out, errOut bytes.Buffer
 	env := runtimeEnv{stdin: strings.NewReader(""), stdout: &out, stderr: &errOut,
 		isTTY: func(any) bool { return true }, renderer: &stubRenderer{}}
-	if code := run([]string{"--new"}, "dev", env); code != Success {
+	if code := run([]string{"--new"}, "dev", testOptions(), env); code != Success {
 		t.Fatalf("run(--new, tty, empty) = %d, want Success", code)
 	}
 	if !strings.Contains(errOut.String(), "Reading multi-line input") {
@@ -204,7 +204,7 @@ func TestRun_NewNonTTYDoesNotRead(t *testing.T) {
 	var out, errOut bytes.Buffer
 	env := runtimeEnv{stdin: strings.NewReader(""), stdout: &out, stderr: &errOut,
 		isTTY: func(any) bool { return false }, renderer: &stubRenderer{}}
-	if code := run([]string{"--new"}, "dev", env); code != Success {
+	if code := run([]string{"--new"}, "dev", testOptions(), env); code != Success {
 		t.Fatalf("run(--new, non-tty) = %d, want Success", code)
 	}
 	if strings.Contains(errOut.String(), "Reading multi-line input") {

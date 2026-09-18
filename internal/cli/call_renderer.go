@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gosharplite/tellme/internal/agent"
+	"github.com/gosharplite/tellme/internal/app/deps"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
@@ -52,7 +53,7 @@ type callRenderer struct {
 // newCallRenderer builds the per-call renderer, seeding the session roll-up from
 // the persisted summary so the `Ready` session totals accumulate across the
 // session (round-018 D7).
-func newCallRenderer(env runtimeEnv, res resolution, reg domaintools.Registry, chrome bool, priorCalls int) *callRenderer {
+func newCallRenderer(env runtimeEnv, res resolution, reg domaintools.Registry, chrome bool, priorCalls int, dp deps.Dependencies) *callRenderer {
 	r := &callRenderer{
 		env:        env,
 		res:        res,
@@ -62,7 +63,7 @@ func newCallRenderer(env runtimeEnv, res resolution, reg domaintools.Registry, c
 		pricing:    ui.Pricing{Hit: res.Pricing.HIT, Miss: res.Pricing.MISS, Comp: res.Pricing.COMP},
 	}
 	if res.Workspace != "" {
-		r.session, _ = newUsageStore(res.Workspace).Totals()
+		r.session, _ = dp.NewUsageStore(res.Workspace).Totals()
 	}
 	return r
 }
@@ -179,7 +180,7 @@ func usageRecordOf(pricing ui.Pricing, selected, model, ts string, c llm.Usage) 
 // Reported subset of result.Calls in a single AppendBatch — never per call — and
 // ONLY when the FINAL call reports usage (the round-018 gate). A best-effort
 // write; an empty workspace writes nothing.
-func persistTurnUsage(env runtimeEnv, res resolution, result agent.AgentResult) {
+func persistTurnUsage(env runtimeEnv, res resolution, result agent.AgentResult, dp deps.Dependencies) {
 	if res.Workspace == "" || !result.Usage.Reported {
 		return
 	}
@@ -193,5 +194,5 @@ func persistTurnUsage(env runtimeEnv, res resolution, result agent.AgentResult) 
 		rec, _ := usageRecordOf(pricing, res.Selected, res.Provider.Model, ts, c)
 		records = append(records, rec)
 	}
-	_ = newUsageStore(res.Workspace).AppendBatch(records)
+	_ = dp.NewUsageStore(res.Workspace).AppendBatch(records)
 }
