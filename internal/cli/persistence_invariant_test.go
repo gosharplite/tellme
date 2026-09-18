@@ -9,6 +9,7 @@ import (
 
 	"github.com/gosharplite/tellme/internal/app/deps"
 	"github.com/gosharplite/tellme/internal/config"
+	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
@@ -64,31 +65,32 @@ func (t noopTool) Execute(context.Context, string, domaintools.ByteBudget) (stri
 	return "ok", nil
 }
 
-// persistenceDeps builds the deps for the persistence test: the noop read_files
-// tool, the noop tool-usage store, the given usage store, and the given gateway.
-func persistenceDeps(us history.UsageStore, gw llm.Gateway) deps.Dependencies {
-	return defaultTestDeps(func(d *deps.Dependencies) {
+// persistenceDeps builds the deps for the persistence test: the noop tool-usage
+// store, the given usage store, and the given loop double (round 050 / Q4 → A:
+// the loop is the in-package fake; the CLI's persistence of its Result is what is
+// pinned).
+func persistenceDeps(us history.UsageStore, lp *fakeLoop) deps.Dependencies {
+	return depsWithLoop(lp, func(d *deps.Dependencies) {
 		d.NewUsageStore = func(string) history.UsageStore { return us }
-		d.NewToolRegistry = func() domaintools.Registry {
-			return domaintools.NewRegistry(noopTool{name: "read_files"})
-		}
 		d.NewToolUsageStore = func(func() (string, error)) history.ToolUsageStore { return noopUsageStore{} }
-		d.NewGateway = func(config.Provider, string, string) (llm.Gateway, error) { return gw, nil }
 	})
 }
 
 func TestRunTurn_PersistenceInvariant(t *testing.T) {
-	toolCall := llm.ToolCall{ID: "c1", Name: "read_files", Arguments: `{"filepaths":["n.txt"],"reason":"r"}`}
 	res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Workspace: t.TempDir(), Provider: config.Provider{Model: "m"}}
 
 	t.Run("completed turn persists the Reported subset in one batch", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		us := &capturingUsageStore{}
-		fg := &fakeGateway{script: []llm.Response{
-			{ToolCalls: []llm.ToolCall{toolCall}, Usage: llm.Usage{Reported: false}},
-			{Text: "done", Usage: llm.Usage{Reported: true, PromptTokens: 42, CachedTokens: 4, CompletionTokens: 2}},
+		lp := &fakeLoop{result: agentport.Result{
+			Answer: "done",
+			Usage:  llm.Usage{Reported: true, PromptTokens: 42, CachedTokens: 4, CompletionTokens: 2},
+			Calls: []llm.Usage{
+				{Reported: false},
+				{Reported: true, PromptTokens: 42, CachedTokens: 4, CompletionTokens: 2},
+			},
 		}}
-		if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), persistenceDeps(us, fg)); code != Success {
+		if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), persistenceDeps(us, lp)); code != Success {
 			t.Fatalf("code = %d, want success", code)
 		}
 		if us.appendCalls != 1 {
@@ -102,8 +104,8 @@ func TestRunTurn_PersistenceInvariant(t *testing.T) {
 	t.Run("error exit persists nothing", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		us := &capturingUsageStore{}
-		fg := &fakeGateway{err: &llm.ProviderError{Provider: "p", Err: errors.New("boom")}}
-		if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), persistenceDeps(us, fg)); code != ProviderError {
+		lp := &fakeLoop{runErr: &llm.ProviderError{Provider: "p", Err: errors.New("boom")}}
+		if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), persistenceDeps(us, lp)); code != ProviderError {
 			t.Fatalf("code = %d, want the provider error code", code)
 		}
 		if us.appendCalls != 0 {
@@ -114,8 +116,8 @@ func TestRunTurn_PersistenceInvariant(t *testing.T) {
 	t.Run("final call with no usage persists nothing", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		us := &capturingUsageStore{}
-		fg := &fakeGateway{text: "done", usage: llm.Usage{Reported: false}}
-		if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), persistenceDeps(us, fg)); code != Success {
+		lp := &fakeLoop{result: agentport.Result{Answer: "done", Usage: llm.Usage{Reported: false}, Calls: []llm.Usage{{Reported: false}}}}
+		if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), persistenceDeps(us, lp)); code != Success {
 			t.Fatalf("code = %d, want success", code)
 		}
 		if us.appendCalls != 0 {

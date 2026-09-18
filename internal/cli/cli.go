@@ -17,7 +17,6 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/gosharplite/tellme/internal/agent"
 	"github.com/gosharplite/tellme/internal/app/deps"
 	appsuggestions "github.com/gosharplite/tellme/internal/app/suggestions"
 	"github.com/gosharplite/tellme/internal/config"
@@ -696,7 +695,27 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// deferred past the answer (G5). The loop fires the call hooks.
 	renderer := newCallRenderer(env, res, reg, opts.chrome, turnNumber(prior)-1, dp)
 
-	loop := &agent.AgentLoop{
+	// Round 019 — the live progress spinner: a diagnostic-stream-only indicator
+	// that labels / clears / restores per waiting phase. It is injected into the
+	// loop as the observer; the CLI owns its lifecycle (round-019 research D7).
+	var sp *ui.Spinner
+	if s := newTurnSpinner(opts, env, res.Provider.Model, turnStart, dp); s != nil {
+		sp = s
+		defer sp.Stop() // panic-safe residue guard (idempotent)
+	}
+	var spinner agentport.LoopObserver
+	if sp != nil {
+		spinner = sp
+	}
+	// Round 034 (ADR 0005 D1): the loop keeps a single observer — the composite
+	// composes the per-call block renderer with the round-019 spinner.
+	observer := compositeObserver{call: renderer, spinner: spinner}
+
+	// Round 050 (R5.4 of #92; ADR 0019): the loop is obtained through the injected
+	// domain port (deps.LoopFactory) — internal/cli names no internal/agent type.
+	// The port carries the loop's construction inputs; the CLI keeps its ui wiring
+	// (the tool-line renderer, the spinner/observer composite) by design (Q1 → A).
+	loop := dp.LoopFactory(agentport.LoopSpec{
 		Gateway:         gw,
 		Registry:        reg,
 		MaxLoops:        res.MaxToolLoop,
@@ -714,22 +733,10 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		// the single-owned blank-reason predicate, so internal/agent imports no
 		// internal/ui (the final layer-discipline baseline entry is gone).
 		Lines: ui.ToolLineRenderer{},
-	}
-	// Round 019 — the live progress spinner: a diagnostic-stream-only indicator
-	// that labels / clears / restores per waiting phase. It is injected into the
-	// loop as the observer; the CLI owns its lifecycle (round-019 research D7).
-	var sp *ui.Spinner
-	if s := newTurnSpinner(opts, env, res.Provider.Model, turnStart, dp); s != nil {
-		sp = s
-		defer sp.Stop() // panic-safe residue guard (idempotent)
-	}
-	var spinner agentport.LoopObserver
-	if sp != nil {
-		spinner = sp
-	}
-	// Round 034 (ADR 0005 D1): the loop keeps a single observer — the composite
-	// composes the per-call block renderer with the round-019 spinner.
-	loop.Observer = compositeObserver{call: renderer, spinner: spinner}
+		// Round 034 (ADR 0005 D1) + round 050: the single observer (composite) is
+		// supplied through the spec.
+		Observer: observer,
+	})
 	// Round 034 (FR-010) + round 040 (ADR 0009 D3/D4): bind the live `[Tool Output]`
 	// sink on the prompt path through the internal/ui coordinator. The block renders
 	// unconditionally; the coordinator owns the writer + the spinner and applies the

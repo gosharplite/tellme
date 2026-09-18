@@ -13,5 +13,4 @@
 # application tiers' residual unsanctioned edges. This is a ratchet that only
 # shrinks: a violation not listed here FAILS the gate, and a listed line that no
 # longer violates (stale) FAILS the gate too.
-internal/cli -> internal/agent
 internal/cli -> internal/ui
