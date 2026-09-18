@@ -76,3 +76,17 @@ Architect review ([5725563497](https://github.com/gosharplite/tellme/pull/109#is
 | **TD-5** | `ToolReasonRenders` is production-dead | Annotated as a **test-facing** helper on its doc comment |
 | **TD-6** | duplicated `[Tool Reason]` format literal | Deduped via the shared `formatToolReasonLine` helper; `ReasonLine` delegates to it |
 | **TD-7** | the baseline at 0 has no release valve | Recorded in **ADR 0015** *Consequences* + the **Layer-discipline gate** truth row |
+
+## PR #109 fold-review ledger (`8a39fc0` → this fold)
+
+Fold review ([5725646775](https://github.com/gosharplite/tellme/pull/109#issuecomment-5725646775)): fold **verified** — APPROVE, one required follow-up **F-1** + nits **N-1/N-2**. Applied:
+
+| # | Finding | Fold |
+| --- | --- | --- |
+| **F-1(1)** | the loop-tier suppression half lost its witness power (the fake's `("", false)` made a mutant's output invisible) | The fake's suppressed case now returns a **distinguishable sentinel** (`"REASON suppressed " + reason`), so a loop that prints on a `false` decision emits a line containing `REASON ` and the existing `!Contains(log, "REASON ")` assertions catch it |
+| **F-1(2)** | the tail's pre-filtered invariant (mutant B2) was unwitnessed at every tier | New pin **`TestTailReceivesOnlyRendererApprovedReasons`** — a tool round with a blank + a real reason must deliver exactly `[because]` to `OnCallEnd` |
+| **F-1(3)** | optional: a spurious extra blank could slip through the byte gap | Added `!Contains(log, "\n\n\n")` to the per-call blank assertion |
+| **N-1** | `STATUS.md` pinned a head (`f845625`) that the fold commit itself invalidated → born stale | Dropped the head pins (keep *"PR #109 open"*), per the `1d36509` measured-claim precedent |
+| **N-2** | the PR body described the pre-fold state | Added a fold addendum to the PR body |
+
+**Mutation campaign (reproduced then reverted, ADR 0010):** **B1** (the begin site ignores `renders` and prints the returned line) ⇒ `TestLogOmitsReasonLineForEscapeOnlyReason` + `TestLogOmitsReasonLineForWhitespaceOnlyReason` **FAIL** ✅; **B2** (the tail filter ignores `renders`) ⇒ `TestTailReceivesOnlyRendererApprovedReasons` **FAILS** ✅. Both directions of the round's headline policy are now witnessed.

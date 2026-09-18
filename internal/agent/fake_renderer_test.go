@@ -42,7 +42,12 @@ func (f fakeRenderer) ReasonLine(_ time.Time, reason string) (string, bool) {
 		renders = f.renders(reason)
 	}
 	if !renders {
-		return "", false
+		// Round-046 fold-review F-1: the suppressed case returns a DISTINGUISHABLE
+		// sentinel (not ""), so a loop that ignored `renders` and printed the line
+		// anyway would emit a line containing "REASON " — which the suppression
+		// assertions (`!Contains(log, "REASON ")`) catch. A `""` return made the
+		// mutant's output (a bare newline) invisible, so the pin lost its power.
+		return "REASON suppressed " + reason, false
 	}
 	return "REASON " + reason, true
 }

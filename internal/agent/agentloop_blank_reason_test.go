@@ -34,6 +34,11 @@ func TestLogOmitsReasonLineForWhitespaceOnlyReason(t *testing.T) {
 		if !lineBeforeContains(log, "ACTION read_files(", "") {
 			t.Errorf("the reason-less call's action line was not preceded by a blank line; log=%q", log)
 		}
+		// Fold-review F-1 (optional third): exactly one blank per begin block — a
+		// spurious extra blank cannot slip through the byte-level gap.
+		if strings.Contains(log, "\n\n\n") {
+			t.Errorf("more than one blank line before the call begin block; log=%q", log)
+		}
 	}
 }
 
