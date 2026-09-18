@@ -386,7 +386,7 @@ A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` S
 | Pipeline | specify ✅ · spec-by-example **NOOP** · technical-research ✅ (+ **ADR 0014**) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T010) · implement ✅ |
 | Product | `internal/ui/yield.go` (NEW — the `YieldController` owner) · `internal/domain/agent/observer.go` (the split pair) · `internal/ui/{spinner.go,coordinator.go}` · `internal/cli/composite_observer.go` · `internal/agent/agentloop.go` |
 | Verification | `make verify` **OK** (`verify-architecture` **0 new / 0 stale**, baseline **1**; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (**228 scenarios · 1698 steps**) · `go test -race ./internal/ui/...` green · topology audit **PASSED & unchanged** (44 · 16+327 · 1674) |
-| Delivery | branch `045-yield-policy-owner` (4 commits + the fold commit; head = the PR head — `git log --oneline dev..HEAD` and PR [#106](https://github.com/gosharplite/tellme/pull/106) are the authorities); **PR [#106](https://github.com/gosharplite/tellme/pull/106) open — human-only merge** |
+| Delivery | branch `045-yield-policy-owner`; **PR [#106](https://github.com/gosharplite/tellme/pull/106) open — human-only merge** (`git log --oneline dev..HEAD` and the PR are the authorities for head/commits) |
 
 ### Decisions locked (round 045)
 
@@ -447,3 +447,11 @@ The architectural review ([#5724573489](https://github.com/gosharplite/tellme/pu
 | **F-5 / F-6 / witness (c)** | `yield.go` names the three construction sites; daily-log head/count dropped; `spec.md` FR-012 gains `STATUS.md` + the day summary; the witness-(c) lock-order relation recorded in ADR 0014. |
 
 **Re-verification at `ef0c7ec`**: `go test -count=1 ./internal/cli/ -run TestComposite` ok · the `-tags=arch` gate ok (baseline still 1) · **`make verify` OK** · `go test -count=1 ./internal/...` green · `gofmt -l .` clean.
+
+### Session 19 (cont.) — PR #106 fold review (F-7 + N-1/N-2)
+
+The fold review ([#5724691676](https://github.com/gosharplite/tellme/pull/106#issuecomment-5724691676)) **verified every fold (F-1…F-4, F-5/F-6, witness (c))** and **CLOSED the review loop — CERTIFIED MERGE-READY**, leaving **F-7** (a `STATUS.md` self-contradiction) + two record nits. All three landed:
+
+- **F-7** — `STATUS.md`:39 (*"no round is in flight"*) → *"round 045 is IN FLIGHT (PR #106)"*; the roadmap `045 candidate` row → a **045 (In flight)** row + a **`046 candidate` = R4** row. No two surfaces now disagree about which round is live.
+- **N-1** — `truth-delta.md`'s F-2 residual wording: dropped the wrong package enumeration (`035-…, 036-…`) → *"the frozen plan packages of the rounds that introduced them (019 / 022 / 034 / 035 / 040)"*, with the `chat/dsl.md`-notes-without-hook-names nuance recorded.
+- **N-2** — the daily-log delivery row drops the commit count entirely (git/PR are the authorities).
