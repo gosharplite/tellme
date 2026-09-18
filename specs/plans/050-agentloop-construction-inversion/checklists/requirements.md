@@ -32,7 +32,7 @@
 ## Gaps & clarify strategy
 
 - [x] **Q1 → A LOCKED** — port-only inversion: the `→ agent` construction is inverted into a domain port; the `ui` wiring (Lines renderer, spinner, coordinator, composite observer) **stays in `internal/cli`** by design; baseline **2 → 1**; the `→ ui` edge is the later slice
-- [ ] **Q2 → TBD** — port shape + adapter home
+- [x] **Q2 → (i) LOCKED** — domain interface `agentport.Loop` (`Run(...) (Result, error)`) + domain `LoopSpec` + a **func-typed** factory in `deps.Dependencies` (`LoopFactory`), adapter `agent.NewLoop` in `internal/agent`; `Validate()` already covers a func-typed field (no interface-seam assertion needed)
 - [ ] **Q3 → TBD** — `Lines`/observer ownership
 - [x] Questions asked **one at a time**; capped at 1–3 per round
 - [x] High-impact gap scoped to a single first question (Q1), with options A/B/C
