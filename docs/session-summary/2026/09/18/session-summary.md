@@ -533,3 +533,15 @@ A further session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md`
 
 1. **Human merges PR** → propagate `dev → main` (no-ff) → close **#108** → `SESSION-CLOSEOUT.md`.
 2. Re-read `SESSION-BOOTSTRAP.md` next session.
+
+### Session 20 (cont.) — PR #109 review fold (`8a39fc0`)
+
+The architect review ([5725563497](https://github.com/gosharplite/tellme/pull/109#issuecomment-5725563497)) returned **APPROVE WITH REQUIRED FOLDS — no blocker** and independently reproduced the DoD (gate **0 new / 0 stale / 0 cycles**, baseline header-only; `internal/agent` names no `internal/ui`; `ReasonLine` ≡ `FormatToolReason`; single `AgentLoop{}` composition site). All folds landed as `8a39fc0`:
+
+- **R-1** `spec.md` Status line reconciled to the C-R4-2 decision (the port's `ReasonLine` is the owner).
+- **R-2** the `chat/dsl.md:55` round-036 note reconciled to the single-owner reality (the deleted `OnCallEnd` guard no longer reads as live) + a **behaviour-aware** guard grep recorded in `truth-delta.md` (symbol-existence ≠ clause-truth).
+- **R-3** `STATUS.md` brought currency-aligned (branch-model `046` row; header reconciled; R4 dropped from the candidates; issue-tracker + env note refreshed).
+- **R-4** the pre-filtered-`roundReasons` precondition documented on `OnCallEnd`.
+- **TD-1…TD-7** folded (ADR 0015 *Consequences* gains the discarded-render cost, the port-shape-leak trade, and the no-release-valve policy; two new loop-tier pins — delegation + nil-`Lines`; `ToolReasonRenders` annotated test-facing; the `[Tool Reason]` format literal deduped via `formatToolReasonLine`; the gate truth row gains the release-valve sentence).
+
+Re-verified at `8a39fc0`: `make verify` **OK** · `go test -count=1 ./...` green (incl. godog E2E) · `gofmt`/`go vet` clean. **Propagation still PENDING** (human merge of PR [#109](https://github.com/gosharplite/tellme/pull/109) → then close #108).
