@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-18
 
-**Status**: Draft (clarify round 1 **OPEN** — Q1 pending) — plan package created by `/axb-specify`.
+**Status**: Draft (clarify round 1 in progress — **Q1 → D** closed; Q2/Q3/Q4 pending) — plan package created by `/axb-specify`.
 
 **Input**: [#101](https://github.com/gosharplite/tellme/issues/101) — **R5** of [#92](https://github.com/gosharplite/tellme/issues/92). The committed baseline records the **1** residual unsanctioned edge (measured 2026-09-18 @ `dev` `310def4`, post-round-050):
 
@@ -20,14 +20,18 @@ internal/cli -> internal/ui
 
 ## Clarify round 1 — OPEN (asked one at a time)
 
-> **Q1 is pending.** Per the `/axb-specify` → `/axb-clarify` gate the round is **paused here** — Q1 decides the round shape / story split, so no Q1 answer is assumed in this draft.
+> **Q1 → D is CLOSED** (the one-round close; recorded below). Q2/Q3/Q4 remain — asked **one at a time**.
 
 | # | Question (asked one at a time) | Status |
 | --- | --- | --- |
-| **Q1** | **The closing-programme shape: what is round 051?** The remaining #101 work is 3 items of very different size. Options: **(A) Re-cut — round 051 = sub-slice 1** (the 3 crossing **value types** → `internal/domain/**`; behaviour-preserving; the RULE-F `→ ui` surface shrinks but the **edge remains** so the baseline **stays 1**; later sub-slices then do the formatters + factories). **(B) Re-cut — round 051 = the `→ ui` collapse** (invert the CLI's ui rendering — the `call_renderer` + the `ui.Format*` calls + the stateful factories — behind injected **domain ports** implemented by `internal/ui`; baseline **1 → 0**), with **F-6/F-7/F-8 in a following round 052**. **(C) F-6/F-7/F-8 first** (small, self-contained; the `→ ui` collapse in round 052). **(D) One mega-round** closing all of #101 at once (the `→ ui` collapse **and** F-6/F-7/F-8) — highest risk. | ⏳ **OPEN** |
+| **Q1** | **The closing-programme shape: what is round 051?** The remaining #101 work is 3 items of very different size. Options: **(A) Re-cut — round 051 = sub-slice 1** (the 3 crossing **value types** → `internal/domain/**`; behaviour-preserving; the RULE-F `→ ui` surface shrinks but the **edge remains** so the baseline **stays 1**; later sub-slices then do the formatters + factories). **(B) Re-cut — round 051 = the `→ ui` collapse** (invert the CLI's ui rendering — the `call_renderer` + the `ui.Format*` calls + the stateful factories — behind injected **domain ports** implemented by `internal/ui`; baseline **1 → 0**), with **F-6/F-7/F-8 in a following round 052**. **(C) F-6/F-7/F-8 first** (small, self-contained; the `→ ui` collapse in round 052). **(D) One mega-round** closing all of #101 at once (the `→ ui` collapse **and** F-6/F-7/F-8) — highest risk. | ✅ **D** |
 | **Q2** | **Value-type homes** (if any option above needs them): `ui.Pricing` → `internal/domain/llm` vs a new `internal/domain/pricing`; `ui.UsageCounts` → `internal/domain/metrics`; `ui.ToolUsageRow` → `internal/domain/history` (it mirrors `history.ToolUsageCounts`). | ⏳ TBD |
 | **Q3** | **The `→ ui` inversion mechanism**: a **single** injected presentation port (e.g. `domain/render.StatusRenderer` covering the turn frame/tail + tool-usage) vs **several** narrow ports (status / metrics / tool-usage) vs moving `call_renderer` wholesale into `internal/ui` behind one port. | ⏳ TBD |
 | **Q4** | **F-6/F-7/F-8**: fold them into this round (if the shape allows) or keep them a separate round; and for F-8 (`domaintools.OutputSink` struct-of-funcs → interface) — is the RULE-C-clean domain change acceptable now. | ⏳ TBD |
+
+### Q1 → D (LOCKED) — one round that closes [#101](https://github.com/gosharplite/tellme/issues/101)
+
+Round 051 carries the **whole** remaining #101 scope in **one** delivery: (i) the `→ ui` de-coupling (baseline **1 → 0**, with the two ratchet removals) **and** (ii) the F-6/F-7/F-8 deferrals. Internal **sub-slice ordering is an RD decision** (Q3), and the operator's recorded caveat holds: if `/axb-system-analysis` shows the blast radius exceeds a single reviewable PR, the round is re-cut internally (still closing #101 across the ordered slices). Rejected (recorded): **A/C** (do not close #101 this round); **B** (closes only the edge, defers F-6/F-7/F-8).
 
 > **Assumptions (not escalated — low impact, disclosed):** the ADR number (**0020**); the api/data/dsl-refine **NOOP** set; the `-count=1`/`-tags=arch` invocation stays as shipped; the sanctioned set (domain/config/home/app) is **not** re-ruled (no `internal/pkg` is introduced — ADR 0016 D1 governs).
 

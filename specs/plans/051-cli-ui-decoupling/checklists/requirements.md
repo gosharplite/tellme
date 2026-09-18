@@ -31,7 +31,7 @@
 
 ## Gaps & clarify strategy
 
-- [ ] **Q1 → OPEN** — the closing-programme shape (A re-cut sub-slice 1 / B the `→ ui` collapse / C F-6/F-7/F-8 first / D mega-round). **Blocks the story split + the round's DoD.**
+- [x] **Q1 → D LOCKED** — one round closing #101: the `→ ui` collapse (baseline 1 → 0) + F-6/F-7/F-8; internal sub-slice ordering is an RD decision (Q3); a blast-radius re-cut is the recorded caveat
 - [ ] **Q2 → TBD** — the value-type homes
 - [ ] **Q3 → TBD** — the `→ ui` inversion mechanism
 - [ ] **Q4 → TBD** — F-6/F-7/F-8 folding + F-8 acceptability
