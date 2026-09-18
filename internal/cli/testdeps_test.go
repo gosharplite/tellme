@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -107,6 +108,9 @@ func defaultTestDeps(mods ...func(*deps.Dependencies)) deps.Dependencies {
 		},
 		NewHistoryStore: func(string) history.Store { return &fakeStore{} },
 		NewUsageStore:   func(string) history.UsageStore { return &capturingUsageStore{} },
+		NewTurnsLogStore: func(string) history.TurnsLogStore {
+			return &fakeTurnsLogStore{}
+		},
 		NewToolUsageStore: func(func() (string, error)) history.ToolUsageStore {
 			return noopUsageStore{}
 		},
@@ -246,3 +250,21 @@ func (fakeSink) Begin()            {}
 func (fakeSink) Writer() io.Writer { return nil }
 func (fakeSink) End()              {}
 func (fakeSink) Enabled() bool     { return false }
+
+// fakeTurnsLogStore is an in-package history.TurnsLogStore double (round 053;
+// ADR 0022): it accumulates appended chrome into a buffer.
+type fakeTurnsLogStore struct{ buf bytes.Buffer }
+
+func (f *fakeTurnsLogStore) Writer() (io.WriteCloser, error) { return nopWriteCloser{&f.buf}, nil }
+
+func (f *fakeTurnsLogStore) Reader() (io.ReadCloser, error) {
+	return io.NopCloser(bytes.NewReader(f.buf.Bytes())), nil
+}
+
+func (f *fakeTurnsLogStore) Archive() error { return nil }
+
+// nopWriteCloser adapts an io.Writer into an io.WriteCloser whose Close is a
+// no-op (the in-memory turn-log double never owns a file).
+type nopWriteCloser struct{ io.Writer }
+
+func (nopWriteCloser) Close() error { return nil }

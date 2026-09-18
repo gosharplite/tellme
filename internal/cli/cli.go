@@ -52,6 +52,7 @@ type flags struct {
 	listSet     bool
 	interactive bool
 	toolUsage   bool
+	turns       bool
 }
 
 // Options is the single injected value Run consumes (round 044 / ADR 0013): the
@@ -157,6 +158,25 @@ type runtimeEnv struct {
 	// clock is the injected time seam for the payload status line (round 009);
 	// nil falls back to time.Now.
 	clock func() time.Time
+	// turnsLog, when non-nil, is the additional sink for the turn's rendered
+	// CHROME lines (round 053; ADR 0022): the session's turns.log. It is a
+	// multiwriter over stderr so the chrome still reaches the diagnostic stream;
+	// nil leaves the chrome on stderr alone (the offline / non-prompt paths).
+	// Only the per-call renderer's frame/tail lines route here — the
+	// prompt-surface ack and the `-i` echo stay on stderr (fold F-53-3(i)).
+	turnsLog io.Writer
+}
+
+// diag returns the stream the per-call turn CHROME (the status frame + the tail:
+// payload status, grouped reasons, metrics, Ready) is written to: the chrome tee
+// when the turn path opened a turns.log, else stderr. Errors, non-chrome
+// diagnostics, the input-capture ack, and the `-i` echo keep writing to
+// env.stderr directly.
+func (e runtimeEnv) diag() io.Writer {
+	if e.turnsLog != nil {
+		return e.turnsLog
+	}
+	return e.stderr
 }
 
 // round 044: the history/usage/toolUsage-store, gateway and tool-registry factory
@@ -354,9 +374,9 @@ func run(args []string, version string, scoped Options, env runtimeEnv) int {
 
 	homeDir := os.Getenv("TELL_ME_HOME")
 
-	// The offline reporting commands run in precedence order — -d → -l →
+	// The offline reporting commands run in precedence order — -d → -l → -t →
 	// --tool-usage — before any prompt or stdin access.
-	if code, handled := dispatchReporting(f, homeDir, env, dp.NewHistoryStore, func() int {
+	if code, handled := dispatchReporting(f, homeDir, env, dp.NewHistoryStore, dp.NewTurnsLogStore, func() int {
 		return renderToolUsage(env, dp.NewToolRegistry, dp.NewToolUsageStore, dp.UserHomeDir, dp.NewLines())
 	}); handled {
 		return code
@@ -398,13 +418,14 @@ func run(args []string, version string, scoped Options, env runtimeEnv) int {
 		// `--new` archives BEFORE the interactive read for BOTH terminal reader
 		// surfaces — the `-i` TUI prompt and the plain reader — so a fresh session
 		// starts regardless of the submission (round 027: the `-i` surface
-		// previously dropped `--new`, so the header counted the prior history). It
-		// archives before resolving the configuration: a prompt-less `--new` is an
-		// archive command that works offline, so — unlike the prompt-bearing
-		// `--new "<prompt>"` form, which resolves first — a broken config still
-		// archives here and then fails when the turn resolves (round-012 review).
+		// previously dropped `--new`, so the header counted the prior history).
+		// Round 053 (closes #103; ADR 0022; fold F-53-2): a prompt-less `--new`
+		// now selects the session from the `-c` config's MODE, so an explicit `-c`
+		// that cannot be honoured REFUSES before archiving (Q2 → A) — the round-012
+		// "a broken config still archives here" ordering is SUPERSEDED (failing
+		// loudly beats archiving the WRONG session).
 		if f.newSession {
-			if code := renderNewSession(homeDir, env, dp); code != Success {
+			if code := renderNewSession(homeDir, f.configPath, env, dp.NewHistoryStore, dp.NewUsageStore, dp.NewTurnsLogStore); code != Success {
 				return code
 			}
 		}
@@ -427,7 +448,7 @@ func run(args []string, version string, scoped Options, env runtimeEnv) int {
 	// A prompt-less --new on a NON-terminal keeps its round-007 behaviour: archive
 	// the session and exit (the reader never engages on a non-terminal).
 	if f.newSession {
-		return renderNewSession(homeDir, env, dp)
+		return renderNewSession(homeDir, f.configPath, env, dp.NewHistoryStore, dp.NewUsageStore, dp.NewTurnsLogStore)
 	}
 	return renderBoot(homeDir, f.configPath, env)
 }
@@ -446,6 +467,7 @@ func parseFlags(args []string, stderr io.Writer) (f *flags, flagArgs []string, o
 	fs.BoolVarP(&o.raw, "raw", "r", false, "Print the answer as raw text (no Markdown rendering).")
 	fs.BoolVar(&o.newSession, "new", false, "Start a fresh session, archiving the current session history.")
 	fs.IntVarP(&o.list, "list", "l", 0, "List the last N messages of the session history and exit.")
+	fs.BoolVarP(&o.turns, "turns", "t", false, "Print the session's turn log and exit.")
 	fs.BoolVarP(&o.interactive, "interactive", "i", false, "Open the interactive TUI prompt (requires a terminal).")
 	fs.BoolVar(&o.toolUsage, "tool-usage", false, "Report per-tool invocation counts across all sessions, then exit.")
 	if err := fs.Parse(args); err != nil {
@@ -642,6 +664,18 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
+	// Round 053 (ADR 0022): tee the per-call turn chrome (the renderer's frame +
+	// tail) into the resolved session's turns.log. Best-effort — an open failure
+	// (or an empty workspace) leaves the chrome on stderr alone; the handle is
+	// closed at run end. Only the per-call renderer routes through env.diag();
+	// errors, the input-capture ack, and the `-i` echo stay stderr-only.
+	if res.Workspace != "" {
+		if wc, err := dp.NewTurnsLogStore(res.Workspace).Writer(); err == nil {
+			defer func() { _ = wc.Close() }()
+			env.turnsLog = io.MultiWriter(env.stderr, wc)
+		}
+	}
+
 	// Round-019 elapsed epoch: the spinner's turn-scoped timer starts at prompt
 	// capture — the moment the input-capture acknowledgement fires (research D4).
 	turnStart := env.now()
@@ -815,6 +849,8 @@ func (e runtimeEnv) now() time.Time {
 
 // emitInputCaptured writes the round-017 input-capture acknowledgement to the
 // diagnostic stream (the reference's `[HH:MM:SS] Input captured. Processing...`).
+// It is the PROMPT-SURFACE ack, not turn chrome, so it stays on stderr and is
+// NOT recorded in the session turn log (round-053 fold F-53-3(i)).
 func emitInputCaptured(env runtimeEnv, lines render.Lines) {
 	_, _ = fmt.Fprintln(env.stderr, lines.InputCaptured(env.now()))
 }
@@ -872,7 +908,7 @@ func toolOutputIdleGap(lines render.Lines) time.Duration {
 // the exit code and whether a reporting command handled the run. (`--version` is
 // handled by the caller, ahead of the reporting batch.) Extracted from `run` so
 // its cyclomatic complexity stays under the cyclop gate (round 026).
-func dispatchReporting(f *flags, homeDir string, env runtimeEnv, newHistoryStore func(workspace string) history.Store, toolUsageReport func() int) (int, bool) {
+func dispatchReporting(f *flags, homeDir string, env runtimeEnv, newHistoryStore func(workspace string) history.Store, newTurnsLogStore func(workspace string) history.TurnsLogStore, toolUsageReport func() int) (int, bool) {
 	// -d is the reporting path: it always produces a report, and it takes
 	// precedence over a prompt or piped input (round-004 Decision 7).
 	if f.diagnostic {
@@ -884,7 +920,13 @@ func dispatchReporting(f *flags, homeDir string, env runtimeEnv, newHistoryStore
 		if f.list <= 0 {
 			return emitUsageError(env.stderr), true
 		}
-		return renderHistoryList(homeDir, f.list, env, newHistoryStore), true
+		return renderHistoryList(homeDir, f.list, f.configPath, env, newHistoryStore), true
+	}
+	// -t prints the resolved session's turn log and exits, strictly offline
+	// (round 053; ADR 0022). Ordered after -l (which keeps its round-007
+	// precedence).
+	if f.turns {
+		return renderTurnsLog(homeDir, f.configPath, env, newTurnsLogStore), true
 	}
 	// --tool-usage is the offline tool-usage report: like --version it needs no
 	// configuration, no TELL_ME_HOME, and no workspace (round-026 FR-006).
@@ -925,13 +967,14 @@ func renderToolUsage(env runtimeEnv, newToolRegistry func(domaintools.OutputSink
 // renderHistoryList lists the last N persisted messages (round-007 FR-007..FR-009)
 // and exits — strictly offline, no provider request. It resolves only the
 // workspace (no configuration/provider requirement), so listing works even when
-// the configuration is absent.
-func renderHistoryList(homeDir string, n int, env runtimeEnv, newHistoryStore func(workspace string) history.Store) int {
-	ws, rerr := resolveWorkspace(homeDir)
+// the configuration is absent. Round 053 (ADR 0022): the session is selected by
+// the `-c` configuration's MODE (when the env override is unset).
+func renderHistoryList(homeDir string, n int, configPath string, env runtimeEnv, newHistoryStore func(workspace string) history.Store) int {
+	res, rerr := resolveWorkspace(homeDir, configPath)
 	if rerr != nil {
-		return emitBootError(env.stderr, resolution{Home: homeDir, Workspace: ws}, rerr)
+		return emitBootError(env.stderr, res, rerr)
 	}
-	entries, err := newHistoryStore(ws).Load()
+	entries, err := newHistoryStore(res.Workspace).Load()
 	if err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
@@ -945,47 +988,105 @@ func renderHistoryList(homeDir string, n int, env runtimeEnv, newHistoryStore fu
 	return Success
 }
 
+// renderTurnsLog prints the resolved session's turn log to stdout and exits —
+// strictly offline (round 053; ADR 0022). A missing/empty log is success (it
+// mirrors `-l` on an empty session). The session is selected by the `-c`
+// configuration's MODE (when the env override is unset).
+func renderTurnsLog(homeDir, configPath string, env runtimeEnv, newTurnsLogStore func(workspace string) history.TurnsLogStore) int {
+	res, rerr := resolveWorkspace(homeDir, configPath)
+	if rerr != nil {
+		return emitBootError(env.stderr, res, rerr)
+	}
+	// Round-053 fold RF-53-2: stream the log to stdout (never materialise it), a
+	// missing file reading as empty (the store's Reader tolerance). A read
+	// failure reuses the environment class phrase via emitHistoryError (the
+	// frozen vocabulary), though the wording is history-flavoured for a
+	// turn-log file.
+	rc, err := newTurnsLogStore(res.Workspace).Reader()
+	if err != nil {
+		return emitHistoryError(env.stderr, err)
+	}
+	defer func() { _ = rc.Close() }()
+	_, _ = io.Copy(env.stdout, rc)
+	return Success
+}
+
 // renderNewSession starts a fresh session without a prompt: it archives the
 // active history (retaining it) and returns success (round-007 FR-005/FR-006).
-func renderNewSession(homeDir string, env runtimeEnv, dp deps.Dependencies) int {
-	ws, rerr := resolveWorkspace(homeDir)
+// Round 053 (ADR 0022): the session is selected by the `-c` configuration's MODE
+// (when the env override is unset), and the turn log is archived alongside the
+// history and usage logs.
+func renderNewSession(homeDir, configPath string, env runtimeEnv, newHistoryStore func(workspace string) history.Store, newUsageStore func(workspace string) history.UsageStore, newTurnsLogStore func(workspace string) history.TurnsLogStore) int {
+	res, rerr := resolveWorkspace(homeDir, configPath)
 	if rerr != nil {
-		return emitBootError(env.stderr, resolution{Home: homeDir, Workspace: ws}, rerr)
+		return emitBootError(env.stderr, res, rerr)
 	}
-	if err := dp.NewHistoryStore(ws).Archive(); err != nil {
+	if err := newHistoryStore(res.Workspace).Archive(); err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
-	if err := dp.NewUsageStore(ws).Archive(); err != nil {
+	if err := newUsageStore(res.Workspace).Archive(); err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
+	// Best-effort: the turn log is a trace, not session state.
+	_ = newTurnsLogStore(res.Workspace).Archive()
 	return Success
 }
 
 // resolveWorkspace resolves only the runtime home + effective mode + session
-// workspace (no configuration/provider), for the session commands `-l` and
-// `--new` that must work offline.
-func resolveWorkspace(homeDir string) (string, *resolveError) {
+// workspace (no configuration/provider), for the session commands `-l`, `-t`
+// and `--new` that must work offline. Round 053 (ADR 0022): the mode comes from
+// the `-c` configuration when the env override is unset, and an explicit `-c`
+// that cannot be honoured is a resolve error. The returned resolution carries
+// the home/config path so a failure renders an actionable message.
+func resolveWorkspace(homeDir, configPath string) (resolution, *resolveError) {
+	res := resolution{Home: homeDir, Path: configPath, Explicit: configPath != ""}
+	if res.Path == "" {
+		res.Path = defaultConfigPath(homeDir)
+	}
 	if homeDir == "" {
-		return "", &resolveError{Reason: reasonHomeUnset}
+		return res, &resolveError{Reason: reasonHomeUnset}
 	}
-	ws, err := home.EnsureWorkspace(homeDir, historyMode(homeDir))
+	mode, err := historyMode(homeDir, configPath)
 	if err != nil {
-		return ws.Path, &resolveError{Reason: reasonHomeUnusable, Err: err}
+		reason := reasonConfigInvalid
+		if errors.Is(err, os.ErrNotExist) {
+			reason = reasonConfigMissing
+		}
+		return res, &resolveError{Reason: reason, Err: err}
 	}
-	return ws.Path, nil
+	ws, err := home.EnsureWorkspace(homeDir, mode)
+	res.Workspace = ws.Path
+	if err != nil {
+		return res, &resolveError{Reason: reasonHomeUnusable, Err: err}
+	}
+	return res, nil
 }
 
 // historyMode resolves the effective mode for a session command: the
-// TELL_ME_MODE override when set, else the configuration's MODE when the default
-// configuration is loadable, else "butler".
-func historyMode(homeDir string) string {
+// TELL_ME_MODE override when set; else the `-c` configuration's MODE (or the
+// default configuration's MODE when no `-c` was given); else "butler".
+//
+// Round 053 (ADR 0022): the `-c` path is honoured (the previous shape read only
+// TELL_ME_MODE / the default config, so `-l 1 -c architect.yaml` silently read
+// the default session). An explicit `-c` that cannot be read/parsed is a hard
+// error (Q2 → (A)); an absent default configuration still degrades to "butler"
+// (round-007 tolerance).
+func historyMode(homeDir, configPath string) (string, error) {
 	if m := os.Getenv("TELL_ME_MODE"); m != "" {
-		return m
+		return m, nil
 	}
-	if cfg, err := config.Load(defaultConfigPath(homeDir)); err == nil {
-		return cfg.EffectiveMode("")
+	explicit := configPath != ""
+	if !explicit {
+		configPath = defaultConfigPath(homeDir)
 	}
-	return "butler"
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		if explicit {
+			return "", err
+		}
+		return "butler", nil
+	}
+	return cfg.EffectiveMode(""), nil
 }
 
 // toMessages flattens persisted entries into the ordered conversation messages
