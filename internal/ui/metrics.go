@@ -31,3 +31,14 @@ func FormatReady(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessi
 	return fmt.Sprintf("╰─⠿ Ready ($%.4f $%.4f $%.4f - M: %d H: %d O: %d - %.1f%%)",
 		lastCallCost, turnCost, sessionCost, sessionMiss, sessionHit, sessionOut, hitRate)
 }
+
+// formatReadyColour is FormatReady with the round-054 green accent (ADR 0023):
+// only the THIRD (session) cost is green (reference parity — tell-me-go greens
+// the session cost). The colour-off path returns FormatReady verbatim.
+func formatReadyColour(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64, colour bool) string {
+	if !colour {
+		return FormatReady(lastCallCost, turnCost, sessionCost, sessionMiss, sessionHit, sessionOut, hitRate)
+	}
+	return fmt.Sprintf("╰─⠿ Ready ($%.4f $%.4f %s - M: %d H: %d O: %d - %.1f%%)",
+		lastCallCost, turnCost, green(fmt.Sprintf("$%.4f", sessionCost), true), sessionMiss, sessionHit, sessionOut, hitRate)
+}

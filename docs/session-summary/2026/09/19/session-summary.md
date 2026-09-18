@@ -100,3 +100,55 @@ Continuation after the reviewer's **fold verification** (`5736836279`, **FOLDS V
 ### PM follow-ups
 
 - None new.
+
+---
+
+## 8. Session 28 (2026-09-19, cont.) — round 054 `054-l-default-and-chrome-colour`: opened → implemented → review (B-54-1 blocker) folded → **merged (PR #119, fast-forward)** → closeout (Steps 1–8)
+
+A later session on the same calendar day: bootstrapped/continued on `dev`, opened round **054** from an **operator request** (bare `-l` defaults to `1`; green chrome accents), ran the full AIxBDD pipeline, took **PR [#119](https://github.com/gosharplite/tellme/pull/119)** through an architectural review (**REQUEST CHANGES — 1 architectural blocker + 4 folds**) and a fold-verification to **CLEARED FOR MERGE**, saw the **human merge** (fast-forward), and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | operator request — **no anchor issue**: `-l` default-1 parity + four green chrome accents |
+| Clarify | **Q1** gate = terminal `stderr` && `-r` off · **Q2** the four elements (whole-line `[Tool Reason]`; `MODE` in both `Payload` lines; measured tokens; `Ready` session cost) + the recorded divergence · **Q3** `turns.log` stays plain |
+| Pipeline | specify ✅ · clarify ✅ · spec-by-example ✅ · technical-research ✅ (**ADR 0023**) · system-analysis ✅ (1 CLI interface; api/data NOOP) · dsl-refine ✅ · tasks ✅ (T001–T013 + fold ledger) · implement ✅ |
+| Review (PR #119) | review `5737154767` — **REQUEST CHANGES** (**B-54-1** blocker: the colour leaked into `turns.log` + F-54-1…F-54-4) → fold **`74e0eb2`** (+ `c1d248a` tasks ledger) → fold-verification `5737246516` — **ALL FOLDS VERIFIED, CLEARED FOR MERGE** |
+| Merge | PR [#119](https://github.com/gosharplite/tellme/pull/119) merged **`c1d248a`** (**fast-forward** — no merge commit); remote + local branch deleted |
+| Propagation | `dev → main` — **DONE (fast-forward)** |
+| `go install` | `go install ./cmd/tellme` refreshed from `c1d248a`; `--version` → `dev` |
+| Closeout | `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (incl. the godog E2E, Strict, 240 scenarios) · diff-level secret scan clean · `STATUS.md` split (round-053 detail → `2026-09-19.md`) · **nothing to close** (operator request) |
+
+### Work done
+
+1. **Round 054** — `/axb-specify` → per-element clarify (Q1/Q2/Q3) → acceptance → `/axb-technical-research` (**ADR 0023** + `techstack.md`) → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`.
+2. **The change** — `-l` optional value (`NoOptDefVal` + `consumeListValue`); `internal/ui/colour.go` + colour-aware chrome (the reference's `\033[0;32m`); the gate `chromeColour`; the `Lines`/`ToolLineRenderer` colour flag threaded through the `deps` seams.
+3. **The fold** — **B-54-1**: the colour leaked into `turns.log` (the renderer produced the coloured string; the tee was a `MultiWriter`). Fixed the strong way — the file leg is **rendered plain by construction** (a second colour-off `render.Lines` + one `emit(build)` seam; the tee is the raw writer; `diag()` deleted) — and the dropped `FR-006` requirement re-carried (acceptance + interface Rule + DSL row + E2E carrier). Plus **F-54-1** (`--last` dead branch deleted), **F-54-2** (the control-free policy qualified), **F-54-3** (`chromeColour` → `spinnerGate`), **F-54-4** (re-carried), **RF-54-1/2 closed**, **RF-54-3/nit-1 recorded**.
+4. **Merge + branch cleanup** — `origin/054-…` gone (`git fetch --prune`); `dev` == the round tip `c1d248a` (**fast-forward**, no merge commit — verified via `gh pr view 119` `state:MERGED`); local branch deleted (`git branch -d`).
+5. **Closeout Steps 1–8** (below).
+
+### Steps 1–8
+
+- **Step 1 — working tree**: `dev` clean; no frozen packages touched.
+- **Step 2 — gates**: as the at-a-glance row (all green).
+- **Step 3 — `STATUS.md`**: round 054 **DELIVERED / FROZEN**; Rule-12 split (the round-053 detail + its env note → `docs/archives/status/2026-09-19.md`); branch model (054 landed **fast-forward**), roadmap (a 054 row), open items (RF-54-x), env notes; no liveness contradiction.
+- **Step 4 — day summary**: **appended** this §8 (the §1–§7 record preserved).
+- **Step 5 — reconciliation**: `STATUS.md` ↔ §1–§8 agree.
+- **Step 6 — commit**: `docs(054): day close — round 054 delivered + propagated; STATUS split + 09/19 summary §8`.
+- **Step 7 — propagation + handoff**: `dev → main` **DONE (fast-forward)**; `go install` refreshed; next = `dev`, round `055-*`.
+- **Step 8 — issue tracker**: nothing to close/revise (operator request, no anchor issue); [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) open (accurate).
+
+### Residuals (non-blocking, recorded)
+
+- **R-54-1 / R-54-2** (review residuals): the new `turns.log` carrier and the negative colour Example are tool-less (a strengthening, not a defect) — recorded in the fold ledger + ADR 0023 RF-54-x.
+- **RF-54-1…RF-54-4** in ADR 0023 §Forward.
+
+### Next steps
+
+1. Open round **`055-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella — context management; [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new.

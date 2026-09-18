@@ -158,25 +158,12 @@ type runtimeEnv struct {
 	// clock is the injected time seam for the payload status line (round 009);
 	// nil falls back to time.Now.
 	clock func() time.Time
-	// turnsLog, when non-nil, is the additional sink for the turn's rendered
-	// CHROME lines (round 053; ADR 0022): the session's turns.log. It is a
-	// multiwriter over stderr so the chrome still reaches the diagnostic stream;
-	// nil leaves the chrome on stderr alone (the offline / non-prompt paths).
-	// Only the per-call renderer's frame/tail lines route here — the
-	// prompt-surface ack and the `-i` echo stay on stderr (fold F-53-3(i)).
+	// turnsLog, when non-nil, is the session turn-log writer (round 053; ADR
+	// 0022): the per-call renderer writes the PLAIN render of each chrome line
+	// here (round 054 fold B-54-1 — the artifact stays control-free even when the
+	// stderr leg is coloured). nil on the offline / non-prompt paths. The
+	// prompt-surface ack and the `-i` echo never write here (round-053 F-53-3(i)).
 	turnsLog io.Writer
-}
-
-// diag returns the stream the per-call turn CHROME (the status frame + the tail:
-// payload status, grouped reasons, metrics, Ready) is written to: the chrome tee
-// when the turn path opened a turns.log, else stderr. Errors, non-chrome
-// diagnostics, the input-capture ack, and the `-i` echo keep writing to
-// env.stderr directly.
-func (e runtimeEnv) diag() io.Writer {
-	if e.turnsLog != nil {
-		return e.turnsLog
-	}
-	return e.stderr
 }
 
 // round 044: the history/usage/toolUsage-store, gateway and tool-registry factory
@@ -377,7 +364,7 @@ func run(args []string, version string, scoped Options, env runtimeEnv) int {
 	// The offline reporting commands run in precedence order — -d → -l → -t →
 	// --tool-usage — before any prompt or stdin access.
 	if code, handled := dispatchReporting(f, homeDir, env, dp.NewHistoryStore, dp.NewTurnsLogStore, func() int {
-		return renderToolUsage(env, dp.NewToolRegistry, dp.NewToolUsageStore, dp.UserHomeDir, dp.NewLines())
+		return renderToolUsage(env, dp.NewToolRegistry, dp.NewToolUsageStore, dp.UserHomeDir, dp.NewLines(false))
 	}); handled {
 		return code
 	}
@@ -466,15 +453,52 @@ func parseFlags(args []string, stderr io.Writer) (f *flags, flagArgs []string, o
 	fs.BoolVar(&o.version, "version", false, "Print the build version and exit.")
 	fs.BoolVarP(&o.raw, "raw", "r", false, "Print the answer as raw text (no Markdown rendering).")
 	fs.BoolVar(&o.newSession, "new", false, "Start a fresh session, archiving the current session history.")
-	fs.IntVarP(&o.list, "list", "l", 0, "List the last N messages of the session history and exit.")
+	fs.IntVarP(&o.list, "list", "l", 0, "List the last N messages of the session history and exit. Defaults to 1 when the value is omitted.")
+	// Round 054 (ADR 0023): bare `-l`/`--list` defaults to 1 (reference parity).
+	fs.Lookup("list").NoOptDefVal = "1"
 	fs.BoolVarP(&o.turns, "turns", "t", false, "Print the session's turn log and exit.")
 	fs.BoolVarP(&o.interactive, "interactive", "i", false, "Open the interactive TUI prompt (requires a terminal).")
 	fs.BoolVar(&o.toolUsage, "tool-usage", false, "Report per-tool invocation counts across all sessions, then exit.")
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(consumeListValue(args)); err != nil {
 		return nil, nil, false
 	}
 	o.listSet = fs.Changed("list")
 	return o, fs.Args(), true
+}
+
+// consumeListValue normalizes the optional-integer `-l`/`--list` flag so an
+// ADJACENT value is consumed (`-l 5` → `-l=5`) instead of being left as a
+// positional argument. pflag's NoOptDefVal makes a bare `-l` mean `-l=1`, but it
+// also means `-l 5` parses as `-l=1` plus a positional `5` — a prompt token that
+// would otherwise be swallowed or misread. Mirroring the reference's
+// `consumeOptionalIntFlag`: consume the next token ONLY when it is a valid
+// integer; otherwise leave it (so `-l hello` ⇒ count 1, prompt `hello`). An
+// `--` separator stops the scan.
+func consumeListValue(args []string) []string {
+	if len(args) == 0 {
+		return args
+	}
+	out := make([]string, 0, len(args))
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--" {
+			out = append(out, args[i:]...)
+			return out
+		}
+		if arg == "-l" || arg == "--list" {
+			if i+1 < len(args) {
+				if _, err := strconv.Atoi(args[i+1]); err == nil {
+					out = append(out, arg+"="+args[i+1])
+					i++
+					continue
+				}
+			}
+			out = append(out, arg)
+			continue
+		}
+		out = append(out, arg)
+	}
+	return out
 }
 
 // resolve is the single resolution algorithm shared by the boot, diagnostic, and
@@ -664,15 +688,15 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	// Round 053 (ADR 0022): tee the per-call turn chrome (the renderer's frame +
-	// tail) into the resolved session's turns.log. Best-effort — an open failure
-	// (or an empty workspace) leaves the chrome on stderr alone; the handle is
-	// closed at run end. Only the per-call renderer routes through env.diag();
-	// errors, the input-capture ack, and the `-i` echo stay stderr-only.
+	// Round 053 (ADR 0022) + round 054 fold B-54-1: the per-call renderer writes
+	// each chrome line to BOTH sinks — the diagnostic stream (coloured per the
+	// gate) and the resolved session's turns.log (PLAIN). Best-effort — an open
+	// failure (or an empty workspace) leaves the chrome on stderr alone; the handle
+	// is closed at run end.
 	if res.Workspace != "" {
 		if wc, err := dp.NewTurnsLogStore(res.Workspace).Writer(); err == nil {
 			defer func() { _ = wc.Close() }()
-			env.turnsLog = io.MultiWriter(env.stderr, wc)
+			env.turnsLog = wc
 		}
 	}
 
@@ -688,7 +712,11 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// Round 052 (closes #115 R-2; ADR 0021): the progress object is built BEFORE
 	// the registry so its `[Tool Output]` sink can be injected at the command
 	// tool's construction (no post-construction rebind).
-	prog := dp.NewProgress(env.stderr, env.now, res.Provider.Model, turnStart, stderrColumns(env), toolOutputIdleGap(dp.NewLines()), spinnerGate(opts, env.stderrIsTerminal()))
+	// Round 054 fold RF-54-2: resolve the shared terminal gate ONCE per turn (the
+	// spinner and the chrome colour share one predicate, chromeColour) so the
+	// three consumers cannot disagree.
+	colourOn := chromeColour(opts, env)
+	prog := dp.NewProgress(env.stderr, env.now, res.Provider.Model, turnStart, stderrColumns(env), toolOutputIdleGap(dp.NewLines(false)), colourOn)
 	ind := prog.Indicator
 	if ind != nil {
 		defer ind.Stop() // panic-safe residue guard (idempotent)
@@ -722,7 +750,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		if opts.echo {
 			_, _ = fmt.Fprintln(env.stderr, prompt)
 		}
-		emitInputCaptured(env, dp.NewLines())
+		emitInputCaptured(env, dp.NewLines(false))
 	}
 	// Round 032 (F9) — discover MCP tools BEFORE the turn frames, so a
 	// slow/unreachable server's bounded wait is never silent and the per-call
@@ -735,7 +763,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// estimate) at each call's begin, and the tail (grouped reasons + measured
 	// payload + metrics + `Ready`) at each call's end, with the FINAL call's tail
 	// deferred past the answer (G5). The loop fires the call hooks.
-	renderer := newCallRenderer(env, res, reg, opts.chrome, turnNumber(prior)-1, dp)
+	renderer := newCallRenderer(env, res, reg, opts.chrome, turnNumber(prior)-1, colourOn, dp)
 
 	// Round 034 (ADR 0005 D1): the loop keeps a single observer — the composite
 	// composes the per-call block renderer with the round-019 spinner.
@@ -762,7 +790,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		// through the injected presentation port — internal/ui owns the bytes and
 		// the single-owned blank-reason predicate, so internal/agent imports no
 		// internal/ui (the final layer-discipline baseline entry is gone).
-		Lines: dp.NewToolLines(),
+		Lines: dp.NewToolLines(colourOn),
 		// Round 034 (ADR 0005 D1) + round 050: the single observer (composite) is
 		// supplied through the spec.
 		Observer: observer,
@@ -873,6 +901,15 @@ func turnNumber(prior []history.Entry) int {
 // diagnostic stream (stderr) is a terminal (round-019 FR-006/FR-008).
 func spinnerGate(opts turnOptions, stderrIsTerminal bool) bool {
 	return opts.chrome && !opts.raw && stderrIsTerminal
+}
+
+// chromeColour reports whether the round-054 green chrome accents apply (ADR
+// 0023): the diagnostic stream (stderr) is a terminal AND rendering is on
+// (`-r` off) AND this is a prompt-bearing surface (opts.chrome). It is the SAME
+// expression as the spinner gate — colour and the spinner share one gate — kept
+// as its own named helper so the two call sites read by intent.
+func chromeColour(opts turnOptions, env runtimeEnv) bool {
+	return spinnerGate(opts, env.stderrIsTerminal())
 }
 
 // stderrColumns reports the terminal width for the spinner's row-aware clear
