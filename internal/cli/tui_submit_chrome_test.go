@@ -30,7 +30,7 @@ func TestRunTurn_EchoToggle(t *testing.T) {
 		}
 		out := buf.String()
 		echoIdx := strings.Index(out, "hello world")
-		ackIdx := strings.Index(out, "Input captured")
+		ackIdx := strings.Index(out, "<input-captured>")
 		if echo {
 			if echoIdx < 0 || ackIdx < 0 || echoIdx > ackIdx {
 				t.Fatalf("echo=true: want the prompt echoed before the ack; out=%q", out)
@@ -77,15 +77,12 @@ func TestTUISubmitResumesChromeAndEchoes(t *testing.T) {
 	}
 	errs := errOut.String()
 	echoIdx := strings.Index(errs, "hi there")
-	ackIdx := strings.Index(errs, "Input captured")
+	ackIdx := strings.Index(errs, "<input-captured>")
 	if echoIdx < 0 || ackIdx < 0 || echoIdx > ackIdx {
 		t.Fatalf("the -i submit did not echo the prompt before the ack; stderr=%q", errs)
 	}
-	if !strings.Contains(errs, strings.Repeat("─", 80)) {
-		t.Fatalf("the -i submit did not render the turn rule; stderr=%q", errs)
-	}
-	if !strings.Contains(errs, "╭─⠿ Turn 1 - butler") {
-		t.Fatalf("the -i submit did not render the turn header; stderr=%q", errs)
+	if !strings.Contains(errs, "<turn-opening 1 butler>") {
+		t.Fatalf("the -i submit did not render the turn frame; stderr=%q", errs)
 	}
 	if strings.Contains(out.String(), "hi there") {
 		t.Fatalf("the echoed prompt leaked onto stdout; stdout=%q", out.String())

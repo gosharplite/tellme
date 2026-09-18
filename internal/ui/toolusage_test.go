@@ -3,14 +3,16 @@ package ui
 import (
 	"strings"
 	"testing"
+
+	"github.com/gosharplite/tellme/internal/domain/history"
 )
 
 func TestFormatToolUsage(t *testing.T) {
-	rows := []ToolUsageRow{
-		{Tool: "list_files", OK: 1},
-		{Tool: "read_files", OK: 2, Error: 1},
+	rows := []history.ToolUsageRow{
+		{Tool: "list_files", Counts: history.ToolUsageCounts{OK: 1}},
+		{Tool: "read_files", Counts: history.ToolUsageCounts{OK: 2, Error: 1}},
 		{Tool: "get_tree"},
-		{Tool: "execute_command", Timeout: 1},
+		{Tool: "execute_command", Counts: history.ToolUsageCounts{Timeout: 1}},
 	}
 	got := FormatToolUsage(rows)
 	want := "tool usage (all sessions):\n" +
@@ -26,7 +28,7 @@ func TestFormatToolUsage(t *testing.T) {
 // TestFormatToolUsagePreservesOrder: the report follows the input (registry)
 // order exactly — deterministic, no map iteration.
 func TestFormatToolUsagePreservesOrder(t *testing.T) {
-	rows := []ToolUsageRow{{Tool: "b", OK: 2}, {Tool: "a", OK: 1}}
+	rows := []history.ToolUsageRow{{Tool: "b", Counts: history.ToolUsageCounts{OK: 2}}, {Tool: "a", Counts: history.ToolUsageCounts{OK: 1}}}
 	lines := strings.Split(strings.TrimSpace(FormatToolUsage(rows)), "\n")
 	if len(lines) != 3 {
 		t.Fatalf("lines = %v", lines)
@@ -36,8 +38,8 @@ func TestFormatToolUsagePreservesOrder(t *testing.T) {
 	}
 	// Two independently-built equivalent row sets render identically
 	// (deterministic for the same input).
-	a := []ToolUsageRow{{Tool: "b", OK: 2}, {Tool: "a", OK: 1}}
-	b := []ToolUsageRow{{Tool: "b", OK: 2}, {Tool: "a", OK: 1}}
+	a := []history.ToolUsageRow{{Tool: "b", Counts: history.ToolUsageCounts{OK: 2}}, {Tool: "a", Counts: history.ToolUsageCounts{OK: 1}}}
+	b := []history.ToolUsageRow{{Tool: "b", Counts: history.ToolUsageCounts{OK: 2}}, {Tool: "a", Counts: history.ToolUsageCounts{OK: 1}}}
 	if FormatToolUsage(a) != FormatToolUsage(b) {
 		t.Errorf("output must be deterministic for the same input")
 	}

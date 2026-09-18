@@ -938,3 +938,88 @@ A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` S
 ### Issue tracker (closeout Step 8)
 
 Reconciled against the delivered state: **[#101](https://github.com/gosharplite/tellme/issues/101) OPEN** — R5.4 sub-slice 2 delivered (PR [#113](https://github.com/gosharplite/tellme/pull/113) merged `09d0145`); the body revised to record R5.4 + the remaining **`cli → ui`** edge + **F-6/F-7/F-8**; **[#92](https://github.com/gosharplite/tellme/issues/92) OPEN** (R1–R5 delivered; ride-alongs remain, accurate); **[#103](https://github.com/gosharplite/tellme/issues/103)** · **[#91](https://github.com/gosharplite/tellme/issues/91)** · **[#13](https://github.com/gosharplite/tellme/issues/13)** open (accurate). No closes (round 050 is a slice of the open R5 programme).
+
+---
+
+## Session 25 (2026-09-18, cont.) — round 051 `051-cli-ui-decoupling` (R5.5 of [#92](https://github.com/gosharplite/tellme/issues/92)): **closes [#101](https://github.com/gosharplite/tellme/issues/101)** — full pipeline → implementation → PR #114 → review + folds + verification → certification → **merged**; **#101 CLOSED**, **#92 SPLIT & CLOSED**; closeout
+
+A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 050 delivered/frozen), opened **round 051** — the **terminal R5 slice**, whose operator-declared goal was **close [#101](https://github.com/gosharplite/tellme/issues/101)** — ran the full AIxBDD pipeline (clarify **one question at a time**, Q1–Q4), executed the implementation, opened **PR [#114](https://github.com/gosharplite/tellme/pull/114)**, took it through the **review → fold `3cae5d4` → fold-verification → fold `7b24a47` → certification → fold `e7d035d`** chain to **MERGE-READY**, saw the **human merge** into `dev` (`0d7566b`), deleted the round branch, closed **#101**, **split & closed #92**, and ran `SESSION-CLOSEOUT.md` (Steps 1–8). The installed binary was refreshed.
+
+**Workspace**: `$TELL_ME_HOME` = `…/mbp-johndoe-niffler/ait-tellme`; **darwin/arm64** host (Go 1.26.6). **Session mode**: `butler`.
+**Branch**: `051-cli-ui-decoupling` (off `dev` `310def4`) → merged via PR [#114](https://github.com/gosharplite/tellme/pull/114) into `dev` (`0d7566b`; frozen head `e7d035d`) → propagated `dev → main`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 050 delivered/frozen; active branch `dev`) |
+| Round-051 theme | the **terminal R5 slice** — the last RULE-E residual `internal/cli → internal/ui` de-coupled (**baseline 1 → 0**; the ratchet's **terminal state**) + the PR #104 deferrals **F-6/F-7/F-8**; **closes [#101](https://github.com/gosharplite/tellme/issues/101)**; **ADR 0020** |
+| Clarify (one at a time) | **Q1 → D** (one round closes #101) · **Q2 → (i)** (value types → existing domain peers) · **Q3 → (ii)** (narrow lifecycle-grouped ports) · **Q4 → (A)** (F-8 interface `OutputSink`; F-7 named `Discovery`; F-6 narrow seams) |
+| Pipeline | specify ✅ · clarify ✅ (Q1–Q4) · spec-by-example **NOOP** · technical-research ✅ (**ADR 0020** + `techstack.md` MODIFY ×2) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T020; orphan sweep 0) · implement ✅ |
+| Deliverable | `internal/domain/llm/pricing.go` · `internal/domain/metrics/usage_counts.go` · `internal/domain/history/tool_usage_row.go` · `internal/domain/render/ports.go` (NEW) · `internal/domain/tools/outputsink.go` (**F-8** interface) · `internal/ui/render_ports.go` (NEW) · `internal/ui/coordinator.go` (nil guards) · `internal/ui/outputsink_nil_test.go` (NEW) · `internal/app/deps/deps.go` (**F-7** `Discovery` + seams) · `internal/cli` (**zero** `internal/ui` refs; **F-6** + `deps_boundary_test.go`) · `internal/infrastructure/tools/command.go` · `cmd/tellme/deps.go` · `tools/arch/{arch_test.go,baseline.txt}` (**1 → 0** + growth guard) |
+| Review chain (PR #114) | review `5729783315` — **APPROVE WITH REQUIRED FOLDS** (no blocker) → fold `3cae5d4` (**R-51-1** growth guard; **R-51-2** exemption liveness + metric boundary; **R-51-3** typed-nil guards; **R-51-4** sentinel doubles; **R-51-5** STATUS; RF-51-1…6 recorded) → fold-verification `5729982570` — **all five verified** (mutation-tested) + **F-1/F-2** + N-1/N-2 → fold `7b24a47` (**F-1** restore the round-050 TD-2(i) positional pin; **F-2** truth-row contradiction + ADR marker; **N-1** subset guard; **N-2** one parser) → certification `5730066865` — **MERGE-READY** + **F-3/N-2′** → fold `e7d035d` (**F-3** the trailing "no release valve" sentence truly removed + ledger corrected; **N-2′** one parse loop, two policies) → **review loop CLOSED** |
+| Merge | PR [#114](https://github.com/gosharplite/tellme/pull/114) **MERGED** into `dev` (`0d7566b`, by `gosharplite`); **36 files, +1346/−257, 11 commits**; remote + local round branch **deleted** |
+| Propagation | `dev → main` — **DONE (no-ff)** at this closeout |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed; `--version` → `dev` |
+| Issue tracker | **[#101](https://github.com/gosharplite/tellme/issues/101) CLOSED (completed)** — its DoD met · **[#92](https://github.com/gosharplite/tellme/issues/92) CLOSED (completed, split)** — ride-alongs → **[#115](https://github.com/gosharplite/tellme/issues/115)**, records → **[#116](https://github.com/gosharplite/tellme/issues/116)** |
+| Closeout | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** (RULE-E baseline **0**, terminal; 0 cycles; RULE-F empty table; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (24 pkgs; E2E) · diff-level secret scan clean · `STATUS.md` split (Rule 12: round-050 detail + row + env note → `docs/archives/status/2026-09-18.md`) |
+
+### Decisions locked (round 051)
+
+| # | Decision |
+| --- | --- |
+| Q1 → D | **One round closes #101** — the `→ ui` de-coupling (baseline **1 → 0**) **+** F-6/F-7/F-8; internal sub-slice ordering is an RD decision; a blast-radius re-cut is the recorded caveat. |
+| Q2 → (i) | Value types → **existing domain peers** (`Pricing`+`ComputeCost`/`HitRate` → `domain/llm`; `UsageCounts` → `domain/metrics`; `ToolUsageRow` → `domain/history`, folded onto `ToolUsageCounts`). |
+| Q3 → (ii) | **Narrow lifecycle-grouped ports** (`render.Lines`; `render.Indicator`; `render.TurnProgress`/`ProgressFactory`; deps factories for the answer renderer + `ToolLineRenderer`). The bytes stay owned by `internal/ui`. |
+| Q4 → (A) | **F-8** `OutputSink` → **interface** (coordinator satisfies it directly, nil-receiver-safe); **F-7** named `deps.Discovery{Tools, Warnings, Closer io.Closer}`; **F-6** narrow `Dependencies` seams (≤2 fields/leaf). |
+| Terminal state | RULE-E baseline **0** + RULE-F table **EMPTY**; **enforced** (the `-update-baseline` path **refuses to grow** the baseline — a subset test). `internal/cli` imports only `internal/domain/**` + stdlib + the sanctioned set → **#92 AC2 holds**. |
+
+### Commits (branch `051-cli-ui-decoupling`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `5c0187e` | `docs(051)`: plan package + spec |
+| `305655e` | fold clarify Q1 → D |
+| `f606601` | fold clarify Q2 → (i) |
+| `5c99de5` | fold clarify Q3 → (ii) / Q4 → (A); clarify CLOSED |
+| `c8362d9` | `feat(051)`: domain value types (T001–T003) |
+| `2475090` | `feat(051)`: close #101 — de-couple `internal/cli` from `internal/ui` (baseline 1 → 0) + F-6/F-7/F-8; ADR 0020 |
+| `6e03c85` | `docs(051)`: STATUS — PR #114 open |
+| `3cae5d4` | fold R-51-1…R-51-5 + RF records |
+| `7b24a47` | fold F-1/F-2/N-1/N-2 |
+| `e7d035d` | fold F-3/N-2′ (head) |
+| `0d7566b` | PR [#114](https://github.com/gosharplite/tellme/pull/114) merge into `dev` (by `gosharplite`) |
+| *(this closeout, on `dev`)* | `docs(051)`: day close — round 051 delivered + STATUS split + daily summary |
+
+### Artifacts / truth
+
+- Plan package: `specs/plans/051-cli-ui-decoupling/` — `spec.md` (US1–US3 · FR-001…012 · NFR-001 · SC-001…006 · Q1–Q4) · `checklists/requirements.md` · `research.md` (D1–D12) · `plan.md` · `tasks.md` (T001–T020) · `truth-delta.md`.
+- Truth: `specs/truth/techstack.md` MODIFY ×2 (Layer-discipline gate row — baseline **1 → 0** terminal; Agent tool loop row — the CLI presentation ports).
+- Governance: **ADR 0020** (`docs/decisions/0020-cli-ui-decoupling.md` + index row).
+- Code: see the deliverable row. **No new dependency**; `go.mod`/`go.sum`/`Makefile` unchanged.
+
+### Verification (2026-09-18, on `dev` @ `0d7566b`)
+
+- `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (RULE-A/B/C **0**; **RULE-E baseline 0**, 0 new/0 stale; **0** cycles; RULE-F coverage green with an **empty** table; lint 0; govulncheck clean; cross-compile 4/4).
+- `go test -count=1 ./...` green — **24 packages `ok`, 0 FAIL** (incl. the godog E2E).
+- CLI production `→ internal/ui` references = **0**; the two ratchet removals stand; diff-level secret scan clean.
+
+### Open items (non-blocking)
+
+- **RF-51-1…6** recorded in **ADR 0020** (§Decision for RF-51-2's presentation-shape-leak adjudication with the two forward options; §Forward for the rest).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 items; the round-022 audit blind spot → **#91**; round-047 items (b)–(d).
+
+### Next steps
+
+1. Open round **`052-*`** off `dev` — candidates: the [#92](https://github.com/gosharplite/tellme/issues/92) **ride-alongs** now on **[#115](https://github.com/gosharplite/tellme/issues/115)** (suggestion-selection policy owner; `BindToolOutput` ctor injection), **[#103](https://github.com/gosharplite/tellme/issues/103)**, **[#13](https://github.com/gosharplite/tellme/issues/13)**, or **[#91](https://github.com/gosharplite/tellme/issues/91)**.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no user-facing business journey — a structural de-coupling; the spec/acceptance boundary is RD-side).
+
+### Issue tracker (closeout Step 8)
+
+- **[#101](https://github.com/gosharplite/tellme/issues/101) CLOSED (completed)** — delivered by round 051 (PR [#114](https://github.com/gosharplite/tellme/pull/114) merged `0d7566b`); its DoD (RULE-E baseline **0** + F-6/F-7/F-8) met.
+- **[#92](https://github.com/gosharplite/tellme/issues/92) CLOSED (completed, split)** — R1–R5 delivered; ride-alongs → **[#115](https://github.com/gosharplite/tellme/issues/115)**; records → **[#116](https://github.com/gosharplite/tellme/issues/116)**.
+- **OPEN (accurate)**: [#115](https://github.com/gosharplite/tellme/issues/115) · [#116](https://github.com/gosharplite/tellme/issues/116) · [#103](https://github.com/gosharplite/tellme/issues/103) · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13).

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/gosharplite/tellme/internal/app/deps"
@@ -12,6 +13,7 @@ import (
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/domain/metrics"
+	"github.com/gosharplite/tellme/internal/domain/render"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 	domaintui "github.com/gosharplite/tellme/internal/domain/tui"
 )
@@ -116,13 +118,19 @@ func defaultTestDeps(mods ...func(*deps.Dependencies)) deps.Dependencies {
 		BindToolOutput:     func(domaintools.Registry, domaintools.OutputSink) {},
 		BindSkillsCatalog:  func(domaintools.Registry, string) {},
 		NewMetricsProvider: func() metrics.SystemMetricsProvider { return nil },
-		MCPDiscoverer: func(context.Context, map[string]config.MCPServerConfig) ([]domaintools.Tool, []string, func()) {
-			return nil, nil, func() {}
+		MCPDiscoverer: func(context.Context, map[string]config.MCPServerConfig) deps.Discovery {
+			return deps.Discovery{}
 		},
 		LoopFactory: func(spec agentport.LoopSpec) agentport.Loop {
 			l := defaultFakeLoop()
 			l.gotSpec = spec
 			return l
+		},
+		NewLines:     func() render.Lines { return fakeLines{} },
+		NewToolLines: func() agentport.ToolLineRenderer { return noopToolLines{} },
+		NewAnswer:    func() render.Answer { return &stubRenderer{} },
+		NewProgress: func(stream io.Writer, now func() time.Time, model string, epoch time.Time, columns func() int, idleGap time.Duration, enabled bool) render.TurnProgress {
+			return render.TurnProgress{ToolOutput: fakeSink{}}
 		},
 		UserHomeDir: func() (string, error) { return "/tmp/tellme-test-home", nil },
 	}
@@ -184,3 +192,58 @@ func (noopPromptTracker) Recent(context.Context, int) ([]history.PromptLogEntry,
 	return nil, nil
 }
 func (noopPromptTracker) Close(context.Context) error { return nil }
+
+// fakeLines is an in-package render.Lines double. Round 051 fold R-51-4: it
+// returns DISTINGUISHABLE SENTINELS (no production spelling), so a CLI-level test
+// asserts ORCHESTRATION (presence / order / count / blank rules) and CANNOT
+// masquerade as a byte pin — the real bytes are pinned in internal/ui + the godog
+// E2E (the round-046 fold F-1 pattern, applied to the port).
+type fakeLines struct{}
+
+func (fakeLines) InputCaptured(time.Time) string { return "<input-captured>" }
+
+func (fakeLines) TurnOpening(turn int, mode string) string {
+	return fmt.Sprintf("<turn-opening %d %s>", turn, mode)
+}
+
+func (fakeLines) TurnGap() string { return "<gap>" }
+
+func (fakeLines) PayloadStatus(t time.Time, tokens, budget int, mode, model string, estimated bool) string {
+	return fmt.Sprintf("<payload %d/%d %s %s estimated=%t>", tokens, budget, mode, model, estimated)
+}
+
+func (fakeLines) Metrics(t time.Time, provider string, u metrics.UsageCounts) string {
+	return fmt.Sprintf("<metrics %s M:%d H:%d C:%d Th:%d>", provider, u.Miss, u.Hit, u.Completion, u.Thinking)
+}
+
+func (fakeLines) Ready(float64, float64, float64, int, int, int, float64) string { return "<ready>" }
+
+func (fakeLines) ToolReason(_ time.Time, reason string) string {
+	return fmt.Sprintf("<reason %s>", reason)
+}
+
+func (fakeLines) ToolUsage(rows []history.ToolUsageRow) string {
+	names := make([]string, 0, len(rows))
+	for _, r := range rows {
+		names = append(names, r.Tool)
+	}
+	return "<tool-usage:" + strings.Join(names, ",") + ">"
+}
+
+func (fakeLines) DefaultToolOutputIdleGap() time.Duration { return 3 * time.Second }
+
+// noopToolLines is an in-package agentport.ToolLineRenderer no-op double.
+type noopToolLines struct{}
+
+func (noopToolLines) EngineLine(time.Time, int, int) string       { return "" }
+func (noopToolLines) ActionLine(time.Time, string, string) string { return "" }
+func (noopToolLines) ResultLine(time.Time, string, string) string { return "" }
+func (noopToolLines) ReasonLine(time.Time, string) (string, bool) { return "", false }
+
+// fakeSink is an in-package domaintools.OutputSink double (disabled).
+type fakeSink struct{}
+
+func (fakeSink) Begin()            {}
+func (fakeSink) Writer() io.Writer { return nil }
+func (fakeSink) End()              {}
+func (fakeSink) Enabled() bool     { return false }

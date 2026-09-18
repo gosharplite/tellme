@@ -7,6 +7,7 @@ package deps
 import (
 	"context"
 	"fmt"
+	"io"
 	"reflect"
 
 	"github.com/gosharplite/tellme/internal/config"
@@ -14,8 +15,19 @@ import (
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/domain/metrics"
+	"github.com/gosharplite/tellme/internal/domain/render"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
+
+// Discovery is the result of one MCP discovery pass (round 051 / ADR 0020; F-7):
+// the discovered tools, the warn+skip messages, and a closer for the opened
+// clients — a NAMED type so the close is a visible field, not a bare trailing
+// func() (PR #104 review deferral F-7).
+type Discovery struct {
+	Tools    []domaintools.Tool
+	Warnings []string
+	Closer   io.Closer
+}
 
 // Dependencies carries every seam the CLI used to hold as a package-level
 // factory var (round 044 / ADR 0013). Each field is domain/config-typed so the
@@ -58,9 +70,9 @@ type Dependencies struct {
 	NewMetricsProvider func() metrics.SystemMetricsProvider
 
 	// MCPDiscoverer runs the round-032 prompt-path MCP discovery for a server
-	// registry, returning the discovered tools, the warn+skip messages, and a
-	// close hook. It is a func-typed port (the caller needs no new domain type).
-	MCPDiscoverer func(ctx context.Context, servers map[string]config.MCPServerConfig) (tools []domaintools.Tool, warnings []string, close func())
+	// registry. Round 051 (F-7): it returns a NAMED Discovery whose Closer is a
+	// visible field (rather than a bare trailing func()).
+	MCPDiscoverer func(ctx context.Context, servers map[string]config.MCPServerConfig) Discovery
 
 	// LoopFactory builds the agent loop for a turn (round 050; R5.4 of #92;
 	// ADR 0019). It is the construction seam that replaced the (now-removed)
@@ -68,6 +80,18 @@ type Dependencies struct {
 	// port, so the application layer names no internal/agent type. The precise
 	// field type is the domain port agentport.LoopFactory (LoopSpec -> Loop).
 	LoopFactory agentport.LoopFactory
+
+	// NewLines builds the status/tail line renderer (round 051; R5.5 of #92;
+	// ADR 0020). The bytes stay owned by internal/ui, bound here as a domain
+	// render.Lines port, so internal/cli names no internal/ui type.
+	NewLines func() render.Lines
+	// NewToolLines builds the loop's four-line renderer (agentport.ToolLineRenderer).
+	NewToolLines func() agentport.ToolLineRenderer
+	// NewAnswer builds the markdown answer renderer (round 006).
+	NewAnswer func() render.Answer
+	// NewProgress builds a turn's coupled progress indicator + `[Tool Output]`
+	// sink (round 051). It keeps the spinner/coordinator wiring out of internal/cli.
+	NewProgress render.ProgressFactory
 
 	// UserHomeDir resolves the user home (the `~/.tellme` root). It must be wired
 	// unconditionally to a non-nil resolver (round-044 RF-2).

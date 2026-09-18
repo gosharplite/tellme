@@ -409,19 +409,62 @@ func readBaseline(t *testing.T, path string) []string {
 	if err != nil {
 		t.Fatalf("baseline unreadable (%s): %v — an absent/unreadable baseline MUST fail, never be treated as 'no baseline configured'", path, err)
 	}
-	var lines []string
-	for _, raw := range strings.Split(string(data), "\n") {
+	lines, malformed := parseBaselineLines(string(data))
+	// The strict reader keeps its fatal-on-malformed policy (the growth-guard
+	// reader tolerates it) — round-051 fold N-2′: ONE parse loop, TWO policies.
+	if len(malformed) > 0 {
+		t.Fatalf("malformed baseline line %q in %s (want `<src> -> <dst>`)", malformed[0], path)
+	}
+	return lines
+}
+
+// readBaselineIfPresent returns the committed baseline's violation lines, or nil
+// when the file is absent (used by the R-51-1 growth guard; an absent baseline is
+// treated as 0 so a first write is allowed).
+func readBaselineIfPresent(path string) []string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	lines, _ := parseBaselineLines(string(data))
+	return lines
+}
+
+// notInBaseline returns the violations NOT present in the previous baseline (a
+// subset test, not a count test — round-051 fold N-1: catches a 1-for-1 swap at a
+// non-zero baseline, not only net growth).
+func notInBaseline(violations, prev []string) []string {
+	have := map[string]bool{}
+	for _, p := range prev {
+		have[p] = true
+	}
+	var added []string
+	for _, v := range violations {
+		if !have[v] {
+			added = append(added, v)
+		}
+	}
+	sort.Strings(added)
+	return added
+}
+
+// parseBaselineLines extracts the `<src> -> <dst>` violation lines from a
+// baseline file body (comments/blank lines skipped). ONE parser for the format
+// (round-051 fold N-2): both the strict reader and the growth-guard reader use it.
+func parseBaselineLines(data string) (lines, malformed []string) {
+	for _, raw := range strings.Split(data, "\n") {
 		line := strings.TrimSpace(raw)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
 		if !strings.Contains(line, " -> ") {
-			t.Fatalf("malformed baseline line %q in %s (want `<src> -> <dst>`)", line, path)
+			malformed = append(malformed, line)
+			continue
 		}
 		lines = append(lines, line)
 	}
 	sort.Strings(lines)
-	return lines
+	return lines, malformed
 }
 
 // writeBaseline writes the generated baseline (used by -update-baseline / N-1).
@@ -655,27 +698,11 @@ func selfTestPredicate(t *testing.T) {
 // obtained through the injected domain port agentport.Loop/LoopFactory), so its
 // surface is no longer governed. Only the `-> internal/ui` edge remains tracked.
 var couplingSurface = map[string]map[string]bool{
-	"internal/cli -> internal/ui": {
-		"ComputeCost":              true,
-		"DefaultToolOutputIdleGap": true,
-		"FormatInputCaptured":      true,
-		"FormatMetrics":            true,
-		"FormatPayloadStatus":      true,
-		"FormatReady":              true,
-		"FormatToolReason":         true,
-		"FormatToolUsage":          true,
-		"FormatTurnGap":            true,
-		"FormatTurnOpening":        true,
-		"HitRate":                  true,
-		"NewRenderer":              true,
-		"NewSpinner":               true,
-		"NewToolOutputCoordinator": true,
-		"Pricing":                  true,
-		"Spinner":                  true,
-		"ToolLineRenderer":         true,
-		"ToolUsageRow":             true,
-		"UsageCounts":              true,
-	},
+	// Round 051 (R5.5; ADR 0020): the last governed application edge
+	// (`internal/cli -> internal/ui`) was de-coupled, so the ratchet reached its
+	// terminal state and this table is EMPTY. The mechanism stays in place: any
+	// future governed application-tier edge MUST be surface-tracked (the coverage
+	// invariant below reds otherwise).
 }
 
 // productionGoFiles returns the non-_test.go file paths directly under dir.
@@ -854,15 +881,13 @@ func assertSurfaceCoversBaseline(t *testing.T, governedAppEdges []string) {
 // as behaviour rather than prose.
 func selfTestSurfaceCoverage(t *testing.T) {
 	t.Helper()
-	// Round 050: the `-> internal/agent` edge is gone (its key removed), so the
-	// sole tracked edge is `-> internal/ui` — the REAL residual edge (the only
-	// application-tier RULE-E violation left on the tree).
-	covered := []string{"internal/cli -> internal/ui"}
-	if u := uncoveredSurfaceEdges(covered); len(u) != 0 {
-		t.Fatalf("surface-coverage self-test: covered edges reported uncovered: %v", u)
+	// Round 051 (ADR 0020): the table is EMPTY (the last governed edge is gone),
+	// so the predicate reports any governed application edge as uncovered while
+	// ignoring non-application sources and the unranked marker.
+	if u := uncoveredSurfaceEdges(nil); len(u) != 0 {
+		t.Fatalf("surface-coverage self-test: empty governed set reported uncovered: %v", u)
 	}
 	mixed := []string{
-		"internal/cli -> internal/ui",
 		"internal/app/deps -> internal/agent",         // governed app edge, no table entry
 		"internal/domain/llm -> internal/config",      // non-application src — ignored
 		"internal/cli -> (unranked governed package)", // marker — ignored
@@ -952,6 +977,15 @@ func TestVerifyRealArchitecture(t *testing.T) {
 
 	path := filepath.Join(root, "tools", "arch", "baseline.txt")
 	if *updateBaseline {
+		// R-51-1 (round-051 review): the ratchet's terminal state (baseline 0,
+		// RULE-E exhausted) has NO growth valve — regenerating must NEVER GROW the
+		// baseline. A new ceiling violation must be REFACTORED (ADR 0011/0016), not
+		// baselined. Without this guard `-update-baseline` would silently launder a
+		// new violation into the baseline.
+		prev := readBaselineIfPresent(path)
+		if added := notInBaseline(violations, prev); len(added) > 0 {
+			t.Fatalf("refusing to GROW the baseline (%d → %d): violation(s) not already baselined %v — a new layer violation must be refactored, not baselined (ADR 0011/0016; round-051 R-51-1)", len(prev), len(violations), added)
+		}
 		writeBaseline(t, path, violations)
 		t.Logf("baseline regenerated from the gate: %d violation(s)", len(violations))
 		return

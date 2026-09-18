@@ -3,17 +3,9 @@ package ui
 import (
 	"fmt"
 	"time"
-)
 
-// UsageCounts is the per-call token breakdown shown on the metrics line
-// (round-018): the derived miss (M) and the reported cached (H), completion (C),
-// and reasoning (Th) tokens.
-type UsageCounts struct {
-	Miss       int
-	Hit        int
-	Completion int
-	Thinking   int
-}
+	"github.com/gosharplite/tellme/internal/domain/metrics"
+)
 
 // FormatMetrics renders the round-018 per-turn metrics line:
 //
@@ -23,7 +15,7 @@ type UsageCounts struct {
 // deviation from the reference's suppress-when-0). The `[<provider>]` bracket is
 // rendered unconditionally (format stability). The timestamp comes from the
 // caller's injected clock seam.
-func FormatMetrics(t time.Time, provider string, u UsageCounts) string {
+func FormatMetrics(t time.Time, provider string, u metrics.UsageCounts) string {
 	return fmt.Sprintf("[%s] [%s] M: %d H: %d C: %d Th: %d",
 		formatClock(t), provider, u.Miss, u.Hit, u.Completion, u.Thinking)
 }
