@@ -191,3 +191,96 @@ A second session on the same calendar day: continued round 042 through the **imp
 ### Issue tracker (closeout Step 8)
 
 Reconciled against the delivered state: **[#93](https://github.com/gosharplite/tellme/issues/93) CLOSED (completed)** — delivered by round 042 (PR [#95](https://github.com/gosharplite/tellme/pull/95) merged `f4b53f6`); **[#96](https://github.com/gosharplite/tellme/issues/96) OPEN (new)** — the Makefile-gate env hermeticity residual; **[#92](https://github.com/gosharplite/tellme/issues/92) OPEN** — R1 delivered, R2–R4 + ride-alongs remain; **[#91](https://github.com/gosharplite/tellme/issues/91) OPEN** (self-development umbrella); **[#13](https://github.com/gosharplite/tellme/issues/13) OPEN** (coverage tooling); PR #16 **Obs 1** open. No revisions needed beyond the #93 close.
+
+---
+
+## 3. Session 17 (2026-09-18) — round 043 `043-hermetic-make-go-env`: specify → clarify (Q1–Q8) → research+ADR 0012 → system-analysis → tasks → implement → **five review rounds → FINAL CERTIFICATION** → **merged (PR #99)**; closeout
+
+A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 042 delivered/frozen), opened round **043** from **issue [#96](https://github.com/gosharplite/tellme/issues/96)** (the *outer* half of round-042 **F-2** — the `Makefile` gates were not hermetic against a persisted/ambient Go env), ran the full AIxBDD pipeline (clarify run **one question at a time**, Q1–Q8), took the round through the **five review rounds** that consolidated onto the **single PR [#99](https://github.com/gosharplite/tellme/pull/99)** to **FINAL CERTIFICATION — MERGE-READY**, saw the **human merge** into `dev`, and ran `SESSION-CLOSEOUT.md` (Steps 1–8). The installed binary was refreshed.
+
+**Workspace**: `$TELL_ME_HOME` = `…/beta-niffler/ait-tellme`; **linux/amd64** host (Go 1.26.6).
+**Branch**: `043-implement-hermetic-make-go-env` (single PR) → merged via PR [#99](https://github.com/gosharplite/tellme/pull/99) into `dev` (`a2fbafc`; frozen head `d007b75`); the plan branch `043-hermetic-make-go-env` was deleted (PRs [#97](https://github.com/gosharplite/tellme/pull/97)/[#98](https://github.com/gosharplite/tellme/pull/98) closed unmerged by the operator).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 042 delivered/frozen; active branch `dev`) |
+| Round-043 theme | a **hermetic `make` Go-toolchain invocation environment** — one top-of-`Makefile` boundary so an ambient/persisted Go env cannot redden any target |
+| Clarify (one at a time) | **Q1 → A** (neutralise at the invocation boundary) · **Q2 → A1** (one `export`/`unexport` block) · **Q3 → V1** (neutralise the build context; preserve the plumbing; host-default `CGO_ENABLED`) · **Q4 → S1** (all targets) · **Q5 → G1** (ADR + truth) · **Q6 → D1** (keep `tools/arch` `childEnv` as defence-in-depth) · **Q7 → R1+R2+R3** (residuals + the `tidy`/`fmt` positive control) · **Q8 → O1** (this is 043; R2 of #92 → 044) |
+| Pipeline | specify ✅ · spec-by-example **NOOP** · technical-research ✅ (+ `techstack.md` MODIFY + **ADR 0012**) · system-analysis ✅ (0 interfaces; api/data/dsl-refine **NOOP**) · tasks ✅ (T001–T007; orphan sweep 0) · implement ✅ |
+| Review chain (PR #99) | **five rounds** → **FINAL CERTIFICATION — MERGE-READY at `d007b75`, review loop CLOSED**: B-1…B-4 · TD-1 · R-1…R-3 (plan+truth; inherited from the #97 review) → N-1…N-3 → ⓐ–ⓒ → N-4/ⓑ2 → N-5 → N-6 |
+| Merge | PR [#99](https://github.com/gosharplite/tellme/pull/99) **MERGED** into `dev` (`a2fbafc`, by `thptcnec`, 2026-09-18T00:19:31Z; head `d007b75`; 20 commits · 12 files · +1064/−5) |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from the merged head; `--version` → `dev` |
+| Closeout | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** · `go test -count=1 ./...` green (22 pkgs) · topology audit **PASSED** (44 · 6 · 16+327 · 1674) · diff-level secret scan clean · `STATUS.md` refreshed + Rule-12 split (round-042 detail → `docs/archives/status/2026-09-18.md`) · **#96 CLOSED** |
+
+### Work done
+
+1. **Bootstrap (Steps 1–8)** — read the pillars, the reference trees, `list_skills`, the peers, `STATUS.md`, the last-5-days summaries.
+2. **Round 043** — `/axb-specify` → `/axb-clarify` (Q1–Q8, one at a time) → `/axb-spec-by-example` (NOOP) → `/axb-technical-research` (+ **ADR 0012**) → `/axb-system-analysis` → `/axb-tasks` → `/axb-implement`. Committed per phase.
+3. **The change** — one top-of-`Makefile` block (above the `$(shell command -v …)` probes): `export GOENV := off` (load-bearing — the env-file fallback defeats an unset/empty `GOFLAGS`), `export GOWORK := off`, `unexport GOFLAGS GO111MODULE GOEXPERIMENT GOTOOLCHAIN GOFIPS140 GODEBUG GOOS GOARCH GOARM GOARM64 GOAMD64 GO386 GOMIPS GOMIPS64 GOPPC64 GORISCV64 GOWASM`; preserve the warm-cache + network/checksum sets; `CGO_ENABLED` preserved from the caller. Plus a **comment-only** cross-reference in `tools/arch/arch_test.go`.
+4. **The fold chain (five rounds)** — each round removed a claim the code could not support: the incident-derived 8-name list became a **criterion** (D2) + a **scope by input class** (D5) + a **coverage-not-equality** ownership invariant (D6) + an **exact, closed residual** (R4 — the 14) + bounded residuals **R1/R3/R5/R6**.
+5. **PR consolidation** — PRs #97/#98 (stacked) were closed unmerged at the operator's direction; the work landed as the **single PR #99** (base `dev`).
+6. **Merge + closeout** — PR #99 merged (`a2fbafc`); `go install`; `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 043)
+
+| # | Decision |
+| --- | --- |
+| Rule (D2) | The neutralise set is **criterion-derived**: *neutralise the ambient **build context** (what / which toolchain builds); preserve the **plumbing***. |
+| Mechanism (D1) | One top-of-`Makefile` `export`/`unexport` block (A1) — covers every recipe **and** descendant `go` spawns; **not** per-recipe prefixes. |
+| `GOENV=off` (D2) | **Load-bearing** — Go falls back to the env **file** for a variable that is unset **or empty**. |
+| `CGO_ENABLED` (D4) | **Preserved from the caller** (not globally pinned); the only cgo pin stays `verify-cross-compile`'s inline one. |
+| Ownership (D6) | The `Makefile` block is the **primary owner**; `tools/arch`'s `childEnv` is **defence-in-depth** for the gate's **verdict** on the direct path; the invariant is **coverage**, not set-equality. |
+| Residuals (D8) | **R1** bare `go` outside `make` · **R3** the hatch per variable class · **R4** the **exact, closed 14** non-covered names · **R5** `$(shell …)`/parse-time · **R6** make-level inputs (`-e` / `MAKEFILES`). |
+
+### Commits (branches `043-hermetic-make-go-env` → `043-implement-hermetic-make-go-env`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `b127f16` | `docs(043)`: plan package + spec |
+| `799fe02` | `docs(043)`: technical research + ADR 0012 + techstack truth |
+| `668c8b7` | `docs(043)`: system-analysis plan + STATUS |
+| `618a143` | `docs(043)`: `tasks.md` (T001–T007) |
+| `667b8fb` | `feat(043)`: the hermetic `Makefile` block + the `arch_test.go` cross-reference |
+| `e70be90` | `docs(043)`: record the `/axb-implement` outcome (witnesses + positive controls) |
+| `d014da0` | `docs(043)`: fold PR #97 review — B-1…B-4 · TD-1 · R-1…R-3 (operator) |
+| `1b2e2f5` | merge the folded plan branch into the implementation branch (operator) |
+| `9b77995`, `d3c437f`, `5fc8794`, `1c319bb`, `8e144de`, `ad2ee7d`, `694ba91`, `cc93051`, `d007b75` | the round-043 folds (witness alignment; N-1…N-3; ⓐ–ⓒ; N-4/ⓑ2; N-5→R6; N-6) |
+| `a2fbafc` | PR [#99](https://github.com/gosharplite/tellme/pull/99) merge into `dev` (by `thptcnec`) |
+| *(this closeout, on `dev`)* | `docs(043)`: day close — round 043 delivered + STATUS split + daily summary |
+
+### Artifacts / truth
+
+- Plan package: `specs/plans/043-hermetic-make-go-env/` — `spec.md` (US1–US3 · FR-001…013 · NFR-001…004 · SC-001…005 · Q1–Q8) · `checklists/requirements.md` · `research.md` (D1–D12) · `plan.md` · `tasks.md` (T001–T007 + four fold ledgers) · `truth-delta.md`.
+- Truth: `specs/truth/techstack.md` (Build & Tooling) — new **Hermetic toolchain invocation** row + a **Task runner** note.
+- Governance: **ADR 0012** (`docs/decisions/0012-hermetic-make-go-env.md`) + the `docs/decisions/README.md` index row — now **immutable** except its `Status` line and the index.
+- Code: `Makefile` (the block) · `tools/arch/arch_test.go` (comment-only). **No product code**; `go.mod`/`go.sum` unchanged.
+
+### Verification (2026-09-18, on `dev` @ `a2fbafc`)
+
+- `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (incl. `verify-architecture`; golangci-lint 0 issues; govulncheck 0 reachable; cross-compile 4/4).
+- `go test -count=1 ./...` green — **22 packages `ok`, 0 FAIL** (incl. the E2E suite / nested `go build`).
+- Topology audit **PASSED** — 44 features · 6 modules · 16 root + 327 module rows · **1674** steps (unchanged).
+- Diff-level secret scan **clean**; `go.mod`/`go.sum` unchanged; no `internal/**`/`cmd/**` changed.
+- **Witnesses (recorded, reproduced then reverted)**: 4 red→green (`GOENV=<file>` · `GO111MODULE=off` · stray `GOWORK` · `GOTOOLCHAIN=go1.99.9`) + the make-level neutralisation assertion + the two positive controls; `-e`/`MAKEFILES` (§R6) reproduced.
+- `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `a2fbafc`; `--version` → `dev`.
+
+### Open items (non-blocking)
+
+- **Round-043 forward items** — (a) **#96 CLOSED**; (b) **R4** (extend `tools/arch`'s `childEnv` with the D2 names when that frozen guard is next touched); (c) **R6** (make-level inputs `-e`/`MAKEFILES` — recorded, not closed); (d) **R1/R3/R5** recorded residuals; (e) PRs #97/#98 closed unmerged — a process item, no code impact.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; round-011 forward items; the round-022 row→feature audit blind spot → **#91**.
+
+### Next steps
+
+1. **Propagate `dev → main`** (no-ff) — **PENDING operator approval** (recorded in `STATUS.md`).
+2. Open round **`044-*`** off `dev` via `/axb-specify` — recommended: **R2 of [#92](https://github.com/gosharplite/tellme/issues/92)** (composition-root extraction; the 7 `cli → infrastructure` baseline entries → 0, proven by the round-042 gate).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no user-facing business journey — build tooling; spec/acceptance boundary is RD-side).
+
+### Issue tracker (closeout Step 8)
+
+Reconciled against the delivered state: **[#96](https://github.com/gosharplite/tellme/issues/96) CLOSED (completed)** — delivered by round 043 (PR [#99](https://github.com/gosharplite/tellme/pull/99) merged `a2fbafc`; its own reproduction is green at the merged head); **[#92](https://github.com/gosharplite/tellme/issues/92)** open — R1 delivered, R2–R4 + ride-alongs remain (accurate); **[#91](https://github.com/gosharplite/tellme/issues/91)** open (self-development umbrella — accurate); **[#13](https://github.com/gosharplite/tellme/issues/13)** open (coverage tooling — accurate); PR #16 **Obs 1** open. No revisions needed beyond the #96 close.
