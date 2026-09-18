@@ -9,8 +9,8 @@ import (
 )
 
 // Round-018 UNIT (T021): the loop accumulates every provider call's usage on
-// AgentResult.Calls (in call order), so the CLI can compute the turn cost
-// ($#2 = the sum) while AgentResult.Usage stays the just-returned (final) call.
+// agentport.Result.Calls (in call order), so the CLI can compute the turn cost
+// ($#2 = the sum) while agentport.Result.Usage stays the just-returned (final) call.
 func TestRunAccumulatesCallUsage(t *testing.T) {
 	u1 := llm.Usage{Reported: true, PromptTokens: 10, CachedTokens: 6, CompletionTokens: 3, ThinkingTokens: 2}
 	u2 := llm.Usage{Reported: true, PromptTokens: 12, CachedTokens: 8, CompletionTokens: 4, ThinkingTokens: 1}

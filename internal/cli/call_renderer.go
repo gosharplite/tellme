@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gosharplite/tellme/internal/agent"
 	"github.com/gosharplite/tellme/internal/app/deps"
+	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
@@ -74,7 +74,7 @@ func (r *callRenderer) OnCallBegin(callIndex int, messages []llm.Message) {
 	if r.chrome {
 		_, _ = fmt.Fprint(r.env.stderr, ui.FormatTurnOpening(r.priorCalls+callIndex+1, r.res.Mode))
 	}
-	estimate := llm.EstimatePayload(r.res.Person, agent.ToolDefs(r.reg), messages)
+	estimate := llm.EstimatePayload(r.res.Person, agentport.ToolDefs(r.reg), messages)
 	_, _ = fmt.Fprintln(r.env.stderr, ui.FormatPayloadStatus(r.env.now(), estimate, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, true))
 	if r.chrome {
 		_, _ = fmt.Fprint(r.env.stderr, ui.FormatTurnGap())
@@ -172,7 +172,7 @@ func usageRecordOf(pricing ui.Pricing, selected, model, ts string, c llm.Usage) 
 // Reported subset of result.Calls in a single AppendBatch — never per call — and
 // ONLY when the FINAL call reports usage (the round-018 gate). A best-effort
 // write; an empty workspace writes nothing.
-func persistTurnUsage(env runtimeEnv, res resolution, result agent.AgentResult, dp deps.Dependencies) {
+func persistTurnUsage(env runtimeEnv, res resolution, result agentport.Result, dp deps.Dependencies) {
 	if res.Workspace == "" || !result.Usage.Reported {
 		return
 	}

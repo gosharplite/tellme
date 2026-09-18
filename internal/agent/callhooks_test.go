@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/domain/tools"
 )
@@ -11,7 +12,7 @@ import (
 // Round-034 T022 unit pins for the per-call estimator seam (ADR 0005 D1/D2): the
 // loop fires the call-begin hook with the FUSED base+turn wire messages (no
 // loop-owned estimator field), so the CLI can compute
-// `llm.EstimatePayload(person, ToolDefs(reg), wire_k)` — call 1 byte-identical to
+// `llm.EstimatePayload(person, agentport.ToolDefs(reg), wire_k)` — call 1 byte-identical to
 // the previous once-per-prompt estimate, calls 2..k growing monotonically.
 
 // recordingObserver records the round-034 call hooks; the waiting-phase hooks are
@@ -90,8 +91,8 @@ func assertCallBeginMessages(t *testing.T, obs *recordingObserver) {
 // grows across the turn (the CLI computes it via llm.EstimatePayload).
 func assertCallEstimateGrows(t *testing.T, reg tools.Registry, obs *recordingObserver) {
 	t.Helper()
-	e1 := llm.EstimatePayload("persona", ToolDefs(reg), obs.begins[0].msgs)
-	e2 := llm.EstimatePayload("persona", ToolDefs(reg), obs.begins[1].msgs)
+	e1 := llm.EstimatePayload("persona", agentport.ToolDefs(reg), obs.begins[0].msgs)
+	e2 := llm.EstimatePayload("persona", agentport.ToolDefs(reg), obs.begins[1].msgs)
 	if e2 <= e1 {
 		t.Errorf("the per-call estimate did not grow: e1=%d e2=%d", e1, e2)
 	}

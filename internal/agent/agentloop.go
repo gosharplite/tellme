@@ -23,42 +23,6 @@ import (
 // constant (round-032 implementation-review F4).
 const DefaultToolTimeout = tools.DefaultToolTimeout
 
-// ErrIncomplete reports that a tool-using run could not reach a final answer —
-// the iteration bound was reached, or the model requested a tool that tellme
-// does not provide. The CLI maps it to the frozen class phrase
-// `the tool request failed` and exit code 7 (round-008 FR-010).
-type ErrIncomplete struct {
-	Reason string
-	Err    error
-}
-
-// Error renders the reason plus the underlying cause, if any.
-func (e *ErrIncomplete) Error() string {
-	if e.Err != nil {
-		return e.Reason + ": " + e.Err.Error()
-	}
-	return e.Reason
-}
-
-// Unwrap exposes the underlying cause for errors.Is / errors.As.
-func (e *ErrIncomplete) Unwrap() error { return e.Err }
-
-// AgentResult is the outcome of one prompt run: the final answer text, the
-// ordered tool steps performed (for persistence), and the provider's reported
-// usage of the final completion. Surfacing Usage here — rather than discarding
-// it inside the loop — is what lets the CLI render the post-turn payload status
-// line (round-009 BLOCKER-2). On a multi-step tool run it is the usage of the
-// final completion (the response that produced the answer).
-type AgentResult struct {
-	Answer string
-	Steps  []history.Step
-	Usage  llm.Usage
-	// Calls holds EVERY provider call's usage for the turn, in call order
-	// (round 018), so the CLI can compute the turn cost (`$#2`) and persist each
-	// call to the usage log. `Usage` remains the just-returned (final) call.
-	Calls []llm.Usage
-}
-
 // AgentLoop drives the bounded think→act→observe cycle for one prompt run.
 type AgentLoop struct {
 	Gateway  llm.Gateway
@@ -98,7 +62,7 @@ type AgentLoop struct {
 // feeds their results back, and repeats until the model returns a final answer
 // or MaxLoops tool rounds have been made. It returns the final answer text, the
 // ordered tool steps performed, and the final completion's reported usage. An
-// incomplete run returns *ErrIncomplete; a provider/transport failure is
+// incomplete run returns *agentport.ErrIncomplete; a provider/transport failure is
 // returned unwrapped (so the caller maps it to the provider class phrase + code
 // 6).
 //
@@ -109,7 +73,7 @@ type AgentLoop struct {
 // request carries the prompt via Request.Prompt (the round-004/007 shape); later
 // tool rounds fold the whole active turn into Request.Messages with an empty
 // Prompt, so the adapter never moves the prompt behind the tool activity.
-func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entry) (AgentResult, error) {
+func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entry) (agentport.Result, error) {
 	maxLoops := a.MaxLoops
 	if maxLoops <= 0 {
 		maxLoops = 1
@@ -142,7 +106,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 		resp, err := a.Gateway.Complete(ctx, req)
 		a.notifyInferenceEnd()
 		if err != nil {
-			return AgentResult{Steps: steps, Calls: calls}, err
+			return agentport.Result{Steps: steps, Calls: calls}, err
 		}
 		calls = append(calls, resp.Usage)
 		final := len(resp.ToolCalls) == 0
@@ -150,11 +114,11 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 			// The final call produced the answer: fire the call-end hook with no
 			// round reasons (ADR 0005 D1). The CLI defers its tail past the answer.
 			a.notifyCallEnd(i, resp.Usage, nil, true)
-			return AgentResult{Answer: resp.Text, Steps: steps, Usage: resp.Usage, Calls: calls}, nil
+			return agentport.Result{Answer: resp.Text, Steps: steps, Usage: resp.Usage, Calls: calls}, nil
 		}
 		if i >= maxLoops {
 			a.notifyCallEnd(i, resp.Usage, a.reasonsOf(resp.ToolCalls), false)
-			return AgentResult{Steps: steps, Calls: calls}, &ErrIncomplete{Reason: "the tool-loop bound was reached"}
+			return agentport.Result{Steps: steps, Calls: calls}, &agentport.ErrIncomplete{Reason: "the tool-loop bound was reached"}
 		}
 
 		// The model requested tools: echo the assistant tool-call message, run
@@ -164,11 +128,11 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 		turn = append(turn, llm.Message{Role: "assistant", ToolCalls: resp.ToolCalls})
 		for _, tc := range resp.ToolCalls {
 			if a.Registry == nil {
-				return AgentResult{Steps: steps, Calls: calls}, &ErrIncomplete{Reason: "no tools are registered"}
+				return agentport.Result{Steps: steps, Calls: calls}, &agentport.ErrIncomplete{Reason: "no tools are registered"}
 			}
 			tool, ok := a.Registry.Lookup(tc.Name)
 			if !ok {
-				return AgentResult{Steps: steps, Calls: calls}, &ErrIncomplete{Reason: fmt.Sprintf("tool %q is not available", tc.Name)}
+				return agentport.Result{Steps: steps, Calls: calls}, &agentport.ErrIncomplete{Reason: fmt.Sprintf("tool %q is not available", tc.Name)}
 			}
 			a.logAction(tc)
 			tctx, cancel := context.WithTimeout(ctx, a.callTimeout(tool, tc.Arguments))
@@ -201,22 +165,7 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 
 // toolDefs projects the registry's tools into the wire definitions offered to
 // the model.
-func (a *AgentLoop) toolDefs() []llm.ToolDef { return ToolDefs(a.Registry) }
-
-// ToolDefs projects a tool registry into the wire definitions offered to the
-// model. Exported so the CLI's pre-flight estimate counts exactly what the loop
-// sends (round-011 RF-1), mirroring the BuildMessages reuse (round 009).
-func ToolDefs(reg tools.Registry) []llm.ToolDef {
-	if reg == nil {
-		return nil
-	}
-	ts := reg.Tools()
-	defs := make([]llm.ToolDef, 0, len(ts))
-	for _, t := range ts {
-		defs = append(defs, llm.ToolDef{Name: t.Name(), Description: t.Description(), Parameters: t.Parameters()})
-	}
-	return defs
-}
+func (a *AgentLoop) toolDefs() []llm.ToolDef { return agentport.ToolDefs(a.Registry) }
 
 // notifyInferenceStart / notifyInferenceEnd / notifyToolsStart / notifyToolsEnd
 // forward the loop's waiting-phase transitions to the observer when one is set

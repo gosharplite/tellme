@@ -768,3 +768,61 @@ The delivery + end-of-day closeout for round 048: PR [#111](https://github.com/g
 **Next steps**: open round **`049-*`** off `dev` — recommended: the next **R5.x** de-coupling slice (the `internal/cli → internal/ui` edge is the natural next; the `cli → agent` edge is the deepest), **carrying the ADR 0017 §Forward sizing caution** (the `cli → ui` edge is ~20 call sites / 3 crossing value types / 4 stateful objects / 8 formatters → likely a re-cut: value types → `internal/domain/**` first). Re-read `SESSION-BOOTSTRAP.md` next session.
 
 **PM follow-ups**: none new (no user-facing business journey — a structural de-coupling; the spec/acceptance boundary is RD-side).
+
+---
+
+## Session 23 (2026-09-18, cont.) — round 049 `049-cli-agent-decoupling` (R5.3 of [#101](https://github.com/gosharplite/tellme/issues/101)): **re-cut** the `cli → agent` de-coupling; sub-slice 1 (contracts → domain) delivered
+
+A third session on the same calendar day: bootstrap (Steps 1–8), then round **049** — the **R5.3** de-coupling of the residual RULE-E edge **`internal/cli → internal/agent`**. Grounding corrected an earlier shorthand: ADR 0017 §Forward classifies this edge as *"the deepest slice"* (4 crossing identifiers / 2 files), **not** edge-sized — so clarify **Q1 → (B)** re-cut it into ordered sub-slices. This round is **sub-slice 1** — the loop's crossing **contracts** → `internal/domain/agent`; sub-slice 2 (a later round) inverts the `AgentLoop` construction and moves the baseline **2 → 1**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 048 delivered/frozen; active branch `dev`) |
+| Round-049 theme | **R5.3** — re-cut sub-slice 1 of the `cli → agent` de-coupling: extract the loop's crossing contracts to `internal/domain/**` (behaviour-preserving) |
+| Clarify (one at a time) | **Q1 → B** (re-cut) · **Q2 → (i)** (all three contracts → `internal/domain/agent`) · **Q3 → (a)** (reference + delete; no alias) |
+| Pipeline | specify ✅ · spec-by-example **NOOP** · technical-research ✅ (D1–D10 + **ADR 0018**) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T011) · implement ✅ (all `[X]`) |
+| Baseline | **unchanged (2), byte-identical** — as designed (the `AgentLoop` construction keeps the `→ agent` edge; sub-slice 2 removes it) |
+| Verification | `make verify` **OK** (RULE-E 0 new / 0 stale; RULE-A/B/C 0; 0 cycles; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green · **identifier count 4 → 1** · witnesses reproduced + reverted |
+
+### Decisions locked (round 049)
+
+| # | Decision |
+| --- | --- |
+| **Q1 → B** | Re-cut the `cli → agent` de-coupling into ordered sub-slices; **this round = sub-slice 1** (contracts → domain); **sub-slice 2** = invert the loop construction/execution (the baseline-moving round, **2 → 1**). |
+| **Q2 → (i)** | Extract **all three** crossing contracts — the turn-result type (`Result`), the incomplete-turn error (`ErrIncomplete`), the `ToolDefs` projection — to **`internal/domain/agent`** (peer of the existing ports; RULE-C-pure). CLI `→ agent` references drop **4 → 1**. |
+| **Q3 → (a)** | `internal/agent` **references** the domain contracts directly — **delete its locals, no alias, no forwarder** (one concept → one name → one home). Blast radius 25 refs / 4 files. |
+| **DoD** | *Contracts domain-owned + surviving coupling reduced to one construction call site*; baseline **byte-identical (2)**; gate green. **Not** a ratchet move. |
+
+### Work done
+
+1. **`/axb-specify`** — created `specs/plans/049-cli-agent-decoupling/` (`spec.md` + `checklists/requirements.md` + a `truth-delta.md` skeleton); grounded in the measured surface (2 files, 4 identifiers: `AgentLoop`/`AgentResult`/`ErrIncomplete`/`ToolDefs`).
+2. **`/axb-clarify`** (one question at a time) — **Q1 → B** (re-cut; corrects my earlier sizing shorthand), **Q2 → (i)** (all three contracts), **Q3 → (a)** (reference + delete). Clarify closed.
+3. **`/axb-technical-research`** — `research.md` (D1–D10) + **ADR 0018** (`docs/decisions/0018-cli-agent-contracts-extraction.md` + index row) + `specs/truth/techstack.md` MODIFY ×2 (Layer-discipline gate row: re-cut, **baseline unchanged 2**; Agent tool loop row: contracts domain-owned) + api/data/dsl-refine NOOP ×3.
+4. **`/axb-system-analysis`** — `plan.md` (0 interfaces; no waves; all planners NOOP) with the tier/rule table for the relocated contracts.
+5. **`/axb-tasks`** — `tasks.md` T001–T011 (non-BDD relocation round; Phase 3 unit-only; orphan sweep 0).
+6. **`/axb-implement`** — T001–T011 all `[X]`: `internal/domain/agent/result.go` (NEW contracts) → repointed the 3 agent tests → deleted the `internal/agent` locals (compile **RED**) → repointed the loop + CLI (**GREEN**) → pins → verification.
+7. **Verification** — `make verify` OK; full suite green; identifier count **1**; baseline **byte-identical**; witnesses (a)/(b)/(c) reproduced + reverted.
+
+### Artifacts / truth
+
+- Plan package: `spec.md` · `checklists/requirements.md` · `research.md` (D1–D10) · `plan.md` · `tasks.md` (T001–T011, all `[X]`) · `truth-delta.md`.
+- Truth: `specs/truth/techstack.md` MODIFY ×2 (Build & Tooling / Layer-discipline gate; CLI Application / Agent tool loop).
+- Governance: **ADR 0018** + the `docs/decisions/README.md` index row.
+- Product: `internal/domain/agent/result.go` + `result_test.go` (NEW); `internal/agent/agentloop.go` + 3 test files; `internal/cli/{call_renderer,cli}.go`. `tools/arch/baseline.txt` **unchanged**; `go.mod`/`go.sum` unchanged.
+
+### Open items (non-blocking)
+
+- **Round-049 forward items** — (a) **sub-slice 2** (the `AgentLoop` construction/execution inversion; baseline **2 → 1**) — now provably edge-sized (one construction call site); (b) the `Options`/`Dependencies` interface-seam `Validate()` caveat (`Kind()==reflect.Func` blind to interface seams; ADR 0017 §Forward); (c) the `internal/cli → internal/ui` edge (the last RULE-E residual; ≥ edge-sized); (d) F-6/F-7/F-8.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`.
+
+### Next steps
+
+1. Operator consent → the **delivery commit** + open the **PR** (human merges; only a human merges).
+2. Record **sub-slice 2** + the remaining items on [#101](https://github.com/gosharplite/tellme/issues/101).
+3. Re-read `SESSION-BOOTSTRAP.md` next session.
+
+### PM follow-ups
+
+- None new (no user-facing business journey — a structural contract relocation; the spec/acceptance boundary is RD-side).
