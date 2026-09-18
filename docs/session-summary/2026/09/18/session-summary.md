@@ -545,3 +545,15 @@ The architect review ([5725563497](https://github.com/gosharplite/tellme/pull/10
 - **TD-1…TD-7** folded (ADR 0015 *Consequences* gains the discarded-render cost, the port-shape-leak trade, and the no-release-valve policy; two new loop-tier pins — delegation + nil-`Lines`; `ToolReasonRenders` annotated test-facing; the `[Tool Reason]` format literal deduped via `formatToolReasonLine`; the gate truth row gains the release-valve sentence).
 
 Re-verified at `8a39fc0`: `make verify` **OK** · `go test -count=1 ./...` green (incl. godog E2E) · `gofmt`/`go vet` clean. **Propagation still PENDING** (human merge of PR [#109](https://github.com/gosharplite/tellme/pull/109) → then close #108).
+
+### Session 20 (cont.) — PR #109 fold-review fold (`91e1e23`)
+
+The fold review ([5725646775](https://github.com/gosharplite/tellme/pull/109#issuecomment-5725646775)) **verified all twelve folds** and returned **APPROVE with one required follow-up (F-1) + nits N-1/N-2** — it ran a mutation campaign and reproduced a real **witness-power regression**: R4's retarget onto a `("", false)` fake made the *suppression* direction of the round's own headline policy invisible (mutants B1/B2 reddened nothing, not even the 60 s E2E). Folded as `91e1e23`, **test-only** (production untouched):
+
+- **F-1(1)** the fake's suppressed case now returns a **distinguishable sentinel** (`"REASON suppressed " + reason`), so a loop that prints on a `false` decision reds the existing `!Contains(log, "REASON ")` assertions.
+- **F-1(2)** new tail-side pin **`TestTailReceivesOnlyRendererApprovedReasons`** (a blank reason must never reach `OnCallEnd`).
+- **F-1(3)** `!Contains(log, "\n\n\n")` added to the per-call blank assertion.
+- **N-1** dropped the born-stale `head f845625` pins from `STATUS.md`.
+- **N-2** added a fold addendum to the PR body.
+
+**Mutation re-run (reproduced then reverted):** **B1** ⇒ the two begin-line pins **fail**; **B2** ⇒ the new tail pin **fails**. Both directions of the headline policy are now witnessed. Re-verified at `91e1e23`: `make verify` **OK** · `go test -count=1 ./...` green · `gofmt`/`go vet` clean. **Propagation still PENDING** (human merge of PR [#109](https://github.com/gosharplite/tellme/pull/109)).
