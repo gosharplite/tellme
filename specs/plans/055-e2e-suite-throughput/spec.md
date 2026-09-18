@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — produced by `/axb-specify` from operator tasking. **Clarify round 1, asked one question at a time**: **Q1 LOCKED → Option B** (parallelism **on by default** at a small fixed level + an override seam; the timing-sensitive scenarios protected per **ADR-0010** rather than pinned serial); **Q2 LOCKED → Option A** (`make test-fast` over `godog.paths`, banner + never-the-gate guard); **Q3 OPEN**. `NEEDS CLARIFICATION` markers below are **non-blocking for the plan shape** but **blocking for the acceptance/implementation decisions** they name.
+**Status**: Draft — produced by `/axb-specify` from operator tasking. **Clarify round 1 CLOSED (asked one question at a time)**: **Q1 → Option B** (parallelism **on by default** at `4` + the `TELL_ME_E2E_CONCURRENCY` override seam; the timing-sensitive scenarios protected per **ADR-0010** — generous margins + shape-based non-vacuity — not pinned serial); **Q2 → Option A** (`make test-fast` over `godog.paths`; `SUBSET — NOT THE GATE` banner + a never-the-gate guard; default = the non-`chat` modules); **Q3 → Option A** (a **same-session ratio** bar ≤ **60 %** of the paired serial baseline, plus an ADR-recorded loose absolute ceiling; **N = 5** consecutive green full parallel runs). No open `NEEDS CLARIFICATION`.
 
 **Input (operator, 2026-09-19)**: *"Many time I see you do `full test` and takes more than 60 sec. Why so long?"* … *"Can these two be included in 055 together?"* → **Start 055 with both** (both = **US1** parallel scenario execution and **US2** the fast inner-loop subset).
 
@@ -34,7 +34,7 @@
 | --- | --- | --- |
 | **Q1** | **What is the parallelism default, and how do timing-sensitive scenarios stay green?** | ✅ **LOCKED → Option B** (operator, 2026-09-19): `Concurrency` is **on by default** at a small fixed level (`e2eDefaultConcurrency = 4`, clamped to ≥1) with an override seam `TELL_ME_E2E_CONCURRENCY`; the timing-sensitive scenarios are protected by **generous host-speed margins + shape-based non-vacuity (ADR-0010)**, **not** by serial pinning or a static timing-feature list. |
 | **Q2** | **Is the fast subset a *gate-excluded* convenience, and what selects it?** | ✅ **LOCKED → Option A** (operator, 2026-09-19): a `Makefile` target `test-fast` selects a subset via **`godog.paths`** (no truth edits); it prints a loud `SUBSET — NOT THE GATE` banner and **refuses to run** if the selected path resolves to the full `features/cli` root. **Micro-decision (vetoable):** the default subset is the **non-`chat` modules** (`configuration`+`history`+`workspace`+`usage`+`diagnostics` = 43 Examples, ≈10 s measured), because `chat` alone is 197/240 Examples (≈40 s) and is therefore *not* a fast subset; `MODULES=chat` (or any comma list) is available. The real chat-inner-loop fix is the **tag** selector → a recorded forward item (Option C, `/axb-dsl-refine`). |
-| **Q3** | **What is the *measurable* success bar?** — e.g. "the full gate is ≤ X s on the reference host with all 240 Examples still executed" and "N consecutive green runs to call it stable". | ⏳ **OPEN** — [NEEDS CLARIFICATION: the target and the stability evidence] |
+| **Q3** | **What is the *measurable* success bar?** | ✅ **LOCKED → Option A** (operator, 2026-09-19): the full gate MUST be **≤ 60 %** of the paired **serial** baseline measured on the **same host in the same session** (≥1.6× faster); a **loose absolute ceiling** is recorded in the ADR as a sanity backstop (NOT a gate assertion); **N = 5** consecutive full parallel runs MUST be green, with the timing scenarios non-vacuous. |
 
 **Non-negotiable invariant (proposed, not open):** *a subset may select for convenience but MUST NEVER exclude from the gate — the phase gate always runs **all** of `Paths` (all 240 Examples).* This exists to prevent the round-040 TD-1 failure mode (scenarios silently dropping while the suite still exits 0).
 
@@ -107,8 +107,8 @@ As an **RD engineer**, I want a convenience target that runs a **subset** of the
 ## Success Criteria
 
 - **SC-001**: With parallelism enabled, the suite executes **all 240 Examples** and exits 0; `Strict` still fails an undefined step.
-- **SC-002**: The full gate's wall-clock is **measurably lower** than the ≈54 s baseline — the exact bar is **Q3**.
-- **SC-003**: N consecutive parallel full runs are green (**N = Q3**), including the timing-sensitive scenarios, which stay non-vacuous.
+- **SC-002**: The full gate's wall-clock is **≤ 60 %** of the **paired serial baseline** measured on the same host in the same session (≥1.6× faster); a loose absolute ceiling is recorded in the ADR as a sanity backstop only.
+- **SC-003**: **N = 5** consecutive full parallel runs are green, including the timing-sensitive scenarios, which stay non-vacuous (ADR-0010).
 - **SC-004**: The fast subset target runs a strict subset and exits 0, while the gate target still runs all 240 (the FR-002/FR-006 invariant is *demonstrable*, not just stated).
 - **SC-005**: The round's own gates hold: `gofmt`/`go vet` clean · `make verify` **OK** · `verify-no-test-sleep` green · `go.mod`/`go.sum` unchanged.
 

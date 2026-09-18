@@ -24,10 +24,9 @@
 
 - [x] **Q1 LOCKED → Option B** — parallelism **on by default** at `4`; the `TELL_ME_E2E_CONCURRENCY` override seam; the timing scenarios protected by ADR-0010 margins + shape-based non-vacuity (no serial pinning, no static timing list)
 - [x] **Q2 LOCKED → Option A** — `make test-fast` selects via `godog.paths` (no truth edits), prints a `SUBSET — NOT THE GATE` banner, and refuses a selection equal to the full `features/cli` root; default subset = the non-`chat` modules (measured: `chat` alone is 197/240 Examples ⇒ not fast)
-- [ ] **Q3 OPEN — the measurable bar + stability evidence N** (blocks SC-002/SC-003's numbers)
+- [x] **Q3 LOCKED → Option A** — the bar is a **same-session ratio** (gate ≤ 60 % of the paired serial baseline; ≥1.6× faster) + a loose ADR-recorded absolute ceiling (backstop, not a gate) + **N = 5** consecutive green full parallel runs
 - [x] Clarify budget respected: **3** questions, asked **one at a time**, within the 1–3/round and ≤5/session budget
-- [x] The proposed invariant (a subset selects for convenience, never excludes from the gate) is stated as **not open**
-- [x] Non-blocking unknowns (the exact target name; the exact concurrency default) are surfaced rather than silently assumed
+- [x] No remaining `NEEDS CLARIFICATION` — clarify round 1 **CLOSED**
 
 ## Verifiability & success criteria
 

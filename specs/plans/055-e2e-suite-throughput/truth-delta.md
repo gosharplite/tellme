@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked and names what it inspected.
 >
-> **Status**: skeleton initialized by `/axb-specify`. **No truth has been written yet.** Clarify round 1: **Q1 LOCKED → Option B** (parallelism on by default at `4` + the `TELL_ME_E2E_CONCURRENCY` seam; ADR-0010 timing protection); **Q2 LOCKED → Option A** (`make test-fast` over `godog.paths`; banner + never-the-gate guard; default = the non-`chat` modules); **Q3 OPEN**. The truth owners below are the *anticipated* impact, to be confirmed and recorded by each owner skill.
+> **Status**: skeleton initialized by `/axb-specify`; **clarify round 1 CLOSED** — **Q1 → B** (parallelism on by default at `4` + the `TELL_ME_E2E_CONCURRENCY` seam; ADR-0010 timing protection) · **Q2 → A** (`make test-fast` over `godog.paths`; `SUBSET — NOT THE GATE` banner + a never-the-gate guard; default = the non-`chat` modules) · **Q3 → A** (gate ≤ 60 % of the paired serial baseline; N = 5 green runs). **No truth has been written yet.** The rows below are the *anticipated* impact, to be confirmed and recorded by each owner skill.
 
 ## /axb-technical-research
 
