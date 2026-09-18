@@ -1,4 +1,4 @@
-# Specification Quality Checklist: de-couple `internal/cli` from the turn loop — R5.3, the `cli → agent` slice (round 049)
+# Specification Quality Checklist: de-couple `internal/cli` from the turn loop — re-cut sub-slice 1: extract the loop's domain-facing contracts (round 049)
 
 **Created**: 2026-09-18
 
@@ -15,14 +15,14 @@
 ## Content completeness
 
 - [x] All mandatory sections present
-- [x] Feature theme, scope, and main flow are clear (remove `internal/cli → internal/agent` via an injected port; RULE-E baseline 2 → 1)
-- [x] No implementation/framework detail written as a *requirement* (the port shape/name/home are explicit RD decisions behind FR-002 / RULE-A·C)
-- [x] Edge cases cover the main high-risk situations (domain-purity leak → port home; RULE-A adapter placement; test-only imports; half-refactor; `ErrIncomplete`/`ToolDefs` byte-contracts; interface-seam `Validate()` blindness; re-introduced edge; stale entry; missing injection; cycles; build-tag scope)
+- [x] Feature theme, scope, and main flow are clear (re-cut sub-slice 1 — move the loop's crossing contracts to `internal/domain/**`; the surviving `cli → agent` coupling reduced to the single `AgentLoop` construction; **baseline unchanged**)
+- [x] No implementation/framework detail written as a *requirement* (the contract names/home and the alias-vs-reference choice are explicit RD decisions behind FR-002 / RULE-A·C)
+- [x] Edge cases cover the main high-risk situations (domain-purity leak; alias-vs-two-names; `errors.As`/`ToolDefs` byte-contracts; partial extraction → second coupling; test imports; cycles; accidental baseline drift; build-tag scope)
 - [x] Key entities and success criteria are present
 
 ## User stories & requirement attribution
 
-- [x] User stories ordered by value/delivery: US1 (invert the loop seam → no import) → US2 (baseline 2 → 1, gate-proven) → US3 (recorded in truth + ADR)
+- [x] User stories ordered by value/delivery: US1 (contracts → domain; CLI id count 4 → 1) → US2 (surviving coupling proven edge-sized; baseline unchanged) → US3 (recorded in truth + ADR)
 - [x] Every user story is independently verifiable
 - [x] Every user story carries acceptance scenarios
 - [x] Story-specific FR/NFR attached under the story
@@ -31,32 +31,34 @@
 
 ## Gaps & clarify strategy
 
-- [ ] **Q1 (slice + sizing) PENDING** — must be resolved before this checklist can pass
-- [ ] Q2 (port home/shape) and Q3 (ride-along) held until Q1 lands (asked one at a time)
-- [x] High-impact gap identified and scoped to a single first question (Q1), with options A/B/C
-- [x] Lower-impact undecided details disclosed as assumptions, not escalated (port package/name A3; ADR number A4; NOOP set A5/A6)
-- [ ] No remaining `NEEDS CLARIFICATION` — **blocked on Q1**
+- [x] **Q1 → (B) LOCKED** — re-cut the `cli → agent` de-coupling into ordered sub-slices; this round = sub-slice 1 (contracts → domain); the construction inversion is sub-slice 2
+- [ ] **Q2 PENDING** — the sub-slice-1 boundary / contract set + the **alias-vs-reference** choice (must be resolved before this checklist can pass)
+- [x] Questions asked **one at a time** (Q1 locked; Q2 next); capped at 1–3 per round
+- [x] High-impact gap was scoped to a single first question (Q1), with options A/B/C; the operator chose **B**
+- [x] Lower-impact undecided details disclosed as assumptions, not escalated (contract package/type names A3; ADR number A4; NOOP set A5/A6)
+- [ ] No remaining `NEEDS CLARIFICATION` — **blocked on Q2** (the alias-vs-reference choice)
 
 ## Verifiability & success criteria
 
-- [x] Acceptance scenarios cover the main success path (green on `dev` with baseline 1; red on a re-introduced edge; red on a stale entry; loud failure on a missing injection)
+- [x] Acceptance scenarios cover the main success path (green on `dev` with the baseline **unchanged**; the id count 4 → 1; an incomplete extraction → 2+; a flipped contract → compile break)
 - [x] Success criteria are measurable, verifiable, technology-neutral (SC-001…SC-006)
 - [x] Assumptions express premises/boundaries only, no smuggled requirements
 - [x] Requirements, edge cases, key entities, and success criteria are mutually consistent
 
 ## Issues & corrections
 
-- **Baseline = 2 today** (re-measured 2026-09-18 @ `dev` `12964d6`): `internal/cli → internal/agent`, `internal/cli → internal/ui`. The round removes the **`→ agent`** edge → baseline **1**; the `→ ui` edge stays for a later slice.
-- **Sizing correction (important)** — ADR 0017 §Forward classifies the **`→ agent`** edge as *"the deepest slice"* and the **`→ ui`** edge as *"the next natural slice"* (itself **not edge-sized**: ~20 call sites · 3 crossing value types · 4 stateful objects · 8 formatters). An earlier shorthand implied the `→ agent` edge was the *smaller* one — that was **wrong**; Q1 asks the operator to confirm the full-inversion vs. a re-cut.
-- **RULE-A shapes the adapter** (not just RULE-C): only tiers ≥ 4 may import `internal/agent`, so the adapter that constructs the loop lives at a tier ≥ 4 (or the exempt `cmd/tellme`); only the port declaration's home (Q2) is in question.
-- **R5.3** — round 047 delivered **R5.1** (the RULE-E gate + baseline); round 048 delivered **R5.2** (`→ ui/tui/prompt`); this is the next de-coupling slice; the remaining edge + F-6/F-7/F-8 stay on the live issue [#101](https://github.com/gosharplite/tellme/issues/101).
-- **Witness discipline**: the witness is the **gate + unit seams** (NFR-004), never the E2E suite (#92 AC5); falsifiability witnesses (a)/(b)/(c) reproduced then reverted (FR-011).
-- **Atomicity** — de-coupling + baseline regeneration + truth/ADR land as one PR (NFR-002, round-040 TD-1).
-- **No new Makefile target** — the gate rides the existing `verify-architecture` member of `verify`.
+- **Baseline = 2 today** (re-measured 2026-09-18 @ `dev` `12964d6`): `internal/cli → internal/agent`, `internal/cli → internal/ui`. Under **Q1 → B**, this round does **not** move the baseline (the `AgentLoop` construction keeps the `→ agent` edge); sub-slice 2 drops it **2 → 1**.
+- **Sizing correction (important)** — ADR 0017 §Forward classifies the **`→ agent`** edge as *"the deepest slice"* and the **`→ ui`** edge as *"the next natural slice"* (itself **not edge-sized**). An earlier shorthand implied the `→ agent` edge was the *smaller* one — that was **wrong**; the re-cut (Q1 → B) follows from it.
+- **Round DoD is NOT a baseline move** — it is "contracts domain-owned + surviving coupling reduced to one construction call site + gate green with the baseline **byte-identical**". Recorded up front so no reader expects `2 → 1` here.
+- **RULE-A shapes the contract home** (not just RULE-C): `internal/cli` (tier 6) → `internal/domain/**` (tier 0) is downward/sanctioned; `internal/agent` (tier 4) → `internal/domain/**` is downward/sanctioned.
+- **R5.1/R5.2/R5.3** — round 047 = R5.1 (RULE-E gate + baseline); round 048 = R5.2 (`→ ui/tui/prompt`); this round is the **re-cut sub-slice 1** of the `→ agent` de-coupling.
+- **Witness discipline**: the witness is the **gate + the identifier-count check + unit seams** (NFR-004), never the E2E suite (#92 AC5); falsifiability witnesses (a)/(b)/(c) reproduced then reverted (FR-011).
+- **Atomicity** — extraction + truth/ADR land as one PR (NFR-002). **No new Makefile target**.
+- **No baseline edit** — `tools/arch/baseline.txt` is byte-identical at delivery (FR-006).
 
 ## Ready determination
 
-- [ ] Ready to proceed to downstream planning — **blocked on Q1**
-- [x] A high-impact requirement gap must be closed first — **Q1 (slice + sizing)**
+- [ ] Ready to proceed to downstream planning — **blocked on Q2**
+- [x] A high-impact requirement gap must be closed first — **Q2 (sub-slice-1 boundary / alias-vs-reference)**
 
-**Note**: plan package initial; **do not** advance to `/axb-technical-research` until Q1 (and then Q2/Q3) are locked. `/axb-spec-by-example` is **NOOP** (no user-facing journey). `/axb-system-analysis` must record this as a dev-surface structural refactor (0 CLI interfaces; api/data/dsl-refine NOOP).
+**Note**: plan package initial; **do not** advance to `/axb-technical-research` until Q2 (and any Q3) are locked. `/axb-spec-by-example` is **NOOP** (no user-facing journey). `/axb-system-analysis` must record this as a dev-surface structural refactor (0 CLI interfaces; api/data/dsl-refine NOOP).
