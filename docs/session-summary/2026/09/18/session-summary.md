@@ -557,3 +557,11 @@ The fold review ([5725646775](https://github.com/gosharplite/tellme/pull/109#iss
 - **N-2** added a fold addendum to the PR body.
 
 **Mutation re-run (reproduced then reverted):** **B1** ⇒ the two begin-line pins **fail**; **B2** ⇒ the new tail pin **fails**. Both directions of the headline policy are now witnessed. Re-verified at `91e1e23`: `make verify` **OK** · `go test -count=1 ./...` green · `gofmt`/`go vet` clean. **Propagation still PENDING** (human merge of PR [#109](https://github.com/gosharplite/tellme/pull/109)).
+
+### Session 20 (cont.) — PR #109 fold-review #2 fold (`a96fa20`); review loop CLOSED
+
+Fold review #2 ([5725703970](https://github.com/gosharplite/tellme/pull/109#issuecomment-5725703970)) re-ran the mutation campaign at `3e9ece8`: **F-1 CLOSED (verified by mutation — B1/B2/B3 all red; both suppression directions witnessed at the loop tier)** → **review loop CLOSED, MERGE-READY.** One non-blocking nit folded as `a96fa20`, **doc-only**:
+
+- **N-3** the port's `ReasonLine` postcondition ("a suppressed reason returns (`\"\"`, false)") disagreed with the contract-stressing fake (which returns a **non-empty** line on `renders == false`). Relaxed to the real invariant: when `renders` is false the `line` value is **UNSPECIFIED** (the production adapter returns `""`); callers MUST honour `renders`, never the line's content — so the suppression pin now exercises the contract, not outside it.
+
+Re-verified at `a96fa20`: `make verify` **OK** · `go test -count=1 ./...` green · `gofmt`/`go vet` clean. **Propagation still PENDING** (human merge of PR [#109](https://github.com/gosharplite/tellme/pull/109) → propagate `dev → main`; close #108).
