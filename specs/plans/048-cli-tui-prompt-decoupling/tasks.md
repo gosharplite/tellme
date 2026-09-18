@@ -68,3 +68,11 @@ _(omitted — stdlib-only; no new technology; `go.mod`/`go.sum` unchanged)_
 - The round is **behaviour-preserving** — the TUI chrome, `stdout`/`stderr` contracts, flags, and exit codes are unchanged; the E2E suite is **regression**, not the carrier (NFR-004).
 - The **port home** is `internal/domain/tui` (Q2-A); the **adapter** is in `internal/ui` (RULE-A: only tiers ≥ 5 may import `internal/ui/**`); the **wiring** is `cmd/tellme` (exempt).
 - **No new Makefile target** — the gate rides `verify-architecture` (already a member of `make verify`).
+
+## Outcome (implementation delivered)
+
+- **Product**: `internal/domain/tui/prompter.go` (NEW — the `Source` + `Prompter` port; stdlib-only) · `internal/ui/tuiprompt.go` (NEW — the `TUIPrompter` adapter delegating to `prompt.Run`) · `internal/ui/tuiprompt_test.go` (NEW — the adapter contract pin) · `internal/cli/cli.go` (CHANGED — `Options{Deps; Prompter}`; the `tuiPromptRunner` type + `RunTUIPrompt` field deleted (**F-4 closed**); `runTUIPrompt` routes through the injected port; the nil-default removed) · `cmd/tellme/deps.go` (CHANGED — wires `ui.TUIPrompter{}`) · `internal/cli/{testdeps,tui_dispatch,tui_submit_chrome}_test.go` (CHANGED — the fake port double) · `tools/arch/baseline.txt` (CHANGED — **3 → 2**).
+- **Gate**: `make verify` **OK** — `verify-architecture` reports RULE-E **0 new / 0 stale** with the baseline at **2** (`internal/cli -> internal/agent`, `internal/cli -> internal/ui`); RULE-A/B/C **0**; **0** cycles; lint 0 issues; govulncheck clean (0 reachable in code); cross-compile **4/4**.
+- **Tests**: `go test -count=1 ./...` green (incl. the godog E2E, ~60 s).
+- **Falsifiability witnesses (reproduced then reverted, ADR 0010)**: (a) a re-introduced `internal/cli → internal/ui/tui/prompt` import ⇒ the gate reds and names the edge; (b) a stale `baseline.txt` line ⇒ the gate reds (*"1 stale baseline entr(ies)"*); (c) the nil-port path ⇒ the new `TestTUIDispatchFailsLoudlyWithoutPrompter` pin (EnvironmentError), pinned permanently.
+- **No behaviour change**: `stdout`/`stderr` contracts, flags, exit codes, and the TUI chrome are unchanged; `go.mod`/`go.sum` unchanged; the Gherkin/DSL topology audit unchanged.
