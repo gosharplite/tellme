@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -41,12 +40,12 @@ func (ToolLineRenderer) ResultLine(t time.Time, tool, result string) string {
 // ReasonLine renders the `[Tool Reason] <reason>` line and reports whether it
 // renders at all. It evaluates `toolReasonText` ONCE: a blank (empty /
 // whitespace-only) or escape-only reason renders nothing (("", false)); otherwise
-// the line is byte-identical to FormatToolReason(t, reason) — same transform,
-// same clock stamp, same cap.
+// the line is built by the SHARED formatToolReasonLine helper (round-046 review
+// TD-6), so it is byte-identical to FormatToolReason(t, reason).
 func (ToolLineRenderer) ReasonLine(t time.Time, reason string) (string, bool) {
 	text := toolReasonText(reason)
 	if strings.TrimSpace(text) == "" {
 		return "", false
 	}
-	return fmt.Sprintf("[%s] [Tool Reason] %s", formatClock(t), text), true
+	return formatToolReasonLine(t, text), true
 }

@@ -72,3 +72,29 @@ func TestLogOmitsReasonLineWhenNoReason(t *testing.T) {
 		t.Errorf("the action line was not rendered for a reasonless call; log=%q", log)
 	}
 }
+
+// TestLogIsSilentWhenNoRendererInjected (round-046 review TD-3) pins the seam's
+// documented default: a nil Lines renderer writes NO tool lines (and no blank, no
+// yield). The failure mode is silent — a miswire would suppress every tool
+// diagnostic and only the (slow, coarse) E2E would notice — so the promise gets a
+// direct pin.
+func TestLogIsSilentWhenNoRendererInjected(t *testing.T) {
+	var buf bytes.Buffer
+	gw := &fakeGateway{responses: []llm.Response{
+		{ToolCalls: []llm.ToolCall{{ID: "c1", Name: "read_files", Arguments: `{"filepaths":["a.txt"],"reason":"because"}`}}},
+		{Text: "done"},
+	}}
+	a := &AgentLoop{
+		Gateway:  gw,
+		Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "hi"}),
+		Stderr:   &buf,
+		Now:      fixedLogClock,
+		// Lines deliberately nil — the documented no-op default.
+	}
+	if _, err := a.Run(context.Background(), "q", nil); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if buf.Len() != 0 {
+		t.Errorf("a nil Lines renderer wrote tool lines; out=%q", buf.String())
+	}
+}

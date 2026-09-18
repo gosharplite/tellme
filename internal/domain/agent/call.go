@@ -20,5 +20,13 @@ type CallObserver interface {
 	// OnCallEnd signals that an AI-endpoint call has returned. roundReasons are
 	// the reasons of the calls executed in the round that just finished (empty on
 	// a final answer); final is true for the call that produced the answer.
+	//
+	// Precondition (round 046 / ADR 0015): roundReasons is ALREADY FILTERED — the
+	// producer (the loop's reasonsOf) retains only reasons for which
+	// ToolLineRenderer.ReasonLine reports renders == true, and passes the RAW
+	// value. The implementer prints what it is given; an unfiltered blank reason
+	// would emit a dangling `[Tool Reason]` row, because the tail no longer
+	// re-checks each value (the former defensive guard was deleted as part of
+	// making the renderer port the single owner of the blank-reason predicate).
 	OnCallEnd(callIndex int, usage llm.Usage, roundReasons []string, final bool)
 }

@@ -58,3 +58,21 @@ _(omitted — stdlib-only; no new technology; `go.mod`/`go.sum` unchanged)_
 | `truth-delta` governance: ADR 0015 + index | T011 (recorded — already landed in the plan half) |
 | `chat/dsl.md` stale-row check (D9) | T011 (grep evidence recorded in `truth-delta.md`) |
 | Baseline reaches **0** (FR-004) | T009 + T010 (gate) |
+
+## PR #109 review fold ledger (`f845625` → this fold)
+
+Architect review ([5725563497](https://github.com/gosharplite/tellme/pull/109#issuecomment-5725563497)): **APPROVE WITH REQUIRED FOLDS — no blocker.** Folds applied:
+
+| # | Finding | Fold |
+| --- | --- | --- |
+| **R-1** | `spec.md`'s Status line contradicted its Locked-Decisions table for **C-R4-2** | Status-line clause reworded: *"delete the dead tail guard — the port's `ReasonLine` is the single owner"* |
+| **R-2** | `specs/truth/features/cli/chat/dsl.md:55` (the round-036 note) still asserted the **deleted** `OnCallEnd` guard as live | The note's clause reconciled to the single-owner reality (option **a**): the owner is `ui.ToolLineRenderer.ReasonLine`; the two loop-tier sites stand, the third is deleted (recorded as a MODIFY in `truth-delta.md`, with a **behaviour-aware** second grep — symbol-existence ≠ clause-truth) |
+| **R-3** | `STATUS.md` stale for 046 (branch model, header, roadmap) | Header reconciled to the live round; branch-model `046-…` row added; `future slices` R4 dropped; issue-tracker bullet + env note refreshed |
+| **R-4** | `OnCallEnd`'s pre-filtered-`roundReasons` precondition undocumented | One precondition paragraph added to `internal/domain/agent/call.go` |
+| **TD-1** | discarded-render cost at the tail filter | Recorded in **ADR 0015** *Consequences* (accepted trade; the split alternative named but not taken) |
+| **TD-2** | the loop-tier blank-reason witness lost discriminating power | New pin `TestLogHonorsRendererDecisionForABlankReason` (an overriding fake reporting `renders=true` for a blank reason must make the loop print it) |
+| **TD-3** | the nil-`Lines` promise had no test | New pin `TestLogIsSilentWhenNoRendererInjected` (a tool-using turn with nil `Lines` writes nothing) |
+| **TD-4** | the domain port is presentation-SHAPED | Recorded as an accepted trade in **ADR 0015** *Consequences* |
+| **TD-5** | `ToolReasonRenders` is production-dead | Annotated as a **test-facing** helper on its doc comment |
+| **TD-6** | duplicated `[Tool Reason]` format literal | Deduped via the shared `formatToolReasonLine` helper; `ReasonLine` delegates to it |
+| **TD-7** | the baseline at 0 has no release valve | Recorded in **ADR 0015** *Consequences* + the **Layer-discipline gate** truth row |

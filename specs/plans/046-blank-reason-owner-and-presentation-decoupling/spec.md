@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-18
 
-**Status**: Draft — plan + truth half. Anchor issue [#108](https://github.com/gosharplite/tellme/issues/108) — **R4** of [#92](https://github.com/gosharplite/tellme/issues/92). Clarify round 1 **locked** (**C-R4-1 → A** a domain-typed presentation port; **C-R4-2 →** the tail is the live predicate owner; **C-R4-3 →** unit pins + the gate; **C-R4-4 →** a new ADR 0015) — see §Locked decisions.
+**Status**: Draft — plan + truth half. Anchor issue [#108](https://github.com/gosharplite/tellme/issues/108) — **R4** of [#92](https://github.com/gosharplite/tellme/issues/92). Clarify round 1 **locked** (**C-R4-1 → A** a domain-typed presentation port; **C-R4-2 →** delete the dead tail guard — the port's `ReasonLine` is the single owner; **C-R4-3 →** unit pins + the gate; **C-R4-4 →** a new ADR 0015) — see §Locked decisions.
 
 **Input**: Issue [#108](https://github.com/gosharplite/tellme/issues/108) (R4 of the #92 gate-first split). #92's scope ledger item **#4**: *"Blank-reason predicate — single owner (3 sites, 1 dead) + drop the loop→`ui` predicate coupling"*, with #92 **AC6** (*"each policy has one named owner, with a unit witness on the real path"*). R1 ([#93](https://github.com/gosharplite/tellme/issues/93), round 042, ADR 0011) shipped the gate; R2 ([#100](https://github.com/gosharplite/tellme/issues/100), round 044, ADR 0013) ratcheted the baseline **8 → 1**; R3 ([#105](https://github.com/gosharplite/tellme/issues/105), round 045, ADR 0014) owned the **yield** axis and left the last entry deliberately. R4 **owns the last baseline entry** (`internal/agent -> internal/ui`, RULE-A) and the **blank-reason predicate**.
 

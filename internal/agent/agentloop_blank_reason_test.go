@@ -49,3 +49,23 @@ func TestLogStillRendersANonBlankReasonLine(t *testing.T) {
 		t.Errorf("a non-blank reason was dropped; log=%q", log)
 	}
 }
+
+// TestLogHonorsRendererDecisionForABlankReason (round-046 review TD-2): the loop
+// must DELEGATE to the owner, not re-derive the predicate. An overriding renderer
+// that reports `renders == true` for a whitespace-only reason must make the loop
+// print the line — without this pin, a loop that ignored `renders` and printed
+// unconditionally would still pass the suppression assertions above (a bare
+// newline satisfies both `!Contains(log, "REASON ")` and the blank-precedes-action
+// check). This is the discriminating half the escape-only pin already does in
+// reverse.
+func TestLogHonorsRendererDecisionForABlankReason(t *testing.T) {
+	var buf bytes.Buffer
+	a := newLogLoop(&buf, llm.ToolCall{ID: "c1", Name: "read_files", Arguments: `{"filepaths":["a.txt"],"reason":"   "}`})
+	a.Lines = fakeRenderer{renders: func(string) bool { return true }}
+	if _, err := a.Run(context.Background(), "q", nil); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if log := buf.String(); !strings.Contains(log, "REASON") {
+		t.Errorf("the loop ignored the renderer's renders=true decision; log=%q", log)
+	}
+}
