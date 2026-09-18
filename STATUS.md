@@ -14,6 +14,7 @@
 - **Pipeline**: specify ✅ · clarify ✅ (C-R3-1…C-R3-6) · spec-by-example **NOOP** · technical-research ✅ (+ **ADR 0014**) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T010) · implement ✅ · **PR [#106](https://github.com/gosharplite/tellme/pull/106) open**.
 - **Artifacts**: `internal/ui/yield.go` (NEW) · `internal/domain/agent/observer.go` · `internal/ui/{spinner.go,coordinator.go}` · `internal/cli/composite_observer.go` · `internal/agent/agentloop.go` · `internal/ui/yield_test.go` (NEW) + 3 migrated tests · **ADR 0014** + `docs/decisions/README.md` · `specs/truth/techstack.md` (2 MODIFY rows) · `specs/plans/045-yield-policy-owner/**`.
 - **Verification**: `make verify` **OK** (`verify-architecture` **0 new / 0 stale**, baseline **1**; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (228 scenarios · 1698 steps) · `go test -race ./internal/ui/...` green · topology audit **PASSED & unchanged** (44 · 16+327 · 1674) · 3 falsifiability witnesses reproduced + reverted.
+- **Review**: PR #106 architectural review `5724573489` — **APPROVE WITH REQUIRED FOLDS (no blocker)** → folded in **`ef0c7ec`** (F-1 one yield route; F-2/F-3/F-4/F-6 record accuracy; F-5 + witness-(c) notes); re-verified (`make verify` OK, arch gate 0 new / 0 stale, `TestComposite` ok).
 - **Propagation PENDING** — `dev → main` runs after a human merges PR #106.
 
 ## Last delivered round — 044 `044-composition-root-extraction` (DELIVERED / FROZEN — PR #104 merged into `dev` `8da0b88`; frozen head `ba64508`)

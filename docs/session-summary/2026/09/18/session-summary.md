@@ -433,3 +433,17 @@ A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` S
 ### Issue tracker (session 19, in flight — not a closeout)
 
 - **[#105](https://github.com/gosharplite/tellme/issues/105) OPEN** — the round's anchor; closes only on **delivery** (after the PR merges). [#92](https://github.com/gosharplite/tellme/issues/92) open (R1+R2 delivered; R3 in flight; R4 + ride-alongs remain); [#101](https://github.com/gosharplite/tellme/issues/101) · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) open. **No closes/revises this session** (nothing landed).
+
+### Session 19 (cont.) — PR #106 review fold (`ef0c7ec`)
+
+The architectural review ([#5724573489](https://github.com/gosharplite/tellme/pull/106#issuecomment-5724573489)) returned **APPROVE WITH REQUIRED FOLDS, no blocker**; the folds landed as `ef0c7ec`:
+
+| Fold | Change |
+| --- | --- |
+| **F-1** (code) | `compositeObserver.OnCallEnd` → `c.YieldIndicator()`; the duplicate private route `yieldIndicatorBeforeTail` **deleted** (rationale folded into `OnCallEnd`'s doc). |
+| **F-2** | `truth-delta.md` grep evidence restated **as measured** (only `techstack.md`'s own round-045 sentence in `specs/truth/**`; `features/**` zero). |
+| **F-3** (option b) | ADR 0014 names the exact D1 clause it narrows (D1's call-hooks + renderer/accounting ownership unchanged; the unnamed yield policy is now owned). |
+| **F-4** | `research.md` D2 corrected — the mechanism's visibility is **unchanged**. |
+| **F-5 / F-6 / witness (c)** | `yield.go` names the three construction sites; daily-log head/count dropped; `spec.md` FR-012 gains `STATUS.md` + the day summary; the witness-(c) lock-order relation recorded in ADR 0014. |
+
+**Re-verification at `ef0c7ec`**: `go test -count=1 ./internal/cli/ -run TestComposite` ok · the `-tags=arch` gate ok (baseline still 1) · **`make verify` OK** · `go test -count=1 ./internal/...` green · `gofmt -l .` clean.
