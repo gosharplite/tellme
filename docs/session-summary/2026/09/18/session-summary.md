@@ -1023,3 +1023,77 @@ A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` S
 - **[#101](https://github.com/gosharplite/tellme/issues/101) CLOSED (completed)** — delivered by round 051 (PR [#114](https://github.com/gosharplite/tellme/pull/114) merged `0d7566b`); its DoD (RULE-E baseline **0** + F-6/F-7/F-8) met.
 - **[#92](https://github.com/gosharplite/tellme/issues/92) CLOSED (completed, split)** — R1–R5 delivered; ride-alongs → **[#115](https://github.com/gosharplite/tellme/issues/115)**; records → **[#116](https://github.com/gosharplite/tellme/issues/116)**.
 - **OPEN (accurate)**: [#115](https://github.com/gosharplite/tellme/issues/115) · [#116](https://github.com/gosharplite/tellme/issues/116) · [#103](https://github.com/gosharplite/tellme/issues/103) · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13).
+
+---
+
+## Session 26 (2026-09-18, cont.) — round 052 `052-ride-alongs-and-records`: **closes [#115](https://github.com/gosharplite/tellme/issues/115) + [#116](https://github.com/gosharplite/tellme/issues/116)** — full pipeline (specify → clarify → research+ADR 0021 → system-analysis → tasks → implement)
+
+A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 051 delivered/frozen; active branch `dev`), opened round **052** to **close both `#92`-lineage residual issues** ([#115](https://github.com/gosharplite/tellme/issues/115) the two **ride-alongs**; [#116](https://github.com/gosharplite/tellme/issues/116) the three **records**), ran the full AIxBDD pipeline, and delivered the implementation with the two unit pins + the gate green.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 051 delivered/frozen; active branch `dev`; in-group agents: self `butler`; peers `architect`/`coder`/`griller`/`pm`/`rd`) |
+| Round-052 theme | close [#115](https://github.com/gosharplite/tellme/issues/115) (the two ride-alongs) + [#116](https://github.com/gosharplite/tellme/issues/116) (the three records' disposition) |
+| Clarify | **Q1** one round closes both · **Q2 → (i)** relocate the three records to **ADR 0021 §Records**, close #116 **completed** — both settled by the operator's goal + the round framing |
+| Pipeline | specify ✅ · clarify ✅ · spec-by-example **NOOP** · technical-research ✅ (**ADR 0021** + `techstack.md` MODIFY ×3) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T016) · implement ✅ (all `[X]`) |
+| Product | `internal/infrastructure/tools/command.go` (ctor-injected sink; `toolOutputBox`/`BindToolOutput` deleted) · `internal/app/deps/deps.go` (`NewToolRegistry` widened) · `cmd/tellme/deps.go` (`assembleAgentTools`; sink-aware registry) · `internal/cli/cli.go` (reorder; inject; rebind deleted) · `internal/ui/tui/prompt/{suggester,model}.go` (caller-owned cursor) |
+| Verification | `make verify` **OK** (RULE-A/B/C 0; **RULE-E baseline 0**, 0 new / 0 stale; RULE-F consistent; 0 cycles; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` **green** (24 pkgs incl. the godog E2E) · witnesses (a)/(b)/(c) reproduced + reverted · `go.mod`/`go.sum` unchanged |
+
+### Work done
+
+1. **Bootstrap (Steps 1–8)** — the pillars, the reference trees (the `tell-me-go` 8-item bootstrap; the `aixbdd-tmg` domain model + README), `list_skills`, the in-group peers, `STATUS.md`, and the last-5-days summaries (09/14–09/18).
+2. **`/axb-specify`** — `specs/plans/052-ride-alongs-and-records/` (US1 the command tool's construction-time sink · US2 the selection-policy owner · US3 the records' durable home; FR-001…FR-010 · SC-001…SC-006). Both clarify questions were settled by the operator's goal, so clarify **closed** immediately (Q1 one round; Q2 → (i)).
+3. **`/axb-spec-by-example` NOOP** — a behaviour-preserving structural refactor (the rounds 020/031/036/041–051 non-BDD-tooling precedent).
+4. **`/axb-technical-research`** — D1–D7 (the R-2 mechanism: one sink-aware registry builder + `agentTools()` kept parameterless + read-free; the R-1 caller-owned cursor; the records' relocation; the truth impact) + **ADR 0021** + `techstack.md` MODIFY ×3 + a task-runner NOOP.
+5. **`/axb-system-analysis`** — `plan.md` (0 interfaces; `/axb-api-plan`/`/axb-data-plan`/`/axb-dsl-refine` **NOOP**).
+6. **`/axb-tasks`** — T001–T016 (Foundational · Phase 3 pins+implementation · Phase 4 verification).
+7. **`/axb-implement`** — one-shot T001–T016: the `NewCommandTool(sink)` construction seam; `toolOutputBox`/`BindToolOutput`/`deps.BindToolOutput` deleted; the sink-aware `assembleAgentTools`; the cli.go reorder (`prog` before `reg`); the suggester `set(items, cursor)`; two new unit pins; the fixtures aligned.
+8. **Witnesses (FR-009)** — (a) a dropped sink injection reds the construction pin; (b) a reset inside `set` reds the cursor pin; (c) a governed `cli → ui` import at baseline 0 reds the gate (RULE-F coverage + *"an emptied baseline MUST fail"*). All reproduced, then reverted clean.
+
+### Decisions locked (round 052)
+
+| # | Decision |
+| --- | --- |
+| Q1 | One round closes both #115 and #116. |
+| Q2 → (i) | The three #116 records relocate to **ADR 0021 §Records** (a non-frozen, indexed home); #116 closes **completed**. |
+| D1 | R-2 mechanism: **one sink-aware registry builder** (`assembleAgentTools`); `agentTools()` stays parameterless + read-free; the `deps.NewToolRegistry` field widens to take the sink; the prompt path builds `prog` first. |
+| D2 | The command tool holds the sink directly; `toolOutputBox` + `BindToolOutput` deleted. |
+| D3 | R-1: `set(items, cursor)`; the callers pass `noChoice`; `noChoice` stays package-private. |
+| D4 | The records' durable home = ADR 0021 §Records. |
+
+### Commits (branch `052-ride-alongs-and-records`)
+
+| Commit | Note |
+| --- | --- |
+| `76502f4` | `docs(052)`: plan package + spec (close #115 ride-alongs + #116 records) |
+| `d1f5478` | `docs(052)`: technical research + ADR 0021 + techstack truth + system-analysis + tasks |
+| `bfda279` | `feat(052)`: inject the command tool's output sink at construction + caller-owned suggester cursor (T001–T016) |
+
+### Artifacts / truth
+
+- Plan package: `spec.md` · `checklists/requirements.md` · `research.md` (D1–D7) · `plan.md` · `tasks.md` (T001–T016 + outcome) · `truth-delta.md`.
+- Truth: `specs/truth/techstack.md` MODIFY ×3 (Agent command tool · `-i` · Prompt suggestion engine) + the task-runner NOOP.
+- Governance: **ADR 0021** (`docs/decisions/0021-ride-alongs-and-records.md` + index) — records D1–D4 + **hosts the three relocated records** + a §Forward (RF-52-1…3).
+- Code: `internal/infrastructure/tools/command.go` · `internal/app/deps/deps.go` · `cmd/tellme/deps.go` · `internal/cli/cli.go` · `internal/ui/tui/prompt/{suggester,model}.go`; tests `internal/infrastructure/tools/command_sink_test.go` (NEW) · `internal/ui/tui/prompt/suggester_set_test.go` (NEW) · the aligned fixtures.
+
+### Open items (non-blocking)
+
+- **Round-052 forward items** — **RF-52-1** (a future per-turn registry dependency: prefer a named per-path seam over a growing positional list — the round-051 RF-51-6 warning) · **RF-52-2** (Record 1's narrowing: a count formulation covering both `\n` and `\r` would allow a future E2E carrier) · **RF-52-3** (Record 2's re-scope stays gated on a concurrent-tools round, [#47](https://github.com/gosharplite/tellme/issues/47) `not_planned`). All in ADR 0021 §Forward.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; the round-011 forward items; the round-022 row→feature audit blind spot → [#91](https://github.com/gosharplite/tellme/issues/91); the round-047 items (b)–(d); the round-051 RF-51-x.
+
+### Next steps
+
+1. Human merge of the round-052 PR → `dev` (closes [#115](https://github.com/gosharplite/tellme/issues/115) + [#116](https://github.com/gosharplite/tellme/issues/116)); propagate `dev → main` (no-ff); refresh the installed binary.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no user-facing business journey — a structural refactor + a records disposition; the spec/acceptance boundary is RD-side).
+
+### Issue tracker (closeout Step 8)
+
+- **[#115](https://github.com/gosharplite/tellme/issues/115) CLOSED (completed)** — delivered by round 052 (the two ride-alongs: the construction-time sink + the selection-policy owner).
+- **[#116](https://github.com/gosharplite/tellme/issues/116) CLOSED (completed)** — the three records relocated to **ADR 0021 §Records** (its own closure path).
+- **OPEN (accurate)**: [#103](https://github.com/gosharplite/tellme/issues/103) · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13).
