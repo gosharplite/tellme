@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — **clarify round 1 OPEN** (Q1 = the `-t` semantics; Q2 = `-c` load-failure behaviour). Produced by `/axb-specify`.
+**Status**: Draft — **clarify round 1: Q1 CLOSED** (Q1 → **(C1)**: `tellme` writes its **own** `turns.log` — its rendered turn chrome — and `-t` prints it), **Q2 OPEN** (the explicit-`-c` load-failure policy). Produced by `/axb-specify`; Q1 folded via `/axb-clarify`.
 
 **Input**: [#103](https://github.com/gosharplite/tellme/issues/103) — *"`-l` ignores `-c` for session selection (+ no `-t`) — blocks the documented agent-to-agent grill/chat plumbing on `tellme`"* — plus the operator's tasking: *"let fix below items: (1) `-c` needs to work when using `-l` or `--new`; (2) need `-t` (turns-log) flag."*
 
@@ -39,7 +39,9 @@ Measured 2026-09-19 @ `dev` `f9253a7` (a static read; the round re-measures at i
 
 ### What a session workspace actually holds (measured)
 
-`$TELL_ME_HOME/output/<mode>/` = `history.jsonl`, `history.archive.jsonl`, `tokens.log`, `tokens.archive.jsonl`, `tokens.summary.json` — **there is no `turns.log`** in `tellme`. The token/usage log (`tokens.log`, round-026) and the persisted turn record (`history.jsonl`) are the two candidate carriers for a `tellme` "turns log". **Which one `-t` prints is clarify Q1.**
+`$TELL_ME_HOME/output/<mode>/` = `history.jsonl`, `history.archive.jsonl`, `tokens.log`, `tokens.archive.jsonl`, `tokens.summary.json` — **there is no `turns.log`** in `tellme` (`grep` for `turns.log`/`TurnsLog` in tellme → 0 hits). A `turns.log` exists only in `tell-me-go`, where `internal/infrastructure/logging/async_turns_logger.go` persists the session's turn chrome (the turn header, payload-status lines, metrics line) and its `-t` (`StreamTurnsLog`) prints that file.
+
+**But tellme already *renders* exactly those chrome lines** (they are just written to the diagnostic stream and discarded): the turn rule + header (`internal/ui/turn.go`), the payload status (`internal/ui/status.go`), the metrics line (`internal/ui/metrics.go`). So **Q1 → (C1)** adds a per-session **sink that persists that same chrome** to `output/<mode>/turns.log`; `-t` reads it. The formatter is the existing renderer; no new format, no re-opening of the round-017/018/022/040 chrome contracts. The write site/seam is an RD decision (`research.md`).
 
 ### Invariants that must survive
 
@@ -56,8 +58,21 @@ Measured 2026-09-19 @ `dev` `f9253a7` (a static read; the round re-measures at i
 
 | # | Question | Options | Status |
 | --- | --- | --- | --- |
-| **Q1** | **What does `-t` print?** `tellme` has no `turns.log`; the reference's `-t` prints its own detailed turn trace. | **(A)** Print the session's **usage/token log** (`tokens.log`, the round-026 artifact) — cheapest, exact file parity with the SOP's monitoring intent. **(B)** Print a **turn trace** derived from `history.jsonl` (e.g. one `[HH:MM:SS]`-style block per persisted turn) — closest to the reference's "turns log", but a new projection with its own format decisions. **(C)** Add a **new `turns.log`** written per turn (like the reference) and have `-t` print it — largest scope. | **OPEN** |
-| **Q2** | **`-c` load failure on an offline session command**: when `-c <file>` is given but the file is missing/invalid, should `-l`/`--new` **fail** (like the prompt path's `reasonConfigMissing`/`reasonConfigInvalid`) or **fall back** to the default/`butler` (today's tolerant behaviour)? | **(A)** Fail on an **explicit** `-c` (the user named it); still tolerate an **absent default**. **(B)** Always fall back (status quo tolerance). | **OPEN** |
+| **Q1** | **What does `-t` print, and who writes it?** `tellme` has no `turns.log` today. | **(A)** print the existing `tokens.log` (per-call usage) · **(B)** print a turn trace projected from `history.jsonl` · **(C)** `tellme` **writes its own `turns.log`** and `-t` prints it — with **(C1)** recording **tellme's own rendered chrome** (the existing, E2E-pinned turn/status/metrics lines) or **(C2)** reproducing `tell-me-go`'s exact bytes. | ✅ **CLOSED — (C1)** |
+| **Q2** | **`-c` load failure on an offline session command**: when `-c <file>` is given but the file is missing/invalid, should `-l`/`--new`/`-t` **fail** (like the prompt path's `reasonConfigMissing`/`reasonConfigInvalid`) or **fall back** to the default/`butler` (today's tolerant behaviour)? | **(A)** Fail on an **explicit** `-c` (the user named it); still tolerate an **absent default**. **(B)** Always fall back (status quo tolerance). | **OPEN** |
+
+### Q1 → (C1) (LOCKED) — `tellme` writes its own `turns.log`; `-t` prints it
+
+**Decision**: `tellme` gains a **per-session `turns.log`** under `output/<mode>/`, written on the turn path, containing **tellme's own rendered turn chrome** — the same plain-text lines it already renders to the diagnostic stream and which the E2E already pins byte-for-byte:
+
+- the `──…──` turn rule (`internal/ui/turn.go` `TurnRule()` / `FormatTurnOpening`),
+- the `╭─⠿ Turn <N> - <mode>` header (`internal/ui/turn.go` `FormatTurnHeader`),
+- the `[HH:MM:SS] Payload: …` status lines (`internal/ui/status.go` `FormatPayloadStatus`),
+- the `[HH:MM:SS] [<provider>] M: …` metrics line (`internal/ui/metrics.go` `FormatMetrics`).
+
+**Rationale**: this is the reference's *role* (a persisted turn trace `-t` prints) realised with **tellme's already-frozen presentation** — no re-opening of the round-017/018/022/040 formatting (rejected option **(C2)**: reproducing `tell-me-go`'s exact bytes would contradict tellme's settled chrome contracts). No new *format* is invented: the chrome renderers are the formatter.
+
+**Scope consequence (accepted)**: the round now has three parts — US1 (the `-c` fix) + the **`turns.log` writer** + US2 (the `-t` reader). The writer is an **RD mechanism** (`research.md` D-series: the sink seam + the write site), and the artifact is a **persisted session file** → `specs/truth/data/data-model.dbml` gains a `turns_log` artifact (like the `history`/usage artifacts) and `--new` archives it.
 
 **Disclosed assumptions (low-impact; not escalated)** — see *Assumptions* A1–A6.
 
@@ -89,70 +104,77 @@ As an **orchestrator agent**, I want `tellme -l 1 -c "<target>.yaml"` (with `TEL
 
 ---
 
-### User Story 2 - a `-t` flag prints the session's turns/trace log (Priority: P2)
+### User Story 2 - a `-t` flag prints the session's `turns.log` (Priority: P2)
 
-As an **orchestrator agent**, I want `tellme -t -c "<target>.yaml"` to print the target session's turns/trace log and exit, so the SOP's optional monitoring step (`tell-me-go -t -c … | tail -5`) has a `tellme` equivalent that honours `-c` like US1.
+As an **orchestrator agent**, I want `tellme -t -c "<target>.yaml"` to print the target session's **`turns.log`** and exit, so the SOP's optional monitoring step (`tell-me-go -t -c … | tail -5`) has a `tellme` equivalent that honours `-c` like US1. `tellme` gains its own per-session `turns.log` — the rendered turn chrome — written on the turn path.
 
-**Why this priority**: it is [#103](https://github.com/gosharplite/tellme/issues/103) gap 2 — the issue itself marks it **lower priority** and a **separate decision**; it does not block the round's relay loop, but it is part of the operator's tasking.
+**Why this priority**: it is [#103](https://github.com/gosharplite/tellme/issues/103) gap 2 — the issue marks it **lower priority** and a **separate decision**; it does not block the relay loop, but it is part of the operator's tasking.
 
-**Independent verification**: seed a session; `tellme -t -c "<file>.yaml"` prints the chosen carrier's contents for that session's `output/<mode>/` and exits 0; running it with a different `-c` prints the other session's log.
+**Independent verification**: run a turn (a `turns.log` appears under the resolved `output/<mode>/` carrying the turn chrome byte-identically to what the diagnostic stream showed); `tellme -t -c "<file>.yaml"` prints that file for the `-c`-resolved session and exits 0; a different `-c` prints the other session's log.
 
 **Acceptance Scenarios**:
 
-1. **Given** a session with a non-empty turns/trace log, **When** `tellme -t -c "<file>.yaml"` runs, **Then** it writes that session's log to stdout and exits success. **(exact content/format = clarify Q1)**
-2. **Given** `-t` with a `-c` whose mode differs from the default, **When** it runs (`TELL_ME_MODE` unset), **Then** it reads the `-c` session (US1 resolution), not the default.
-3. **Given** an empty/absent log for the resolved session, **When** `-t` runs, **Then** it exits success without error (offline tolerance, mirroring `-l`).
+1. **Given** a turn has run for a session, **When** `output/<mode>/turns.log` is inspected, **Then** it holds the session's rendered turn chrome (the turn rule, the `╭─⠿ Turn …` header, the `[HH:MM:SS] Payload: …` lines, the `[HH:MM:SS] [<provider>] M: …` metrics line) in the same plain text the diagnostic stream emitted (C1 — tellme's own chrome).
+2. **Given** a session with a non-empty `turns.log`, **When** `tellme -t -c "<file>.yaml"` runs, **Then** it writes that file's contents to stdout verbatim and exits success.
+3. **Given** `-t` with a `-c` whose mode differs from the default, **When** it runs (`TELL_ME_MODE` unset), **Then** it reads the `-c` session (US1 resolution), not the default.
+4. **Given** `tellme --new -c "<file>.yaml"` from a session with a `turns.log`, **When** it runs, **Then** the `turns.log` is **archived** with the session (alongside `history`/`tokens`), leaving a fresh session.
+5. **Given** an empty/absent `turns.log` for the resolved session, **When** `-t` runs, **Then** it exits success without error (offline tolerance, mirroring `-l`).
 
 **Functional Requirements**:
 
-- **FR-004**: A new flag `-t` / `--turns` MUST be registered, documented in the `--help` usage, and handled as an **offline reporting command** in the `dispatchReporting` precedence order. **(the log source/format = clarify Q1)**
-- **FR-005**: `-t` MUST resolve the session with the **same** `-c`-honouring, offline mode resolution as US1 (FR-001/FR-002).
+- **FR-004**: `tellme` MUST write a per-session **`turns.log`** at `output/<mode>/turns.log` on the turn path, recording the session's **rendered turn chrome** (C1: tellme's existing plain-text turn/status/metrics lines — the formatter is the existing renderer, no new format). The write site/seam is an RD decision (`research.md`).
+- **FR-005**: A new flag `-t` / `--turns` MUST be registered, documented in the `--help` usage, and handled as an **offline reporting command** in the `dispatchReporting` precedence order; it MUST print `output/<mode>/turns.log` verbatim to stdout and exit success (a missing/empty file is success).
+- **FR-006**: `-t` MUST resolve the session with the **same** `-c`-honouring, offline mode resolution as US1 (FR-001/FR-002); `--new` MUST archive `turns.log` alongside the session's history and usage logs.
+- **FR-007**: `turns.log` MUST be plain text on the diagnostic stream's model (no ANSI/control bytes) — sanitized, mirroring the round-038 `[Tool Output]` discipline — so `-t` output is safe to pipe.
 
 ---
 
 ### Global Requirements *(cross-story only)*
 
-- **FR-006**: `-l`, prompt-less `--new`, and `-t` MUST keep the offline session-command contract: no configuration/provider **resolution** beyond the mode read, no network, no `TELL_ME_MODE` override regression.
-- **FR-007**: The change MUST NOT widen the frozen `tellme: {phrase}` stderr vocabulary; any new diagnostic (if Q2 → fail) MUST reuse an existing phrase.
-- **FR-008**: A new **ADR** MUST record the round's decisions (the mode-resolution precedence; the `-t` carrier per Q1; the explicit-`-c` failure policy per Q2), indexed in `docs/decisions/README.md`; `specs/truth/techstack.md` + the CLI interface truth (`specs/truth/features/cli/**`) updated through `truth-delta.md`.
-- **FR-009**: The round MUST introduce **no** new dependency (`go.mod`/`go.sum` unchanged).
-- **FR-010**: Falsifiability witnesses MUST be reproduced then reverted (ADR 0010): (a) revert `-c`'s mode read ⇒ the differential retrieve fails (identical output for two configs); (b) revert `-t`'s `-c` resolution ⇒ `-t` reads the default session.
-- **FR-011**: A regression test MUST pin [#103](https://github.com/gosharplite/tellme/issues/103) AC4: seed A (`-c a.yaml`) + B (`-c b.yaml`), then `-l 1 -c a.yaml` returns A's last message and `-l 1 -c b.yaml` returns B's.
+- **FR-008**: `-l`, prompt-less `--new`, and `-t` MUST keep the offline session-command contract: no configuration/provider **resolution** beyond the mode read, no network, no `TELL_ME_MODE` override regression.
+- **FR-009**: The change MUST NOT widen the frozen `tellme: {phrase}` stderr vocabulary; any new diagnostic (if Q2 → fail) MUST reuse an existing phrase.
+- **FR-010**: A new **ADR** MUST record the round's decisions (the mode-resolution precedence; the `turns.log` artifact + write site; the explicit-`-c` policy per Q2), indexed in `docs/decisions/README.md`; `specs/truth/techstack.md`, the data model (`specs/truth/data/data-model.dbml`), and the CLI interface truth (`specs/truth/features/cli/**`) updated through `truth-delta.md`.
+- **FR-011**: The round MUST introduce **no** new dependency (`go.mod`/`go.sum` unchanged).
+- **FR-012**: Falsifiability witnesses MUST be reproduced then reverted (ADR 0010): (a) revert `-c`'s mode read ⇒ the differential retrieve fails (identical output for two configs); (b) revert `turns.log`'s write ⇒ `-t` finds no file; (c) revert `-t`'s `-c` resolution ⇒ `-t` reads the default session.
+- **FR-013**: A regression test MUST pin [#103](https://github.com/gosharplite/tellme/issues/103) AC4: seed A (`-c a.yaml`) + B (`-c b.yaml`), then `-l 1 -c a.yaml` returns A's last message and `-l 1 -c b.yaml` returns B's.
 
 ---
 
 ## Edge Cases
 
-- **`-t` combined with `-l`** — the `dispatchReporting` precedence order (`-d` → `-l` → `--tool-usage`, `cli.go:876-891`) must define where `-t` sits; a combined invocation MUST resolve deterministically (proposed: `-t` joins the offline-session group; precedence recorded at implementation — see Q1/`plan.md`).
-- **`-t` + `--new`** — archiving interacts with printing; define whether they compose or `--new` wins.
+- **`-t` combined with `-l`** — the `dispatchReporting` precedence order (`-d` → `-l` → `--tool-usage`, `cli.go:876-891`) must define where `-t` sits; a combined invocation MUST resolve deterministically (proposed: `-t` joins the offline-session group, ordered after `-l`; recorded in `plan.md`).
+- **`-t` + `--new`** — `--new` archives the session (including `turns.log`) **before** the `-t` read resolves; the resulting empty/fresh log is success (documented; `--new` wins the mutation).
+- **`turns.log` write failure** — a session whose log cannot be written MUST NOT fail the turn (best-effort, like the usage log); recorded forward.
 - **`TELL_ME_MODE` set + `-c`** — env MUST still win (AC2).
 - **`-c` file absent/invalid** — behaviour per clarify Q2; must not silently reintroduce the gap-1 failure.
-- **Absent default config** — `-l`/`--new` MUST keep working (round-007 tolerance).
+- **Absent default config** — `-l`/`--new`/`-t` MUST keep working (round-007 tolerance).
 - **`-c` path** — `-c` may be relative or absolute; resolution MUST match the prompt path's handling of `opts.configPath` (whatever `config.Load` accepts).
+- **Chrome sanitization** — `turns.log` MUST NOT carry ANSI/control bytes (round-038 discipline); a sanitized line is emitted byte-identically to the diagnostic stream's plain text.
 
 ## Key Entities
 
 - **The session-mode resolution** — `historyMode`/`resolveWorkspace` widened to take the config path; precedence `TELL_ME_MODE` → `-c` `MODE` → default → `butler`.
-- **The `-t` flag** — `--turns`; its carrier (per Q1) under `output/<mode>/`.
+- **`turns.log`** — the new per-session artifact at `output/<mode>/turns.log`, holding the rendered turn chrome (C1); archived by `--new`.
+- **The `-t` flag** — `--turns`; reads `turns.log` for the resolved session.
 - **`dispatchReporting`** — the offline reporting precedence order (`-d` → `-l` → `--tool-usage`), plus the new `-t`.
-- **The ADR** — the round's decision record (mode precedence + `-t` carrier + explicit-`-c` policy).
+- **The ADR** — the round's decision record (mode precedence + the `turns.log` artifact/write site + explicit-`-c` policy).
 
 ## Success Criteria
 
 - **SC-001**: With `TELL_ME_MODE` unset, `-l 1 -c a.yaml` and `-l 1 -c b.yaml` return their **distinct** sessions' last messages ([#103](https://github.com/gosharplite/tellme/issues/103) AC1/AC4).
-- **SC-002**: `-l`/`--new` remain **offline** (no provider resolution, no network) and the env override still wins ([#103](https://github.com/gosharplite/tellme/issues/103) AC2/AC3).
-- **SC-003**: `-t` exists, is documented, prints the Q1-chosen carrier for the `-c`-resolved session, and exits success.
+- **SC-002**: `-l`/`--new`/`-t` remain **offline** (no provider resolution, no network) and the env override still wins ([#103](https://github.com/gosharplite/tellme/issues/103) AC2/AC3).
+- **SC-003**: A turn writes `output/<mode>/turns.log` carrying the rendered chrome; `-t` prints that file for the `-c`-resolved session and exits success; `--new` archives it.
 - **SC-004**: `make verify` green (RULE-A/B/C 0; RULE-E baseline 0, 0 new/0 stale; 0 cycles; lint 0; cross-compile 4/4) · `go test -count=1 ./...` green (incl. the godog E2E).
 - **SC-005**: `go.mod`/`go.sum` unchanged; the topology/DSL audit green; the frozen `tellme: {phrase}` vocabulary unchanged.
 
 ## Assumptions
 
-- **A1**: The `-c`-honouring fix is a single, shared `resolveWorkspace`-family change (US1 and `-t` use it).
+- **A1**: The `-c`-honouring fix is a single, shared `resolveWorkspace`-family change (US1, prompt-less `--new`, and `-t` all use it).
 - **A2**: `-l` remains a **message list** (`role: content` lines, `toMessages`) — unchanged output shape; only the **session** changes.
-- **A3**: The fix touches only `internal/cli` (resolution wiring) + the persistence read path; **no** `internal/domain/**` behaviour change beyond any port widening.
-- **A4**: `/axb-api-plan` and `/axb-data-plan` are **NOOP** (no API surface; no persisted-schema change — the carrier read is read-only).
-- **A5**: `/axb-spec-by-example` is **invoked** (a user-facing, observable behaviour change: a new flag + a corrected session selection). Whether `/axb-dsl-refine` adds new `DSLRow`s (a new `-t` Example; an `-l -c` selection Example) is an RD decision at `/axb-system-analysis`/`/axb-dsl-refine`.
-- **A6**: The ADR number is the next free one after 0021.
+- **A3**: `turns.log` is written **per session** (always, like `history`/`tokens` — not gated), appended on the turn path; a write failure is best-effort (never fails the turn). The **sink seam and write site** are RD decisions (`research.md`); the **content = tellme's existing rendered chrome** (Q1 C1: no new format).
+- **A4**: `turns.log` is a **persisted session artifact** → `specs/truth/data/data-model.dbml` gains it, and `--new` archives it alongside `history`/`tokens`.
+- **A5**: `/axb-api-plan` is **NOOP** (no API surface); `/axb-data-plan` is **MODIFY** (the `turns.log` artifact); `/axb-spec-by-example` is **invoked** (a user-facing new flag + a corrected session selection); `/axb-dsl-refine` adds the CLI Examples/`DSLRow`s for the `-t` read and the `-l -c` selection.
+- **A6**: The ADR number is the next free one after 0021 (likely **0022**).
 
 ---
 
