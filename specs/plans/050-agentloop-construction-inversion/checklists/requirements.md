@@ -34,10 +34,11 @@
 - [x] **Q1 → A LOCKED** — port-only inversion: the `→ agent` construction is inverted into a domain port; the `ui` wiring (Lines renderer, spinner, coordinator, composite observer) **stays in `internal/cli`** by design; baseline **2 → 1**; the `→ ui` edge is the later slice
 - [x] **Q2 → (i) LOCKED** — domain interface `agentport.Loop` (`Run(...) (Result, error)`) + domain `LoopSpec` + a **func-typed** factory in `deps.Dependencies` (`LoopFactory`), adapter `agent.NewLoop` in `internal/agent`; `Validate()` already covers a func-typed field (no interface-seam assertion needed)
 - [x] **Q3 → (a) LOCKED** — the CLI keeps supplying `Lines` (`ui.ToolLineRenderer{}`) and its composite observer (`LoopObserver`) as **domain-typed** `LoopSpec` inputs; behaviour-preserving (identical tool-line/waiting-phase bytes); this is why the `→ ui` edge is retained (Q1 → A)
-- [x] Questions asked **one at a time** (Q1 → Q2 → Q3); capped at 1–3 per round; **all answered**
-- [x] High-impact gap scoped to a single first question (Q1), with options A/B/C; the operator chose **A** (then Q2 → i, Q3 → a)
+- [x] **Q4 → A LOCKED** — RULE-E evaluates the **merged** (production + test) graph, so the CLI tests adopt an in-package fake `agentport.Loop`; the real-loop coverage stays in `internal/agent` unit tests + the godog E2E
+- [x] Questions asked **one at a time** (Q1 → Q2 → Q3 → Q4); capped at 1–3 per round (Q4 surfaced from grounding — a merged-graph rule interaction, high-impact); **all answered**
+- [x] High-impact gap scoped to a single first question (Q1), with options A/B/C; the operator chose **A** (then Q2 → i, Q3 → a, Q4 → A)
 - [x] Lower-impact undecided details disclosed as assumptions, not escalated (port names A3; ADR number A4; NOOP set A5/A6)
-- [x] No remaining `NEEDS CLARIFICATION` — clarify round 1 **CLOSED** (Q1/Q2/Q3 locked)
+- [x] No remaining `NEEDS CLARIFICATION` — clarify round 1 **CLOSED** (Q1/Q2/Q3/Q4 locked)
 
 ## Verifiability & success criteria
 
@@ -59,7 +60,7 @@
 
 ## Ready determination
 
-- [x] Ready to proceed to downstream planning — **clarify round 1 CLOSED** (Q1 → A · Q2 → i · Q3 → a)
+- [x] Ready to proceed to downstream planning — **clarify round 1 CLOSED** (Q1 → A · Q2 → i · Q3 → a · Q4 → A)
 - [ ] A high-impact requirement gap must be closed first — **none remaining**
 
 **Note**: plan package final after the clarify fold. Next pipeline step is `/axb-technical-research` (its precondition is the spec; `/axb-spec-by-example` is **NOOP** — no user-facing journey). `/axb-system-analysis` must record this as a dev-surface structural refactor (0 CLI interfaces; api/data/dsl-refine NOOP).
