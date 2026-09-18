@@ -641,12 +641,18 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	// NAME SET is asserted, so a mutant that drops a call (or an edit that renames
 	// one) cannot slip through a hand-maintained counter the way M7 did — and a
 	// deleted call reds rather than silently passing (review N-2 / F-2).
+	//
+	// Ordering is load-bearing: these run BEFORE the `*updateBaseline` branch
+	// below, so `make verify-architecture-update` cannot launder a stale allow-list
+	// entry into a freshly generated baseline (review §1). Keep them ahead of it.
 	wantSelfTests := []string{"predicate", "allow-list", "tier-coverage", "sanctioned-in-use"}
 	var ranSelfTests []string
 	runSelfTest := func(name string, fn func(*testing.T)) {
-		if !t.Run(name, fn) {
-			return
-		}
+		// Record the ATTEMPT, not the pass: run the subtest then append its name
+		// unconditionally, so a genuine subtest failure reports itself at the
+		// subtest rather than surfacing as a misleading "self-test did not run"
+		// internal error (review N-1′).
+		t.Run(name, fn)
 		ranSelfTests = append(ranSelfTests, name)
 	}
 	runSelfTest("predicate", selfTestPredicate)                                              // RULE-A/B/C/D + RULE-E, synthetic (ADR 0011 D2 / ADR 0016 D1)

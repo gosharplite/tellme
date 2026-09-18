@@ -218,3 +218,12 @@
 - **N-3 [→ folded]** `unusedSanctioned` documents that it reads the **merged** (rule) graph — a test-only application-tier use keeps a sanctioned entry alive, **deliberately**.
 
 **Re-verified at the fold head `4c20c98`**: `gofmt` clean · `go vet ./...` clean · `make verify-architecture` **green** (RULE-A/B/C **0** + RULE-E **3** · 0 new · 0 stale · 0 cycles) · `go test -count=1 ./...` green · `make verify` OK · mutant re-run (gut `unusedSanctioned`) → **RED** at `allow-list`.
+
+
+### Fold-review #1 (PR #110 comment `5727200926` — ALL FOLDS VERIFIED, cleared for human merge; two fold-introduced nits + one durable-home request folded)
+
+- **N-1′ [→ folded]** `runSelfTest` recorded **passes**, not **attempts** (`if !t.Run(...) { return }`), so a genuinely failing subtest also produced a misleading `internal error: expected self-tests […] to run`. Now: `t.Run(name, fn); ranSelfTests = append(ranSelfTests, name)` — record the attempt; a real failure reports at the subtest. **Witness:** a forced `selfTestAllowList` failure now prints only `--- FAIL … /allow-list` (no internal-error line); M7′/M10′ stay red.
+- **N-2′ [→ folded]** the STATUS *Fold ledger* line now names both SHAs precisely (`reviewed d5ba1ae → fold 4c20c98 · ledger 8684941`).
+- **Durable-home request [→ folded]** the deferred **per-rule row split** (RULE-E → its own `techstack.md` row) is now recorded on a **live surface** — ADR 0016 **§Forward item** — not only in this frozen package (round-035 **G3** lesson). Plus the *"at 0 the ratchet has no release valve"* clause restored to the truth row (six-word insurance) and an in-code comment pinning the load-bearing self-test-before-`-update-baseline` ordering.
+
+**Re-verified at the fold-review head**: `gofmt` clean · `go vet ./...` clean · `make verify` **OK** · `go test -count=1 ./...` green (incl. e2e 63 s) · gate green (RULE-A/B/C 0 + RULE-E 3 · 0 new · 0 stale · 0 cycles) · N-1′ witness red at `/allow-list` only.
