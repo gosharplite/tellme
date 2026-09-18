@@ -41,10 +41,6 @@ func (f *fakeGateway) Complete(_ context.Context, req llm.Request) (llm.Response
 	return llm.Response{Text: f.text, Usage: f.usage}, f.err
 }
 
-func factoryReturning(gw llm.Gateway, err error) gatewayFactory {
-	return func(config.Provider, string, string) (llm.Gateway, error) { return gw, err }
-}
-
 // fakeStore is an in-memory history.Store for runTurn tests (round-007 TD-1).
 type fakeStore struct {
 	entries    []history.Entry
@@ -83,7 +79,7 @@ func TestRunTurn_PrintsRawAnswerAndPersists(t *testing.T) {
 	var out, errOut bytes.Buffer
 	fg := &fakeGateway{text: "the answer"}
 	st := &fakeStore{}
-	code := runTurn(resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}, st, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), factoryReturning(fg, nil))
+	code := runTurn(resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}, st, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithGateway(fg, nil))
 	if code != Success {
 		t.Fatalf("code = %d, want %d (success)", code, Success)
 	}
@@ -111,7 +107,7 @@ func TestRunTurn_CarriesPriorMessages(t *testing.T) {
 	var out, errOut bytes.Buffer
 	fg := &fakeGateway{text: "b2"}
 	st := &fakeStore{entries: []history.Entry{{Prompt: "q1", Answer: "a1"}}}
-	code := runTurn(resolution{Selected: "p"}, st, "q2", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), factoryReturning(fg, nil))
+	code := runTurn(resolution{Selected: "p"}, st, "q2", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithGateway(fg, nil))
 	if code != Success {
 		t.Fatalf("code = %d, want success", code)
 	}
@@ -126,7 +122,7 @@ func TestRunTurn_CarriesPriorMessages(t *testing.T) {
 func TestRunTurn_LoadErrorIsEnvironmentError(t *testing.T) {
 	var out, errOut bytes.Buffer
 	st := &fakeStore{loadErr: errors.New("boom")}
-	code := runTurn(resolution{Selected: "p"}, st, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), factoryReturning(&fakeGateway{text: "x"}, nil))
+	code := runTurn(resolution{Selected: "p"}, st, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithGateway(&fakeGateway{text: "x"}, nil))
 	if code != EnvironmentError {
 		t.Fatalf("code = %d, want %d (environment error)", code, EnvironmentError)
 	}
@@ -138,7 +134,7 @@ func TestRunTurn_LoadErrorIsEnvironmentError(t *testing.T) {
 func TestRunTurn_ProviderFailure(t *testing.T) {
 	var out, errOut bytes.Buffer
 	fg := &fakeGateway{err: &llm.ProviderError{Provider: "p", Err: errors.New("boom")}}
-	code := runTurn(resolution{Selected: "p"}, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), factoryReturning(fg, nil))
+	code := runTurn(resolution{Selected: "p"}, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithGateway(fg, nil))
 	if code != ProviderError {
 		t.Fatalf("code = %d, want %d (provider error)", code, ProviderError)
 	}
@@ -153,7 +149,7 @@ func TestRunTurn_ProviderFailure(t *testing.T) {
 func TestRunTurn_UnsupportedFamilyIsProviderError(t *testing.T) {
 	var out, errOut bytes.Buffer
 	buildErr := &llm.ProviderError{Provider: "p", Err: errors.New(`unsupported provider family "gemini"`)}
-	code := runTurn(resolution{Selected: "p"}, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), factoryReturning(nil, buildErr))
+	code := runTurn(resolution{Selected: "p"}, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithGateway(nil, buildErr))
 	if code != ProviderError {
 		t.Fatalf("code = %d, want %d (provider error)", code, ProviderError)
 	}
@@ -188,7 +184,7 @@ func TestRunTurn_PostTurnStatusFollowsAnswer(t *testing.T) {
 	res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Workspace: t.TempDir(), Provider: config.Provider{Model: "deepseek-v4-flash"}}
 	e := runtimeEnv{stdout: &buf, stderr: &buf, renderer: &stubRenderer{out: "ANSWER"},
 		clock: func() time.Time { return time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC) }}
-	if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, e, factoryReturning(fg, nil)); code != Success {
+	if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, e, depsWithGateway(fg, nil)); code != Success {
 		t.Fatalf("code = %d, want success", code)
 	}
 	out := buf.String()
@@ -224,7 +220,7 @@ func TestRunTurn_ToolLoopLogPrecedesAnswer(t *testing.T) {
 	e := runtimeEnv{stdout: &buf, stderr: &buf, renderer: &stubRenderer{out: "ANSWER"},
 		clock: func() time.Time { return time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC) }}
 	st := &fakeStore{}
-	if code := runTurn(res, st, "ping", turnOptions{raw: true}, e, factoryReturning(fg, nil)); code != Success {
+	if code := runTurn(res, st, "ping", turnOptions{raw: true}, e, depsWithTools(fg, noopTool{name: "read_files"})); code != Success {
 		t.Fatalf("code = %d, want success", code)
 	}
 	if len(st.appended) == 1 && st.appended[0].Calls != 2 {
@@ -248,7 +244,7 @@ func TestRunTurn_ChromeHeaderCountsCalls(t *testing.T) {
 	var out, errOut bytes.Buffer
 	fg := &fakeGateway{text: "the answer"}
 	st := &fakeStore{entries: []history.Entry{{Prompt: "q1", Answer: "a1", Calls: 2}}}
-	code := runTurn(resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}, st, "ping", turnOptions{raw: true, chrome: true}, env(&out, &errOut, &stubRenderer{}), factoryReturning(fg, nil))
+	code := runTurn(resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}, st, "ping", turnOptions{raw: true, chrome: true}, env(&out, &errOut, &stubRenderer{}), depsWithGateway(fg, nil))
 	if code != Success {
 		t.Fatalf("code = %d, want success", code)
 	}

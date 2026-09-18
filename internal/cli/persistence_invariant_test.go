@@ -7,6 +7,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/gosharplite/tellme/internal/app/deps"
 	"github.com/gosharplite/tellme/internal/config"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
@@ -18,6 +19,9 @@ import (
 // `result.Calls`, written by exactly ONE AppendBatch; on every error exit, and on
 // a completed turn whose final call reports no usage, NOTHING is persisted. The
 // per-call tail is display-only — it never adds a per-call append.
+//
+// Round 044: the package-level factory vars are gone; each subtest builds an
+// injected deps.Dependencies (the RF-1 fixture) instead of swapping globals.
 
 // capturingUsageStore is a history.UsageStore double capturing AppendBatch.
 type capturingUsageStore struct {
@@ -60,43 +64,31 @@ func (t noopTool) Execute(context.Context, string, domaintools.ByteBudget) (stri
 	return "ok", nil
 }
 
-// withUsageStore swaps the package usage-store factory for the test's lifetime.
-func withUsageStore(t *testing.T, us history.UsageStore) {
-	t.Helper()
-	prev := newUsageStore
-	newUsageStore = func(string) history.UsageStore { return us }
-	t.Cleanup(func() { newUsageStore = prev })
-}
-
-// withTestTooling swaps the tool registry and tool-usage store for hermetic runs.
-func withTestTooling(t *testing.T) {
-	t.Helper()
-	prevReg := newToolRegistry
-	newToolRegistry = func() domaintools.Registry {
-		return domaintools.NewRegistry(noopTool{name: "read_files"})
-	}
-	prevUsage := newToolUsageStore
-	newToolUsageStore = func() history.ToolUsageStore { return noopUsageStore{} }
-	t.Cleanup(func() {
-		newToolRegistry = prevReg
-		newToolUsageStore = prevUsage
+// persistenceDeps builds the deps for the persistence test: the noop read_files
+// tool, the noop tool-usage store, the given usage store, and the given gateway.
+func persistenceDeps(us history.UsageStore, gw llm.Gateway) deps.Dependencies {
+	return defaultTestDeps(func(d *deps.Dependencies) {
+		d.NewUsageStore = func(string) history.UsageStore { return us }
+		d.NewToolRegistry = func() domaintools.Registry {
+			return domaintools.NewRegistry(noopTool{name: "read_files"})
+		}
+		d.NewToolUsageStore = func(func() (string, error)) history.ToolUsageStore { return noopUsageStore{} }
+		d.NewGateway = func(config.Provider, string, string) (llm.Gateway, error) { return gw, nil }
 	})
 }
 
 func TestRunTurn_PersistenceInvariant(t *testing.T) {
-	withTestTooling(t)
 	toolCall := llm.ToolCall{ID: "c1", Name: "read_files", Arguments: `{"filepaths":["n.txt"],"reason":"r"}`}
 	res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Workspace: t.TempDir(), Provider: config.Provider{Model: "m"}}
 
 	t.Run("completed turn persists the Reported subset in one batch", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		us := &capturingUsageStore{}
-		withUsageStore(t, us)
 		fg := &fakeGateway{script: []llm.Response{
 			{ToolCalls: []llm.ToolCall{toolCall}, Usage: llm.Usage{Reported: false}},
 			{Text: "done", Usage: llm.Usage{Reported: true, PromptTokens: 42, CachedTokens: 4, CompletionTokens: 2}},
 		}}
-		if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), factoryReturning(fg, nil)); code != Success {
+		if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), persistenceDeps(us, fg)); code != Success {
 			t.Fatalf("code = %d, want success", code)
 		}
 		if us.appendCalls != 1 {
@@ -110,9 +102,8 @@ func TestRunTurn_PersistenceInvariant(t *testing.T) {
 	t.Run("error exit persists nothing", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		us := &capturingUsageStore{}
-		withUsageStore(t, us)
 		fg := &fakeGateway{err: &llm.ProviderError{Provider: "p", Err: errors.New("boom")}}
-		if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), factoryReturning(fg, nil)); code != ProviderError {
+		if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), persistenceDeps(us, fg)); code != ProviderError {
 			t.Fatalf("code = %d, want the provider error code", code)
 		}
 		if us.appendCalls != 0 {
@@ -123,9 +114,8 @@ func TestRunTurn_PersistenceInvariant(t *testing.T) {
 	t.Run("final call with no usage persists nothing", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		us := &capturingUsageStore{}
-		withUsageStore(t, us)
 		fg := &fakeGateway{text: "done", usage: llm.Usage{Reported: false}}
-		if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), factoryReturning(fg, nil)); code != Success {
+		if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), persistenceDeps(us, fg)); code != Success {
 			t.Fatalf("code = %d, want success", code)
 		}
 		if us.appendCalls != 0 {

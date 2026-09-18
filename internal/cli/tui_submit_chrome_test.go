@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gosharplite/tellme/internal/app/deps"
 	"github.com/gosharplite/tellme/internal/config"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
@@ -24,7 +25,7 @@ func TestRunTurn_EchoToggle(t *testing.T) {
 		fg := &fakeGateway{text: "ANSWER"}
 		e := runtimeEnv{stdout: &buf, stderr: &buf, renderer: &stubRenderer{out: "ANSWER"}, clock: clk}
 		res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}
-		if code := runTurn(res, &fakeStore{}, "hello world", turnOptions{raw: true, chrome: true, echo: echo}, e, factoryReturning(fg, nil)); code != Success {
+		if code := runTurn(res, &fakeStore{}, "hello world", turnOptions{raw: true, chrome: true, echo: echo}, e, depsWithGateway(fg, nil)); code != Success {
 			t.Fatalf("code = %d, want success", code)
 		}
 		out := buf.String()
@@ -56,17 +57,13 @@ func TestTUISubmitResumesChromeAndEchoes(t *testing.T) {
 	}
 	t.Setenv("TELL_ME_HOME", home)
 
-	origRunner := newTUIPromptRunner
-	defer func() { newTUIPromptRunner = origRunner }()
-	newTUIPromptRunner = func(_ context.Context, _ resolution, _ runtimeEnv) (string, bool, error) {
+	dp := defaultTestDeps(func(d *deps.Dependencies) {
+		d.NewGateway = func(config.Provider, string, string) (llm.Gateway, error) { return &fakeGateway{text: "ok"}, nil }
+		d.NewHistoryStore = func(string) history.Store { return &fakeStore{} }
+	})
+	opts := Options{Deps: dp, RunTUIPrompt: func(_ context.Context, _ resolution, _ runtimeEnv, _ deps.Dependencies) (string, bool, error) {
 		return "hi there", true, nil
-	}
-	origGw := newGateway
-	defer func() { newGateway = origGw }()
-	newGateway = func(config.Provider, string, string) (llm.Gateway, error) { return &fakeGateway{text: "ok"}, nil }
-	origStore := newHistoryStore
-	defer func() { newHistoryStore = origStore }()
-	newHistoryStore = func(string) history.Store { return &fakeStore{} }
+	}}
 
 	var out, errOut strings.Builder
 	e := runtimeEnv{
@@ -77,7 +74,7 @@ func TestTUISubmitResumesChromeAndEchoes(t *testing.T) {
 		renderer: &stubRenderer{out: "ok"},
 		clock:    func() time.Time { return time.Date(2026, 9, 15, 12, 0, 0, 0, time.UTC) },
 	}
-	if code := run([]string{"-i"}, "dev", e); code != Success {
+	if code := run([]string{"-i"}, "dev", opts, e); code != Success {
 		t.Fatalf("code = %d, want success; stderr=%q", code, errOut.String())
 	}
 	errs := errOut.String()

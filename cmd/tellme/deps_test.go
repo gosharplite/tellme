@@ -1,4 +1,4 @@
-package cli
+package main
 
 import (
 	"encoding/json"
@@ -6,10 +6,9 @@ import (
 	"testing"
 )
 
-// Round 024 T042 / round 029 / round 033: the production registry factory offers
-// exactly the seven agent tools — the three filesystem readers, the write pair
-// (write_file, replace_text), the command tool, and the read-only skills listing
-// tool (list_skills) — and never summarize_history or pipe_commands.
+// Round 044 (relocated from internal/cli by ADR 0013): the assembler gate and the
+// registry-set assertion now live next to the (relocated) production assembler
+// agentTools(). No stream assertions (cli.Run hard-binds os.Stdin/Stdout/Stderr).
 
 func TestNewToolRegistryOffersAgentTools(t *testing.T) {
 	reg := newToolRegistry()
@@ -27,7 +26,7 @@ func TestNewToolRegistryOffersAgentTools(t *testing.T) {
 		"list_skills":     true,
 	}
 	if len(got) != len(want) {
-		t.Fatalf("registry tools = %v; want exactly list_files, read_files, get_tree, write_file, replace_text, execute_command, list_skills", got)
+		t.Fatalf("registry tools = %v; want exactly the seven agent tools", got)
 	}
 	for name := range want {
 		if !got[name] {
@@ -41,11 +40,24 @@ func TestNewToolRegistryOffersAgentTools(t *testing.T) {
 	}
 }
 
+// TestNewTUIRegistryIsTheReaderTriplet pins round-044 fix-1: the `-i` suggestion
+// source consumes the three-reader registry, NOT the seven-tool agent registry.
+func TestNewTUIRegistryIsTheReaderTriplet(t *testing.T) {
+	got := newTUIRegistry()
+	if len(got.Tools()) != 3 {
+		t.Fatalf("TUI registry tools = %d, want 3", len(got.Tools()))
+	}
+	for _, tl := range got.Tools() {
+		switch tl.Name() {
+		case "list_files", "read_files", "get_tree":
+		default:
+			t.Errorf("unexpected TUI registry tool %q", tl.Name())
+		}
+	}
+}
+
 // schemaWellFormed reports whether params is a JSON-object argument schema whose
-// every `required` name is declared under `properties` (`required ⊆ properties`) —
-// the well-formedness a strict provider (Vertex/Gemini) enforces (round 031, issue
-// #64). An unparseable schema, a non-object schema, or a missing/non-object
-// `properties` section is an error (FR-007); an empty `required` passes vacuously.
+// every `required` name is declared under `properties` (`required ⊆ properties`).
 func schemaWellFormed(params json.RawMessage) error {
 	var root map[string]json.RawMessage
 	if err := json.Unmarshal(params, &root); err != nil {
@@ -73,12 +85,9 @@ func schemaWellFormed(params json.RawMessage) error {
 	return nil
 }
 
-// TestAgentToolSchemasAreWellFormed is the round-031 recurrence gate (issue #64):
-// it reads the NON-overridable production assembler agentTools() — NOT the
-// newToolRegistry var, a DI seam a test could override, which would let the gate
-// read a fake registry and pass vacuously (PR #65 ARCH-1) — and asserts every
-// advertised tool satisfies `required ⊆ properties`. It must fail non-vacuously
-// against the 5 violating tools until the shared schema builder is fixed.
+// TestAgentToolSchemasAreWellFormed is the round-031 recurrence gate (issue #64),
+// relocated with the assembler: it iterates the NON-overridable assembler
+// agentTools() and asserts `required ⊆ properties` for every tool (PR #65 ARCH-1).
 func TestAgentToolSchemasAreWellFormed(t *testing.T) {
 	if len(agentTools()) == 0 {
 		t.Fatal("agentTools() is empty — the well-formedness gate would pass vacuously")
@@ -88,9 +97,6 @@ func TestAgentToolSchemasAreWellFormed(t *testing.T) {
 			t.Errorf("tool %q: %v", tl.Name(), err)
 		}
 	}
-	// Belt-and-braces (PR #65 fold-review): the assembler the gate validates and the
-	// registry the transport sends must expose the same tool set, so the two cannot
-	// drift apart. Names only — the invariant above stays asserted on the assembler.
 	assembler := map[string]bool{}
 	for _, tl := range agentTools() {
 		assembler[tl.Name()] = true
@@ -109,23 +115,43 @@ func TestAgentToolSchemasAreWellFormed(t *testing.T) {
 	}
 }
 
-// TestSchemaWellFormedEdgeCases pins the gate's boundary behaviour the spec names
-// (FR-007): a zero-`required` schema passes vacuously; a non-object/unparseable or
-// property-less schema fails; a required name missing from properties fails.
+// TestSchemaWellFormedEdgeCases pins the gate's boundary behaviour (FR-007).
 func TestSchemaWellFormedEdgeCases(t *testing.T) {
 	if err := schemaWellFormed(json.RawMessage(`{"type":"object","properties":{"a":{"type":"string"}},"required":[]}`)); err != nil {
 		t.Errorf("a zero-required schema must pass vacuously: %v", err)
 	}
 	for _, bad := range []string{
-		`[]`,                                 // not an object
-		`"nope"`,                             // not an object
-		`{invalid`,                           // unparseable
-		`{"type":"object","required":["x"]}`, // no properties section
-		`{"type":"object","properties":[],"required":[]}`,              // properties not an object
-		`{"type":"object","properties":{"a":{}},"required":["a","b"]}`, // b not declared
+		`[]`,
+		`"nope"`,
+		`{invalid`,
+		`{"type":"object","required":["x"]}`,
+		`{"type":"object","properties":[],"required":[]}`,
+		`{"type":"object","properties":{"a":{}},"required":["a","b"]}`,
 	} {
 		if err := schemaWellFormed(json.RawMessage(bad)); err == nil {
 			t.Errorf("malformed schema %s must fail required ⊆ properties", bad)
 		}
+	}
+}
+
+// TestBuildDepsIsFullyWired is the composition-root smoke (round-044 fix-8): every
+// injected seam is non-nil, and UserHomeDir is wired to a non-nil resolver (RF-2).
+func TestBuildDepsIsFullyWired(t *testing.T) {
+	d := buildDeps()
+	if d.NewGateway == nil || d.NewHistoryStore == nil || d.NewUsageStore == nil ||
+		d.NewToolUsageStore == nil || d.NewPromptTracker == nil ||
+		d.NewToolRegistry == nil || d.NewTUIRegistry == nil ||
+		d.BindToolOutput == nil || d.BindSkillsCatalog == nil ||
+		d.NewMetricsProvider == nil || d.MCPDiscoverer == nil || d.UserHomeDir == nil {
+		t.Fatal("buildDeps() left a nil seam")
+	}
+	if _, err := d.UserHomeDir(); err != nil {
+		// A resolvable home is not required, but the resolver must be callable and
+		// non-nil (RF-2: GlobalPromptTracker.destPath calls it unguarded).
+		t.Logf("UserHomeDir() error (acceptable in a sandbox): %v", err)
+	}
+	opts := buildOptions()
+	if opts.Deps.NewGateway == nil {
+		t.Fatal("buildOptions() did not carry the deps")
 	}
 }
