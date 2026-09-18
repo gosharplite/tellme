@@ -853,3 +853,88 @@ The delivery + review chain + end-of-day closeout for round 049: the implementat
 **Next steps**: open round **`050-*`** off `dev` — recommended **sub-slice 2** (the `AgentLoop` construction/execution inversion; the **baseline-moving** round **2 → 1**; now provably edge-sized; its DoD names **two** ratchet removals and must scope the R-1 cross-slice coupling at `cli.go:699-745`). Re-read `SESSION-BOOTSTRAP.md` next session.
 
 **PM follow-ups**: none new (no user-facing business journey — a structural contract relocation; the spec/acceptance boundary is RD-side).
+
+---
+
+## Session 24 (2026-09-18, cont.) — round 050 `050-agentloop-construction-inversion` (sub-slice 2 of [#101](https://github.com/gosharplite/tellme/issues/101); R5.4 of [#92](https://github.com/gosharplite/tellme/issues/92)): full pipeline → implementation → PR #113 → review + fold + fold-verification → **FINAL CERTIFICATION → merged**; closeout
+
+A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 049 delivered/frozen), opened round **050** — the **sub-slice 2** (the **baseline-moving** slice) of the re-cut `cli → agent` de-coupling, ran the full AIxBDD pipeline (clarify **one question at a time**, Q1–Q4), executed the implementation (`/axb-tasks` → `/axb-implement`), opened **PR [#113](https://github.com/gosharplite/tellme/pull/113)**, took it through the **review → fold `efc842b` → fold-verification → fold `c22ce0c` → FINAL CERTIFICATION** chain to **MERGE-READY**, saw the **human merge** into `dev` (`09d0145`), deleted the round branch, and ran `SESSION-CLOSEOUT.md` (Steps 1–8). The installed binary was refreshed.
+
+**Workspace**: `$TELL_ME_HOME` = `…/mbp-johndoe-niffler/ait-tellme`; **darwin/arm64** host (Go 1.26.6). **Session mode**: `butler`.
+**Branch**: `050-agentloop-construction-inversion` (off `dev` `684e41e`) → merged via PR [#113](https://github.com/gosharplite/tellme/pull/113) into `dev` (`09d0145`; frozen head `0406c29`, fold head `c22ce0c`) → propagated `dev → main`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 049 delivered/frozen; active branch `dev`) |
+| Round-050 theme | the **sub-slice 2** of the `cli → agent` de-coupling — invert the surviving `AgentLoop` **construction/execution** (`cli.go:699`, one construction site) into an injected **domain port**; RULE-E baseline **2 → 1**; **ADR 0019** |
+| Clarify (one at a time) | **Q1 → A** port-only (the `ui` wiring stays in the CLI) · **Q2 → (i)** domain `Loop` interface + `LoopSpec` + func-typed `LoopFactory`; adapter `agent.NewLoop` · **Q3 → (a)** CLI supplies `Lines`/observer domain-typed · **Q4 → A** CLI tests adopt a fake `agentport.Loop` (RULE-E is **merged-graph**) |
+| Pipeline | specify ✅ · clarify ✅ (Q1–Q4) · spec-by-example **NOOP** · technical-research ✅ (+ `techstack.md` MODIFY ×2 + **ADR 0019**) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T015; orphan sweep 0) · implement ✅ |
+| Deliverable | `internal/domain/agent/{loop.go,loop_test.go}` (NEW) · `internal/agent/{newloop.go,newloop_test.go}` (NEW) · `internal/app/deps/deps.go` (`LoopFactory`) · `cmd/tellme/deps.go` (binds `agent.NewLoop`) · `internal/cli/cli.go` (+4 test files → `fakeLoop`) · `tools/arch/{arch_test.go,baseline.txt}` (**2 → 1** + RULE-F key removed) |
+| Review chain (PR #113) | review `5729158742` — **APPROVE WITH NON-BLOCKING FOLDS** (no blocker; TD-1 a merge-gate item) → fold `efc842b` (**TD-1** 9-field `NewLoop` parity test; **TD-2(i)** restore `HasSuffix`; **TD-2(ii)** `finals []bool` + `TestRunTurn_NonFinalTailPrecedesAnswer`; **TD-2(iii)** witness-owner record; **TD-3** Registry-identity invariant; **TD-4** STATUS; **RF-1** growth rule; N-1…N-4) → fold verification `5729318163` — **FOLDS VERIFIED** (mutation-tested) + F-1…F-2/N-5 → fold `c22ce0c` (**F-1** wrong-package owner pointer → 3 sites; **F-2** spec wording; **N-5** `samePtr` caveat) → `0406c29` → **FINAL CERTIFICATION** `5729389398` — **MERGE-READY · review loop CLOSED** |
+| Merge | PR [#113](https://github.com/gosharplite/tellme/pull/113) **MERGED** into `dev` (`09d0145`, by `gosharplite`); **23 files, +1087/−90, 11 commits**; remote + local round branch **deleted** |
+| Propagation | `dev → main` — **DONE (no-ff)** at this closeout |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `09d0145`; `--version` → `dev` |
+| Closeout | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** (RULE-E baseline **1**, 0 new / 0 stale; RULE-A/B/C **0**; 0 cycles; RULE-F `→ ui` **19** + no `→ agent` key; 8/8 self-tests; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (24 pkgs; E2E ~56 s) · diff-level secret scan clean · `STATUS.md` split (Rule 12: round-049 detail + row + env note → `docs/archives/status/2026-09-18.md`) · **#101 body revised** (R5.4 delivery) |
+
+### Decisions locked (round 050)
+
+| # | Decision |
+| --- | --- |
+| Q1 → A | **Port-only** inversion — the `→ agent` construction inverts to a domain port; the `ui` wiring stays in `internal/cli`; the `→ ui` edge is the later slice. Baseline **2 → 1**. |
+| Q2 → (i) | Domain **interface** `agentport.Loop` (`Run(ctx, prompt, prior) (Result, error)`) + domain **`LoopSpec`** (the loop struct's 9 fields) + a **func-typed** `LoopFactory` in `deps.Dependencies`; adapter `agent.NewLoop` in `internal/agent` (tier 4, downward). `Validate()`'s `Kind()==reflect.Func` covers the new func-typed field (no interface-seam assertion). |
+| Q3 → (a) | The CLI supplies `Lines` (`ui.ToolLineRenderer{}`) + the composite observer as **domain-typed** `LoopSpec` inputs — behaviour-preserving; why the `→ ui` edge survives. |
+| Q4 → A | **RULE-E is merged-graph** (production + in-process test), so the CLI **test** surface must also leave `internal/agent` → the fixture's `LoopFactory` returns an **in-package fake `agentport.Loop`**; real-loop coverage stays in `internal/agent` + the godog E2E. |
+| DoD | **TWO** ratchet removals (ADR 0018 fold F-4): the RULE-E baseline line **and** the RULE-F `couplingSurface["internal/cli -> internal/agent"]` key; the `→ ui` line/surface byte-identical at **19**. |
+| Forward | the **`cli → ui`** edge (last RULE-E residual; ≥ edge-sized; likely a re-cut); at baseline **0** after it the ratchet has **no release valve**; **F-6/F-7/F-8** → [#101](https://github.com/gosharplite/tellme/issues/101). |
+
+### Commits (branch `050-agentloop-construction-inversion`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `d74631b` | `docs(050)`: plan package + spec (clarify Q1 open) |
+| `a25f4c7` | `docs(050)`: fold clarify Q1 → A |
+| `2e69cd2` | `docs(050)`: fold clarify Q2 → (i) |
+| `0ebcf77` | `docs(050)`: fold clarify Q3 → (a); clarify CLOSED |
+| `d7cd99a` | `docs(050)`: technical research (D1–D12) + ADR 0019 + techstack MODIFY ×2 + truth-delta; surface Q4 |
+| `bbb4f80` | `docs(050)`: fold clarify Q4 → A (fake `agentport.Loop`; RULE-E merged-graph) |
+| `a5bcc66` | `feat(050)`: invert the `AgentLoop` construction into the injected domain port — RULE-E 2 → 1 + RULE-F `→ agent` key removed (T001–T015) |
+| `2f63459` | `docs(050)`: STATUS — PR #113 open |
+| `efc842b` | `fold(050)`: PR #113 review — TD-1/TD-2(i)(ii)(iii)/TD-3/TD-4/RF-1/N-1…N-4 |
+| `c22ce0c` | `fold(050)`: PR #113 fold-verification — F-1/F-2/N-5 |
+| `0406c29` | `docs(050)`: STATUS — fold-chain note (merge head) |
+| `09d0145` | PR [#113](https://github.com/gosharplite/tellme/pull/113) merge into `dev` (by `gosharplite`) |
+| *(this closeout, on `dev`)* | `docs(050)`: day close — round 050 delivered + STATUS split + daily summary |
+
+### Artifacts / truth
+
+- Plan package: `specs/plans/050-agentloop-construction-inversion/` — `spec.md` (US1–US3 · FR-001…012 · NFR-001/002 · SC-001…006 · Q1–Q4) · `checklists/requirements.md` · `research.md` (D1–D12 + D4b) · `plan.md` · `tasks.md` (T001–T015) · `truth-delta.md`.
+- Truth: `specs/truth/techstack.md` MODIFY ×2 (Layer-discipline gate row — baseline **2 → 1** + RULE-F key removal; Agent tool loop row — construction home + witness-owner record).
+- Governance: **ADR 0019** (`docs/decisions/0019-agentloop-construction-inversion.md` + index row).
+- Code: `internal/domain/agent/{loop.go,loop_test.go}` (NEW) · `internal/agent/{newloop.go,newloop_test.go}` (NEW) · `internal/app/deps/deps.go` · `cmd/tellme/deps.go` · `internal/cli/cli.go` + 4 CLI test files · `tools/arch/{arch_test.go,baseline.txt}`. **No new dependency**; `go.mod`/`go.sum`/`Makefile` unchanged.
+
+### Verification (2026-09-18, on `dev` @ `09d0145`)
+
+- `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (incl. `verify-architecture`: RULE-E baseline **1**, 0 new / 0 stale; RULE-A/B/C **0**; **0** cycles; RULE-F `→ ui` **19** (0 new / 0 stale), no `→ agent` key; 8/8 named self-tests; lint 0; govulncheck clean; cross-compile 4/4).
+- `go test -count=1 ./...` green — **24 packages `ok`, 0 FAIL** (incl. the ~56 s godog E2E).
+- CLI production `→ internal/agent` references = **0**; the two ratchet removals stand.
+- Diff-level secret scan clean; `go.mod`/`go.sum`/`Makefile` unchanged.
+
+### Open items (non-blocking)
+
+- **Round-050 forward items** — (a) the **`cli → ui`** edge (last RULE-E residual; ≥ edge-sized; a re-cut — ADR 0017 §Forward); at baseline **0** after it → **no release valve** (ADR 0011/0016); (b) **F-6/F-7/F-8** → [#101](https://github.com/gosharplite/tellme/issues/101); (c) the `Options`/`Dependencies` `Validate()` interface-seam caveat (**latent** — the `LoopFactory` field is func-typed); (d) **RULE-F** metric = distinct **selectors**, not call sites (N-8); production-only scope (F-3); (e) `cmd/tellme` single-assembly-site upheld by **review discipline** only.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; round-011 items; the round-022 row→feature audit blind spot → **#91**; round-047 items (b)–(d).
+
+### Next steps
+
+1. Open round **`051-*`** off `dev` via `/axb-specify` — recommended: the **`cli → ui`** slice (the **last** RULE-E residual; **not** edge-sized → a **re-cut**: value types (`ui.Pricing`/`ui.UsageCounts`/`ui.ToolUsageRow`) → `internal/domain/**` first, then the renderer factory) — or a ride-along / **F-6/F-7/F-8**.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no user-facing business journey — a structural construction inversion; the spec/acceptance boundary is RD-side).
+
+### Issue tracker (closeout Step 8)
+
+Reconciled against the delivered state: **[#101](https://github.com/gosharplite/tellme/issues/101) OPEN** — R5.4 sub-slice 2 delivered (PR [#113](https://github.com/gosharplite/tellme/pull/113) merged `09d0145`); the body revised to record R5.4 + the remaining **`cli → ui`** edge + **F-6/F-7/F-8**; **[#92](https://github.com/gosharplite/tellme/issues/92) OPEN** (R1–R5 delivered; ride-alongs remain, accurate); **[#103](https://github.com/gosharplite/tellme/issues/103)** · **[#91](https://github.com/gosharplite/tellme/issues/91)** · **[#13](https://github.com/gosharplite/tellme/issues/13)** open (accurate). No closes (round 050 is a slice of the open R5 programme).
