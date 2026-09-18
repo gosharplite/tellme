@@ -42,20 +42,13 @@ func (c compositeObserver) OnCallBegin(callIndex int, messages []llm.Message) {
 // spinner — keeping the final path byte-identical.
 func (c compositeObserver) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []string, final bool) {
 	if !final {
-		c.yieldIndicatorBeforeTail()
+		// Round 045 (F-1): route the tail yield through the SAME yield method the
+		// port forward uses (YieldIndicator) — one route, no second copy. It is
+		// clear-only: this boundary does NOT restore (see the doc above).
+		c.YieldIndicator()
 	}
 	if c.call != nil {
 		c.call.OnCallEnd(callIndex, usage, roundReasons, final)
-	}
-}
-
-// yieldIndicatorBeforeTail synchronously clears the progress indicator so a
-// non-final tail write starts on its own cleared line (round 035). It is
-// nil-safe (a gated-off spinner is a no-op). It deliberately does NOT resume —
-// see OnCallEnd for why (the phase boundary owns re-activation).
-func (c compositeObserver) yieldIndicatorBeforeTail() {
-	if c.spinner != nil {
-		c.spinner.BeforeToolLog()
 	}
 }
 
@@ -87,17 +80,20 @@ func (c compositeObserver) OnToolsEnd() {
 	}
 }
 
-// BeforeToolLog yields the line to a tool-loop log write via the spinner.
-func (c compositeObserver) BeforeToolLog() {
+// YieldIndicator forwards the loop's yield hook (clear-only) to the spinner
+// half. Round 045: this is the single vocabulary for a yield — the loop's direct
+// log writes and this composite's per-call tail both reach the spinner through
+// it (the yield POLICY lives with ui.YieldController; ADR 0014).
+func (c compositeObserver) YieldIndicator() {
 	if c.spinner != nil {
-		c.spinner.BeforeToolLog()
+		c.spinner.YieldIndicator()
 	}
 }
 
-// AfterToolLog restores the spinner after a tool-loop log write.
-func (c compositeObserver) AfterToolLog() {
+// RestoreIndicator forwards the loop's restore hook (resume) to the spinner half.
+func (c compositeObserver) RestoreIndicator() {
 	if c.spinner != nil {
-		c.spinner.AfterToolLog()
+		c.spinner.RestoreIndicator()
 	}
 }
 

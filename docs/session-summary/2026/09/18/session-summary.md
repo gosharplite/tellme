@@ -367,3 +367,91 @@ Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 043 delivered/frozen; ac
 
 ### Issue tracker (closeout Step 8)
 Reconciled against the delivered state: **[#100](https://github.com/gosharplite/tellme/issues/100) CLOSED (completed)** — R2 delivered by round 044 (PR [#104](https://github.com/gosharplite/tellme/pull/104) merged `8da0b88`; DoD `make verify-architecture` green, baseline 8 → 1); **[#101](https://github.com/gosharplite/tellme/issues/101)** open — R5 strict de-coupling + the PR #104 review deferrals **F-4/F-6/F-7/F-8** (body updated); **[#103](https://github.com/gosharplite/tellme/issues/103)** open (new) — the `-l` ignores `-c` + no `-t` plumbing gap found by the first `tellme` grill round; **[#92](https://github.com/gosharplite/tellme/issues/92)** open — **R1 + R2 delivered**, R3/R4 + ride-alongs remain (accurate); **[#91](https://github.com/gosharplite/tellme/issues/91)** open; **[#13](https://github.com/gosharplite/tellme/issues/13)** open; PR #16 **Obs 1** open.
+
+---
+
+## 5. Session 19 (2026-09-18) — round 045 `045-yield-policy-owner` (R3 of #92): full pipeline → implementation → PR #106 (open)
+
+A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 044 delivered/frozen; active branch `dev`), opened round **045** from issue **[#105](https://github.com/gosharplite/tellme/issues/105)** (R3 of [#92](https://github.com/gosharplite/tellme/issues/92) — the yield-policy owner + `LoopObserver` hook split), ran the full AIxBDD pipeline, delivered the implementation, and opened **PR [#106](https://github.com/gosharplite/tellme/pull/106) → `dev`** (human-only merge).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`); linux host. **Branch**: `045-yield-policy-owner` (off `dev`) — **PR [#106](https://github.com/gosharplite/tellme/pull/106) open**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 044 delivered/frozen; active branch `dev`) |
+| Round-045 theme | give the **spinner-yield policy** one named owner + split the overloaded `LoopObserver` tool-log hooks ([#105](https://github.com/gosharplite/tellme/issues/105), R3 of [#92](https://github.com/gosharplite/tellme/issues/92)) |
+| Clarify | **C-R3-1 … C-R3-6** locked (owner = `internal/ui` `YieldController`; loop keeps the port; the log-named pair is **replaced**; baseline stays **1**; unit pins only; records stay records) |
+| Pipeline | specify ✅ · spec-by-example **NOOP** · technical-research ✅ (+ **ADR 0014**) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T010) · implement ✅ |
+| Product | `internal/ui/yield.go` (NEW — the `YieldController` owner) · `internal/domain/agent/observer.go` (the split pair) · `internal/ui/{spinner.go,coordinator.go}` · `internal/cli/composite_observer.go` · `internal/agent/agentloop.go` |
+| Verification | `make verify` **OK** (`verify-architecture` **0 new / 0 stale**, baseline **1**; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (**228 scenarios · 1698 steps**) · `go test -race ./internal/ui/...` green · topology audit **PASSED & unchanged** (44 · 16+327 · 1674) |
+| Delivery | branch `045-yield-policy-owner`; **PR [#106](https://github.com/gosharplite/tellme/pull/106) open — human-only merge** (`git log --oneline dev..HEAD` and the PR are the authorities for head/commits) |
+
+### Decisions locked (round 045)
+
+| # | Decision |
+| --- | --- |
+| C-R3-1 | The yield policy gets **one named owner**: `internal/ui` **`YieldController`** (`Yield` clear-only / `Restore` resume / `Admit` goroutine-drawn resume; nil-safe; `Enabled()`). |
+| C-R3-2 | The loop **keeps calling the port** (option A) — behaviour-preserving by construction. |
+| C-R3-3 | The log-named pair is **replaced** (no alias): `Before/AfterToolLog` → `YieldIndicator`/`RestoreIndicator`. |
+| C-R3-4 | The `internal/agent -> internal/ui` baseline entry **stays 1** (R4's DoD, 1 → 0): the loop's `internal/ui` import is formatting + predicate, not the yield port. |
+| C-R3-5 | Witness = **unit ordering pins** + ADR 0014 — **no** new E2E Example (a flat capture cannot witness a clear/resume order). |
+| C-R3-6 | The two `#92` records (one-concurrent-block; `End`-while-write-stalled) stay records. |
+| — | **ADR 0014** records the owner + the split; **amends ADR 0005 D1** by reference (no ADR superseded); `specs/truth/techstack.md` MODIFY ×2. |
+
+### Commits (branch `045-yield-policy-owner`)
+
+| Commit | Note |
+| --- | --- |
+| `955847e` | `docs(045)`: plan package + spec + research + plan + tasks |
+| `50fac0f` | `docs(045)`: truth — yield hook split + single-owned yield policy (ADR 0014) |
+| `6523e6d` | `feat(045)`: single-owned yield policy + `LoopObserver` hook split |
+
+### Falsifiability witnesses (reproduced then reverted, ADR 0010)
+
+- **(a)** drop the Y2 tail yield ⇒ `TestCompositeOnCallEndYieldsSpinnerBeforeNonFinalTail` fails (`[call.OnCallEnd]`, want `[spinner.yield, call.OnCallEnd]`).
+- **(b)** resume after the Y2 tail ⇒ the E2E residue pin fails **2 scenarios** — the *reproduced* round-035 result: clear+resume **relocates** the residue.
+- **(c)** make the owner self-locking ⇒ the coordinator stress reds (2 tests).
+
+### Open items (non-blocking)
+
+- **Propagation PENDING** — `dev → main` after a human merges PR #106; then close **#105** at closeout (Step 8).
+- **Round-045 forward items** — `YieldController` is the single entry point; a future yield primitive outside it would re-scatter the policy (recorded in ADR 0014 + the plan Edge Cases).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; older-round forward items in the archives.
+
+### Next steps
+
+1. **Human merges PR [#106](https://github.com/gosharplite/tellme/pull/106)** → propagate `dev → main` (no-ff) → close **#105** → `SESSION-CLOSEOUT.md`.
+2. Open round **`046-*`** off `dev` — recommended: **R4** of [#92](https://github.com/gosharplite/tellme/issues/92) (blank-reason owner + presentation predicate; removes the last baseline entry, 1 → 0).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `045-yield-policy-owner` until merged, then `dev`).
+
+### PM follow-ups
+
+- None new (no user-facing business journey — a structural/architecture round; spec/acceptance boundary is RD-side).
+
+### Issue tracker (session 19, in flight — not a closeout)
+
+- **[#105](https://github.com/gosharplite/tellme/issues/105) OPEN** — the round's anchor; closes only on **delivery** (after the PR merges). [#92](https://github.com/gosharplite/tellme/issues/92) open (R1+R2 delivered; R3 in flight; R4 + ride-alongs remain); [#101](https://github.com/gosharplite/tellme/issues/101) · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) open. **No closes/revises this session** (nothing landed).
+
+### Session 19 (cont.) — PR #106 review fold (`ef0c7ec`)
+
+The architectural review ([#5724573489](https://github.com/gosharplite/tellme/pull/106#issuecomment-5724573489)) returned **APPROVE WITH REQUIRED FOLDS, no blocker**; the folds landed as `ef0c7ec`:
+
+| Fold | Change |
+| --- | --- |
+| **F-1** (code) | `compositeObserver.OnCallEnd` → `c.YieldIndicator()`; the duplicate private route `yieldIndicatorBeforeTail` **deleted** (rationale folded into `OnCallEnd`'s doc). |
+| **F-2** | `truth-delta.md` grep evidence restated **as measured** (only `techstack.md`'s own round-045 sentence in `specs/truth/**`; `features/**` zero). |
+| **F-3** (option b) | ADR 0014 names the exact D1 clause it narrows (D1's call-hooks + renderer/accounting ownership unchanged; the unnamed yield policy is now owned). |
+| **F-4** | `research.md` D2 corrected — the mechanism's visibility is **unchanged**. |
+| **F-5 / F-6 / witness (c)** | `yield.go` names the three construction sites; daily-log head/count dropped; `spec.md` FR-012 gains `STATUS.md` + the day summary; the witness-(c) lock-order relation recorded in ADR 0014. |
+
+**Re-verification at `ef0c7ec`**: `go test -count=1 ./internal/cli/ -run TestComposite` ok · the `-tags=arch` gate ok (baseline still 1) · **`make verify` OK** · `go test -count=1 ./internal/...` green · `gofmt -l .` clean.
+
+### Session 19 (cont.) — PR #106 fold review (F-7 + N-1/N-2)
+
+The fold review ([#5724691676](https://github.com/gosharplite/tellme/pull/106#issuecomment-5724691676)) **verified every fold (F-1…F-4, F-5/F-6, witness (c))** and **CLOSED the review loop — CERTIFIED MERGE-READY**, leaving **F-7** (a `STATUS.md` self-contradiction) + two record nits. All three landed:
+
+- **F-7** — `STATUS.md`:39 (*"no round is in flight"*) → *"round 045 is IN FLIGHT (PR #106)"*; the roadmap `045 candidate` row → a **045 (In flight)** row + a **`046 candidate` = R4** row. No two surfaces now disagree about which round is live.
+- **N-1** — `truth-delta.md`'s F-2 residual wording: dropped the wrong package enumeration (`035-…, 036-…`) → *"the frozen plan packages of the rounds that introduced them (019 / 022 / 034 / 035 / 040)"*, with the `chat/dsl.md`-notes-without-hook-names nuance recorded.
+- **N-2** — the daily-log delivery row drops the commit count entirely (git/PR are the authorities).
