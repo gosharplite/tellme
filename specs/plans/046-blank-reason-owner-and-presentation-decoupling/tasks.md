@@ -46,7 +46,7 @@ _(omitted — stdlib-only; no new technology; `go.mod`/`go.sum` unchanged)_
 
 ## Phase 5 — Truth, governance, close-out
 
-- [ ] **T011** — Land the truth + governance: `specs/truth/techstack.md` (the two MODIFY rows), confirm `docs/decisions/0015-loop-presentation-port.md` + the index row, mark `tasks.md` `[X]`, update `STATUS.md` + the daily summary, and open the PR.
+- [X] **T011** — Land the truth + governance: `specs/truth/techstack.md` (the two MODIFY rows), confirm `docs/decisions/0015-loop-presentation-port.md` + the index row, mark `tasks.md` `[X]`, update `STATUS.md` + the daily summary, and open the PR.
 
 ## Pre-Delivery Orphan Coverage Sweep
 
