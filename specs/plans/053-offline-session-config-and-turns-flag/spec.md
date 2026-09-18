@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — **clarify round 1: Q1 CLOSED** (Q1 → **(C1)**: `tellme` writes its **own** `turns.log` — its rendered turn chrome — and `-t` prints it), **Q2 OPEN** (the explicit-`-c` load-failure policy). Produced by `/axb-specify`; Q1 folded via `/axb-clarify`.
+**Status**: Draft — **clarify round 1 CLOSED**: **Q1 → (C1)** (`tellme` writes its **own** `turns.log` — its rendered turn chrome — and `-t` prints it); **Q2 → (A)** (an **explicit** `-c` that cannot be honoured **fails**; an absent default stays tolerant). Produced by `/axb-specify`; Q1/Q2 folded via `/axb-clarify`.
 
 **Input**: [#103](https://github.com/gosharplite/tellme/issues/103) — *"`-l` ignores `-c` for session selection (+ no `-t`) — blocks the documented agent-to-agent grill/chat plumbing on `tellme`"* — plus the operator's tasking: *"let fix below items: (1) `-c` needs to work when using `-l` or `--new`; (2) need `-t` (turns-log) flag."*
 
@@ -59,7 +59,13 @@ Measured 2026-09-19 @ `dev` `f9253a7` (a static read; the round re-measures at i
 | # | Question | Options | Status |
 | --- | --- | --- | --- |
 | **Q1** | **What does `-t` print, and who writes it?** `tellme` has no `turns.log` today. | **(A)** print the existing `tokens.log` (per-call usage) · **(B)** print a turn trace projected from `history.jsonl` · **(C)** `tellme` **writes its own `turns.log`** and `-t` prints it — with **(C1)** recording **tellme's own rendered chrome** (the existing, E2E-pinned turn/status/metrics lines) or **(C2)** reproducing `tell-me-go`'s exact bytes. | ✅ **CLOSED — (C1)** |
-| **Q2** | **`-c` load failure on an offline session command**: when `-c <file>` is given but the file is missing/invalid, should `-l`/`--new`/`-t` **fail** (like the prompt path's `reasonConfigMissing`/`reasonConfigInvalid`) or **fall back** to the default/`butler` (today's tolerant behaviour)? | **(A)** Fail on an **explicit** `-c` (the user named it); still tolerate an **absent default**. **(B)** Always fall back (status quo tolerance). | **OPEN** |
+| **Q2** | **`-c` load failure on an offline session command**: when `-c <file>` is given but the file is missing/invalid, should `-l`/`--new`/`-t` **fail** or **fall back** to the default/`butler` (today's tolerant behaviour)? | **(A)** Fail on an **explicit** `-c` (the user named it); still tolerate an **absent default**. **(B)** Always fall back (status quo tolerance). | ✅ **CLOSED — (A)** |
+
+### Q2 → (A) (LOCKED) — an explicit `-c` that cannot be honoured FAILS
+
+**Decision**: when `-c <path>` is **explicitly given** and cannot be read/parsed, the offline session commands (`-l`, prompt-less `--new`, `-t`) **fail** with an existing config-error phrase and a non-zero exit — mirroring the prompt path's `reasonConfigMissing` / `reasonConfigInvalid`. When **no** `-c` is given, the tolerant default-config fallback (`TELL_ME_MODE` → default → `butler`) is **preserved** (round-007).
+
+**Rationale**: exactly the failure mode [#103](https://github.com/gosharplite/tellme/issues/103) is about — a named `-c` silently reading the **default** session with exit 0 is "plausible-but-wrong". An explicit `-c` is a user assertion; honouring it or failing loudly are the only honest outcomes. `TELL_ME_MODE` still wins over `-c` (the golden rule, [#103](https://github.com/gosharplite/tellme/issues/103) AC2) — so the failure applies only when the mode is actually needed from `-c` (env unset).
 
 ### Q1 → (C1) (LOCKED) — `tellme` writes its own `turns.log`; `-t` prints it
 
@@ -132,7 +138,7 @@ As an **orchestrator agent**, I want `tellme -t -c "<target>.yaml"` to print the
 ### Global Requirements *(cross-story only)*
 
 - **FR-008**: `-l`, prompt-less `--new`, and `-t` MUST keep the offline session-command contract: no configuration/provider **resolution** beyond the mode read, no network, no `TELL_ME_MODE` override regression.
-- **FR-009**: The change MUST NOT widen the frozen `tellme: {phrase}` stderr vocabulary; any new diagnostic (if Q2 → fail) MUST reuse an existing phrase.
+- **FR-009**: When `-c` is **explicitly given** and cannot be read/parsed, `-l` / prompt-less `--new` / `-t` MUST **fail** with an existing config-error phrase and a non-zero exit (Q2 → (A)); the failure MUST NOT widen the frozen `tellme: {phrase}` stderr vocabulary. When **no** `-c` is given, the tolerant default fallback MUST be preserved (round-007).
 - **FR-010**: A new **ADR** MUST record the round's decisions (the mode-resolution precedence; the `turns.log` artifact + write site; the explicit-`-c` policy per Q2), indexed in `docs/decisions/README.md`; `specs/truth/techstack.md`, the data model (`specs/truth/data/data-model.dbml`), and the CLI interface truth (`specs/truth/features/cli/**`) updated through `truth-delta.md`.
 - **FR-011**: The round MUST introduce **no** new dependency (`go.mod`/`go.sum` unchanged).
 - **FR-012**: Falsifiability witnesses MUST be reproduced then reverted (ADR 0010): (a) revert `-c`'s mode read ⇒ the differential retrieve fails (identical output for two configs); (b) revert `turns.log`'s write ⇒ `-t` finds no file; (c) revert `-t`'s `-c` resolution ⇒ `-t` reads the default session.
@@ -145,9 +151,9 @@ As an **orchestrator agent**, I want `tellme -t -c "<target>.yaml"` to print the
 - **`-t` combined with `-l`** — the `dispatchReporting` precedence order (`-d` → `-l` → `--tool-usage`, `cli.go:876-891`) must define where `-t` sits; a combined invocation MUST resolve deterministically (proposed: `-t` joins the offline-session group, ordered after `-l`; recorded in `plan.md`).
 - **`-t` + `--new`** — `--new` archives the session (including `turns.log`) **before** the `-t` read resolves; the resulting empty/fresh log is success (documented; `--new` wins the mutation).
 - **`turns.log` write failure** — a session whose log cannot be written MUST NOT fail the turn (best-effort, like the usage log); recorded forward.
-- **`TELL_ME_MODE` set + `-c`** — env MUST still win (AC2).
-- **`-c` file absent/invalid** — behaviour per clarify Q2; must not silently reintroduce the gap-1 failure.
-- **Absent default config** — `-l`/`--new`/`-t` MUST keep working (round-007 tolerance).
+- **`TELL_ME_MODE` set + `-c`** — env MUST still win (AC2); the explicit-`-c` failure (FR-009) applies only when the mode is actually needed from `-c`.
+- **`-c` file absent/invalid** — an **explicit** `-c` that cannot be honoured **fails** with an existing config-error phrase (Q2 → (A)); it MUST NOT silently fall back to the default session.
+- **Absent default config (no `-c`)** — `-l`/`--new`/`-t` MUST keep working (round-007 tolerance).
 - **`-c` path** — `-c` may be relative or absolute; resolution MUST match the prompt path's handling of `opts.configPath` (whatever `config.Load` accepts).
 - **Chrome sanitization** — `turns.log` MUST NOT carry ANSI/control bytes (round-038 discipline); a sanitized line is emitted byte-identically to the diagnostic stream's plain text.
 

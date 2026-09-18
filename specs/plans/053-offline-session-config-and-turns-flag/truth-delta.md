@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked and names what it inspected.
 >
-> **Status**: skeleton initialized by `/axb-specify`. **Clarify round 1: Q1 CLOSED** (Q1 → **(C1)**: `tellme` writes its own `turns.log` — its rendered chrome — and `-t` prints it), **Q2 OPEN**. No truth has been written yet.
+> **Status**: skeleton initialized by `/axb-specify`. **Clarify round 1 CLOSED** — **Q1 → (C1)** (`tellme` writes its own `turns.log` — its rendered chrome — and `-t` prints it); **Q2 → (A)** (an explicit `-c` that cannot be honoured fails; an absent default stays tolerant). No truth has been written yet.
 
 ## /axb-technical-research
 

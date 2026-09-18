@@ -32,9 +32,9 @@
 ## Gaps & clarify strategy
 
 - [x] **Q1 → (C1) LOCKED** — `tellme` writes its **own** `turns.log` (its rendered turn chrome — no new format); `-t` prints it. Rejected (A) print `tokens.log`, (B) project `history.jsonl`, (C2) reproduce `tell-me-go`'s exact bytes.
-- [ ] **Q2 (OPEN)** — `-c` load-failure behaviour on the offline session commands: (A) fail on an explicit `-c` · (B) tolerate. **Blocking** an edge-case FR (does not block the happy path).
+- [x] **Q2 → (A) LOCKED** — an **explicit** `-c` that cannot be honoured **fails** (existing config-error phrase); an absent default stays tolerant.
 - [x] Lower-impact undecided details disclosed as assumptions, not escalated (A1–A6; the `-l`-default-1 parity is explicitly **out of scope**)
-- [ ] No remaining `NEEDS CLARIFICATION` — **NOT yet**: Q2 open (Q1 closed)
+- [x] No remaining `NEEDS CLARIFICATION` — **clarify round 1 CLOSED** (Q1 (C1) · Q2 (A))
 
 ## Verifiability & success criteria
 
@@ -55,7 +55,7 @@
 
 ## Ready determination
 
-- [ ] Ready to proceed to downstream planning — **blocked on clarify Q2**
-- [x] US1's requirement shape is settled; US2's is settled by Q1 → (C1)
+- [x] Ready to proceed to downstream planning — **clarify round 1 CLOSED** (Q1 → (C1) · Q2 → (A))
+- [x] No high-impact requirement gap remains open
 
-**Note**: plan package is the `/axb-specify` skeleton. Next pipeline step: **`/axb-clarify`** (Q1 **closed** → **(C1)**; ask **Q2** next) → then `/axb-spec-by-example` (A5: invoked — a user-facing flag + a corrected session selection).
+**Note**: plan package is the `/axb-specify` skeleton. Next pipeline step: **`/axb-spec-by-example`** (A5: invoked — a user-facing new flag + a corrected session selection) → then `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`.
