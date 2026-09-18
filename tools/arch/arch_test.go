@@ -409,18 +409,12 @@ func readBaseline(t *testing.T, path string) []string {
 	if err != nil {
 		t.Fatalf("baseline unreadable (%s): %v — an absent/unreadable baseline MUST fail, never be treated as 'no baseline configured'", path, err)
 	}
-	var lines []string
-	for _, raw := range strings.Split(string(data), "\n") {
-		line := strings.TrimSpace(raw)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		if !strings.Contains(line, " -> ") {
-			t.Fatalf("malformed baseline line %q in %s (want `<src> -> <dst>`)", line, path)
-		}
-		lines = append(lines, line)
+	lines, malformed := parseBaselineLines(string(data))
+	// The strict reader keeps its fatal-on-malformed policy (the growth-guard
+	// reader tolerates it) — round-051 fold N-2′: ONE parse loop, TWO policies.
+	if len(malformed) > 0 {
+		t.Fatalf("malformed baseline line %q in %s (want `<src> -> <dst>`)", malformed[0], path)
 	}
-	sort.Strings(lines)
 	return lines
 }
 
@@ -432,7 +426,8 @@ func readBaselineIfPresent(path string) []string {
 	if err != nil {
 		return nil
 	}
-	return parseBaselineLines(string(data))
+	lines, _ := parseBaselineLines(string(data))
+	return lines
 }
 
 // notInBaseline returns the violations NOT present in the previous baseline (a
@@ -456,16 +451,20 @@ func notInBaseline(violations, prev []string) []string {
 // parseBaselineLines extracts the `<src> -> <dst>` violation lines from a
 // baseline file body (comments/blank lines skipped). ONE parser for the format
 // (round-051 fold N-2): both the strict reader and the growth-guard reader use it.
-func parseBaselineLines(data string) []string {
-	var lines []string
+func parseBaselineLines(data string) (lines, malformed []string) {
 	for _, raw := range strings.Split(data, "\n") {
 		line := strings.TrimSpace(raw)
-		if line == "" || strings.HasPrefix(line, "#") || !strings.Contains(line, " -> ") {
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if !strings.Contains(line, " -> ") {
+			malformed = append(malformed, line)
 			continue
 		}
 		lines = append(lines, line)
 	}
-	return lines
+	sort.Strings(lines)
+	return lines, malformed
 }
 
 // writeBaseline writes the generated baseline (used by -update-baseline / N-1).
