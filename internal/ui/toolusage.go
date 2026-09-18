@@ -3,18 +3,9 @@ package ui
 import (
 	"fmt"
 	"strings"
+
+	"github.com/gosharplite/tellme/internal/domain/history"
 )
-
-// ToolUsageRow is one tool's line in the offline tool-usage report (round 026).
-type ToolUsageRow struct {
-	Tool    string
-	OK      int
-	Error   int
-	Timeout int
-}
-
-// Total is the tool's total invocation count.
-func (r ToolUsageRow) Total() int { return r.OK + r.Error + r.Timeout }
 
 // FormatToolUsage renders the offline per-tool roll-up (round 026): a header plus
 // one line per tool in the supplied order (the LIVE registry's offer order), each
@@ -26,11 +17,11 @@ func (r ToolUsageRow) Total() int { return r.OK + r.Error + r.Timeout }
 //
 // The format is a pure function (no I/O, no clock) so it is unit-pinnable
 // (round 026 T017), and it is the single source the E2E Report Thens parse.
-func FormatToolUsage(rows []ToolUsageRow) string {
+func FormatToolUsage(rows []history.ToolUsageRow) string {
 	var b strings.Builder
 	b.WriteString("tool usage (all sessions):\n")
 	for _, r := range rows {
-		fmt.Fprintf(&b, "%s: total=%d ok=%d error=%d timeout=%d\n", r.Tool, r.Total(), r.OK, r.Error, r.Timeout)
+		fmt.Fprintf(&b, "%s: total=%d ok=%d error=%d timeout=%d\n", r.Tool, r.Total(), r.OK(), r.Error(), r.Timeout())
 	}
 	return b.String()
 }

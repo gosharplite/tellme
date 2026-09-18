@@ -14,6 +14,7 @@ import (
 	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
+	"github.com/gosharplite/tellme/internal/domain/render"
 )
 
 // fakeGateway is an in-memory llm.Gateway for runTurn tests (review finding #1:
@@ -57,7 +58,7 @@ func (f *fakeStore) Append(e history.Entry) error {
 }
 func (f *fakeStore) Archive() error { f.archived = true; return f.archiveErr }
 
-// stubRenderer is an answerRenderer whose behaviour the caller scripts.
+// stubRenderer is a render.Answer whose behaviour the caller scripts.
 type stubRenderer struct {
 	out      string
 	degraded bool
@@ -69,7 +70,7 @@ func (s *stubRenderer) WarnDegraded(io.Writer)            { s.warned = true }
 
 // env builds a runtimeEnv over the given buffers + renderer for a unit test.
 // The clock seam is fixed so the payload status line is deterministic.
-func env(out, errOut io.Writer, r answerRenderer) runtimeEnv {
+func env(out, errOut io.Writer, r render.Answer) runtimeEnv {
 	return runtimeEnv{stdout: out, stderr: errOut, renderer: r,
 		clock: func() time.Time { return time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC) }}
 }
@@ -94,11 +95,15 @@ func TestRunTurn_PrintsRawAnswerAndPersists(t *testing.T) {
 	if out.String() != "the answer\n" {
 		t.Errorf("stdout = %q, want %q", out.String(), "the answer\n")
 	}
-	// Round-050 fold TD-2(i): HasSuffix restored — with an unreported usage the
-	// deferred post-turn status writes nothing, so the pre-flight payload line is
-	// the LAST stderr write before the answer (the position the Contains form lost).
-	if got := errOut.String(); !strings.HasPrefix(got, "[12:00:00] Payload: ~") || !strings.HasSuffix(got, "/1000000 tokens - butler - deepseek-v4-flash\n") {
-		t.Errorf("stderr = %q, want a pre-flight payload status line for butler/deepseek-v4-flash", got)
+	// Round-050 fold TD-2(i) positional pin, restored in sentinel form (round-051
+	// fold F-1): with an UNREPORTED usage the deferred post-turn status writes
+	// nothing, so the PRE-FLIGHT payload line is the LAST stderr write before the
+	// answer. Asserting the last line (not a bare Contains) keeps the position
+	// falsifiable — dropping the round-018 `if !usage.Reported` gate reds it.
+	lines := strings.Split(strings.TrimRight(errOut.String(), "\n"), "\n")
+	last := lines[len(lines)-1]
+	if !strings.HasPrefix(last, "<payload ") || !strings.HasSuffix(last, "1000000 butler deepseek-v4-flash estimated=true>") {
+		t.Errorf("last stderr line = %q, want the PRE-FLIGHT payload status line as the LAST write (unreported usage defers nothing)", last)
 	}
 	if len(st.appended) != 1 || st.appended[0].Prompt != "ping" || st.appended[0].Answer != "the answer" {
 		t.Errorf("persisted = %+v, want the completed exchange", st.appended)
@@ -200,9 +205,9 @@ func TestRunTurn_PostTurnStatusFollowsAnswer(t *testing.T) {
 		t.Fatalf("code = %d, want success", code)
 	}
 	out := buf.String()
-	pre := strings.Index(out, "Payload: ~")
+	pre := strings.Index(out, "<payload ")
 	answer := strings.Index(out, "ANSWER")
-	post := strings.Index(out, "Payload: 42/1000000")
+	post := strings.Index(out, "<payload 42/1000000")
 	if pre < 0 || answer < 0 || post < 0 {
 		t.Fatalf("missing markers in output: %q", out)
 	}
@@ -267,9 +272,9 @@ func TestRunTurn_NonFinalTailPrecedesAnswer(t *testing.T) {
 		t.Fatalf("code = %d, want success", code)
 	}
 	out := buf.String()
-	firstReady := strings.Index(out, "Ready")
+	firstReady := strings.Index(out, "<ready>")
 	answer := strings.Index(out, "ANSWER")
-	lastReady := strings.LastIndex(out, "Ready")
+	lastReady := strings.LastIndex(out, "<ready>")
 	if firstReady < 0 || answer < 0 || lastReady < 0 {
 		t.Fatalf("missing markers in output: %q", out)
 	}
@@ -289,7 +294,7 @@ func TestRunTurn_ChromeHeaderCountsCalls(t *testing.T) {
 	if code != Success {
 		t.Fatalf("code = %d, want success", code)
 	}
-	if !strings.Contains(errOut.String(), "╭─⠿ Turn 3 - butler") {
-		t.Errorf("stderr = %q, want the `╭─⠿ Turn 3 - butler` header (Σ calls + 1)", errOut.String())
+	if !strings.Contains(errOut.String(), "<turn-opening 3 butler>") {
+		t.Errorf("stderr = %q, want the `<turn-opening 3 butler>` frame (Σ calls + 1)", errOut.String())
 	}
 }

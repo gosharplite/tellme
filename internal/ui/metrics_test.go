@@ -4,11 +4,13 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gosharplite/tellme/internal/domain/metrics"
 )
 
 func TestFormatMetrics(t *testing.T) {
 	ts := time.Date(2026, 9, 14, 11, 46, 52, 0, time.UTC)
-	got := FormatMetrics(ts, "deepseek-flash", UsageCounts{Miss: 236, Hit: 56576, Completion: 43, Thinking: 27})
+	got := FormatMetrics(ts, "deepseek-flash", metrics.UsageCounts{Miss: 236, Hit: 56576, Completion: 43, Thinking: 27})
 	want := "[11:46:52] [deepseek-flash] M: 236 H: 56576 C: 43 Th: 27"
 	if got != want {
 		t.Errorf("FormatMetrics = %q, want %q", got, want)
@@ -17,7 +19,7 @@ func TestFormatMetrics(t *testing.T) {
 
 func TestFormatMetricsThAlwaysShown(t *testing.T) {
 	ts := time.Date(2026, 9, 14, 11, 47, 16, 0, time.UTC)
-	got := FormatMetrics(ts, "butler", UsageCounts{Miss: 1, Hit: 2, Completion: 3, Thinking: 0})
+	got := FormatMetrics(ts, "butler", metrics.UsageCounts{Miss: 1, Hit: 2, Completion: 3, Thinking: 0})
 	if !strings.Contains(got, "Th: 0") {
 		t.Errorf("the Th segment must be shown even at zero, got %q", got)
 	}

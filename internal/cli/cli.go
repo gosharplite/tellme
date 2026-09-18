@@ -23,10 +23,10 @@ import (
 	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
+	"github.com/gosharplite/tellme/internal/domain/render"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 	domaintui "github.com/gosharplite/tellme/internal/domain/tui"
 	"github.com/gosharplite/tellme/internal/home"
-	"github.com/gosharplite/tellme/internal/ui"
 )
 
 // The pinned unresolved reason categories
@@ -153,22 +153,10 @@ type runtimeEnv struct {
 	// Nil disables the turn spinner — the gate is the stderr stream, so there is
 	// no fallback to the shared (stdin) probe.
 	stderrTTY func(any) bool
-	renderer  answerRenderer
+	renderer  render.Answer
 	// clock is the injected time seam for the payload status line (round 009);
 	// nil falls back to time.Now.
 	clock func() time.Time
-}
-
-// answerRenderer renders a Markdown answer to ANSI (round 006). It is the seam
-// that keeps the render/raw mode selection unit-testable without a real
-// renderer. On degradation it returns the (sanitized) text the caller should
-// fall back to.
-type answerRenderer interface {
-	// Render returns the rendered answer, and whether rendering degraded (in
-	// which case the returned string is the sanitized raw fallback text).
-	Render(markdown string, width int) (text string, degraded bool)
-	// WarnDegraded emits the one-time degradation warning.
-	WarnDegraded(w io.Writer)
 }
 
 // round 044: the history/usage/toolUsage-store, gateway and tool-registry factory
@@ -185,10 +173,10 @@ type answerRenderer interface {
 // prompt (ok) on submit and never writes to stdout. Round 048 (ADR 0017): the
 // terminal runtime is reached only through p — internal/cli no longer imports
 // internal/ui/tui/prompt.
-func runInteractiveTUI(ctx context.Context, res resolution, env runtimeEnv, dp deps.Dependencies, p domaintui.Prompter) (string, bool, error) {
+func runInteractiveTUI(ctx context.Context, res resolution, env runtimeEnv, newPromptTracker func(home string, userHome func() (string, error)) history.PromptTracker, newTUIRegistry func() domaintools.Registry, userHome func() (string, error), p domaintui.Prompter) (string, bool, error) {
 	_, _ = fmt.Fprintln(env.stderr, TUIHint)
 
-	tracker := dp.NewPromptTracker(res.Home, dp.UserHomeDir)
+	tracker := newPromptTracker(res.Home, userHome)
 	defer func() { _ = tracker.Close(context.Background()) }()
 	// Round 028: the first-use seed runs once, here, before the first suggestion
 	// read. It is the segregated Seeder capability (NOT part of PromptTracker —
@@ -198,7 +186,7 @@ func runInteractiveTUI(ctx context.Context, res resolution, env runtimeEnv, dp d
 	if seeder, ok := tracker.(history.Seeder); ok {
 		_ = seeder.Seed(ctx)
 	}
-	reg := dp.NewTUIRegistry()
+	reg := newTUIRegistry()
 	engine := appsuggestions.New(
 		appsuggestions.TrackerPrompts{Tracker: tracker},
 		appsuggestions.OSSWorkspace{},
@@ -273,7 +261,7 @@ func runTUIPrompt(homeDir string, f *flags, env runtimeEnv, opts Options) int {
 		_, _ = fmt.Fprintf(env.stderr, "tellme: the runtime home is not usable (interactive prompt: no runner injected)\n")
 		return EnvironmentError
 	}
-	text, ok, err := runInteractiveTUI(context.Background(), res, env, dp, p)
+	text, ok, err := runInteractiveTUI(context.Background(), res, env, dp.NewPromptTracker, dp.NewTUIRegistry, dp.UserHomeDir, p)
 	if err != nil {
 		return emitProviderError(env.stderr, err)
 	}
@@ -301,7 +289,7 @@ func Run(args []string, version string, opts Options) int {
 		stderr:    os.Stderr,
 		isTTY:     terminalDetector(),
 		stderrTTY: stderrTerminalDetector(),
-		renderer:  ui.NewRenderer(),
+		renderer:  opts.Deps.NewAnswer(),
 		clock:     time.Now,
 	})
 }
@@ -368,7 +356,9 @@ func run(args []string, version string, scoped Options, env runtimeEnv) int {
 
 	// The offline reporting commands run in precedence order — -d → -l →
 	// --tool-usage — before any prompt or stdin access.
-	if code, handled := dispatchReporting(f, homeDir, env, dp); handled {
+	if code, handled := dispatchReporting(f, homeDir, env, dp.NewHistoryStore, func() int {
+		return renderToolUsage(env, dp.NewToolRegistry, dp.NewToolUsageStore, dp.UserHomeDir, dp.NewLines())
+	}); handled {
 		return code
 	}
 	// The prompt turn reads piped input only when stdin is not a terminal and
@@ -680,7 +670,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		if opts.echo {
 			_, _ = fmt.Fprintln(env.stderr, prompt)
 		}
-		emitInputCaptured(env)
+		emitInputCaptured(env, dp.NewLines())
 	}
 	// Round 032 (F9) — discover MCP tools BEFORE the turn frames, so a
 	// slow/unreachable server's bounded wait is never silent and the per-call
@@ -696,20 +686,18 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	renderer := newCallRenderer(env, res, reg, opts.chrome, turnNumber(prior)-1, dp)
 
 	// Round 019 — the live progress spinner: a diagnostic-stream-only indicator
-	// that labels / clears / restores per waiting phase. It is injected into the
-	// loop as the observer; the CLI owns its lifecycle (round-019 research D7).
-	var sp *ui.Spinner
-	if s := newTurnSpinner(opts, env, res.Provider.Model, turnStart, dp); s != nil {
-		sp = s
-		defer sp.Stop() // panic-safe residue guard (idempotent)
-	}
-	var spinner agentport.LoopObserver
-	if sp != nil {
-		spinner = sp
+	// that labels / clears / restores per waiting phase. Round 051 (R5.5 of #92;
+	// ADR 0020): the spinner + the `[Tool Output]` coordinator are built behind
+	// the injected domain seam (deps.NewProgress) — internal/cli names no
+	// internal/ui type. A nil indicator means the spinner is gated off.
+	prog := dp.NewProgress(env.stderr, env.now, res.Provider.Model, turnStart, stderrColumns(env), toolOutputIdleGap(dp.NewLines()), spinnerGate(opts, env.stderrIsTerminal()))
+	ind := prog.Indicator
+	if ind != nil {
+		defer ind.Stop() // panic-safe residue guard (idempotent)
 	}
 	// Round 034 (ADR 0005 D1): the loop keeps a single observer — the composite
 	// composes the per-call block renderer with the round-019 spinner.
-	observer := compositeObserver{call: renderer, spinner: spinner}
+	observer := compositeObserver{call: renderer, spinner: ind}
 
 	// Round 050 (R5.4 of #92; ADR 0019): the loop is obtained through the injected
 	// domain port (deps.LoopFactory) — internal/cli names no internal/agent type.
@@ -732,30 +720,25 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		// through the injected presentation port — internal/ui owns the bytes and
 		// the single-owned blank-reason predicate, so internal/agent imports no
 		// internal/ui (the final layer-discipline baseline entry is gone).
-		Lines: ui.ToolLineRenderer{},
+		Lines: dp.NewToolLines(),
 		// Round 034 (ADR 0005 D1) + round 050: the single observer (composite) is
 		// supplied through the spec.
 		Observer: observer,
 	})
 	// Round 034 (FR-010) + round 040 (ADR 0009 D3/D4): bind the live `[Tool Output]`
-	// sink on the prompt path through the internal/ui coordinator. The block renders
+	// sink on the prompt path through the injected progress seam (round 051; F-8:
+	// the coordinator satisfies domaintools.OutputSink directly). The block renders
 	// unconditionally; the coordinator owns the writer + the spinner and applies the
-	// WS-A idle-gap liveness (resume after a quiet gap, a synchronous clear before
-	// the next line — the invariant is mutual exclusion + join), superseding the
-	// round-034 whole-block pause (ADR 0005 D7, superseded).
-	coord := ui.NewToolOutputCoordinator(env.stderr, env.now, sp, toolOutputIdleGap())
-	dp.BindToolOutput(reg, domaintools.OutputSink{
-		Begin:  coord.Begin,
-		Writer: coord.Writer(),
-		End:    coord.End,
-	})
+	// WS-A idle-gap liveness (mutual exclusion + join), superseding the round-034
+	// whole-block pause (ADR 0005 D7, superseded).
+	dp.BindToolOutput(reg, prog.ToolOutput)
 	result, err := loop.Run(ctx, prompt, prior)
-	if sp != nil {
+	if ind != nil {
 		// Synchronous clear before any interleaved write (the answer, the
 		// post-turn lines) so no frame survives into the completed turn. The
 		// clear leaves the cursor at column 0 of the erased line, so the answer
 		// on `stdout` (and a class phrase on `stderr`) continues on that line.
-		sp.Stop()
+		ind.Stop()
 	}
 	if err != nil {
 		var inc *agentport.ErrIncomplete
@@ -825,8 +808,8 @@ func (e runtimeEnv) now() time.Time {
 
 // emitInputCaptured writes the round-017 input-capture acknowledgement to the
 // diagnostic stream (the reference's `[HH:MM:SS] Input captured. Processing...`).
-func emitInputCaptured(env runtimeEnv) {
-	_, _ = fmt.Fprintln(env.stderr, ui.FormatInputCaptured(env.now()))
+func emitInputCaptured(env runtimeEnv, lines render.Lines) {
+	_, _ = fmt.Fprintln(env.stderr, lines.InputCaptured(env.now()))
 }
 
 // (round 034, 4B: emitTurnOpening / emitTurnGap are retired — the per-call
@@ -849,19 +832,6 @@ func spinnerGate(opts turnOptions, stderrIsTerminal bool) bool {
 	return opts.chrome && !opts.raw && stderrIsTerminal
 }
 
-// newTurnSpinner builds the round-019 turn spinner when the gate permits, else
-// nil. The model label comes from the resolved provider's configured MODEL
-// (reference parity — the configured MODEL attribute, not the registry key); the
-// elapsed counts from epoch (the turn's prompt-capture time — turn-scoped).
-func newTurnSpinner(opts turnOptions, env runtimeEnv, model string, epoch time.Time, dp deps.Dependencies) *ui.Spinner {
-	// The provider read stays AFTER the gate (round-044 fix-5): hoisting it would
-	// construct a provider even on a gated-off turn.
-	if !spinnerGate(opts, env.stderrIsTerminal()) {
-		return nil
-	}
-	return ui.NewSpinner(env.stderr, model, epoch, dp.NewMetricsProvider(), stderrColumns(env))
-}
-
 // stderrColumns reports the terminal width for the spinner's row-aware clear
 // (round 025). The diagnostic environment seam TELL_ME_FORCE_STDERR_COLS overrides
 // the real stderr-width probe so the row-aware clear is drivable in E2E/unit
@@ -881,13 +851,13 @@ func stderrColumns(env runtimeEnv) func() int {
 // the hermetic seam TELL_ME_FORCE_TOOLOUTPUT_IDLE_MS (milliseconds; 0 = admit
 // immediately; unset/invalid = the 3 s default). Resolved once at construction,
 // mirroring the stderrTTY / stderrColumns / tuiDebounceDuration seams.
-func toolOutputIdleGap() time.Duration {
+func toolOutputIdleGap(lines render.Lines) time.Duration {
 	if v := strings.TrimSpace(os.Getenv("TELL_ME_FORCE_TOOLOUTPUT_IDLE_MS")); v != "" {
 		if ms, err := strconv.Atoi(v); err == nil && ms >= 0 {
 			return time.Duration(ms) * time.Millisecond
 		}
 	}
-	return ui.DefaultToolOutputIdleGap
+	return lines.DefaultToolOutputIdleGap()
 }
 
 // dispatchReporting handles the offline reporting commands in precedence order
@@ -895,7 +865,7 @@ func toolOutputIdleGap() time.Duration {
 // the exit code and whether a reporting command handled the run. (`--version` is
 // handled by the caller, ahead of the reporting batch.) Extracted from `run` so
 // its cyclomatic complexity stays under the cyclop gate (round 026).
-func dispatchReporting(f *flags, homeDir string, env runtimeEnv, dp deps.Dependencies) (int, bool) {
+func dispatchReporting(f *flags, homeDir string, env runtimeEnv, newHistoryStore func(workspace string) history.Store, toolUsageReport func() int) (int, bool) {
 	// -d is the reporting path: it always produces a report, and it takes
 	// precedence over a prompt or piped input (round-004 Decision 7).
 	if f.diagnostic {
@@ -907,12 +877,12 @@ func dispatchReporting(f *flags, homeDir string, env runtimeEnv, dp deps.Depende
 		if f.list <= 0 {
 			return emitUsageError(env.stderr), true
 		}
-		return renderHistoryList(homeDir, f.list, env, dp), true
+		return renderHistoryList(homeDir, f.list, env, newHistoryStore), true
 	}
 	// --tool-usage is the offline tool-usage report: like --version it needs no
 	// configuration, no TELL_ME_HOME, and no workspace (round-026 FR-006).
 	if f.toolUsage {
-		return renderToolUsage(env, dp), true
+		return toolUsageReport(), true
 	}
 	return 0, false
 }
@@ -926,20 +896,20 @@ func dispatchReporting(f *flags, homeDir string, env runtimeEnv, dp deps.Depende
 // diagnostic stream (the report path is offline, so stderr is free), so an
 // unreadable log is distinguishable from "no tool ever used"; the all-zero report
 // still prints and the command succeeds.
-func renderToolUsage(env runtimeEnv, dp deps.Dependencies) int {
-	reg := dp.NewToolRegistry()
+func renderToolUsage(env runtimeEnv, newToolRegistry func() domaintools.Registry, newToolUsageStore func(func() (string, error)) history.ToolUsageStore, userHome func() (string, error), lines render.Lines) int {
+	reg := newToolRegistry()
 	tools := reg.Tools()
-	counts, err := dp.NewToolUsageStore(dp.UserHomeDir).Aggregate()
+	counts, err := newToolUsageStore(userHome).Aggregate()
 	if err != nil {
 		_, _ = fmt.Fprintf(env.stderr, "[tool-usage] could not read the usage log: %v\n", err)
 		counts = nil
 	}
-	rows := make([]ui.ToolUsageRow, 0, len(tools))
+	rows := make([]history.ToolUsageRow, 0, len(tools))
 	for _, t := range tools {
 		c := counts[t.Name()] // zero value when the tool has no records
-		rows = append(rows, ui.ToolUsageRow{Tool: t.Name(), OK: c.OK, Error: c.Error, Timeout: c.Timeout})
+		rows = append(rows, history.ToolUsageRow{Tool: t.Name(), Counts: c})
 	}
-	_, _ = fmt.Fprint(env.stdout, ui.FormatToolUsage(rows))
+	_, _ = fmt.Fprint(env.stdout, lines.ToolUsage(rows))
 	return Success
 }
 
@@ -947,12 +917,12 @@ func renderToolUsage(env runtimeEnv, dp deps.Dependencies) int {
 // and exits — strictly offline, no provider request. It resolves only the
 // workspace (no configuration/provider requirement), so listing works even when
 // the configuration is absent.
-func renderHistoryList(homeDir string, n int, env runtimeEnv, dp deps.Dependencies) int {
+func renderHistoryList(homeDir string, n int, env runtimeEnv, newHistoryStore func(workspace string) history.Store) int {
 	ws, rerr := resolveWorkspace(homeDir)
 	if rerr != nil {
 		return emitBootError(env.stderr, resolution{Home: homeDir, Workspace: ws}, rerr)
 	}
-	entries, err := dp.NewHistoryStore(ws).Load()
+	entries, err := newHistoryStore(ws).Load()
 	if err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
@@ -1107,15 +1077,19 @@ func emitProviderError(w io.Writer, err error) int {
 // called from runTurn), so an offline run makes no MCP network contact. The
 // returned close hook tears down the discovered clients when the turn ends.
 func augmentRegistryWithMCP(ctx context.Context, res resolution, reg domaintools.Registry, stderr io.Writer, dp deps.Dependencies) (domaintools.Registry, func()) {
-	tools, warnings, closeFn := dp.MCPDiscoverer(ctx, res.MCPServers)
+	d := dp.MCPDiscoverer(ctx, res.MCPServers)
 	for _, w := range res.MCPWarnings {
 		_, _ = fmt.Fprintln(stderr, w)
 	}
-	for _, w := range warnings {
+	for _, w := range d.Warnings {
 		_, _ = fmt.Fprintln(stderr, w)
 	}
-	if len(tools) > 0 {
-		reg = domaintools.NewRegistry(append(reg.Tools(), tools...)...)
+	if len(d.Tools) > 0 {
+		reg = domaintools.NewRegistry(append(reg.Tools(), d.Tools...)...)
+	}
+	closeFn := func() {}
+	if d.Closer != nil {
+		closeFn = func() { _ = d.Closer.Close() }
 	}
 	return reg, closeFn
 }

@@ -1,6 +1,9 @@
-package ui
+package llm
 
 // Pricing is a model's per-million-token cost rates (round-018 config `MODELS`).
+// Relocated here from `internal/ui` by round 051 (R5.5 of #92; ADR 0020) — cost is
+// a provider/model concern, and ComputeCost feeds PERSISTENCE (the usage record),
+// not only display.
 type Pricing struct {
 	Hit  float64 // USD per million cached (hit) input tokens
 	Miss float64 // USD per million uncached (miss) input tokens

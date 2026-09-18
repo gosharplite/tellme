@@ -139,13 +139,13 @@ func TestRenderToolUsageDiagnosesReadError(t *testing.T) {
 	})
 
 	var out, errBuf bytes.Buffer
-	if code := renderToolUsage(runtimeEnv{stdout: &out, stderr: &errBuf}, dp); code != Success {
+	if code := renderToolUsage(runtimeEnv{stdout: &out, stderr: &errBuf}, dp.NewToolRegistry, dp.NewToolUsageStore, dp.UserHomeDir, dp.NewLines()); code != Success {
 		t.Fatalf("renderToolUsage = %d, want %d (success)", code, Success)
 	}
 	if !strings.Contains(errBuf.String(), "[tool-usage]") {
 		t.Errorf("the diagnostic stderr = %q, want a [tool-usage] line", errBuf.String())
 	}
-	if !strings.Contains(out.String(), "list_files: total=0 ok=0 error=0 timeout=0") {
-		t.Errorf("the report must still print the all-zero roll-up, got %q", out.String())
+	if !strings.Contains(out.String(), "<tool-usage:list_files>") {
+		t.Errorf("the report must still print the roll-up (the tool row reached the lines port), got %q", out.String())
 	}
 }
