@@ -19,10 +19,10 @@ The R1 gate ranks `internal/app/*` at tier **2** and `internal/infrastructure/*`
 ### D2 — Injected value shape: `internal/app/deps.Dependencies` + cli-local `Options`
 
 - **`internal/app/deps`** (new, tier **2**) defines `Dependencies` with **domain-typed fields only** (it may import `internal/domain/**`, `internal/config`, `internal/home`, stdlib). It **cannot** import `internal/ui` (tier 5) or `internal/agent` (tier 4) — either would be a RULE-A upward import.
-- Fields (the seams that today cross into `infrastructure/`): `NewGateway`, `NewHistoryStore`, `NewUsageStore`, `NewToolUsageStore`, `NewPromptTracker`, `NewToolRegistry`, `BindToolOutput`, `BindSkillsCatalog`, `NewMetricsProvider`, `MCPDiscoverer`, `UserHomeDir`.
-- **`cli.Options`** (defined in `internal/cli`, which may legally import `ui`) carries `deps.Dependencies` + the two presentation seams (`NewRenderer`, `RunTUIPrompt`).
-- Entry point: **`cli.Run(args []string, version string, opts Options) int`** — one injected value.
-- Rationale: the **tier table forces the split** (infra-crossing seams → `deps`; ui seams → `Options`); a composition bag is **not** a domain concept, so it does **not** go in `internal/domain` (NFR-002).
+- Fields (the seams that today cross into `infrastructure/`): `NewGateway`, `NewHistoryStore`, `NewUsageStore`, `NewToolUsageStore` (**signature `func(func() (string, error)) history.ToolUsageStore`** — it gains the argument it previously captured from the `userHomeDir` var), `NewPromptTracker` (**signature `func(home string, userHome func() (string, error)) history.PromptTracker`**), `NewToolRegistry` (the **7-tool agent** registry), `NewTUIRegistry` (the **3-reader** registry the `-i` suggestion source consumes — grill fold fix-1), `BindToolOutput`, `BindSkillsCatalog`, `NewMetricsProvider`, `MCPDiscoverer`, `UserHomeDir`. **Every field has a named consumer** (`dp.NewToolUsageStore(dp.UserHomeDir)`, `dp.NewPromptTracker(res.Home, dp.UserHomeDir)`, `dp.NewMetricsProvider` read **after** the `spinnerGate` short-circuit, `dp.MCPDiscoverer` consumed in `augmentRegistryWithMCP`).
+- **`cli.Options`** (defined in `internal/cli`, which may legally import `ui`) carries `deps.Dependencies` + the **one** presentation seam `RunTUIPrompt` (type `func(ctx, resolution, runtimeEnv) (string, bool, error)` — references unexported cli types, so `cmd` cannot populate it; it is **nil-defaulted inside `cli`**). The `newRenderer` var is **deleted** (inline `ui.NewRenderer()`; the renderer's injectable seam stays `runtimeEnv.renderer`).
+- Entry point: **`cli.Run(args []string, version string, opts Options) int`** — one injected value. The injected value is **threaded** as a parameter named **`dp`** (`dp deps.Dependencies` — never `deps`, which would shadow the package) through `run`/`runTurn`/`renderTurn`/`dispatchReporting`/`renderToolUsage`/`renderHistoryList`/`renderNewSession`/`newCallRenderer`/`persistTurnUsage`/`runTUIPrompt` and the leaf helpers `newTurnSpinner`/`augmentRegistryWithMCP`. The parsed-flags struct is renamed **`options` → `flags`** (operator G2; kills the `options`/`turnOptions`/`Options` tri-collision).
+- Rationale: the **tier table forces the split** (infra-crossing seams → `deps`; the one ui-typed seam → `Options`); a composition bag is **not** a domain concept, so it does **not** go in `internal/domain` (NFR-002). **The wide bag is an accepted smell** — interface segregation is recorded as a *rejected alternative* in ADR 0013 (operator G1).
 
 ### D3 — Tool assembly + the two bindings
 
@@ -30,7 +30,7 @@ The R1 gate ranks `internal/app/*` at tier **2** and `internal/infrastructure/*`
 
 - `agentTools()` + `newToolRegistry` **relocate to `cmd/tellme`**.
 - `deps` injects: `NewToolRegistry func() domaintools.Registry` (bare), `BindToolOutput func(domaintools.Registry, domaintools.OutputSink)`, `BindSkillsCatalog func(domaintools.Registry, string)` (the string = the resolved skills dir).
-- The infra-typed `ToolOutputSink` becomes the neutral domain port **`domaintools.OutputSink`** (`{ Begin() ; Writer io.Writer ; End() }`), so `internal/cli` names no infra type. `internal/cli` still builds the sink from its `ui` coordinator (legal) + computes `SkillsDir` from its own `resolution`, then calls the injected binders — the **same three roles, now via deps**.
+- The infra-typed `ToolOutputSink` becomes the neutral domain port **`domaintools.OutputSink`** (`{ Begin func() ; Writer io.Writer ; End func() }` **plus the method `Enabled() bool { return s.Writer != nil }`**), so `internal/cli` names no infra type. `Enabled()` is **required**: `command.go` calls it at four sites and the `{}`-is-disabled contract is load-bearing (`sink()` returns `ToolOutputSink{}`; `BindToolOutput` no-ops safely). The type rename edits `command.go` (five references) and deletes `tooloutput.go`, so `internal/infrastructure/tools/**` is in scope (D11). `internal/cli` still builds the sink from its `ui` coordinator (legal) + computes `SkillsDir` from its own `resolution`, then calls the injected binders — the **same three roles, now via deps**.
 - **`agentTools()` stays parameterless + read-free + non-overridable** (round-033 FR-009; round-031 gate, PR #65 ARCH-1). The **property** is preserved; only the **file** moves (A7).
 - Rejected: build-the-fully-bound-registry (its neutral `opts` is essentially `OutputSink` anyway) and inject-constructors (would reintroduce a package global — the thing R2 deletes).
 
@@ -53,11 +53,13 @@ All 8 package-level vars are **deleted**: `newGateway`, `newHistoryStore`, `newU
 | `internal/cli/persistence_invariant_test.go` | builds `Options` with a fake usage store + a fake tool registry + a no-op tool-usage store |
 | `internal/cli/tool_registry_test.go` | the round-031 assembler gate **relocates to `cmd/tellme`** (it must iterate the relocated, non-overridable assembler — A7) |
 | `internal/cli/tui_submit_chrome_test.go` / `tui_dispatch_test.go` | build `Options` with a fake `RunTUIPrompt` + a fake gateway |
-| `internal/cli/cli_test.go` | injects `UserHomeDir` via `deps` |
+| `internal/cli/cli_test.go` | **rewired to inject a failing `ToolUsageStore` double** (the `noopUsageStore` idiom) via `Options`; the ENOTDIR *arrangement* is **retired** (the grill's proposed relocation to `cmd/tellme` is **withdrawn** — `cli.Run` hard-binds `os.Std*` at `cli.go:313-321`, so it cannot observe the stderr/stdout the test asserts; the adapter's read-error path is already pinned at `internal/infrastructure/history/tool_usage_test.go:126`) |
+| `internal/cli/turn_test.go` | **8 direct `runTurn` sites** build `Options`/`dp`; `env()` and `factoryReturning` helpers are adapted (the gateway stays an explicit `factory` arg) |
+| `internal/cli/prompt_multiline_test.go` | **5 direct `run` sites**; the two archive-path sites (`:183`,`:207`) build `fakeStore`/`capturingUsageStore` doubles for `NewHistoryStore`/`NewUsageStore`; the other three need the threaded value only |
 | `internal/cli/mcp_discovery_test.go` | the `mcpDiscoveryConfig` fakes **move to `internal/infrastructure/mcp`** tests (the orchestration's new home) |
-| `cmd/tellme` | gains a test (deps construction smoke + the relocated assembler gate) |
+| `cmd/tellme` | gains a test: the **relocated assembler gate** + a **deps-construction smoke** — **no stream assertions** (fix-8) |
 
-NFR-003: after the round there is **no global to mutate**; the contract is hermetic by construction (and `t.Parallel()`-safe — the round-029/031 precedent).
+NFR-003: after the round there is **no global to mutate**; the contract is hermetic by construction (and `t.Parallel()`-safe — the round-029/031 precedent). **Invariant:** no `internal/cli` test file imports `internal/infrastructure/*` (the gate merges `.TestImports`/`.XTestImports`, `arch_test.go:39`) — which is why the migrated tests use in-package doubles.
 
 ### D6 — Gate ratchet discipline (self-checking extraction)
 
@@ -94,8 +96,14 @@ Touch only: `internal/cli/**`, `internal/app/deps/**` (**new**), `internal/domai
 | The assembler gate silently weakens when it moves | it must keep iterating the **non-overridable** assembler + the registry-name cross-check (A7) |
 | A removed edge without a baseline update reddens `dev` | same-commit baseline regeneration (D6) |
 | MCP move leaks an SDK import | `verify-mcp-sdk-confinement` is a member of `make verify` (D8) |
-| The two `ui` seams accidentally land in `deps` | `deps` tier-2 ceiling ⇒ RULE-A fails the gate (D2) |
+| The `ui`-typed seam accidentally lands in `deps` | `deps` tier-2 ceiling ⇒ RULE-A fails the gate (D2) |
 | Behaviour drift in the turn path | `stdout` byte-exactness + full E2E (D10) |
+| A `deps` field with no consuming signature (the grill's finding) | every field names its consumer (D2); the threading covers `run`/`runTurn`/`newTurnSpinner`/`augmentRegistryWithMCP` (D2/D5) |
+| Hoisting the metrics read before `spinnerGate` | the `dp.NewMetricsProvider` read MUST stay **after** the gate (D5, fix-5) |
+
+### D12b — Grill-round fold (PR #102)
+
+A grill round (architect vs griller) verified the plan against the tree and found the migration surface under-recorded in six places plus a type literal that would not compile; **on the plan as written the 7 → 0 DoD was formally unreachable**. The operator-approved fold (G1–G4 + fixes 1–8 — see `spec.md` *Grill-round fold*) is applied across this file: **fix-1** (D2 — `NewTUIRegistry` + the runner-seam widening + `Options` threading), **fix-2** (D2 — `newRenderer` deleted, one seam), **fix-3** (D3/D11 — `OutputSink.Enabled()` + the tools touch-list), **fix-4/5/6** (D2/D5 — the threading + `newTurnSpinner`/`augmentRegistryWithMCP` + the argument-taking store/prompt-tracker signatures), **fix-7** (D5 — `turn_test.go`/`prompt_multiline_test.go`; the `cmd/tellme` relocation of the read-error test **withdrawn**), **fix-8** (D5 — the `cmd/tellme` test takes no stream assertions; the no-test-infra-import invariant). Operator decisions: **G1** accept the wide bag (ADR 0013 records interface segregation as a *rejected alternative*); **G2** rename `options` → `flags`; **G3** fold into PR #102 (plan half still in flight); **G4** fix the two residuals (below).
 
 ## Truth impact (summary)
 
