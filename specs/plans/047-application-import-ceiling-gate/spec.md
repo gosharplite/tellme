@@ -157,7 +157,7 @@ As a maintainer/operator, I want RULE-E, the sanctioned set, and the baseline po
 - **An `internal/**` package matching no tier** → **fails** (default-deny, FR-003).
 - **A cycle** → the SCC pass **fails** (cycles have no baseline; ADR 0011 D8 preserved) — RULE-E adds entries to the same ratchet, never a cycle exemption.
 - **`internal/cli` test files importing `internal/ui`** → the same package edge as production (no new entry); the merged production+test graph is governed (FR-002).
-- **A non-`internal` import (stdlib / third-party)** → **out of RULE-E's scope** (the rule constrains `internal/**` imports; a *recorded residual*): today no application-tier package imports a third-party module, and stdlib is trivially allowed. The scope statement lives in the ADR (FR-008) and is re-adjudicated if a third-party application-tier import ever appears.
+- **A non-`internal` import (stdlib / third-party)** → **out of RULE-E's scope** (the rule constrains `internal/**` imports; a *live recorded residual*): stdlib is trivially allowed, and `internal/cli` **already** imports third-party modules (`github.com/spf13/pflag`, `golang.org/x/term`), so a future third-party ceiling for the application tiers has concrete motivation. The scope statement lives in the ADR (FR-008).
 - **OS/build-tag-gated files** → the `CROSS_TARGETS` union (FR-002) catches an OS-gated unsanctioned import; custom build-tag-gated files remain a recorded out-of-scope residual (ADR 0011 D6).
 - **The round's own guard files** → the guard + its self-test must not themselves introduce a governed violation (they live in the exempt `tools/**`).
 

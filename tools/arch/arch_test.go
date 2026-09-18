@@ -482,12 +482,11 @@ func assertNoUnrankedGoverned(t *testing.T, graph map[string]map[string]bool) {
 	}
 }
 
-// assertSanctionedInUse asserts the fail-on-stale allow-list (ADR 0016 D4): every
-// sanctioned entry must be imported by at least one governed application-tier
-// package. An unused sanctioned entry FAILS — the allow-list, like the baseline,
-// must shrink to truth (symmetry with ADR 0011 D3).
-func assertSanctionedInUse(t *testing.T, graph map[string]map[string]bool) {
-	t.Helper()
+// unusedSanctioned returns the sanctioned entries with no application-tier
+// importer in graph. It reads the **merged** (production + test) graph — the same
+// graph RULE-E governs (ADR 0016 D4) — so a test-only application-tier use keeps
+// a sanctioned entry alive; that is deliberate, not incidental (review N-3).
+func unusedSanctioned(graph map[string]map[string]bool) []string {
 	used := map[string]bool{}
 	for src, dsts := range graph {
 		if !isApplicationTier(src) {
@@ -512,9 +511,41 @@ func assertSanctionedInUse(t *testing.T, graph map[string]map[string]bool) {
 			unused = append(unused, entry)
 		}
 	}
-	if len(unused) > 0 {
-		sort.Strings(unused)
-		t.Fatalf("sanctioned allow-list entr(ies) unused by any application-tier import (fail-on-stale allow-list, ADR 0016 D4): %v — remove them from the sanctioned set", unused)
+	sort.Strings(unused)
+	return unused
+}
+
+// assertSanctionedInUse asserts the fail-on-stale allow-list (ADR 0016 D4): every
+// sanctioned entry must be imported by at least one governed application-tier
+// package. An unused sanctioned entry FAILS — the allow-list, like the baseline,
+// must shrink to truth (symmetry with ADR 0011 D3).
+func assertSanctionedInUse(t *testing.T, graph map[string]map[string]bool) {
+	t.Helper()
+	if u := unusedSanctioned(graph); len(u) > 0 {
+		t.Fatalf("sanctioned allow-list entr(ies) unused by any application-tier import (fail-on-stale allow-list, ADR 0016 D4): %v — remove them from the sanctioned set", u)
+	}
+}
+
+// selfTestAllowList unit-tests the coverage predicate `unusedSanctioned` on
+// synthetic graphs (review F-2): an all-used sanctioned set reports nothing; a
+// set with one unimported entry reports exactly it. Without this witness the
+// coverage assertion's own logic had no committed regression carrier (mutant M9
+// escaped), which is the same class round 046's fold review flagged.
+func selfTestAllowList(t *testing.T) {
+	t.Helper()
+	allUsed := map[string]map[string]bool{
+		"internal/app/deps": {"internal/config": true},
+		"internal/cli":      {"internal/domain/llm": true, "internal/home": true, "internal/app/deps": true},
+	}
+	if u := unusedSanctioned(allUsed); len(u) != 0 {
+		t.Fatalf("allow-list self-test: an all-used sanctioned set reported stale entries: %v", u)
+	}
+	missingOne := map[string]map[string]bool{
+		// internal/home is never imported by an application tier here.
+		"internal/cli": {"internal/domain/llm": true, "internal/config": true, "internal/app/deps": true},
+	}
+	if u := unusedSanctioned(missingOne); len(u) != 1 || u[0] != "internal/home" {
+		t.Fatalf("allow-list self-test: expected exactly [internal/home] unused, got %v", u)
 	}
 }
 
@@ -570,9 +601,9 @@ func selfTestPredicate(t *testing.T) {
 	}
 	want := []string{
 		"internal/agent -> internal/ui",                             // RULE-A
-		"internal/app/suggestions -> internal/infrastructure/tools", // RULE-B/E
+		"internal/app/suggestions -> internal/infrastructure/tools", // RULE-A (2 -> 3, upward; also B/E)
 		"internal/cli -> internal/agent",                            // RULE-E
-		"internal/cli -> internal/infrastructure/history",           // RULE-B/E
+		"internal/cli -> internal/infrastructure/history",           // RULE-B (6 -> 3, downward)
 		"internal/cli -> internal/ui",                               // RULE-E
 		"internal/domain/history -> internal/config",                // RULE-C
 		"internal/weird -> (unranked governed package)",             // RULE-D
@@ -605,17 +636,25 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	assertGraphEnumerated(t, graph)
 	properties++
 
-	// The predicate + tier-table coverage (default-deny) + the RULE-E sanctioned
-	// allow-list (fail-on-stale) self-tests, all on synthetic/real input.
-	selfTests := 0
-	selfTestPredicate(t) // RULE-A/B/C/D + RULE-E, synthetic (ADR 0011 D2 / ADR 0016 D1)
-	selfTests++
-	assertNoUnrankedGoverned(t, graph) // RULE-D coverage, real graph
-	selfTests++
-	assertSanctionedInUse(t, graph) // RULE-E allow-list in use, real graph (ADR 0016 D4)
-	selfTests++
-	if selfTests != 3 {
-		t.Fatalf("internal error: expected all 3 self-tests to run, got %d", selfTests)
+	// The self-tests: the layer predicate (synthetic) + the two coverage
+	// assertions on the real graph. Each runs as a named subtest and the executed
+	// NAME SET is asserted, so a mutant that drops a call (or an edit that renames
+	// one) cannot slip through a hand-maintained counter the way M7 did — and a
+	// deleted call reds rather than silently passing (review N-2 / F-2).
+	wantSelfTests := []string{"predicate", "allow-list", "tier-coverage", "sanctioned-in-use"}
+	var ranSelfTests []string
+	runSelfTest := func(name string, fn func(*testing.T)) {
+		if !t.Run(name, fn) {
+			return
+		}
+		ranSelfTests = append(ranSelfTests, name)
+	}
+	runSelfTest("predicate", selfTestPredicate)                                              // RULE-A/B/C/D + RULE-E, synthetic (ADR 0011 D2 / ADR 0016 D1)
+	runSelfTest("allow-list", selfTestAllowList)                                             // RULE-E coverage predicate, synthetic (ADR 0016 D4 / review F-2)
+	runSelfTest("tier-coverage", func(t *testing.T) { assertNoUnrankedGoverned(t, graph) })  // RULE-D coverage, real graph
+	runSelfTest("sanctioned-in-use", func(t *testing.T) { assertSanctionedInUse(t, graph) }) // RULE-E allow-list in use, real graph (ADR 0016 D4)
+	if !reflect.DeepEqual(ranSelfTests, wantSelfTests) {
+		t.Fatalf("internal error: expected self-tests %v to run, got %v", wantSelfTests, ranSelfTests)
 	}
 
 	// Property 2 — ranking + baseline diff (rule evaluated on the merged graph,
