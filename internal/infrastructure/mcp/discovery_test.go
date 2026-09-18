@@ -1,4 +1,4 @@
-package cli
+package mcp
 
 import (
 	"context"
@@ -35,8 +35,9 @@ func boolPtr(b bool) *bool { return &b }
 
 // T027 [UNIT] — discovery: concurrent bounded probing, never-answer skip+warn,
 // ENABLED skip (never dialed), and deterministic (sorted-by-server) order
-// (FR-008/FR-011 / Decision 3). The seams are injected (F6).
-func TestDiscoverForRun_NonStallSkipSortAndDisabled(t *testing.T) {
+// (FR-008/FR-011 / Decision 3). Round 044: the orchestration lives here; the
+// seams are injected (F6).
+func TestDiscover_NonStallSkipSortAndDisabled(t *testing.T) {
 	objSchema := []byte(`{"type":"object","properties":{}}`)
 	fakes := map[string]*fakeMCP{
 		"u-alpha": {tools: []domaintools.MCPToolDefinition{{Name: "a1", InputSchema: objSchema}}},
@@ -44,17 +45,14 @@ func TestDiscoverForRun_NonStallSkipSortAndDisabled(t *testing.T) {
 		"u-hf":    {block: true},
 		"u-off":   {tools: []domaintools.MCPToolDefinition{{Name: "should_not_appear", InputSchema: objSchema}}},
 	}
-	d := mcpDiscoveryConfig{
-		bound: 50 * time.Millisecond,
-		newClient: func(_ context.Context, url, _ string, _, _ time.Duration) (domaintools.MCPClient, error) {
-			f := fakes[url]
-			if f != nil {
-				f.connects++
-			}
-			return f, nil
-		},
-		resolveToken: func(context.Context) (string, error) { return "", nil },
+	newClient := func(_ context.Context, url, _ string, _, _ time.Duration) (domaintools.MCPClient, error) {
+		f := fakes[url]
+		if f != nil {
+			f.connects++
+		}
+		return f, nil
 	}
+	resolveToken := func(context.Context) (string, error) { return "", nil }
 
 	servers := map[string]config.MCPServerConfig{
 		"shop":  {URL: "u-shop"},
@@ -64,16 +62,15 @@ func TestDiscoverForRun_NonStallSkipSortAndDisabled(t *testing.T) {
 	}
 
 	start := time.Now()
-	run := d.discover(context.Background(), servers)
-	defer run.close()
+	tools, warnings, closeFn := Discover(context.Background(), servers, 50*time.Millisecond, newClient, resolveToken)
+	defer closeFn()
 	elapsed := time.Since(start)
 
 	var names []string
-	for _, tool := range run.tools {
+	for _, tool := range tools {
 		names = append(names, tool.Name())
 	}
 
-	// sorted by server key: alpha before shop.
 	if len(names) != 2 || names[0] != "mcp_alpha_a1" || names[1] != "mcp_shop_lookup_price" {
 		t.Fatalf("expected sorted [mcp_alpha_a1 mcp_shop_lookup_price], got %v", names)
 	}
@@ -86,47 +83,43 @@ func TestDiscoverForRun_NonStallSkipSortAndDisabled(t *testing.T) {
 		t.Fatalf("the disabled server was dialed %d time(s)", fakes["u-off"].connects)
 	}
 	warned := false
-	for _, w := range run.warnings {
+	for _, w := range warnings {
 		if strings.Contains(w, "hf") {
 			warned = true
 		}
 	}
 	if !warned {
-		t.Fatalf("the never-answering server was not warned: %v", run.warnings)
+		t.Fatalf("the never-answering server was not warned: %v", warnings)
 	}
-	// the never-answer server must not stall beyond a small multiple of the bound.
 	if elapsed > 2*time.Second {
-		t.Fatalf("discovery stalled for %v (bound %v)", elapsed, d.bound)
+		t.Fatalf("discovery stalled for %v (bound 50ms)", elapsed)
 	}
 }
 
-// TestDiscoverForRun_SkipsUnsafeNames pins F5: a server tool whose namespaced
-// wire name cannot satisfy the tool-name grammar is skipped with a warning.
-func TestDiscoverForRun_SkipsUnsafeNames(t *testing.T) {
+// TestDiscover_SkipsUnsafeNames pins F5: a server tool whose namespaced wire name
+// cannot satisfy the tool-name grammar is skipped with a warning.
+func TestDiscover_SkipsUnsafeNames(t *testing.T) {
 	objSchema := []byte(`{"type":"object","properties":{}}`)
 	fake := &fakeMCP{tools: []domaintools.MCPToolDefinition{
 		{Name: "good_tool", InputSchema: objSchema},
 		{Name: "bad tool\u00a0name", InputSchema: objSchema},
 	}}
-	d := mcpDiscoveryConfig{
-		bound: 50 * time.Millisecond,
-		newClient: func(context.Context, string, string, time.Duration, time.Duration) (domaintools.MCPClient, error) {
-			return fake, nil
-		},
-		resolveToken: func(context.Context) (string, error) { return "", nil },
+	newClient := func(context.Context, string, string, time.Duration, time.Duration) (domaintools.MCPClient, error) {
+		return fake, nil
 	}
-	run := d.discover(context.Background(), map[string]config.MCPServerConfig{"shop": {URL: "u"}})
-	defer run.close()
-	if len(run.tools) != 1 || run.tools[0].Name() != "mcp_shop_good_tool" {
-		t.Fatalf("expected only the safe tool, got %v", run.tools)
+	resolveToken := func(context.Context) (string, error) { return "", nil }
+	tools, warnings, closeFn := Discover(context.Background(), map[string]config.MCPServerConfig{"shop": {URL: "u"}}, 50*time.Millisecond, newClient, resolveToken)
+	defer closeFn()
+	if len(tools) != 1 || tools[0].Name() != "mcp_shop_good_tool" {
+		t.Fatalf("expected only the safe tool, got %v", tools)
 	}
 	found := false
-	for _, w := range run.warnings {
+	for _, w := range warnings {
 		if strings.Contains(w, "cannot be offered safely") {
 			found = true
 		}
 	}
 	if !found {
-		t.Fatalf("expected a name-skip warning, got %v", run.warnings)
+		t.Fatalf("expected a name-skip warning, got %v", warnings)
 	}
 }

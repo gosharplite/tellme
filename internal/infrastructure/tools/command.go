@@ -42,7 +42,7 @@ const commandToolName = "execute_command"
 // pointer so BindToolOutput can set it on the registry's stored (value) tool
 // (round 034 ADR 0005 D7).
 type toolOutputBox struct {
-	sink ToolOutputSink
+	sink domaintools.OutputSink
 }
 
 // executeCommand runs a shell command through bash -c. The output sink sits
@@ -52,9 +52,9 @@ type executeCommand struct {
 }
 
 // sink returns the bound `[Tool Output]` sink, or a zero (disabled) sink.
-func (c executeCommand) sink() ToolOutputSink {
+func (c executeCommand) sink() domaintools.OutputSink {
 	if c.output == nil {
-		return ToolOutputSink{}
+		return domaintools.OutputSink{}
 	}
 	return c.output.sink
 }
@@ -62,7 +62,7 @@ func (c executeCommand) sink() ToolOutputSink {
 // BindToolOutput rebinds the `[Tool Output]` sink on the command tool (the
 // prompt-path wiring seam; round 034). It is a no-op when the registry carries no
 // bindable command tool (e.g. a test registry).
-func BindToolOutput(reg domaintools.Registry, sink ToolOutputSink) {
+func BindToolOutput(reg domaintools.Registry, sink domaintools.OutputSink) {
 	if t, ok := reg.Lookup(commandToolName); ok {
 		if c, ok := t.(executeCommand); ok && c.output != nil {
 			c.output.sink = sink
@@ -194,7 +194,7 @@ func runToFile(ctx context.Context, command, path string, appendMode bool) (stri
 // on the deadline it kills the process group and returns the nil-error timeout
 // result (the "stopped" outcome) — the pinned T1 order stop -> close read-ends ->
 // kill(-pgid) if alive -> Wait.
-func runCaptured(ctx context.Context, command string, budget int, sink ToolOutputSink) (string, error) {
+func runCaptured(ctx context.Context, command string, budget int, sink domaintools.OutputSink) (string, error) {
 	cmd := newCommandProcess(ctx, command)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -273,7 +273,7 @@ func runCaptured(ctx context.Context, command string, budget int, sink ToolOutpu
 
 // teeSink fans dst out to the sink's writer as well as the result buffer when a
 // sink is bound (round 034 FR-010); a zero sink returns dst unchanged.
-func teeSink(dst io.Writer, sink ToolOutputSink) io.Writer {
+func teeSink(dst io.Writer, sink domaintools.OutputSink) io.Writer {
 	if sink.Enabled() {
 		return io.MultiWriter(dst, sink.Writer)
 	}

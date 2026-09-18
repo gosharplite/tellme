@@ -2,10 +2,15 @@ package cli
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/gosharplite/tellme/internal/app/deps"
+	"github.com/gosharplite/tellme/internal/domain/history"
+	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
 // T003 materialised as a real test — the CLI package's one pure helper (default
@@ -110,22 +115,31 @@ func TestResolveCarriesExpandedProvider(t *testing.T) {
 	}
 }
 
+// failingUsageStore is a history.ToolUsageStore double whose Aggregate fails.
+type failingUsageStore struct{}
+
+func (failingUsageStore) Record(string, history.ToolOutcome) error { return nil }
+func (failingUsageStore) Aggregate() (map[string]history.ToolUsageCounts, error) {
+	return nil, errors.New("boom")
+}
+
 // TestRenderToolUsageDiagnosesReadError pins the round-026 implementation-review
 // C/D behaviour: a GENUINE log read failure is diagnosed on stderr (the report
 // path is offline, so stderr is free) while the all-zero report still prints and
-// the command succeeds. It arranges an ENOTDIR failure (the log's parent
-// `~/.tellme` is a regular file) via the user-home seam.
+// the command succeeds. Round 044: the failure is injected through the
+// deps.ToolUsageStore seam (the ENOTDIR-via-home arrangement is retired — the
+// adapter's own read-error path is pinned at
+// internal/infrastructure/history/tool_usage_test.go).
 func TestRenderToolUsageDiagnosesReadError(t *testing.T) {
-	home := t.TempDir()
-	if err := os.WriteFile(filepath.Join(home, ".tellme"), []byte("not a directory"), 0o644); err != nil {
-		t.Fatalf("arrange the ENOTDIR failure: %v", err)
-	}
-	old := userHomeDir
-	userHomeDir = func() (string, error) { return home, nil }
-	defer func() { userHomeDir = old }()
+	dp := defaultTestDeps(func(d *deps.Dependencies) {
+		d.NewToolUsageStore = func(func() (string, error)) history.ToolUsageStore { return failingUsageStore{} }
+		d.NewToolRegistry = func() domaintools.Registry {
+			return domaintools.NewRegistry(noopTool{name: "list_files"})
+		}
+	})
 
 	var out, errBuf bytes.Buffer
-	if code := renderToolUsage(runtimeEnv{stdout: &out, stderr: &errBuf}); code != Success {
+	if code := renderToolUsage(runtimeEnv{stdout: &out, stderr: &errBuf}, dp); code != Success {
 		t.Fatalf("renderToolUsage = %d, want %d (success)", code, Success)
 	}
 	if !strings.Contains(errBuf.String(), "[tool-usage]") {

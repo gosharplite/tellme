@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/gosharplite/tellme/internal/app/deps"
 )
 
 // TestTUIDispatchEngagesWhenEnabledOnTerminal (round-015 T030; round-016 T024):
@@ -23,13 +25,11 @@ func TestTUIDispatchEngagesWhenEnabledOnTerminal(t *testing.T) {
 	}
 	t.Setenv("TELL_ME_HOME", home)
 
-	orig := newTUIPromptRunner
-	defer func() { newTUIPromptRunner = orig }()
 	called := false
-	newTUIPromptRunner = func(_ context.Context, _ resolution, _ runtimeEnv) (string, bool, error) {
+	opts := Options{Deps: defaultTestDeps(), RunTUIPrompt: func(_ context.Context, _ resolution, _ runtimeEnv, _ deps.Dependencies) (string, bool, error) {
 		called = true
 		return "", false, nil
-	}
+	}}
 
 	var out, errOut strings.Builder
 	e := runtimeEnv{
@@ -39,7 +39,7 @@ func TestTUIDispatchEngagesWhenEnabledOnTerminal(t *testing.T) {
 		isTTY:    func(any) bool { return true },
 		renderer: &stubRenderer{},
 	}
-	_ = run([]string{"-i"}, "dev", e)
+	_ = run([]string{"-i"}, "dev", opts, e)
 	if !called {
 		t.Fatalf("the interactive prompt did not engage on a terminal with -i; stderr=%q", errOut.String())
 	}
@@ -56,13 +56,11 @@ func TestTUIDispatchFallsBackOnNonTerminal(t *testing.T) {
 	clearAmbientOverrides(t)
 	t.Setenv("TELL_ME_HOME", "")
 
-	orig := newTUIPromptRunner
-	defer func() { newTUIPromptRunner = orig }()
 	called := false
-	newTUIPromptRunner = func(_ context.Context, _ resolution, _ runtimeEnv) (string, bool, error) {
+	opts := Options{Deps: defaultTestDeps(), RunTUIPrompt: func(_ context.Context, _ resolution, _ runtimeEnv, _ deps.Dependencies) (string, bool, error) {
 		called = true
 		return "", false, nil
-	}
+	}}
 
 	var out, errOut strings.Builder
 	e := runtimeEnv{
@@ -72,7 +70,7 @@ func TestTUIDispatchFallsBackOnNonTerminal(t *testing.T) {
 		isTTY:    func(any) bool { return false },
 		renderer: &stubRenderer{},
 	}
-	_ = run([]string{"-i"}, "dev", e)
+	_ = run([]string{"-i"}, "dev", opts, e)
 	if called {
 		t.Fatalf("the interactive prompt engaged on a non-terminal stdin; stderr=%q", errOut.String())
 	}
