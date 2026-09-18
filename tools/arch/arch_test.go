@@ -649,8 +649,12 @@ func selfTestPredicate(t *testing.T) {
 // regeneration affordance — `make verify-architecture-update` rewrites
 // baseline.txt and never touches couplingSurface. Intentional growth (a new
 // tracked identifier) is therefore a guard-TABLE edit in the same PR.
+//
+// Round 050 (R5.4; ADR 0019): the `internal/cli -> internal/agent` key
+// (`{AgentLoop}`) was REMOVED — the edge itself disappeared (the loop is now
+// obtained through the injected domain port agentport.Loop/LoopFactory), so its
+// surface is no longer governed. Only the `-> internal/ui` edge remains tracked.
 var couplingSurface = map[string]map[string]bool{
-	"internal/cli -> internal/agent": {"AgentLoop": true},
 	"internal/cli -> internal/ui": {
 		"ComputeCost":              true,
 		"DefaultToolOutputIdleGap": true,
@@ -850,12 +854,14 @@ func assertSurfaceCoversBaseline(t *testing.T, governedAppEdges []string) {
 // as behaviour rather than prose.
 func selfTestSurfaceCoverage(t *testing.T) {
 	t.Helper()
-	covered := []string{"internal/cli -> internal/agent", "internal/cli -> internal/ui"}
+	// Round 050: the `-> internal/agent` edge is gone (its key removed), so the
+	// sole tracked edge is `-> internal/ui`.
+	covered := []string{"internal/cli -> internal/ui"}
 	if u := uncoveredSurfaceEdges(covered); len(u) != 0 {
 		t.Fatalf("surface-coverage self-test: covered edges reported uncovered: %v", u)
 	}
 	mixed := []string{
-		"internal/cli -> internal/agent",
+		"internal/cli -> internal/ui",
 		"internal/app/deps -> internal/agent",         // governed app edge, no table entry
 		"internal/domain/llm -> internal/config",      // non-application src — ignored
 		"internal/cli -> (unranked governed package)", // marker — ignored
