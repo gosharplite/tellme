@@ -31,9 +31,9 @@
 
 ## Gaps & clarify strategy
 
-- [ ] **Q1 → OPEN** — the R-1 cross-slice split (A: port-only, `ui` wiring stays; B: move the whole block to `cmd/tellme`; C: re-sequence the `→ ui` slice first). **Blocks the mechanism + the story split.**
-- [ ] **Q2 → TBD** (after Q1) — port shape + adapter home
-- [ ] **Q3 → TBD** (after Q1) — `Lines`/observer ownership
+- [x] **Q1 → A LOCKED** — port-only inversion: the `→ agent` construction is inverted into a domain port; the `ui` wiring (Lines renderer, spinner, coordinator, composite observer) **stays in `internal/cli`** by design; baseline **2 → 1**; the `→ ui` edge is the later slice
+- [ ] **Q2 → TBD** — port shape + adapter home
+- [ ] **Q3 → TBD** — `Lines`/observer ownership
 - [x] Questions asked **one at a time**; capped at 1–3 per round
 - [x] High-impact gap scoped to a single first question (Q1), with options A/B/C
 - [x] Lower-impact undecided details disclosed as assumptions, not escalated (port names A3; ADR number A4; NOOP set A5/A6)

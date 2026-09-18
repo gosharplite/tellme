@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-18
 
-**Status**: Draft (clarify round 1 **OPEN** — Q1 pending) — plan package created by `/axb-specify`. Anchor issue [#101](https://github.com/gosharplite/tellme/issues/101) (**R5** of [#92](https://github.com/gosharplite/tellme/issues/92)), the **sub-slice 2** of the re-cut `cli → agent` de-coupling. Round 047 = **R5.1** (the RULE-E gate + baseline) · round 048 = **R5.2** (`cli → ui/tui/prompt`) · round 049 = **R5.3 / sub-slice 1** (the loop's crossing contracts → `internal/domain/agent`).
+**Status**: Draft (clarify round 1 in progress — **Q1 → A CLOSED**; Q2/Q3 pending) — plan package created by `/axb-specify`. Anchor issue [#101](https://github.com/gosharplite/tellme/issues/101) (**R5** of [#92](https://github.com/gosharplite/tellme/issues/92)), the **sub-slice 2** of the re-cut `cli → agent` de-coupling. Round 047 = **R5.1** (the RULE-E gate + baseline) · round 048 = **R5.2** (`cli → ui/tui/prompt`) · round 049 = **R5.3 / sub-slice 1** (the loop's crossing contracts → `internal/domain/agent`).
 
 **Input**: Issue [#101](https://github.com/gosharplite/tellme/issues/101) — **R5**, the **baseline-moving** round (**2 → 1**). The committed baseline records the **2** residual unsanctioned edges (measured 2026-09-18 @ `dev` `684e41e`, post-round-049):
 
@@ -19,13 +19,17 @@ internal/cli -> internal/ui
 
 ## Clarify round 1 — OPEN (asked one at a time)
 
-> **Q1 is pending.** Per the `/axb-specify` → `/axb-clarify` gate this round is **paused here** — Q1 decides the story split / mechanism, so no Q1 answer is assumed in this draft.
+> **Q1 → A is CLOSED** (recorded below); Q2/Q3 remain. Per the `/axb-specify` → `/axb-clarify` gate, questions are asked **one at a time**.
 
 | # | Question (asked one at a time) | Status |
 | --- | --- | --- |
-| **Q1** | **How is the R-1 cross-slice coupling split?** The surviving `→ agent` site (`&agent.AgentLoop{…}`, `cli.go:699`) shares one ~47-line wiring block (`cli.go:699-745`) with **three** `→ ui` references (`ui.ToolLineRenderer{}` L716 · `*ui.Spinner` L721 · `ui.NewToolOutputCoordinator(...)` L739). Options: **(A)** invert only the `→ agent` construction into a domain port and **keep the `ui` wiring in the CLI** (baseline **2 → 1**; `→ ui` edge intentionally retained; edge-sized) · **(B)** move the **whole block** to the exempt `cmd/tellme` (pulls the `ui` construction into the root; the CLI's turn signature grows; ≥ edge-sized) · **(C)** **re-sequence** — do the `→ ui` value-types extraction **first**, then sub-slice 2 (this round is re-scoped / deferred). | ⏳ **OPEN** |
-| **Q2** | **Port shape + adapter home** (assuming Q1 → A): a domain interface (`agentport.Loop` with `Run(ctx, prompt, prior) (Result, error)` + an injected factory) vs a struct-of-funcs; adapter as an `internal/agent`-exported constructor injected via `deps` vs a `cmd/tellme` closure. | ⏳ TBD (after Q1) |
-| **Q3** | **`Lines`/observer ownership**: does the CLI keep supplying `ui.ToolLineRenderer{}` as the domain `ToolLineRenderer` port (keeping one `→ ui` ref inside the block) and the composite observer, or does the port supply defaults? | ⏳ TBD (after Q1) |
+| **Q1** | **How is the R-1 cross-slice coupling split?** The surviving `→ agent` site (`&agent.AgentLoop{…}`, `cli.go:699`) shares one ~47-line wiring block (`cli.go:699-745`) with **three** `→ ui` references (`ui.ToolLineRenderer{}` L716 · `*ui.Spinner` L721 · `ui.NewToolOutputCoordinator(...)` L739). Options: **(A)** invert only the `→ agent` construction into a domain port and **keep the `ui` wiring in the CLI** (baseline **2 → 1**; `→ ui` edge intentionally retained; edge-sized) · **(B)** move the **whole block** to the exempt `cmd/tellme` (pulls the `ui` construction into the root; the CLI's turn signature grows; ≥ edge-sized) · **(C)** **re-sequence** — do the `→ ui` value-types extraction **first**, then sub-slice 2 (this round is re-scoped / deferred). | ✅ **A** |
+| **Q2** | **Port shape + adapter home** (under Q1 → A): a domain interface (`agentport.Loop` with `Run(ctx, prompt, prior) (Result, error)`) fed by an injected **factory** — adapter as an exported `internal/agent` constructor injected via `deps` — vs a domain **struct-of-funcs**, vs a `cmd/tellme` closure. | ⏳ TBD |
+| **Q3** | **`Lines`/observer ownership**: does the CLI keep supplying `ui.ToolLineRenderer{}` as the domain `ToolLineRenderer` port (keeping one `→ ui` ref inside the block) and the composite observer, or does the port supply defaults? | ⏳ TBD |
+
+### Q1 → A (LOCKED) — port-only inversion; the `ui` wiring stays in the CLI
+
+The `→ agent` **construction** is inverted into a domain port; the `ui` wiring (the `Lines` renderer, the spinner, the tool-output coordinator, and the composite observer assembly) **stays in `internal/cli`** by design. Consequence (recorded up front): this round moves the RULE-E ratchet **2 → 1** (the `internal/cli -> internal/agent` line **and** its RULE-F `couplingSurface` key both go — ADR 0018 fold **F-4**), while the `internal/cli -> internal/ui` line **and** its 19-identifier surface stay **byte-identical**. The `→ ui` edge is the later slice (ADR 0017 §Forward — not edge-sized), **not** this round. Rejected: **B** (relocates 3 `ui` refs at the cost of growing the tier-exempt root and the `runTurn` signature, while the CLI still needs the `*ui.Spinner`-holding composite — no `→ ui` removal for the size); **C** (re-sequences away the baseline move ADR 0018 assigns to *this* round).
 
 > **Assumptions (not escalated — low impact, disclosed):** exact port/type names; the ADR number (**0019**); the api/data/dsl-refine **NOOP** set; the `-count=1`/`-tags=arch` invocation stays as shipped.
 
