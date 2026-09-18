@@ -1114,3 +1114,12 @@ F-52-1/F-52-2 verified as behaviour. One further test-only fold:
 - **F-52-3** — the RF-52-3 pin's `set(nil, 3)` input was **vacuous** (empty list short-circuits before the cursor), so it did not cover the `cursor >= len(items)` bound it claimed. Fixed: input → **non-empty** `set([]string{"alpha"}, 3)`; `view()` assertion → **no cursor row**. Proven both directions: green on the real code; the isolated upper-bound removal now reds it (`index out of range [3] with length 1`). ADR 0021's RF-52-3 sentence corrected to match.
 - **N-52-1** — `STATUS.md`'s Rule-12 split note re-worded to past tense (a born-stale *"051 is now…"* → *"at that point 051 became…"*).
 - Re-verified: `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green. Test-only change; no code path or gate verdict moved.
+
+### Session 26 closeout addendum — round 052 **DELIVERED / FROZEN**
+
+- **Merge**: PR [#117](https://github.com/gosharplite/tellme/pull/117) **human-merged** into `dev` `f204aaa` (round-052 certified fold head `9f2a688`); **branch `052-ride-alongs-and-records` deleted (remote + local)** after merge.
+- **Issues closed**: **[#115](https://github.com/gosharplite/tellme/issues/115) CLOSED** (the two ride-alongs) · **[#116](https://github.com/gosharplite/tellme/issues/116) CLOSED** (its three records relocated to **ADR 0021 §Records**; the relocation comment is on the issue).
+- **Status at end of day**: round 052 **DELIVERED / FROZEN** — closes #115 + #116; the last two `#92`-lineage residuals retired. Active branch `dev`; the next round `053-*` opens off `dev`.
+- **Rule-12 split**: the **round-051 delivered-round detail** relocated **verbatim** into [`docs/archives/status/2026-09-18.md`](../../../../archives/status/2026-09-18.md); `STATUS.md` now carries a single delivered-round section (052).
+- **Propagation**: `dev → main` (no-ff) **PENDING** (awaits operator approval); `main` still at the round-051 propagation.
+- **Verification**: gates green at the merged head (unchanged from the certified `9f2a688` tree); `go.mod`/`go.sum` unchanged; no new Gherkin/DSL row.
