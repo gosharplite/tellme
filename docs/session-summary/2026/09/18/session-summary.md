@@ -477,3 +477,59 @@ The delivery + end-of-day closeout for round 045: PR [#106](https://github.com/g
 **Commit**: `docs(045)`: day close — round 045 delivered + propagated; STATUS + daily summary (+ Rule-12 split).
 
 **Next steps**: open round **`046-*`** off `dev` = **R4** (blank-reason owner + presentation predicate; removes the last baseline entry → **1 → 0**); re-read `SESSION-BOOTSTRAP.md`.
+
+---
+
+## Session 20 (2026-09-18, cont.) — round 046 `046-blank-reason-owner-and-presentation-decoupling` (R4 of #92): full pipeline → implementation delivered; PR open
+
+A further session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 045 delivered/frozen; active branch `dev`), opened round **046** from the new anchor **[#108](https://github.com/gosharplite/tellme/issues/108)** (a sub-issue of [#92](https://github.com/gosharplite/tellme/issues/92) — R4), ran the full AIxBDD pipeline, delivered the implementation, and opened a PR → `dev` (human-only merge).
+
+**Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`); linux/amd64 host (Go 1.26.6). **Session mode**: `butler`.
+**Branch**: `046-blank-reason-owner-and-presentation-decoupling` (off `dev` `1d36509`) — **PR open**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 045 delivered/frozen; active branch `dev`) |
+| Round-046 theme | **R4 of [#92](https://github.com/gosharplite/tellme/issues/92)** → anchor **[#108](https://github.com/gosharplite/tellme/issues/108)** — the blank-reason predicate's single owner + the loop's `internal/ui` de-coupling (baseline **1 → 0**) |
+| Clarify (locked) | **C-R4-1 → A** (an injected `agentport.ToolLineRenderer` port; the loop keeps the schedule + the round-045 yield bracket) · **C-R4-2 →** delete the dead tail guard · **C-R4-3 →** unit pins + the gate · **C-R4-4 →** a new **ADR 0015** |
+| Pipeline | specify ✅ · clarify ✅ · spec-by-example **NOOP** · technical-research ✅ (+ **ADR 0015** + techstack MODIFY ×2) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T011) · implement ✅ |
+| Product | `internal/domain/agent/presenter.go` (**NEW** — the `ToolLineRenderer` port) · `internal/ui/toolrenderer.go` (**NEW** — the adapter; the single-owned `ReasonLine`) · `internal/agent/agentloop.go` (drop the `internal/ui` import; route the log funcs through the port; `reasonsOf` → a method) · `internal/cli/{cli.go,call_renderer.go}` (inject the port; delete the dead tail guard) · `tools/arch/baseline.txt` (**1 → 0**) |
+| Verification | `make verify` **OK** (incl. `verify-architecture`: gate **0 new / 0 stale / 0 cycles**, baseline **header-only**; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (incl. the ~60 s godog E2E) · `gofmt`/`go vet` clean · **3 falsifiability witnesses** reproduced then reverted |
+| Delivery | branch `046-…`; **PR open — human-only merge** |
+
+### Decisions locked (round 046)
+
+| # | Decision |
+| --- | --- |
+| C-R4-1 | The loop stops importing `internal/ui` by rendering through an **injected `agentport.ToolLineRenderer`** port (declared in `internal/domain/agent`, implemented by `internal/ui`); the loop owns the **schedule** (same lines, order, per-call blank) **and** the round-045 yield bracket — **ADR 0014 untouched**; behaviour-preserving by construction. |
+| C-R4-2 | The blank-reason predicate's **single owner** is `ui.ToolLineRenderer.ReasonLine` (ONE `toolReasonText` evaluation → line + decision); the **dead** third site (`cli/call_renderer.go` `OnCallEnd`) is **deleted** (round-036 TD-1 paid down). |
+| C-R4-3 | Witness = **unit pins + the gate's 1 → 0**; **no** new E2E Example (weak-carrier precedent). |
+| C-R4-4 | **ADR 0015** records the loop/presenter split; relates to ADRs 0005 (D1 **reaffirmed**), 0013 (wiring), 0014 (**unchanged**). |
+
+### Commits (branch `046-…`)
+
+| Commit | Note |
+| --- | --- |
+| `4902d61` | `docs(046)`: plan package + spec |
+| `24ead79` | `docs(046)`: clarify lock (C-R4-1..4) + research + **ADR 0015** + truth MODIFYs + plan + tasks |
+| `3201296` | `feat(046)`: render the loop's tool lines through an injected port; single-own the blank-reason predicate (baseline 1 → 0) |
+| *(this)* | `docs(046)`: mark tasks `[X]` + STATUS + daily summary |
+
+### Falsifiability witnesses (reproduced then reverted, ADR 0010)
+
+- **(a)** re-add an `internal/agent → internal/ui` import ⇒ `verify-architecture` **fails** (the anti-bypass rule: a header-only baseline with 1 violation is red).
+- **(b)** diverge `ui.ToolLineRenderer.ReasonLine` from the format (render a line for a blank reason) ⇒ the `ui` port pin **fails**.
+- **(c)** add a stale baseline line at 0 ⇒ the gate **fails** (*"1 stale baseline entry"*).
+
+### Open items (non-blocking)
+
+- **Propagation PENDING** — `dev → main` after a human merges the PR; then close **#108** at closeout (Step 8).
+- **Round-046 forward item** — the port's `ReasonLine` is the single production owner of the predicate; a future second consumer must route through it (ADR 0015 *Consequences*). `ToolReasonRenders` stays exported for the ui tests.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; **R5** [#101](https://github.com/gosharplite/tellme/issues/101) (the deeper `internal/cli` strict de-coupling + F-4/F-6/F-7/F-8).
+
+### Next steps
+
+1. **Human merges PR** → propagate `dev → main` (no-ff) → close **#108** → `SESSION-CLOSEOUT.md`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session.

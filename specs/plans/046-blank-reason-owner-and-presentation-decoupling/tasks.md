@@ -22,27 +22,27 @@ _(omitted — stdlib-only; no new technology; `go.mod`/`go.sum` unchanged)_
 
 ## Phase 2 — Foundational
 
-- [ ] **T001** — Create `internal/domain/agent/presenter.go`: the `ToolLineRenderer` interface (`EngineLine`, `ActionLine`, `ResultLine`, `ReasonLine(t, reason) (string, bool)`) + the route/policy doc comment. **只做**：the port declaration. **不做**：no `internal/ui` types, no callers.
-- [ ] **T002** — Land the `internal/ui` adapter: `ui.ToolLineRenderer{}` over `FormatToolEngine`/`FormatToolAction`/`FormatToolResult` + a `ReasonLine` that evaluates `toolReasonText` **once** (returns `("", false)` for a blank/whitespace/escape-only reason, else the `[Tool Reason]` line). Land an empty `internal/ui/toolrenderer_test.go`. **只做**：the adapter + landing file.
+- [X] **T001** — Create `internal/domain/agent/presenter.go`: the `ToolLineRenderer` interface (`EngineLine`, `ActionLine`, `ResultLine`, `ReasonLine(t, reason) (string, bool)`) + the route/policy doc comment. **只做**：the port declaration. **不做**：no `internal/ui` types, no callers.
+- [X] **T002** — Land the `internal/ui` adapter: `ui.ToolLineRenderer{}` over `FormatToolEngine`/`FormatToolAction`/`FormatToolResult` + a `ReasonLine` that evaluates `toolReasonText` **once** (returns `("", false)` for a blank/whitespace/escape-only reason, else the `[Tool Reason]` line). Land an empty `internal/ui/toolrenderer_test.go`. **只做**：the adapter + landing file.
 
 ## Phase 3 — Test Alignment & Implementation (unit-only)
 
 > No DSL rows: the round changes no feature step. The "alignment" is the renderer pin + the loop-test fake; the "RED" is the compile failure + the scheduling pins.
 
-- [ ] **T003 `[UNIT-RED]`** — Retarget the three `internal/agent` log tests (`agentloop_reason_test.go`, `agentloop_blank_reason_test.go`, `agentloop_spacing_test.go`) to inject an in-package **recording fake renderer** (they must NOT import `internal/ui` — the gate governs test imports) and assert the **schedule**: the four line kinds, their order, the per-call leading blank, and the blank-reason suppression *via the fake's contract*. **RED**: `agentloop.go` still imports `internal/ui` and has no `Lines` field.
+- [X] **T003 `[UNIT-RED]`** — Retarget the three `internal/agent` log tests (`agentloop_reason_test.go`, `agentloop_blank_reason_test.go`, `agentloop_spacing_test.go`) to inject an in-package **recording fake renderer** (they must NOT import `internal/ui` — the gate governs test imports) and assert the **schedule**: the four line kinds, their order, the per-call leading blank, and the blank-reason suppression *via the fake's contract*. **RED**: `agentloop.go` still imports `internal/ui` and has no `Lines` field.
   - **DSL 參照**: n/a (no DSL row). **Boundary**: `internal/agent/*_test.go` only.
-- [ ] **T004 `[UNIT-RED]`** — `internal/ui/toolrenderer_test.go`: pin the port contract — `ReasonLine` returns `("", false)` for `""`/`"   "`/`"\n"`/`"\u001b[31m"`, and a line **byte-equal** to `FormatToolReason` for a real reason (incl. an over-cap reason), and `renders` ⇔ `ToolReasonRenders`. **RED**: the adapter's `ReasonLine` does not exist yet.
+- [X] **T004 `[UNIT-RED]`** — `internal/ui/toolrenderer_test.go`: pin the port contract — `ReasonLine` returns `("", false)` for `""`/`"   "`/`"\n"`/`"\u001b[31m"`, and a line **byte-equal** to `FormatToolReason` for a real reason (incl. an over-cap reason), and `renders` ⇔ `ToolReasonRenders`. **RED**: the adapter's `ReasonLine` does not exist yet.
   - **Boundary**: `internal/ui/toolrenderer_test.go` only.
-- [ ] **T005** — Review gate: the port + the fake are non-vacuous; the fake asserts the schedule (not the formatting), and the formatting pin lives at the `ui` tier.
+- [X] **T005** — Review gate: the port + the fake are non-vacuous; the fake asserts the schedule (not the formatting), and the formatting pin lives at the `ui` tier.
 
 ## Phase 4 — Green / Refactor
 
-- [ ] **T006 `[GREEN]`** — `internal/agent/agentloop.go`: drop `import "…/internal/ui"`; add the nil-safe `Lines agentport.ToolLineRenderer` field; route `logEngine`/`logAction`/`logResult` through it (the schedule + the per-call blank unchanged); `withToolLog` **unchanged** (ADR 0014); `reasonsOf` → a method that consults `Lines.ReasonLine` and appends the **raw** reason when it renders.
+- [X] **T006 `[GREEN]`** — `internal/agent/agentloop.go`: drop `import "…/internal/ui"`; add the nil-safe `Lines agentport.ToolLineRenderer` field; route `logEngine`/`logAction`/`logResult` through it (the schedule + the per-call blank unchanged); `withToolLog` **unchanged** (ADR 0014); `reasonsOf` → a method that consults `Lines.ReasonLine` and appends the **raw** reason when it renders.
   - **Boundary**: `internal/agent/agentloop.go` only. No behaviour change.
-- [ ] **T007 `[GREEN]`** — `internal/cli/cli.go` `runTurn`: inject `Lines: ui.ToolLineRenderer{}` on the loop (the composition site, ADR 0013). **Boundary**: `internal/cli/cli.go` only.
-- [ ] **T008 `[REFACTOR]`** — `internal/cli/call_renderer.go`: **delete** the dead `ui.ToolReasonRenders` re-check in the `emit` closure (P3) — the tail prints the already-filtered `roundReasons`; update the comment to name the single owner (`ui.ToolLineRenderer.ReasonLine`). Sweep the `internal/agent` doc comments (the loop renders through the port; the predicate is single-owned).
-- [ ] **T009 `[CODE-REMOVE]`** — Regenerate `tools/arch/baseline.txt` to **header-only** via `make verify-architecture-update` (the ratchet's terminal state; the gate ships with its enabler).
-- [ ] **T010 `[REGRESSION]`** — `make verify` (gate **0 new / 0 stale / 0 cycles**, baseline **0**) · `go test -count=1 ./...` green · topology audit unchanged · `gofmt`/`go vet` clean. **Falsifiability witnesses** (a)/(b)/(c) reproduced then reverted. **Boundary**: verification only.
+- [X] **T007 `[GREEN]`** — `internal/cli/cli.go` `runTurn`: inject `Lines: ui.ToolLineRenderer{}` on the loop (the composition site, ADR 0013). **Boundary**: `internal/cli/cli.go` only.
+- [X] **T008 `[REFACTOR]`** — `internal/cli/call_renderer.go`: **delete** the dead `ui.ToolReasonRenders` re-check in the `emit` closure (P3) — the tail prints the already-filtered `roundReasons`; update the comment to name the single owner (`ui.ToolLineRenderer.ReasonLine`). Sweep the `internal/agent` doc comments (the loop renders through the port; the predicate is single-owned).
+- [X] **T009 `[CODE-REMOVE]`** — Regenerate `tools/arch/baseline.txt` to **header-only** via `make verify-architecture-update` (the ratchet's terminal state; the gate ships with its enabler).
+- [X] **T010 `[REGRESSION]`** — `make verify` (gate **0 new / 0 stale / 0 cycles**, baseline **0**) · `go test -count=1 ./...` green · topology audit unchanged · `gofmt`/`go vet` clean. **Falsifiability witnesses** (a)/(b)/(c) reproduced then reverted. **Boundary**: verification only.
 
 ## Phase 5 — Truth, governance, close-out
 
