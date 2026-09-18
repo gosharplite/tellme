@@ -116,7 +116,7 @@ A later session on the same calendar day: bootstrapped/continued on `dev`, opene
 | Pipeline | specify ✅ · clarify ✅ · spec-by-example ✅ · technical-research ✅ (**ADR 0023**) · system-analysis ✅ (1 CLI interface; api/data NOOP) · dsl-refine ✅ · tasks ✅ (T001–T013 + fold ledger) · implement ✅ |
 | Review (PR #119) | review `5737154767` — **REQUEST CHANGES** (**B-54-1** blocker: the colour leaked into `turns.log` + F-54-1…F-54-4) → fold **`74e0eb2`** (+ `c1d248a` tasks ledger) → fold-verification `5737246516` — **ALL FOLDS VERIFIED, CLEARED FOR MERGE** |
 | Merge | PR [#119](https://github.com/gosharplite/tellme/pull/119) merged **`c1d248a`** (**fast-forward** — no merge commit); remote + local branch deleted |
-| Propagation | `dev → main` — **DONE (fast-forward)** |
+| Propagation | `dev → main` — **DONE (no-ff, `1a88b52`)** (the PR #119 → `dev` merge was a fast-forward; the `dev → main` propagation is a no-ff merge commit on the closeout head `fe96d22`) |
 | `go install` | `go install ./cmd/tellme` refreshed from `c1d248a`; `--version` → `dev` |
 | Closeout | `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (incl. the godog E2E, Strict, 240 scenarios) · diff-level secret scan clean · `STATUS.md` split (round-053 detail → `2026-09-19.md`) · **nothing to close** (operator request) |
 
@@ -132,11 +132,11 @@ A later session on the same calendar day: bootstrapped/continued on `dev`, opene
 
 - **Step 1 — working tree**: `dev` clean; no frozen packages touched.
 - **Step 2 — gates**: as the at-a-glance row (all green).
-- **Step 3 — `STATUS.md`**: round 054 **DELIVERED / FROZEN**; Rule-12 split (the round-053 detail + its env note → `docs/archives/status/2026-09-19.md`); branch model (054 landed **fast-forward**), roadmap (a 054 row), open items (RF-54-x), env notes; no liveness contradiction.
+- **Step 3 — `STATUS.md`**: round 054 **DELIVERED / FROZEN**; Rule-12 split (the round-053 detail + its env note → `docs/archives/status/2026-09-19.md`); branch model (the PR #119 → `dev` merge was **fast-forward**; the `dev → main` propagation is **no-ff** `1a88b52`), roadmap (a 054 row), open items (RF-54-x), env notes; no liveness contradiction.
 - **Step 4 — day summary**: **appended** this §8 (the §1–§7 record preserved).
 - **Step 5 — reconciliation**: `STATUS.md` ↔ §1–§8 agree.
 - **Step 6 — commit**: `docs(054): day close — round 054 delivered + propagated; STATUS split + 09/19 summary §8`.
-- **Step 7 — propagation + handoff**: `dev → main` **DONE (fast-forward)**; `go install` refreshed; next = `dev`, round `055-*`.
+- **Step 7 — propagation + handoff**: `dev → main` **DONE (no-ff, `1a88b52`)** — the PR-to-`dev` merge was a fast-forward but the propagation to `main` is a no-ff merge commit; `go install` refreshed from the dev head; next = `dev`, round `055-*`.
 - **Step 8 — issue tracker**: nothing to close/revise (operator request, no anchor issue); [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) open (accurate).
 
 ### Residuals (non-blocking, recorded)
