@@ -3,7 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
+
+	"github.com/gosharplite/tellme/internal/app/deps"
 )
 
 // Round 044 (relocated from internal/cli by ADR 0013): the assembler gate and the
@@ -135,15 +138,12 @@ func TestSchemaWellFormedEdgeCases(t *testing.T) {
 }
 
 // TestBuildDepsIsFullyWired is the composition-root smoke (round-044 fix-8): every
-// injected seam is non-nil, and UserHomeDir is wired to a non-nil resolver (RF-2).
+// injected seam is non-nil (deps.Dependencies.Validate), and UserHomeDir is wired
+// to a non-nil resolver (RF-2).
 func TestBuildDepsIsFullyWired(t *testing.T) {
 	d := buildDeps()
-	if d.NewGateway == nil || d.NewHistoryStore == nil || d.NewUsageStore == nil ||
-		d.NewToolUsageStore == nil || d.NewPromptTracker == nil ||
-		d.NewToolRegistry == nil || d.NewTUIRegistry == nil ||
-		d.BindToolOutput == nil || d.BindSkillsCatalog == nil ||
-		d.NewMetricsProvider == nil || d.MCPDiscoverer == nil || d.UserHomeDir == nil {
-		t.Fatal("buildDeps() left a nil seam")
+	if err := d.Validate(); err != nil {
+		t.Fatalf("buildDeps() left an unbound seam: %v", err)
 	}
 	if _, err := d.UserHomeDir(); err != nil {
 		// A resolvable home is not required, but the resolver must be callable and
@@ -153,5 +153,19 @@ func TestBuildDepsIsFullyWired(t *testing.T) {
 	opts := buildOptions()
 	if opts.Deps.NewGateway == nil {
 		t.Fatal("buildOptions() did not carry the deps")
+	}
+}
+
+// TestDepsValidateCatchesMissingSeam pins the F-5 validator: a zero
+// Dependencies (or one missing a seam) fails with a message naming the seam,
+// rather than a nil-func deref deep inside internal/cli.
+func TestDepsValidateCatchesMissingSeam(t *testing.T) {
+	var zero deps.Dependencies
+	err := zero.Validate()
+	if err == nil {
+		t.Fatal("Validate() = nil for a zero Dependencies, want an unbound-seam error")
+	}
+	if !strings.Contains(err.Error(), "is not wired") {
+		t.Errorf("Validate() error = %q, want it to name the unwired seam", err)
 	}
 }

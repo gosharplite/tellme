@@ -42,6 +42,9 @@ func defaultTestDeps(mods ...func(*deps.Dependencies)) deps.Dependencies {
 	for _, m := range mods {
 		m(&d)
 	}
+	if err := d.Validate(); err != nil {
+		panic("defaultTestDeps: incomplete fixture: " + err.Error())
+	}
 	return d
 }
 

@@ -158,17 +158,8 @@ type answerRenderer interface {
 	WarnDegraded(w io.Writer)
 }
 
-// (round 044 / fix-2: the `newRenderer` var is deleted — the renderer is built
-// inline in Run via ui.NewRenderer(); the injectable renderer seam stays
-// runtimeEnv.renderer, which tests use.)
-
-// historyStoreFactory builds the session-history store for a resolved workspace.
-// (round 044: the historyStoreFactory/newHistoryStore var is deleted; the store
-// is built by the injected deps.NewHistoryStore.)
-
-// (round 044: the usageStoreFactory/newUsageStore and the userHomeDir /
-// toolUsageStoreFactory/newToolUsageStore vars are deleted; the stores are built
-// by the injected deps.NewUsageStore / deps.NewToolUsageStore(deps.UserHomeDir).)
+// round 044: the renderer / history-usage-toolUsage-store / gateway / tool-registry
+// factory vars moved to cmd/tellme + deps.Dependencies (ADR 0013).
 
 // tuiPromptRunner runs the interactive TUI prompt (round 015) for one invocation
 // and returns the composed prompt text plus whether a prompt was submitted (ok).
@@ -585,9 +576,6 @@ func renderBoot(homeDir, configPath string, env runtimeEnv) int {
 	_, _ = fmt.Fprintln(env.stdout, "session workspace: "+res.Workspace)
 	return Success
 }
-
-// (round 044 / fix: the gatewayFactory/newGateway var is deleted; the gateway is
-// built by the injected deps.NewGateway.)
 
 // renderTurn resolves the setup, optionally archives the current session
 // (`--new`), then runs exactly one reasoning turn against the resolved provider
@@ -1079,10 +1067,6 @@ func emitProviderError(w io.Writer, err error) int {
 	_, _ = fmt.Fprintf(w, "tellme: the provider request failed: %s\n", detail)
 	return ProviderError
 }
-
-// (round 044: toolRegistryFactory/newToolRegistry and agentTools() are deleted —
-// the assembler relocates to cmd/tellme and the registry is injected via
-// deps.NewToolRegistry.)
 
 // augmentRegistryWithMCP performs the round-032 prompt-path MCP discovery: it
 // discovers each enabled remote MCP server's tools (bounded, non-stall), offers

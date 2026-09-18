@@ -1,12 +1,13 @@
 // Package deps defines the injected, domain-typed Dependencies value the
 // composition root (cmd/tellme) builds and hands to internal/cli (round 044,
-// ADR 0013). It imports only internal/domain/**, internal/config and
-// internal/home — never internal/infrastructure/**, internal/ui or
-// internal/agent (the R1 tier-2 ceiling; a UI-typed seam would be RULE-A).
+// ADR 0013). It imports internal/domain/** + internal/config + stdlib only (the
+// R1 tier-2 ceiling; a UI-typed seam would be RULE-A).
 package deps
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 
 	"github.com/gosharplite/tellme/internal/config"
 	"github.com/gosharplite/tellme/internal/domain/history"
@@ -63,4 +64,20 @@ type Dependencies struct {
 	// UserHomeDir resolves the user home (the `~/.tellme` root). It must be wired
 	// unconditionally to a non-nil resolver (round-044 RF-2).
 	UserHomeDir func() (string, error)
+}
+
+// Validate reports the first unbound (nil) function seam, so a missed wiring site
+// fails with a message instead of a nil-func dereference deep inside
+// internal/cli. It reflects over the struct's func fields, so a future 13th seam
+// is covered by construction (F-5, PR #104 review 5243584043). It is called from
+// the composition root's test and the CLI test fixture; `Run`'s zero value is
+// still the caller's responsibility.
+func (d Dependencies) Validate() error {
+	v := reflect.ValueOf(d)
+	for i := 0; i < v.NumField(); i++ {
+		if f := v.Type().Field(i); f.Type.Kind() == reflect.Func && v.Field(i).IsNil() {
+			return fmt.Errorf("deps: seam %s is not wired", f.Name)
+		}
+	}
+	return nil
 }

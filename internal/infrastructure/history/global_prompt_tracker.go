@@ -29,8 +29,9 @@ const globalPromptLogFile = "global_prompts.jsonl"
 // GlobalPromptTracker is the file adapter for the shared, append-only global
 // prompt log. Since round 028 the log lives at the USER-global
 // `<user-home>/.tellme/global_prompts.jsonl`, resolved via the injected
-// `userHome` resolver (the CLI-owned `userHomeDir` seam, mirroring
-// `NewToolUsageStore`); the environment-scoped `<home>/output/global_prompts.jsonl`
+// `userHome` resolver (`deps.Dependencies.UserHomeDir`, supplied by the
+// composition root, mirroring `NewToolUsageStore`); the environment-scoped
+// `<home>/output/global_prompts.jsonl`
 // is used only as the first-use seed source. It implements
 // domainhistory.PromptTracker.
 type GlobalPromptTracker struct {
