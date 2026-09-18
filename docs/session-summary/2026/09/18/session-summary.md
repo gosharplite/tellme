@@ -1097,3 +1097,12 @@ A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` S
 - **[#115](https://github.com/gosharplite/tellme/issues/115) CLOSED (completed)** — delivered by round 052 (the two ride-alongs: the construction-time sink + the selection-policy owner).
 - **[#116](https://github.com/gosharplite/tellme/issues/116) CLOSED (completed)** — the three records relocated to **ADR 0021 §Records** (its own closure path).
 - **OPEN (accurate)**: [#103](https://github.com/gosharplite/tellme/issues/103) · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13).
+
+### PR [#117](https://github.com/gosharplite/tellme/pull/117) review fold (`5730498811` — APPROVE WITH REQUIRED FOLDS, no blocker)
+
+The architect reproduced **every** witness **plus one the PR didn't claim** (witness (d): mutating the prompt path to `dp.NewToolRegistry(nil)` → **4 E2E `[Tool Output]` scenarios FAIL**) — proving the DoD has a genuine **two-layer carrier** (ctor pin + E2E wiring). Folds applied (all doc/one pin; no gate verdict moved):
+
+- **F-52-1** — `specs/truth/techstack.md`'s **Agent tool loop** row: the *"`BindToolOutput` MUST run before `Run`"* invariant is **retired by construction** (ctor-injected sink; ADR 0021), not deleted; the surviving pre-`Run` requirement binds `BindSkillsCatalog`; a **MODIFY** row added to `truth-delta.md`.
+- **F-52-2** — `STATUS.md`'s two live-state contradictions fixed (the delivered-rounds index no longer asserts liveness; the roadmap `future slices` row dropped #115/#116) **plus a durable remedy**: a new **SESSION-CLOSEOUT** Step-3 rule + closeout rule #14 (*no liveness contradictions*) — the class had now recurred 3× (round-045 F-7 · round-051 R-51-5 · round-052 F-52-2).
+- **RF-52-1/2/3** — ADR 0021 §Forward (the `BindSkillsCatalog` silent-`ok`-guard hazard · the records' write-once/supersede lifecycle · the cursor's total-but-unpinned bound → now pinned `set(nil, 3)`); **nit** — the two-layer witness + no-drift-by-construction + interface-copy-survival recorded in ADR 0021 §Consequences; witness (c) labelled a ratchet regression check.
+- Re-verified: `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (incl. the E2E). The folds are **doc + one test case** — no code change to the shipped behaviour.

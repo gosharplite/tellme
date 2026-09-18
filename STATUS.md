@@ -48,7 +48,7 @@
 | 050 | `050-agentloop-construction-inversion` | PR [#113](https://github.com/gosharplite/tellme/pull/113) (`09d0145`, head `0406c29`) |
 | 051 | `051-cli-ui-decoupling` | PR [#114](https://github.com/gosharplite/tellme/pull/114) (`0d7566b`, head `e7d035d`) |
 
-Per-round detail lives in the archives; **051 is the most recently delivered round; no round is in flight** (the next round `052-*` opens off `dev`).
+Per-round detail lives in the archives (the delivered-rounds index above records **delivery**, not liveness — see the **Round in flight** section for the current round).
 
 ## Branch model
 
@@ -72,7 +72,7 @@ Per-round detail lives in the archives; **051 is the most recently delivered rou
 | **003–050** | — | Provider-registry completeness → … → the R5 import-ceiling programme (R5.1 gate · R5.2 `→ ui/tui/prompt` · R5.3 contracts · R5.4 `→ agent`). | ✅ **Delivered** (see the archives) |
 | **051** | [#101](https://github.com/gosharplite/tellme/issues/101) | **R5.5 (terminal)** — the last RULE-E residual `internal/cli → internal/ui` → **baseline 1 → 0** + **F-6/F-7/F-8**; **closes #101**; **ADR 0020**. | ✅ **Delivered** — PR [#114](https://github.com/gosharplite/tellme/pull/114) merged into `dev` (`0d7566b`); **baseline 0 (terminal)** |
 | **052** | [#115](https://github.com/gosharplite/tellme/issues/115) + [#116](https://github.com/gosharplite/tellme/issues/116) | The two `#92` **ride-alongs** (the command tool's construction-time `[Tool Output]` sink; the suggester's single-owned selection policy) + the three `#92` **records**' durable relocation (**ADR 0021**). | 🚧 **In flight** — branch `052-ride-alongs-and-records`; `make verify` OK / E2E green; PR open |
-| **future slices** | [#115](https://github.com/gosharplite/tellme/issues/115) (the #92 **ride-alongs**) · [#116](https://github.com/gosharplite/tellme/issues/116) (the #92 **records**) · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) · [#103](https://github.com/gosharplite/tellme/issues/103) | the two **ride-alongs** (suggestion-selection policy owner; `BindToolOutput` ctor injection) · the three **records** (permanent E2E narrowing; one-concurrent-block; `End`-while-write-stalled) · the **self-development umbrella** ([#91](https://github.com/gosharplite/tellme/issues/91)) · **coverage tooling** ([#13](https://github.com/gosharplite/tellme/issues/13)) · the `-l`/`-c` + `-t` plumbing gap ([#103](https://github.com/gosharplite/tellme/issues/103)). | ⏳ **Candidates** |
+| **future slices** | [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) · [#103](https://github.com/gosharplite/tellme/issues/103) | the **self-development umbrella** ([#91](https://github.com/gosharplite/tellme/issues/91)) · **coverage tooling** ([#13](https://github.com/gosharplite/tellme/issues/13)) · the `-l`/`-c` + `-t` plumbing gap ([#103](https://github.com/gosharplite/tellme/issues/103)). | ⏳ **Candidates** |
 
 ## Open items (non-blocking)
 

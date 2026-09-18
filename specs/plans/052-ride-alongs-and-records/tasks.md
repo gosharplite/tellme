@@ -39,3 +39,16 @@
 ## Orphan sweep
 
 - Post-delivery orphan sweep: **0** (no orphan symbols introduced; `BindToolOutput`/`toolOutputBox` removed with their sole callers).
+
+## Fold — PR [#117](https://github.com/gosharplite/tellme/pull/117) review `5730498811` (APPROVE WITH REQUIRED FOLDS)
+
+| Finding | Fold |
+| --- | --- |
+| **F-52-1** `[TECHNICAL DEBT]` — the **Agent tool loop** truth row still asserts *"`BindToolOutput` MUST run before `Run`"*, a clause R-2 makes false; the `truth-delta.md` never inspected that row | `specs/truth/techstack.md` Agent tool loop row: the clause is **retired, not deleted** — *"the `BindToolOutput`-before-`Run` half is retired by construction (ctor-injected sink; ADR 0021) … the surviving pre-`Run` requirement binds `BindSkillsCatalog`"*; a **MODIFY** row added to `truth-delta.md` (the row is now inspected + recorded) |
+| **F-52-2** `[TECHNICAL DEBT]` — `STATUS.md` carried two live-state contradictions (3rd occurrence of the class) | **(a)** the delivered-rounds index line no longer asserts liveness (*"the delivered-rounds index above records delivery, not liveness"*); **(b)** the roadmap `future slices` row dropped [#115](https://github.com/gosharplite/tellme/issues/115)/[#116](https://github.com/gosharplite/tellme/issues/116) (they are the in-flight round); **durable remedy** — a new **SESSION-CLOSEOUT** Step-3 rule + closeout rule #14 (*no liveness contradictions*) |
+| **RF-52-1** `[REFACTOR]` — `BindSkillsCatalog` is now the only pointer-based seam and fails silently | ADR 0021 §Forward **RF-52-1** (migrate it in the same change that converts `listSkills` to a value type) |
+| **RF-52-2** `[REFACTOR]` — the records' ADR home is write-once | ADR 0021 §Records **lifecycle clause** (a changed record is superseded by a new ADR citing this one) |
+| **RF-52-3** `[REFACTOR]` — the caller-trust cursor is bounded but unpinned | `suggester_set_test.go` gains the **out-of-range** case (`set(nil, 3)` ⇒ no selection, no panic) |
+| **Nit** — state which layer owns what | ADR 0021 §Consequences: the **two-layer witness** split (ctor pin vs the E2E wiring) + **no-drift by construction** (one builder) + **interface-copy survival through `augmentRegistryWithMCP`** |
+| **Nit** — witness (c) re-runs round 051's witness | labelled in this package as a **ratchet regression check**, not round-052 evidence |
+| **Witness (d)** — the reviewer's **unclaimed** witness: mutate the prompt path to `dp.NewToolRegistry(nil)` | **Reproduced** — 4 godog E2E `[Tool Output]` scenarios FAIL (`no [Tool Output] block to inspect` / `no [Tool Output] content line`); reverted clean. Recorded in ADR 0021 §Consequences (the wiring is owned by the E2E, one layer above the ctor pin). |

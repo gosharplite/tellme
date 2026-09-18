@@ -47,6 +47,10 @@ The `deps.Dependencies` field widens to `NewToolRegistry func(sink domaintools.O
 ## Consequences
 
 - The command tool's dependency is visible in its constructor; one registry builder exists; the assembler gate is unchanged in shape.
+- **An invariant is retired, not moved.** The round-050 fold TD-3 invariant *"`BindToolOutput` MUST run before `Run`"* existed because a future adapter that derived, wrapped, or copied the registry could **silently drop** the `[Tool Output]` sink (ADR 0019:54). With the sink **ctor-injected**, that can no longer happen **by construction** — so the invariant's sink half is **retired**, and the surviving pre-`Run` requirement now binds only the remaining post-construction seam, `BindSkillsCatalog`. `specs/truth/techstack.md`'s **Agent tool loop** row records the retirement (round 052 fold **F-52-1**).
+- **No drift by construction.** `agentTools()`, `assembleAgentTools(nil)`, and `newToolRegistry(nil)` all route through **one** builder, so the round-031 set-equality gate (`agentTools()` ≡ the registry's tool set) cannot drift — a stronger property than #115 asked for.
+- **The binding survives MCP augmentation.** `augmentRegistryWithMCP` re-registers from `reg.Tools()`; the command tool **value** carries the sink as an **interface holding the coordinator pointer**, so re-registration preserves the binding. (This is the load-bearing reason ctor injection is safe here; recorded per the PR-review RF-52-1 observation.)
+- **Two-layer witness (so a future reader does not over-trust the pin).** The `internal/infrastructure/tools/command_sink_test.go` pin proves the **ctor** carries the sink; it does **not** watch the **wiring**. The wiring is owned, one layer up, by the **godog E2E** — a mutated prompt path (`dp.NewToolRegistry(nil)`) reds 4 E2E `[Tool Output]` scenarios (PR [#117](https://github.com/gosharplite/tellme/pull/117) review `5730498811` witness (d)). The witness owner split mirrors round-050 fold TD-2(iii).
 - One `Dependencies` field's **signature** changes (func-typed, so `Validate()` still covers it); the offline reporting path and the test fixtures pass `nil`.
 - The suggester's reset is explicit at the call sites; the round-037 rendering is byte-identical.
 - The three records are citable from a live, indexed artifact and survive the frozen packages.
@@ -55,6 +59,8 @@ The `deps.Dependencies` field widens to `NewToolRegistry func(sink domaintools.O
 ## Records (relocated from [#116](https://github.com/gosharplite/tellme/issues/116) at the round-052 close)
 
 > **Status of these three records:** *standing records, not work.* Relocated here (from the frozen plan packages `specs/plans/036-*` / `040-*` and the `internal/ui/coordinator.go` doc comment) so they outlive the packages and are never re-raised as "we forgot". [#116](https://github.com/gosharplite/tellme/issues/116) closes on this relocation.
+>
+> **Lifecycle (write-once home):** this ADR is `Accepted` and therefore **immutable but for its `Status` line and the index**. A record that later **changes** (Record 2 is the one that anticipates a re-scope) is **superseded by a new ADR that cites this one** — the records here stay frozen like every other accepted decision (round-052 fold **RF-52-2**).
 
 ### Record 1 — Permanent E2E narrowing (round 036 D4)
 
@@ -70,6 +76,9 @@ A wedged `stderr` write cannot be abandoned at `End` (documented in `internal/ui
 
 ## Forward
 
-- **RF-52-1** — the widened `NewToolRegistry` seam takes a single sink; if a future round needs the registry built with a *different* per-turn dependency (e.g. a per-turn skills catalog), prefer adding a second **named** per-path seam over a growing positional parameter list (the round-051 **RF-51-6** warning).
-- **RF-52-2** — Record 1's narrowing: a count formulation covering **both** `\n` and `\r` (neither existing formulation does) would let a future round add an E2E carrier; until then the unit pin is the deterministic carrier.
-- **RF-52-3** — Record 2's re-scope remains gated on a concurrent-tools round ([#47](https://github.com/gosharplite/tellme/issues/47) `not_planned`).
+- **RF-52-1** — **`BindSkillsCatalog` is now the *only* pointer-based post-construction seam, and it fails silently.** `internal/infrastructure/tools/skills.go` does `if ls, ok := t.(*listSkills); ok { ls.catalog = catalog }` — the assertion sits **inside an `ok` guard**, so applying *exactly the round-052 pattern* to the skills tool (value type + ctor injection) would make the bind a **silent no-op** → `list_skills` returns an empty catalog with **every gate green** (a nil catalog is the *expected* state on `agentTools()` — the read-free gate cannot catch it). A future round converting `listSkills` to ctor injection MUST migrate `BindSkillsCatalog` in the same change. (Round-052 review **RF-52-1**; R-2 raised this hazard's invisibility by removing its consistent sibling.)
+- **RF-52-2** — the records' home is **write-once**: a changed record is **superseded by a new ADR citing this one** (see the §Records lifecycle clause).
+- **RF-52-3** — the caller-trust cursor is **total, not validated**: `set(items, cursor)` trusts its caller, but `selected()` is total (`cursor < 0 || cursor >= len(items)` ⇒ `""`) and `view()` highlights nothing — **no panic**. The out-of-range case is **pinned** (`suggester_set_test.go`: `set(nil, 3)` ⇒ no selection, no panic) per the round-021 TD2′ *witness-the-contract* precedent.
+- **RF-52-4** — the widened `NewToolRegistry` seam takes a single sink; if a future round needs the registry built with a *different* per-turn dependency (e.g. a per-turn skills catalog), prefer adding a second **named** per-path seam over a growing positional parameter list (the round-051 **RF-51-6** warning).
+- **RF-52-5** — Record 1's narrowing: a count formulation covering **both** `\n` and `\r` (neither existing formulation does) would let a future round add an E2E carrier; until then the unit pin is the deterministic carrier.
+- **RF-52-6** — Record 2's re-scope remains gated on a concurrent-tools round ([#47](https://github.com/gosharplite/tellme/issues/47) `not_planned`).

@@ -46,4 +46,18 @@ func TestSuggesterSetOwnsTheCursor(t *testing.T) {
 			t.Fatalf("selected() after cycle(+1) = %q, want alpha", got)
 		}
 	})
+
+	// RF-52-3: `set` trusts its caller, but `selected()` is total and `view()` is
+	// safe on an out-of-range cursor — no panic, no stray highlight. Pinned so a
+	// future caller bug is a visible no-selection, not a crash.
+	t.Run("an out-of-range cursor is total and safe", func(t *testing.T) {
+		s := newSuggester()
+		s.set(nil, 3)
+		if got := s.selected(); got != "" {
+			t.Fatalf("selected() = %q, want none", got)
+		}
+		if got := s.view(); got != "" {
+			t.Fatalf("view() = %q, want empty", got)
+		}
+	})
 }

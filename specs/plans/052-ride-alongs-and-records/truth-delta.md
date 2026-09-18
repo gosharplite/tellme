@@ -17,6 +17,7 @@
 | MODIFY | `specs/truth/techstack.md` — **Interactive TUI prompt (`-i`)** row | **Round 052 (R-1; ADR 0021)**: the selection policy gets a single named owner — `suggester.set(items []string, cursor int)` takes the cursor explicitly and no longer resets it internally; the refresh caller passes the `noChoice` sentinel, so the reset is a **caller** decision (rendering byte-unchanged). | `spec.md` US2 / FR-005; `research.md` D3. |
 | MODIFY | `specs/truth/techstack.md` — **Prompt suggestion engine** row | **Round 052 (R-1; ADR 0021)**: the selection **reset** is owned by the caller (`set(items, cursor)`; the refresh passes `noChoice`) — no hidden reset inside `set`. | `spec.md` US2 / FR-005; `research.md` D3. |
 | NOOP (checked) | `specs/truth/techstack.md` — **Build & Tooling / Task runner** row | Inspected: the `verify` aggregate already names `verify-architecture`. The round adds **no** Makefile target — the gate rides that target. | `spec.md` FR-008; `research.md` D7. |
+| MODIFY | `specs/truth/techstack.md` — **Agent tool loop** row (fold **F-52-1**) | The standing invariant's **`BindToolOutput`-before-`Run` half is retired by construction** (the sink is now ctor-injected; ADR 0021) — recorded as an **invariant retirement**, not a deletion; the pre-`Run` binding requirement now binds the surviving seam **`BindSkillsCatalog`**. | `truth-current`: R-2 makes the clause false; PR [#117](https://github.com/gosharplite/tellme/pull/117) review `5730498811` F-52-1. |
 
 ## /axb-api-plan
 
