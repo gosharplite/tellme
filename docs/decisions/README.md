@@ -28,7 +28,7 @@ Typo- and editorial-only fixes do not need an ADR.
 | [0002](0002-first-presentation-dependency.md) | First presentation dependency: glamour | Accepted |
 | [0003](0003-terminal-detection-isatty.md) | Terminal detection: a real isatty (`golang.org/x/term`) | Accepted |
 | [0004](0004-user-global-prompt-log.md) | User-global interactive prompt log (`~/.tellme/global_prompts.jsonl`) | Accepted |
-| [0005](0005-tool-call-log-parity.md) | Tool-call log parity: per-call frame cadence, CLI-computed per-call estimate, rune-safe rendering | Accepted (**D7 superseded by [0009](0009-spinner-dual-timer-and-streaming-liveness.md)**) |
+| [0005](0005-tool-call-log-parity.md) | Tool-call log parity: per-call frame cadence, CLI-computed per-call estimate, rune-safe rendering | Accepted (**D7 superseded by [0009](0009-spinner-dual-timer-and-streaming-liveness.md)**; **D1 amended by [0014](0014-yield-policy-owner.md)**) |
 | [0006](0006-tool-reason-fold-and-cap.md) | Tool reason fold, trim, and cap: the model-authored reason joins its sibling sanitize+cap family | Accepted |
 | [0007](0007-terminal-control-sanitization.md) | Terminal-control sanitization of the `[Tool Output]` block: a new stderr presentation invariant, and a deliberate reference divergence | Superseded by [0008](0008-terminal-safe-lines-and-blank-line-grouping.md) |
 | [0008](0008-terminal-safe-lines-and-blank-line-grouping.md) | Terminal-safe `[Tool …]` line policy (generalized) + live turn-output blank-line grouping | Accepted |
@@ -37,3 +37,4 @@ Typo- and editorial-only fixes do not need an ADR.
 | [0011](0011-layer-discipline-gate.md) | Layer-discipline gate: the pinned layer rule + a fail-on-stale violation baseline | Accepted |
 | [0012](0012-hermetic-make-go-env.md) | A hermetic `make` Go-toolchain invocation environment (generalises ADR 0011 **D5**; round-020 TD1 is the precedent — its pin stays recipe-local) | Accepted |
 | [0013](0013-composition-root-injection.md) | Composition-root extraction: an injected, domain-typed `Dependencies` seam (R2 of #92) | Accepted |
+| [0014](0014-yield-policy-owner.md) | Yield-policy owner + `LoopObserver` hook split (R3 of #92; amends ADR 0005 **D1**) | Accepted |

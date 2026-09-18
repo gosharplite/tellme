@@ -316,17 +316,21 @@ func (a *AgentLoop) logResult(tc llm.ToolCall, result string) {
 }
 
 // withToolLog wraps one diagnostic write with the nil-Stderr guard and the
-// observer's clear/restore hooks (round-019), so the spinner yields the line.
+// observer's yield/restore hooks, so the spinner yields the line. Round 045
+// (R3 of #92): the hooks are the intent-named YieldIndicator/RestoreIndicator
+// pair (replacing the log-named Before/AfterToolLog); the yield POLICY lives
+// with the presenter (ui.YieldController; ADR 0014), so this stays a plain
+// clear-before / restore-after wrap.
 func (a *AgentLoop) withToolLog(fn func()) {
 	if a.Stderr == nil {
 		return
 	}
 	if a.Observer != nil {
-		a.Observer.BeforeToolLog()
+		a.Observer.YieldIndicator()
 	}
 	fn()
 	if a.Observer != nil {
-		a.Observer.AfterToolLog()
+		a.Observer.RestoreIndicator()
 	}
 }
 
