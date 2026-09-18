@@ -41,7 +41,7 @@ Measured 2026-09-18 @ `dev` `310def4`: the CLI names **19** `internal/ui` identi
 ## Consequences
 
 - **Positive**: the RULE-E ratchet reaches its **terminal state (0)** → [#92](https://github.com/gosharplite/tellme/issues/92) **AC2 clause 2 holds**; [#101](https://github.com/gosharplite/tellme/issues/101) closes; the CLI names only `internal/domain/**` + stdlib + the sanctioned set; F-6/F-7/F-8 are code-resolved.
-- **⚠️ No release valve**: at baseline **0** a future legitimate ceiling violation must be **refactored** (or the rule amended), **never** baselined (ADR 0011/0016).
+- **⚠️ No release valve** *(in part superseded — see §Fold review folds, **R-51-1**: the valve is a guarded, review-visible two-edit path, now enforced)*: at baseline **0** a future legitimate ceiling violation must be **refactored** (or the rule amended), not baselined (ADR 0011/0016).
 - **Cost — a large single round**: the ui de-coupling + F-6/F-7/F-8 in one PR; the D2 ordering is the mitigation and a review may require an internal re-cut.
 - **Witness**: the gate (RULE-E baseline **0**; RULE-A/B/C **0**; 0 cycles; RULE-F no `→ ui` key) + the F-6/F-7/F-8 acceptances + unit/E2E pins.
 

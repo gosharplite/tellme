@@ -432,8 +432,33 @@ func readBaselineIfPresent(path string) []string {
 	if err != nil {
 		return nil
 	}
+	return parseBaselineLines(string(data))
+}
+
+// notInBaseline returns the violations NOT present in the previous baseline (a
+// subset test, not a count test — round-051 fold N-1: catches a 1-for-1 swap at a
+// non-zero baseline, not only net growth).
+func notInBaseline(violations, prev []string) []string {
+	have := map[string]bool{}
+	for _, p := range prev {
+		have[p] = true
+	}
+	var added []string
+	for _, v := range violations {
+		if !have[v] {
+			added = append(added, v)
+		}
+	}
+	sort.Strings(added)
+	return added
+}
+
+// parseBaselineLines extracts the `<src> -> <dst>` violation lines from a
+// baseline file body (comments/blank lines skipped). ONE parser for the format
+// (round-051 fold N-2): both the strict reader and the growth-guard reader use it.
+func parseBaselineLines(data string) []string {
 	var lines []string
-	for _, raw := range strings.Split(string(data), "\n") {
+	for _, raw := range strings.Split(data, "\n") {
 		line := strings.TrimSpace(raw)
 		if line == "" || strings.HasPrefix(line, "#") || !strings.Contains(line, " -> ") {
 			continue
@@ -958,8 +983,9 @@ func TestVerifyRealArchitecture(t *testing.T) {
 		// baseline. A new ceiling violation must be REFACTORED (ADR 0011/0016), not
 		// baselined. Without this guard `-update-baseline` would silently launder a
 		// new violation into the baseline.
-		if prev := readBaselineIfPresent(path); len(violations) > len(prev) {
-			t.Fatalf("refusing to GROW the baseline (%d → %d): a new layer violation must be refactored, not baselined (ADR 0011/0016; round-051 R-51-1)", len(prev), len(violations))
+		prev := readBaselineIfPresent(path)
+		if added := notInBaseline(violations, prev); len(added) > 0 {
+			t.Fatalf("refusing to GROW the baseline (%d → %d): violation(s) not already baselined %v — a new layer violation must be refactored, not baselined (ADR 0011/0016; round-051 R-51-1)", len(prev), len(violations), added)
 		}
 		writeBaseline(t, path, violations)
 		t.Logf("baseline regenerated from the gate: %d violation(s)", len(violations))

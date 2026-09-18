@@ -45,4 +45,4 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| MODIFY | `specs/truth/techstack.md` — **Build & Tooling / Layer-discipline gate** row (fold) | Records **R-51-1**: the `-update-baseline` path now **refuses to grow** the baseline (enforcement, not policy) — the terminal state's valve is a guarded two-edit path, not an absence. **RF-51-5**: at baseline 0 the RULE-F coverage clause is load-bearing on that guarded `-update-baseline` path. | round-051 fold R-51-1/RF-51-5. |
+| MODIFY | `specs/truth/techstack.md` — **Build & Tooling / Layer-discipline gate** row (fold) | Records **R-51-1**: the `-update-baseline` path now **refuses to grow** the baseline (enforcement, not policy) — the terminal state's valve is a guarded two-edit path, not an absence. **RF-51-5**: at baseline 0 the RULE-F coverage clause is load-bearing on that guarded `-update-baseline` path. **Fold F-2**: removed the stale, contradictory trailing sentence *"At 0 the ratchet has no release valve"* (the row would otherwise carry two incompatible claims — `truth-current`). | round-051 fold R-51-1/RF-51-5/F-2. |

@@ -95,11 +95,15 @@ func TestRunTurn_PrintsRawAnswerAndPersists(t *testing.T) {
 	if out.String() != "the answer\n" {
 		t.Errorf("stdout = %q, want %q", out.String(), "the answer\n")
 	}
-	// Round-050 fold TD-2(i): HasSuffix restored — with an unreported usage the
-	// deferred post-turn status writes nothing, so the pre-flight payload line is
-	// the LAST stderr write before the answer (the position the Contains form lost).
-	if got := errOut.String(); !strings.Contains(got, "<payload ") || !strings.Contains(got, "1000000 butler deepseek-v4-flash estimated=true>") {
-		t.Errorf("stderr = %q, want a pre-flight payload status line for butler/deepseek-v4-flash", got)
+	// Round-050 fold TD-2(i) positional pin, restored in sentinel form (round-051
+	// fold F-1): with an UNREPORTED usage the deferred post-turn status writes
+	// nothing, so the PRE-FLIGHT payload line is the LAST stderr write before the
+	// answer. Asserting the last line (not a bare Contains) keeps the position
+	// falsifiable — dropping the round-018 `if !usage.Reported` gate reds it.
+	lines := strings.Split(strings.TrimRight(errOut.String(), "\n"), "\n")
+	last := lines[len(lines)-1]
+	if !strings.HasPrefix(last, "<payload ") || !strings.HasSuffix(last, "1000000 butler deepseek-v4-flash estimated=true>") {
+		t.Errorf("last stderr line = %q, want the PRE-FLIGHT payload status line as the LAST write (unreported usage defers nothing)", last)
 	}
 	if len(st.appended) != 1 || st.appended[0].Prompt != "ping" || st.appended[0].Answer != "the answer" {
 		t.Errorf("persisted = %+v, want the completed exchange", st.appended)
