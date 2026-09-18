@@ -262,7 +262,7 @@
 
 - **The gate proves it**: `make verify-architecture` **green** with the 7 `internal/cli -> internal/infrastructure/*` baseline entries **removed** (0 new / 0 stale / 0 cycles).
 - **`make verify`** — **OK** (verify-architecture · verify-mcp-sdk-confinement · cross-compile 4/4 · lint 0 · govulncheck clean).
-- **`go test -count=1 ./...`** — **green** (unit + godog E2E; 22 packages, 0 FAIL).
+- **`go test -count=1 ./...`** — **green** (unit + godog E2E; 23 packages, 0 FAIL).
 - **Falsifiability witness (SC-007)** — (a) re-introducing a `internal/cli -> internal/infrastructure/history` import ⇒ gate **FAIL** naming it; reverted ⇒ green. (b) a **stale** baseline line (`internal/cli -> internal/infrastructure/history`) ⇒ gate **FAIL** ("remove them from the baseline"); reverted ⇒ green.
 - **`gofmt -l .`** clean; **`go.mod`/`go.sum` unchanged**; `specs/truth/features/**` untouched (topology audit unchanged: 44 · 6 · 16+327 · 1674).
 

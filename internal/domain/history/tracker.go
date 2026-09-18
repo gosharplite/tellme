@@ -21,8 +21,8 @@ type PromptLogEntry struct {
 // suggestion read) and the suggestion engine (recent prompts).
 //
 // Lifecycle: the adapter resolves its path via an **injected** user-home resolver
-// (`deps.Dependencies.UserHomeDir`, supplied by the composition root, so unit
-// tests stay hermetic). The log is
+// — the caller supplies a `func() (string, error)` (the composition root wires
+// `os.UserHomeDir`), so unit tests stay hermetic. The log is
 // written only under `-i`; when the user-global file is absent it is seeded once
 // with a verbatim copy of the environment-scoped `<TELL_ME_HOME>/output/global_prompts.jsonl`
 // (copy, not move; never overwritten) via the adapter's explicit `Seed(ctx)`

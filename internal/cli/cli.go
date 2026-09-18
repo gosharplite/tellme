@@ -158,8 +158,10 @@ type answerRenderer interface {
 	WarnDegraded(w io.Writer)
 }
 
-// round 044: the renderer / history-usage-toolUsage-store / gateway / tool-registry
-// factory vars moved to cmd/tellme + deps.Dependencies (ADR 0013).
+// round 044: the history/usage/toolUsage-store, gateway and tool-registry factory
+// vars moved to cmd/tellme + deps.Dependencies; the renderer var was deleted
+// (built inline via ui.NewRenderer()) and the TUI-runner var is nil-defaulted
+// here (ADR 0013).
 
 // tuiPromptRunner runs the interactive TUI prompt (round 015) for one invocation
 // and returns the composed prompt text plus whether a prompt was submitted (ok).
