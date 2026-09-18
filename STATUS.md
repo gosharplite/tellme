@@ -1,8 +1,8 @@
 # tellme — Status
 
 **Last updated**: 2026-09-18 (session 26 — round **052** `052-ride-alongs-and-records` **DELIVERED / FROZEN** — **closes [#115](https://github.com/gosharplite/tellme/issues/115) + [#116](https://github.com/gosharplite/tellme/issues/116)**, the last two `#92`-lineage residuals: the `execute_command` tool's **construction-time** `[Tool Output]` sink (`NewCommandTool(sink)`; `BindToolOutput` + `toolOutputBox` deleted; `NewToolRegistry` widened) + the suggester's **caller-owned** selection cursor (`set(items, cursor)`) + the three `#92` **records relocated to ADR 0021**; behaviour-preserving; **ADR 0021**; PR [#117](https://github.com/gosharplite/tellme/pull/117) human-merged into `dev` `f204aaa` (certified fold head `9f2a688`). Prior: session 25 — round **051** `051-cli-ui-decoupling` **DELIVERED / FROZEN** (the terminal R5 slice; closes [#101](https://github.com/gosharplite/tellme/issues/101); **ADR 0020**; PR [#114](https://github.com/gosharplite/tellme/pull/114) merged `0d7566b` — detail relocated to the archive below). **Session mode**: `butler`.
-**Active branch**: `dev` (round 052 delivered/frozen; the next round `053-*` opens off `dev`)
-**Daily log**: [`docs/session-summary/2026/09/18/session-summary.md`](docs/session-summary/2026/09/18/session-summary.md)
+**Active branch**: `053-offline-session-config-and-turns-flag` (round **053** in flight — closes [#103](https://github.com/gosharplite/tellme/issues/103); off `dev`)
+**Daily log**: [`docs/session-summary/2026/09/19/session-summary.md`](docs/session-summary/2026/09/19/session-summary.md)
 
 ## Last delivered round — 052 `052-ride-alongs-and-records` (DELIVERED / FROZEN — PR [#117](https://github.com/gosharplite/tellme/pull/117) merged into `dev` `f204aaa`; closes [#115](https://github.com/gosharplite/tellme/issues/115) + [#116](https://github.com/gosharplite/tellme/issues/116))
 
