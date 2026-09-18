@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — produced by `/axb-specify` from operator tasking. **Clarify round 1, asked one question at a time**: **Q1 LOCKED → Option B** (parallelism **on by default** at a small fixed level + an override seam; the timing-sensitive scenarios protected per **ADR-0010** rather than pinned serial); **Q2/Q3 OPEN**. `NEEDS CLARIFICATION` markers below are **non-blocking for the plan shape** but **blocking for the acceptance/implementation decisions** they name.
+**Status**: Draft — produced by `/axb-specify` from operator tasking. **Clarify round 1, asked one question at a time**: **Q1 LOCKED → Option B** (parallelism **on by default** at a small fixed level + an override seam; the timing-sensitive scenarios protected per **ADR-0010** rather than pinned serial); **Q2 LOCKED → Option A** (`make test-fast` over `godog.paths`, banner + never-the-gate guard); **Q3 OPEN**. `NEEDS CLARIFICATION` markers below are **non-blocking for the plan shape** but **blocking for the acceptance/implementation decisions** they name.
 
 **Input (operator, 2026-09-19)**: *"Many time I see you do `full test` and takes more than 60 sec. Why so long?"* … *"Can these two be included in 055 together?"* → **Start 055 with both** (both = **US1** parallel scenario execution and **US2** the fast inner-loop subset).
 
@@ -33,7 +33,7 @@
 | # | Question | Status |
 | --- | --- | --- |
 | **Q1** | **What is the parallelism default, and how do timing-sensitive scenarios stay green?** | ✅ **LOCKED → Option B** (operator, 2026-09-19): `Concurrency` is **on by default** at a small fixed level (`e2eDefaultConcurrency = 4`, clamped to ≥1) with an override seam `TELL_ME_E2E_CONCURRENCY`; the timing-sensitive scenarios are protected by **generous host-speed margins + shape-based non-vacuity (ADR-0010)**, **not** by serial pinning or a static timing-feature list. |
-| **Q2** | **Is the fast subset a *gate-excluded* convenience, and what selects it?** — the invariant "a subset selects for convenience, never excludes from the gate" is proposed; the selector is `-godog.paths` (name/tag filtering is unavailable/needs truth edits, see grounding). | ⏳ **OPEN** — [NEEDS CLARIFICATION: the subset's selector + its non-gating contract] |
+| **Q2** | **Is the fast subset a *gate-excluded* convenience, and what selects it?** | ✅ **LOCKED → Option A** (operator, 2026-09-19): a `Makefile` target `test-fast` selects a subset via **`godog.paths`** (no truth edits); it prints a loud `SUBSET — NOT THE GATE` banner and **refuses to run** if the selected path resolves to the full `features/cli` root. **Micro-decision (vetoable):** the default subset is the **non-`chat` modules** (`configuration`+`history`+`workspace`+`usage`+`diagnostics` = 43 Examples, ≈10 s measured), because `chat` alone is 197/240 Examples (≈40 s) and is therefore *not* a fast subset; `MODULES=chat` (or any comma list) is available. The real chat-inner-loop fix is the **tag** selector → a recorded forward item (Option C, `/axb-dsl-refine`). |
 | **Q3** | **What is the *measurable* success bar?** — e.g. "the full gate is ≤ X s on the reference host with all 240 Examples still executed" and "N consecutive green runs to call it stable". | ⏳ **OPEN** — [NEEDS CLARIFICATION: the target and the stability evidence] |
 
 **Non-negotiable invariant (proposed, not open):** *a subset may select for convenience but MUST NEVER exclude from the gate — the phase gate always runs **all** of `Paths` (all 240 Examples).* This exists to prevent the round-040 TD-1 failure mode (scenarios silently dropping while the suite still exits 0).
@@ -82,8 +82,8 @@ As an **RD engineer**, I want a convenience target that runs a **subset** of the
 
 **Functional Requirements**:
 
-- **FR-005**: The subset MUST be selected **without editing `specs/truth/**`** — i.e. via the runner's own selection (`godog.paths`; name/tag filtering is unavailable in v0.16.0 without truth edits) — **the exact selector and target name are Q2**.
-- **FR-006**: The subset MUST be strictly additive: the gate command (`go test -count=1 ./...`, or its successor) MUST keep executing every Example.
+- **FR-005**: The subset MUST be selected **without editing `specs/truth/**`** — via a **`Makefile` target `test-fast`** that passes a `godog.paths` selection into the suite (Q2 → A). The target MUST print a `SUBSET — NOT THE GATE` banner naming the selected path(s) and **MUST refuse to run** when the selection resolves to the full `features/cli` root. The default selection is the **non-`chat` modules** (43 Examples, ≈10 s); `MODULES=<comma list>` overrides it.
+- **FR-006**: The subset MUST be strictly additive: the gate command (`go test -count=1 ./...`) MUST keep executing every Example (all 240); no `Makefile`/CI path may substitute the subset for the gate.
 
 ---
 

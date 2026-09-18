@@ -23,7 +23,7 @@
 ## Gaps & clarify strategy
 
 - [x] **Q1 LOCKED → Option B** — parallelism **on by default** at `4`; the `TELL_ME_E2E_CONCURRENCY` override seam; the timing scenarios protected by ADR-0010 margins + shape-based non-vacuity (no serial pinning, no static timing list)
-- [ ] **Q2 OPEN — the subset's selector + non-gating contract** (blocks FR-005's selector and the target name)
+- [x] **Q2 LOCKED → Option A** — `make test-fast` selects via `godog.paths` (no truth edits), prints a `SUBSET — NOT THE GATE` banner, and refuses a selection equal to the full `features/cli` root; default subset = the non-`chat` modules (measured: `chat` alone is 197/240 Examples ⇒ not fast)
 - [ ] **Q3 OPEN — the measurable bar + stability evidence N** (blocks SC-002/SC-003's numbers)
 - [x] Clarify budget respected: **3** questions, asked **one at a time**, within the 1–3/round and ≤5/session budget
 - [x] The proposed invariant (a subset selects for convenience, never excludes from the gate) is stated as **not open**
