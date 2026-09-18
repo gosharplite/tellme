@@ -29,14 +29,15 @@ var (
 // is the current choice"); a fresh list, and every refreshed list, carry no
 // highlight until the operator cycles.
 //
-// Invariant: `cursor ∈ {noChoice} ∪ [0, len(items))`. It is written in exactly
-// three places — `newSuggester` and `set` (both `noChoice`) and `cycle` (which
-// keeps `(cursor+delta+len)%len` in `[0, len)`) — so `view()`'s bare
-// `i == s.cursor` never matches a stray index and `selected()`'s `cursor < 0`
-// guard is exactly the no-choice test. (Review F-3 asked for this invariant to be
-// explicit; the "a refresh resets the selection" policy is hardcoded here and
-// recorded for single-ownership on #69, not refactored in-round per the scope
-// guard.)
+// Invariant: `cursor ∈ {noChoice} ∪ [0, len(items))`. It is established by
+// `newSuggester` (the construction default `noChoice`), by every `set(items,
+// cursor)` call site (round 052, closing #115 R-1; ADR 0021 — the reset is the
+// caller's explicit `noChoice`, no longer a side effect buried in `set`), and by
+// `cycle` (which keeps `(cursor+delta+len)%len` in `[0, len)`) — so `view()`'s
+// bare `i == s.cursor` never matches a stray index and `selected()`'s
+// `cursor < 0` guard is exactly the no-choice test. (Review F-3 asked for this
+// invariant to be explicit; round 052 gave the reset a single named owner — the
+// caller — superseding the former "hardcoded in `set`" note.)
 type suggester struct {
 	items  []string
 	cursor int
@@ -45,11 +46,15 @@ type suggester struct {
 // newSuggester builds an empty suggestion list with no selection.
 func newSuggester() suggester { return suggester{cursor: noChoice} }
 
-// set replaces the items and resets the selection to noChoice (mirroring the
-// reference's `Update(suggestions, -1)`), so a refresh clears any prior highlight.
-func (s *suggester) set(items []string) {
+// set replaces the items and sets the selection cursor. The cursor is the
+// CALLER's decision (round 052, closing #115 R-1; ADR 0021): the suggester no
+// longer resets it internally, so the "a refresh opens unselected" policy is an
+// explicit caller choice — every caller passes noChoice (mirroring the
+// reference's `Update(suggestions, -1)`). The invariant
+// `cursor ∈ {noChoice} ∪ [0, len(items))` is owned here.
+func (s *suggester) set(items []string, cursor int) {
 	s.items = items
-	s.cursor = noChoice
+	s.cursor = cursor
 }
 
 // cycle moves the selection cursor by delta (wrapping). With plain modulo
