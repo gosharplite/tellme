@@ -1,0 +1,91 @@
+# Phase 0 Research: application import-ceiling gate (RULE-E) + application-tier import baseline (Round 047)
+
+Topic: extend the existing layer-discipline guard (`tools/arch`, ADR 0011) with a new **RULE-E** — an **application-tier import ceiling** — so that `internal/cli` and `internal/app/**` may import, beyond stdlib, only `internal/domain/**`, `internal/config`, `internal/home`, and `internal/app/**`; ship the **baseline** of the not-yet-removed residual edges (a ratchet); record the rule durably in a **new ADR 0016** ([#101](https://github.com/gosharplite/tellme/issues/101) → [#92](https://github.com/gosharplite/tellme/issues/92) AC2, second clause).
+
+Scope note: the language (`Go 1.26`), module, CLI flag layer (`spf13/pflag`), config layer, testing harness (`godog` on the built binary; stdlib `testing` for units), provider transports, skills, MCP, and the presentation packages were locked in rounds 001–046. This round adds **no new system end**, **no external service**, and **no new third-party dependency**; the system keeps **one CLI end**. The three AIxBDD must-ask questions remain answered by the standing `techstack.md` (single CLI end; BDD techstack = `godog` over the built binary; E2E black-box + unit strategy) and are **not re-decided** (D8). **IN**: RULE-E, its sanctioned-set table, its coverage self-test, the 3 baseline entries, ADR 0016, and the truth row. **OUT**: fixing any residual edge (the later R5 slices), F-4/F-6/F-7/F-8, and any `tellme` binary behaviour.
+
+> **Provenance of the locked scope (#101 + this round's clarify):** this round is **R5.1** — the *gate + its enablers* half of the R5 programme (Q1-A). The sanctioned set (Q4-A) is the smallest set consistent with the ranking ADR 0011 already pins; the 3 residuals are the genuinely loop/presentation-shaped edges, deferred to the de-coupling slices. The mandatory questions (D8) are unchanged from the standing truth.
+
+---
+
+## Decision 1: RULE-E is an application-tier **import ceiling** (an allow-list), distinct from RULE-A/B/C/D
+
+- **Decision**: the guard gains **RULE-E**: for a **governed application tier** (`internal/app/**`, `internal/cli`), an import of an **`internal/**` package** is a violation **unless** the imported package is in the **sanctioned set** — `internal/domain/**`, `internal/config`, `internal/home`, `internal/app/**`. Beyond `internal/**`, **stdlib** is allowed by construction; **third-party** imports are **outside RULE-E's scope** (a recorded residual — see D5). Violations are emitted in the same edge form (`<source> -> <import>`, module-relative, ASCII ` -> `) and **deduped by edge** with RULE-A/B/C (an edge that breaks several rules is one line).
+- **Rationale**: RULE-B ("the application tiers MUST NOT import `internal/infrastructure/**`") is a **target** rule; it cannot express *"domain + stdlib + application utilities only"* (#92 AC2). RULE-E is the **ceiling** that does: it is an allow-list, so a **new** class of downward import (e.g. `internal/cli → internal/telemetry`, `→ internal/agent`, `→ internal/ui`) fails mechanically instead of passing every existing gate. Kee**ping** RULE-A/B/C/D intact and adding RULE-E as a **fifth, independent** rule preserves ADR 0011's immutability (Accepted ADRs are supersede-or-leave; we **extend** the guard, we do not rewrite ADR 0011).
+- **Alternatives considered**:
+  - **Widen RULE-B** (amend ADR 0011 to "application tiers import only X") — rejected: an Accepted ADR is immutable except its `Status` line/index, and RULE-B's narrow statement still holds truthfully; a separate rule + a new ADR is the repo's established pattern.
+  - **A blanket "nothing above infrastructure may reach into infrastructure"-style negative rule** — rejected: a **positive** allow-list ceiling is what AC2 asks for, and a negative rule cannot catch a *sanctioned-tier-but-unsanctioned-package* import.
+
+## Decision 2: RULE-E rides the existing guard and the existing `verify-architecture` target (no new Makefile target)
+
+- **Decision**: implement RULE-E **inside** `tools/arch` (`//go:build arch`) — extend the tier table with the normative sanctioned-set section and add the RULE-E evaluation + its coverage self-test; the guard keeps its existing invocation (`go vet -tags=arch ./tools/arch` + the tagged lint + `go test -count=1 -tags=arch -run TestVerifyRealArchitecture ./tools/arch`). **No new Makefile target**, no `.PHONY`/`help` change; `verify-architecture` is already a member of `make verify`.
+- **Rationale**: RULE-E is a **rule**, not a new gate — it reuses the guard's whole mechanism (module-root-anchored `go list`, `CROSS_TARGETS` union, the merged production+test graph, the SCC pass, the `baseline.txt` ratchet). A second target would duplicate wiring and risk the annotation/predecessor drift round 042 already paid for. The `-count=1` (the cache cannot see the whole-module `go list`) remains load-bearing.
+- **Alternatives considered**: **a second build-tagged guard package** (`tools/arche`) — a duplicate enumeration + baseline for no isolation benefit — rejected; **a Makefile `grep` for the application tiers** — cannot rank packages or read the real graph — rejected.
+
+## Decision 3: The sanctioned set is **normative in the tier table**; **default-deny**; **fail-on-stale allow-list** (clarify Q2 → A)
+
+- **Decision**: the sanctioned set is a normative section of the guard's embedded **tier table** (ADR 0011 **D7** — the single normative machine-readable source), keyed by application tier → sanctioned import **prefixes** (exact package or subtree). Two behaviours: (i) **default-deny** — a governed application-tier `internal/**` import not matching a sanctioned prefix is a violation; (ii) **fail-on-stale allow-list** — the guard's self-test asserts every sanctioned entry is **used** (imported by ≥1 governed application-tier package); an unused entry **fails**. `techstack.md` states RULE-E as a **predicate** and cites ADR 0016 + the tier table; it never re-states the set as prose-of-record.
+- **Rationale**: one machine-readable source for the rule (D7) prevents prose↔code drift — the exact failure mode this round exists to stop. Fail-on-stale symmetry with D3 is deliberate: a lax allow-list is the *same* rot as a stale baseline, so the sanctioned set must also shrink to truth (if `config`/`home`/`suggestions` ever leave the application tiers' import set, the entry must be removed).
+- **Alternatives considered**: **a separate committed manifest** (`tools/arch/allowlist.txt`) — a **second** normative source (D7 tension); **edge-level hardcoded allow-list** in the test — no machine-readable home for the coverage assertion — both rejected.
+
+## Decision 4: The baseline gains the **3** residual edges; it stays the one fail-on-stale ratchet (clarify Q1 → A, Q4 → A)
+
+- **Decision**: the committed `tools/arch/baseline.txt` gains the three RULE-E residual edges — `internal/cli -> internal/agent`, `internal/cli -> internal/ui`, `internal/cli -> internal/ui/tui/prompt` — in the gate's own deterministic format (sorted in Go, module-relative, ASCII ` -> `), **generated from the gate** (`make verify-architecture-update`), never transcribed. RULE-A/B/C stay **0**; the baseline's header comment is updated to mention RULE-E. Behaviour is unchanged: a violation not listed **fails**; a **stale** entry **fails**; an entry removed while its violation persists **fails**. The total committed baseline is **3** (all RULE-E) and ratchets to **0** across the later R5 slices.
+- **Rationale**: RULE-E is stricter than the code, so it must land **with a baseline** (round-040 TD-1; #101's own "shipped with its enablers") to keep `dev` green. Reusing the one baseline keeps a **single** ratchet: each later slice removes exactly its line(s), visible in the diff — which is what makes the R5 "→ 0" progression falsifiable.
+- **Measured (2026-09-18, `dev` `b42f868`, static import scan)**: production `internal/cli` imports `internal/{agent, ui, ui/tui/prompt}` beyond the sanctioned set; `internal/cli` **test** files import `internal/ui` only (the **same** package edge — no new entry, consistent with the merged production+test graph); `internal/app/**` has **no** residual (it imports only `domain` + the sanctioned `config`). ⇒ **RULE-E baseline = 3**.
+- **Alternatives considered**: **land RULE-E only when compliant (no baseline)** — forces the whole 6-seam de-coupling into this round (Q1-B; #101 calls R5 "a multi-round programme") — rejected; **a separate `baseline-rule-e.txt`** — two ratchets to keep in sync — rejected.
+
+## Decision 5: RULE-E's **scope boundary** is stated explicitly (what the rule is *not*)
+
+- **Decision**: RULE-E constrains only a governed application tier's imports of **`internal/**`** packages. It does **not** constrain (i) **stdlib** imports (trivially allowed), (ii) **third-party module** imports (out of scope — a **recorded residual**: no application-tier package imports a third-party module today, and a future one would be adjudicated then), (iii) imports made by **non-application** tiers (`internal/agent`, `internal/ui`, `internal/infrastructure/**` — governed by RULE-A/B/C and their own future rules), and (iv) **`cmd/**`/`tests/**`/`tools/**`** (exempt trees). This scope statement is recorded in **ADR 0016** ("what the rule is *not*", D10-style) and cited from the truth row.
+- **Rationale**: the round's most likely future misreading is that RULE-E bans *all* non-domain imports everywhere. Stating the boundary up front (ADR 0011 **D10** is the precedent) prevents an over-broad enforcement claim and makes the third-party residual a **recorded** decision, not a silent hole.
+- **Alternatives considered**: **extend RULE-E to third-party imports** (a "sanctioned modules" list) — a dependency-governance rule is out of R5's scope and would need `go.mod` parsing — rejected; **say nothing about third-party** — leaves the scope ambiguous — rejected.
+
+## Decision 6: RULE-E binds **both** application tiers; the `app → config` edge is sanctioned (clarify Q3 → A, Q4 → A)
+
+- **Decision**: RULE-E governs **`internal/app/**` (tier 2) and `internal/cli` (tier 6)** — the same target set as RULE-B. The sanctioned set is **shared** across both tiers: `internal/domain/**`, `internal/config`, `internal/home`, `internal/app/**`. Consequence: `internal/app/suggestions → internal/config` is **sanctioned** (not a residual), and `internal/app/**` needs **no** baseline entry.
+- **Rationale**: #101's own RULE-E sentence is *"an allow-list for the **application tiers'** downward imports"*; binding both keeps RULE-E and RULE-B governing one set, and the same tier-1 utility judgement (ADR 0011 D1: `config`/`home` are shared utilities) applies to both.
+- **Alternatives considered**: **`internal/cli` only** (the literal AC2 reading) — narrower, and would leave `app → config` unconstrained so RULE-E and RULE-B govern different sets — rejected; **a per-package allow-list** (`cli` vs `app` differ) — the measured sets coincide today, so a shared set is simpler and the coverage assertion still enforces truth — rejected.
+
+## Decision 7: ADR 0016 + the truth MODIFY (the durable rule home)
+
+- **Decision**: record RULE-E durably in a **new ADR 0016** (`docs/decisions/0016-application-import-ceiling.md` + the `docs/decisions/README.md` index row): the rule, the sanctioned set, default-deny + fail-on-stale, **what the rule is *not*** (D5), and its relation to ADR **0011** (the tier table it extends and the baseline ratchet it reuses — not superseded) and **0013** (the composition-root pattern that makes the application tiers thin). Update `specs/truth/techstack.md` (**Build & Tooling → Layer-discipline gate** row) — a real **MODIFY** — to name RULE-E + the sanctioned set + the residue ratchet, citing ADR 0016 + the tier table.
+- **Rationale**: per `docs/decisions/README.md`, a project-level rule that future rounds must cite gets an ADR; the R5 de-coupling slices must cite RULE-E. The gate row is the sole truth home for the guard, so RULE-E is a real MODIFY (no unevidenced NOOP). The **Task runner** row needs **no** change (the `verify` aggregate list already names `verify-architecture`).
+- **Alternatives considered**: **truth prose only, no ADR** — leaves the rule non-citable and narrative — rejected (mirrors round 042's RF-1 resolution).
+
+## Decision 8: Testing & BDD techstack unchanged; `/axb-api-plan`/`/axb-data-plan`/`/axb-dsl-refine` are `NOOP`
+
+- **Decision**: no new system end, no BDD-techstack change, no test-strategy change. `/axb-spec-by-example` = **NOOP** (no user-facing business journey); `/axb-api-plan` = **NOOP** (no OpenAPI surface); `/axb-data-plan` = **NOOP** (the baseline is a repo artifact, not runtime/persisted state); `/axb-dsl-refine` = **NOOP** (the gate is a dev surface, not the `tellme` CLI end); `/axb-ui-plan` = skipped. The three AIxBDD must-ask questions stay answered by the standing `techstack.md` (single CLI end; BDD techstack = `godog`; E2E + unit) and are **not** re-decided.
+- **Rationale**: the round's verification is the gate's own exit code + falsifiability witnesses, not a Gherkin scenario; authoring CLI Gherkin for `make verify` would be ceremony and risk an `acceptance-coverage` mismatch (the round-042 A3/A6 precedent).
+- **Alternatives considered**: **author a plan-side acceptance Feature** — no user-facing CLI behaviour to express — rejected.
+
+## Decision 9: The witness is the **gate + unit seams** (not the E2E suite), with reproduced-then-reverted falsifiability witnesses
+
+- **Decision**: prove RULE-E by the guard's own self-tests **plus** three falsifiability witnesses reproduced then reverted (ADR 0010): (a) add a **new** unsanctioned application-tier import ⇒ RULE-E reds and names the edge; (b) mark a sanctioned entry **unused** (or add a bogus sanctioned entry) ⇒ the coverage self-test reds (fail-on-stale allow-list); (c) add a **stale** baseline line at 3 (and note the same at the eventual 0) ⇒ the gate reds (the anti-bypass rule). The E2E suite is run green as **regression**, but it is **not** the acceptance carrier.
+- **Rationale**: #92 **AC5** — *"the witness is the gate + unit seams, not the E2E suite (a green suite alone is false confidence — the round-009 trap)"*. The gate's `fail-on-stale` + the allow-list coverage assertion are exactly the machine-checkable claims; witnesses prove they are non-vacuous.
+- **Alternatives considered**: **rely on the green `make verify`** — a passing gate says nothing about whether the rule *fires* — rejected (round-042 SC-002 precedent).
+
+## Decision 10: Determinism, hermeticity, and the ratchet's terminal state are inherited unchanged
+
+- **Decision**: RULE-E inherits — with **no** re-litigation — ADR 0011's mechanism: module-root-anchored `go list` (**D4**), the `CROSS_TARGETS` union + filtered child env (**D5**), the merged production+test graph for the rule and the **production-only** SCC pass (**D8**), the deterministic sorted baseline (**D9**), the normative tier table (**D7**), default-deny (**D2-D**), and the fail-on-stale ratchet (**D3**). Cycles still have **no** baseline.
+- **Rationale**: RULE-E is a **new rule on the same machinery**; re-deriving the mechanism would re-open settled decisions and risk divergence. At the terminal state (baseline 0, after the later slices), the **no-release-valve** policy (recorded on the round-046 truth row) applies equally to RULE-E: a future legitimate ceiling violation must be fixed, not appended.
+- **Alternatives considered**: **a fresh enumeration for RULE-E** — duplicate code, divergence risk — rejected.
+
+## Decision 11: Non-overlap / dedup with RULE-B, and the guard's own compliance
+
+- **Decision**: RULE-E **overlaps** RULE-B on the `application → internal/infrastructure/**` class; violations are **deduped by edge** so the report/baseline hold one line per offending edge (no double count, no ordering dependence). The guard's own files live in the exempt `tools/**` tree and import only stdlib + `os/exec`; the self-test pins that the guard adds no governed violation.
+- **Rationale**: a baseline keyed by edge (not by rule) is what makes the ratchet one sorted list; dedup keeps the diff stable when a later slice removes an overlapping edge. The self-exclusion keeps the guard honest without a special tier.
+- **Alternatives considered**: **report per-rule (a `rule` column)** — churns the baseline format (D9) and complicates the ratchet — rejected.
+
+---
+
+## Residual risks / forward links
+
+- **The 3 residual edges are `internal/cli → {agent, ui, ui/tui/prompt}`** — each is a real de-coupling slice (the loop port is the shape the round-046 `ToolLineRenderer` port set); recorded on **#101**, out of this round (Q1-A/FR-012).
+- **F-4/F-6/F-7/F-8** (PR #104 review) — out of scope; recorded on **#101**.
+- **Third-party application-tier imports** are outside RULE-E (D5) — a recorded residual; no such import exists today.
+- **`config`/`home`/`app/**` sanctioned forever?** — the fail-on-stale allow-list (D3) removes an entry if it stops being used; a future round may still **re-rule** them (a sanctioned-set edit + ADR 0016 amendment), e.g. forcing resolved values to be injected as plain data — that is a **later** decision, not this round's.
+- **Overlapping rules** (RULE-B ∩ RULE-E on `app → infra`) — deduped by edge (D11); a future rule consolidation is possible but not needed.
+- **Custom build-tag-gated files** stay out of scope (ADR 0011 D6).
+- **`-tags=arch` compiled by no other gate** — unchanged from round 042 (a compile error surfaces only when the gate runs; recorded).
+- **No behaviour change** — `stdout`/`stderr`, class-phrase vocabulary, flags, exit codes, and every existing rule's verdict are unchanged; the round touches `tools/arch/**`, `tools/arch/baseline.txt`, an ADR, one `specs/truth/techstack.md` row, the plan package, and `STATUS.md` + the day's summary.

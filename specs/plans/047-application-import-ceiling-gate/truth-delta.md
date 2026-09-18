@@ -5,18 +5,14 @@
 
 > Plan package truth-delta. Owner rows are filled by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked and names what it inspected (round-033 review-fold rule — no unevidenced NOOP).
 >
-> **Status at `/axb-specify`**: skeleton initialized. All owner rows are **PENDING** and are filled/ratified by the truth-owner skills in the plan half. Expected shape (to be authored by the owners, not asserted here):
-> - `/axb-technical-research` → **MODIFY** `specs/truth/techstack.md` — **Build & Tooling / Layer-discipline gate** row (RULE-E + the sanctioned set + the residue ratchet, citing ADR 0016 + the tier table as the normative source).
-> - `/axb-api-plan` → **NOOP (checked)** — no OpenAPI/HTTP surface.
-> - `/axb-data-plan` → **NOOP (checked)** — the baseline is a repo artifact, not runtime/persisted state.
-> - `/axb-dsl-refine` → **NOOP (checked)** — a dev-surface gate; no feature/`DSLRow` change.
-> - Governance → **ADD** `docs/decisions/0016-application-import-ceiling.md` (+ the index row).
+> **Status**: `/axb-technical-research` has landed — the **techstack MODIFY** (Layer-discipline gate row) + the **ADR 0016 ADD** rows are filled below; the `/axb-api-plan`, `/axb-data-plan` and `/axb-dsl-refine` rows remain **PENDING** (expected `NOOP (checked)`) to be ratified by their owners in the system-analysis phase, per the anticipated shapes recorded at `/axb-specify`.
 
 ## /axb-technical-research
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| PENDING | `specs/truth/techstack.md` — **CLI Application / Build & Tooling** | _to be authored by `/axb-technical-research`_ | round 047 FR-009; `research.md` (D-x) |
+| MODIFY | `specs/truth/techstack.md` — **Build & Tooling / Layer-discipline gate** row | The row (round-042/046 text) records the four-rule predicate (RULE-A/B/C/D) + the header-only baseline (**0**). Round 047 adds **RULE-E — the application import ceiling**: for a governed application tier (`internal/app/**`, `internal/cli`) an `internal/**` import is a violation unless in the **sanctioned set** (`internal/domain/**`, `internal/config`, `internal/home`, `internal/app/**`); the set is a **normative section of the tier table** (ADR 0011 D7), **default-deny**, and **fail-on-stale** (an unused sanctioned entry fails); violations are **deduped by edge** with RULE-A/B/C. It **rides this same target** (no new Makefile member) and reuses the baseline ratchet: the **3** currently-unsanctioned edges (`internal/cli → internal/{agent,ui,ui/tui/prompt}`) are **baselined** (RULE-A/B/C stay **0**), to be removed one-for-one by the R5 de-coupling slices. Records the scope boundary (only `internal/**` imports by the application tiers; stdlib allowed; third-party out of scope) and cites **ADR 0016**. | `truth-current`; round 047 FR-009; `research.md` D1/D3/D4/D5/D7. |
+| NOOP (checked) | `specs/truth/techstack.md` — **Build & Tooling / Task runner** row | Inspected: the row's `verify` aggregate list already names `verify-architecture` (added in round 042). RULE-E rides that target — **no new member**, so the row is unchanged. | round 047 FR-009; `research.md` D2. |
 
 ## /axb-api-plan
 
@@ -40,4 +36,4 @@
 
 | Action | Artifact | Change Summary | Reason |
 | --- | --- | --- | --- |
-| PENDING (ADD) | `docs/decisions/0016-application-import-ceiling.md` (+ `docs/decisions/README.md` index row) | _to be authored in the plan half_ — records RULE-E: the rule, the sanctioned set, default-deny + fail-on-stale, **what the rule is *not***, and its relation to ADR 0011 + 0013 | round 047 FR-008; `spec.md` §Locked decisions Q2/Q4 |
+| ADD | `docs/decisions/0016-application-import-ceiling.md` (+ the `docs/decisions/README.md` index row) | Records **RULE-E** (the application import ceiling): the sanctioned set, default-deny, the **fail-on-stale allow-list**, the baseline/ratchet reuse (3 edges now → 0 across the R5 slices), **what the rule is *not*** (application tiers only; `internal/**` imports only — stdlib allowed, third-party out of scope), and its relation to ADR **0011** (the tier table extended, the ratchet reused — **not superseded**: RULE-A/B/C/D stand) and ADR **0013**. | round 047 FR-008; `research.md` D7 — a project-level rule the R5 de-coupling slices must cite. |
