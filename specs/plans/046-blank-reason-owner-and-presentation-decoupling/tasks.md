@@ -90,3 +90,11 @@ Fold review ([5725646775](https://github.com/gosharplite/tellme/pull/109#issueco
 | **N-2** | the PR body described the pre-fold state | Added a fold addendum to the PR body |
 
 **Mutation campaign (reproduced then reverted, ADR 0010):** **B1** (the begin site ignores `renders` and prints the returned line) ⇒ `TestLogOmitsReasonLineForEscapeOnlyReason` + `TestLogOmitsReasonLineForWhitespaceOnlyReason` **FAIL** ✅; **B2** (the tail filter ignores `renders`) ⇒ `TestTailReceivesOnlyRendererApprovedReasons` **FAILS** ✅. Both directions of the round's headline policy are now witnessed.
+
+## PR #109 fold-review #2 ledger (`91e1e23` → this fold)
+
+Fold review #2 ([5725703970](https://github.com/gosharplite/tellme/pull/109#issuecomment-5725703970)): **F-1 CLOSED (verified by mutation) — review loop CLOSED, MERGE-READY.** One non-blocking nit applied:
+
+| # | Finding | Fold |
+| --- | --- | --- |
+| **N-3** | the port's `ReasonLine` postcondition said a suppressed reason "returns (`\"\"`, false)", but the F-1 fake deliberately returns a **non-empty** line on `renders == false` → the pin exercises the loop *outside* the documented contract | Relaxed the postcondition to the real invariant: when `renders` is false the `line` value is **UNSPECIFIED** (the production adapter returns `""`); callers MUST honour `renders`, never the line's content, and MUST NOT print `line`. Recorded that the suppression witness deliberately uses a non-empty suppressed return to prove the loop depends on `renders`. |

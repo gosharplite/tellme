@@ -32,8 +32,15 @@ type ToolLineRenderer interface {
 	// ReasonLine renders the `[Tool Reason] <reason>` line and reports whether it
 	// renders at all. ONE evaluation of the single reason transform decides both
 	// the line and the decision, so the blank-reason predicate has one owner on
-	// the real path: a blank (empty / whitespace-only) or escape-only reason
-	// returns ("", false). The `renders` result is exhaustive for a given reason —
-	// the loop uses it for both the begin line and the tail filter (ADR 0015).
+	// the real path. When `renders` is false — a blank (empty / whitespace-only)
+	// or escape-only reason — the `line` return value is **UNSPECIFIED**: the
+	// production adapter returns ("", false), and a caller MUST honour `renders`
+	// (never the line's content) and MUST NOT print `line` when `renders` is
+	// false. The `renders` result is exhaustive for a given reason — the loop uses
+	// it for both the begin line and the tail filter (ADR 0015). This
+	// documented-unspecified wording is deliberate: the loop's suppression witness
+	// exercises a renderer whose suppression return is *non-empty* (round-046
+	// fold-review N-3/F-1), proving the loop depends on `renders`, not on a
+	// particular suppressed-line spelling.
 	ReasonLine(t time.Time, reason string) (line string, renders bool)
 }
