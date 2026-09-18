@@ -37,7 +37,7 @@ Register `fs.BoolVarP(&o.turns, "turns", "t", false, "Print the current session'
 
 ### D5 — the `turns.log` artifact + writer seam (Q1 → (C1))
 
-**What**: a per-session plain-text file `output/<mode>/turns.log` holding the **rendered chrome** — tellme's own lines (no new format; the renderers are the formatter).
+**What**: a per-session plain-text file `output/<mode>/turns.log` holding **the subset of diagnostic lines routed through the chrome sink**: the per-call renderer's `─` turn rule, `╭─⠿ Turn <N> - <mode>` header, `[HH:MM:SS] Payload: …` status lines (estimated + measured), grouped `[HH:MM:SS] [Tool Reason] …` lines, the `[HH:MM:SS] [<provider>] M: …` metrics line, and the `╰─⠿ Ready` summary. The input-capture acknowledgement, the `-i` prompt echo, error phrases, the spinner, and the `[Tool …]`/`[Tool Output]` block are **not** persisted (fold F-53-3(i) — narrow the sink). No new format (the renderers are the formatter).
 
 **Writer seam**: a new domain port `history.TurnsLogStore` (or a func-typed `deps` seam) — `Open(workspace) (io.WriteCloser, error)` / an `Append(line)` — implemented in `internal/infrastructure/history/turns_log.go` (a `turnsLogStore`, mirroring `usage_store.go`). The CLI **tees** each chrome line it already writes to `stderr` into the store; the store is **best-effort** (a write failure never fails the turn — A3). Bound at `cmd/tellme` through the injected `deps.Dependencies` (round 044 / ADR 0013 precedent; keeps `internal/cli` naming no infrastructure type).
 
@@ -52,6 +52,7 @@ Register `fs.BoolVarP(&o.turns, "turns", "t", false, "Print the current session'
 - **(a)** Revert D1's `-c` mode read ⇒ `-l 1 -c a.yaml` and `-l 1 -c b.yaml` return **identical** output (the #103 repro).
 - **(b)** Revert D5's write ⇒ a run produces **no** `turns.log`; `-t` finds nothing.
 - **(c)** Revert D4's `-c` resolution for `-t` ⇒ `-t -c <non-default>` reads the default session.
+- **The writer's carrier (F-53-1)** is a CLI-tier pin — `internal/cli/turns_log_test.go` (`TestRunTurnTeesChromeIntoTurnsLog`): the positive asserts the chrome reaches the injected store's buffer; the negative asserts an empty workspace tees nothing. **The `-t` precedence pin (F-53-4)** is `internal/cli/dispatch_test.go` (`TestDispatchReportingPrecedence`): `-l` beats `-t` beats `--tool-usage`.
 
 ### D7 — Truth impact & governance
 
@@ -71,4 +72,4 @@ In scope: the `-c` mode resolution for `-l`/`--new`/`-t`; the `turns.log` artifa
 - **Widening the offline helper** — every caller of `resolveWorkspace` must pass the config path; a missed caller silently keeps the bug (the witnesses (a)/(c) catch it).
 - **Write-site location** — the tee site (CLI composite observer vs the `internal/ui` renderers) is an implementation detail; the `internal/cli`→`internal/ui` RULE-E baseline is **0** (ADR 0020), so a `ui`-side writer must be injected as a **domain port**, not imported.
 - **`-t` precedence** — a combined `-l -t …` resolves by the recorded order (`-l` first); pinned by a unit test.
-- **Archive naming** — the `--new` archive name for `turns.log` (`turns.archive.jsonl` vs `.log`) — a minor RD choice; recorded at implementation.
+- **Archive naming** — the `--new` archive name for `turns.log` is `turns.archive.log` (RD choice, recorded). The archive is **best-effort** (ADR 0022 forward RF-53-2).

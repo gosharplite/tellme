@@ -158,20 +158,23 @@ type runtimeEnv struct {
 	// clock is the injected time seam for the payload status line (round 009);
 	// nil falls back to time.Now.
 	clock func() time.Time
-	// chrome, when non-nil, is the additional sink for the turn's rendered
-	// chrome lines (round 053; ADR 0022): the session's turns.log. It is a
+	// turnsLog, when non-nil, is the additional sink for the turn's rendered
+	// CHROME lines (round 053; ADR 0022): the session's turns.log. It is a
 	// multiwriter over stderr so the chrome still reaches the diagnostic stream;
 	// nil leaves the chrome on stderr alone (the offline / non-prompt paths).
-	chrome io.Writer
+	// Only the per-call renderer's frame/tail lines route here — the
+	// prompt-surface ack and the `-i` echo stay on stderr (fold F-53-3(i)).
+	turnsLog io.Writer
 }
 
-// diag returns the stream the rendered turn chrome (rule/header, payload status,
-// metrics, input-capture, reasons) is written to: the chrome tee when the turn
-// path opened a turns.log, else stderr. Errors and non-chrome diagnostics keep
-// writing to env.stderr directly.
+// diag returns the stream the per-call turn CHROME (the status frame + the tail:
+// payload status, grouped reasons, metrics, Ready) is written to: the chrome tee
+// when the turn path opened a turns.log, else stderr. Errors, non-chrome
+// diagnostics, the input-capture ack, and the `-i` echo keep writing to
+// env.stderr directly.
 func (e runtimeEnv) diag() io.Writer {
-	if e.chrome != nil {
-		return e.chrome
+	if e.turnsLog != nil {
+		return e.turnsLog
 	}
 	return e.stderr
 }
@@ -415,11 +418,12 @@ func run(args []string, version string, scoped Options, env runtimeEnv) int {
 		// `--new` archives BEFORE the interactive read for BOTH terminal reader
 		// surfaces — the `-i` TUI prompt and the plain reader — so a fresh session
 		// starts regardless of the submission (round 027: the `-i` surface
-		// previously dropped `--new`, so the header counted the prior history). It
-		// archives before resolving the configuration: a prompt-less `--new` is an
-		// archive command that works offline, so — unlike the prompt-bearing
-		// `--new "<prompt>"` form, which resolves first — a broken config still
-		// archives here and then fails when the turn resolves (round-012 review).
+		// previously dropped `--new`, so the header counted the prior history).
+		// Round 053 (closes #103; ADR 0022; fold F-53-2): a prompt-less `--new`
+		// now selects the session from the `-c` config's MODE, so an explicit `-c`
+		// that cannot be honoured REFUSES before archiving (Q2 → A) — the round-012
+		// "a broken config still archives here" ordering is SUPERSEDED (failing
+		// loudly beats archiving the WRONG session).
 		if f.newSession {
 			if code := renderNewSession(homeDir, f.configPath, env, dp.NewHistoryStore, dp.NewUsageStore, dp.NewTurnsLogStore); code != Success {
 				return code
@@ -463,7 +467,7 @@ func parseFlags(args []string, stderr io.Writer) (f *flags, flagArgs []string, o
 	fs.BoolVarP(&o.raw, "raw", "r", false, "Print the answer as raw text (no Markdown rendering).")
 	fs.BoolVar(&o.newSession, "new", false, "Start a fresh session, archiving the current session history.")
 	fs.IntVarP(&o.list, "list", "l", 0, "List the last N messages of the session history and exit.")
-	fs.BoolVarP(&o.turns, "turns", "t", false, "Print the current session's turns log and exit.")
+	fs.BoolVarP(&o.turns, "turns", "t", false, "Print the session's turn log and exit.")
 	fs.BoolVarP(&o.interactive, "interactive", "i", false, "Open the interactive TUI prompt (requires a terminal).")
 	fs.BoolVar(&o.toolUsage, "tool-usage", false, "Report per-tool invocation counts across all sessions, then exit.")
 	if err := fs.Parse(args); err != nil {
@@ -660,14 +664,15 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	// Round 053 (ADR 0022): tee the rendered turn chrome into the resolved
-	// session's turns.log. Best-effort — an open failure (or an unresolvable
-	// workspace) leaves the chrome on stderr alone; the handle is closed at run
-	// end. The chrome sites write through env.diag(); errors stay stderr-only.
+	// Round 053 (ADR 0022): tee the per-call turn chrome (the renderer's frame +
+	// tail) into the resolved session's turns.log. Best-effort — an open failure
+	// (or an empty workspace) leaves the chrome on stderr alone; the handle is
+	// closed at run end. Only the per-call renderer routes through env.diag();
+	// errors, the input-capture ack, and the `-i` echo stay stderr-only.
 	if res.Workspace != "" {
 		if wc, err := dp.NewTurnsLogStore(res.Workspace).Writer(); err == nil {
 			defer func() { _ = wc.Close() }()
-			env.chrome = io.MultiWriter(env.stderr, wc)
+			env.turnsLog = io.MultiWriter(env.stderr, wc)
 		}
 	}
 
@@ -715,7 +720,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		// was cleared), so the operator still sees what they sent. Written verbatim
 		// — embedded newlines preserved (FR-007/FR-009).
 		if opts.echo {
-			_, _ = fmt.Fprintln(env.diag(), prompt)
+			_, _ = fmt.Fprintln(env.stderr, prompt)
 		}
 		emitInputCaptured(env, dp.NewLines())
 	}
@@ -844,8 +849,10 @@ func (e runtimeEnv) now() time.Time {
 
 // emitInputCaptured writes the round-017 input-capture acknowledgement to the
 // diagnostic stream (the reference's `[HH:MM:SS] Input captured. Processing...`).
+// It is the PROMPT-SURFACE ack, not turn chrome, so it stays on stderr and is
+// NOT recorded in the session turn log (round-053 fold F-53-3(i)).
 func emitInputCaptured(env runtimeEnv, lines render.Lines) {
-	_, _ = fmt.Fprintln(env.diag(), lines.InputCaptured(env.now()))
+	_, _ = fmt.Fprintln(env.stderr, lines.InputCaptured(env.now()))
 }
 
 // (round 034, 4B: emitTurnOpening / emitTurnGap are retired — the per-call
@@ -990,11 +997,17 @@ func renderTurnsLog(homeDir, configPath string, env runtimeEnv, newTurnsLogStore
 	if rerr != nil {
 		return emitBootError(env.stderr, res, rerr)
 	}
-	contents, err := newTurnsLogStore(res.Workspace).Read()
+	// Round-053 fold RF-53-2: stream the log to stdout (never materialise it), a
+	// missing file reading as empty (the store's Reader tolerance). A read
+	// failure reuses the environment class phrase via emitHistoryError (the
+	// frozen vocabulary), though the wording is history-flavoured for a
+	// turn-log file.
+	rc, err := newTurnsLogStore(res.Workspace).Reader()
 	if err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
-	_, _ = fmt.Fprint(env.stdout, contents)
+	defer func() { _ = rc.Close() }()
+	_, _ = io.Copy(env.stdout, rc)
 	return Success
 }
 

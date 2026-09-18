@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	domainhistory "github.com/gosharplite/tellme/internal/domain/history"
 )
@@ -42,16 +43,17 @@ func (s *turnsLogStore) Writer() (io.WriteCloser, error) {
 	return os.OpenFile(s.activePath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 }
 
-// Read returns the active turn log's contents; a missing file is "".
-func (s *turnsLogStore) Read() (string, error) {
-	data, err := os.ReadFile(s.activePath())
+// Reader opens the active turn log for streaming; a missing file reads as empty
+// (not an error), so the `-t` reader tolerates a session with no turn log.
+func (s *turnsLogStore) Reader() (io.ReadCloser, error) {
+	f, err := os.Open(s.activePath())
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return "", nil
+			return io.NopCloser(strings.NewReader("")), nil
 		}
-		return "", err
+		return nil, err
 	}
-	return string(data), nil
+	return f, nil
 }
 
 // Archive appends the active turn log onto the archive and removes the active

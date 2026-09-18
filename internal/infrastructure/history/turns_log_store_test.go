@@ -1,6 +1,7 @@
 package history
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,12 +16,8 @@ func TestTurnsLogStoreRoundTrip(t *testing.T) {
 	s := NewTurnsLogStore(dir)
 
 	// A missing active log reads as empty, not an error.
-	got, err := s.Read()
-	if err != nil {
-		t.Fatalf("Read on a missing log: %v", err)
-	}
-	if got != "" {
-		t.Fatalf("Read on a missing log = %q, want empty", got)
+	if got := readAll(t, s); got != "" {
+		t.Fatalf("Reader on a missing log = %q, want empty", got)
 	}
 
 	// Append two chrome lines.
@@ -35,12 +32,8 @@ func TestTurnsLogStoreRoundTrip(t *testing.T) {
 		t.Fatalf("Close: %v", err)
 	}
 
-	got, err = s.Read()
-	if err != nil {
-		t.Fatalf("Read: %v", err)
-	}
-	if got != "line-one\nline-two\n" {
-		t.Fatalf("Read = %q, want the two appended lines", got)
+	if got := readAll(t, s); got != "line-one\nline-two\n" {
+		t.Fatalf("Reader = %q, want the two appended lines", got)
 	}
 
 	// Archive moves the active log to the archive and clears the active file.
@@ -57,11 +50,22 @@ func TestTurnsLogStoreRoundTrip(t *testing.T) {
 	if string(archived) != "line-one\nline-two\n" {
 		t.Fatalf("archive = %q, want the archived lines", string(archived))
 	}
-	got, err = s.Read()
+	if got := readAll(t, s); got != "" {
+		t.Fatalf("Reader after Archive = %q, want empty", got)
+	}
+}
+
+// readAll drains the store's streaming Reader (the RF-53-2 port shape).
+func readAll(t *testing.T, s *turnsLogStore) string {
+	t.Helper()
+	rc, err := s.Reader()
 	if err != nil {
-		t.Fatalf("Read after Archive: %v", err)
+		t.Fatalf("Reader: %v", err)
 	}
-	if got != "" {
-		t.Fatalf("Read after Archive = %q, want empty", got)
+	defer func() { _ = rc.Close() }()
+	data, err := io.ReadAll(rc)
+	if err != nil {
+		t.Fatalf("ReadAll: %v", err)
 	}
+	return string(data)
 }

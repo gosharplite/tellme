@@ -257,7 +257,9 @@ type fakeTurnsLogStore struct{ buf bytes.Buffer }
 
 func (f *fakeTurnsLogStore) Writer() (io.WriteCloser, error) { return nopWriteCloser{&f.buf}, nil }
 
-func (f *fakeTurnsLogStore) Read() (string, error) { return f.buf.String(), nil }
+func (f *fakeTurnsLogStore) Reader() (io.ReadCloser, error) {
+	return io.NopCloser(bytes.NewReader(f.buf.Bytes())), nil
+}
 
 func (f *fakeTurnsLogStore) Archive() error { return nil }
 

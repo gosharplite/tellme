@@ -78,4 +78,16 @@ Feature: Inspecting the session history
       When the operator asks tellme to list the last 1 messages of the configuration "missing.yaml"
       Then tellme exits with the configuration error code
 
+  Rule: A forced session mode outranks the named configuration
+
+    Example: The environment mode wins over the named configuration
+      Given the operator has a runnable tellme installation
+      And the runtime home holds the configuration "a.yaml" in mode "alpha" holding the answer "from alpha"
+      And the runtime home holds the configuration "g.yaml" in mode "gamma" holding the answer "from gamma"
+      And the effective mode is "gamma"
+      When the operator asks tellme to list the last 1 messages of the configuration "a.yaml"
+      Then tellme lists the assistant message "from gamma"
+      And tellme exits successfully
+
+
 

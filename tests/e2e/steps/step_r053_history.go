@@ -20,9 +20,13 @@ func init() {
 		ctx.Given(`^the runtime home holds the configuration "([^"]*)" in mode "([^"]*)" whose turn log holds "([^"]*)"$`, givenConfigSessionTurnsLog)
 		ctx.When(`^the operator asks tellme to list the last (\d+) messages of the configuration "([^"]*)"$`, whenListLastOfConfig)
 		ctx.When(`^the operator reviews the turn log of the configuration "([^"]*)"$`, whenReviewTurnsLogOfConfig)
+		ctx.When(`^the operator starts a fresh session of the configuration "([^"]*)"$`, whenNewOfConfig)
 		ctx.Then(`^tellme lists the assistant message "([^"]*)"$`, thenListsAssistantMessage)
 		ctx.Then(`^tellme prints exactly the turn log line "([^"]*)"$`, thenPrintsExactlyTurnLog)
 		ctx.Then(`^tellme prints nothing$`, thenPrintsNothing)
+		ctx.Then(`^the session's turn log holds the turn progress$`, thenSessionTurnsLogHoldsProgress)
+		ctx.Then(`^the "([^"]*)" session holds no active exchanges$`, thenNamedSessionNoExchanges)
+		ctx.Then(`^the "([^"]*)" session archived the exchange "([^"]*)" and "([^"]*)"$`, thenNamedSessionArchivedExchange)
 	})
 }
 
@@ -80,6 +84,14 @@ func whenReviewTurnsLogOfConfig(ctx context.Context, config string) error {
 	return nil
 }
 
+// whenNewOfConfig runs `tellme --new -c <config>` (no positional prompt).
+func whenNewOfConfig(ctx context.Context, config string) error {
+	sc := scenarioFrom(ctx)
+	sc.args = []string{"--new", "-c", sc.homePath(filepath.Join("configs", config))}
+	sc.run()
+	return nil
+}
+
 // thenListsAssistantMessage (必查 呈現結果): the last line on stdout is
 // `assistant: {answer}` — the named configuration's session, not any other's.
 func thenListsAssistantMessage(ctx context.Context, answer string) error {
@@ -104,8 +116,54 @@ func thenPrintsExactlyTurnLog(ctx context.Context, content string) error {
 // thenPrintsNothing (必查 呈現結果): stdout carries no characters.
 func thenPrintsNothing(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
-	if strings.TrimSpace(sc.stdout) != "" {
+	if sc.stdout != "" {
 		return fmt.Errorf("stdout must be empty; got %q", sc.stdout)
 	}
 	return nil
+}
+
+// thenSessionTurnsLogHoldsProgress (必查 權威狀態 / the write side of the turn
+// log): the resolved session's turns.log holds the rendered turn chrome — the
+// `╭─⠿ Turn …` header and a `Payload:` status line.
+func thenSessionTurnsLogHoldsProgress(ctx context.Context) error {
+	sc := scenarioFrom(ctx)
+	data, err := os.ReadFile(filepath.Join(sc.historyDir(), "turns.log"))
+	if err != nil {
+		return fmt.Errorf("the session turn log must be written: %w", err)
+	}
+	got := string(data)
+	if !strings.Contains(got, "╭─⠿ Turn") || !strings.Contains(got, "Payload:") {
+		return fmt.Errorf("the turn log must carry the turn chrome (header + payload); got %q", got)
+	}
+	return nil
+}
+
+// thenNamedSessionNoExchanges (必查 權威狀態): the named mode's active
+// history.jsonl holds no exchange lines (a fresh-session start archived them).
+func thenNamedSessionNoExchanges(ctx context.Context, mode string) error {
+	sc := scenarioFrom(ctx)
+	entries, err := readHistoryEntries(filepath.Join(sc.home, "output", mode, "history.jsonl"))
+	if err != nil {
+		return err
+	}
+	if len(entries) != 0 {
+		return fmt.Errorf("the %q session holds %d exchanges, want none", mode, len(entries))
+	}
+	return nil
+}
+
+// thenNamedSessionArchivedExchange (必查 權威狀態): the named mode's archive holds
+// the exchange whose prompt/answer are {prompt}/{answer}.
+func thenNamedSessionArchivedExchange(ctx context.Context, mode, prompt, answer string) error {
+	sc := scenarioFrom(ctx)
+	entries, err := readHistoryEntries(filepath.Join(sc.home, "output", mode, "history.archive.jsonl"))
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		if e.Prompt == prompt && e.Answer == answer {
+			return nil
+		}
+	}
+	return fmt.Errorf("the %q archive does not hold %q / %q; got %+v", mode, prompt, answer, entries)
 }

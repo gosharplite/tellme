@@ -12,9 +12,10 @@ type TurnsLogStore interface {
 	// Writer returns an append handle for the active turn log. The caller must
 	// Close it when the run ends.
 	Writer() (io.WriteCloser, error)
-	// Read returns the active turn log's contents (an empty string when the file
-	// is absent — not an error).
-	Read() (string, error)
+	// Reader returns a streaming reader over the active turn log (symmetric with
+	// Writer; a missing file reads as empty — not an error), so the `-t` reader
+	// never materialises the whole log (RF-53-2).
+	Reader() (io.ReadCloser, error)
 	// Archive moves the active turn log aside (the `--new` rotation).
 	Archive() error
 }

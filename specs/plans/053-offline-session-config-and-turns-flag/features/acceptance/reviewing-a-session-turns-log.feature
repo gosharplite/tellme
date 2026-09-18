@@ -13,7 +13,6 @@ Feature: Reviewing a session's turn log
       And no session mode is forced by the environment
       When the operator runs a turn under that configuration
       Then the session keeps a turn log of the progress the run showed
-      And reviewing that session's turn log prints that progress
       And tellme exits successfully
 
   Rule: The reviewed turn log is the one the named configuration belongs to
