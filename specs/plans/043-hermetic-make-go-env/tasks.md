@@ -315,3 +315,10 @@ Three **non-blocking nits**, folded:
 - **c (STATUS 043 row)** — the roadmap summary now states the folded set (criterion-derived; `GOENV`/`GOWORK` + `GOFLAGS`/`GO111MODULE`/`GOEXPERIMENT`/`GOTOOLCHAIN`/`GOFIPS140`/`GODEBUG` + the ambient target triple; `CGO_ENABLED` preserved from the caller).
 
 **Scope:** docs only (no `Makefile`/logic change); `go.mod`/`go.sum` untouched.
+
+## Fold — PR [#99](https://github.com/gosharplite/tellme/pull/99) re-review #2 (`/pullrequestreview-5242675172` at `ad2ee7d`)
+
+- **N-4 (new REFACTOR)** — `research.md` **D5**'s stale symmetric-difference sentence (*"`{GOENV}` on one side and `{CGO_ENABLED}` on the other"* — true of the **8-name** set, false after B-4 widened it to **19**) is replaced with the **derivation**: the *literal* symmetric difference is **12 Makefile-only names** + `{CGO_ENABLED}` on the `childEnv` side; *semantically* the **non-covered set is 14** — `GOEXPERIMENT` and `GOARM` sit in **both** literal sets (the filter *drops* them) but are never *re-set*, and **drop ≠ neutralise** (F-2). Verified mechanically: `Makefile(19) − childEnv-literal(8)` → 12; `Makefile(19) − childEnv-re-set(5)` → **14**. D5 is now consistent with **R4**'s exact list.
+- **b2 (minor)** — the **two-example** form of R4 (*"drops but does not re-set `GOARM`/`GOEXPERIMENT` (and the names added this round)"*) is aligned to *"the **14** non-covered names (ADR 0012 R4)"* at the three remaining sites: `research.md` **D8**, `spec.md` **FR-009(c)**, `specs/truth/techstack.md` (the truth row). `grep -rn 'drops but does not re-set'` now shows only the ADR **R4** (the enumerated home) and these aligned pointers.
+
+**Scope:** docs only (no `Makefile`/logic change); `go.mod`/`go.sum` untouched.
