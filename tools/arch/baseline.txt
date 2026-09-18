@@ -12,10 +12,3 @@
 # ratchet that only shrinks: a violation not listed here FAILS the gate, and a
 # listed line that no longer violates (stale) FAILS the gate too.
 internal/agent -> internal/ui
-internal/cli -> internal/infrastructure/di
-internal/cli -> internal/infrastructure/history
-internal/cli -> internal/infrastructure/llm
-internal/cli -> internal/infrastructure/mcp
-internal/cli -> internal/infrastructure/skills
-internal/cli -> internal/infrastructure/telemetry
-internal/cli -> internal/infrastructure/tools
