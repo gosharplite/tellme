@@ -589,3 +589,94 @@ PR [#109](https://github.com/gosharplite/tellme/pull/109) was **human-merged** i
 | Closeout Step 8 | **#108 CLOSED (completed)** + **#107 CLOSED (completed)** - the same R4 slice (#107 is the canonical anchor; #108 was a same-day duplicate) - + a delivery comment on #92 |
 
 **Public binaries**: the merged head is `8ca4758`; the review chain (review → 3 fold reviews) ended **CLEARED FOR MERGE** with F-1 mutation-verified. **Next**: open round `047-*` off `dev` (candidates: **R5** [#101](https://github.com/gosharplite/tellme/issues/101) strict de-coupling; the #92 ride-alongs; [#103](https://github.com/gosharplite/tellme/issues/103); [#91](https://github.com/gosharplite/tellme/issues/91); [#13](https://github.com/gosharplite/tellme/issues/13)).
+
+---
+
+## Session 21 (2026-09-18, cont.) — round 047 `047-application-import-ceiling-gate` (R5.1 of [#101](https://github.com/gosharplite/tellme/issues/101)): full pipeline → implementation → PR #110 → 2 review folds + 2 fold reviews → **merged (PR #110)**; closeout
+
+A session on 2026-09-18: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 046 delivered/frozen; active branch `dev`), opened round **047** from **issue [#101](https://github.com/gosharplite/tellme/issues/101)** (R5), ran the full AIxBDD pipeline, took **PR [#110](https://github.com/gosharplite/tellme/pull/110)** through a **2-review + 2-fold-review chain to CLEARED FOR MERGE**, saw the **human merge**, deleted the branch (local + remote), and ran `SESSION-CLOSEOUT.md` (Steps 1–8). The installed binary was refreshed.
+
+**Workspace**: `$TELL_ME_HOME` = `…/beta-niffler/ait-tellme`; **linux/amd64** host (Go 1.26.6). **Session mode**: `butler`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 046 delivered/frozen; active branch `dev`) |
+| Anchor / theme | [#101](https://github.com/gosharplite/tellme/issues/101) — **R5.1**: a fifth guard rule **RULE-E** (an application import **ceiling**) inside `tools/arch`; the **3** residual edges baselined; **tooling/truth only, zero product code**; **ADR 0016** |
+| Clarify (one at a time) | **Q1 → A** gate-first slice · **Q2 → A** normative allow-list in the tier table, default-deny, **fail-on-stale allow-list** · **Q3 → A** bind both application tiers · **Q4 → A** sanctioned set as measured · **Q5 → A** ADR 0016 + slug |
+| Pipeline | specify ✅ · clarify ✅ (Q1–Q5, **2 short rounds**) · spec-by-example **NOOP** · technical-research ✅ (+ **ADR 0016** + `techstack.md` MODIFY) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T006) · implement ✅ |
+| Review chain (PR #110) | architectural review `5727139961` — **APPROVE WITH REQUIRED FOLDS (no blocker)** → folded **`4c20c98`** (F-1 · F-2 · F-3 · TD-1…TD-5 · N-1…N-3) → fold review `5727200926` — **ALL FOLDS VERIFIED, cleared for merge** → N-1′/N-2′ + durable-home folded **`a546c89`** (ledger `d39cfb1`) → fold review #2 `5727264949` — **ALL THREE ITEMS VERIFIED, cleared for merge** |
+| Merge | PR [#110](https://github.com/gosharplite/tellme/pull/110) **MERGED** into `dev` (`6711e0a`, by `thptcnec`, 2026-09-18T08:21:02Z); remote branch deleted → **local branch deleted** (`d39cfb1`) |
+| Propagation | `dev → main` — **PENDING** (awaiting operator approval) |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `6711e0a`; `--version` → `dev` |
+| Closeout | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** · `go test -count=1 ./...` green (incl. the ~63 s E2E) · topology audit unchanged · `STATUS.md` refreshed + **Rule-12 split** (round-046 detail → `docs/archives/status/2026-09-18.md`) · **#101 stays OPEN** |
+
+### Work done
+
+1. **Bootstrap (Steps 1–8)** — the pillars, the reference trees, `list_skills`, the peers, `STATUS.md`, the last-5-days summaries.
+2. **Round 047** — `/axb-specify` → `/axb-clarify` (Q1–Q5, one at a time) → `/axb-spec-by-example` (NOOP) → `/axb-technical-research` (+ **ADR 0016**) → `/axb-system-analysis` → `/axb-tasks` → `/axb-implement` (One-Shot T001–T006). Committed per phase.
+3. **The change** — RULE-E in `tools/arch`: a normative sanctioned set in the tier table (`domain` + stdlib + `config`/`home` + `app/**`), **default-deny**, **fail-on-stale allow-list** (`assertSanctionedInUse`/`unusedSanctioned`), an extended synthetic `selfTestPredicate`, and the **3**-edge baseline (`cli → {agent, ui, ui/tui/prompt}`). No Makefile change; no product code.
+4. **Review chain (PR #110)** — three review passes: **F-1** (the third-party scope claim was **false** — re-framed as **live, measured**; `pflag`/`x/term`) · **F-2** (the headline fail-on-stale allow-list had **no committed carrier** — added `selfTestAllowList`; the escape mutant M9 is now **RED**) · **F-3** (STATUS sweep) · **TD-1** (`app/deps`, not `app/suggestions`) · **TD-2** (ranked exemplar) · **TD-3** (RULE-E live-reach) · **TD-4** (sanctioned-set governance) · **TD-5** (gate row → current-state + citations, 5.8k → 2.7k chars) · **N-1/N-2/N-3** · then **N-1′** (record attempts, not passes) · **N-2′** (precise ledger SHAs) · **durable-home** (per-rule split → ADR 0016 §Forward) — and the fold-review **verified each as behaviour** (mutation re-runs).
+5. **Merge + closeout** — PR #110 merged (`6711e0a`); branch deleted (remote + local); `go install`; `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 047)
+
+| # | Decision |
+| --- | --- |
+| Q1-A | **Gate-first slice** — RULE-E + ADR 0016 + a ratchet baseline; zero product code (#101 is a programme). |
+| Q2-A | The sanctioned set is **normative in the guard's tier table** (ADR 0011 D7); **default-deny**; **fail-on-stale allow-list**. |
+| Q3-A | RULE-E binds **both** application tiers (`internal/app/**` + `internal/cli`). |
+| Q4-A | Sanctioned = `internal/domain/**` + stdlib + `internal/config` + `internal/home` + `internal/app/**`; residual = the 3 `cli → {agent, ui, ui/tui/prompt}` edges. |
+| Q5-A | **ADR 0016** + slug `047-application-import-ceiling-gate`; F-4/F-6/F-7/F-8 deferred (#101). |
+| TD-6 | Fold-ledger convention: a STATUS fold-ledger line names **fold heads + prior ledgers only** (a ledger cannot name its own SHA). |
+
+### Commits (branch `047-application-import-ceiling-gate`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `0da6673` | `docs(047)`: plan package + spec |
+| `087a2f4` | `docs(047)`: technical research + ADR 0016 + techstack truth (RULE-E row) |
+| `0f20292` | `docs(047)`: system-analysis plan + ratified NOOP truth-delta rows + STATUS |
+| `898264f` | `docs(047)`: tasks.md (T001–T006) |
+| `d5ba1ae` | `feat(047)`: RULE-E application import-ceiling + 3 baselined residual edges |
+| `4c20c98` | `fix(047)`: fold PR #110 review — F-1…F-3 · TD-1…TD-5 · N-1…N-3 |
+| `8684941` | `docs(047)`: fold ledger (tasks outcome + STATUS) |
+| `a546c89` | `fix(047)`: fold PR #110 fold-review — N-1′ · N-2′ · durable-home + release-valve clause |
+| `d39cfb1` | `docs(047)`: fold-ledger — name the fold commit `a546c89` |
+| `6711e0a` | PR [#110](https://github.com/gosharplite/tellme/pull/110) merge into `dev` (by `thptcnec`) |
+
+### Artifacts / truth
+
+- Code: `tools/arch/arch_test.go` (CHANGED) · `tools/arch/baseline.txt` (CHANGED — 3 RULE-E edges). **No product code**; `Makefile`/`go.mod`/`go.sum` unchanged.
+- Plan package: `specs/plans/047-application-import-ceiling-gate/` (`spec.md` · `checklists/requirements.md` · `research.md` D1–D11 · `plan.md` · `tasks.md` T001–T006 + the fold ledger · `truth-delta.md`).
+- Truth: `specs/truth/techstack.md` (Build & Tooling / **Layer-discipline gate** row — restated to current-state + citations).
+- Governance: **ADR 0016** (`docs/decisions/0016-application-import-ceiling.md` + index row).
+
+### Verification (2026-09-18, on `dev` @ `6711e0a`)
+
+- `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (incl. `verify-architecture`: RULE-A/B/C **0** + RULE-E **3** baselined · 0 new · 0 stale · 0 cycles; lint 0 issues; govulncheck clean; cross-compile 4/4).
+- `go test -count=1 ./...` green — incl. the ~63 s godog E2E; `tools/arch` = `[no test files]` under default tags.
+- Topology audit **unchanged** (no `specs/truth/features/**` file changed).
+- **Falsifiability witnesses** (reproduced then reverted): (a) new unsanctioned app-tier import · (b) unused sanctioned entry · (c1) removed baseline line · (c2) stale baseline line — plus the mutation campaign (M7′/M9″/M10′ red).
+- `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `6711e0a`; `--version` → `dev`.
+
+### Open items (non-blocking)
+
+- **Propagation PENDING** — `dev → main` (no-ff) awaits operator approval.
+- **Round-047 forward items** — (a) the 3 residual edges = the later **R5.x de-coupling slices**; (b) **F-4/F-6/F-7/F-8** → [#101](https://github.com/gosharplite/tellme/issues/101); (c) third-party app-tier imports are **outside RULE-E** (a live residual); (d) the sanctioned set may be **re-ruled** + the optional **per-rule row split** (both ADR 0016 §Forward); (e) custom build-tag-gated imports out of scope (ADR 0011 D6).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; round-011 forward items.
+
+### Next steps
+
+1. Approve the `dev → main` propagation (no-ff) — then the round is fully delivered.
+2. Open round **`048-*`** off `dev` via `/axb-specify` — recommended: the **R5.x de-coupling slice** (the 3 residual edges), or [#103](https://github.com/gosharplite/tellme/issues/103)/[#91](https://github.com/gosharplite/tellme/issues/91)/[#13](https://github.com/gosharplite/tellme/issues/13).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no user-facing business journey — a dev-surface gate; spec/acceptance boundary is RD-side).
+
+### Issue tracker (closeout Step 8)
+
+Reconciled against the delivered state: **[#101](https://github.com/gosharplite/tellme/issues/101) OPEN** — **R5.1 delivered** by round 047 (PR [#110](https://github.com/gosharplite/tellme/pull/110) merged `6711e0a`); the R5.x de-coupling slices + F-4/F-6/F-7/F-8 remain; a delivery-record comment posted. **[#92](https://github.com/gosharplite/tellme/issues/92) OPEN** (R1–R4 delivered; ride-alongs remain) · **[#103](https://github.com/gosharplite/tellme/issues/103)** · **[#91](https://github.com/gosharplite/tellme/issues/91)** · **[#13](https://github.com/gosharplite/tellme/issues/13)** — all OPEN (accurate). No issues closed this closeout (round 047 delivered a slice of an already-open programme issue).
