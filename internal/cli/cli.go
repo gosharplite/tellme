@@ -18,19 +18,14 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/gosharplite/tellme/internal/agent"
+	"github.com/gosharplite/tellme/internal/app/deps"
 	appsuggestions "github.com/gosharplite/tellme/internal/app/suggestions"
 	"github.com/gosharplite/tellme/internal/config"
 	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
-	domainskills "github.com/gosharplite/tellme/internal/domain/skills"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 	"github.com/gosharplite/tellme/internal/home"
-	infrhistory "github.com/gosharplite/tellme/internal/infrastructure/history"
-	infrallm "github.com/gosharplite/tellme/internal/infrastructure/llm"
-	infrskills "github.com/gosharplite/tellme/internal/infrastructure/skills"
-	infratelemetry "github.com/gosharplite/tellme/internal/infrastructure/telemetry"
-	infratools "github.com/gosharplite/tellme/internal/infrastructure/tools"
 	"github.com/gosharplite/tellme/internal/ui"
 	tuiprompt "github.com/gosharplite/tellme/internal/ui/tui/prompt"
 )
@@ -46,8 +41,9 @@ const (
 	reasonProviderInvalid  = "provider-invalid"
 )
 
-// options are the parsed CLI flags.
-type options struct {
+// flags are the parsed CLI flags (renamed from `options` in round 044 / G2 to
+// avoid the options / turnOptions / Options tri-collision).
+type flags struct {
 	configPath  string
 	diagnostic  bool
 	version     bool
@@ -57,6 +53,16 @@ type options struct {
 	listSet     bool
 	interactive bool
 	toolUsage   bool
+}
+
+// Options is the single injected value Run consumes (round 044 / ADR 0013): the
+// domain-typed Dependencies (built by the composition root) plus the ONE
+// presentation seam whose type references unexported cli types (the TUI runner).
+// A cmd package cannot name the unexported types, so RunTUIPrompt is
+// nil-defaulted INSIDE cli; the composition root populates only Deps.
+type Options struct {
+	Deps         deps.Dependencies
+	RunTUIPrompt tuiPromptRunner
 }
 
 // resolution is the outcome of resolving home → configuration → workspace. On a
@@ -152,71 +158,36 @@ type answerRenderer interface {
 	WarnDegraded(w io.Writer)
 }
 
-// newRenderer builds the production answer renderer (a var so tests may inject a
-// fake).
-var newRenderer = func() answerRenderer { return ui.NewRenderer() }
+// (round 044 / fix-2: the `newRenderer` var is deleted — the renderer is built
+// inline in Run via ui.NewRenderer(); the injectable renderer seam stays
+// runtimeEnv.renderer, which tests use.)
 
 // historyStoreFactory builds the session-history store for a resolved workspace.
-// It is the DI seam (round-007 TD-1): the presentation layer never couples to a
-// concrete file adapter, and tests can inject an in-memory fake without disk
-// I/O. It mirrors gatewayFactory / answerRenderer.
-type historyStoreFactory func(workspace string) history.Store
+// (round 044: the historyStoreFactory/newHistoryStore var is deleted; the store
+// is built by the injected deps.NewHistoryStore.)
 
-// newHistoryStore is the production history-store factory (a var so tests may
-// override it).
-var newHistoryStore historyStoreFactory = func(workspace string) history.Store {
-	return infrhistory.NewFileStore(workspace)
-}
-
-// usageStoreFactory builds the per-mode usage-log store for a resolved workspace
-// (round 018). It mirrors historyStoreFactory so the presentation layer never
-// couples to the concrete file adapter.
-type usageStoreFactory func(workspace string) history.UsageStore
-
-// newUsageStore is the production usage-store factory (a var so tests may
-// override it).
-var newUsageStore usageStoreFactory = func(workspace string) history.UsageStore {
-	return infrhistory.NewUsageStore(workspace)
-}
-
-// userHomeDir resolves the user home — the `~/.tellme` root the round-026
-// tool-usage log lives under. It is a var so tests can inject a seam (the E2E
-// harness points HOME at a per-scenario temp dir).
-var userHomeDir = os.UserHomeDir
-
-// toolUsageStoreFactory builds the user-global tool-usage log adapter (round
-// 026). It returns the DOMAIN read+write port (history.ToolUsageStore), mirroring
-// historyStoreFactory/usageStoreFactory, so the presentation layer couples only to
-// domain types: the loop consumes Record (ToolUsageSink) and the offline report
-// consumes Aggregate (ToolUsageReader) — PR #57 principal-architect review
-// resolved the earlier concrete-adapter return.
-type toolUsageStoreFactory func() history.ToolUsageStore
-
-// newToolUsageStore is the production tool-usage-store factory (a var so tests
-// may override it).
-var newToolUsageStore toolUsageStoreFactory = func() history.ToolUsageStore {
-	return infrhistory.NewToolUsageStore(userHomeDir)
-}
+// (round 044: the usageStoreFactory/newUsageStore and the userHomeDir /
+// toolUsageStoreFactory/newToolUsageStore vars are deleted; the stores are built
+// by the injected deps.NewUsageStore / deps.NewToolUsageStore(deps.UserHomeDir).)
 
 // tuiPromptRunner runs the interactive TUI prompt (round 015) for one invocation
 // and returns the composed prompt text plus whether a prompt was submitted (ok).
-// It is the DI seam (PR #38 review directive ④): the -i / USE_TUI_PROMPT / non-TTY
-// dispatch matrix is unit-testable without a terminal event loop, mirroring
-// gatewayFactory / historyStoreFactory.
-type tuiPromptRunner func(ctx context.Context, res resolution, env runtimeEnv) (string, bool, error)
-
-// newTUIPromptRunner is the production TUI runner (a var so tests may inject a
-// fake).
-var newTUIPromptRunner tuiPromptRunner = defaultRunTUIPrompt
+// It is the DI seam (PR #38 review directive ④). Round 044 (fix-1 / TD-1): the
+// signature is WIDENED with the injected dependencies so defaultRunTUIPrompt can
+// reach dp.NewPromptTracker / dp.UserHomeDir / dp.NewTUIRegistry. The widened
+// form is `dp deps.Dependencies`, NOT `opts Options` (Options contains
+// RunTUIPrompt, so an Options-typed runner would be self-referential).
+type tuiPromptRunner func(ctx context.Context, res resolution, env runtimeEnv, dp deps.Dependencies) (string, bool, error)
 
 // defaultRunTUIPrompt runs the interactive TUI prompt (round 015): it announces
 // on the diagnostic stream, drives the prompt bound to stderr/stdin through the
 // Bubble Tea runtime, and returns the composed prompt (ok) on submit. It never
-// writes to stdout (PR #38 review BLOCKER).
-func defaultRunTUIPrompt(ctx context.Context, res resolution, env runtimeEnv) (string, bool, error) {
+// writes to stdout (PR #38 review BLOCKER). Round 044: the prompt tracker and the
+// three-reader suggestion registry are injected via dp.
+func defaultRunTUIPrompt(ctx context.Context, res resolution, env runtimeEnv, dp deps.Dependencies) (string, bool, error) {
 	_, _ = fmt.Fprintln(env.stderr, TUIHint)
 
-	var tracker history.PromptTracker = infrhistory.NewGlobalPromptTracker(res.Home, userHomeDir)
+	tracker := dp.NewPromptTracker(res.Home, dp.UserHomeDir)
 	defer func() { _ = tracker.Close(context.Background()) }()
 	// Round 028: the first-use seed runs once, here, before the first suggestion
 	// read. It is the segregated Seeder capability (NOT part of PromptTracker —
@@ -226,7 +197,7 @@ func defaultRunTUIPrompt(ctx context.Context, res resolution, env runtimeEnv) (s
 	if seeder, ok := tracker.(history.Seeder); ok {
 		_ = seeder.Seed(ctx)
 	}
-	reg := domaintools.NewRegistry(infratools.NewFilesystemTools()...)
+	reg := dp.NewTUIRegistry()
 	engine := appsuggestions.New(
 		appsuggestions.TrackerPrompts{Tracker: tracker},
 		appsuggestions.OSSWorkspace{},
@@ -269,8 +240,8 @@ func (s tuiSource) Suggest(ctx context.Context, query string) []string {
 // tuiRequested reports whether the opt-in interactive prompt is enabled: the
 // `-i`/`--interactive` flag, or the config `USE_TUI_PROMPT` key (round-015
 // FR-001). The terminal-stdin requirement is enforced separately by the caller.
-func tuiRequested(homeDir string, opts *options) bool {
-	if opts.interactive {
+func tuiRequested(homeDir string, f *flags) bool {
+	if f.interactive {
 		return true
 	}
 	if cfg, err := config.Load(defaultConfigPath(homeDir)); err == nil {
@@ -283,12 +254,17 @@ func tuiRequested(homeDir string, opts *options) bool {
 // 015). A submitted prompt is recorded in the shared log — only for the
 // interactive prompt — and then runs exactly one reasoning turn; an
 // aborted/empty submission sends no request and exits success.
-func runTUIPrompt(homeDir string, opts *options, env runtimeEnv) int {
+func runTUIPrompt(homeDir string, f *flags, env runtimeEnv, opts Options) int {
+	dp := opts.Deps
 	// Best-effort resolution: the TUI engages even when the setup is unresolved
 	// (an aborted/empty submission owes no request — the round-012 ordering
 	// rationale). The resolution feeds the dashboard and the submit path.
-	res, _ := resolve(homeDir, opts.configPath)
-	text, ok, err := newTUIPromptRunner(context.Background(), res, env)
+	res, _ := resolve(homeDir, f.configPath)
+	runner := opts.RunTUIPrompt
+	if runner == nil {
+		runner = defaultRunTUIPrompt
+	}
+	text, ok, err := runner(context.Background(), res, env, dp)
 	if err != nil {
 		return emitProviderError(env.stderr, err)
 	}
@@ -297,10 +273,10 @@ func runTUIPrompt(homeDir string, opts *options, env runtimeEnv) int {
 	}
 	// Record in the shared log (round-015 FR-009) — only the interactive prompt
 	// writes it.
-	var tracker history.PromptTracker = infrhistory.NewGlobalPromptTracker(res.Home, userHomeDir)
+	tracker := dp.NewPromptTracker(res.Home, dp.UserHomeDir)
 	_ = tracker.Append(context.Background(), text)
 	_ = tracker.Close(context.Background())
-	return renderTurn(homeDir, opts.configPath, text, turnOptions{raw: opts.raw, chrome: true, echo: true}, env)
+	return renderTurn(homeDir, f.configPath, text, turnOptions{raw: f.raw, chrome: true, echo: true}, env, dp)
 }
 
 // Run is the CLI entrypoint: main passes argv and the injected build version,
@@ -309,14 +285,14 @@ func runTUIPrompt(homeDir string, opts *options, env runtimeEnv) int {
 // delegates to run (round-005 research Decision 4 — the seam keeps the
 // input/output-mode selection unit-testable; round-006 review Obs 2 — one value
 // instead of many stream primitives).
-func Run(args []string, version string) int {
-	return run(args, version, runtimeEnv{
+func Run(args []string, version string, opts Options) int {
+	return run(args, version, opts, runtimeEnv{
 		stdin:     os.Stdin,
 		stdout:    os.Stdout,
 		stderr:    os.Stderr,
 		isTTY:     terminalDetector(),
 		stderrTTY: stderrTerminalDetector(),
-		renderer:  newRenderer(),
+		renderer:  ui.NewRenderer(),
 		clock:     time.Now,
 	})
 }
@@ -368,12 +344,13 @@ func terminalDetector() func(any) bool {
 // `--version` → `-d` → `-l` → (`--new`) prompt turn → boot). stdin is read on
 // the prompt path only (round-005 FR-010); the version, diagnostic, and `-l`
 // paths never read it.
-func run(args []string, version string, env runtimeEnv) int {
-	opts, flagArgs, ok := parseFlags(args, env.stderr)
+func run(args []string, version string, scoped Options, env runtimeEnv) int {
+	dp := scoped.Deps
+	f, flagArgs, ok := parseFlags(args, env.stderr)
 	if !ok {
 		return emitUsageError(env.stderr)
 	}
-	if opts.version {
+	if f.version {
 		_, _ = fmt.Fprintf(env.stdout, "tellme %s\n", version)
 		return Success
 	}
@@ -382,7 +359,7 @@ func run(args []string, version string, env runtimeEnv) int {
 
 	// The offline reporting commands run in precedence order — -d → -l →
 	// --tool-usage — before any prompt or stdin access.
-	if code, handled := dispatchReporting(opts, homeDir, env); handled {
+	if code, handled := dispatchReporting(f, homeDir, env, dp); handled {
 		return code
 	}
 	// The prompt turn reads piped input only when stdin is not a terminal and
@@ -397,7 +374,7 @@ func run(args []string, version string, env runtimeEnv) int {
 		return EnvironmentError
 	}
 	if prompt != "" {
-		return renderTurn(homeDir, opts.configPath, prompt, turnOptions{raw: opts.raw, newSession: opts.newSession, chrome: true}, env)
+		return renderTurn(homeDir, f.configPath, prompt, turnOptions{raw: f.raw, newSession: f.newSession, chrome: true}, env, dp)
 	}
 	// Round 012 (amended, A8) — a prompt-less invocation on a terminal reads an
 	// interactive multi-line prompt: print the hint to stderr and read stdin to EOF
@@ -427,8 +404,8 @@ func run(args []string, version string, env runtimeEnv) int {
 		// archive command that works offline, so — unlike the prompt-bearing
 		// `--new "<prompt>"` form, which resolves first — a broken config still
 		// archives here and then fails when the turn resolves (round-012 review).
-		if opts.newSession {
-			if code := renderNewSession(homeDir, env); code != Success {
+		if f.newSession {
+			if code := renderNewSession(homeDir, env, dp); code != Success {
 				return code
 			}
 		}
@@ -436,8 +413,8 @@ func run(args []string, version string, env runtimeEnv) int {
 		// enabled AND stdin is a terminal); the plain reader below stays the
 		// default. The dispatch delegates to the tuiPromptRunner seam so the
 		// matrix is unit-testable (PR #38 review directive ④).
-		if tuiRequested(homeDir, opts) {
-			return runTUIPrompt(homeDir, opts, env)
+		if tuiRequested(homeDir, f) {
+			return runTUIPrompt(homeDir, f, env, scoped)
 		}
 		ictx, icancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		text, ok := readInteractivePrompt(ictx, env.stdin, env.stderr)
@@ -445,24 +422,24 @@ func run(args []string, version string, env runtimeEnv) int {
 		if !ok || text == "" {
 			return Success
 		}
-		return renderTurn(homeDir, opts.configPath, text, turnOptions{raw: opts.raw, chrome: true}, env)
+		return renderTurn(homeDir, f.configPath, text, turnOptions{raw: f.raw, chrome: true}, env, dp)
 	}
 	// A prompt-less --new on a NON-terminal keeps its round-007 behaviour: archive
 	// the session and exit (the reader never engages on a non-terminal).
-	if opts.newSession {
-		return renderNewSession(homeDir, env)
+	if f.newSession {
+		return renderNewSession(homeDir, env, dp)
 	}
-	return renderBoot(homeDir, opts.configPath, env)
+	return renderBoot(homeDir, f.configPath, env)
 }
 
 // parseFlags parses argv, returning the parsed flags and the positional
 // arguments (the prompt parts, if any). ok is false on an unrecognized or
 // invalid flag. Flag errors are written to the injected stderr (review finding
 // F3: no direct os.Stderr coupling).
-func parseFlags(args []string, stderr io.Writer) (opts *options, flagArgs []string, ok bool) {
+func parseFlags(args []string, stderr io.Writer) (f *flags, flagArgs []string, ok bool) {
 	fs := pflag.NewFlagSet("tellme", pflag.ContinueOnError)
 	fs.SetOutput(stderr)
-	o := &options{}
+	o := &flags{}
 	fs.StringVarP(&o.configPath, "config", "c", "", "Path to the YAML configuration file.")
 	fs.BoolVarP(&o.diagnostic, "diagnostics", "d", false, "Report configuration and home resolution, then exit.")
 	fs.BoolVar(&o.version, "version", false, "Print the build version and exit.")
@@ -609,14 +586,8 @@ func renderBoot(homeDir, configPath string, env runtimeEnv) int {
 	return Success
 }
 
-// gatewayFactory builds the provider gateway for a resolved provider entry. It
-// is the composition seam (review finding #1): the presentation layer never
-// couples to a concrete adapter constructor, tests can inject a fake
-// llm.Gateway, and an un-adapted family surfaces as an actionable error.
-type gatewayFactory func(prov config.Provider, name, persona string) (llm.Gateway, error)
-
-// newGateway is the production gateway factory (a var so tests may override it).
-var newGateway gatewayFactory = infrallm.NewGateway
+// (round 044 / fix: the gatewayFactory/newGateway var is deleted; the gateway is
+// built by the injected deps.NewGateway.)
 
 // renderTurn resolves the setup, optionally archives the current session
 // (`--new`), then runs exactly one reasoning turn against the resolved provider
@@ -639,31 +610,31 @@ type turnOptions struct {
 	echo bool
 }
 
-func renderTurn(homeDir, configPath, prompt string, opts turnOptions, env runtimeEnv) int {
+func renderTurn(homeDir, configPath, prompt string, opts turnOptions, env runtimeEnv, dp deps.Dependencies) int {
 	res, rerr := resolve(homeDir, configPath)
 	if rerr != nil {
 		return emitBootError(env.stderr, res, rerr)
 	}
-	store := newHistoryStore(res.Workspace)
+	store := dp.NewHistoryStore(res.Workspace)
 	if opts.newSession {
 		if err := store.Archive(); err != nil {
 			return emitHistoryError(env.stderr, err)
 		}
-		if err := newUsageStore(res.Workspace).Archive(); err != nil {
+		if err := dp.NewUsageStore(res.Workspace).Archive(); err != nil {
 			return emitHistoryError(env.stderr, err)
 		}
 	}
-	return runTurn(res, store, prompt, opts, env, newGateway)
+	return runTurn(res, store, prompt, opts, env, dp)
 }
 
-// runTurn performs one reasoning turn through an injected gateway factory and
+// runTurn performs one reasoning turn through the injected dependencies and a
 // history store. The resumed conversation is loaded and carried ahead of the
 // current prompt; the completed turn is appended after the provider answers
 // (append-after-complete, round-007 FR-001/FR-003). The answer is written by the
 // runtimeEnv's renderer. The context is cancelled on SIGINT/SIGTERM so a stalled
 // provider can be interrupted (review finding #2).
-func runTurn(res resolution, store history.Store, prompt string, opts turnOptions, env runtimeEnv, factory gatewayFactory) int {
-	gw, err := factory(res.Provider, res.Selected, res.Person)
+func runTurn(res resolution, store history.Store, prompt string, opts turnOptions, env runtimeEnv, dp deps.Dependencies) int {
+	gw, err := dp.NewGateway(res.Provider, res.Selected, res.Person)
 	if err != nil {
 		return emitProviderError(env.stderr, err)
 	}
@@ -678,12 +649,12 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// assembled conversation — the resumed turns (via the shared projection,
 	// including tool steps — TD-1) plus the current prompt — measured against the
 	// payload budget. Diagnostic only, on stderr.
-	reg := newToolRegistry()
+	reg := dp.NewToolRegistry()
 	// Round 033 (FR-009): bind the `list_skills` catalog source on the
 	// prompt-bearing turn path ONLY — the runtime home is resolved here. The load
 	// stays lazy (inside the tool's Execute), so no registration reads docs/skills
 	// and the offline paths never touch it.
-	bindSkillsCatalog(reg, res)
+	dp.BindSkillsCatalog(reg, home.SkillsDir(res.Home))
 	// Round 034: the per-prompt pre-flight line is retired in favour of the
 	// per-call estimate computed by the call renderer from the loop's messages.
 	// Round-019 elapsed epoch: the spinner's turn-scoped timer starts at prompt
@@ -707,7 +678,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// Round 032 (F9) — discover MCP tools BEFORE the turn frames, so a
 	// slow/unreachable server's bounded wait is never silent and the per-call
 	// estimate counts the offered tools (round 034: the frame is per call).
-	reg, closeMCP := augmentRegistryWithMCP(ctx, res, reg, env.stderr)
+	reg, closeMCP := augmentRegistryWithMCP(ctx, res, reg, env.stderr, dp)
 	defer closeMCP()
 
 	// Round 034 (ADR 0005 D1/D3): the CLI's call renderer is the sole per-call
@@ -715,7 +686,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// estimate) at each call's begin, and the tail (grouped reasons + measured
 	// payload + metrics + `Ready`) at each call's end, with the FINAL call's tail
 	// deferred past the answer (G5). The loop fires the call hooks.
-	renderer := newCallRenderer(env, res, reg, opts.chrome, turnNumber(prior)-1)
+	renderer := newCallRenderer(env, res, reg, opts.chrome, turnNumber(prior)-1, dp)
 
 	loop := &agent.AgentLoop{
 		Gateway:         gw,
@@ -729,13 +700,13 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		Now: env.now,
 		// Round 026: the user-global tool-usage sink. Best-effort; a turn that uses
 		// no tool leaves ~/.tellme untouched (the adapter creates the file lazily).
-		ToolUsage: newToolUsageStore(),
+		ToolUsage: dp.NewToolUsageStore(dp.UserHomeDir),
 	}
 	// Round 019 — the live progress spinner: a diagnostic-stream-only indicator
 	// that labels / clears / restores per waiting phase. It is injected into the
 	// loop as the observer; the CLI owns its lifecycle (round-019 research D7).
 	var sp *ui.Spinner
-	if s := newTurnSpinner(opts, env, res.Provider.Model, turnStart); s != nil {
+	if s := newTurnSpinner(opts, env, res.Provider.Model, turnStart, dp); s != nil {
 		sp = s
 		defer sp.Stop() // panic-safe residue guard (idempotent)
 	}
@@ -753,7 +724,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// the next line — the invariant is mutual exclusion + join), superseding the
 	// round-034 whole-block pause (ADR 0005 D7, superseded).
 	coord := ui.NewToolOutputCoordinator(env.stderr, env.now, sp, toolOutputIdleGap())
-	infratools.BindToolOutput(reg, infratools.ToolOutputSink{
+	dp.BindToolOutput(reg, domaintools.OutputSink{
 		Begin:  coord.Begin,
 		Writer: coord.Writer(),
 		End:    coord.End,
@@ -781,7 +752,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	}
 	// Round 034 (ADR 0005 D4/FR-010b): persist the turn's usage ONCE — the
 	// Reported subset of result.Calls in one AppendBatch (never per call).
-	persistTurnUsage(env, res, result)
+	persistTurnUsage(env, res, result, dp)
 	env.writeAnswer(result.Answer, opts.raw, res.WrapWidth)
 	// The final AI-endpoint call's tail was deferred; emit it now so the closing
 	// status trails the answer (G5).
@@ -862,11 +833,13 @@ func spinnerGate(opts turnOptions, stderrIsTerminal bool) bool {
 // nil. The model label comes from the resolved provider's configured MODEL
 // (reference parity — the configured MODEL attribute, not the registry key); the
 // elapsed counts from epoch (the turn's prompt-capture time — turn-scoped).
-func newTurnSpinner(opts turnOptions, env runtimeEnv, model string, epoch time.Time) *ui.Spinner {
+func newTurnSpinner(opts turnOptions, env runtimeEnv, model string, epoch time.Time, dp deps.Dependencies) *ui.Spinner {
+	// The provider read stays AFTER the gate (round-044 fix-5): hoisting it would
+	// construct a provider even on a gated-off turn.
 	if !spinnerGate(opts, env.stderrIsTerminal()) {
 		return nil
 	}
-	return ui.NewSpinner(env.stderr, model, epoch, infratelemetry.NewSystemMetricsProvider(), stderrColumns(env))
+	return ui.NewSpinner(env.stderr, model, epoch, dp.NewMetricsProvider(), stderrColumns(env))
 }
 
 // stderrColumns reports the terminal width for the spinner's row-aware clear
@@ -902,24 +875,24 @@ func toolOutputIdleGap() time.Duration {
 // the exit code and whether a reporting command handled the run. (`--version` is
 // handled by the caller, ahead of the reporting batch.) Extracted from `run` so
 // its cyclomatic complexity stays under the cyclop gate (round 026).
-func dispatchReporting(opts *options, homeDir string, env runtimeEnv) (int, bool) {
+func dispatchReporting(f *flags, homeDir string, env runtimeEnv, dp deps.Dependencies) (int, bool) {
 	// -d is the reporting path: it always produces a report, and it takes
 	// precedence over a prompt or piped input (round-004 Decision 7).
-	if opts.diagnostic {
-		return renderDiagnostic(homeDir, opts.configPath, env.stdout), true
+	if f.diagnostic {
+		return renderDiagnostic(homeDir, f.configPath, env.stdout), true
 	}
 	// -l lists the last N messages and exits, strictly offline (round-007). A
 	// non-positive N is a usage error, evaluated before any network or stdin.
-	if opts.listSet {
-		if opts.list <= 0 {
+	if f.listSet {
+		if f.list <= 0 {
 			return emitUsageError(env.stderr), true
 		}
-		return renderHistoryList(homeDir, opts.list, env), true
+		return renderHistoryList(homeDir, f.list, env, dp), true
 	}
 	// --tool-usage is the offline tool-usage report: like --version it needs no
 	// configuration, no TELL_ME_HOME, and no workspace (round-026 FR-006).
-	if opts.toolUsage {
-		return renderToolUsage(env), true
+	if f.toolUsage {
+		return renderToolUsage(env, dp), true
 	}
 	return 0, false
 }
@@ -933,10 +906,10 @@ func dispatchReporting(opts *options, homeDir string, env runtimeEnv) (int, bool
 // diagnostic stream (the report path is offline, so stderr is free), so an
 // unreadable log is distinguishable from "no tool ever used"; the all-zero report
 // still prints and the command succeeds.
-func renderToolUsage(env runtimeEnv) int {
-	reg := newToolRegistry()
+func renderToolUsage(env runtimeEnv, dp deps.Dependencies) int {
+	reg := dp.NewToolRegistry()
 	tools := reg.Tools()
-	counts, err := newToolUsageStore().Aggregate()
+	counts, err := dp.NewToolUsageStore(dp.UserHomeDir).Aggregate()
 	if err != nil {
 		_, _ = fmt.Fprintf(env.stderr, "[tool-usage] could not read the usage log: %v\n", err)
 		counts = nil
@@ -954,12 +927,12 @@ func renderToolUsage(env runtimeEnv) int {
 // and exits — strictly offline, no provider request. It resolves only the
 // workspace (no configuration/provider requirement), so listing works even when
 // the configuration is absent.
-func renderHistoryList(homeDir string, n int, env runtimeEnv) int {
+func renderHistoryList(homeDir string, n int, env runtimeEnv, dp deps.Dependencies) int {
 	ws, rerr := resolveWorkspace(homeDir)
 	if rerr != nil {
 		return emitBootError(env.stderr, resolution{Home: homeDir, Workspace: ws}, rerr)
 	}
-	entries, err := newHistoryStore(ws).Load()
+	entries, err := dp.NewHistoryStore(ws).Load()
 	if err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
@@ -975,15 +948,15 @@ func renderHistoryList(homeDir string, n int, env runtimeEnv) int {
 
 // renderNewSession starts a fresh session without a prompt: it archives the
 // active history (retaining it) and returns success (round-007 FR-005/FR-006).
-func renderNewSession(homeDir string, env runtimeEnv) int {
+func renderNewSession(homeDir string, env runtimeEnv, dp deps.Dependencies) int {
 	ws, rerr := resolveWorkspace(homeDir)
 	if rerr != nil {
 		return emitBootError(env.stderr, resolution{Home: homeDir, Workspace: ws}, rerr)
 	}
-	if err := newHistoryStore(ws).Archive(); err != nil {
+	if err := dp.NewHistoryStore(ws).Archive(); err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
-	if err := newUsageStore(ws).Archive(); err != nil {
+	if err := dp.NewUsageStore(ws).Archive(); err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
 	return Success
@@ -1107,23 +1080,9 @@ func emitProviderError(w io.Writer, err error) int {
 	return ProviderError
 }
 
-// toolRegistryFactory builds the tool registry offered to the model for one
-// prompt run. It is the DI seam for the tool layer (round-008 TD-1, review
-// PR #25): the presentation layer never hard-wires the concrete tool adapters
-// (mirroring gatewayFactory / historyStoreFactory), so tests can inject a fake
-// registry.
-type toolRegistryFactory func() domaintools.Registry
-
-// newToolRegistry is the production registry factory (a var so tests may
-// override it). It assembles exactly the seven agent tools — the read-only
-// filesystem readers (list_files, read_files, get_tree), the write pair
-// (write_file, replace_text), the bash-first command tool (execute_command), and
-// the read-only skills listing tool (list_skills, round 033) — in that offer
-// order, and no others (round-029 D1; round-024 FR-013; no pipe_commands, no
-// security tooling).
-var newToolRegistry toolRegistryFactory = func() domaintools.Registry {
-	return domaintools.NewRegistry(agentTools()...)
-}
+// (round 044: toolRegistryFactory/newToolRegistry and agentTools() are deleted —
+// the assembler relocates to cmd/tellme and the registry is injected via
+// deps.NewToolRegistry.)
 
 // augmentRegistryWithMCP performs the round-032 prompt-path MCP discovery: it
 // discovers each enabled remote MCP server's tools (bounded, non-stall), offers
@@ -1131,45 +1090,18 @@ var newToolRegistry toolRegistryFactory = func() domaintools.Registry {
 // diagnostic stream. Discovery runs ONLY on the prompt path (this function is
 // called from runTurn), so an offline run makes no MCP network contact. The
 // returned close hook tears down the discovered clients when the turn ends.
-func augmentRegistryWithMCP(ctx context.Context, res resolution, reg domaintools.Registry, stderr io.Writer) (domaintools.Registry, func()) {
-	mcpDiscovered := discoverForRun(ctx, res.MCPServers)
+func augmentRegistryWithMCP(ctx context.Context, res resolution, reg domaintools.Registry, stderr io.Writer, dp deps.Dependencies) (domaintools.Registry, func()) {
+	tools, warnings, closeFn := dp.MCPDiscoverer(ctx, res.MCPServers)
 	for _, w := range res.MCPWarnings {
 		_, _ = fmt.Fprintln(stderr, w)
 	}
-	for _, w := range mcpDiscovered.warnings {
+	for _, w := range warnings {
 		_, _ = fmt.Fprintln(stderr, w)
 	}
-	if len(mcpDiscovered.tools) > 0 {
-		reg = domaintools.NewRegistry(append(reg.Tools(), mcpDiscovered.tools...)...)
+	if len(tools) > 0 {
+		reg = domaintools.NewRegistry(append(reg.Tools(), tools...)...)
 	}
-	return reg, mcpDiscovered.close
-}
-
-// agentTools assembles the agent tool set in offer order: the read-only
-// filesystem readers, the write pair (round 029), the bash-first command tool,
-// and the read-only skills listing tool (round 033). Kept a named function so the
-// registry seam stays a one-liner.
-func agentTools() []domaintools.Tool {
-	tools := infratools.NewFilesystemTools()
-	tools = append(tools, infratools.NewWriteTools()...)
-	tools = append(tools, infratools.NewCommandTool())
-	// Round 033: the `list_skills` tool is constructed with an UNBOUND catalog
-	// source here, so this assembler — which the round-031 gate iterates and the
-	// offline `--tool-usage` report builds via newToolRegistry() — performs NO
-	// filesystem read. The catalog is bound on the prompt path only
-	// (bindSkillsCatalog in runTurn); agentTools() stays parameterless (FR-009).
-	tools = append(tools, infratools.NewSkillsTool(nil))
-	return tools
-}
-
-// bindSkillsCatalog wires the `list_skills` tool's catalog source over the
-// resolved runtime home. It runs on the prompt-bearing turn path ONLY (FR-009):
-// the offline paths never build a registry through runTurn, so they never touch
-// docs/skills. The source is a lazy func resolved inside the tool's Execute.
-func bindSkillsCatalog(reg domaintools.Registry, res resolution) {
-	infratools.BindSkillsCatalog(reg, func() ([]domainskills.Skill, error) {
-		return infrskills.Load(home.SkillsDir(res.Home))
-	})
+	return reg, closeFn
 }
 
 // emitToolError maps an incomplete tool loop to the frozen tool class phrase and
