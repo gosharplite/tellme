@@ -1,8 +1,18 @@
 # tellme — Status
 
 **Last updated**: 2026-09-18 (session 26 — round **052** `052-ride-alongs-and-records` **DELIVERED / FROZEN** — **closes [#115](https://github.com/gosharplite/tellme/issues/115) + [#116](https://github.com/gosharplite/tellme/issues/116)**, the last two `#92`-lineage residuals: the `execute_command` tool's **construction-time** `[Tool Output]` sink (`NewCommandTool(sink)`; `BindToolOutput` + `toolOutputBox` deleted; `NewToolRegistry` widened) + the suggester's **caller-owned** selection cursor (`set(items, cursor)`) + the three `#92` **records relocated to ADR 0021**; behaviour-preserving; **ADR 0021**; PR [#117](https://github.com/gosharplite/tellme/pull/117) human-merged into `dev` `f204aaa` (certified fold head `9f2a688`). Prior: session 25 — round **051** `051-cli-ui-decoupling` **DELIVERED / FROZEN** (the terminal R5 slice; closes [#101](https://github.com/gosharplite/tellme/issues/101); **ADR 0020**; PR [#114](https://github.com/gosharplite/tellme/pull/114) merged `0d7566b` — detail relocated to the archive below). **Session mode**: `butler`.
-**Active branch**: `053-offline-session-config-and-turns-flag` (round **053** in flight — closes [#103](https://github.com/gosharplite/tellme/issues/103); off `dev`)
+**Active branch**: `053-offline-session-config-and-turns-flag` (round **053** — closes [#103](https://github.com/gosharplite/tellme/issues/103); implemented, **PR pending** — sits directly after this line's round-052 delivered entry)
 **Daily log**: [`docs/session-summary/2026/09/19/session-summary.md`](docs/session-summary/2026/09/19/session-summary.md)
+
+## Round 053 — `053-offline-session-config-and-turns-flag` (IN FLIGHT — closes [#103](https://github.com/gosharplite/tellme/issues/103))
+
+- **Theme**: the offline session commands (`-l`, prompt-less `--new`) **ignore `-c`** (they resolve the mode from `TELL_ME_MODE` → the *default* config → `butler`, never the `-c` path) ⇒ `tellme -l 1 -c architect.yaml` silently reads the **butler** session, breaking the documented `tmg-chat-ingroup` / `tmg-grill-round` retrieve; plus **no `-t`** (turns-log) flag.
+- **US1** — mode resolution is now `TELL_ME_MODE` → else the **`-c` config's `MODE`** → else the default config → else `butler` (mode-only read; stays **offline**); one widened seam `resolveWorkspace(homeDir, configPath)`. An **explicit** `-c` that cannot be read **fails** (Q2 → A); an absent default stays tolerant (round-007).
+- **US2** — a new `-t`/`--turns` offline command (order `-d` → `-l` → `-t` → `--tool-usage`) prints `output/<mode>/turns.log` and exits; `tellme` now **writes its own `turns.log`** (Q1 → C1) — the rendered turn chrome (turn rule/header, payload status, metrics), teed on the prompt path via the new `history.TurnsLogStore` port + infra adapter (best-effort); `--new` archives it.
+- **Clarify**: **Q1 → (C1)** (tellme writes its own `turns.log`, its rendered chrome — not `tokens.log`, not a `history.jsonl` projection, not the reference's bytes) · **Q2 → (A)** (an explicit unreadable `-c` fails).
+- **Pipeline**: `/axb-specify` ✅ · `/axb-clarify` ✅ (Q1/Q2) · `/axb-spec-by-example` ✅ · `/axb-technical-research` ✅ (**ADR 0022** + `techstack.md`) · `/axb-system-analysis` ✅ (1 CLI interface; api NOOP) · `/axb-dsl-refine` ✅ (history Examples/rows) · `/axb-tasks` ✅ (T001–T015) · `/axb-implement` ✅ (all `[X]`).
+- **Verification**: `gofmt` clean · `go vet ./...` clean · `make verify` **OK** (arch gate 0 new/0 stale; lint 0; vulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` **green** (incl. the godog E2E, **Strict**) · witnesses (a)/(b)/(c) reproduced + reverted · `go.mod`/`go.sum` unchanged.
+- **Artifacts**: `internal/domain/history/turns_log.go` · `internal/infrastructure/history/turns_log_store.go` (+ test) · `internal/app/deps/deps.go` · `cmd/tellme/deps.go` · `internal/cli/{cli,call_renderer,testdeps_test,history_mode_test}.go` · `tests/e2e/steps/step_r053_history.go` · CLI truth (`history/inspecting-the-session-history.feature`, `history/reviewing-the-turn-log.feature`, `history/dsl.md`) · `specs/truth/data/data-model.dbml` (`turns_log_line`) · **ADR 0022** + index · `specs/plans/053-offline-session-config-and-turns-flag/**`.
 
 ## Last delivered round — 052 `052-ride-alongs-and-records` (DELIVERED / FROZEN — PR [#117](https://github.com/gosharplite/tellme/pull/117) merged into `dev` `f204aaa`; closes [#115](https://github.com/gosharplite/tellme/issues/115) + [#116](https://github.com/gosharplite/tellme/issues/116))
 
@@ -35,6 +45,7 @@
 | 050 | `050-agentloop-construction-inversion` | PR [#113](https://github.com/gosharplite/tellme/pull/113) (`09d0145`, head `0406c29`) |
 | 051 | `051-cli-ui-decoupling` | PR [#114](https://github.com/gosharplite/tellme/pull/114) (`0d7566b`, head `e7d035d`) |
 | 052 | `052-ride-alongs-and-records` | PR [#117](https://github.com/gosharplite/tellme/pull/117) (`f204aaa`, certified fold head `9f2a688`) |
+| 053 | `053-offline-session-config-and-turns-flag` | in flight — closes [#103](https://github.com/gosharplite/tellme/issues/103) |
 
 Per-round detail lives in the archives (the delivered-rounds index above records **delivery**, not liveness — see `STATUS.md`'s top **Last delivered round** section for the current round).
 
