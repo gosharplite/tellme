@@ -36,13 +36,13 @@ Per-round detail lives in the archives; **043 is the most recently delivered rou
 
 | Branch | State | Role |
 | --- | --- | --- |
-| `main` | one propagation behind `dev` | Stable / released line (**round 043 propagation pending**) |
+| `main` | merged up from `dev` (`4ce056c`) | Stable / released line |
 | `dev` | round 043 **delivered** (`a2fbafc`, PR #99) | Integration line (round work lands here before `main`) |
 | `043-implement-hermetic-make-go-env` | **merged into `dev`** (PR [#99](https://github.com/gosharplite/tellme/pull/99) → `a2fbafc`; frozen head `d007b75`); **remote branch deleted** after merge | Round 043's single branch — carried spec → research+ADR 0012 → plan → tasks → the `Makefile` block + the five review folds. |
 | `043-hermetic-make-go-env` | **deleted** (remote + local) | Round 043's plan branch — its commits (incl. the folded review) are ancestors of #99; PRs #97/#98 (stacked) were closed unmerged by the operator. |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`; only a human merges the PR. Propagation is the no-ff merge `dev → main`.
-> **Propagation history**: rounds 026–040 — **DONE (no-ff)**; round 041 — **DONE (no-ff, `692a4e6`)**; the session-12/13 tracker-refresh + closeout docs — **DONE (no-ff, `150627d`)**; round 042 — **DONE (no-ff)**; **round 043 — PENDING (user approval)**.
+> **Propagation history**: rounds 026–040 — **DONE (no-ff)**; round 041 — **DONE (no-ff, `692a4e6`)**; the session-12/13 tracker-refresh + closeout docs — **DONE (no-ff, `150627d`)**; round 042 — **DONE (no-ff)**; **round 043 — DONE (no-ff, `4ce056c`; `main^{tree}` == `dev^{tree}`)**.
 > Read live heads with `git rev-parse --short origin/main origin/dev`.
 
 ## Roadmap — next slices
