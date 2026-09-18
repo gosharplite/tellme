@@ -87,24 +87,16 @@ func (r *callRenderer) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []
 	emit := func() {
 		// Round 039: the trailing grouped `[Tool Reason]` block is preceded by
 		// exactly ONE blank line and has NO blank between its lines.
-		reasons := make([]string, 0, len(roundReasons))
-		for _, reason := range roundReasons {
-			// Round 036 (issue #74) + round 039 (issue #80): a reason that renders
-			// no line is skipped. This is a defensive defence-in-depth guard on the
-			// RENDERED value — the production filter is upstream in
-			// agent.reasonsOf, so roundReasons never carries such a value here
-			// (round-036 review TD-1). It stays so the tail is safe if that
-			// upstream filter ever moves; its single-ownership consolidation is
-			// tracked on issue #69. The check lives here (not in the pure
-			// formatter) because Fprintln on an empty return would still print a
-			// bare newline.
-			if ui.ToolReasonRenders(reason) {
-				reasons = append(reasons, reason)
-			}
-		}
-		if len(reasons) > 0 {
+		//
+		// Round 046 (R4 of #92, ADR 0015): the blank-reason predicate is
+		// single-owned upstream — the loop filters the round's reasons through
+		// ui.ToolLineRenderer.ReasonLine, so roundReasons never carries a reason
+		// that renders no line. The former defensive re-check here (round-036
+		// review TD-1) is DELETED: one owner on the real path, not a dead
+		// defence-in-depth site (research D6).
+		if len(roundReasons) > 0 {
 			_, _ = fmt.Fprintln(r.env.stderr)
-			for _, reason := range reasons {
+			for _, reason := range roundReasons {
 				_, _ = fmt.Fprintln(r.env.stderr, ui.FormatToolReason(r.env.now(), reason))
 			}
 		}
