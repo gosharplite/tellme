@@ -586,6 +586,6 @@ PR [#109](https://github.com/gosharplite/tellme/pull/109) was **human-merged** i
 | Closeout Step 5 | `STATUS.md` ↔ this log reconciled (same round position, heads, decisions, open items) |
 | Closeout Step 6 | committed + pushed on `dev` |
 | Closeout Step 7 | **propagated** `dev → main` (no-ff) |
-| Closeout Step 8 | **#108 CLOSED (completed)** (DoD met: the loop names no `internal/ui`; the blank-reason predicate has one owner; the baseline is header-only **0**) + a delivery comment on #92 |
+| Closeout Step 8 | **#108 CLOSED (completed)** + **#107 CLOSED (completed)** - the same R4 slice (#107 is the canonical anchor; #108 was a same-day duplicate) - + a delivery comment on #92 |
 
 **Public binaries**: the merged head is `8ca4758`; the review chain (review → 3 fold reviews) ended **CLEARED FOR MERGE** with F-1 mutation-verified. **Next**: open round `047-*` off `dev` (candidates: **R5** [#101](https://github.com/gosharplite/tellme/issues/101) strict de-coupling; the #92 ride-alongs; [#103](https://github.com/gosharplite/tellme/issues/103); [#91](https://github.com/gosharplite/tellme/issues/91); [#13](https://github.com/gosharplite/tellme/issues/13)).
