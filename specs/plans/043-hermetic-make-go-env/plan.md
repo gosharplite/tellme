@@ -108,8 +108,8 @@ issue's exact failing case (round-042 F-2, ADR 0011 D5). Policy: **ADR 0012**.
 documented **direct** invocation (which bypasses `make`; the direct path's **outer** `go test`/`go vet`
 remain non-hermetic — R1). Cross-reference comments in both places. The two sites neutralise by
 **different mechanisms** (the block *disables the env file* + unsets; `childEnv` *re-sets explicit values*),
-so their invariant is **coverage** — *every neutralised name is re-set by `childEnv` or recorded as a known
-non-covered name* — **not** equality (PR #97 review B-3); the non-re-set names are residual R4.
+so their invariant is **coverage** — *every neutralised name is re-set by `childEnv` or recorded as a non-covered class
+(R4)* — **not** equality (PR #97 review B-3); R4's list is exact and closed (14 names).
 
 **Boundary limit**: `export`/`unexport` govern recipes + descendants, **not** parse-time `$(shell …)`/
 `$(eval …)`/`include`d makefiles/command-line variables — keep `go` out of `$(shell …)` (TD-1/R5).

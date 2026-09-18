@@ -222,7 +222,7 @@ The `Makefile` neutralise set **covers** `tools/arch`'s `droppedBuildEnv` set, *
 The operator's review of PR [#97](https://github.com/gosharplite/tellme/pull/97) (**B-1…B-4, TD-1, R-1…R-3**, plan branch `d014da0`) replaced the **incident-list** set with a **criterion-derived** one (ADR 0012 **D2**): *neutralise the ambient **build context** (what / which toolchain builds), preserve the **plumbing***. Consequences for this task file:
 
 1. **The neutralise set is wider than T002's original** — it now also unsets `GOTOOLCHAIN`, `GOFIPS140`, `GODEBUG`, and the **micro-architecture family** (`GOARM64`, `GOAMD64`, `GO386`, `GOMIPS`, `GOMIPS64`, `GOPPC64`, `GORISCV64`, `GOWASM`) alongside `GOFLAGS`/`GO111MODULE`/`GOEXPERIMENT`/`GOOS`/`GOARCH`/`GOARM`. `CGO_ENABLED` remains **preserved-from-the-caller** (not globally pinned — V1 unchanged).
-2. **T005(c)'s drift witness is superseded** by the **coverage invariant** (ADR 0012 **D6**): the two sites neutralise by *different mechanisms* (the `Makefile` block disables the env file + unsets; `tools/arch`'s `childEnv` re-sets explicit values), so the relation is **coverage** — every name the block neutralises is either re-set by `childEnv` or **recorded as a known non-covered name** — **not** set-equality.
+2. **T005(c)'s drift witness is superseded** by the **coverage invariant** (ADR 0012 **D6**): the two sites neutralise by *different mechanisms* (the `Makefile` block disables the env file + unsets; `tools/arch`'s `childEnv` re-sets explicit values), so the relation is **coverage** — every name the block neutralises is either re-set by `childEnv` or **recorded as a non-covered class (R4; 14 exact names)** — **not** set-equality.
 3. **T001's table stands**; re-validated against the folded block (see below).
 
 **Re-validation against the folded block (read-only; ambient vars ⇒ `make vet`):**
@@ -305,3 +305,13 @@ parse-time  (same ambient set):     GOENV=<file> GOFLAGS=-mod=vendor GOTOOLCHAIN
 four red→green witnesses:           GOENV=<file> 0 · GO111MODULE=off 0 · GOWORK=<stray> 0 · GOTOOLCHAIN=go1.99.9 0   (each was 2)
 escape hatch:                       make GOENV=<file> vet 2  ·  make GOFLAGS=-mod=vendor vet 0  ·  make GOTOOLCHAIN=go1.99.9 vet 0
 ```
+
+## Fold — PR [#99](https://github.com/gosharplite/tellme/pull/99) re-review (`/pullrequestreview-5242647672`, FOLD-ACCEPTED at `8e144de`)
+
+Three **non-blocking nits**, folded:
+
+- **a (name vs class, 5 sites)** — ADR 0012 **D6**, `spec.md` **FR-008**, `research.md` **D5**, `plan.md` and the `tasks.md` T005-fold note now all read *"...re-set explicitly by `childEnv`, or recorded as a **non-covered class (R4)**"*; and **R4 enumerates the exact, closed list** — the **14** D2 names `childEnv` does not re-set: `GOENV`, `GOEXPERIMENT`, `GOTOOLCHAIN`, `GOFIPS140`, `GODEBUG` + the micro-arch family `GOARM`/`GOARM64`/`GOAMD64`/`GO386`/`GOMIPS`/`GOMIPS64`/`GOPPC64`/`GORISCV64`/`GOWASM` (every D2 name except `GOFLAGS`/`GO111MODULE`/`GOWORK`/`GOOS`/`GOARCH`, which `childEnv` re-sets).
+- **b (ADR Related citation)** — the ADR **Related** line now also cites **PR #99** review `5242608457` (N-1...N-3) and the re-review `5242647672` (FOLD-ACCEPTED), so the immutable ADR carries its full fold provenance.
+- **c (STATUS 043 row)** — the roadmap summary now states the folded set (criterion-derived; `GOENV`/`GOWORK` + `GOFLAGS`/`GO111MODULE`/`GOEXPERIMENT`/`GOTOOLCHAIN`/`GOFIPS140`/`GODEBUG` + the ambient target triple; `CGO_ENABLED` preserved from the caller).
+
+**Scope:** docs only (no `Makefile`/logic change); `go.mod`/`go.sum` untouched.
