@@ -472,7 +472,7 @@ The delivery + end-of-day closeout for round 045: PR [#106](https://github.com/g
 | Closeout Step 5 | `STATUS.md` ↔ this log reconciled (same round position, heads, decisions, open items) |
 | Closeout Step 6 | committed + pushed on `dev` |
 | Closeout Step 7 | **propagated** `dev → main` (no-ff, `ad407cf`; the closeout docs follow in the same no-ff propagation) |
-| Closeout Step 8 | **#105 CLOSED (completed)**; #92 revised comment (R1+R2+R3 delivered; R4 next); #101/#103/#91/#13 left open (accurate) |
+| Closeout Step 8 | **#105 CLOSED (completed)** by the merger (`thptcnec`, 03:34Z) + a delivery comment ([5724792859](https://github.com/gosharplite/tellme/issues/105#issuecomment-5724792859)); **#92** delivery comment ([5724793466](https://github.com/gosharplite/tellme/issues/92#issuecomment-5724793466), R1+R2+R3 delivered; R4 next); **#101/#103/#91/#13 left open (accurate)** |
 
 **Commit**: `docs(045)`: day close — round 045 delivered + propagated; STATUS + daily summary (+ Rule-12 split).
 
