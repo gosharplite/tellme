@@ -3,16 +3,15 @@ package cli
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"io"
-	"os"
-	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/gosharplite/tellme/internal/config"
+	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 )
@@ -77,21 +76,27 @@ func env(out, errOut io.Writer, r answerRenderer) runtimeEnv {
 
 func TestRunTurn_PrintsRawAnswerAndPersists(t *testing.T) {
 	var out, errOut bytes.Buffer
-	fg := &fakeGateway{text: "the answer"}
+	// Round 050 (Q4 → A): the loop is the in-package fake; the CLI's orchestration
+	// (prompt/prior handoff, result persistence, answer rendering) is what is
+	// pinned here.
+	lp := &fakeLoop{result: agentport.Result{Answer: "the answer", Usage: llm.Usage{Reported: false}, Calls: []llm.Usage{{Reported: false}}}}
 	st := &fakeStore{}
-	code := runTurn(resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}, st, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithGateway(fg, nil))
+	code := runTurn(resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}, st, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithLoop(lp))
 	if code != Success {
 		t.Fatalf("code = %d, want %d (success)", code, Success)
 	}
-	if fg.got.Prompt != "ping" {
-		t.Errorf("gateway got prompt %q, want ping", fg.got.Prompt)
+	if lp.gotPrompt != "ping" {
+		t.Errorf("loop got prompt %q, want ping", lp.gotPrompt)
 	}
-	if len(fg.got.Messages) != 0 {
-		t.Errorf("gateway got messages %+v, want none on a fresh conversation", fg.got.Messages)
+	if len(lp.gotPrior) != 0 {
+		t.Errorf("loop got prior %+v, want none on a fresh conversation", lp.gotPrior)
 	}
 	if out.String() != "the answer\n" {
 		t.Errorf("stdout = %q, want %q", out.String(), "the answer\n")
 	}
+	// Round-050 fold TD-2(i): HasSuffix restored — with an unreported usage the
+	// deferred post-turn status writes nothing, so the pre-flight payload line is
+	// the LAST stderr write before the answer (the position the Contains form lost).
 	if got := errOut.String(); !strings.HasPrefix(got, "[12:00:00] Payload: ~") || !strings.HasSuffix(got, "/1000000 tokens - butler - deepseek-v4-flash\n") {
 		t.Errorf("stderr = %q, want a pre-flight payload status line for butler/deepseek-v4-flash", got)
 	}
@@ -105,24 +110,28 @@ func TestRunTurn_PrintsRawAnswerAndPersists(t *testing.T) {
 
 func TestRunTurn_CarriesPriorMessages(t *testing.T) {
 	var out, errOut bytes.Buffer
-	fg := &fakeGateway{text: "b2"}
+	// Round 050 (Q4 → A): runTurn's job is to hand the loaded prior turns + the
+	// prompt to the loop. The wire-message construction (BuildMessages) is a loop
+	// concern, covered by internal/agent's own tests.
+	lp := &fakeLoop{result: agentport.Result{Answer: "b2", Usage: llm.Usage{Reported: true}}}
 	st := &fakeStore{entries: []history.Entry{{Prompt: "q1", Answer: "a1"}}}
-	code := runTurn(resolution{Selected: "p"}, st, "q2", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithGateway(fg, nil))
+	code := runTurn(resolution{Selected: "p"}, st, "q2", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithLoop(lp))
 	if code != Success {
 		t.Fatalf("code = %d, want success", code)
 	}
-	want := []llm.Message{{Role: "user", Content: "q1"}, {Role: "assistant", Content: "a1"}}
-	if len(fg.got.Messages) != 2 ||
-		fg.got.Messages[0].Role != want[0].Role || fg.got.Messages[0].Content != want[0].Content ||
-		fg.got.Messages[1].Role != want[1].Role || fg.got.Messages[1].Content != want[1].Content {
-		t.Errorf("messages = %+v, want %+v", fg.got.Messages, want)
+	if lp.gotPrompt != "q2" {
+		t.Errorf("loop prompt = %q, want q2", lp.gotPrompt)
+	}
+	want := []history.Entry{{Prompt: "q1", Answer: "a1"}}
+	if !reflect.DeepEqual(lp.gotPrior, want) {
+		t.Errorf("prior = %+v, want %+v", lp.gotPrior, want)
 	}
 }
 
 func TestRunTurn_LoadErrorIsEnvironmentError(t *testing.T) {
 	var out, errOut bytes.Buffer
 	st := &fakeStore{loadErr: errors.New("boom")}
-	code := runTurn(resolution{Selected: "p"}, st, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithGateway(&fakeGateway{text: "x"}, nil))
+	code := runTurn(resolution{Selected: "p"}, st, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithLoop(&fakeLoop{}))
 	if code != EnvironmentError {
 		t.Fatalf("code = %d, want %d (environment error)", code, EnvironmentError)
 	}
@@ -133,8 +142,11 @@ func TestRunTurn_LoadErrorIsEnvironmentError(t *testing.T) {
 
 func TestRunTurn_ProviderFailure(t *testing.T) {
 	var out, errOut bytes.Buffer
-	fg := &fakeGateway{err: &llm.ProviderError{Provider: "p", Err: errors.New("boom")}}
-	code := runTurn(resolution{Selected: "p"}, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithGateway(fg, nil))
+	// Round 050 (Q4 → A): the provider/transport failure now surfaces from the
+	// loop seam (the real loop returns the unwrapped error); the CLI maps it to
+	// the frozen class phrase + code 6.
+	lp := &fakeLoop{runErr: &llm.ProviderError{Provider: "p", Err: errors.New("boom")}}
+	code := runTurn(resolution{Selected: "p"}, &fakeStore{}, "ping", turnOptions{raw: true}, env(&out, &errOut, &stubRenderer{}), depsWithLoop(lp))
 	if code != ProviderError {
 		t.Fatalf("code = %d, want %d (provider error)", code, ProviderError)
 	}
@@ -180,11 +192,11 @@ func TestParseFlagsHistorySurfaces(t *testing.T) {
 // it. A single interleaved buffer captures the write order of stdout and stderr.
 func TestRunTurn_PostTurnStatusFollowsAnswer(t *testing.T) {
 	var buf bytes.Buffer
-	fg := &fakeGateway{text: "ANSWER", usage: llm.Usage{Reported: true, PromptTokens: 42}}
+	lp := &fakeLoop{result: agentport.Result{Answer: "ANSWER", Usage: llm.Usage{Reported: true, PromptTokens: 42}, Calls: []llm.Usage{{Reported: true, PromptTokens: 42}}}}
 	res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Workspace: t.TempDir(), Provider: config.Provider{Model: "deepseek-v4-flash"}}
 	e := runtimeEnv{stdout: &buf, stderr: &buf, renderer: &stubRenderer{out: "ANSWER"},
 		clock: func() time.Time { return time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC) }}
-	if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, e, depsWithGateway(fg, nil)); code != Success {
+	if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, e, depsWithLoop(lp)); code != Success {
 		t.Fatalf("code = %d, want success", code)
 	}
 	out := buf.String()
@@ -204,23 +216,21 @@ func TestRunTurn_PostTurnStatusFollowsAnswer(t *testing.T) {
 // live tool-loop log line (stderr, naming the tool) is written before the answer
 // (stdout).
 func TestRunTurn_ToolLoopLogPrecedesAnswer(t *testing.T) {
-	dir := t.TempDir()
-	file := filepath.Join(dir, "notes.txt")
-	if err := os.WriteFile(file, []byte("the launch code is ORANGE"), 0o644); err != nil {
-		t.Fatalf("write fixture: %v", err)
-	}
-	args, _ := json.Marshal(map[string]string{"path": file})
-
+	// Round 050 (Q4 → A): the loop performs its diagnostic writes to the spec's
+	// Stderr during Run; the CLI writes the answer after Run returns. This pins the
+	// CLI's ordering guarantee (loop output precedes the answer) against the fake
+	// loop's scripted writes.
 	var buf bytes.Buffer
-	fg := &fakeGateway{script: []llm.Response{
-		{ToolCalls: []llm.ToolCall{{ID: "call_1", Name: "read_files", Arguments: string(args)}}},
-		{Text: "ANSWER"},
-	}}
+	// Round-050 fold N-4: no baked timestamp in the double's emitted line.
+	lp := &fakeLoop{
+		result: agentport.Result{Answer: "ANSWER", Usage: llm.Usage{Reported: true}, Calls: []llm.Usage{{Reported: true}, {Reported: true}}},
+		writes: []string{"[Tool Engine] Step 1/1 read_files"},
+	}
 	res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}
 	e := runtimeEnv{stdout: &buf, stderr: &buf, renderer: &stubRenderer{out: "ANSWER"},
 		clock: func() time.Time { return time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC) }}
 	st := &fakeStore{}
-	if code := runTurn(res, st, "ping", turnOptions{raw: true}, e, depsWithTools(fg, noopTool{name: "read_files"})); code != Success {
+	if code := runTurn(res, st, "ping", turnOptions{raw: true}, e, depsWithLoop(lp)); code != Success {
 		t.Fatalf("code = %d, want success", code)
 	}
 	if len(st.appended) == 1 && st.appended[0].Calls != 2 {
@@ -237,14 +247,45 @@ func TestRunTurn_ToolLoopLogPrecedesAnswer(t *testing.T) {
 	}
 }
 
+// TestRunTurn_NonFinalTailPrecedesAnswer pins the round-050 fold TD-2(ii): the
+// runTurn wiring for a NON-final call. With a `{false, true}` schedule the fake
+// loop drives a non-final call (whose tail renders immediately — measured payload
+// + metrics + Ready) followed by the final call (whose tail is DEFERRED past the
+// answer by the call renderer / EmitFinalTail). With stdout and stderr bound to
+// ONE interleaved buffer, the non-final tail's `Ready` precedes the answer and
+// the deferred final tail's `Ready` trails it.
+func TestRunTurn_NonFinalTailPrecedesAnswer(t *testing.T) {
+	var buf bytes.Buffer
+	lp := &fakeLoop{
+		result: agentport.Result{Answer: "ANSWER", Usage: llm.Usage{Reported: true, PromptTokens: 42}, Calls: []llm.Usage{{Reported: true, PromptTokens: 42}, {Reported: true, PromptTokens: 42}}},
+		finals: []bool{false, true},
+	}
+	res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Workspace: t.TempDir(), Provider: config.Provider{Model: "deepseek-v4-flash"}}
+	e := runtimeEnv{stdout: &buf, stderr: &buf, renderer: &stubRenderer{out: "ANSWER"},
+		clock: func() time.Time { return time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC) }}
+	if code := runTurn(res, &fakeStore{}, "ping", turnOptions{raw: true}, e, depsWithLoop(lp)); code != Success {
+		t.Fatalf("code = %d, want success", code)
+	}
+	out := buf.String()
+	firstReady := strings.Index(out, "Ready")
+	answer := strings.Index(out, "ANSWER")
+	lastReady := strings.LastIndex(out, "Ready")
+	if firstReady < 0 || answer < 0 || lastReady < 0 {
+		t.Fatalf("missing markers in output: %q", out)
+	}
+	if firstReady >= answer || answer >= lastReady {
+		t.Fatalf("write order = nonFinalTail(%d) answer(%d) finalTail(%d), want nonFinalTail < answer < finalTail: %q", firstReady, answer, lastReady, out)
+	}
+}
+
 // TestRunTurn_ChromeHeaderCountsCalls pins the round-027 header at the runTurn
 // composition level: with chrome on and a prior turn that made two inference
 // rounds, the turn opens at `Turn 3` (Σ calls + 1) on the diagnostic stream.
 func TestRunTurn_ChromeHeaderCountsCalls(t *testing.T) {
 	var out, errOut bytes.Buffer
-	fg := &fakeGateway{text: "the answer"}
+	lp := &fakeLoop{result: agentport.Result{Answer: "the answer", Usage: llm.Usage{Reported: true}}}
 	st := &fakeStore{entries: []history.Entry{{Prompt: "q1", Answer: "a1", Calls: 2}}}
-	code := runTurn(resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}, st, "ping", turnOptions{raw: true, chrome: true}, env(&out, &errOut, &stubRenderer{}), depsWithGateway(fg, nil))
+	code := runTurn(resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}, st, "ping", turnOptions{raw: true, chrome: true}, env(&out, &errOut, &stubRenderer{}), depsWithLoop(lp))
 	if code != Success {
 		t.Fatalf("code = %d, want success", code)
 	}

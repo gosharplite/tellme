@@ -10,6 +10,7 @@ import (
 
 	"github.com/gosharplite/tellme/internal/app/deps"
 	"github.com/gosharplite/tellme/internal/config"
+	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 )
@@ -21,10 +22,10 @@ func TestRunTurn_EchoToggle(t *testing.T) {
 	clk := func() time.Time { return time.Date(2026, 9, 15, 12, 0, 0, 0, time.UTC) }
 	for _, echo := range []bool{true, false} {
 		var buf bytes.Buffer
-		fg := &fakeGateway{text: "ANSWER"}
+		lp := &fakeLoop{result: agentport.Result{Answer: "ANSWER", Usage: llm.Usage{Reported: true}}}
 		e := runtimeEnv{stdout: &buf, stderr: &buf, renderer: &stubRenderer{out: "ANSWER"}, clock: clk}
 		res := resolution{Selected: "p", Mode: "butler", MaxHistoryTokens: 1000000, Provider: config.Provider{Model: "deepseek-v4-flash"}}
-		if code := runTurn(res, &fakeStore{}, "hello world", turnOptions{raw: true, chrome: true, echo: echo}, e, depsWithGateway(fg, nil)); code != Success {
+		if code := runTurn(res, &fakeStore{}, "hello world", turnOptions{raw: true, chrome: true, echo: echo}, e, depsWithLoop(lp)); code != Success {
 			t.Fatalf("code = %d, want success", code)
 		}
 		out := buf.String()

@@ -5,9 +5,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/gosharplite/tellme/internal/agent"
 	"github.com/gosharplite/tellme/internal/app/deps"
 	"github.com/gosharplite/tellme/internal/cli"
 	"github.com/gosharplite/tellme/internal/config"
+	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/metrics"
 	domainskills "github.com/gosharplite/tellme/internal/domain/skills"
@@ -59,6 +61,7 @@ func buildDeps() deps.Dependencies {
 		MCPDiscoverer: func(ctx context.Context, servers map[string]config.MCPServerConfig) ([]domaintools.Tool, []string, func()) {
 			return mcp.Discover(ctx, servers, mcpDiscoveryBound, di.NewRemoteClient, di.NewGhTokenResolver(mcpDiscoveryBound))
 		},
+		LoopFactory: func(spec agentport.LoopSpec) agentport.Loop { return agent.NewLoop(spec) },
 		UserHomeDir: os.UserHomeDir,
 	}
 }
