@@ -826,3 +826,30 @@ A later session on the same calendar day: bootstrap (Steps 1–8), then round **
 ### PM follow-ups
 
 - None new (no user-facing business journey — a structural contract relocation; the spec/acceptance boundary is RD-side).
+
+### Session 23 (cont.) — round 049 **DELIVERED** (PR #112 merged into `dev` `d2a01b9`) + four review rounds + `SESSION-CLOSEOUT.md` (Steps 1–8) + `go install`
+
+The delivery + review chain + end-of-day closeout for round 049: the implementation was committed and pushed, **PR [#112](https://github.com/gosharplite/tellme/pull/112)** opened, taken through a **four-round architectural review/verification chain to MERGE-READY**, **human-merged** into `dev`, the round branches deleted, and `SESSION-CLOSEOUT.md` run.
+
+| Area | Outcome |
+| --- | --- |
+| Delivery | commit `b76b43c` (`feat(049): extract the loop's crossing contracts …`) + `STATUS`/summary docs; branch `049-cli-agent-decoupling` pushed |
+| PR | [#112](https://github.com/gosharplite/tellme/pull/112) → `dev`; 20 files, +1308/−90, 14 commits |
+| Review chain | review `5728513824` — **APPROVE WITH NON-BLOCKING FOLDS (no blocker; TD-1 required)** → `c3e8e16` · fold review `5728643445` — **FOLDS VERIFIED; TD-1 CLOSED** (new TD-2 + F-2) → `a348541`/`088ac7d` · fold verification `5728754590` — **TD-2/F-2 CLOSED** (N-6…N-9) → `e88a1f9` · final fold verification `5728843287` — **MERGE-READY, loop CLOSED** (§2 + §3) → `d2a01b9` |
+| TD-1 / TD-2 | **RULE-F** (the application **coupling surface**) added to `tools/arch` — a fail-on-stale per-edge identifier allow-list (`internal/cli -> internal/agent` ⇒ `{AgentLoop}`; `internal/cli -> internal/ui` ⇒ 19 ids) + a **coverage invariant** (`assertSurfaceCoversBaseline`) + the synthetic `surface-coverage-predicate` self-test; **8** order-pinned named self-tests; the round's identifier-count DoD is now machine-carried |
+| Merge | PR [#112](https://github.com/gosharplite/tellme/pull/112) **MERGED** into `dev` (`d2a01b9`, by `gosharplite`, 2026-09-18T10:43:54Z); remote + local round branch **deleted** |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed; `--version` → `dev` |
+| Closeout Step 1 | tree clean on `dev` (= `origin/dev`); round-048 package untouched (frozen) |
+| Closeout Step 2 | `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (RULE-E 0 new/0 stale, baseline **2 byte-identical**; RULE-A/B/C 0; 0 cycles; RULE-F green + 8/8 self-tests; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (E2E ~57 s) · diff-level secret scan clean · `go.mod`/`go.sum` unchanged |
+| Closeout Step 3 | `STATUS.md` → round 049 **DELIVERED / FROZEN**; the **round-048 detail + its branch-model row** and the **round-047 env note** relocated **verbatim** into `docs/archives/status/2026-09-18.md` (Rule 12); header/branch-model/roadmap/open-items/env updated; the round-049 **fold-ledger row** added |
+| Closeout Step 4 | this section |
+| Closeout Step 5 | `STATUS.md` ↔ this log reconciled |
+| Closeout Step 6 | committed + pushed on `dev` |
+| Closeout Step 7 | **propagated `dev → main`** (no-ff) |
+| Closeout Step 8 | issue tracker reconciled — **#101 body revised** (R5.3 sub-slice-1 delivery row + sub-slice 2 + R-1 coupling + `Validate()` caveat + TD-1/TD-2/F-3/F-4 dispositions); no closes (round 049 is a slice of the open R5 programme); [#92](https://github.com/gosharplite/tellme/issues/92)/[#103](https://github.com/gosharplite/tellme/issues/103)/[#91](https://github.com/gosharplite/tellme/issues/91)/[#13](https://github.com/gosharplite/tellme/issues/13) left open (accurate) |
+
+**Commits (branch `049-cli-agent-decoupling`, then merged)**: `587694d` plan package+spec · `2a04f78` Q1→B fold · `530ebcf` Q2/Q3 fold+clarify closed · `ad8ae03` research+ADR 0018+techstack · `34181da`/`35abd75` system-analysis plan · `6d24779` tasks · `b76b43c` implementation (contracts → domain) · `1e2e451` STATUS (PR open) · `c3e8e16` fold TD-1+R-1…R-4+N-1…N-4 · `a348541` fold TD-2/F-2/F-3/F-4/N-5 · `088ac7d` STATUS · `e88a1f9` fold N-6…N-9+§2 positive · `d2a01b9` fold §2+§3 · **merge** `d2a01b9` (by `gosharplite`).
+
+**Next steps**: open round **`050-*`** off `dev` — recommended **sub-slice 2** (the `AgentLoop` construction/execution inversion; the **baseline-moving** round **2 → 1**; now provably edge-sized; its DoD names **two** ratchet removals and must scope the R-1 cross-slice coupling at `cli.go:699-745`). Re-read `SESSION-BOOTSTRAP.md` next session.
+
+**PM follow-ups**: none new (no user-facing business journey — a structural contract relocation; the spec/acceptance boundary is RD-side).
