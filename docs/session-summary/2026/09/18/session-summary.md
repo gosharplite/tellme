@@ -463,7 +463,7 @@ The delivery + end-of-day closeout for round 045: PR [#106](https://github.com/g
 | Area | Outcome |
 | --- | --- |
 | Merge | PR [#106](https://github.com/gosharplite/tellme/pull/106) **MERGED** into `dev` (`9e03a91`, by `thptcnec`, 2026-09-18T03:32:43Z); frozen head **`ab2c7fb`**; remote branch deleted; local branch deleted (`git branch -D`) |
-| Propagation | `dev → main` — **DONE (no-ff, `ad407cf`)** (user-approved); `main^{tree}` == `dev^{tree}` (`0daae6c`) — **IDENTICAL** |
+| Propagation | `dev → main` — **DONE (no-ff, `ad407cf`)** (user-approved); `main^{tree}` == `dev^{tree}` — **IDENTICAL** (re-checked after each closeout-doc commit) |
 | `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `9e03a91`; `--version` → `dev` |
 | Closeout Step 1 | tree clean on `dev`; no stray files; no frozen plan package touched |
 | Closeout Step 2 | `gofmt` clean · `go vet` clean · `make verify` **OK** (arch gate: baseline **1**, 0 new / 0 stale; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (28 pkgs; E2E 228 scenarios · 1698 steps) · topology audit **PASSED & unchanged** (44 · 16+327 · 1674) · diff-level secret scan clean |
