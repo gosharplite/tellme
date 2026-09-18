@@ -13,6 +13,13 @@ import (
 // samePtr reports whether a and b are the SAME pointer (used to pin field
 // mapping by identity rather than by value, which would compare buffer/struct
 // contents and could pass on distinct-but-equal objects).
+//
+// N-5 caveat (round-050 fold review): it returns false for any NON-pointer
+// dynamic value, so a future sentinel that is a value type (or an interface
+// holding a non-pointer) would red with a misleading "not copied" diagnosis while
+// the field IS copied. Today every sentinel is a pointer (or a func compared by
+// pointer below), so the helper is exact; a future value-typed sentinel should
+// use a typed comparison against the corresponding *AgentLoop field instead.
 func samePtr(a, b any) bool {
 	va, vb := reflect.ValueOf(a), reflect.ValueOf(b)
 	if va.Kind() != reflect.Pointer || vb.Kind() != reflect.Pointer {
