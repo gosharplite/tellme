@@ -1,11 +1,19 @@
 # tellme — Status
 
-**Last updated**: 2026-09-18 (session 17 — **round 043 `043-hermetic-make-go-env` DELIVERED / FROZEN** — PR [#99](https://github.com/gosharplite/tellme/pull/99) merged into `dev` `a2fbafc` (head `d007b75`; 20 commits · 12 files · +1064/−5; **FINAL CERTIFICATION — MERGE-READY** at `d007b75` after five review rounds / eight verified folds); anchor [#96](https://github.com/gosharplite/tellme/issues/96) — a **hermetic `make` Go-toolchain invocation environment**; **tooling/truth only, zero product code**; **ADR 0012**. `#96` **CLOSED (completed)** at this closeout; the installed binary refreshed from the merged head. **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation)).
-**Active branch**: `dev` (round 043 delivered/frozen; the next round `044-*` opens off `dev`)
+**Last updated**: 2026-09-18 (session 18 — round 044 `044-composition-root-extraction` **plan half in flight** (R2 of [#92](https://github.com/gosharplite/tellme/issues/92); anchor [#100](https://github.com/gosharplite/tellme/issues/100); specify + clarify Q1–Q7 + technical-research + system-analysis; **ADR 0013**). Session 17 — **round 043 `043-hermetic-make-go-env` DELIVERED / FROZEN** — PR [#99](https://github.com/gosharplite/tellme/pull/99) merged into `dev` `a2fbafc` (head `d007b75`; 20 commits · 12 files · +1064/−5; **FINAL CERTIFICATION — MERGE-READY** at `d007b75` after five review rounds / eight verified folds); anchor [#96](https://github.com/gosharplite/tellme/issues/96) — a **hermetic `make` Go-toolchain invocation environment**; **tooling/truth only, zero product code**; **ADR 0012**. `#96` **CLOSED (completed)** at this closeout; the installed binary refreshed from the merged head. **Session mode**: `butler` (working directly with the user — no `pm`/`rd` delegation)).
+**Active branch**: `044-composition-root-extraction` (round 044 **in flight** — plan half: specify + clarify Q1–Q7 + technical-research + system-analysis; PR open → `dev`). `dev` = last delivered round 043 (`a2fbafc`).
 **Daily log**: [`docs/session-summary/2026/09/18/session-summary.md`](docs/session-summary/2026/09/18/session-summary.md)
 **Archive**: [`2026-09-11.md`](docs/archives/status/2026-09-11.md) (rounds 001–002) · [`2026-09-13.md`](docs/archives/status/2026-09-13.md) (rounds 003–012) · [`2026-09-14.md`](docs/archives/status/2026-09-14.md) (rounds 013–019) · [`2026-09-15.md`](docs/archives/status/2026-09-15.md) (rounds 020–026) · [`2026-09-16.md`](docs/archives/status/2026-09-16.md) (rounds 027–034) · [`2026-09-17.md`](docs/archives/status/2026-09-17.md) (rounds 035–040 + the round-040 review-fold history) · [`2026-09-18.md`](docs/archives/status/2026-09-18.md) (round 041 detail + its PR #88 review-fold history; round 042 detail).
 
 > **Split note (Rule 12)**: on this closeout the **round-042 delivered-round detail** was relocated **verbatim** into [`2026-09-18.md`](docs/archives/status/2026-09-18.md) (round 043 is now the most recently delivered round), keeping `STATUS.md` to the live state + a single current-round section.
+
+## Round 044 (in flight — plan half) — `044-composition-root-extraction` (R2 of [#92](https://github.com/gosharplite/tellme/issues/92); anchor [#100](https://github.com/gosharplite/tellme/issues/100))
+
+- **Theme**: composition-root extraction — move assembly out of `internal/cli` into **`cmd/tellme`**, inject a domain-typed **`internal/app/deps.Dependencies`** (+ a cli-local **`cli.Options`** for the two `ui` presentation seams), and delete all **8** package-level factory vars — **behaviour-preserving**, with the R1 layer-discipline gate as the witness.
+- **DoD**: the 7 `internal/cli -> internal/infrastructure/*` entries leave `tools/arch/baseline.txt` (**7 → 0**); the gate is green (0 new, 0 stale, 0 cycles); `internal/cli` imports **no** `internal/infrastructure/*`; zero behavioural/stream change.
+- **Pipeline (plan half)**: specify ✅ · clarify **Q1–Q7 locked** (`cmd/tellme` root; `internal/app/deps` struct; relocate `agentTools()` + inject the binders + `ToolOutputSink` → `domaintools.OutputSink`; MCP discovery → `internal/infrastructure/mcp` + func-typed `MCPDiscoverer`; scope = the 7 RULE-B edges; `deps` + `cli.Options`, all vars deleted; strict de-coupling parked as [#101](https://github.com/gosharplite/tellme/issues/101)) · technical-research ✅ (**ADR 0013** + techstack MODIFY) · system-analysis ✅ (0 interface changes; api/data/dsl-refine **NOOP**) · **tasks/implement → a later branch off `dev`**.
+- **Artifacts**: `specs/plans/044-composition-root-extraction/**` (spec · checklist · research · plan · truth-delta) · `docs/decisions/0013-composition-root-injection.md` (+ the index row) · `specs/truth/techstack.md` (CLI Application / Skills / MCP Client / Testing **MODIFY**s).
+- **Next**: a human merges the plan PR → the round-044 **implementation half** opens off `dev` (`/axb-tasks` → `/axb-implement`).
 
 ## Delivered rounds (index)
 
@@ -17,7 +25,7 @@
 | 042 | `042-layer-discipline-gate-plan` + `042-implement-layer-discipline-gate` | PR [#94](https://github.com/gosharplite/tellme/pull/94) (`a82237a`, plan+truth) · PR [#95](https://github.com/gosharplite/tellme/pull/95) (`f4b53f6`, merge; head `61414fc`) |
 | 043 | `043-implement-hermetic-make-go-env` (single PR; the plan branch `043-hermetic-make-go-env` was deleted after PRs [#97](https://github.com/gosharplite/tellme/pull/97)/[#98](https://github.com/gosharplite/tellme/pull/98) were closed unmerged) | PR [#99](https://github.com/gosharplite/tellme/pull/99) (`a2fbafc`, merge; head `d007b75`) |
 
-Per-round detail lives in the archives; **043 is the most recently delivered round; no round is in flight** (the next round `044-*` opens off `dev`).
+Per-round detail lives in the archives; **043 is the most recently delivered round**; **round 044 (`044-composition-root-extraction`) is in flight** (plan half — see the live section above).
 
 ## Delivered round — 043 `043-hermetic-make-go-env` (DELIVERED / FROZEN — PR #99 merged into `dev` `a2fbafc`; frozen head `d007b75`)
 
