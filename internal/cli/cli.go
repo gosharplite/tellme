@@ -67,6 +67,18 @@ type Options struct {
 	Prompter domaintui.Prompter
 }
 
+// Validate reports whether every injected seam is wired, so a composition-root
+// mistake fails loudly at the boundary instead of surfacing later as a confusing
+// per-path error (round-044 F-5 precedent, extended by round 048 / ADR 0017:
+// deps.Dependencies.Validate reflects over func fields only, so it cannot cover
+// the Prompter interface seam).
+func (o Options) Validate() error {
+	if o.Prompter == nil {
+		return errors.New("cli: the interactive prompt port (Options.Prompter) is not wired")
+	}
+	return o.Deps.Validate()
+}
+
 // resolution is the outcome of resolving home → configuration → workspace. On a
 // resolve failure the partially populated fields (Home, Path, Selected,
 // Provider, Workspace) are still returned so a renderer can produce an
@@ -162,8 +174,10 @@ type answerRenderer interface {
 
 // round 044: the history/usage/toolUsage-store, gateway and tool-registry factory
 // vars moved to cmd/tellme + deps.Dependencies; the renderer var was deleted
-// (built inline via ui.NewRenderer()) and the TUI-runner var is nil-defaulted
-// here (ADR 0013).
+// (built inline via ui.NewRenderer()) (ADR 0013). round 048 (ADR 0017): the TUI
+// runner var is gone too — the interactive prompt is reached through the
+// injected domaintui.Prompter port, with no in-package default (a nil port is a
+// loud EnvironmentError; see runTUIPrompt).
 
 // runInteractiveTUI runs the interactive TUI prompt (round 015) for one
 // invocation: it announces on the diagnostic stream, builds the multi-source
@@ -250,9 +264,13 @@ func runTUIPrompt(homeDir string, f *flags, env runtimeEnv, opts Options) int {
 	res, _ := resolve(homeDir, f.configPath)
 	p := opts.Prompter
 	if p == nil {
-		// Unreachable in production: the composition root always injects the port.
-		// Reuse the environment class phrase so the closed phrase vocabulary is not
-		// widened; the trailing detail is contract-free.
+		// Unreachable in production: the composition root always injects the port
+		// (asserted by Options.Validate; see cmd/tellme's smoke test).
+		// [round-048 divergence — ADR 0017] Reuse the environment class phrase so the
+		// closed phrase vocabulary is not widened; the trailing detail is
+		// contract-free. The CAUSE here is a composition-root wiring fault, not an
+		// unusable home — a deliberate recorded mismatch for a future vocabulary
+		// round.
 		_, _ = fmt.Fprintf(env.stderr, "tellme: the runtime home is not usable (interactive prompt: no runner injected)\n")
 		return EnvironmentError
 	}

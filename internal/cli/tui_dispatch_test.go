@@ -8,9 +8,10 @@ import (
 )
 
 // TestTUIDispatchEngagesWhenEnabledOnTerminal (round-015 T030; round-016 T024):
-// with -i and a terminal stdin, run() delegates to the tuiPromptRunner seam — the
-// flag/TTY gating is unit-testable without a terminal event loop (PR #38 review
-// directive ④). Round 016 dropped the obsolete store param (architect D3).
+// with -i and a terminal stdin, run() delegates to the injected domaintui.Prompter
+// port (round 048 / ADR 0017 — replaces the former nil-defaulted tuiPromptRunner
+// func seam) — the flag/TTY gating is unit-testable without a terminal event loop
+// (PR #38 review directive ④). Round 016 dropped the obsolete store param (architect D3).
 func TestTUIDispatchEngagesWhenEnabledOnTerminal(t *testing.T) {
 	home := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(home, "configs"), 0o755); err != nil {

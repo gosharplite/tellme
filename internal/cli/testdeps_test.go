@@ -66,6 +66,11 @@ type fakePrompter struct {
 	called *bool
 }
 
+// fakePrompterDebounce is the fake's debounce sentinel — deliberately distinct
+// from prompt.DefaultDebounceDuration so a test can detect a hard-coded value
+// (round-048 review TD-1).
+const fakePrompterDebounce = 7 * time.Millisecond
+
 // Run satisfies domaintui.Prompter.
 func (f fakePrompter) Run(_ context.Context, _ io.Reader, _ io.Writer, _ domaintui.Source, _ time.Duration) (string, bool, error) {
 	if f.called != nil {
@@ -74,8 +79,11 @@ func (f fakePrompter) Run(_ context.Context, _ io.Reader, _ io.Writer, _ domaint
 	return f.result, f.ok, f.err
 }
 
-// DefaultDebounceDuration satisfies domaintui.Prompter.
-func (fakePrompter) DefaultDebounceDuration() time.Duration { return 100 * time.Millisecond }
+// DefaultDebounceDuration satisfies domaintui.Prompter. It returns a distinctive
+// sentinel (NOT the production ~100 ms) so a test can tell the injected
+// fallback apart from a hard-coded value (round-048 review TD-1: a mirror-valued
+// fake hides the direction).
+func (fakePrompter) DefaultDebounceDuration() time.Duration { return fakePrompterDebounce }
 
 // depsWithGateway returns a test deps with the gateway seam bound to gw/err.
 func depsWithGateway(gw llm.Gateway, err error) deps.Dependencies {

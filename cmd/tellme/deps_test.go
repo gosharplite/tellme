@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/gosharplite/tellme/internal/app/deps"
+	"github.com/gosharplite/tellme/internal/cli"
 )
 
 // Round 044 (relocated from internal/cli by ADR 0013): the assembler gate and the
@@ -153,6 +154,30 @@ func TestBuildDepsIsFullyWired(t *testing.T) {
 	opts := buildOptions()
 	if opts.Deps.NewGateway == nil {
 		t.Fatal("buildOptions() did not carry the deps")
+	}
+	// Round 048 (F-4 / ADR 0017): the presentation port is an interface seam that
+	// deps.Dependencies.Validate's func-kind predicate cannot see, so the
+	// composition root asserts it explicitly — a dropped Prompter would otherwise
+	// compile and surface only as the -i path failing.
+	if opts.Prompter == nil {
+		t.Fatal("buildOptions() left the interactive prompt port (Options.Prompter) unwired")
+	}
+	if err := opts.Validate(); err != nil {
+		t.Fatalf("buildOptions() produced invalid Options: %v", err)
+	}
+}
+
+// TestOptionsValidateCatchesUnwiredPrompter pins the round-048 F-4 validator: an
+// Options with a wired Dependencies but a nil Prompter fails loudly, naming the
+// port, rather than dereferencing nil on the -i path.
+func TestOptionsValidateCatchesUnwiredPrompter(t *testing.T) {
+	opts := cli.Options{Deps: buildDeps()} // Prompter deliberately nil
+	err := opts.Validate()
+	if err == nil {
+		t.Fatal("Options.Validate() = nil with a nil Prompter, want a wiring error")
+	}
+	if !strings.Contains(err.Error(), "Prompter") {
+		t.Errorf("Options.Validate() error = %q, want it to name the Prompter seam", err)
 	}
 }
 

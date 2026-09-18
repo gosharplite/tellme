@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked and names what it inspected (round-033 review-fold rule — no unevidenced NOOP).
 >
-> **Status**: `/axb-technical-research` has landed — `research.md` (D1–D10) + **ADR 0017** + the `techstack.md` MODIFY rows below. Clarify locked: **Q1 → B** (the TUI prompt edge), **Q2 → A** (the port lives in `internal/domain/**`), **Q3 → A** (F-4 folded in). `/axb-system-analysis` has not yet run; the api/data/dsl-refine NOOP rows are the expected outcomes (their owners ratify at `/axb-system-analysis` / `/axb-dsl-refine`).
+> **Status**: `/axb-technical-research` (D1–D10 + **ADR 0017** + the `techstack.md` MODIFY rows below), `/axb-system-analysis` (`plan.md`: 0 interfaces + no waves) and `/axb-dsl-refine` (NOOP) have **landed**; the api/data/dsl-refine **NOOP** rows below are ratified (their owners inspected the surfaces). Clarify locked: **Q1 → B** (the TUI prompt edge), **Q2 → A** (the port lives in `internal/domain/**`), **Q3 → A** (F-4 folded in). `/axb-tasks` `tasks.md` (T001–T012) + the implementation are on this branch (see `tasks.md` §Outcome).
 
 ## /axb-technical-research
 

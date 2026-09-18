@@ -36,7 +36,7 @@ Typo- and editorial-only fixes do not need an ADR.
 | [0010](0010-test-deadline-decoupling.md) | Test deadlines: a test must not hardcode a tight wall-clock budget that is not its subject | Accepted |
 | [0011](0011-layer-discipline-gate.md) | Layer-discipline gate: the pinned layer rule + a fail-on-stale violation baseline | Accepted |
 | [0012](0012-hermetic-make-go-env.md) | A hermetic `make` Go-toolchain invocation environment (generalises ADR 0011 **D5**; round-020 TD1 is the precedent — its pin stays recipe-local) | Accepted |
-| [0013](0013-composition-root-injection.md) | Composition-root extraction: an injected, domain-typed `Dependencies` seam (R2 of #92) | Accepted |
+| [0013](0013-composition-root-injection.md) | Composition-root extraction: an injected, domain-typed `Dependencies` seam (R2 of #92) | Accepted (**D2**'s unexported-typed, nil-defaulted `RunTUIPrompt` seam *narrowed* by [0017](0017-cli-tui-prompt-decoupling.md)) |
 | [0014](0014-yield-policy-owner.md) | Yield-policy owner + `LoopObserver` hook split (R3 of #92; amends ADR 0005 **D1**) | Accepted |
 | [0015](0015-loop-presentation-port.md) | Loop presentation port: the loop owns the schedule, `internal/ui` owns the tool-line rendering + the blank-reason predicate (R4 of #92) | Accepted |
 | [0016](0016-application-import-ceiling.md) | Application import-ceiling gate (RULE-E): the application tiers' downward-import allow-list (R5 of #92) | Accepted |

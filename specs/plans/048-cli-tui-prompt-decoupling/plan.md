@@ -12,7 +12,7 @@ specs/plans/048-cli-tui-prompt-decoupling/
 ├── truth-delta.md
 ├── checklists/
 │   └── requirements.md
-└── tasks.md                       # produced later by /axb-tasks (NOT this branch)
+└── tasks.md                       # produced later by /axb-tasks (T001–T012; on this branch) ✓ done
 
 specs/truth/
 └── techstack.md                   # /axb-technical-research — MODIFY (Build & Tooling / Layer-discipline gate;

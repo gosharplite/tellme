@@ -22,9 +22,10 @@ func TestTUIPrompterSatisfiesPort(t *testing.T) {
 	}
 }
 
-// sharedSource has the method set both domaintui.Source and prompt.Source
-// require; the two assertions pin the pass-through (a domaintui.Source is
-// assignable to prompt.Source) at compile time.
+// sharedSource satisfies both domaintui.Source and prompt.Source — the assertions
+// pin that one concrete type's method set covers both (the load-bearing
+// assignability the adapter relies on is pinned by TUIPrompter.Run's body
+// compiling below).
 type sharedSource struct{}
 
 func (sharedSource) Suggest(_ context.Context, _ string) []string { return nil }
@@ -32,6 +33,10 @@ func (sharedSource) Suggest(_ context.Context, _ string) []string { return nil }
 var (
 	_ domaintui.Source = sharedSource{}
 	_ prompt.Source    = sharedSource{}
+	// The load-bearing assignability: a domaintui.Source is directly usable where
+	// prompt.Source is expected (identical method sets), so the adapter needs no
+	// wrapper. A future method added to prompt.Source breaks this at compile time.
+	_ prompt.Source = domaintui.Source(nil)
 )
 
 // TUIPrompter.Run must keep this exact signature (the port contract) — a drift
