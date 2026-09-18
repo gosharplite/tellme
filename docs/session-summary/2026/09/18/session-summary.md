@@ -608,7 +608,7 @@ A session on 2026-09-18: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round
 | Pipeline | specify ✅ · clarify ✅ (Q1–Q5, **2 short rounds**) · spec-by-example **NOOP** · technical-research ✅ (+ **ADR 0016** + `techstack.md` MODIFY) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T006) · implement ✅ |
 | Review chain (PR #110) | architectural review `5727139961` — **APPROVE WITH REQUIRED FOLDS (no blocker)** → folded **`4c20c98`** (F-1 · F-2 · F-3 · TD-1…TD-5 · N-1…N-3) → fold review `5727200926` — **ALL FOLDS VERIFIED, cleared for merge** → N-1′/N-2′ + durable-home folded **`a546c89`** (ledger `d39cfb1`) → fold review #2 `5727264949` — **ALL THREE ITEMS VERIFIED, cleared for merge** |
 | Merge | PR [#110](https://github.com/gosharplite/tellme/pull/110) **MERGED** into `dev` (`6711e0a`, by `thptcnec`, 2026-09-18T08:21:02Z); remote branch deleted → **local branch deleted** (`d39cfb1`) |
-| Propagation | `dev → main` — **PENDING** (awaiting operator approval) |
+| Propagation | `dev → main` — **DONE (no-ff, `e47dbc4`)** |
 | `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `6711e0a`; `--version` → `dev` |
 | Closeout | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** · `go test -count=1 ./...` green (incl. the ~63 s E2E) · topology audit unchanged · `STATUS.md` refreshed + **Rule-12 split** (round-046 detail → `docs/archives/status/2026-09-18.md`) · **#101 stays OPEN** |
 
@@ -663,13 +663,13 @@ A session on 2026-09-18: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round
 
 ### Open items (non-blocking)
 
-- **Propagation PENDING** — `dev → main` (no-ff) awaits operator approval.
+- **Propagation DONE** — `dev → main` (no-ff, `e47dbc4`).
 - **Round-047 forward items** — (a) the 3 residual edges = the later **R5.x de-coupling slices**; (b) **F-4/F-6/F-7/F-8** → [#101](https://github.com/gosharplite/tellme/issues/101); (c) third-party app-tier imports are **outside RULE-E** (a live residual); (d) the sanctioned set may be **re-ruled** + the optional **per-rule row split** (both ADR 0016 §Forward); (e) custom build-tag-gated imports out of scope (ADR 0011 D6).
 - Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; round-011 forward items.
 
 ### Next steps
 
-1. Approve the `dev → main` propagation (no-ff) — then the round is fully delivered.
+1. ~~Approve the `dev → main` propagation~~ — **DONE** (no-ff, `e47dbc4`).
 2. Open round **`048-*`** off `dev` via `/axb-specify` — recommended: the **R5.x de-coupling slice** (the 3 residual edges), or [#103](https://github.com/gosharplite/tellme/issues/103)/[#91](https://github.com/gosharplite/tellme/issues/91)/[#13](https://github.com/gosharplite/tellme/issues/13).
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
