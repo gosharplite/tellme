@@ -91,7 +91,7 @@ func defaultToolOutputTicker() (<-chan time.Time, func()) {
 // exists yet and the header write cannot race a line or a frame (N-13) — that is
 // why Begin needs no lock-scoped hook while End does.
 func (c *ToolOutputCoordinator) Begin() {
-	if c.w.W == nil {
+	if c == nil || c.w == nil || c.w.W == nil {
 		return
 	}
 	c.yc.Yield()
@@ -101,18 +101,25 @@ func (c *ToolOutputCoordinator) Begin() {
 
 // Writer returns the sink's io.Writer: the writer's line path with the per-line
 // clear hook wired (WriteWith).
-func (c *ToolOutputCoordinator) Writer() io.Writer { return coordinatorSink{c} }
+func (c *ToolOutputCoordinator) Writer() io.Writer {
+	if c == nil {
+		return nil
+	}
+	return coordinatorSink{c}
+}
 
 // Enabled reports whether the coordinator is bound to a stream (round 051 /
-// ADR 0020; F-8). It satisfies domaintools.OutputSink directly.
-func (c *ToolOutputCoordinator) Enabled() bool { return c.w.W != nil }
+// ADR 0020; F-8). It satisfies domaintools.OutputSink directly. The nil receiver
+// guard makes a typed-nil `*ToolOutputCoordinator` in a non-nil OutputSink
+// interface report disabled instead of panicking (round-051 review R-51-3).
+func (c *ToolOutputCoordinator) Enabled() bool { return c != nil && c.w != nil && c.w.W != nil }
 
 // End closes the block (ADR 0009 D4, R-8/R-1b): stop the watcher AND join it →
 // clear (inside the writer's critical section, via EndWith's hook) → reset +
 // closing separator → resume. The clear runs inside the writer's mutex because a
 // drain goroutine can still be inside Write at End on the trim/timeout paths.
 func (c *ToolOutputCoordinator) End() {
-	if c.w.W == nil {
+	if c == nil || c.w == nil || c.w.W == nil {
 		return
 	}
 	c.stopWatcher()
@@ -192,5 +199,8 @@ type coordinatorSink struct{ c *ToolOutputCoordinator }
 
 // Write routes p through the writer's WriteWith with the per-line clear.
 func (s coordinatorSink) Write(p []byte) (int, error) {
+	if s.c == nil {
+		return len(p), nil
+	}
 	return s.c.w.WriteWith(p, s.c.clearIndicator)
 }

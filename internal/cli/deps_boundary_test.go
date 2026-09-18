@@ -22,7 +22,12 @@ import (
 // function with a `deps.Dependencies` parameter, count the DISTINCT field
 // selectors applied to that parameter.
 func TestDependenciesSeamIsNarrow(t *testing.T) {
-	bagHolders := map[string]bool{"run": true, "runTurn": true} // the allowed wide-bag composition functions
+	// The composition bearers that legitimately hold the bag: `runTurn` (the turn
+	// composition) and `renderTurn` (which forwards the bag to runTurn). `run`
+	// takes `Options`, NOT a `deps.Dependencies`, so it is not exempt (round-051
+	// review R-51-2).
+	bagHolders := map[string]bool{"renderTurn": true, "runTurn": true}
+	exemptSeen := map[string]bool{}
 
 	fset := token.NewFileSet()
 	entries, err := os.ReadDir(".")
@@ -48,11 +53,19 @@ func TestDependenciesSeamIsNarrow(t *testing.T) {
 			if !ok {
 				return true
 			}
+			if bagHolders[fd.Name.Name] && depsParamName(fd) != "" {
+				exemptSeen[fd.Name.Name] = true
+			}
 			if fs, bad := wideBagReads(fd, bagHolders); bad {
 				violations = append(violations, violation{fd.Name.Name, fs})
 			}
 			return true
 		})
+	}
+	for name := range bagHolders {
+		if !exemptSeen[name] {
+			t.Fatalf("F-6 liveness: exempt composition bearer %q is no longer a function receiving deps.Dependencies — the exemption is dead (round-051 review R-51-2; the round-047 assertSanctionedInUse analogue)", name)
+		}
 	}
 	if len(violations) > 0 {
 		var b strings.Builder

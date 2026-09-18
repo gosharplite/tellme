@@ -41,8 +41,8 @@ func TestCallTailStillRendersANonBlankReasonLine(t *testing.T) {
 	r.OnCallEnd(0, llm.Usage{Reported: false}, []string{"because"}, false)
 	// Round 039: the trailing grouped reason block is preceded by exactly one
 	// blank line.
-	if got := buf.String(); got != "\n[08:00:00] [Tool Reason] because\n" {
-		t.Errorf("tail reason rendering = %q; want a blank line then one [Tool Reason] line", got)
+	if got := buf.String(); got != "\n<reason because>\n" {
+		t.Errorf("tail reason rendering = %q; want a blank line then one reason line", got)
 	}
 }
 
@@ -56,15 +56,15 @@ func TestCallTailBlanksBeforeReasonsAndPostStatus(t *testing.T) {
 	out := buf.String()
 
 	// Exactly one blank line before the reason block, reason line right after it.
-	if !strings.HasPrefix(out, "\n[08:00:00] [Tool Reason] checking\n") {
+	if !strings.HasPrefix(out, "\n<reason checking>\n") {
 		t.Errorf("expected one blank line before the reason block; out=%q", out)
 	}
 	// Exactly one blank line before the measured payload line (post-status group).
-	if !strings.Contains(out, "checking\n\n[08:00:00] Payload: 10/") {
+	if !strings.Contains(out, "<reason checking>\n\n<payload 10/") {
 		t.Errorf("expected one blank line before the post-status group; out=%q", out)
 	}
 	// No blank inside the reason block and no double blank before the payload.
-	if strings.Contains(out, "checking\n\n\n") {
+	if strings.Contains(out, "<reason checking>\n\n\n") {
 		t.Errorf("more than one blank line before the post-status group; out=%q", out)
 	}
 }
@@ -84,7 +84,7 @@ func TestCallTailNoBlankBeforePostStatusWithoutToolRound(t *testing.T) {
 	if strings.HasPrefix(out, "\n") {
 		t.Errorf("a tool-less turn gained a leading blank line before the post-status group; out=%q", out)
 	}
-	if !strings.HasPrefix(out, "[08:00:00] Payload: 10/") {
+	if !strings.HasPrefix(out, "<payload 10/") {
 		t.Errorf("the post-status group should start flush for a tool-less turn; out=%q", out)
 	}
 }

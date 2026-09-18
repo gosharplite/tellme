@@ -424,6 +424,25 @@ func readBaseline(t *testing.T, path string) []string {
 	return lines
 }
 
+// readBaselineIfPresent returns the committed baseline's violation lines, or nil
+// when the file is absent (used by the R-51-1 growth guard; an absent baseline is
+// treated as 0 so a first write is allowed).
+func readBaselineIfPresent(path string) []string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	var lines []string
+	for _, raw := range strings.Split(string(data), "\n") {
+		line := strings.TrimSpace(raw)
+		if line == "" || strings.HasPrefix(line, "#") || !strings.Contains(line, " -> ") {
+			continue
+		}
+		lines = append(lines, line)
+	}
+	return lines
+}
+
 // writeBaseline writes the generated baseline (used by -update-baseline / N-1).
 func writeBaseline(t *testing.T, path string, violations []string) {
 	t.Helper()
@@ -934,6 +953,14 @@ func TestVerifyRealArchitecture(t *testing.T) {
 
 	path := filepath.Join(root, "tools", "arch", "baseline.txt")
 	if *updateBaseline {
+		// R-51-1 (round-051 review): the ratchet's terminal state (baseline 0,
+		// RULE-E exhausted) has NO growth valve — regenerating must NEVER GROW the
+		// baseline. A new ceiling violation must be REFACTORED (ADR 0011/0016), not
+		// baselined. Without this guard `-update-baseline` would silently launder a
+		// new violation into the baseline.
+		if prev := readBaselineIfPresent(path); len(violations) > len(prev) {
+			t.Fatalf("refusing to GROW the baseline (%d → %d): a new layer violation must be refactored, not baselined (ADR 0011/0016; round-051 R-51-1)", len(prev), len(violations))
+		}
 		writeBaseline(t, path, violations)
 		t.Logf("baseline regenerated from the gate: %d violation(s)", len(violations))
 		return

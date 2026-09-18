@@ -193,40 +193,43 @@ func (noopPromptTracker) Recent(context.Context, int) ([]history.PromptLogEntry,
 }
 func (noopPromptTracker) Close(context.Context) error { return nil }
 
-// fakeLines is an in-package render.Lines double: the real internal/ui formatters
-// are not importable from internal/cli tests (RULE-E merged-graph, round 050
-// Q4 → A), so a CLI-level test asserts orchestration against these stable stubs.
+// fakeLines is an in-package render.Lines double. Round 051 fold R-51-4: it
+// returns DISTINGUISHABLE SENTINELS (no production spelling), so a CLI-level test
+// asserts ORCHESTRATION (presence / order / count / blank rules) and CANNOT
+// masquerade as a byte pin — the real bytes are pinned in internal/ui + the godog
+// E2E (the round-046 fold F-1 pattern, applied to the port).
 type fakeLines struct{}
 
-func (fakeLines) InputCaptured(time.Time) string { return "[00:00:00] Input captured. Processing..." }
+func (fakeLines) InputCaptured(time.Time) string { return "<input-captured>" }
+
 func (fakeLines) TurnOpening(turn int, mode string) string {
-	return fmt.Sprintf("\n%s\n╭─⠿ Turn %d - %s\n", strings.Repeat("─", 80), turn, mode)
+	return fmt.Sprintf("<turn-opening %d %s>", turn, mode)
 }
-func (fakeLines) TurnGap() string { return "\n" }
+
+func (fakeLines) TurnGap() string { return "<gap>" }
+
 func (fakeLines) PayloadStatus(t time.Time, tokens, budget int, mode, model string, estimated bool) string {
-	tilde := ""
-	if estimated {
-		tilde = "~"
-	}
-	return fmt.Sprintf("[%s] Payload: %s%d/%d tokens - %s - %s", t.Format("15:04:05"), tilde, tokens, budget, mode, model)
+	return fmt.Sprintf("<payload %d/%d %s %s estimated=%t>", tokens, budget, mode, model, estimated)
 }
+
 func (fakeLines) Metrics(t time.Time, provider string, u metrics.UsageCounts) string {
-	return fmt.Sprintf("[%s] [%s] M: %d H: %d C: %d Th: %d", t.Format("15:04:05"), provider, u.Miss, u.Hit, u.Completion, u.Thinking)
+	return fmt.Sprintf("<metrics %s M:%d H:%d C:%d Th:%d>", provider, u.Miss, u.Hit, u.Completion, u.Thinking)
 }
-func (fakeLines) Ready(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64) string {
-	return "╰─⠿ Ready"
+
+func (fakeLines) Ready(float64, float64, float64, int, int, int, float64) string { return "<ready>" }
+
+func (fakeLines) ToolReason(_ time.Time, reason string) string {
+	return fmt.Sprintf("<reason %s>", reason)
 }
-func (fakeLines) ToolReason(t time.Time, reason string) string {
-	return fmt.Sprintf("[%s] [Tool Reason] %s", t.Format("15:04:05"), reason)
-}
+
 func (fakeLines) ToolUsage(rows []history.ToolUsageRow) string {
-	var b strings.Builder
-	b.WriteString("tool usage (all sessions):\n")
+	names := make([]string, 0, len(rows))
 	for _, r := range rows {
-		fmt.Fprintf(&b, "%s: total=%d ok=%d error=%d timeout=%d\n", r.Tool, r.Total(), r.OK(), r.Error(), r.Timeout())
+		names = append(names, r.Tool)
 	}
-	return b.String()
+	return "<tool-usage:" + strings.Join(names, ",") + ">"
 }
+
 func (fakeLines) DefaultToolOutputIdleGap() time.Duration { return 3 * time.Second }
 
 // noopToolLines is an in-package agentport.ToolLineRenderer no-op double.

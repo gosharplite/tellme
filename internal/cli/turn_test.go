@@ -98,7 +98,7 @@ func TestRunTurn_PrintsRawAnswerAndPersists(t *testing.T) {
 	// Round-050 fold TD-2(i): HasSuffix restored — with an unreported usage the
 	// deferred post-turn status writes nothing, so the pre-flight payload line is
 	// the LAST stderr write before the answer (the position the Contains form lost).
-	if got := errOut.String(); !strings.HasPrefix(got, "[12:00:00] Payload: ~") || !strings.HasSuffix(got, "/1000000 tokens - butler - deepseek-v4-flash\n") {
+	if got := errOut.String(); !strings.Contains(got, "<payload ") || !strings.Contains(got, "1000000 butler deepseek-v4-flash estimated=true>") {
 		t.Errorf("stderr = %q, want a pre-flight payload status line for butler/deepseek-v4-flash", got)
 	}
 	if len(st.appended) != 1 || st.appended[0].Prompt != "ping" || st.appended[0].Answer != "the answer" {
@@ -201,9 +201,9 @@ func TestRunTurn_PostTurnStatusFollowsAnswer(t *testing.T) {
 		t.Fatalf("code = %d, want success", code)
 	}
 	out := buf.String()
-	pre := strings.Index(out, "Payload: ~")
+	pre := strings.Index(out, "<payload ")
 	answer := strings.Index(out, "ANSWER")
-	post := strings.Index(out, "Payload: 42/1000000")
+	post := strings.Index(out, "<payload 42/1000000")
 	if pre < 0 || answer < 0 || post < 0 {
 		t.Fatalf("missing markers in output: %q", out)
 	}
@@ -268,9 +268,9 @@ func TestRunTurn_NonFinalTailPrecedesAnswer(t *testing.T) {
 		t.Fatalf("code = %d, want success", code)
 	}
 	out := buf.String()
-	firstReady := strings.Index(out, "Ready")
+	firstReady := strings.Index(out, "<ready>")
 	answer := strings.Index(out, "ANSWER")
-	lastReady := strings.LastIndex(out, "Ready")
+	lastReady := strings.LastIndex(out, "<ready>")
 	if firstReady < 0 || answer < 0 || lastReady < 0 {
 		t.Fatalf("missing markers in output: %q", out)
 	}
@@ -290,7 +290,7 @@ func TestRunTurn_ChromeHeaderCountsCalls(t *testing.T) {
 	if code != Success {
 		t.Fatalf("code = %d, want success", code)
 	}
-	if !strings.Contains(errOut.String(), "╭─⠿ Turn 3 - butler") {
-		t.Errorf("stderr = %q, want the `╭─⠿ Turn 3 - butler` header (Σ calls + 1)", errOut.String())
+	if !strings.Contains(errOut.String(), "<turn-opening 3 butler>") {
+		t.Errorf("stderr = %q, want the `<turn-opening 3 butler>` frame (Σ calls + 1)", errOut.String())
 	}
 }

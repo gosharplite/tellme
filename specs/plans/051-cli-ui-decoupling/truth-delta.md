@@ -40,3 +40,9 @@
 | Action | Artifact | Change Summary | Reason |
 | --- | --- | --- | --- |
 | ADD | `docs/decisions/0020-cli-ui-decoupling.md` (+ the `docs/decisions/README.md` index row) | Records the `→ ui` de-coupling (value-type homes + the ports/factories), the F-6/F-7/F-8 resolutions, the **two ratchet removals** (baseline **1 → 0** + the RULE-F key), what the change is *not*, and its relation to ADR 0006/0008/0013/0015/0016/0017/0018/0019. | round 051 FR-009; `research.md` D8 |
+
+## Fold review (PR [#114](https://github.com/gosharplite/tellme/pull/114), review `5729783315`)
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| MODIFY | `specs/truth/techstack.md` — **Build & Tooling / Layer-discipline gate** row (fold) | Records **R-51-1**: the `-update-baseline` path now **refuses to grow** the baseline (enforcement, not policy) — the terminal state's valve is a guarded two-edit path, not an absence. **RF-51-5**: at baseline 0 the RULE-F coverage clause is load-bearing on that guarded `-update-baseline` path. | round-051 fold R-51-1/RF-51-5. |

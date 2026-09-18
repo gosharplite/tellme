@@ -9,7 +9,7 @@
 - **Programme goal (operator-declared)**: **close [#101](https://github.com/gosharplite/tellme/issues/101)** — (i) remove the **last** RULE-E residual **`internal/cli → internal/ui`** (baseline **1 → 0**; the RULE-F `couplingSurface` key removal), and (ii) resolve the three PR [#104](https://github.com/gosharplite/tellme/pull/104) deferrals **F-6** (narrow `Dependencies` seams) / **F-7** (a named `Discovery{Tools, Warnings, Closer io.Closer}`) / **F-8** (`domaintools.OutputSink` struct-of-funcs → interface).
 - **The `→ ui` edge is NOT edge-sized** (ADR 0017 §Forward): ≈20 call sites · 3 crossing value types (`ui.Pricing`/`ui.UsageCounts`/`ui.ToolUsageRow`) · 4 stateful objects (`Renderer`/`Spinner`/`ToolOutputCoordinator`/`ToolLineRenderer`) · 8 pure formatters — RULE-F surface = **19 identifiers**. A **re-cut** is expected (the ADR 0017 recipe: value types → `internal/domain/**` first, then the formatter/factory inversion).
 - **Branch**: `051-cli-ui-decoupling` (off `dev` `310def4`).
-- **Pipeline**: `/axb-specify` ✅ · `/axb-clarify` ✅ (Q1 → D · Q2 → (i) · Q3 → (ii) · Q4 → (A)) · `/axb-spec-by-example` **NOOP** · research ✅ (**ADR 0020** + `techstack.md` MODIFY ×2) · system-analysis ✅ · tasks ✅ (T001–T020) · implement ✅ (all `[X]`; **RULE-E baseline 1 → 0** — the terminal state; two removals: the RULE-E line + the RULE-F `→ ui` key).
+- **Pipeline**: `/axb-specify` ✅ · `/axb-clarify` ✅ (Q1 → D · Q2 → (i) · Q3 → (ii) · Q4 → (A)) · `/axb-spec-by-example` **NOOP** · research ✅ (**ADR 0020** + `techstack.md` MODIFY ×2) · system-analysis ✅ · tasks ✅ (T001–T020) · implement ✅ (all `[X]`; **RULE-E baseline 1 → 0** — the terminal state; two removals: the RULE-E line + the RULE-F `→ ui` key) · review `5729783315` → folds **R-51-1…R-51-5** + RF records applied.
 - **Implemented (in-branch, `make verify` OK)**: `internal/domain/llm/{Pricing,ComputeCost,HitRate}` · `internal/domain/metrics/UsageCounts` · `internal/domain/history/ToolUsageRow` · `internal/domain/render/ports.go` (`Lines`/`Answer`/`Indicator`/`TurnProgress`/`ProgressFactory`) · `internal/domain/tools/outputsink.go` (**F-8**: interface) · `internal/ui/render_ports.go` (adapters) · `internal/app/deps` (`Discovery` **F-7**, `NewLines`/`NewToolLines`/`NewAnswer`/`NewProgress`) · `internal/cli` (**zero** `internal/ui` refs; **F-6** narrow seams + the `deps_boundary_test.go` audit) · `cmd/tellme` wiring · `tools/arch/{arch_test.go,baseline.txt}` (**1 → 0**).
 
 ## Delivered round — 050 `050-agentloop-construction-inversion` (DELIVERED / FROZEN — PR [#113](https://github.com/gosharplite/tellme/pull/113) merged into `dev` `09d0145`; R5.4 of [#101](https://github.com/gosharplite/tellme/issues/101); anchor [#101](https://github.com/gosharplite/tellme/issues/101))
@@ -45,7 +45,7 @@
 | 049 | `049-cli-agent-decoupling` (single PR) | PR [#112](https://github.com/gosharplite/tellme/pull/112) (`d2a01b9`, merge; folds `c3e8e16`/`a348541`/`e88a1f9`; head `d2a01b9`) |
 | 050 | `050-agentloop-construction-inversion` (single PR) | PR [#113](https://github.com/gosharplite/tellme/pull/113) (`09d0145`, merge; folds `efc842b`/`c22ce0c`; head `0406c29`) |
 
-Per-round detail lives in the archives; **050 is the most recently delivered round; no round is in flight** (the next round `051-*` opens off `dev`).
+Per-round detail lives in the archives; **050 is the most recently delivered round; 051 is in flight** (branch `051-cli-ui-decoupling`, **PR [#114](https://github.com/gosharplite/tellme/pull/114) open**).
 
 ## Branch model
 
