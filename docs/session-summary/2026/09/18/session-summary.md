@@ -455,3 +455,25 @@ The fold review ([#5724691676](https://github.com/gosharplite/tellme/pull/106#is
 - **F-7** — `STATUS.md`:39 (*"no round is in flight"*) → *"round 045 is IN FLIGHT (PR #106)"*; the roadmap `045 candidate` row → a **045 (In flight)** row + a **`046 candidate` = R4** row. No two surfaces now disagree about which round is live.
 - **N-1** — `truth-delta.md`'s F-2 residual wording: dropped the wrong package enumeration (`035-…, 036-…`) → *"the frozen plan packages of the rounds that introduced them (019 / 022 / 034 / 035 / 040)"*, with the `chat/dsl.md`-notes-without-hook-names nuance recorded.
 - **N-2** — the daily-log delivery row drops the commit count entirely (git/PR are the authorities).
+
+### Session 19 (cont.) — round 045 **DELIVERED** + `SESSION-CLOSEOUT.md` (Steps 1–8)
+
+The delivery + end-of-day closeout for round 045: PR [#106](https://github.com/gosharplite/tellme/pull/106) human-merged into `dev`, propagated `dev → main`, the installed binary refreshed, and `SESSION-CLOSEOUT.md` Steps 1–8 run.
+
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#106](https://github.com/gosharplite/tellme/pull/106) **MERGED** into `dev` (`9e03a91`, by `thptcnec`, 2026-09-18T03:32:43Z); frozen head **`ab2c7fb`**; remote branch deleted; local branch deleted (`git branch -D`) |
+| Propagation | `dev → main` — **DONE (no-ff, `ad407cf`)** (user-approved); `main^{tree}` == `dev^{tree}` (`0daae6c`) — **IDENTICAL** |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `9e03a91`; `--version` → `dev` |
+| Closeout Step 1 | tree clean on `dev`; no stray files; no frozen plan package touched |
+| Closeout Step 2 | `gofmt` clean · `go vet` clean · `make verify` **OK** (arch gate: baseline **1**, 0 new / 0 stale; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (28 pkgs; E2E 228 scenarios · 1698 steps) · topology audit **PASSED & unchanged** (44 · 16+327 · 1674) · diff-level secret scan clean |
+| Closeout Step 3 | `STATUS.md` → round 045 **DELIVERED / FROZEN**; round-044 detail + its branch-model rows relocated verbatim to `docs/archives/status/2026-09-18.md` (Rule 12); header/branch-model/roadmap/open-items/env updated |
+| Closeout Step 4 | this section |
+| Closeout Step 5 | `STATUS.md` ↔ this log reconciled (same round position, heads, decisions, open items) |
+| Closeout Step 6 | committed + pushed on `dev` |
+| Closeout Step 7 | **propagated** `dev → main` (no-ff, `ad407cf`; the closeout docs follow in the same no-ff propagation) |
+| Closeout Step 8 | **#105 CLOSED (completed)**; #92 revised comment (R1+R2+R3 delivered; R4 next); #101/#103/#91/#13 left open (accurate) |
+
+**Commit**: `docs(045)`: day close — round 045 delivered + propagated; STATUS + daily summary (+ Rule-12 split).
+
+**Next steps**: open round **`046-*`** off `dev` = **R4** (blank-reason owner + presentation predicate; removes the last baseline entry → **1 → 0**); re-read `SESSION-BOOTSTRAP.md`.
