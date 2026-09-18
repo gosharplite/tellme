@@ -1,6 +1,9 @@
 package prompt
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // Round 052 (closes #115 R-1; ADR 0021): the selection policy is owned by the
 // CALLER — `set(items, cursor)` takes the cursor explicitly and no longer resets
@@ -48,16 +51,22 @@ func TestSuggesterSetOwnsTheCursor(t *testing.T) {
 	})
 
 	// RF-52-3: `set` trusts its caller, but `selected()` is total and `view()` is
-	// safe on an out-of-range cursor — no panic, no stray highlight. Pinned so a
-	// future caller bug is a visible no-selection, not a crash.
+	// safe on an out-of-range cursor — no panic, no stray highlight. The input is
+	// NON-EMPTY (round-052 fold F-52-3): with an empty list `len(items) == 0`
+	// short-circuits before the cursor is consulted, so it would exercise the
+	// empty-list path, not the upper bound. This case is the carrier for the
+	// `cursor >= len(items)` half — deleting that bound reds it with
+	// `index out of range [3] with length 1`.
 	t.Run("an out-of-range cursor is total and safe", func(t *testing.T) {
 		s := newSuggester()
-		s.set(nil, 3)
+		s.set([]string{"alpha"}, 3)
 		if got := s.selected(); got != "" {
 			t.Fatalf("selected() = %q, want none", got)
 		}
-		if got := s.view(); got != "" {
-			t.Fatalf("view() = %q, want empty", got)
+		// With a non-empty list view() renders a header + rows; "no cursor row"
+		// is the falsifiable assertion (an empty-string form would be vacuous).
+		if v := s.view(); strings.Contains(v, "> ") {
+			t.Fatalf("view() = %q, want NO cursor row", v)
 		}
 	})
 }

@@ -52,3 +52,10 @@
 | **Nit** — state which layer owns what | ADR 0021 §Consequences: the **two-layer witness** split (ctor pin vs the E2E wiring) + **no-drift by construction** (one builder) + **interface-copy survival through `augmentRegistryWithMCP`** |
 | **Nit** — witness (c) re-runs round 051's witness | labelled in this package as a **ratchet regression check**, not round-052 evidence |
 | **Witness (d)** — the reviewer's **unclaimed** witness: mutate the prompt path to `dp.NewToolRegistry(nil)` | **Reproduced** — 4 godog E2E `[Tool Output]` scenarios FAIL (`no [Tool Output] block to inspect` / `no [Tool Output] content line`); reverted clean. Recorded in ADR 0021 §Consequences (the wiring is owned by the E2E, one layer above the ctor pin). |
+
+## Fold-verification — PR [#117](https://github.com/gosharplite/tellme/pull/117) comment `5730602144`
+
+| Finding | Fold |
+| --- | --- |
+| **F-52-3** `[TECHNICAL DEBT]` — the RF-52-3 pin's input `set(nil, 3)` is **vacuous** (an empty list short-circuits on `len(items) == 0` before the cursor is consulted), so it does not cover the `cursor >= len(items)` half it claims | `suggester_set_test.go`: input changed to **non-empty** `set([]string{"alpha"}, 3)`; the `view()` assertion changed to **no cursor row** (`strings.Contains(v, "> ")` — the empty-string form was vacuous). Proven both ways: green on the real code; the isolated upper-bound removal (`|| s.cursor >= len(s.items)`) now reds it with `index out of range [3] with length 1`. The ADR 0021 **RF-52-3** sentence corrected to match (and to note the lower bound is already carried by the `noChoice` cases; the pin deliberately sits at the `suggester` tier). |
+| **N-52-1** (nit) — `STATUS.md`'s Rule-12 split note carried a born-stale *"round 051 **is now** the most recently delivered round"* | Re-worded to past tense (*"at that point round 051 became the most recently delivered round"*) — a record of an event, not a present-tense claim. |
