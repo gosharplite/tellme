@@ -8,7 +8,7 @@
 
 **Input (operator, 2026-09-19)**: *"Many time I see you do `full test` and takes more than 60 sec. Why so long?"* … *"Can these two be included in 055 together?"* → **Start 055 with both** (both = **US1** parallel scenario execution and **US2** the fast inner-loop subset).
 
-**Behaviour intent**: **MODIFY (developer-facing, test tooling)** — the round changes **how the executable contract is executed**, never **what** it asserts. No product code, no acceptance/DSL semantics, no user-visible behaviour. Measured baseline (this host, darwin/arm64, Go 1.26.6): `go test -count=1 ./...` ≈ **54 s**, of which `tests/e2e` ≈ **50 s** (`TestFeatures` ≈ 49.5 s; 240 Examples / 1746 steps / 46 feature files; ≈205 ms per scenario).
+**Behaviour intent**: **MODIFY (developer-facing, test tooling)** — the round changes **how the executable contract is executed**, never **what** it asserts. No product code, no acceptance/DSL semantics, no user-visible behaviour. Measured baseline (this host, darwin/arm64, Go 1.26.6): `go test -count=1 ./...` ≈ **55 s**, of which `tests/e2e` ≈ **50 s** (`TestFeatures` ≈ 49.5 s; 240 Examples (godog reports 1770 steps) / 46 feature files; ≈205 ms per scenario).
 
 ---
 
