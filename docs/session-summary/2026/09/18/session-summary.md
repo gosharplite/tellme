@@ -1106,3 +1106,11 @@ The architect reproduced **every** witness **plus one the PR didn't claim** (wit
 - **F-52-2** — `STATUS.md`'s two live-state contradictions fixed (the delivered-rounds index no longer asserts liveness; the roadmap `future slices` row dropped #115/#116) **plus a durable remedy**: a new **SESSION-CLOSEOUT** Step-3 rule + closeout rule #14 (*no liveness contradictions*) — the class had now recurred 3× (round-045 F-7 · round-051 R-51-5 · round-052 F-52-2).
 - **RF-52-1/2/3** — ADR 0021 §Forward (the `BindSkillsCatalog` silent-`ok`-guard hazard · the records' write-once/supersede lifecycle · the cursor's total-but-unpinned bound → now pinned `set(nil, 3)`); **nit** — the two-layer witness + no-drift-by-construction + interface-copy-survival recorded in ADR 0021 §Consequences; witness (c) labelled a ratchet regression check.
 - Re-verified: `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (incl. the E2E). The folds are **doc + one test case** — no code change to the shipped behaviour.
+
+### Fold-verification fold (PR [#117](https://github.com/gosharplite/tellme/pull/117) comment `5730602144`) — head `dc0fa25`
+
+F-52-1/F-52-2 verified as behaviour. One further test-only fold:
+
+- **F-52-3** — the RF-52-3 pin's `set(nil, 3)` input was **vacuous** (empty list short-circuits before the cursor), so it did not cover the `cursor >= len(items)` bound it claimed. Fixed: input → **non-empty** `set([]string{"alpha"}, 3)`; `view()` assertion → **no cursor row**. Proven both directions: green on the real code; the isolated upper-bound removal now reds it (`index out of range [3] with length 1`). ADR 0021's RF-52-3 sentence corrected to match.
+- **N-52-1** — `STATUS.md`'s Rule-12 split note re-worded to past tense (a born-stale *"051 is now…"* → *"at that point 051 became…"*).
+- Re-verified: `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green. Test-only change; no code path or gate verdict moved.
