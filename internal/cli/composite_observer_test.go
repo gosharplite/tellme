@@ -28,8 +28,8 @@ func (o *recordingCallObserver) OnCallEnd(int, llm.Usage, []string, bool) {
 }
 
 // recordingSpinner records the spinner-half hooks into the same sequence; only
-// the yield hooks matter here (a clear is a BeforeToolLog/Stop, a resume is an
-// AfterToolLog).
+// the yield hooks matter here (a yield is YieldIndicator, a restore is
+// RestoreIndicator — round 045's split vocabulary).
 type recordingSpinner struct{ seq *[]string }
 
 func (s *recordingSpinner) OnCallBegin(int, []llm.Message)           {}
@@ -40,9 +40,9 @@ func (s *recordingSpinner) OnInferenceEnd()   {}
 func (s *recordingSpinner) OnToolsStart([]string) {
 	*s.seq = append(*s.seq, "spinner.OnToolsStart")
 }
-func (s *recordingSpinner) OnToolsEnd()    {}
-func (s *recordingSpinner) BeforeToolLog() { *s.seq = append(*s.seq, "spinner.clear") }
-func (s *recordingSpinner) AfterToolLog()  { *s.seq = append(*s.seq, "spinner.resume") }
+func (s *recordingSpinner) OnToolsEnd()       {}
+func (s *recordingSpinner) YieldIndicator()   { *s.seq = append(*s.seq, "spinner.yield") }
+func (s *recordingSpinner) RestoreIndicator() { *s.seq = append(*s.seq, "spinner.restore") }
 
 // seqString renders a recorded sequence for readable failure messages.
 func seqString(seq []string) string { return "[" + strings.Join(seq, ", ") + "]" }
@@ -61,9 +61,9 @@ func TestCompositeOnCallEndYieldsSpinnerBeforeNonFinalTail(t *testing.T) {
 
 	c.OnCallEnd(0, llm.Usage{}, []string{"read the notes"}, false)
 
-	want := []string{"spinner.clear", "call.OnCallEnd"}
+	want := []string{"spinner.yield", "call.OnCallEnd"}
 	if got := seqString(seq); got != seqString(want) {
-		t.Fatalf("non-final OnCallEnd ordering = %s, want %s (the spinner must be cleared before the tail write and not resumed)", got, seqString(want))
+		t.Fatalf("non-final OnCallEnd ordering = %s, want %s (the spinner must yield before the tail write and not restore)", got, seqString(want))
 	}
 }
 

@@ -148,7 +148,10 @@ func rowsForLine(line string, columns int) int {
 
 // Spinner is the live progress presenter. It implements the agent-loop observer
 // port structurally (internal/domain/agent.LoopObserver) and writes only to the
-// diagnostic stream.
+// diagnostic stream. Round 045 (R3 of #92): its two yield hooks
+// (YieldIndicator/RestoreIndicator) are thin adapters that delegate to the yield
+// policy's single owner, ui.YieldController (see yield.go) — the clear/resume
+// MECHANISM below (deactivate/resume/AdmitResume) is unchanged.
 type Spinner struct {
 	mu      sync.Mutex
 	w       io.Writer
@@ -245,14 +248,18 @@ func (s *Spinner) OnCallBegin(callIndex int, messages []llm.Message) {}
 // OnCallEnd is a no-op on the spinner (ADR 0005 D1).
 func (s *Spinner) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []string, final bool) {}
 
-// BeforeToolLog yields the line to a tool-loop log write (a synchronous clear).
-func (s *Spinner) BeforeToolLog() { s.deactivate() }
+// YieldIndicator is the loop-facing yield hook (internal/domain/agent.
+// LoopObserver): it clears the indicator so a line the loop writes directly to
+// the diagnostic stream starts on its own cleared row. The yield POLICY lives
+// with the owner (ui.YieldController); this method only adapts the port to it
+// (round 045 / ADR 0014).
+func (s *Spinner) YieldIndicator() { NewYieldController(s).Yield() }
 
-// AfterToolLog restores the indicator after a tool-loop log write. The elapsed
-// figures continue: the TOTAL is turn-scoped and never reset (round-019 D4); the
-// SECOND (the current model call's elapsed) is preserved within the call (round
-// 040, ADR 0009 D2).
-func (s *Spinner) AfterToolLog() { s.resume() }
+// RestoreIndicator is the loop-facing restore hook: it resumes the indicator
+// after a yield. Delegates to the yield owner (ui.YieldController), which keeps
+// the turn-scoped total and the current model call's elapsed (round-019 D4 /
+// round-040 ADR 0009 D2).
+func (s *Spinner) RestoreIndicator() { NewYieldController(s).Restore() }
 
 // Stop synchronously clears the indicator and stops its redraw. It is idempotent.
 func (s *Spinner) Stop() { s.deactivate() }

@@ -163,13 +163,13 @@ func TestSpinnerElapsedIsTurnScoped(t *testing.T) {
 		t.Fatalf("relabel = %q, want (5s 5s)", w.String())
 	}
 
-	// Interleaved output: clear, then resume. Both figures continue from their
+	// Interleaved output: yield, then restore. Both figures continue from their
 	// epochs (7s 7s), NOT from 0 — the pin for research D4.
 	nowV = base.Add(6 * time.Second)
-	s.BeforeToolLog()
+	s.YieldIndicator()
 	awaitWrite(t, w) // the clear write
 	nowV = base.Add(7 * time.Second)
-	s.AfterToolLog()
+	s.RestoreIndicator()
 	awaitWrite(t, w)
 	if !strings.Contains(w.String(), "Executing [read_files]... (7s 7s)") {
 		t.Fatalf("resume = %q, want (7s 7s), not a reset to (0s)", w.String())

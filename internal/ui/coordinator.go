@@ -8,22 +8,22 @@ import (
 
 // Round 040 WS-A — the `[Tool Output]` block coordinator (ADR 0009 D3/D4). It is
 // the single `internal/ui` object that owns the block writer AND the progress
-// spinner, so `internal/cli` binds ONE value to the command tool's sink. It
-// consolidates the **block-scoped** yield only (the `[Tool Output]` resume/clear):
-// the other spinner yields remain where they are — the loop's `withToolLog`
-// (Before/AfterToolLog) and `compositeObserver.yieldIndicatorBeforeTail` (round
-// 035) — so the spinner-yield policy still has those homes (a `#69` ledger item;
-// this change does not claim to have collapsed all of them).
+// spinner, so `internal/cli` binds ONE value to the command tool's sink.
+//
+// Round 045 (R3 of #92): the coordinator no longer decides the yield policy — it
+// holds the policy's single owner (ui.YieldController; see yield.go) and routes
+// every clear/resume/admit through it, so the block's yields use the same rule as
+// the loop's and the composite observer's. Policy recorded in ADR 0014.
 //
 // The writer stays the SOLE owner of the block mutex + row state (T002 B1: one
 // lock owner, three entry points — WriteWith, EndWith, withLock); the coordinator
 // never reaches into the writer's mutex. The resume/clear invariant is mutual
 // exclusion + join: the watcher admits the resume under the writer's mutex
 // (withLock), and the per-line clear is the presenter's synchronous,
-// goroutine-joined deactivate() (via WriteWith's beforeLine), so lock order is
-// block-writer mutex → spinner mutex. The block critical section never spans a
-// frame write: the resume draws its first frame on the redraw goroutine
-// (Spinner.AdmitResume).
+// goroutine-joined clear (YieldController.Yield, via WriteWith's beforeLine), so
+// lock order is block-writer mutex → spinner mutex. The block critical section
+// never spans a frame write: the resume draws its first frame on the redraw
+// goroutine (Spinner.AdmitResume, reached through YieldController.Admit).
 //
 // ACCEPTED RESIDUAL (N-40-4, recorded here so the next reader finds it): `End`
 // while an output-line write is stuck on a wedged `stderr` cannot be resolved —
@@ -36,8 +36,8 @@ import (
 //
 // The coordinator models ONE concurrent block (one writer + one watcher); if
 // concurrent tool execution ever lands, a second open block plus the composite's
-// unconditional `AfterToolLog` resume would break the idle-gap invariant (frames
-// between output lines) — a `#69` forward item.
+// unconditional RestoreIndicator resume would break the idle-gap invariant
+// (frames between output lines) — a recorded forward item (ADR 0014).
 
 // DefaultToolOutputIdleGap is the default idle-gap threshold for the WS-A
 // resume (ADR 0009 D3): the indicator reappears after N seconds with no new
@@ -50,7 +50,7 @@ const DefaultToolOutputIdleGap = 3 * time.Second
 // spinner, and coordinates the WS-A idle-gap liveness between them.
 type ToolOutputCoordinator struct {
 	w       *ToolOutputWriter
-	sp      *Spinner // nil when the spinner is gated off (a no-op coordinator)
+	yc      YieldController // the yield policy's single owner (round 045 / ADR 0014)
 	idleGap time.Duration
 
 	// newTicker is the watcher's poll seam (the spinner's ~200 ms cadence); a
@@ -67,11 +67,12 @@ type ToolOutputCoordinator struct {
 
 // NewToolOutputCoordinator builds the coordinator over the diagnostic stream,
 // the writer's clock seam, the turn spinner (nil when gated off), and the
-// resolved idle gap.
+// resolved idle gap. The spinner is wrapped as the yield policy's owner
+// (ui.YieldController) so every block clear/resume/admit routes through it.
 func NewToolOutputCoordinator(stream io.Writer, now func() time.Time, sp *Spinner, idleGap time.Duration) *ToolOutputCoordinator {
 	return &ToolOutputCoordinator{
 		w:         &ToolOutputWriter{W: stream, Now: now},
-		sp:        sp,
+		yc:        NewYieldController(sp),
 		idleGap:   idleGap,
 		newTicker: defaultToolOutputTicker,
 	}
@@ -93,7 +94,7 @@ func (c *ToolOutputCoordinator) Begin() {
 	if c.w.W == nil {
 		return
 	}
-	c.clearIndicator()
+	c.yc.Yield()
 	c.w.Begin()
 	c.startWatcher()
 }
@@ -112,25 +113,22 @@ func (c *ToolOutputCoordinator) End() {
 	}
 	c.stopWatcher()
 	c.w.EndWith(c.clearIndicator)
-	if c.sp != nil {
-		// Resume the indicator for the rest of the turn (the standard AfterToolLog
-		// path — a synchronous first frame, outside the block's critical section).
-		c.sp.AfterToolLog()
-	}
+	// Resume the indicator for the rest of the turn — a phase-boundary restore,
+	// routed through the yield owner (a synchronous first frame, outside the
+	// block's critical section).
+	c.yc.Restore()
 }
 
 // clearIndicator synchronously clears the indicator (a no-op when gated off or
-// already stopped). It is the goroutine-joined deactivate() (ADR 0009 D4).
+// already stopped): the yield owner's goroutine-joined clear (ADR 0009 D4).
 func (c *ToolOutputCoordinator) clearIndicator() {
-	if c.sp != nil {
-		c.sp.Stop()
-	}
+	c.yc.Yield()
 }
 
 // startWatcher starts the block-scoped idle watcher (a no-op when the spinner is
 // gated off — FR-011).
 func (c *ToolOutputCoordinator) startWatcher() {
-	if c.sp == nil {
+	if !c.yc.Enabled() {
 		return
 	}
 	c.mu.Lock()
@@ -176,8 +174,8 @@ func (c *ToolOutputCoordinator) watch(tick <-chan time.Time, stop, done chan str
 			return
 		case <-tick:
 			c.w.withLock(func(idle time.Duration) {
-				if c.sp != nil && idle >= c.idleGap {
-					c.sp.AdmitResume()
+				if c.yc.Enabled() && idle >= c.idleGap {
+					c.yc.Admit()
 				}
 			})
 		}

@@ -45,8 +45,8 @@ func (o *recordingObserver) OnInferenceStart()     {}
 func (o *recordingObserver) OnInferenceEnd()       {}
 func (o *recordingObserver) OnToolsStart([]string) {}
 func (o *recordingObserver) OnToolsEnd()           {}
-func (o *recordingObserver) BeforeToolLog()        {}
-func (o *recordingObserver) AfterToolLog()         {}
+func (o *recordingObserver) YieldIndicator()       {}
+func (o *recordingObserver) RestoreIndicator()     {}
 
 func TestAgentLoop_FiresCallHooksWithFusedMessages(t *testing.T) {
 	gw := &fakeGateway{responses: []llm.Response{
