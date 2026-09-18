@@ -680,3 +680,68 @@ A session on 2026-09-18: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round
 ### Issue tracker (closeout Step 8)
 
 Reconciled against the delivered state: **[#101](https://github.com/gosharplite/tellme/issues/101) OPEN** — **R5.1 delivered** by round 047 (PR [#110](https://github.com/gosharplite/tellme/pull/110) merged `6711e0a`); the R5.x de-coupling slices + F-4/F-6/F-7/F-8 remain; a delivery-record comment posted. **[#92](https://github.com/gosharplite/tellme/issues/92) OPEN** (R1–R4 delivered; ride-alongs remain) · **[#103](https://github.com/gosharplite/tellme/issues/103)** · **[#91](https://github.com/gosharplite/tellme/issues/91)** · **[#13](https://github.com/gosharplite/tellme/issues/13)** — all OPEN (accurate). No issues closed this closeout (round 047 delivered a slice of an already-open programme issue).
+
+---
+
+## Session 22 (2026-09-18, cont.) — round 048 `048-cli-tui-prompt-decoupling` (R5.2 of #101): full pipeline → implementation delivered → PR open
+
+A session on 2026-09-18: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 047 delivered/frozen; active branch `dev`), opened round **048** from **issue [#101](https://github.com/gosharplite/tellme/issues/101)** — the **first de-coupling slice** of the R5 programme (the round-047 RULE-E gate baselined the 3 residual edges) — ran the full AIxBDD pipeline, and delivered the implementation. **PR open for human merge.**
+
+**Workspace**: `$TELL_ME_HOME` = `…/beta-niffler/ait-tellme`; **linux/amd64** host (Go 1.26.6). **Session mode**: `butler`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | `SESSION-BOOTSTRAP.md` Steps 1–8 (round 047 delivered/frozen; active branch `dev`) |
+| Anchor / theme | [#101](https://github.com/gosharplite/tellme/issues/101) — **R5.2**: remove the residual edge `internal/cli → internal/ui/tui/prompt` via an injected **domain port**; RULE-E baseline **3 → 2**; **F-4 closed**; behaviour-preserving; **ADR 0017** |
+| Clarify (one at a time) | **Q1 → B** (the TUI-prompt edge — the smallest, already behind the `tuiPromptRunner` seam) · **Q2 → A** (the port lives in `internal/domain/**`) · **Q3 → A** (F-4 folded in) |
+| Pipeline | specify ✅ · clarify ✅ · spec-by-example **NOOP** · technical-research ✅ (+ **ADR 0017** + `techstack.md` MODIFY ×3) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T012) · implement ✅ |
+| Product | `internal/domain/tui/prompter.go` (NEW port) · `internal/ui/tuiprompt.go` + `tuiprompt_test.go` (NEW adapter + pin) · `internal/cli/cli.go` (CHANGED — `Options{Deps; Prompter}`; port routed; nil-default removed) · `cmd/tellme/deps.go` (wires `ui.TUIPrompter{}`) · `internal/cli/{testdeps,tui_dispatch,tui_submit_chrome}_test.go` (fake port) · `tools/arch/baseline.txt` (**3 → 2**) |
+| Verification | `make verify` **OK** (RULE-E **0 new / 0 stale**, baseline **2**; RULE-A/B/C 0; 0 cycles; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (incl. the ~60 s godog E2E) · `gofmt`/`go vet` clean · **3 falsifiability witnesses** reproduced then reverted |
+| Delivery | branch `048-cli-tui-prompt-decoupling`; **PR open — human-only merge** |
+
+### Decisions locked (round 048)
+
+| # | Decision |
+| --- | --- |
+| Q1 → B | Slice = the **TUI prompt** edge (`internal/cli → internal/ui/tui/prompt`); baseline 3 → 2; slug/branch `048-cli-tui-prompt-decoupling`. |
+| Q2 → A | The port lives in **`internal/domain/**`** (`internal/domain/tui`: `Source{Suggest(ctx,query) []string}` + `Prompter{Run(...); DefaultDebounceDuration()}`; stdlib-only; RULE-C-pure). |
+| Q3 → A | **F-4 folded**: delete `cli.Options.RunTUIPrompt` + the `tuiPromptRunner` func type; both `Options` fields are exported types. |
+| D4 | The adapter lives in **`internal/ui`** (tier 5) — RULE-A forbids a lower tier importing `internal/ui/tui/prompt`. |
+| D5 | Wiring: `cmd/tellme` injects `ui.TUIPrompter{}`; the CLI nil-default is removed; a nil port returns the environment-error path (unreachable in production). |
+
+### Commits (branch `048-cli-tui-prompt-decoupling`)
+
+| Commit | Note |
+| --- | --- |
+| `92549ff` | `docs(048)`: plan package + spec (Q1 open) |
+| `9da8ed7` | `docs(048)`: fold Q1 → B (slice = the TUI prompt edge; baseline 3 → 2); rename slug |
+| `9fb3c83` | `docs(048)`: fold Q2 → A (domain port) + Q3 → A (F-4 folded); clarify closed |
+| `b7956d9` | `docs(048)`: technical research + **ADR 0017** + techstack truth (RULE-E baseline 3 → 2) |
+| `bab8bc0` | `docs(048)`: system-analysis plan (0 interfaces) |
+| `f83982b` | `docs(048)`: tasks.md (T001–T012) |
+| `dc31ac0` | `feat(048)`: de-couple `internal/cli` from the TUI prompt via an injected domain port (baseline 3 → 2; closes F-4) |
+| `5df2e1a` | `docs(048)`: record the `/axb-implement` outcome (gate 3 → 2; witnesses a/b/c) |
+
+### Falsifiability witnesses (reproduced then reverted, ADR 0010)
+
+- **(a)** a re-introduced `internal/cli → internal/ui/tui/prompt` import ⇒ `verify-architecture` **fails** (*"1 new violation(s) not in the baseline: internal/cli -> internal/ui/tui/prompt"*).
+- **(b)** a stale `tools/arch/baseline.txt` line ⇒ the gate **fails** (*"1 stale baseline entr(ies)"*).
+- **(c)** the nil-port path ⇒ the new `TestTUIDispatchFailsLoudlyWithoutPrompter` pin (EnvironmentError), pinned permanently.
+
+### Open items (non-blocking)
+
+- **Human merges the PR** → propagate `dev → main` → run `SESSION-CLOSEOUT.md`; then close nothing on [#101](https://github.com/gosharplite/tellme/issues/101) (it stays OPEN — a programme) but record R5.2 delivered.
+- **Round-048 forward items** — the **2 remaining residual edges** (`internal/cli → internal/agent`, `internal/cli → internal/ui`) + **F-6/F-7/F-8** → later R5.x slices on [#101](https://github.com/gosharplite/tellme/issues/101). The port pattern (domain interface + tier-≥5 adapter + composition-root injection) is the reusable template.
+- **Propagation PENDING** — `dev → main` after the human merge.
+
+### Next steps
+
+1. **Human merges the PR** → propagate `dev → main` (no-ff) → closeout.
+2. Open the next **R5.x** slice (the `internal/cli → internal/ui` edge is the natural next; the `→ agent` edge is the deepest).
+3. Re-read `SESSION-BOOTSTRAP.md` next session.
+
+### PM follow-ups
+
+- None new (no user-facing business journey — a structural de-coupling; the spec/acceptance boundary is RD-side).

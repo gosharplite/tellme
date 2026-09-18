@@ -15,4 +15,3 @@
 # longer violates (stale) FAILS the gate too.
 internal/cli -> internal/agent
 internal/cli -> internal/ui
-internal/cli -> internal/ui/tui/prompt

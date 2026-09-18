@@ -2,7 +2,6 @@ package cli
 
 import (
 	"bytes"
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -61,9 +60,7 @@ func TestTUISubmitResumesChromeAndEchoes(t *testing.T) {
 		d.NewGateway = func(config.Provider, string, string) (llm.Gateway, error) { return &fakeGateway{text: "ok"}, nil }
 		d.NewHistoryStore = func(string) history.Store { return &fakeStore{} }
 	})
-	opts := Options{Deps: dp, RunTUIPrompt: func(_ context.Context, _ resolution, _ runtimeEnv, _ deps.Dependencies) (string, bool, error) {
-		return "hi there", true, nil
-	}}
+	opts := Options{Deps: dp, Prompter: fakePrompter{result: "hi there", ok: true}}
 
 	var out, errOut strings.Builder
 	e := runtimeEnv{

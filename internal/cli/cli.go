@@ -25,9 +25,9 @@ import (
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
+	domaintui "github.com/gosharplite/tellme/internal/domain/tui"
 	"github.com/gosharplite/tellme/internal/home"
 	"github.com/gosharplite/tellme/internal/ui"
-	tuiprompt "github.com/gosharplite/tellme/internal/ui/tui/prompt"
 )
 
 // The pinned unresolved reason categories
@@ -57,12 +57,26 @@ type flags struct {
 
 // Options is the single injected value Run consumes (round 044 / ADR 0013): the
 // domain-typed Dependencies (built by the composition root) plus the ONE
-// presentation seam whose type references unexported cli types (the TUI runner).
-// A cmd package cannot name the unexported types, so RunTUIPrompt is
-// nil-defaulted INSIDE cli; the composition root populates only Deps.
+// presentation seam — the interactive TUI prompt port. Round 048 (ADR 0017)
+// replaced the unexported-typed RunTUIPrompt field with the exported domain
+// interface domaintui.Prompter (closing review-deferral F-4): the composition
+// root injects the internal/ui adapter, so internal/cli no longer imports
+// internal/ui/tui/prompt.
 type Options struct {
-	Deps         deps.Dependencies
-	RunTUIPrompt tuiPromptRunner
+	Deps     deps.Dependencies
+	Prompter domaintui.Prompter
+}
+
+// Validate reports whether every injected seam is wired, so a composition-root
+// mistake fails loudly at the boundary instead of surfacing later as a confusing
+// per-path error (round-044 F-5 precedent, extended by round 048 / ADR 0017:
+// deps.Dependencies.Validate reflects over func fields only, so it cannot cover
+// the Prompter interface seam).
+func (o Options) Validate() error {
+	if o.Prompter == nil {
+		return errors.New("cli: the interactive prompt port (Options.Prompter) is not wired")
+	}
+	return o.Deps.Validate()
 }
 
 // resolution is the outcome of resolving home → configuration → workspace. On a
@@ -160,24 +174,19 @@ type answerRenderer interface {
 
 // round 044: the history/usage/toolUsage-store, gateway and tool-registry factory
 // vars moved to cmd/tellme + deps.Dependencies; the renderer var was deleted
-// (built inline via ui.NewRenderer()) and the TUI-runner var is nil-defaulted
-// here (ADR 0013).
+// (built inline via ui.NewRenderer()) (ADR 0013). round 048 (ADR 0017): the TUI
+// runner var is gone too — the interactive prompt is reached through the
+// injected domaintui.Prompter port, with no in-package default (a nil port is a
+// loud EnvironmentError; see runTUIPrompt).
 
-// tuiPromptRunner runs the interactive TUI prompt (round 015) for one invocation
-// and returns the composed prompt text plus whether a prompt was submitted (ok).
-// It is the DI seam (PR #38 review directive ④). Round 044 (fix-1 / TD-1): the
-// signature is WIDENED with the injected dependencies so defaultRunTUIPrompt can
-// reach dp.NewPromptTracker / dp.UserHomeDir / dp.NewTUIRegistry. The widened
-// form is `dp deps.Dependencies`, NOT `opts Options` (Options contains
-// RunTUIPrompt, so an Options-typed runner would be self-referential).
-type tuiPromptRunner func(ctx context.Context, res resolution, env runtimeEnv, dp deps.Dependencies) (string, bool, error)
-
-// defaultRunTUIPrompt runs the interactive TUI prompt (round 015): it announces
-// on the diagnostic stream, drives the prompt bound to stderr/stdin through the
-// Bubble Tea runtime, and returns the composed prompt (ok) on submit. It never
-// writes to stdout (PR #38 review BLOCKER). Round 044: the prompt tracker and the
-// three-reader suggestion registry are injected via dp.
-func defaultRunTUIPrompt(ctx context.Context, res resolution, env runtimeEnv, dp deps.Dependencies) (string, bool, error) {
+// runInteractiveTUI runs the interactive TUI prompt (round 015) for one
+// invocation: it announces on the diagnostic stream, builds the multi-source
+// suggestion engine over the injected Dependencies, and drives the prompt bound
+// to stderr/stdin through the injected domain port. It returns the composed
+// prompt (ok) on submit and never writes to stdout. Round 048 (ADR 0017): the
+// terminal runtime is reached only through p — internal/cli no longer imports
+// internal/ui/tui/prompt.
+func runInteractiveTUI(ctx context.Context, res resolution, env runtimeEnv, dp deps.Dependencies, p domaintui.Prompter) (string, bool, error) {
 	_, _ = fmt.Fprintln(env.stderr, TUIHint)
 
 	tracker := dp.NewPromptTracker(res.Home, dp.UserHomeDir)
@@ -199,19 +208,19 @@ func defaultRunTUIPrompt(ctx context.Context, res resolution, env runtimeEnv, dp
 	src := tuiSource{svc: engine}
 	// No startup disk I/O: the dashboard header was retired (round-016 FR-004 /
 	// architect D3), so the history store is no longer read to build the prompt.
-	return tuiprompt.Run(ctx, env.stdin, env.stderr, src, tuiDebounceDuration())
+	return p.Run(ctx, env.stdin, env.stderr, src, tuiDebounceDuration(p))
 }
 
 // tuiDebounceDuration resolves the suggestion-refresh debounce. The hermetic E2E
 // sets TELL_ME_TUI_DEBOUNCE=0 so the scripted keys observe suggestions
-// synchronously (round-016); otherwise the reference ~100 ms applies.
-func tuiDebounceDuration() time.Duration {
+// synchronously (round-016); otherwise the port's default (~100 ms) applies.
+func tuiDebounceDuration(p domaintui.Prompter) time.Duration {
 	if v := strings.TrimSpace(os.Getenv("TELL_ME_TUI_DEBOUNCE")); v != "" {
 		if ms, err := strconv.Atoi(v); err == nil && ms >= 0 {
 			return time.Duration(ms) * time.Millisecond
 		}
 	}
-	return tuiprompt.DefaultDebounceDuration
+	return p.DefaultDebounceDuration()
 }
 
 // tuiSource adapts the suggestion engine to the prompt's Source seam, carrying
@@ -253,11 +262,19 @@ func runTUIPrompt(homeDir string, f *flags, env runtimeEnv, opts Options) int {
 	// (an aborted/empty submission owes no request — the round-012 ordering
 	// rationale). The resolution feeds the dashboard and the submit path.
 	res, _ := resolve(homeDir, f.configPath)
-	runner := opts.RunTUIPrompt
-	if runner == nil {
-		runner = defaultRunTUIPrompt
+	p := opts.Prompter
+	if p == nil {
+		// Unreachable in production: the composition root always injects the port
+		// (asserted by Options.Validate; see cmd/tellme's smoke test).
+		// [round-048 divergence — ADR 0017] Reuse the environment class phrase so the
+		// closed phrase vocabulary is not widened; the trailing detail is
+		// contract-free. The CAUSE here is a composition-root wiring fault, not an
+		// unusable home — a deliberate recorded mismatch for a future vocabulary
+		// round.
+		_, _ = fmt.Fprintf(env.stderr, "tellme: the runtime home is not usable (interactive prompt: no runner injected)\n")
+		return EnvironmentError
 	}
-	text, ok, err := runner(context.Background(), res, env, dp)
+	text, ok, err := runInteractiveTUI(context.Background(), res, env, dp, p)
 	if err != nil {
 		return emitProviderError(env.stderr, err)
 	}
@@ -404,8 +421,9 @@ func run(args []string, version string, scoped Options, env runtimeEnv) int {
 		}
 		// Round 015 — the opt-in interactive TUI prompt engages here (only when
 		// enabled AND stdin is a terminal); the plain reader below stays the
-		// default. The dispatch delegates to the tuiPromptRunner seam so the
-		// matrix is unit-testable (PR #38 review directive ④).
+		// default. The dispatch runs through the injected domaintui.Prompter port
+		// (round 048 / ADR 0017) so the matrix is unit-testable (PR #38 review
+		// directive ④).
 		if tuiRequested(homeDir, f) {
 			return runTUIPrompt(homeDir, f, env, scoped)
 		}
