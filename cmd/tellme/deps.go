@@ -19,6 +19,7 @@ import (
 	infrskills "github.com/gosharplite/tellme/internal/infrastructure/skills"
 	infratelemetry "github.com/gosharplite/tellme/internal/infrastructure/telemetry"
 	infratools "github.com/gosharplite/tellme/internal/infrastructure/tools"
+	"github.com/gosharplite/tellme/internal/ui"
 )
 
 // mcpDiscoveryBound is the fixed, small per-server MCP fast-fail deadline
@@ -31,7 +32,7 @@ const mcpDiscoveryBound = 3 * time.Second
 // built here (this package is exempt from the R1 tier table) and injected into
 // the application layer as domain-typed seams.
 func buildOptions() cli.Options {
-	return cli.Options{Deps: buildDeps()}
+	return cli.Options{Deps: buildDeps(), Prompter: ui.TUIPrompter{}}
 }
 
 // buildDeps assembles the domain-typed Dependencies value.

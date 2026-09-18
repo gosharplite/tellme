@@ -2,6 +2,8 @@ package cli
 
 import (
 	"context"
+	"io"
+	"time"
 
 	"github.com/gosharplite/tellme/internal/app/deps"
 	"github.com/gosharplite/tellme/internal/config"
@@ -9,6 +11,7 @@ import (
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/domain/metrics"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
+	domaintui "github.com/gosharplite/tellme/internal/domain/tui"
 )
 
 // defaultTestDeps returns a fully-populated, in-memory, no-op
@@ -48,9 +51,31 @@ func defaultTestDeps(mods ...func(*deps.Dependencies)) deps.Dependencies {
 	return d
 }
 
-// testOptions returns an Options with the default test deps (RunTUIPrompt left
-// nil so Run falls back to the production defaultRunTUIPrompt).
+// testOptions returns an Options with the default test deps (Prompter left nil —
+// a non-TUI test never reaches the interactive prompt; the TUI dispatch tests
+// inject fakePrompter).
 func testOptions() Options { return Options{Deps: defaultTestDeps()} }
+
+// fakePrompter is an in-package double for the domain tui.Prompter port
+// (round 048 / ADR 0017). It returns a canned result and records invocation when
+// called is non-nil.
+type fakePrompter struct {
+	result string
+	ok     bool
+	err    error
+	called *bool
+}
+
+// Run satisfies domaintui.Prompter.
+func (f fakePrompter) Run(_ context.Context, _ io.Reader, _ io.Writer, _ domaintui.Source, _ time.Duration) (string, bool, error) {
+	if f.called != nil {
+		*f.called = true
+	}
+	return f.result, f.ok, f.err
+}
+
+// DefaultDebounceDuration satisfies domaintui.Prompter.
+func (fakePrompter) DefaultDebounceDuration() time.Duration { return 100 * time.Millisecond }
 
 // depsWithGateway returns a test deps with the gateway seam bound to gw/err.
 func depsWithGateway(gw llm.Gateway, err error) deps.Dependencies {
