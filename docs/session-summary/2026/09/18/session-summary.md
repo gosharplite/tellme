@@ -306,7 +306,7 @@ Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 043 delivered/frozen; ac
 | **Grill round** (first on `tellme`) | architect ⚔ griller, seeded with `SESSION-BOOTSTRAP.md`; transcript gist https://gist.github.com/gosharplite/b3e8f0bc4d328187399cff800a738829 · summary [5723583247](https://github.com/gosharplite/tellme/pull/102#issuecomment-5723583247); **ROUND COMPLETE after Q8 — proceed with changes**; operator G1–G4 + **fixes 1–8** folded → the 7→0 DoD made reachable |
 | Implementation (PR [#104](https://github.com/gosharplite/tellme/pull/104) `8da0b88`) | `/axb-tasks` T001–T020 → `/axb-implement` all `[X]` — **baseline 8 → 1**; review `5243584043` → folds **F-1/F-2/F-3/F-5/F-9** + nits **N-1…N-4** → **certified merge-ready**, loop CLOSED |
 | Merge | PR [#102](https://github.com/gosharplite/tellme/pull/102) → `dev` `4fd57fc`; PR [#104](https://github.com/gosharplite/tellme/pull/104) → `dev` `8da0b88` (head `ba64508`); both branches deleted |
-| Closeout | `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (**23** pkgs) · topology audit PASSED (44·6·16+327·1674) · diff-level secret scan clean · `STATUS.md` refreshed + Rule-12 split (round-043 detail → `2026-09-18.md`) · **#100 CLOSED** · `go install` refreshed |
+| Closeout | `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (**23** pkgs) · topology audit PASSED (44·6·16+327·1674) · diff-level secret scan clean · `STATUS.md` refreshed + Rule-12 split (round-043 detail → `2026-09-18.md`) · **#100 CLOSED** · `go install` refreshed · **propagated `dev → main` (no-ff, `ebaeebc`)** |
 
 ### Work done
 1. **Anchor + clarify** — created [#100](https://github.com/gosharplite/tellme/issues/100) (grounded static read @ `dev` `a2fbafc`) with the seam inventory; locked **Q1–Q7**; filed the strict-scope follow-up **[#101](https://github.com/gosharplite/tellme/issues/101)**.
@@ -359,7 +359,7 @@ Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 043 delivered/frozen; ac
 
 ### Next steps
 1. Open round **`045-*`** off `dev` via `/axb-specify` — recommended: **R3 of [#92](https://github.com/gosharplite/tellme/issues/92)** (yield-policy owner + observer hook split), then **R4** (which removes the last baseline entry → 1 → 0).
-2. **Propagation `dev → main`** — **PENDING** (recorded; waits on operator approval).
+2. **Propagation `dev → main`** — **DONE (no-ff, `ebaeebc`)** (operator-approved): `git checkout main && git merge --no-ff dev && git push origin main`; `main^{tree}` == `dev^{tree}` (identical).
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
 ### PM follow-ups
