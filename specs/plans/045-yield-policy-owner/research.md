@@ -30,7 +30,7 @@ func (y YieldController) Admit()          // resume with a goroutine-drawn first
 
 - The **policy** is stated **once** in the type's doc comment: *a clear is clear-only and never resumes; restoration is a phase-boundary act (the next waiting phase, the block's `End`, or the idle-gap `Admit`) — never mid-write*.
 - A **nil** spinner is allowed and makes every method a no-op (`Enabled()` false) — the gated-off case.
-- The type is **thin by design**: it owns the *rule*, not the *mechanism*. The mechanism methods on `Spinner` become **unexported details** that only `YieldController` (and the round-040 `AdmitResume` unit pin) call.
+- The type is **thin by design**: it owns the *rule*, not the *mechanism*. The mechanism's **visibility is unchanged** — the round is behaviour-preserving; what changes is that **production** code reaches the mechanism only through `YieldController` (plus the round-040 `AdmitResume` unit pin, which still calls the still-exported method). `Stop` also stays exported (the turn teardown, called from `cli.go` — a legitimate non-yield caller). *(F-4: an earlier draft of this decision claimed the mechanism methods "become unexported details"; they did not, and ADR 0014 D3 correctly says the mechanism is untouched — this wording now agrees with it.)*
 
 **Why `internal/ui` and not `internal/cli`**: `internal/ui` is the layer that owns presentation and is where H3 already lives; a `strict de-coupling` round ([#101](https://github.com/gosharplite/tellme/issues/101)) would eventually move the port itself. Rejected: a port-level owner in `internal/cli` (the composite is a *client*) and generalising `ToolOutputCoordinator` into a turn-scoped "presentation coordinator" (a larger rewrite of the block with no R3 benefit).
 

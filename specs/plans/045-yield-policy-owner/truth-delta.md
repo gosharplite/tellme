@@ -28,7 +28,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| NOOP (checked) | `specs/truth/features/cli/**` and `specs/truth/features/cli/chat/dsl.md` | No user-facing CLI interface behaviour changes — the round is behaviour-preserving; no feature Rule, Example, step, or `DSLRow` is added or changed (the Gherkin/DSL topology audit is unchanged; the class-phrase vocabulary stays **11**). **Stale-row guard:** because the topology audit checks *feature → row* only, the tree was **grepped** for the old hook names (`BeforeToolLog`/`AfterToolLog`) — they appear only in explanatory notes (round-035/036 notes in `chat/dsl.md`), **no `DSLRow` and no step**; so the NOOP is evidenced, not assumed. | `spec.md` A1/A5; `research.md` D6 — the round-020/031/041/042/043/044 non-BDD-refactor precedent. |
+| NOOP (checked) | `specs/truth/features/cli/**` and `specs/truth/features/cli/chat/dsl.md` | No user-facing CLI interface behaviour changes — the round is behaviour-preserving; no feature Rule, Example, step, or `DSLRow` is added or changed (the Gherkin/DSL topology audit is unchanged; the class-phrase vocabulary stays **11**). **Stale-row guard (F-2, measured):** `grep -rn 'BeforeToolLog\|AfterToolLog' specs/truth/` returns **one** hit — `techstack.md`'s own round-045 sentence (this round's MODIFY); `specs/truth/features/**` (incl. `chat/dsl.md`) carries **zero**. So no truth row (and no truth note) is stale. The round-035/036 explanatory notes naming the old hooks live in their **frozen plan packages** (`specs/plans/035-…`, `036-…`), which is expected and out of scope. | `spec.md` A1/A5; `research.md` D6 — the round-020/031/041/042/043/044 non-BDD-refactor precedent. |
 
 ## Governance (ADR)
 

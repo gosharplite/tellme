@@ -30,6 +30,12 @@ package ui
 // end-of-turn clear (it is called after the loop returns and by the panic-safe
 // residue guard); a mid-turn clear is Yield. Policy recorded in ADR 0014
 // (docs/decisions/0014-yield-policy-owner.md).
+//
+// Construction sites (F-5): the owner is a value type over one pointer, and its
+// three construction sites — the two *Spinner port adapters (spinner.go) and the
+// coordinator (coordinator.go) — each build it trivially; the inlineable ctor
+// means no allocation and no escape, so "single owner" means single POLICY
+// IMPLEMENTATION, not single construction call.
 type YieldController struct{ sp *Spinner }
 
 // NewYieldController makes the turn spinner the yield policy's owner. A nil

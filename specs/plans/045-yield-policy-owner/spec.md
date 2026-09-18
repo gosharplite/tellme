@@ -143,7 +143,7 @@ As a maintainer, I want the round to be a **pure structural refactor**: under th
 
 - **FR-010**: The round MUST record the yield-policy ownership + the hook split in a new **ADR 0014** (`docs/decisions/0014-*.md` + the `docs/decisions/README.md` index row), **amending ADR 0005 D1** by reference (0005 stays `Accepted`; its index row may annotate the amendment, as round 040 did for **D7 → ADR 0009**). No ADR is superseded.
 - **FR-011**: `specs/truth/techstack.md` MUST be updated for the renamed seam + the single-owned policy (`truth-current`) — **MODIFY**, not NOOP; the affected rows are the **Agent tool loop** row (observer-seam vocabulary) and the **Turn progress spinner** row (the yield policy now has one named owner).
-- **FR-012**: Scope guard — the round MUST touch only: `internal/domain/agent/observer.go`, `internal/ui/{yield.go (new), spinner.go, coordinator.go}`, `internal/cli/composite_observer.go`, `internal/agent/agentloop.go`, the affected `_test.go` files, `docs/decisions/**`, `specs/truth/techstack.md`, and the plan package. It MUST NOT change adapter behaviour, domain business logic, flags, exit codes, or stream contracts.
+- **FR-012**: Scope guard — the round MUST touch only: `internal/domain/agent/observer.go`, `internal/ui/{yield.go (new), spinner.go, coordinator.go}`, `internal/cli/composite_observer.go`, `internal/agent/agentloop.go`, the affected `_test.go` files, `docs/decisions/**`, `specs/truth/techstack.md`, the plan package, and `STATUS.md` + the day's `session-summary.md` (the round's close-out records, per T010). It MUST NOT change adapter behaviour, domain business logic, flags, exit codes, or stream contracts.
 
 #### Non-Functional Requirements
 

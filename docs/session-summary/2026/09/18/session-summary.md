@@ -386,7 +386,7 @@ A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` S
 | Pipeline | specify ✅ · spec-by-example **NOOP** · technical-research ✅ (+ **ADR 0014**) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T010) · implement ✅ |
 | Product | `internal/ui/yield.go` (NEW — the `YieldController` owner) · `internal/domain/agent/observer.go` (the split pair) · `internal/ui/{spinner.go,coordinator.go}` · `internal/cli/composite_observer.go` · `internal/agent/agentloop.go` |
 | Verification | `make verify` **OK** (`verify-architecture` **0 new / 0 stale**, baseline **1**; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (**228 scenarios · 1698 steps**) · `go test -race ./internal/ui/...` green · topology audit **PASSED & unchanged** (44 · 16+327 · 1674) |
-| Delivery | branch `045-yield-policy-owner` (3 commits, head `6523e6d`); **PR [#106](https://github.com/gosharplite/tellme/pull/106) open — human-only merge** |
+| Delivery | branch `045-yield-policy-owner` (4 commits + the fold commit; head = the PR head — `git log --oneline dev..HEAD` and PR [#106](https://github.com/gosharplite/tellme/pull/106) are the authorities); **PR [#106](https://github.com/gosharplite/tellme/pull/106) open — human-only merge** |
 
 ### Decisions locked (round 045)
 
