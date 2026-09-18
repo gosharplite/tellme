@@ -195,7 +195,7 @@
   - Read: 本輪全部變更檔；`spec.md`/`research.md`/`truth-delta.md`；`docs/decisions/0013-composition-root-injection.md`；`tools/arch/baseline.txt`
   - 檢驗：SC-001…SC-007 逐條成立；truth MODIFY rows 與實作一致；ADR 0013 一致；無產品行為變更；每個 `deps` 欄位有 consumer；NFR-003 invariant 成立；見證重現。零問題後交付。
 
-- [X] T020 [CLOSE] 更新 STATUS + PR + 關閉 #100
+- [X] T020 [CLOSE] 更新 STATUS + PR + 關閉 #100（`STATUS.md` 已在本 PR 更新；PR #104 open；`gh issue close 100` 於 **merge 後** 由 closeout 執行）
   - Read: `specs/plans/044-composition-root-extraction/spec.md` -> Provenance；`STATUS.md`
   - 做：`STATUS.md` 記 round 044 實作交付（7→0）；`tasks.md` 勾 `[X]`；開 PR `044-implement-composition-root-extraction` → `dev`；`gh issue close 100`（交付後）。
   - 不做：不手改已 frozen 的 plan package 內容（僅回寫 task 勾選與 outcome）。
