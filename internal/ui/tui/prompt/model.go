@@ -189,7 +189,7 @@ func (m *Model) scheduleDebounce() tea.Cmd {
 // (FR-006).
 func (m *Model) computeSuggestions() {
 	if m.src == nil {
-		m.sug.set(nil)
+		m.sug.set(nil, noChoice)
 		return
 	}
 	raw := m.src.Suggest(m.ctx, m.ed.value())
@@ -199,7 +199,7 @@ func (m *Model) computeSuggestions() {
 			filtered = append(filtered, s)
 		}
 	}
-	m.sug.set(filtered)
+	m.sug.set(filtered, noChoice)
 }
 
 // View implements tea.Model: the bordered editor above the styled suggestion

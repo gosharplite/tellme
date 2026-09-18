@@ -38,36 +38,14 @@ const (
 // Name() and the sink-binding lookup cannot drift — round 034).
 const commandToolName = "execute_command"
 
-// toolOutputBox holds the command tool's bound `[Tool Output]` sink behind a
-// pointer so BindToolOutput can set it on the registry's stored (value) tool
-// (round 034 ADR 0005 D7).
-type toolOutputBox struct {
-	sink domaintools.OutputSink
-}
-
-// executeCommand runs a shell command through bash -c. The output sink sits
-// behind a pointer so a value copy (the registry's) shares the binding.
+// executeCommand runs a shell command through bash -c. The `[Tool Output]` sink
+// is injected at CONSTRUCTION (round 052, closing #115 R-2; ADR 0021): the tool
+// is born with its dependency instead of having it rebound on the registry
+// afterwards — the round-034 `toolOutputBox` pointer indirection and the
+// `BindToolOutput` registry-rebind step are gone. A nil sink (the round-031
+// assembler gate + the offline `--tool-usage` path) disables the block.
 type executeCommand struct {
-	output *toolOutputBox
-}
-
-// sink returns the bound `[Tool Output]` sink, or nil (disabled) when unset.
-func (c executeCommand) sink() domaintools.OutputSink {
-	if c.output == nil {
-		return nil
-	}
-	return c.output.sink
-}
-
-// BindToolOutput rebinds the `[Tool Output]` sink on the command tool (the
-// prompt-path wiring seam; round 034). It is a no-op when the registry carries no
-// bindable command tool (e.g. a test registry).
-func BindToolOutput(reg domaintools.Registry, sink domaintools.OutputSink) {
-	if t, ok := reg.Lookup(commandToolName); ok {
-		if c, ok := t.(executeCommand); ok && c.output != nil {
-			c.output.sink = sink
-		}
-	}
+	output domaintools.OutputSink
 }
 
 // Name is the wire-valid canonical identifier.
@@ -113,7 +91,7 @@ func (c executeCommand) Execute(ctx context.Context, arguments string, budget do
 	if b < 1 {
 		b = 1
 	}
-	return runCaptured(ctx, args.Command, b, c.sink())
+	return runCaptured(ctx, args.Command, b, c.output)
 }
 
 // newCommandProcess builds a bash -c command in its own process group (round-024
@@ -345,8 +323,11 @@ func (b *boundedBuffer) bytes() []byte {
 	return b.buf
 }
 
-// NewCommandTool returns the bash-first command tool (round-024).
-func NewCommandTool() domaintools.Tool { return executeCommand{output: &toolOutputBox{}} }
+// NewCommandTool returns the bash-first command tool (round-024), born with its
+// `[Tool Output]` sink (round 052; ADR 0021). A nil sink disables the block.
+func NewCommandTool(sink domaintools.OutputSink) domaintools.Tool {
+	return executeCommand{output: sink}
+}
 
 // Compile-time port conformance.
 var _ domaintools.Tool = executeCommand{}

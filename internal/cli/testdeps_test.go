@@ -113,9 +113,8 @@ func defaultTestDeps(mods ...func(*deps.Dependencies)) deps.Dependencies {
 		NewPromptTracker: func(string, func() (string, error)) history.PromptTracker {
 			return noopPromptTracker{}
 		},
-		NewToolRegistry:    func() domaintools.Registry { return domaintools.NewRegistry() },
+		NewToolRegistry:    func(domaintools.OutputSink) domaintools.Registry { return domaintools.NewRegistry() },
 		NewTUIRegistry:     func() domaintools.Registry { return domaintools.NewRegistry() },
-		BindToolOutput:     func(domaintools.Registry, domaintools.OutputSink) {},
 		BindSkillsCatalog:  func(domaintools.Registry, string) {},
 		NewMetricsProvider: func() metrics.SystemMetricsProvider { return nil },
 		MCPDiscoverer: func(context.Context, map[string]config.MCPServerConfig) deps.Discovery {

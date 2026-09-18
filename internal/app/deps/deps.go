@@ -53,14 +53,15 @@ type Dependencies struct {
 	NewPromptTracker func(home string, userHome func() (string, error)) history.PromptTracker
 
 	// NewToolRegistry builds the seven-tool agent registry (the agent loop's tool
-	// set). NewTUIRegistry builds the three-reader registry the `-i` suggestion
-	// source consumes — a DISTINCT, narrower set (round-044 fix-1; reusing the
-	// agent registry would change the suggested tool names).
-	NewToolRegistry func() domaintools.Registry
+	// set), with the `[Tool Output]` sink injected into the command tool at
+	// CONSTRUCTION (round 052, closing #115 R-2; ADR 0021) — the caller passes the
+	// live sink on the prompt path and nil on the offline `--tool-usage` path.
+	// NewTUIRegistry builds the three-reader registry the `-i` suggestion source
+	// consumes — a DISTINCT, narrower set (round-044 fix-1; reusing the agent
+	// registry would change the suggested tool names).
+	NewToolRegistry func(sink domaintools.OutputSink) domaintools.Registry
 	NewTUIRegistry  func() domaintools.Registry
 
-	// BindToolOutput rebinds the live `[Tool Output]` sink on the command tool.
-	BindToolOutput func(reg domaintools.Registry, sink domaintools.OutputSink)
 	// BindSkillsCatalog rebinds the list_skills catalog source over the given
 	// skills directory (the loader stays behind the composition root).
 	BindSkillsCatalog func(reg domaintools.Registry, skillsDir string)

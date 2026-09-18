@@ -53,7 +53,6 @@ func buildDeps() deps.Dependencies {
 		},
 		NewToolRegistry: newToolRegistry,
 		NewTUIRegistry:  newTUIRegistry,
-		BindToolOutput:  infratools.BindToolOutput,
 		BindSkillsCatalog: func(reg domaintools.Registry, skillsDir string) {
 			infratools.BindSkillsCatalog(reg, func() ([]domainskills.Skill, error) {
 				return infrskills.Load(skillsDir)
@@ -87,17 +86,25 @@ func buildDeps() deps.Dependencies {
 // READ-FREE (round-033 FR-009): the `list_skills` catalog source is unbound here
 // and bound on the prompt path only (round 044). Moved here from internal/cli by
 // round 044 / ADR 0013; the round-031 well-formedness gate iterates it here.
-func agentTools() []domaintools.Tool {
+func agentTools() []domaintools.Tool { return assembleAgentTools(nil) }
+
+// assembleAgentTools builds the agent tool set with the `[Tool Output]` sink
+// injected into the command tool at CONSTRUCTION (round 052, closing #115 R-2;
+// ADR 0021). agentTools() passes a nil sink (the round-031 gate and the offline
+// `--tool-usage` path never execute a tool); the prompt path passes the live
+// `prog.ToolOutput` sink.
+func assembleAgentTools(sink domaintools.OutputSink) []domaintools.Tool {
 	tools := infratools.NewFilesystemTools()
 	tools = append(tools, infratools.NewWriteTools()...)
-	tools = append(tools, infratools.NewCommandTool())
+	tools = append(tools, infratools.NewCommandTool(sink))
 	tools = append(tools, infratools.NewSkillsTool(nil))
 	return tools
 }
 
-// newToolRegistry builds the seven-tool agent registry (the agent loop's set).
-func newToolRegistry() domaintools.Registry {
-	return domaintools.NewRegistry(agentTools()...)
+// newToolRegistry builds the seven-tool agent registry (the agent loop's set),
+// with the `[Tool Output]` sink injected at construction (round 052; ADR 0021).
+func newToolRegistry(sink domaintools.OutputSink) domaintools.Registry {
+	return domaintools.NewRegistry(assembleAgentTools(sink)...)
 }
 
 // newTUIRegistry builds the three-reader registry the `-i` suggestion source

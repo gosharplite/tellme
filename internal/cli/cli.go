@@ -642,11 +642,32 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
+	// Round-019 elapsed epoch: the spinner's turn-scoped timer starts at prompt
+	// capture — the moment the input-capture acknowledgement fires (research D4).
+	turnStart := env.now()
+
+	// Round 019 — the live progress spinner: a diagnostic-stream-only indicator
+	// that labels / clears / restores per waiting phase. Round 051 (R5.5 of #92;
+	// ADR 0020): the spinner + the `[Tool Output]` coordinator are built behind
+	// the injected domain seam (deps.NewProgress) — internal/cli names no
+	// internal/ui type. A nil indicator means the spinner is gated off.
+	// Round 052 (closes #115 R-2; ADR 0021): the progress object is built BEFORE
+	// the registry so its `[Tool Output]` sink can be injected at the command
+	// tool's construction (no post-construction rebind).
+	prog := dp.NewProgress(env.stderr, env.now, res.Provider.Model, turnStart, stderrColumns(env), toolOutputIdleGap(dp.NewLines()), spinnerGate(opts, env.stderrIsTerminal()))
+	ind := prog.Indicator
+	if ind != nil {
+		defer ind.Stop() // panic-safe residue guard (idempotent)
+	}
+
 	// Pre-flight payload status (round-009 FR-001): the estimated size of the
 	// assembled conversation — the resumed turns (via the shared projection,
 	// including tool steps — TD-1) plus the current prompt — measured against the
 	// payload budget. Diagnostic only, on stderr.
-	reg := dp.NewToolRegistry()
+	// Round 052 (closes #115 R-2; ADR 0021): the registry is built with the
+	// `[Tool Output]` sink injected at construction (`prog.ToolOutput`) — the
+	// round-034 `BindToolOutput` rebind no longer exists.
+	reg := dp.NewToolRegistry(prog.ToolOutput)
 	// Round 033 (FR-009): bind the `list_skills` catalog source on the
 	// prompt-bearing turn path ONLY — the runtime home is resolved here. The load
 	// stays lazy (inside the tool's Execute), so no registration reads docs/skills
@@ -654,9 +675,6 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	dp.BindSkillsCatalog(reg, home.SkillsDir(res.Home))
 	// Round 034: the per-prompt pre-flight line is retired in favour of the
 	// per-call estimate computed by the call renderer from the loop's messages.
-	// Round-019 elapsed epoch: the spinner's turn-scoped timer starts at prompt
-	// capture — the moment the input-capture acknowledgement fires (research D4).
-	turnStart := env.now()
 	// Round-017 turn chrome: a prompt-bearing turn opens with the input-capture
 	// acknowledgement and the rule/header frame, wrapping the pre-flight payload
 	// line. It is true for the positional / piped / Ctrl+D reader surfaces and —
@@ -685,16 +703,6 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// deferred past the answer (G5). The loop fires the call hooks.
 	renderer := newCallRenderer(env, res, reg, opts.chrome, turnNumber(prior)-1, dp)
 
-	// Round 019 — the live progress spinner: a diagnostic-stream-only indicator
-	// that labels / clears / restores per waiting phase. Round 051 (R5.5 of #92;
-	// ADR 0020): the spinner + the `[Tool Output]` coordinator are built behind
-	// the injected domain seam (deps.NewProgress) — internal/cli names no
-	// internal/ui type. A nil indicator means the spinner is gated off.
-	prog := dp.NewProgress(env.stderr, env.now, res.Provider.Model, turnStart, stderrColumns(env), toolOutputIdleGap(dp.NewLines()), spinnerGate(opts, env.stderrIsTerminal()))
-	ind := prog.Indicator
-	if ind != nil {
-		defer ind.Stop() // panic-safe residue guard (idempotent)
-	}
 	// Round 034 (ADR 0005 D1): the loop keeps a single observer — the composite
 	// composes the per-call block renderer with the round-019 spinner.
 	observer := compositeObserver{call: renderer, spinner: ind}
@@ -725,13 +733,12 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		// supplied through the spec.
 		Observer: observer,
 	})
-	// Round 034 (FR-010) + round 040 (ADR 0009 D3/D4): bind the live `[Tool Output]`
-	// sink on the prompt path through the injected progress seam (round 051; F-8:
-	// the coordinator satisfies domaintools.OutputSink directly). The block renders
-	// unconditionally; the coordinator owns the writer + the spinner and applies the
-	// WS-A idle-gap liveness (mutual exclusion + join), superseding the round-034
-	// whole-block pause (ADR 0005 D7, superseded).
-	dp.BindToolOutput(reg, prog.ToolOutput)
+	// Round 052 (closes #115 R-2; ADR 0021): the `[Tool Output]` sink is now
+	// injected into the command tool at CONSTRUCTION (via dp.NewToolRegistry
+	// above) — the round-034 post-construction `dp.BindToolOutput(reg, …)` rebind
+	// is gone. The block renders unconditionally; the coordinator owns the writer
+	// + the spinner and applies the WS-A idle-gap liveness (mutual exclusion +
+	// join; ADR 0009 D3/D4, superseding the round-034 whole-block pause).
 	result, err := loop.Run(ctx, prompt, prior)
 	if ind != nil {
 		// Synchronous clear before any interleaved write (the answer, the
@@ -896,8 +903,10 @@ func dispatchReporting(f *flags, homeDir string, env runtimeEnv, newHistoryStore
 // diagnostic stream (the report path is offline, so stderr is free), so an
 // unreadable log is distinguishable from "no tool ever used"; the all-zero report
 // still prints and the command succeeds.
-func renderToolUsage(env runtimeEnv, newToolRegistry func() domaintools.Registry, newToolUsageStore func(func() (string, error)) history.ToolUsageStore, userHome func() (string, error), lines render.Lines) int {
-	reg := newToolRegistry()
+func renderToolUsage(env runtimeEnv, newToolRegistry func(domaintools.OutputSink) domaintools.Registry, newToolUsageStore func(func() (string, error)) history.ToolUsageStore, userHome func() (string, error), lines render.Lines) int {
+	// The offline report never executes a tool, so the registry is built with a
+	// nil `[Tool Output]` sink (round 052; ADR 0021).
+	reg := newToolRegistry(nil)
 	tools := reg.Tools()
 	counts, err := newToolUsageStore(userHome).Aggregate()
 	if err != nil {
