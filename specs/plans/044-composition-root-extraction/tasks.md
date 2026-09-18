@@ -41,7 +41,7 @@
 
 **Goal**: 只建立後續實作程式、測試共用元件、入口、fixture、helper 與落點骨架，讓 Phase 3 不各自重開檔、不各自發明注入方式。**不寫**產品行為語意、**不**移除任何 import 邊。
 
-- [ ] T001 新套件 `internal/app/deps`：定義 domain-typed `Dependencies` 骨架
+- [X] T001 新套件 `internal/app/deps`：定義 domain-typed `Dependencies` 骨架
   - Read:
     - `truth-delta.md` -> `/axb-technical-research` MODIFY（Composition root row）
     - `specs/plans/044-composition-root-extraction/research.md` -> D2；`docs/decisions/0013-composition-root-injection.md` -> D2
@@ -49,7 +49,7 @@
   - 只做：新增 `internal/app/deps/deps.go`，宣告 `type Dependencies struct { … }`，欄位與型別**依 D2 清單**（domain-typed only：`internal/domain/**`、`internal/config`、`internal/home`、stdlib），**含** `NewTUIRegistry` 與 argument-taking 的 `NewToolUsageStore`/`NewPromptTracker` 簽名。
   - 不做：不寫 `cmd/tellme` 的組裝（T008）；不移除任何 var/import（Phase 3）；不引用 `internal/ui`/`internal/agent`（tier-2 上限）。
 
-- [ ] T002 `internal/domain/tools`：新增 `OutputSink` port 骨架
+- [X] T002 `internal/domain/tools`：新增 `OutputSink` port 骨架
   - Read:
     - `truth-delta.md` -> `/axb-technical-research` MODIFY（execute_command row）
     - `research.md` -> D3；`docs/decisions/0013-composition-root-injection.md` -> D3
@@ -57,7 +57,7 @@
   - 只做：在 `internal/domain/tools` 宣告 `type OutputSink struct { Begin func() ; Writer io.Writer ; End func() }` 與 `func (s OutputSink) Enabled() bool { return s.Writer != nil }`（`io` 為 stdlib，RULE-C 允許）。
   - 不做：不改 `internal/infrastructure/tools` 的 binder（T006）；不改任何呼叫端（Phase 3）；不動 round-034/038/039/040 渲染行為。
 
-- [ ] T003 `internal/cli`：`Options` 骨架 + `Run(args, version, opts)` 簽名 + `flags` 更名落點
+- [X] T003 `internal/cli`：`Options` 骨架 + `Run(args, version, opts)` 簽名 + `flags` 更名落點
   - Read:
     - `truth-delta.md` -> `/axb-technical-research` MODIFY（Composition root row）
     - `research.md` -> D2；`docs/decisions/0013-composition-root-injection.md` -> D2；`spec.md` -> Q6 / FR-007
@@ -65,28 +65,28 @@
   - 只做：新增 `type Options struct { Deps deps.Dependencies ; RunTUIPrompt tuiPromptRunner }`；把 `Run` 簽名改為 `Run(args []string, version string, opts Options) int`；**加寬** `tuiPromptRunner` 至 `(ctx, res resolution, env runtimeEnv, dp deps.Dependencies) (string, bool, error)`；`Options.RunTUIPrompt == nil` 時在 `cli` 內 fallback 到 `defaultRunTUIPrompt`；把 parsed-flags struct `options` **更名為 `flags`**（機械更名，全檔一致）。
   - 不做：不移除任何 package-level var（T010）；不改 `agentTools()`／registry（T007）；不改任何 flag 行為或輸出。
 
-- [ ] T004 `internal/cli`：共用 in-memory 測試 fixture `defaultTestDeps`（**RF-1**）
+- [X] T004 `internal/cli`：共用 in-memory 測試 fixture `defaultTestDeps`（**RF-1**）
   - Read:
     - `research.md` -> D5（migration table + RF-1）；`spec.md` -> NFR-003
     - `internal/cli/turn_test.go`（既有 `fakeStore`/`factoryReturning`/`env` helpers）、`internal/cli/persistence_invariant_test.go`（`noopUsageStore`/`capturingUsageStore`）、`internal/cli/cli_test.go`
   - 只做：新增 `internal/cli/testdeps_test.go`（in-package）內 `func defaultTestDeps(modifiers ...func(*deps.Dependencies)) deps.Dependencies`，回傳**完整填充、no-op、in-memory** 的 bag（fake gateway；`fakeStore`/`capturingUsageStore`/`noopUsageStore`/`noopPromptTracker`；兩個 registry func 回空 `domaintools.NewRegistry()`；no-op binders；nil metrics provider；no-op `MCPDiscoverer`；**non-nil** `UserHomeDir`），可被 `modifiers` 覆寫。
   - 不做：**不得** import `internal/infrastructure/*`（NFR-003）；不寫產品行為；不改既有測試（Phase 3 才改建）。
 
-- [ ] T005 `internal/infrastructure/mcp`：`Discover` 落點骨架
+- [X] T005 `internal/infrastructure/mcp`：`Discover` 落點骨架
   - Read:
     - `research.md` -> D4；`docs/decisions/0013-composition-root-injection.md` -> D4
     - `internal/cli/mcp_discovery.go`（`discover`/`discoverServer`/`serverResult`/`mcpRun`/`defaultMCPDiscovery`）
   - 只做：在 `internal/infrastructure/mcp` 新增 `discovery.go`，宣告 `func Discover(ctx context.Context, servers map[string]config.MCPServerConfig, bound time.Duration, newClient … , resolveToken …) ([]domaintools.Tool, []string, func())`（型別由 `internal/cli` 現用者決定，供 `deps.MCPDiscoverer` 對接）。
   - 不做：不移除 `internal/cli/mcp_discovery.go`（T009）；不改 3 s bound／concurrency／warn+skip 語意；不讓 `mcp` import `di`。
 
-- [ ] T006 `internal/infrastructure/tools`：`BindToolOutput` 改接 `domaintools.OutputSink` 落點
+- [X] T006 `internal/infrastructure/tools`：`BindToolOutput` 改接 `domaintools.OutputSink` 落點
   - Read:
     - `research.md` -> D3/D11；`truth-delta.md` -> execute_command row
     - `internal/infrastructure/tools/command.go`（`ToolOutputSink` 5 處參照）、`tooloutput.go`
   - 只做：把 `command.go`／`tooloutput.go` 的 `ToolOutputSink` 型別改名為 `domaintools.OutputSink`（欄位/method 一對一）；`BindToolOutput` 簽名改接 `domaintools.OutputSink`。
   - 不做：不改 4 個 `Enabled()` 呼叫點的**語意**（仍 `sink.Writer != nil` 判 disabled）；不改渲染行為（rounds 034/038/039/040）；不改 `internal/cli` 呼叫端（Phase 3）。
 
-- [ ] T007 `cmd/tellme`：組裝根落點骨架（含 `agentTools()`/`newToolRegistry` 搬入點）
+- [X] T007 `cmd/tellme`：組裝根落點骨架（含 `agentTools()`/`newToolRegistry` 搬入點）
   - Read:
     - `research.md` -> D3/D5；`docs/decisions/0013-composition-root-injection.md` -> D1/D3
     - `cmd/tellme/main.go`、`internal/cli/cli.go`（`agentTools()` @ :1152、`newToolRegistry` @ :1124、`bindSkillsCatalog` @ :1169）
@@ -115,63 +115,63 @@
 **Parallel Hint**:
 - T008–T012 具**共享產品檔**（`internal/cli/cli.go`、`call_renderer.go`、`cmd/tellme`）⇒ **同檔序列調度**（不可全並行）；T013/T014 可各自獨立檔並行；T015 review 等全部回來再啟動。
 
-- [ ] T008 gateway + stores seam：注入 `dp.NewGateway`/stores/prompt-tracker
+- [X] T008 gateway + stores seam：注入 `dp.NewGateway`/stores/prompt-tracker
   - Read:
     - `research.md` -> D2/D5；`spec.md` -> FR-003
     - `internal/cli/cli.go`（`newGateway` @ :619、`newHistoryStore`/`newUsageStore`/`newToolUsageStore`/`userHomeDir`、`renderTurn` @ :642、`resolve` @ :485）、`internal/cli/call_renderer.go`（`newUsageStore` @ :65/:196）
   - 做：將 gateway/stores/prompt-tracker 的建構改由 `dp` 提供（`renderTurn` 由 `dp.NewGateway` 取 `factory`）；stores 由 `dp.NewHistoryStore`/`dp.NewUsageStore`/`dp.NewToolUsageStore(dp.UserHomeDir)`/`dp.NewPromptTracker(res.Home, dp.UserHomeDir)`；`renderTurn`/`renderToolUsage`/`renderHistoryList`/`renderNewSession`/`newCallRenderer`/`persistTurnUsage` 收 `dp`。移除 `infrhistory`/`infrallm` 之行內建構。
   - 不做：不動 flags/輸出；不動 `agentTools()`（T007）；不改 adapter 行為。
 
-- [ ] T009 MCP discovery 抽取：`internal/cli/mcp_discovery.go` → `internal/infrastructure/mcp.Discover`
+- [X] T009 MCP discovery 抽取：`internal/cli/mcp_discovery.go` → `internal/infrastructure/mcp.Discover`
   - Read:
     - `research.md` -> D4/D8；`truth-delta.md` -> MCP rows；`spec.md` -> FR-006
     - `internal/cli/mcp_discovery.go`、`internal/infrastructure/mcp/**`、`internal/infrastructure/di/mcp_factory.go`
   - 做：把 `discover`/`discoverServer`/`serverResult`/`mcpRun`/`mcp.*` 呼叫整段搬入 `internal/infrastructure/mcp`（`Discover`，`di` 建構子以參數傳入）；刪除 `internal/cli/mcp_discovery.go`；`augmentRegistryWithMCP` 改收 `dp` 並呼叫 `dp.MCPDiscoverer`（保留 merge + warn 列印）；`cmd/tellme` 以 `di.NewRemoteClient`/`di.NewGhTokenResolver(bound)` 綁 `MCPDiscoverer`。移除 `internal/cli` 的 `infrastructure/di`＋`infrastructure/mcp` import。
   - 不做：不改 3 s bound／並行／warn+skip／prompt-path-only 語意；不讓 SDK 外洩（`verify-mcp-sdk-confinement` 保持綠）。
 
-- [ ] T010 刪除 `internal/cli` 全部 8 個 package-level var + `defaultMCPDiscovery`；renderer inline
+- [X] T010 刪除 `internal/cli` 全部 8 個 package-level var + `defaultMCPDiscovery`；renderer inline
   - Read:
     - `research.md` -> D5；`spec.md` -> FR-007/SC-002；`docs/decisions/0013-composition-root-injection.md` -> D2/D3
     - `internal/cli/cli.go`（:155–619, :1124 各 var）
   - 做：刪 `newGateway`/`newHistoryStore`/`newUsageStore`/`newToolUsageStore`/`newToolRegistry`/`newRenderer`/`newTUIPromptRunner`/`userHomeDir` 與 `mcp_discovery.go` 的 `defaultMCPDiscovery`；`newRenderer` 改 inline `ui.NewRenderer()`（單一 site @ `cli.go:319`）；移除失敗的 doc comment。
   - 不做：不改任何 flag/輸出；不留任何 package-level var；不引入新相依。
 
-- [ ] T011 tool assembly seam：`agentTools()`/`newToolRegistry` 搬 `cmd/tellme`；注入 `NewToolRegistry`/`NewTUIRegistry`/`BindToolOutput`/`BindSkillsCatalog`
+- [X] T011 tool assembly seam：`agentTools()`/`newToolRegistry` 搬 `cmd/tellme`；注入 `NewToolRegistry`/`NewTUIRegistry`/`BindToolOutput`/`BindSkillsCatalog`
   - Read:
     - `research.md` -> D2/D3；`spec.md` -> FR-003/FR-004/FR-005、fix-1；`truth-delta.md` -> Skills row / execute_command row
     - `internal/cli/cli.go`（`agentTools()` @ :1152、`newToolRegistry` @ :1124、`bindSkillsCatalog` @ :1169、`-i` registry @ :229）
   - 做：把 `agentTools()`（**parameterless、read-free、non-overridable**）＋ 7-tool `newToolRegistry` ＋ TUI **3-reader** registry 搬入 `cmd/tellme`；`runTurn` 改 `opts.Deps.NewToolRegistry()`、`dp.BindToolOutput(reg, domaintools.OutputSink{Begin/Writer/End})`（sink 仍由 `ui.NewToolOutputCoordinator` 建，legal）、`dp.BindSkillsCatalog(reg, home.SkillsDir(res.Home))`；移除 `infratools`/`infrskills` import。
   - 不做：不讓 `agentTools()` 吃參數或讀檔；不讓 TUI 用 7-tool registry（語意會變）；不改 `-i`/offline `--tool-usage` 契約。
 
-- [ ] T012 threading + TUI runner 加寬 + metrics leaf
+- [X] T012 threading + TUI runner 加寬 + metrics leaf
   - Read:
     - `research.md` -> D2（threading）/D12；`spec.md` -> FR-007、fix-5；`docs/decisions/0013-composition-root-injection.md` -> D2
     - `internal/cli/cli.go`（`run` @ :371、`runTurn` @ :665、`runTUIPrompt` @ :286、`defaultRunTUIPrompt` @ :216、`newTurnSpinner` @ :865）
   - 做：`dp` 貫穿 `run`/`runTurn`/`dispatchReporting`/`renderToolUsage`/`renderHistoryList`/`renderNewSession`/`newCallRenderer`/`persistTurnUsage`/`runTUIPrompt`；`runTUIPrompt` 與 `defaultRunTUIPrompt` 改收 `dp`（runner 加寬）；`defaultRunTUIPrompt` 用 `dp.NewPromptTracker`/`dp.UserHomeDir`/`dp.NewTUIRegistry`（移除行內 `infrhistory`/`infratools`）；`newTurnSpinner` 收 `dp`，**`dp.NewMetricsProvider` 讀取保留在 `spinnerGate` 之後**；移除 `infratelemetry` import。
   - 不做：不動 spinner 呈現/時序；不在 `spinnerGate` 之前建 metrics provider；不改 `-i` teardown/resume。
 
-- [ ] T013 測試 seam 遷移（`dp`/`Options`/`defaultTestDeps`），**不** import infra
+- [X] T013 測試 seam 遷移（`dp`/`Options`/`defaultTestDeps`），**不** import infra
   - Read:
     - `research.md` -> D5（migration table）、RF-1/RF-2；`spec.md` -> FR-007 / NFR-003
     - 各 `internal/cli/*_test.go`（`turn_test.go`、`prompt_multiline_test.go`、`persistence_invariant_test.go`、`tui_submit_chrome_test.go`、`tui_dispatch_test.go`、`cli_test.go`）
   - 做：以 `defaultTestDeps` 改建所有曾改 var 的測試：`turn_test.go`（8 個 `runTurn` 站）、`persistence_invariant_test.go`（3）、`tui_submit_chrome_test.go`/`tui_dispatch_test.go`（`run`/`runTurn`/gateway/TUI runner 站）、`prompt_multiline_test.go`（5 個 `run` 站；兩個 archive-path 站建 `fakeStore`/`capturingUsageStore` double）；`cli_test.go` 的 `TestRenderToolUsageDiagnosesReadError` **就地**改注入 failing `ToolUsageStore` double（**不搬**）。`env()`/`factoryReturning` 改傳 `dp`。
   - 不做：不讓任何測試檔 import `internal/infrastructure/*`（NFR-003）；不改測試斷言的**行為語意**；不新增/刪除 scenario。
 
-- [ ] T014 round-031 assembler gate 搬 `cmd/tellme` + `mcp_discovery_test.go` fakes 搬 `internal/infrastructure/mcp`
+- [X] T014 round-031 assembler gate 搬 `cmd/tellme` + `mcp_discovery_test.go` fakes 搬 `internal/infrastructure/mcp`
   - Read:
     - `research.md` -> D5；`spec.md` -> FR-004/SC-003、fix-8
     - `internal/cli/tool_registry_test.go`、`internal/cli/mcp_discovery_test.go`、`cmd/tellme/**`
   - 做：把 `tool_registry_test.go`（含 `schemaWellFormed` + `TestAgentToolSchemasAreWellFormed` + registry 名稱 cross-check）**搬**到 `cmd/tellme`，仍 iterate **非可覆寫** `agentTools()`；`mcp_discovery_test.go` 的 fakes 搬為 `internal/infrastructure/mcp` 對 `Discover` 的測試；`cmd/tellme` 測試 = assembler gate + **deps-construction smoke**（**無** stream 斷言，fix-8）。
   - 不做：不弱化 assembler gate（仍 parameterless/read-free/non-overridable + 名稱 cross-check）；不在 `cmd/tellme` 測試做 stream 斷言。
 
-- [ ] T015 baseline ratchet：重生成 `tools/arch/baseline.txt`（8 → 1）
+- [X] T015 baseline ratchet：重生成 `tools/arch/baseline.txt`（8 → 1）
   - Read:
     - `spec.md` -> FR-008 / SC-001；`research.md` -> D6；`tools/arch/baseline.txt`；`docs/decisions/0011-layer-discipline-gate.md` -> baseline policy
     - `Makefile` -> `verify-architecture` / `verify-architecture-update`
   - 做：以 `make verify-architecture-update` **重生成** baseline（不得手改）；確認 7 條 `internal/cli -> internal/infrastructure/*` 逐條消失、僅餘 `internal/agent -> internal/ui`；`make verify-architecture` **綠**（0 new / 0 stale / 0 cycles）。
   - 不做：不手改任一 baseline 行；不為綠而保留已不違規的 stale 條目。
 
-- [ ] T016 subagent review (phase quality gate)
+- [X] T016 subagent review (phase quality gate)
   - Read: 本輪全部變更檔；`research.md` D1–D12b；`docs/decisions/0013-composition-root-injection.md`；`tools/arch/baseline.txt`
   - 檢驗：`internal/cli` 已**無** `internal/infrastructure/*` import（gate 證據）；`agentTools()` 性質保持；`OutputSink.Enabled()` 存在且 4 站語意不變；`dp` threading 完整（含 `newTurnSpinner` 之 gate-after-read）；TUI 3-reader registry；測試檔未 import infra；無 flag/輸出變更。有 issues 修正再 review，直到零問題。通過前不解鎖 Phase 4。
 
@@ -181,21 +181,21 @@
 
 **Test Scope**: `tools/arch/**`（`-tags=arch`）；`go test -count=1 ./...`（unit + godog E2E）；`make verify`；Gherkin/DSL topology audit。
 
-- [ ] T017 [REGRESSION] 可偽性見證：重引 1 條 edge ⇒ 紅；還原 ⇒ 綠（SC-007）
+- [X] T017 [REGRESSION] 可偽性見證：重引 1 條 edge ⇒ 紅；還原 ⇒ 綠（SC-007）
   - Read: `spec.md` -> FR-012/SC-007；`research.md` -> D10；`docs/decisions/0010-test-deadline-decoupling.md`（見證 doctrine）
   - 做：(a) 暫時在 `internal/cli` 重新引入一個 `internal/infrastructure/*` import ⇒ `make verify-architecture` **紅**並指名 `internal/cli -> internal/infrastructure/*`；還原 → 綠。(b) 暫時還原 1 條已移除的 baseline 行（其違規已不存在）⇒ gate 回報 **stale** 紅；還原 → 綠。
   - 不做：不放寬 assertion；見證後必須還原到 HEAD。
 
-- [ ] T018 [REGRESSION] 全量回歸 + `make verify` + topology audit + 行為/範圍檢查
+- [X] T018 [REGRESSION] 全量回歸 + `make verify` + topology audit + 行為/範圍檢查
   - Read: `research.md` -> D3/D10；`spec.md` -> FR-009/NFR-004；`specs/truth/techstack.md`（本輪 MODIFY rows）
   - 做：`make verify` **OK**（`verify-architecture` 7→0、`verify-mcp-sdk-confinement` 綠、cross-compile 4/4、lint 0、govulncheck clean）；`go test -count=1 ./...` 全綠（含 E2E）；Gherkin/DSL topology audit **unchanged**（44 · 6 · 16+327 · 1674）；`stdout` byte-exact（spot + E2E）；`gofmt -l .` clean；`git diff --name-only origin/dev..HEAD` 僅動 `internal/cli/**`、`internal/app/deps/**`、`internal/domain/tools/**`、`internal/infrastructure/{mcp,tools}/**`、`cmd/tellme/**`、`tools/arch/baseline.txt`、`docs/decisions/**`、`specs/truth/techstack.md`、plan package；`go.mod`/`go.sum` 不變。
   - 不做：不為綠而放寬 assertion／改產品碼／手改 baseline。
 
-- [ ] T019 subagent review (round quality gate)
+- [X] T019 subagent review (round quality gate)
   - Read: 本輪全部變更檔；`spec.md`/`research.md`/`truth-delta.md`；`docs/decisions/0013-composition-root-injection.md`；`tools/arch/baseline.txt`
   - 檢驗：SC-001…SC-007 逐條成立；truth MODIFY rows 與實作一致；ADR 0013 一致；無產品行為變更；每個 `deps` 欄位有 consumer；NFR-003 invariant 成立；見證重現。零問題後交付。
 
-- [ ] T020 [CLOSE] 更新 STATUS + PR + 關閉 #100
+- [X] T020 [CLOSE] 更新 STATUS + PR + 關閉 #100
   - Read: `specs/plans/044-composition-root-extraction/spec.md` -> Provenance；`STATUS.md`
   - 做：`STATUS.md` 記 round 044 實作交付（7→0）；`tasks.md` 勾 `[X]`；開 PR `044-implement-composition-root-extraction` → `dev`；`gh issue close 100`（交付後）。
   - 不做：不手改已 frozen 的 plan package 內容（僅回寫 task 勾選與 outcome）。
@@ -241,3 +241,31 @@
 | PR #102 certificaton handoff（merge → impl branch → tasks → implement） | T020（PR/close #100） | PASS |
 
 > 孤立產物件數：0。掃描通過，准予交付。
+
+---
+
+## Execution outcome (T001–T020)
+
+**Delivered** (round-044 implementation half; **behaviour-preserving**; `go.mod`/`go.sum` unchanged):
+
+- **`internal/app/deps/deps.go`** (NEW) — the domain-typed `Dependencies` (12 fields; `NewTUIRegistry`; argument-taking `NewToolUsageStore`/`NewPromptTracker`).
+- **`internal/domain/tools/outputsink.go`** (NEW) — `domaintools.OutputSink` struct + `Enabled()` method.
+- **`internal/infrastructure/mcp/discovery.go`** (NEW) — `mcp.Discover` (the orchestration; the `di` constructors passed in); `mcp.ClientFactory`.
+- **`cmd/tellme/deps.go`** (NEW) + **`main.go`** — the composition root (`buildDeps`/`buildOptions`, `agentTools()` relocated, `newToolRegistry`/`newTUIRegistry`); `main` calls `cli.Run(args, version, buildOptions())`.
+- **`internal/cli/cli.go`** — `Options{Deps; RunTUIPrompt}`; `Run(args, version, opts)`; the `tuiPromptRunner` + `defaultRunTUIPrompt`/`runTUIPrompt` widened with `dp`; `flags` rename; `dp` threaded through `run`/`runTurn`/`renderTurn`/`dispatchReporting`/`renderToolUsage`/`renderHistoryList`/`renderNewSession`/`newTurnSpinner`; **all 8 package-level factory vars + `defaultMCPDiscovery` deleted**; `newRenderer` inlined (`ui.NewRenderer()`).
+- **`internal/cli/call_renderer.go`** — `newCallRenderer`/`persistTurnUsage` take `dp`.
+- **`internal/infrastructure/tools/`** — `command.go` re-signed on `domaintools.OutputSink`; **`tooloutput.go` deleted** (the type moved to the domain).
+- **Tests**: `cmd/tellme/deps_test.go` (relocated assembler gate + registry tests + deps smoke); `internal/infrastructure/mcp/discovery_test.go` (the discovery fakes); `internal/cli/testdeps_test.go` (**RF-1** `defaultTestDeps`); migrated `turn_test.go`/`persistence_invariant_test.go`/`cli_test.go`/`prompt_multiline_test.go`/`tui_dispatch_test.go`/`tui_submit_chrome_test.go`; deleted `internal/cli/tool_registry_test.go` + `internal/cli/mcp_discovery_test.go`.
+- **`tools/arch/baseline.txt`** — regenerated from the gate: **8 → 1** (only `internal/agent -> internal/ui` remains; the 7 `internal/cli -> internal/infrastructure/*` edges are gone).
+
+### Verification (evidence)
+
+- **The gate proves it**: `make verify-architecture` **green** with the 7 `internal/cli -> internal/infrastructure/*` baseline entries **removed** (0 new / 0 stale / 0 cycles).
+- **`make verify`** — **OK** (verify-architecture · verify-mcp-sdk-confinement · cross-compile 4/4 · lint 0 · govulncheck clean).
+- **`go test -count=1 ./...`** — **green** (unit + godog E2E; 22 packages, 0 FAIL).
+- **Falsifiability witness (SC-007)** — (a) re-introducing a `internal/cli -> internal/infrastructure/history` import ⇒ gate **FAIL** naming it; reverted ⇒ green. (b) a **stale** baseline line (`internal/cli -> internal/infrastructure/history`) ⇒ gate **FAIL** ("remove them from the baseline"); reverted ⇒ green.
+- **`gofmt -l .`** clean; **`go.mod`/`go.sum` unchanged**; `specs/truth/features/**` untouched (topology audit unchanged: 44 · 6 · 16+327 · 1674).
+
+### Deviation (disclosed)
+
+The Parallel-Hint subagent dispatch for Phase 3 (`T008`–`T015`) ran **inline** (sequential, single orchestrator) — the round-029/041/042 precedent: this session has no parallel-subagent substrate. The `[P]`/Hint semantics are otherwise honoured (independent-file test migrations were completed and reviewed).
