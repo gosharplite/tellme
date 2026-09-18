@@ -745,3 +745,26 @@ A session on 2026-09-18: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round
 ### PM follow-ups
 
 - None new (no user-facing business journey — a structural de-coupling; the spec/acceptance boundary is RD-side).
+
+### Session 22 (cont.) — round 048 **DELIVERED** (PR #111 merged into `dev` `822e171`) + `SESSION-CLOSEOUT.md` (Steps 1–8) + `go install`
+
+The delivery + end-of-day closeout for round 048: PR [#111](https://github.com/gosharplite/tellme/pull/111) was **human-merged** into `dev` and the remote + local round branches deleted; the installed binary was refreshed; and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#111](https://github.com/gosharplite/tellme/pull/111) **MERGED** into `dev` (`822e171`, by `thptcnec`, 2026-09-18T09:05:13Z); frozen head **`36493a2`**; remote branch deleted → local branch deleted (`git branch -D`); `dev` fast-forwarded to `822e171` |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `822e171`; `--version` → `dev` |
+| Closeout Step 1 | Tree clean on `dev` (= `origin/dev`); no stray files; no frozen plan package touched |
+| Closeout Step 2 | `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (RULE-E **0 new / 0 stale**, baseline **2**; RULE-A/B/C 0; 0 cycles; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (incl. the ~61 s godog E2E) · diff-level secret scan clean · `go.mod`/`go.sum` unchanged · `specs/truth/features/**` untouched |
+| Closeout Step 3 | `STATUS.md` → round 048 **DELIVERED / FROZEN**; the **round-047 delivered-round detail + its branch-model row** and the **round-046 environment note** relocated **verbatim** into `docs/archives/status/2026-09-18.md` (Rule 12); header/branch-model/roadmap/open-items/env updated; the **round-048 Fold ledger row** added (review fold reviewer's **N-A**: `e9c9ea2 → 36493a2`) |
+| Closeout Step 4 | this section (session 22 closeout) |
+| Closeout Step 5 | `STATUS.md` ↔ this log reconciled (same round position, heads, decisions, open items) |
+| Closeout Step 6 | committed + pushed on `dev` |
+| Closeout Step 7 | **propagated** `dev → main` (no-ff) |
+| Closeout Step 8 | issue tracker reconciled — **nothing to close** (round 048 delivered a slice of the already-open programme [#101](https://github.com/gosharplite/tellme/issues/101); its body already carries the R5.2 delivery record + F-4 CLOSED); [#101](https://github.com/gosharplite/tellme/issues/101)/[#92](https://github.com/gosharplite/tellme/issues/92)/[#103](https://github.com/gosharplite/tellme/issues/103)/[#91](https://github.com/gosharplite/tellme/issues/91)/[#13](https://github.com/gosharplite/tellme/issues/13) left open (accurate) |
+
+**Commits**: PR #111 merge `822e171` (by `thptcnec`) · *(this closeout, on `dev`)* `docs(048)`: day close — round 048 delivered + STATUS split + daily summary · propagation `dev → main` (no-ff).
+
+**Next steps**: open round **`049-*`** off `dev` — recommended: the next **R5.x** de-coupling slice (the `internal/cli → internal/ui` edge is the natural next; the `cli → agent` edge is the deepest), **carrying the ADR 0017 §Forward sizing caution** (the `cli → ui` edge is ~20 call sites / 3 crossing value types / 4 stateful objects / 8 formatters → likely a re-cut: value types → `internal/domain/**` first). Re-read `SESSION-BOOTSTRAP.md` next session.
+
+**PM follow-ups**: none new (no user-facing business journey — a structural de-coupling; the spec/acceptance boundary is RD-side).
