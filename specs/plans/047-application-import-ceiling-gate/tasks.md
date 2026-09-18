@@ -198,3 +198,23 @@
 
 - **Reviewer**: the session (inline self-review — same disclosed deviation).
 - **Result**: **PASS** — `dev` green; new unsanctioned import ⇒ red; unused sanctioned entry ⇒ red; stale/removed ⇒ red; RULE-A/B/C still 0; the sanctioned set is the sole authority and consistent with the `techstack.md` predicate; violations deduped by edge; no new dependency; `Makefile` untouched; existing gate semantics and `stdout`/`stderr` unchanged; **no product code change**; `techstack.md` and `truth-delta.md` consistent.
+
+---
+
+## Fold — PR #110 architectural review (reviewed `d5ba1ae` → fold `4c20c98`)
+
+**Verdict**: APPROVE WITH REQUIRED FOLDS — no architectural blocker. Reproduced independently (R0–R3, W-a/W-b) + a six-mutant campaign (M1/M5/M6/M7 red; **M9/M9b escaped** → F-2). All folds landed **test-only or docs-only** (no rule change; `Makefile`/`go.mod`/`go.sum` untouched; the 3-line baseline unchanged).
+
+- **F-1 [TECHNICAL DEBT → folded]** the *"no application-tier package imports a third-party module today"* claim was **false** (`internal/cli` production imports `github.com/spf13/pflag` + `golang.org/x/term`). Re-framed as a **live, measured** residual on **all three surfaces** (ADR 0016 **D6** + §Consequences; `research.md` D5; `spec.md` edge-case) per round-042 **B-1** (restate on every surface).
+- **F-2 [TECHNICAL DEBT → folded]** the round's **fail-on-stale allow-list had no committed regression carrier** (mutant M9 gutting `assertSanctionedInUse` kept the call + the `selfTests == 3` counter ⇒ green). Fixed **test-only**: extracted `unusedSanctioned(graph)` (the coverage predicate), `assertSanctionedInUse` delegates to it, and added **`selfTestAllowList`** — a **synthetic** witness (an all-used set reports nothing; a set with one unimported entry reports exactly it). **Re-ran the escaping mutant:** gutting `unusedSanctioned` now **reds** `TestVerifyRealArchitecture/allow-list`. ADR 0016 **D4** now states the **two-net** property explicitly.
+- **F-3 [TECHNICAL DEBT → folded]** STATUS position sweep: one canonical phrase — *"implemented — PR #110 open, awaiting review"* — on the header, the ledger line, the branch-model row, and the roadmap cell (the "plan half" label was wrong for a **single-PR** round; round-045 F-7 precedent).
+- **TD-1 [→ folded]** wrong edge attribution: the `internal/config` importer is **`internal/app/deps`**, not `internal/app/suggestions` — corrected in the ADR worked example + `research.md` D6.
+- **TD-2 [→ folded]** the ADR §Context exemplar now uses an **already-ranked** target (`internal/cli → internal/agent`/`ui`) and notes that a brand-new unranked package is already caught by RULE-D.
+- **TD-3 [→ folded]** RULE-E's **live reach** recorded in ADR 0016 **D2** (no reachable firing from `internal/app/**` today; its live teeth are `internal/cli → tiers 4/5`).
+- **TD-4 [→ folded]** ADR 0016 **§Consequences** records the sanctioned set's **governance** (staleness machine-checked; **scope drift review-governed** — cite ADR 0016 D1 or amend, per ADR 0011 **D7**'s precedent).
+- **TD-5 [REFACTOR → folded]** `specs/truth/techstack.md` → *Layer-discipline gate* row restated to **current state** + citations (5,806 → 2,692 chars): the five-rule predicate, the sanctioned set + default-deny + fail-on-stale, the mechanism, and the **current baseline** (RULE-A/B/C **0** + RULE-E **3**), citing ADR 0011 + ADR 0016; the past-state sentences and the "per-round changelog" chronology were dropped (they live in the ADRs — the durable per-round home). The phrasing nit is gone.
+- **N-1 [→ folded]** synthetic self-test annotations corrected (`// RULE-A (2 -> 3, upward; also B/E)` for the `app/suggestions → infrastructure/tools` edge; the emitted line is rule-agnostic by design).
+- **N-2 [→ folded]** the `selfTests != 3` hand-maintained counter replaced by **named `t.Run` subtests** with an asserted **executed-name set** (`predicate`, `allow-list`, `tier-coverage`, `sanctioned-in-use`) — a dropped call reds instead of surviving a counter (which is how M7 was caught only incidentally).
+- **N-3 [→ folded]** `unusedSanctioned` documents that it reads the **merged** (rule) graph — a test-only application-tier use keeps a sanctioned entry alive, **deliberately**.
+
+**Re-verified at the fold head `4c20c98`**: `gofmt` clean · `go vet ./...` clean · `make verify-architecture` **green** (RULE-A/B/C **0** + RULE-E **3** · 0 new · 0 stale · 0 cycles) · `go test -count=1 ./...` green · `make verify` OK · mutant re-run (gut `unusedSanctioned`) → **RED** at `allow-list`.
