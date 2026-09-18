@@ -751,7 +751,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		sp.Stop()
 	}
 	if err != nil {
-		var inc *agent.ErrIncomplete
+		var inc *agentport.ErrIncomplete
 		if errors.As(err, &inc) {
 			return emitToolError(env.stderr, inc)
 		}

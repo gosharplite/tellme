@@ -6,6 +6,7 @@ import (
 	"errors"
 	"testing"
 
+	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/domain/tools"
@@ -96,9 +97,9 @@ func TestRunBoundReached(t *testing.T) {
 	gw := &fakeGateway{responses: []llm.Response{{ToolCalls: []llm.ToolCall{tc}}, {ToolCalls: []llm.ToolCall{tc}}, {ToolCalls: []llm.ToolCall{tc}}}}
 	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "x"}), MaxLoops: 2}
 	res, err := a.Run(context.Background(), "loop", nil)
-	var inc *ErrIncomplete
+	var inc *agentport.ErrIncomplete
 	if !errors.As(err, &inc) {
-		t.Fatalf("err = %v, want *ErrIncomplete", err)
+		t.Fatalf("err = %v, want *agentport.ErrIncomplete", err)
 	}
 	if len(res.Steps) != 2 {
 		t.Errorf("steps = %d, want 2 (the bound)", len(res.Steps))
@@ -110,9 +111,9 @@ func TestRunUnknownToolIsTerminal(t *testing.T) {
 	gw := &fakeGateway{responses: []llm.Response{{ToolCalls: []llm.ToolCall{{ID: "c", Name: "time_travel"}}}}}
 	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry()}
 	_, err := a.Run(context.Background(), "use the time-travel tool", nil)
-	var inc *ErrIncomplete
+	var inc *agentport.ErrIncomplete
 	if !errors.As(err, &inc) {
-		t.Fatalf("err = %v, want *ErrIncomplete", err)
+		t.Fatalf("err = %v, want *agentport.ErrIncomplete", err)
 	}
 }
 

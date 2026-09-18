@@ -10,6 +10,9 @@ package arch
 import (
 	"bytes"
 	"flag"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"maps"
 	"os"
 	"os/exec"
@@ -623,8 +626,247 @@ func selfTestPredicate(t *testing.T) {
 	}
 }
 
-// TestVerifyRealArchitecture is the gate. It runs all three properties —
-// enumeration, ranking/baseline diff, acyclicity — and asserts they all ran, so
+// couplingSurface is the RULE-F allow-list (round 049 TD-1): the APPLICATION
+// COUPLING SURFACE. RULE-E's granularity is the package EDGE; it is structurally
+// blind to HOW MANY identifiers cross an already-baselined edge, so a shrunk edge
+// can silently re-inflate (a second construction site, a new `agent.*` helper, a
+// package-level `var _ agent.X`) with 0 new / 0 stale. RULE-F closes that gap: for
+// a governed application tier named here, the set of IDENTIFIERS it may select
+// from the listed target package is a normative allow-list (fail-on-stale).
+//
+// Key: "<src> -> <dst>" (module-relative). Value: the allowed exported-identifier
+// set the src PRODUCTION sources may select from dst. The machine-readable home
+// of this list is this table (like the sanctioned set, ADR 0016 D1).
+//
+// Metric (round-049 fold review N-8): RULE-F counts DISTINCT package-qualified
+// SELECTORS (`alias.Ident`) — which named symbols cross the boundary — NOT call
+// sites, NOT method calls on type values, NOT struct fields. So `internal/cli`'s
+// `→ ui` surface is 19 identifiers while the edge carries ~29 `ui.X` occurrences
+// and ~4 method calls; the identifier count is deliberately NOT a call-site
+// measure (ADR 0017 §Forward scopes the `→ ui` slice by call sites).
+//
+// Growth (round-049 fold review N-6): unlike RULE-E's baseline, this table has NO
+// regeneration affordance — `make verify-architecture-update` rewrites
+// baseline.txt and never touches couplingSurface. Intentional growth (a new
+// tracked identifier) is therefore a guard-TABLE edit in the same PR.
+var couplingSurface = map[string]map[string]bool{
+	"internal/cli -> internal/agent": {"AgentLoop": true},
+	"internal/cli -> internal/ui": {
+		"ComputeCost":              true,
+		"DefaultToolOutputIdleGap": true,
+		"FormatInputCaptured":      true,
+		"FormatMetrics":            true,
+		"FormatPayloadStatus":      true,
+		"FormatReady":              true,
+		"FormatToolReason":         true,
+		"FormatToolUsage":          true,
+		"FormatTurnGap":            true,
+		"FormatTurnOpening":        true,
+		"HitRate":                  true,
+		"NewRenderer":              true,
+		"NewSpinner":               true,
+		"NewToolOutputCoordinator": true,
+		"Pricing":                  true,
+		"Spinner":                  true,
+		"ToolLineRenderer":         true,
+		"ToolUsageRow":             true,
+		"UsageCounts":              true,
+	},
+}
+
+// productionGoFiles returns the non-_test.go file paths directly under dir.
+func productionGoFiles(t *testing.T, dir string) []string {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("cannot read %s: %v", dir, err)
+	}
+	var out []string
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		out = append(out, filepath.Join(dir, name))
+	}
+	return out
+}
+
+// scanCouplingSurface parses every governed application-tier PRODUCTION file under
+// root and returns, per coupling-surface edge, the set of identifiers selected
+// from the target package. Build-tag-gated application files are evaluated as
+// written (the union over tags is not simulated; the application tiers carry no
+// tag-gated files today — a future addition must widen this, ADR 0011 D6).
+func scanCouplingSurface(t *testing.T, root string) map[string]map[string]bool {
+	t.Helper()
+	got := map[string]map[string]bool{}
+	srcs := map[string]bool{}
+	for edge := range couplingSurface {
+		got[edge] = map[string]bool{}
+		src, _, _ := strings.Cut(edge, " -> ")
+		srcs[src] = true
+	}
+	for src := range srcs {
+		dir := filepath.Join(root, filepath.FromSlash(src))
+		for _, path := range productionGoFiles(t, dir) {
+			fset := token.NewFileSet()
+			f, err := parser.ParseFile(fset, path, nil, 0)
+			if err != nil {
+				t.Fatalf("cannot parse %s: %v", path, err)
+			}
+			// Resolve each edge-target's local alias in THIS file.
+			alias := map[string]string{} // alias -> edge key
+			for _, spec := range f.Imports {
+				rd, ok := rel(strings.Trim(spec.Path.Value, `"`))
+				if !ok {
+					continue
+				}
+				edge := src + " -> " + rd
+				if _, tracked := couplingSurface[edge]; !tracked {
+					continue
+				}
+				local := rd[strings.LastIndex(rd, "/")+1:]
+				if spec.Name != nil {
+					local = spec.Name.Name
+				}
+				if local == "_" {
+					continue
+				}
+				if local == "." {
+					t.Fatalf("%s uses a dot-import of %s — RULE-F cannot attribute bare selectors; rename or alias the import", path, rd)
+				}
+				alias[local] = edge
+			}
+			if len(alias) == 0 {
+				continue
+			}
+			ast.Inspect(f, func(n ast.Node) bool {
+				sel, ok := n.(*ast.SelectorExpr)
+				if !ok {
+					return true
+				}
+				x, ok := sel.X.(*ast.Ident)
+				if !ok {
+					return true
+				}
+				if edge, ok := alias[x.Name]; ok {
+					got[edge][sel.Sel.Name] = true
+				}
+				return true
+			})
+		}
+	}
+	return got
+}
+
+// diffSurface returns the new (got∖allowed) and stale (allowed∖got) identifiers.
+func diffSurface(allowed, got map[string]bool) (fresh, stale []string) {
+	for id := range got {
+		if !allowed[id] {
+			fresh = append(fresh, id)
+		}
+	}
+	for id := range allowed {
+		if !got[id] {
+			stale = append(stale, id)
+		}
+	}
+	sort.Strings(fresh)
+	sort.Strings(stale)
+	return fresh, stale
+}
+
+// assertCouplingSurface applies RULE-F: every tracked edge's identifier set must
+// equal its allow-list — a new identifier FAILS (a re-inflated coupling surface),
+// and an allow-list entry no longer selected FAILS (stale, the ratchet shrinks to
+// truth).
+func assertCouplingSurface(t *testing.T, root string) {
+	t.Helper()
+	got := scanCouplingSurface(t, root)
+	for _, edge := range slices.Sorted(maps.Keys(couplingSurface)) {
+		fresh, stale := diffSurface(couplingSurface[edge], got[edge])
+		if len(fresh) > 0 {
+			t.Errorf("RULE-F: %s — identifier(s) not in the coupling-surface allow-list: %v (a tracked edge's surface grew; if intentional, extend couplingSurface in the same PR — the edge ratchet's -update-baseline does not apply here)", edge, fresh)
+		}
+		if len(stale) > 0 {
+			t.Errorf("RULE-F: %s — STALE allow-list entr(ies) no longer referenced: %v (remove them from couplingSurface)", edge, stale)
+		}
+	}
+}
+
+// selfTestCouplingSurface unit-tests the RULE-F diff predicate on synthetic sets
+// (review F-2 precedent): an exact match reports nothing; an extra identifier is
+// "new"; a dropped allow-list entry is "stale".
+func selfTestCouplingSurface(t *testing.T) {
+	t.Helper()
+	if f, s := diffSurface(map[string]bool{"AgentLoop": true}, map[string]bool{"AgentLoop": true}); len(f) != 0 || len(s) != 0 {
+		t.Fatalf("surface self-test: exact match reported fresh=%v stale=%v", f, s)
+	}
+	if f, s := diffSurface(map[string]bool{"AgentLoop": true}, map[string]bool{"AgentLoop": true, "ToolDefs": true}); len(f) != 1 || f[0] != "ToolDefs" || len(s) != 0 {
+		t.Fatalf("surface self-test: expected fresh=[ToolDefs], got fresh=%v stale=%v", f, s)
+	}
+	if f, s := diffSurface(map[string]bool{"AgentLoop": true, "ToolDefs": true}, map[string]bool{"AgentLoop": true}); len(f) != 0 || len(s) != 1 || s[0] != "ToolDefs" {
+		t.Fatalf("surface self-test: expected stale=[ToolDefs], got fresh=%v stale=%v", f, s)
+	}
+}
+
+// assertSurfaceCoversBaseline (round-049 fold review TD-2) asserts RULE-F's
+// coverage invariant over the **governed application edges** — the application-
+// tier edges the gate currently SEES (the computed violation set, which subsumes
+// the baseline and, unlike reading the baseline file, also fires on a brand-new
+// not-yet-baselined edge). Every such edge MUST have a couplingSurface entry.
+// Without it, RULE-F's protection is opt-in by memory: a new application edge,
+// once absorbed into the baseline via the documented `-update-baseline`
+// regeneration path, would be governed by the edge ratchet but have an
+// unprotected identifier surface. This is the direct analogue of RULE-E's
+// assertSanctionedInUse (ADR 0016 D4).
+func uncoveredSurfaceEdges(edges []string) []string {
+	var uncovered []string
+	for _, line := range edges {
+		src, dst, ok := strings.Cut(line, " -> ")
+		if !ok || !isApplicationTier(src) || strings.Contains(dst, "(unranked") {
+			continue
+		}
+		if _, tracked := couplingSurface[line]; !tracked {
+			uncovered = append(uncovered, line)
+		}
+	}
+	sort.Strings(uncovered)
+	return uncovered
+}
+
+func assertSurfaceCoversBaseline(t *testing.T, governedAppEdges []string) {
+	t.Helper()
+	if uncovered := uncoveredSurfaceEdges(governedAppEdges); len(uncovered) > 0 {
+		t.Errorf("RULE-F coverage: governed application edge(s) with no couplingSurface entry: %v — governed by the edge ratchet but with an unprotected identifier surface (add a couplingSurface entry)", uncovered)
+	}
+}
+
+// selfTestSurfaceCoverage unit-tests the pure coverage predicate
+// `uncoveredSurfaceEdges` on synthetic inputs (round-049 fold review §3): a
+// covered edge reports nothing; a not-in-table governed application edge is
+// reported; a non-application edge and the unranked marker are ignored. This
+// pins the WIRING property — that coverage is driven by the passed-in edge set —
+// as behaviour rather than prose.
+func selfTestSurfaceCoverage(t *testing.T) {
+	t.Helper()
+	covered := []string{"internal/cli -> internal/agent", "internal/cli -> internal/ui"}
+	if u := uncoveredSurfaceEdges(covered); len(u) != 0 {
+		t.Fatalf("surface-coverage self-test: covered edges reported uncovered: %v", u)
+	}
+	mixed := []string{
+		"internal/cli -> internal/agent",
+		"internal/app/deps -> internal/agent",         // governed app edge, no table entry
+		"internal/domain/llm -> internal/config",      // non-application src — ignored
+		"internal/cli -> (unranked governed package)", // marker — ignored
+	}
+	if u := uncoveredSurfaceEdges(mixed); len(u) != 1 || u[0] != "internal/app/deps -> internal/agent" {
+		t.Fatalf("surface-coverage self-test: expected exactly [internal/app/deps -> internal/agent], got %v", u)
+	}
+}
+
+// TestVerifyRealArchitecture is the gate. It runs all four properties —
+// enumeration, ranking/baseline diff, acyclicity, coupling surface — and asserts they all ran, so
 // `-run TestVerifyRealArchitecture` alone cannot silently skip one (N-3).
 func TestVerifyRealArchitecture(t *testing.T) {
 	root := moduleRoot(t)
@@ -634,10 +876,13 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	// Property 1 — enumeration (B-2).
 	graph, prodGraph := enumerate(t, root)
 	assertGraphEnumerated(t, graph)
+	violations := evaluate(graph)
 	properties++
 
-	// The self-tests: the layer predicate (synthetic) + the two coverage
-	// assertions on the real graph. Each runs as a named subtest and the executed
+	// The self-tests: two synthetic predicates (the layer predicate, the
+	// coupling-surface diff predicate) plus four real-graph assertions (RULE-D
+	// tier coverage, RULE-E allow-list-in-use, RULE-F surface, RULE-F coverage).
+	// Each runs as a named subtest and the executed
 	// NAME SET is asserted, so a mutant that drops a call (or an edit that renames
 	// one) cannot slip through a hand-maintained counter the way M7 did — and a
 	// deleted call reds rather than silently passing (review N-2 / F-2).
@@ -646,9 +891,9 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	// below, so `make verify-architecture-update` cannot launder a stale allow-list
 	// entry into a freshly generated baseline (review §1). Keep them ahead of it.
 	// The name set is compared ORDER-SENSITIVELY (reflect.DeepEqual) by design:
-	// the load-bearing property is "all four run before the *updateBaseline
+	// the load-bearing property is "all eight run before the *updateBaseline
 	// branch", and the order is also pinned (review N-3′).
-	wantSelfTests := []string{"predicate", "allow-list", "tier-coverage", "sanctioned-in-use"}
+	wantSelfTests := []string{"predicate", "allow-list", "tier-coverage", "sanctioned-in-use", "surface-predicate", "surface-coverage-predicate", "surface", "surface-coverage"}
 	var ranSelfTests []string
 	runSelfTest := func(name string, fn func(*testing.T)) {
 		// Record the ATTEMPT, not the pass: run the subtest then append its name
@@ -658,17 +903,27 @@ func TestVerifyRealArchitecture(t *testing.T) {
 		t.Run(name, fn)
 		ranSelfTests = append(ranSelfTests, name)
 	}
-	runSelfTest("predicate", selfTestPredicate)                                              // RULE-A/B/C/D + RULE-E, synthetic (ADR 0011 D2 / ADR 0016 D1)
-	runSelfTest("allow-list", selfTestAllowList)                                             // RULE-E coverage predicate, synthetic (ADR 0016 D4 / review F-2)
-	runSelfTest("tier-coverage", func(t *testing.T) { assertNoUnrankedGoverned(t, graph) })  // RULE-D coverage, real graph
-	runSelfTest("sanctioned-in-use", func(t *testing.T) { assertSanctionedInUse(t, graph) }) // RULE-E allow-list in use, real graph (ADR 0016 D4)
+	runSelfTest("predicate", selfTestPredicate)                                                  // RULE-A/B/C/D + RULE-E, synthetic (ADR 0011 D2 / ADR 0016 D1)
+	runSelfTest("allow-list", selfTestAllowList)                                                 // RULE-E coverage predicate, synthetic (ADR 0016 D4 / review F-2)
+	runSelfTest("tier-coverage", func(t *testing.T) { assertNoUnrankedGoverned(t, graph) })      // RULE-D coverage, real graph
+	runSelfTest("sanctioned-in-use", func(t *testing.T) { assertSanctionedInUse(t, graph) })     // RULE-E allow-list in use, real graph (ADR 0016 D4)
+	runSelfTest("surface-predicate", func(t *testing.T) { selfTestCouplingSurface(t) })          // RULE-F diff predicate, synthetic (round 049 TD-1)
+	runSelfTest("surface-coverage-predicate", func(t *testing.T) { selfTestSurfaceCoverage(t) }) // RULE-F coverage predicate, synthetic (round 049 fold §3)
+
+	// Property 4 — RULE-F: the application coupling surface. The baseline ratchet
+	// governs EDGES; RULE-F governs the IDENTIFIERS crossing a tracked edge, so a
+	// shrunk edge cannot silently re-inflate (round 049 TD-1). Wired as NAMED
+	// self-tests (not a bare call) so the name-set defence above protects them from
+	// a silent drop (review F-2), and they run BEFORE the `*updateBaseline` branch
+	// (regenerating the baseline must not launder a re-inflated surface green).
+	runSelfTest("surface", func(t *testing.T) { assertCouplingSurface(t, root) })                      // RULE-F identifier allow-list, real graph (round 049 TD-1)
+	runSelfTest("surface-coverage", func(t *testing.T) { assertSurfaceCoversBaseline(t, violations) }) // RULE-F coverage of governed app edges, real graph (round 049 TD-2)
 	if !reflect.DeepEqual(ranSelfTests, wantSelfTests) {
 		t.Fatalf("internal error: expected self-tests %v to run, got %v", wantSelfTests, ranSelfTests)
 	}
 
 	// Property 2 — ranking + baseline diff (rule evaluated on the merged graph,
-	// so test imports are governed).
-	violations := evaluate(graph)
+	// so test imports are governed; `violations` is computed in Property 1).
 	properties++
 
 	// Property 3 — acyclicity (ADR 0011 D8 / issue #93 AC4), on the
@@ -679,8 +934,13 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	}
 	properties++
 
-	if properties != 3 {
-		t.Fatalf("internal error: expected all 3 properties to run, got %d", properties)
+	// Property 4 — RULE-F (the coupling surface + its coverage of baselined
+	// application edges) ran as the named self-tests `surface` / `surface-coverage`
+	// above; count the property here so a deletion of the whole block is caught.
+	properties++
+
+	if properties != 4 {
+		t.Fatalf("internal error: expected all 4 properties to run, got %d", properties)
 	}
 
 	path := filepath.Join(root, "tools", "arch", "baseline.txt")
