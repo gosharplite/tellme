@@ -102,7 +102,7 @@ Two `specs/truth/techstack.md` rows are real MODIFYs:
 ## D10 — Witness: unit pins + the gate (C-R4-3)
 
 1. **The loop's schedule** — retarget the three `internal/agent` log tests to inject a recording **fake renderer** (in-package; the loop's own tests may **not** import `internal/ui` — the gate governs test imports): assert the four line kinds, their order, the per-call blank, and the blank-reason suppression (via the fake's contract).
-2. **The port contract** — a `ui` pin: `ToolLineRenderer.ReasonLine` returns `("", false)` for blank/whitespace/escape-only reasons and a line byte-equal to `FormatToolReason` for the rest (incl. an over-cap reason).
+2. **The adapter's contract** — a `ui` pin: `ToolLineRenderer.ReasonLine` (the conforming adapter) returns `("", false)` for blank/whitespace/escape-only reasons and a line byte-equal to `FormatToolReason` for the rest (incl. an over-cap reason). The **port** postcondition is the weaker, caller-facing invariant — when `renders` is false the `line` value is *unspecified* (fold-review N-3); the loop honours `renders`, never the line's content.
 3. **The gate** — `tools/arch/baseline.txt` regenerated to **header-only**; `verify-architecture` green **0 new / 0 stale / 0 cycles**.
 4. **Falsifiability (reproduced then reverted, ADR 0010)**: (a) re-add an `internal/agent → internal/ui` import ⇒ the gate reds; (b) make `ReasonLine`'s decision diverge from the format (e.g. render a line for a blank reason) ⇒ the port pin + a loop pin red; (c) add a stale baseline line at 0 ⇒ the gate reds.
 5. **No new E2E Example** — the real formatting stays E2E-asserted through the production wiring (`watching-the-tool-loop.feature` + the round-039 spacing Examples).
