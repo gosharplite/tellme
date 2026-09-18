@@ -45,6 +45,9 @@ func buildDeps() deps.Dependencies {
 		NewGateway:      infrallm.NewGateway,
 		NewHistoryStore: func(workspace string) history.Store { return infrhistory.NewFileStore(workspace) },
 		NewUsageStore:   func(workspace string) history.UsageStore { return infrhistory.NewUsageStore(workspace) },
+		NewTurnsLogStore: func(workspace string) history.TurnsLogStore {
+			return infrhistory.NewTurnsLogStore(workspace)
+		},
 		NewToolUsageStore: func(userHome func() (string, error)) history.ToolUsageStore {
 			return infrhistory.NewToolUsageStore(userHome)
 		},

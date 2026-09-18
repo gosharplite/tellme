@@ -44,6 +44,11 @@ type Dependencies struct {
 	NewHistoryStore func(workspace string) history.Store
 	// NewUsageStore builds the per-mode usage-log store for a workspace.
 	NewUsageStore func(workspace string) history.UsageStore
+	// NewTurnsLogStore builds the per-session turn-log store for a workspace
+	// (round 053; ADR 0022). The CLI tees the rendered turn chrome into it on the
+	// prompt path and reads/archives it from the offline session commands
+	// (`-t`, `--new`).
+	NewTurnsLogStore func(workspace string) history.TurnsLogStore
 	// NewToolUsageStore builds the user-global tool-usage log adapter. It takes
 	// the user-home resolver as an argument (the resolver it previously captured
 	// from the deleted userHomeDir var) — so UserHomeDir has a real consumer.

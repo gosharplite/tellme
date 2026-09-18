@@ -32,7 +32,9 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending — expected MODIFY)_ | `specs/truth/features/cli/**` and `specs/truth/features/cli/**/dsl.md` | A user-facing session-selection correction + a new `-t` flag likely add/align a CLI Example + `DSLRow`. | `spec.md` A5 |
+| MODIFY | `specs/truth/features/cli/history/inspecting-the-session-history.feature` | **Round 053 (ADR 0022)**: added the `The session listed is the one the named configuration belongs to` Rule (two Examples: `a.yaml`/`b.yaml` differential) and the `A named configuration that cannot be read is refused` Rule. | `spec.md` US1; `plan.md` (the CLI end's contract owner) |
+| ADD | `specs/truth/features/cli/history/reviewing-the-turn-log.feature` | **Round 053**: the `-t` turn-log read — the `-c`-resolved session's turn log (and the empty-log tolerance). | `spec.md` US2; `plan.md` |
+| MODIFY | `specs/truth/features/cli/history/dsl.md` | **Round 053**: new Given rows (config+session seed; config+turn-log seed), When rows (`-l -c`; `-t -c`), Then rows (`tellme lists the assistant message "{answer}"`; `tellme prints exactly the turn log line "{content}"`; `tellme prints nothing`). | `spec.md` US1/US2 |
 
 ## Governance (ADR)
 

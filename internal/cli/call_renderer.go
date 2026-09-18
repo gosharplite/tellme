@@ -75,12 +75,12 @@ func newCallRenderer(env runtimeEnv, res resolution, reg domaintools.Registry, c
 // CLI-computed per-call pre-flight estimate.
 func (r *callRenderer) OnCallBegin(callIndex int, messages []llm.Message) {
 	if r.chrome {
-		_, _ = fmt.Fprint(r.env.stderr, r.lines.TurnOpening(r.priorCalls+callIndex+1, r.res.Mode))
+		_, _ = fmt.Fprint(r.env.diag(), r.lines.TurnOpening(r.priorCalls+callIndex+1, r.res.Mode))
 	}
 	estimate := llm.EstimatePayload(r.res.Person, agentport.ToolDefs(r.reg), messages)
-	_, _ = fmt.Fprintln(r.env.stderr, r.lines.PayloadStatus(r.env.now(), estimate, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, true))
+	_, _ = fmt.Fprintln(r.env.diag(), r.lines.PayloadStatus(r.env.now(), estimate, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, true))
 	if r.chrome {
-		_, _ = fmt.Fprint(r.env.stderr, r.lines.TurnGap())
+		_, _ = fmt.Fprint(r.env.diag(), r.lines.TurnGap())
 	}
 }
 
@@ -96,18 +96,18 @@ func (r *callRenderer) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []
 		// ui.ToolLineRenderer.ReasonLine, so roundReasons never carries a reason
 		// that renders no line.
 		if len(roundReasons) > 0 {
-			_, _ = fmt.Fprintln(r.env.stderr)
+			_, _ = fmt.Fprintln(r.env.diag())
 			for _, reason := range roundReasons {
-				_, _ = fmt.Fprintln(r.env.stderr, r.lines.ToolReason(r.env.now(), reason))
+				_, _ = fmt.Fprintln(r.env.diag(), r.lines.ToolReason(r.env.now(), reason))
 			}
 		}
 		if !usage.Reported {
 			return
 		}
 		if r.renderedToolRound {
-			_, _ = fmt.Fprintln(r.env.stderr)
+			_, _ = fmt.Fprintln(r.env.diag())
 		}
-		_, _ = fmt.Fprintln(r.env.stderr, r.lines.PayloadStatus(r.env.now(), usage.PromptTokens, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, false))
+		_, _ = fmt.Fprintln(r.env.diag(), r.lines.PayloadStatus(r.env.now(), usage.PromptTokens, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, false))
 		r.emitMetrics(usage)
 	}
 	if final {
@@ -133,13 +133,13 @@ func (r *callRenderer) emitMetrics(usage llm.Usage) {
 	rec, cost := usageRecordOf(r.pricing, r.res.Selected, r.res.Provider.Model, now.Format(time.RFC3339), usage)
 	r.turnCost += cost
 	r.session.Add(rec)
-	_, _ = fmt.Fprintln(r.env.stderr, r.lines.Metrics(now, r.res.Selected, metrics.UsageCounts{
+	_, _ = fmt.Fprintln(r.env.diag(), r.lines.Metrics(now, r.res.Selected, metrics.UsageCounts{
 		Miss:       rec.PromptTokens - rec.CachedTokens,
 		Hit:        rec.CachedTokens,
 		Completion: rec.ResponseTokens,
 		Thinking:   rec.ThinkingTokens,
 	}))
-	_, _ = fmt.Fprintln(r.env.stderr, r.lines.Ready(cost, r.turnCost, r.session.Cost, r.session.Miss, r.session.Hit, r.session.Out, llm.HitRate(r.session.Hit, r.session.Miss)))
+	_, _ = fmt.Fprintln(r.env.diag(), r.lines.Ready(cost, r.turnCost, r.session.Cost, r.session.Miss, r.session.Hit, r.session.Out, llm.HitRate(r.session.Hit, r.session.Miss)))
 }
 
 // usageRecordOf builds one call's persisted usage record and its cost from the
