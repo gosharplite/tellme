@@ -377,7 +377,7 @@ func run(args []string, version string, scoped Options, env runtimeEnv) int {
 	// The offline reporting commands run in precedence order — -d → -l → -t →
 	// --tool-usage — before any prompt or stdin access.
 	if code, handled := dispatchReporting(f, homeDir, env, dp.NewHistoryStore, dp.NewTurnsLogStore, func() int {
-		return renderToolUsage(env, dp.NewToolRegistry, dp.NewToolUsageStore, dp.UserHomeDir, dp.NewLines())
+		return renderToolUsage(env, dp.NewToolRegistry, dp.NewToolUsageStore, dp.UserHomeDir, dp.NewLines(false))
 	}); handled {
 		return code
 	}
@@ -466,15 +466,52 @@ func parseFlags(args []string, stderr io.Writer) (f *flags, flagArgs []string, o
 	fs.BoolVar(&o.version, "version", false, "Print the build version and exit.")
 	fs.BoolVarP(&o.raw, "raw", "r", false, "Print the answer as raw text (no Markdown rendering).")
 	fs.BoolVar(&o.newSession, "new", false, "Start a fresh session, archiving the current session history.")
-	fs.IntVarP(&o.list, "list", "l", 0, "List the last N messages of the session history and exit.")
+	fs.IntVarP(&o.list, "list", "l", 0, "List the last N messages of the session history and exit. Defaults to 1 when the value is omitted.")
+	// Round 054 (ADR 0023): bare `-l`/`--last` defaults to 1 (reference parity).
+	fs.Lookup("list").NoOptDefVal = "1"
 	fs.BoolVarP(&o.turns, "turns", "t", false, "Print the session's turn log and exit.")
 	fs.BoolVarP(&o.interactive, "interactive", "i", false, "Open the interactive TUI prompt (requires a terminal).")
 	fs.BoolVar(&o.toolUsage, "tool-usage", false, "Report per-tool invocation counts across all sessions, then exit.")
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(consumeListValue(args)); err != nil {
 		return nil, nil, false
 	}
 	o.listSet = fs.Changed("list")
 	return o, fs.Args(), true
+}
+
+// consumeListValue normalizes the optional-integer `-l`/`--last` flag so an
+// ADJACENT value is consumed (`-l 5` → `-l=5`) instead of being left as a
+// positional argument. pflag's NoOptDefVal makes a bare `-l` mean `-l=1`, but it
+// also means `-l 5` parses as `-l=1` plus a positional `5` — a prompt token that
+// would otherwise be swallowed or misread. Mirroring the reference's
+// `consumeOptionalIntFlag`: consume the next token ONLY when it is a valid
+// integer; otherwise leave it (so `-l hello` ⇒ count 1, prompt `hello`). An
+// `--` separator stops the scan.
+func consumeListValue(args []string) []string {
+	if len(args) == 0 {
+		return args
+	}
+	out := make([]string, 0, len(args))
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--" {
+			out = append(out, args[i:]...)
+			return out
+		}
+		if arg == "-l" || arg == "--last" || arg == "--list" {
+			if i+1 < len(args) {
+				if _, err := strconv.Atoi(args[i+1]); err == nil {
+					out = append(out, arg+"="+args[i+1])
+					i++
+					continue
+				}
+			}
+			out = append(out, arg)
+			continue
+		}
+		out = append(out, arg)
+	}
+	return out
 }
 
 // resolve is the single resolution algorithm shared by the boot, diagnostic, and
@@ -688,7 +725,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// Round 052 (closes #115 R-2; ADR 0021): the progress object is built BEFORE
 	// the registry so its `[Tool Output]` sink can be injected at the command
 	// tool's construction (no post-construction rebind).
-	prog := dp.NewProgress(env.stderr, env.now, res.Provider.Model, turnStart, stderrColumns(env), toolOutputIdleGap(dp.NewLines()), spinnerGate(opts, env.stderrIsTerminal()))
+	prog := dp.NewProgress(env.stderr, env.now, res.Provider.Model, turnStart, stderrColumns(env), toolOutputIdleGap(dp.NewLines(false)), spinnerGate(opts, env.stderrIsTerminal()))
 	ind := prog.Indicator
 	if ind != nil {
 		defer ind.Stop() // panic-safe residue guard (idempotent)
@@ -722,7 +759,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		if opts.echo {
 			_, _ = fmt.Fprintln(env.stderr, prompt)
 		}
-		emitInputCaptured(env, dp.NewLines())
+		emitInputCaptured(env, dp.NewLines(false))
 	}
 	// Round 032 (F9) — discover MCP tools BEFORE the turn frames, so a
 	// slow/unreachable server's bounded wait is never silent and the per-call
@@ -735,7 +772,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// estimate) at each call's begin, and the tail (grouped reasons + measured
 	// payload + metrics + `Ready`) at each call's end, with the FINAL call's tail
 	// deferred past the answer (G5). The loop fires the call hooks.
-	renderer := newCallRenderer(env, res, reg, opts.chrome, turnNumber(prior)-1, dp)
+	renderer := newCallRenderer(env, res, reg, opts.chrome, turnNumber(prior)-1, chromeColour(opts, env), dp)
 
 	// Round 034 (ADR 0005 D1): the loop keeps a single observer — the composite
 	// composes the per-call block renderer with the round-019 spinner.
@@ -762,7 +799,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		// through the injected presentation port — internal/ui owns the bytes and
 		// the single-owned blank-reason predicate, so internal/agent imports no
 		// internal/ui (the final layer-discipline baseline entry is gone).
-		Lines: dp.NewToolLines(),
+		Lines: dp.NewToolLines(chromeColour(opts, env)),
 		// Round 034 (ADR 0005 D1) + round 050: the single observer (composite) is
 		// supplied through the spec.
 		Observer: observer,
@@ -873,6 +910,15 @@ func turnNumber(prior []history.Entry) int {
 // diagnostic stream (stderr) is a terminal (round-019 FR-006/FR-008).
 func spinnerGate(opts turnOptions, stderrIsTerminal bool) bool {
 	return opts.chrome && !opts.raw && stderrIsTerminal
+}
+
+// chromeColour reports whether the round-054 green chrome accents apply (ADR
+// 0023): the diagnostic stream (stderr) is a terminal AND rendering is on
+// (`-r` off) AND this is a prompt-bearing surface (opts.chrome). It is the SAME
+// expression as the spinner gate — colour and the spinner share one gate — kept
+// as its own named helper so the two call sites read by intent.
+func chromeColour(opts turnOptions, env runtimeEnv) bool {
+	return opts.chrome && !opts.raw && env.stderrIsTerminal()
 }
 
 // stderrColumns reports the terminal width for the spinner's row-aware clear

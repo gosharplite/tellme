@@ -28,6 +28,13 @@ func FormatMetrics(t time.Time, provider string, u metrics.UsageCounts) string {
 // M/H/O are the SESSION-cumulative miss/cached/output token totals; the hit-rate
 // is `%.1f%%` (research Decisions 3 & 7). The line carries no timestamp.
 func FormatReady(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64) string {
-	return fmt.Sprintf("╰─⠿ Ready ($%.4f $%.4f $%.4f - M: %d H: %d O: %d - %.1f%%)",
-		lastCallCost, turnCost, sessionCost, sessionMiss, sessionHit, sessionOut, hitRate)
+	return formatReadyColour(lastCallCost, turnCost, sessionCost, sessionMiss, sessionHit, sessionOut, hitRate, false)
+}
+
+// formatReadyColour is FormatReady with the round-054 green accent (ADR 0023):
+// only the THIRD (session) cost is green (reference parity — tell-me-go greens
+// the session cost). The plain (enabled=false) path is byte-identical.
+func formatReadyColour(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64, colour bool) string {
+	return fmt.Sprintf("╰─⠿ Ready ($%.4f $%.4f %s - M: %d H: %d O: %d - %.1f%%)",
+		lastCallCost, turnCost, green(fmt.Sprintf("$%.4f", sessionCost), colour), sessionMiss, sessionHit, sessionOut, hitRate)
 }

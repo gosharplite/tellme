@@ -11,28 +11,33 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `specs/truth/techstack.md` — CLI flag parsing / Turn chrome / Post-turn status rows | _to be recorded by `/axb-technical-research`_ (the `-l` default-1 + the colour policy + the recorded divergence) | `spec.md` US1/US2 |
+| MODIFY | `specs/truth/techstack.md` — **CLI flag parsing** row | **Round 054 (ADR 0023)**: `-l`/`--list` takes an optional value (`NoOptDefVal="1"` + a `consumeListValue` pre-pass) — bare `-l` means `-l 1`. | `spec.md` US1 / FR-001; `research.md` D1 |
+| MODIFY | `specs/truth/techstack.md` — **Session lifecycle flags** row | **Round 054**: the `-l N` value is optional (bare `-l` = 1). | `spec.md` US1 / FR-001 |
+| MODIFY | `specs/truth/techstack.md` — **Turn chrome (operator)** row | **Round 054 (ADR 0023)**: round-017 D3 ("no ANSI") **superseded** for four elements — a terminal `stderr` with `-r` off greens the whole `[Tool Reason]` line, the `MODE` in both `Payload` lines, the measured token number, and the `Ready` session cost (the element set is tellme's own — a recorded divergence). | `spec.md` US2 / FR-003/004; `research.md` D2/D3 |
+| MODIFY | `specs/truth/techstack.md` — **Post-turn status lines (operator)** row | **Round 054**: the **session** cost inside `╰─⠿ Ready` is green on a terminal with `-r` off. | `spec.md` US2 / FR-003; `research.md` D3 |
+| NOOP (checked) | `specs/truth/techstack.md` — **Turn log (`turns.log`)** row | Inspected: the round keeps `turns.log` plain (Q3/FR-006) — the Note's "control-free" claim still holds. | `spec.md` FR-006; `research.md` D4 |
 
 ## /axb-api-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending — expected NOOP)_ | `specs/truth/` (**no `contracts/**`**) | tellme has a single CLI end and no OpenAPI/HTTP surface. | `spec.md` A4 |
+| NOOP (checked) | `specs/truth/` (**no `contracts/**`**) | Inspected: tellme has a single CLI end and no OpenAPI/HTTP surface. | `spec.md` A4 |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending — expected NOOP)_ | `specs/truth/data/data-model.dbml` | No persisted-state change; **`turns.log` stays plain** (Q3). | `spec.md` FR-006 |
+| NOOP (checked) | `specs/truth/data/data-model.dbml` | Inspected `turns_log_line`/`history_entry`/`usage_record`: no persisted-state change; `turns.log` stays control-free (Q3). | `spec.md` FR-006 |
 
 ## /axb-dsl-refine
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending — expected MODIFY)_ | `specs/truth/features/cli/**` + `dsl.md` | A bare-`-l` Example/row (US1) + a colour Example/row (US2). | `spec.md` A4 |
+| MODIFY | `specs/truth/features/cli/history/inspecting-the-session-history.feature` + `history/dsl.md` | **Round 054**: the `The list length defaults to one when the count is omitted` Rule + the bare-`-l` When row. | `spec.md` US1; `plan.md` |
+| ADD | `specs/truth/features/cli/chat/colouring-the-session-chrome.feature` + `chat/dsl.md` | **Round 054**: the terminal-green Rule (the four accents) + the plain-off-a-terminal Rule; the two Then rows. | `spec.md` US2; `plan.md` |
 
 ## Governance (ADR)
 
 | Action | Artifact | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `docs/decisions/0023-*.md` (+ the `docs/decisions/README.md` index row) | The `-l`-default decision + the chrome-colour policy (gate + the four elements) + the recorded divergence from the reference's layout. | `spec.md` A5 |
+| ADD | `docs/decisions/0023-list-default-and-chrome-colour.md` (+ the `docs/decisions/README.md` index row) | Records D1–D5 (the `-l` optional value; the colour gate; the four elements + the recorded divergence; `turns.log` plain; the adapter-owned colour) + a §Forward (RF-54-1…4). | `spec.md` A5; `research.md` D2–D5 |

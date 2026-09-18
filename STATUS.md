@@ -1,7 +1,7 @@
 # tellme — Status
 
 **Last updated**: 2026-09-19 (session 27 — round **053** `053-offline-session-config-and-turns-flag` **DELIVERED / FROZEN** — **closes [#103](https://github.com/gosharplite/tellme/issues/103)**: the offline session commands (`-l`, prompt-less `--new`, new `-t`) now honour the **`-c` config's `MODE`** (mode-only read; stays **offline**; an explicit unreadable `-c` **fails**), and `tellme` writes its own per-session **`turns.log`** (the rendered turn chrome) that `-t` prints; **ADR 0022**; PR [#118](https://github.com/gosharplite/tellme/pull/118) human-merged into `dev` `8c100e5`). Prior: session 26 — round **052** `052-ride-alongs-and-records` **DELIVERED / FROZEN** (closes [#115](https://github.com/gosharplite/tellme/issues/115) + [#116](https://github.com/gosharplite/tellme/issues/116); **ADR 0021**; PR [#117](https://github.com/gosharplite/tellme/pull/117) merged `f204aaa` — detail relocated to the archive below). **Session mode**: `butler`.
-**Active branch**: `dev` (round 053 delivered/frozen; the next round `054-*` opens off `dev`)
+**Active branch**: `054-l-default-and-chrome-colour` (round **054** in flight — off `dev`)
 **Daily log**: [`docs/session-summary/2026/09/19/session-summary.md`](docs/session-summary/2026/09/19/session-summary.md)
 
 ## Last delivered round — 053 `053-offline-session-config-and-turns-flag` (DELIVERED / FROZEN — PR [#118](https://github.com/gosharplite/tellme/pull/118) merged into `dev` `8c100e5`; closes [#103](https://github.com/gosharplite/tellme/issues/103))

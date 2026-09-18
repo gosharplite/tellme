@@ -17,7 +17,7 @@ import (
 // longer imports `internal/ui` (the RULE-A edge that the layer-discipline
 // baseline recorded). The loop keeps the write schedule; this adapter owns the
 // bytes.
-type ToolLineRenderer struct{}
+type ToolLineRenderer struct{ colour bool }
 
 // Compile-time conformance to the port the loop consumes.
 var _ agentport.ToolLineRenderer = ToolLineRenderer{}
@@ -41,11 +41,12 @@ func (ToolLineRenderer) ResultLine(t time.Time, tool, result string) string {
 // renders at all. It evaluates `toolReasonText` ONCE: a blank (empty /
 // whitespace-only) or escape-only reason renders nothing (("", false)); otherwise
 // the line is built by the SHARED formatToolReasonLine helper (round-046 review
-// TD-6), so it is byte-identical to FormatToolReason(t, reason).
-func (ToolLineRenderer) ReasonLine(t time.Time, reason string) (string, bool) {
+// TD-6), so it is byte-identical to FormatToolReason(t, reason). Round 054
+// (ADR 0023): the whole line is green when the adapter's colour flag is set.
+func (r ToolLineRenderer) ReasonLine(t time.Time, reason string) (string, bool) {
 	text := toolReasonText(reason)
 	if strings.TrimSpace(text) == "" {
 		return "", false
 	}
-	return formatToolReasonLine(t, text), true
+	return green(formatToolReasonLine(t, text), r.colour), true
 }

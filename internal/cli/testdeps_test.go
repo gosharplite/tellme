@@ -129,8 +129,8 @@ func defaultTestDeps(mods ...func(*deps.Dependencies)) deps.Dependencies {
 			l.gotSpec = spec
 			return l
 		},
-		NewLines:     func() render.Lines { return fakeLines{} },
-		NewToolLines: func() agentport.ToolLineRenderer { return noopToolLines{} },
+		NewLines:     func(bool) render.Lines { return fakeLines{} },
+		NewToolLines: func(bool) agentport.ToolLineRenderer { return noopToolLines{} },
 		NewAnswer:    func() render.Answer { return &stubRenderer{} },
 		NewProgress: func(stream io.Writer, now func() time.Time, model string, epoch time.Time, columns func() int, idleGap time.Duration, enabled bool) render.TurnProgress {
 			return render.TurnProgress{ToolOutput: fakeSink{}}

@@ -62,7 +62,17 @@ func toolReasonText(reason string) string {
 // reason is suppressed by the CALLERS (not here), so this stays a pure formatter
 // and never returns an empty-string sentinel.
 func FormatToolReason(t time.Time, reason string) string {
-	return formatToolReasonLine(t, toolReasonText(reason))
+	return formatToolReasonColour(t, reason, false)
+}
+
+// formatToolReasonColour is FormatToolReason with the round-054 green accent
+// (ADR 0023): the WHOLE `[HH:MM:SS] [Tool Reason] <reason>` line is wrapped green
+// (operator-locked; a recorded divergence from the reference, which prints the
+// line gray). The colour wraps the ALREADY-transform-sanitized line, so no
+// control byte from the model-authored reason can escape the wrapper. The plain
+// (enabled=false) path is byte-identical.
+func formatToolReasonColour(t time.Time, reason string, colour bool) string {
+	return green(formatToolReasonLine(t, toolReasonText(reason)), colour)
 }
 
 // formatToolReasonLine builds the `[HH:MM:SS] [Tool Reason] <text>` row from an

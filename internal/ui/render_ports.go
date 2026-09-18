@@ -15,10 +15,16 @@ import (
 // ports carry only the shapes.
 
 // Lines is the production render.Lines implementation: a thin adapter over the
-// pure status/tail formatters.
-type Lines struct{}
+// pure status/tail formatters. Round 054 (ADR 0023): the adapter carries the
+// chrome-colour flag the CLI resolved (the diagnostic stream is a terminal AND
+// `-r` is off), so the pure formatters stay parameter-stable and the colour
+// decision lives at the composition seam.
+type Lines struct{ colour bool }
 
 var _ render.Lines = Lines{}
+
+// NewLines builds the production lines adapter with the round-054 colour flag.
+func NewLines(colour bool) Lines { return Lines{colour: colour} }
 
 // InputCaptured renders the input-capture acknowledgement.
 func (Lines) InputCaptured(t time.Time) string { return FormatInputCaptured(t) }
@@ -29,9 +35,9 @@ func (Lines) TurnOpening(turn int, mode string) string { return FormatTurnOpenin
 // TurnGap renders the blank line separating the frame from the answer.
 func (Lines) TurnGap() string { return FormatTurnGap() }
 
-// PayloadStatus renders one payload status line.
-func (Lines) PayloadStatus(t time.Time, tokens, budget int, mode, model string, estimated bool) string {
-	return FormatPayloadStatus(t, tokens, budget, mode, model, estimated)
+// PayloadStatus renders one payload status line (round-054 green accents).
+func (l Lines) PayloadStatus(t time.Time, tokens, budget int, mode, model string, estimated bool) string {
+	return formatPayloadStatusColour(t, tokens, budget, mode, model, estimated, l.colour)
 }
 
 // Metrics renders the per-turn metrics line.
@@ -39,13 +45,15 @@ func (Lines) Metrics(t time.Time, provider string, u metrics.UsageCounts) string
 	return FormatMetrics(t, provider, u)
 }
 
-// Ready renders the `╰─⠿ Ready` session summary.
-func (Lines) Ready(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64) string {
-	return FormatReady(lastCallCost, turnCost, sessionCost, sessionMiss, sessionHit, sessionOut, hitRate)
+// Ready renders the `╰─⠿ Ready` session summary (round-054 green session cost).
+func (l Lines) Ready(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64) string {
+	return formatReadyColour(lastCallCost, turnCost, sessionCost, sessionMiss, sessionHit, sessionOut, hitRate, l.colour)
 }
 
-// ToolReason renders the `[Tool Reason]` line.
-func (Lines) ToolReason(t time.Time, reason string) string { return FormatToolReason(t, reason) }
+// ToolReason renders the `[Tool Reason]` line (round-054 whole-line green).
+func (l Lines) ToolReason(t time.Time, reason string) string {
+	return formatToolReasonColour(t, reason, l.colour)
+}
 
 // ToolUsage renders the offline per-tool roll-up.
 func (Lines) ToolUsage(rows []history.ToolUsageRow) string { return FormatToolUsage(rows) }
@@ -86,8 +94,9 @@ func NewTurnProgress(stream io.Writer, now func() time.Time, model string, epoch
 }
 
 // ToolLines returns the production agentport.ToolLineRenderer (the loop's
-// four-line renderer) as a value the composition root injects.
-func ToolLines() ToolLineRenderer { return ToolLineRenderer{} }
+// four-line renderer) as a value the composition root injects, with the round-054
+// chrome-colour flag.
+func ToolLines(colour bool) ToolLineRenderer { return ToolLineRenderer{colour: colour} }
 
 // Compile-time conformance: the spinner is the CLI's progress indicator port.
 var _ render.Indicator = (*Spinner)(nil)

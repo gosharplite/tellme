@@ -73,8 +73,8 @@ func buildDeps() deps.Dependencies {
 			return deps.Discovery{Tools: tools, Warnings: warnings, Closer: closer}
 		},
 		LoopFactory:  func(spec agentport.LoopSpec) agentport.Loop { return agent.NewLoop(spec) },
-		NewLines:     func() render.Lines { return ui.Lines{} },
-		NewToolLines: func() agentport.ToolLineRenderer { return ui.ToolLines() },
+		NewLines:     func(colour bool) render.Lines { return ui.NewLines(colour) },
+		NewToolLines: func(colour bool) agentport.ToolLineRenderer { return ui.ToolLines(colour) },
 		NewAnswer:    func() render.Answer { return ui.NewAnswer() },
 		NewProgress: func(stream io.Writer, now func() time.Time, model string, epoch time.Time, columns func() int, idleGap time.Duration, enabled bool) render.TurnProgress {
 			return ui.NewTurnProgress(stream, now, model, epoch, infratelemetry.NewSystemMetricsProvider(), columns, idleGap, enabled)

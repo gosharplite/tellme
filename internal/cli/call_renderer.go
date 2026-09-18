@@ -55,12 +55,12 @@ type callRenderer struct {
 // newCallRenderer builds the per-call renderer, seeding the session roll-up from
 // the persisted summary so the `Ready` session totals accumulate across the
 // session (round-018 D7).
-func newCallRenderer(env runtimeEnv, res resolution, reg domaintools.Registry, chrome bool, priorCalls int, dp deps.Dependencies) *callRenderer {
+func newCallRenderer(env runtimeEnv, res resolution, reg domaintools.Registry, chrome bool, priorCalls int, colour bool, dp deps.Dependencies) *callRenderer {
 	r := &callRenderer{
 		env:        env,
 		res:        res,
 		reg:        reg,
-		lines:      dp.NewLines(),
+		lines:      dp.NewLines(colour),
 		chrome:     chrome,
 		priorCalls: priorCalls,
 		pricing:    llm.Pricing{Hit: res.Pricing.HIT, Miss: res.Pricing.MISS, Comp: res.Pricing.COMP},

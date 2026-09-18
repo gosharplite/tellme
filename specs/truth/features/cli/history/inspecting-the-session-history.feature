@@ -78,6 +78,19 @@ Feature: Inspecting the session history
       When the operator asks tellme to list the last 1 messages of the configuration "missing.yaml"
       Then tellme exits with the configuration error code
 
+  Rule: The list length defaults to one when the count is omitted
+
+    Example: Listing with no count
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds the exchanges:
+        | prompt            | answer |
+        | My name is Alice. | Noted. |
+        | What is my name?  | Alice  |
+      When the operator asks tellme to list the last messages without a count
+      Then tellme lists the last 1 messages
+      And tellme exits successfully
+
   Rule: A forced session mode outranks the named configuration
 
     Example: The environment mode wins over the named configuration

@@ -89,10 +89,14 @@ type Dependencies struct {
 
 	// NewLines builds the status/tail line renderer (round 051; R5.5 of #92;
 	// ADR 0020). The bytes stay owned by internal/ui, bound here as a domain
-	// render.Lines port, so internal/cli names no internal/ui type.
-	NewLines func() render.Lines
-	// NewToolLines builds the loop's four-line renderer (agentport.ToolLineRenderer).
-	NewToolLines func() agentport.ToolLineRenderer
+	// render.Lines port, so internal/cli names no internal/ui type. Round 054
+	// (ADR 0023): the caller passes the chrome-colour flag (the diagnostic stream
+	// is a terminal AND -r is off); the adapter applies the round-054 green
+	// accents only when true.
+	NewLines func(colour bool) render.Lines
+	// NewToolLines builds the loop's four-line renderer (agentport.ToolLineRenderer)
+	// with the round-054 chrome-colour flag.
+	NewToolLines func(colour bool) agentport.ToolLineRenderer
 	// NewAnswer builds the markdown answer renderer (round 006).
 	NewAnswer func() render.Answer
 	// NewProgress builds a turn's coupled progress indicator + `[Tool Output]`
