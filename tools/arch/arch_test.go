@@ -3,7 +3,8 @@
 // The layer-discipline gate. Everything lives in this build-tagged test file so
 // it runs only under `-tags=arch` (the Makefile `verify-architecture` target)
 // and never in the default `go test ./...` run. See docs/decisions/0011-layer-
-// discipline-gate.md and specs/truth/techstack.md for the rule and its policy.
+// discipline-gate.md (RULE-A/B/C/D) and docs/decisions/0016-application-import-
+// ceiling.md (RULE-E) and specs/truth/techstack.md for the rules and policy.
 package arch
 
 import (
@@ -103,6 +104,41 @@ func isApplicationTier(rel string) bool {
 	return rel == "internal/cli" || strings.HasPrefix(rel, "internal/app/")
 }
 
+// sanctionedImports is the normative RULE-E allow-list (ADR 0016 D1/D3): for a
+// governed application tier (internal/app/**, internal/cli) an import of an
+// internal/** package is legal ONLY if it matches one of these entries. A
+// trailing "/" marks a subtree entry; a bare name matches the exact package.
+// This slice — the machine-readable source of the sanctioned set — is the single
+// normative home for RULE-E; specs/truth/techstack.md cites it (ADR 0016), never
+// restates it.
+var sanctionedImports = []string{
+	"internal/domain/", // tier 0 — the pure domain
+	"internal/config",  // tier 1 — shared utility (leaf package)
+	"internal/home",    // tier 1 — shared utility (leaf package)
+	"internal/app/",    // tier 2 — application utilities (incl. the deps seam)
+}
+
+// matchesSanctioned reports whether package rel is covered by one sanctioned
+// entry: a subtree entry (trailing "/") covers a prefix; a bare entry matches the
+// exact package.
+func matchesSanctioned(entry, rel string) bool {
+	if strings.HasSuffix(entry, "/") {
+		return strings.HasPrefix(rel, entry)
+	}
+	return rel == entry
+}
+
+// sanctioned reports whether a governed application tier may import rel under
+// RULE-E. Default-deny: an internal/** package matching no entry is NOT allowed.
+func sanctioned(rel string) bool {
+	for _, entry := range sanctionedImports {
+		if matchesSanctioned(entry, rel) {
+			return true
+		}
+	}
+	return false
+}
+
 // rel strips the module prefix; ok=false for stdlib / third-party imports.
 func rel(importPath string) (string, bool) {
 	if !strings.HasPrefix(importPath, modulePath) {
@@ -111,17 +147,18 @@ func rel(importPath string) (string, bool) {
 	return strings.TrimPrefix(importPath, modulePath), true
 }
 
-// violation reports whether src -> dst breaks the two-part predicate (ADR 0011
-// D2): RULE-A (upward), RULE-B (application -> infrastructure), RULE-C (domain
-// purity). Both tiers are already known-ranked.
+// violation reports whether src -> dst breaks the layer predicate. RULE-A/B/C
+// are ADR 0011 D2; RULE-E is ADR 0016 D1. Both tiers are already known-ranked.
 func violation(src string, srcTier int, dst string, dstTier int) bool {
 	switch {
 	case dstTier > srcTier:
-		return true
+		return true // RULE-A (upward)
 	case isApplicationTier(src) && strings.HasPrefix(dst, "internal/infrastructure/"):
-		return true
+		return true // RULE-B (application -> infrastructure)
 	case strings.HasPrefix(src, "internal/domain/") && !strings.HasPrefix(dst, "internal/domain/"):
-		return true
+		return true // RULE-C (domain purity)
+	case isApplicationTier(src) && !sanctioned(dst):
+		return true // RULE-E (application import ceiling, default-deny)
 	}
 	return false
 }
@@ -388,7 +425,7 @@ func readBaseline(t *testing.T, path string) []string {
 func writeBaseline(t *testing.T, path string, violations []string) {
 	t.Helper()
 	var b strings.Builder
-	b.WriteString("# tools/arch/baseline.txt — layer-discipline gate baseline (ADR 0011).\n")
+	b.WriteString("# tools/arch/baseline.txt — layer-discipline gate baseline (ADR 0011 + ADR 0016).\n")
 	b.WriteString("#\n")
 	b.WriteString("# Generated from the gate's own output — NEVER hand-edit. Regenerate with:\n")
 	b.WriteString("#   make verify-architecture-update\n")
@@ -398,9 +435,11 @@ func writeBaseline(t *testing.T, path string, violations []string) {
 	b.WriteString("#   go vet -tags=arch ./tools/arch\n")
 	b.WriteString("#   go test -count=1 -tags=arch -run TestVerifyRealArchitecture ./tools/arch\n")
 	b.WriteString("#\n")
-	b.WriteString("# A line `<src> -> <dst>` is a known, baselined RULE-A/B/C violation. This is a\n")
-	b.WriteString("# ratchet that only shrinks: a violation not listed here FAILS the gate, and a\n")
-	b.WriteString("# listed line that no longer violates (stale) FAILS the gate too.\n")
+	b.WriteString("# A line `<src> -> <dst>` is a known, baselined layer violation: RULE-A/B/C/D\n")
+	b.WriteString("# (ADR 0011) plus RULE-E, the application import ceiling (ADR 0016) — the\n")
+	b.WriteString("# application tiers' residual unsanctioned edges. This is a ratchet that only\n")
+	b.WriteString("# shrinks: a violation not listed here FAILS the gate, and a listed line that no\n")
+	b.WriteString("# longer violates (stale) FAILS the gate too.\n")
 	for _, v := range violations {
 		b.WriteString(v)
 		b.WriteString("\n")
@@ -443,6 +482,42 @@ func assertNoUnrankedGoverned(t *testing.T, graph map[string]map[string]bool) {
 	}
 }
 
+// assertSanctionedInUse asserts the fail-on-stale allow-list (ADR 0016 D4): every
+// sanctioned entry must be imported by at least one governed application-tier
+// package. An unused sanctioned entry FAILS — the allow-list, like the baseline,
+// must shrink to truth (symmetry with ADR 0011 D3).
+func assertSanctionedInUse(t *testing.T, graph map[string]map[string]bool) {
+	t.Helper()
+	used := map[string]bool{}
+	for src, dsts := range graph {
+		if !isApplicationTier(src) {
+			continue
+		}
+		for dst := range dsts {
+			if isInternal(dst) {
+				used[dst] = true
+			}
+		}
+	}
+	var unused []string
+	for _, entry := range sanctionedImports {
+		hit := false
+		for dst := range used {
+			if matchesSanctioned(entry, dst) {
+				hit = true
+				break
+			}
+		}
+		if !hit {
+			unused = append(unused, entry)
+		}
+	}
+	if len(unused) > 0 {
+		sort.Strings(unused)
+		t.Fatalf("sanctioned allow-list entr(ies) unused by any application-tier import (fail-on-stale allow-list, ADR 0016 D4): %v — remove them from the sanctioned set", unused)
+	}
+}
+
 // assertNoNewOrStale applies the ratchet: any violation not in the baseline is a
 // new violation, and any baseline line that no longer violates is stale.
 func assertNoNewOrStale(t *testing.T, path string, violations, baseline []string) {
@@ -474,14 +549,17 @@ func assertNoNewOrStale(t *testing.T, path string, violations, baseline []string
 	}
 }
 
-// selfTestPredicate unit-tests the two-part predicate on a synthetic graph,
-// covering RULE-A/B/C/D and the legal boundaries.
+// selfTestPredicate unit-tests the layer predicate on a synthetic graph,
+// covering RULE-A/B/C/D (ADR 0011 D2) and RULE-E (ADR 0016 D1) plus the legal
+// boundaries (sanctioned application-tier imports, downward imports).
 func selfTestPredicate(t *testing.T) {
 	t.Helper()
 	graph := map[string]map[string]bool{
-		"internal/agent":            {"internal/ui": true},
-		"internal/app/suggestions":  {"internal/infrastructure/tools": true},
-		"internal/cli":              {"internal/infrastructure/history": true},
+		"internal/agent":           {"internal/ui": true},
+		"internal/app/deps":        {"internal/app/suggestions": true, "internal/config": true},
+		"internal/app/suggestions": {"internal/infrastructure/tools": true, "internal/config": true},
+		"internal/cli": {"internal/infrastructure/history": true, "internal/agent": true,
+			"internal/ui": true, "internal/app/deps": true, "internal/domain/llm": true},
 		"internal/domain/history":   {"internal/config": true},
 		"internal/domain/llm":       {"internal/domain/history": true},
 		"internal/home":             {"internal/domain/metrics": true},
@@ -491,14 +569,26 @@ func selfTestPredicate(t *testing.T) {
 		"internal/weird":            {"internal/domain/llm": true},
 	}
 	want := []string{
-		"internal/agent -> internal/ui",
-		"internal/app/suggestions -> internal/infrastructure/tools",
-		"internal/cli -> internal/infrastructure/history",
-		"internal/domain/history -> internal/config",
-		"internal/weird -> (unranked governed package)",
+		"internal/agent -> internal/ui",                             // RULE-A
+		"internal/app/suggestions -> internal/infrastructure/tools", // RULE-B/E
+		"internal/cli -> internal/agent",                            // RULE-E
+		"internal/cli -> internal/infrastructure/history",           // RULE-B/E
+		"internal/cli -> internal/ui",                               // RULE-E
+		"internal/domain/history -> internal/config",                // RULE-C
+		"internal/weird -> (unranked governed package)",             // RULE-D
 	}
 	if got := evaluate(graph); !reflect.DeepEqual(got, want) {
 		t.Fatalf("predicate self-test failed:\n got  %v\n want %v", got, want)
+	}
+	// RULE-E sanctioned boundaries: legal application-tier imports.
+	if !sanctioned("internal/domain/llm") || !sanctioned("internal/config") ||
+		!sanctioned("internal/home") || !sanctioned("internal/app/deps") {
+		t.Fatalf("RULE-E sanctioned set self-test failed: a sanctioned package was rejected")
+	}
+	for _, unsanctioned := range []string{"internal/agent", "internal/ui", "internal/ui/tui/prompt", "internal/infrastructure/mcp"} {
+		if sanctioned(unsanctioned) {
+			t.Fatalf("RULE-E sanctioned set self-test failed: %q must NOT be sanctioned (default-deny)", unsanctioned)
+		}
 	}
 }
 
@@ -515,9 +605,18 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	assertGraphEnumerated(t, graph)
 	properties++
 
-	// The predicate + tier-table coverage (default-deny) on synthetic input.
-	selfTestPredicate(t)
-	assertNoUnrankedGoverned(t, graph)
+	// The predicate + tier-table coverage (default-deny) + the RULE-E sanctioned
+	// allow-list (fail-on-stale) self-tests, all on synthetic/real input.
+	selfTests := 0
+	selfTestPredicate(t) // RULE-A/B/C/D + RULE-E, synthetic (ADR 0011 D2 / ADR 0016 D1)
+	selfTests++
+	assertNoUnrankedGoverned(t, graph) // RULE-D coverage, real graph
+	selfTests++
+	assertSanctionedInUse(t, graph) // RULE-E allow-list in use, real graph (ADR 0016 D4)
+	selfTests++
+	if selfTests != 3 {
+		t.Fatalf("internal error: expected all 3 self-tests to run, got %d", selfTests)
+	}
 
 	// Property 2 — ranking + baseline diff (rule evaluated on the merged graph,
 	// so test imports are governed).

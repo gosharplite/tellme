@@ -61,7 +61,7 @@
 - sanction 集為規範性機讀來源；`techstack.md` 以 predicate 指涉並 cite ADR 0016（RF-3 精神）。
 - review 啟動 subagent；通過前不解鎖 Phase 4。
 
-- [ ] T001 [P] 在 `tools/arch/arch_test.go` 實作 RULE-E（sanctioned-set 段落 + ceiling 判定 + 覆蓋自檢）；更新 `baseline.txt` 檔頭註解
+- [X] T001 [P] 在 `tools/arch/arch_test.go` 實作 RULE-E（sanctioned-set 段落 + ceiling 判定 + 覆蓋自檢）；更新 `baseline.txt` 檔頭註解
   - Read:
     - `specs/plans/047-application-import-ceiling-gate/research.md` -> D1, D3, D4, D5, D6, D11
     - `docs/decisions/0016-application-import-ceiling.md` -> D1, D2, D3, D4, D5, D6, D7
@@ -77,7 +77,7 @@
   - RED-first 期望：完成 T001、**未**更新 baseline 前，`make verify-architecture` **非零失敗**，列出 **3** 條 RULE-E edge（`internal/cli -> internal/agent`、`internal/cli -> internal/ui`、`internal/cli -> internal/ui/tui/prompt`）；證明規則**非空轉**（對應 SC-002）。
   - 不做：不改 `Makefile`（D2）；不手抄 baseline 內容行（T002）；不碰產品碼／truth／既有 RULE-A/B/C/D 判定；不引入相依；不動 `cmd/**`／`tests/**`。
 
-- [ ] T002 以 gate 重新生成並提交 `tools/arch/baseline.txt`（generated，非手抄；+3 RULE-E 行）
+- [X] T002 以 gate 重新生成並提交 `tools/arch/baseline.txt`（generated，非手抄；+3 RULE-E 行）
   - Read:
     - `specs/plans/047-application-import-ceiling-gate/research.md` -> D4
     - `docs/decisions/0016-application-import-ceiling.md` -> D5（worked example）
@@ -87,7 +87,7 @@
   - 驗證：重跑 `make verify-architecture` → **綠**（3 baselined、0 new、0 stale、0 cycles）。
   - 不做：不手改任何 baseline 行；不為了綠而移除違規或放寬 RULE-E。
 
-- [ ] T003 subagent review (phase quality gate)
+- [X] T003 subagent review (phase quality gate)
   - Read: `tools/arch/arch_test.go`、`tools/arch/baseline.txt`、`research.md` -> D1–D11、`docs/decisions/0016-application-import-ceiling.md`
   - 檢驗：RULE-E 為 **allow-list ceiling**（非 direction 規則），同時治理 tier 2 與 tier 6；sanctioned set 為唯一機讀來源且 **default-deny**；**fail-on-stale allow-list** 覆蓋自檢存在且非空轉；violation 與 RULE-A/B/C **以 edge 去重**；3 行 baseline **可由規則導出**；未動產品碼／truth／RULE-A/B/C/D／`Makefile`；`-count=1` 契約保留。有 issues 修正再 review，直到零問題。通過前不解鎖 Phase 4。
 
@@ -97,7 +97,7 @@
 
 **Test Scope**: `tools/arch/**`（unit；`-tags=arch`）；whole-suite `go test ./...`；`make verify`；Gherkin/DSL topology audit。
 
-- [ ] T004 [REGRESSION] 可偽性見證 (a) 新 unsanctioned import ⇒ 紅 / (b) unused sanctioned entry ⇒ 紅 / (c) stale baseline 條目 ⇒ 紅
+- [X] T004 [REGRESSION] 可偽性見證 (a) 新 unsanctioned import ⇒ 紅 / (b) unused sanctioned entry ⇒ 紅 / (c) stale baseline 條目 ⇒ 紅
   - Read: `research.md` -> D1, D3, D4, D9；`docs/decisions/0010-test-deadline-decoupling.md`（見證 doctrine）；`docs/decisions/0016-application-import-ceiling.md` -> D4, D5；`tools/arch/arch_test.go`
   - 做：
     - **(a) 新 unsanctioned import**：暫時於 `internal/cli` 加入一個不在 sanctioned set 的 `internal/**` import（例如 `internal/infrastructure/mcp` 或一個新的 `internal/telemetry`）→ `make verify-architecture` **非零失敗並列出** 該 `src -> dst`（RULE-E）；**還原**後確認綠。
@@ -105,7 +105,7 @@
     - **(c) stale**：暫時自 `tools/arch/baseline.txt` 移除一行（其違規仍在）→ gate 回報**新 violation** 而紅；改成暫時讓某一 baselined 行不再違規（例如以注入的 sanctioned entry 讓該 edge 合法化）→ gate 回報 **stale** 而紅；兩種皆觀察到即**還原**，重跑確認綠。
   - 不做：不放寬任何 assertion 以「讓它過」；見證後必須還原到 HEAD。
 
-- [ ] T005 [REGRESSION] 全量回歸 + `make verify` + topology audit + 範圍檢查
+- [X] T005 [REGRESSION] 全量回歸 + `make verify` + topology audit + 範圍檢查
   - Read: `research.md` -> D2, D7, D10；`specs/truth/techstack.md` -> Build & Tooling（Layer-discipline gate row；Task runner row）
   - 做：
     - `make verify-architecture` → 綠（3 RULE-E baselined、RULE-A/B/C **0**、0 new、0 stale、0 cycles）。
@@ -115,7 +115,7 @@
     - `gofmt -l .` clean；`git diff --name-only origin/dev..HEAD` 確認僅動 `tools/arch/**`（+ 文件：`docs/decisions/**`、`specs/truth/techstack.md`、plan package、`STATUS.md`）；`go.mod`／`go.sum` 不變；`Makefile` 未動；`internal/**`／`cmd/**` 產品碼未動。
   - 不做：不為了綠而放寬 assertion、改產品碼或 baseline 手抄。
 
-- [ ] T006 subagent review (round quality gate)
+- [X] T006 subagent review (round quality gate)
   - Read:
     - `tools/arch/arch_test.go`、`tools/arch/baseline.txt`
     - `specs/truth/techstack.md`（Layer-discipline gate row；Task runner row）、`docs/decisions/0016-application-import-ceiling.md`
@@ -164,3 +164,37 @@
 | `plan.md` -> Scope notes（api/data/dsl NOOP；ui/spec-by-example skipped） | T005、T006 | PASS |
 
 > 孤立產物件數：0。掃描通過，准予交付。
+
+---
+
+## Execution outcome (T001–T006)
+
+**Delivered** (`tools/arch/arch_test.go` CHANGED + `tools/arch/baseline.txt` CHANGED; **zero product code**; `Makefile` unchanged; `go.mod`/`go.sum` unchanged):
+
+- `tools/arch/arch_test.go` — a **normative sanctioned-set** (`sanctionedImports` + `matchesSanctioned`/`sanctioned`, default-deny), the **RULE-E** case in `violation` (`isApplicationTier(src) && !sanctioned(dst)`), the **fail-on-stale allow-list** self-test `assertSanctionedInUse` (every sanctioned entry used by ≥1 application-tier import), an extended `selfTestPredicate` (RULE-E synthetic cases + sanctioned positive/negative assertions), the entry test wired to run all three self-tests with an explicit ran-assertion, and the `writeBaseline` header naming RULE-E + ADR 0016.
+- `tools/arch/baseline.txt` — **regenerated** from the gate (`make verify-architecture-update`): the **3** RULE-E residual edges `internal/cli -> internal/agent`, `internal/cli -> internal/ui`, `internal/cli -> internal/ui/tui/prompt` — line-for-line the ADR 0016 worked example; RULE-A/B/C remain **0**.
+
+### Phase-3 review outcome (T003)
+
+- **Reviewer**: the session (inline self-review — **disclosed deviation**, the round-029/041/042 precedent: no parallel-subagent substrate in this session).
+- **Result**: **PASS**. RULE-E is an **allow-list ceiling** (not a direction rule), binding **both** application tiers; the sanctioned set is the single machine-readable source with **default-deny**; the **fail-on-stale allow-list** self-test exists and is non-vacuous (witness (b)); violations are **deduped by edge** against RULE-A/B/C (map-keyed by edge); the 3-line baseline is derivable from the rule; `Makefile`/truth/product code untouched; the `-count=1` contract is preserved.
+
+### Witnesses (T004 — reproduced then reverted, ADR 0010)
+
+- **(a) new unsanctioned application-tier import.** A temp `internal/cli/zz_rule_e_probe.go` importing `internal/infrastructure/mcp` ⇒ `make verify-architecture` **FAIL** — `1 new violation(s) not in the baseline: internal/cli -> internal/infrastructure/mcp`; removed ⇒ green.
+- **(b) unused sanctioned allow-list entry.** A temp unused entry (`internal/domain/nonexistent/`) in `sanctionedImports` ⇒ **FAIL** — `sanctioned allow-list entr(ies) unused by any application-tier import (fail-on-stale allow-list, ADR 0016 D4): [internal/domain/nonexistent/]`; removed ⇒ green. *(A first probe used `internal/infrastructure/`, which the default-deny negative assertion caught earlier — also a red; re-run with a neutral unused entry to witness the coverage assertion specifically.)*
+- **(c1) baseline line removed while its violation remains.** Dropping `internal/cli -> internal/agent` ⇒ **FAIL** — `1 new violation(s) not in the baseline: internal/cli -> internal/agent`; restored ⇒ green.
+- **(c2) stale baseline line.** A bogus `internal/cli -> internal/config` line ⇒ **FAIL** — `1 stale baseline entr(ies) … remove them from the baseline: internal/cli -> internal/config`; restored ⇒ green.
+
+### Regression / scope (T005)
+
+- `make verify-architecture` → **green** (3 RULE-E baselined · RULE-A/B/C **0** · 0 new · 0 stale · 0 cycles).
+- `go test -count=1 ./...` → **green** (incl. the ~60 s godog E2E); `tools/arch` = `[no test files]` under default tags.
+- `make verify` → **OK** (existing gates unchanged; `verify-architecture` not added as a new member); `golangci-lint` 0 issues; `govulncheck` clean; cross-compile 4/4.
+- Topology audit **unchanged** — no file under `specs/truth/features/**` changed (`git diff --name-only` = `tools/arch/arch_test.go`, `tools/arch/baseline.txt`); 44 features · 6 modules.
+- `gofmt -l .` clean; `Makefile` unchanged; `go.mod`/`go.sum` unchanged; no `internal/**`/`cmd/**`/`tests/**` product code changed.
+
+### Round review outcome (T006)
+
+- **Reviewer**: the session (inline self-review — same disclosed deviation).
+- **Result**: **PASS** — `dev` green; new unsanctioned import ⇒ red; unused sanctioned entry ⇒ red; stale/removed ⇒ red; RULE-A/B/C still 0; the sanctioned set is the sole authority and consistent with the `techstack.md` predicate; violations deduped by edge; no new dependency; `Makefile` untouched; existing gate semantics and `stdout`/`stderr` unchanged; **no product code change**; `techstack.md` and `truth-delta.md` consistent.
