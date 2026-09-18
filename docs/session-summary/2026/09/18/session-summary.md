@@ -271,9 +271,13 @@ A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` S
 - **Round-043 forward items** — (a) **#96 CLOSED**; (b) **R4** (extend `tools/arch`'s `childEnv` with the D2 names when that frozen guard is next touched); (c) **R6** (make-level inputs `-e`/`MAKEFILES` — recorded, not closed); (d) **R1/R3/R5** recorded residuals; (e) PRs #97/#98 closed unmerged — a process item, no code impact.
 - Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; round-011 forward items; the round-022 row→feature audit blind spot → **#91**.
 
+### Propagation (round 043 — DONE)
+
+`dev → main` — **DONE (no-ff, `4ce056c`)** (operator-approved): `git checkout main && git merge --no-ff dev && git push origin main`; `main^{tree}` == `dev^{tree}` (identical). `origin/main` now tracks `dev` for round 043.
+
 ### Next steps
 
-1. **Propagate `dev → main`** (no-ff) — **PENDING operator approval** (recorded in `STATUS.md`).
+1. ~~Propagate `dev → main`~~ — **DONE** (no-ff, `4ce056c`).
 2. Open round **`044-*`** off `dev` via `/axb-specify` — recommended: **R2 of [#92](https://github.com/gosharplite/tellme/issues/92)** (composition-root extraction; the 7 `cli → infrastructure` baseline entries → 0, proven by the round-042 gate).
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
