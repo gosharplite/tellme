@@ -569,3 +569,23 @@ Re-verified at `a96fa20`: `make verify` **OK** · `go test -count=1 ./...` green
 ### Session 20 (cont.) — PR #109 fold-review #3: CLEARED FOR MERGE (`85fa321`)
 
 Fold review #3 ([5725736471](https://github.com/gosharplite/tellme/pull/109#issuecomment-5725736471)) verified **N-3 closed** (doc-only, `a96fa20`) and confirmed the layering *port = invariant · adapter = one conforming implementation · ui pin = the adapter's spelling*. Verdict: **nothing outstanding from the architect side — CLEARED FOR HUMAN MERGE.** One optional plan-side touch-up folded as `85fa321`: `research.md`'s witness item 2 retitled *"The adapter's contract"* (it describes the ui-tier pin) + an explicit note that the **port** postcondition is the weaker caller-facing invariant (a false `renders` ⇒ the `line` value is *unspecified*). Final gates at the head: `make verify` **OK** (gate **0 new / 0 stale / 0 cycles**) · `go test -count=1 ./...` green (incl. E2E) · `gofmt`/`go vet` clean · `MERGEABLE`/`CLEAN` vs `dev`. **Propagation PENDING** (human merge of PR [#109](https://github.com/gosharplite/tellme/pull/109) → `dev → main`; close #108).
+
+### Session 20 (cont.) — round 046 **DELIVERED** + `SESSION-CLOSEOUT.md` (Steps 1–8)
+
+PR [#109](https://github.com/gosharplite/tellme/pull/109) was **human-merged** into `dev` (`8ca4758`, by `thptcnec`, 2026-09-18T05:49:10Z; the merge was a fast-forward — `mergeCommit` == the round head) and the remote branch deleted. Closeout executed.
+
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#109](https://github.com/gosharplite/tellme/pull/109) **MERGED** into `dev` (`8ca4758`); remote branch deleted → **local branch deleted** (`git branch -D`; was `8ca4758`) |
+| Propagation | `dev → main` — **DONE (no-ff)** |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `8ca4758`; `--version` → `dev` |
+| Closeout Step 1 | tree clean on `dev`; no stray files; no frozen plan package touched (only `specs/plans/046-…`) |
+| Closeout Step 2 | `gofmt` clean · `go vet` clean · `make verify` **OK** (arch gate: baseline **header-only (0)**, 0 new / 0 stale / 0 cycles; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (incl. the ~60 s godog E2E) · diff-level secret scan clean · `go.mod`/`go.sum` unchanged |
+| Closeout Step 3 | `STATUS.md` → round 046 **DELIVERED / FROZEN**; the **round-045 detail relocated verbatim** to `docs/archives/status/2026-09-18.md` (Rule 12); header/branch-model/roadmap/open-items/env updated |
+| Closeout Step 4 | this section |
+| Closeout Step 5 | `STATUS.md` ↔ this log reconciled (same round position, heads, decisions, open items) |
+| Closeout Step 6 | committed + pushed on `dev` |
+| Closeout Step 7 | **propagated** `dev → main` (no-ff) |
+| Closeout Step 8 | **#108 CLOSED (completed)** (DoD met: the loop names no `internal/ui`; the blank-reason predicate has one owner; the baseline is header-only **0**) + a delivery comment on #92 |
+
+**Public binaries**: the merged head is `8ca4758`; the review chain (review → 3 fold reviews) ended **CLEARED FOR MERGE** with F-1 mutation-verified. **Next**: open round `047-*` off `dev` (candidates: **R5** [#101](https://github.com/gosharplite/tellme/issues/101) strict de-coupling; the #92 ride-alongs; [#103](https://github.com/gosharplite/tellme/issues/103); [#91](https://github.com/gosharplite/tellme/issues/91); [#13](https://github.com/gosharplite/tellme/issues/13)).
