@@ -10,6 +10,9 @@ package arch
 import (
 	"bytes"
 	"flag"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"maps"
 	"os"
 	"os/exec"
@@ -623,6 +626,157 @@ func selfTestPredicate(t *testing.T) {
 	}
 }
 
+// couplingSurface is the RULE-F allow-list (round 049 TD-1): the APPLICATION
+// COUPLING SURFACE. RULE-E's granularity is the package EDGE; it is structurally
+// blind to HOW MANY identifiers cross an already-baselined edge, so a shrunk edge
+// can silently re-inflate (a second construction site, a new `agent.*` helper, a
+// package-level `var _ agent.X`) with 0 new / 0 stale. RULE-F closes that gap: for
+// a governed application tier named here, the set of IDENTIFIERS it may select
+// from the listed target package is a normative allow-list (fail-on-stale).
+//
+// Key: "<src> -> <dst>" (module-relative). Value: the allowed exported-identifier
+// set the src PRODUCTION sources may select from dst. The machine-readable home
+// of this list is this table (like the sanctioned set, ADR 0016 D1).
+var couplingSurface = map[string]map[string]bool{
+	"internal/cli -> internal/agent": {"AgentLoop": true},
+}
+
+// productionGoFiles returns the non-_test.go file paths directly under dir.
+func productionGoFiles(t *testing.T, dir string) []string {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("cannot read %s: %v", dir, err)
+	}
+	var out []string
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		out = append(out, filepath.Join(dir, name))
+	}
+	return out
+}
+
+// scanCouplingSurface parses every governed application-tier PRODUCTION file under
+// root and returns, per coupling-surface edge, the set of identifiers selected
+// from the target package. Build-tag-gated application files are evaluated as
+// written (the union over tags is not simulated; the application tiers carry no
+// tag-gated files today — a future addition must widen this, ADR 0011 D6).
+func scanCouplingSurface(t *testing.T, root string) map[string]map[string]bool {
+	t.Helper()
+	got := map[string]map[string]bool{}
+	srcs := map[string]bool{}
+	for edge := range couplingSurface {
+		got[edge] = map[string]bool{}
+		src, _, _ := strings.Cut(edge, " -> ")
+		srcs[src] = true
+	}
+	for src := range srcs {
+		dir := filepath.Join(root, filepath.FromSlash(src))
+		for _, path := range productionGoFiles(t, dir) {
+			fset := token.NewFileSet()
+			f, err := parser.ParseFile(fset, path, nil, 0)
+			if err != nil {
+				t.Fatalf("cannot parse %s: %v", path, err)
+			}
+			// Resolve each edge-target's local alias in THIS file.
+			alias := map[string]string{} // alias -> edge key
+			for _, spec := range f.Imports {
+				rd, ok := rel(strings.Trim(spec.Path.Value, `"`))
+				if !ok {
+					continue
+				}
+				edge := src + " -> " + rd
+				if _, tracked := couplingSurface[edge]; !tracked {
+					continue
+				}
+				local := rd[strings.LastIndex(rd, "/")+1:]
+				if spec.Name != nil {
+					local = spec.Name.Name
+				}
+				if local == "_" {
+					continue
+				}
+				if local == "." {
+					t.Fatalf("%s uses a dot-import of %s — RULE-F cannot attribute bare selectors; rename or alias the import", path, rd)
+				}
+				alias[local] = edge
+			}
+			if len(alias) == 0 {
+				continue
+			}
+			ast.Inspect(f, func(n ast.Node) bool {
+				sel, ok := n.(*ast.SelectorExpr)
+				if !ok {
+					return true
+				}
+				x, ok := sel.X.(*ast.Ident)
+				if !ok {
+					return true
+				}
+				if edge, ok := alias[x.Name]; ok {
+					got[edge][sel.Sel.Name] = true
+				}
+				return true
+			})
+		}
+	}
+	return got
+}
+
+// diffSurface returns the new (got∖allowed) and stale (allowed∖got) identifiers.
+func diffSurface(allowed, got map[string]bool) (fresh, stale []string) {
+	for id := range got {
+		if !allowed[id] {
+			fresh = append(fresh, id)
+		}
+	}
+	for id := range allowed {
+		if !got[id] {
+			stale = append(stale, id)
+		}
+	}
+	sort.Strings(fresh)
+	sort.Strings(stale)
+	return fresh, stale
+}
+
+// assertCouplingSurface applies RULE-F: every tracked edge's identifier set must
+// equal its allow-list — a new identifier FAILS (a re-inflated coupling surface),
+// and an allow-list entry no longer selected FAILS (stale, the ratchet shrinks to
+// truth).
+func assertCouplingSurface(t *testing.T, root string) {
+	t.Helper()
+	got := scanCouplingSurface(t, root)
+	for _, edge := range slices.Sorted(maps.Keys(couplingSurface)) {
+		fresh, stale := diffSurface(couplingSurface[edge], got[edge])
+		if len(fresh) > 0 {
+			t.Errorf("RULE-F: %s — NEW coupling-surface identifier(s) not in the allow-list: %v (a shrunk edge re-inflated; the coupling surface must stay edge-sized)", edge, fresh)
+		}
+		if len(stale) > 0 {
+			t.Errorf("RULE-F: %s — STALE allow-list entr(ies) no longer referenced: %v (remove them from couplingSurface)", edge, stale)
+		}
+	}
+}
+
+// selfTestCouplingSurface unit-tests the RULE-F diff predicate on synthetic sets
+// (review F-2 precedent): an exact match reports nothing; an extra identifier is
+// "new"; a dropped allow-list entry is "stale".
+func selfTestCouplingSurface(t *testing.T) {
+	t.Helper()
+	if f, s := diffSurface(map[string]bool{"AgentLoop": true}, map[string]bool{"AgentLoop": true}); len(f) != 0 || len(s) != 0 {
+		t.Fatalf("surface self-test: exact match reported fresh=%v stale=%v", f, s)
+	}
+	if f, s := diffSurface(map[string]bool{"AgentLoop": true}, map[string]bool{"AgentLoop": true, "ToolDefs": true}); len(f) != 1 || f[0] != "ToolDefs" || len(s) != 0 {
+		t.Fatalf("surface self-test: expected fresh=[ToolDefs], got fresh=%v stale=%v", f, s)
+	}
+	if f, s := diffSurface(map[string]bool{"AgentLoop": true, "ToolDefs": true}, map[string]bool{"AgentLoop": true}); len(f) != 0 || len(s) != 1 || s[0] != "ToolDefs" {
+		t.Fatalf("surface self-test: expected stale=[ToolDefs], got fresh=%v stale=%v", f, s)
+	}
+}
+
 // TestVerifyRealArchitecture is the gate. It runs all three properties —
 // enumeration, ranking/baseline diff, acyclicity — and asserts they all ran, so
 // `-run TestVerifyRealArchitecture` alone cannot silently skip one (N-3).
@@ -648,7 +802,7 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	// The name set is compared ORDER-SENSITIVELY (reflect.DeepEqual) by design:
 	// the load-bearing property is "all four run before the *updateBaseline
 	// branch", and the order is also pinned (review N-3′).
-	wantSelfTests := []string{"predicate", "allow-list", "tier-coverage", "sanctioned-in-use"}
+	wantSelfTests := []string{"predicate", "allow-list", "tier-coverage", "sanctioned-in-use", "surface"}
 	var ranSelfTests []string
 	runSelfTest := func(name string, fn func(*testing.T)) {
 		// Record the ATTEMPT, not the pass: run the subtest then append its name
@@ -662,6 +816,7 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	runSelfTest("allow-list", selfTestAllowList)                                             // RULE-E coverage predicate, synthetic (ADR 0016 D4 / review F-2)
 	runSelfTest("tier-coverage", func(t *testing.T) { assertNoUnrankedGoverned(t, graph) })  // RULE-D coverage, real graph
 	runSelfTest("sanctioned-in-use", func(t *testing.T) { assertSanctionedInUse(t, graph) }) // RULE-E allow-list in use, real graph (ADR 0016 D4)
+	runSelfTest("surface", func(t *testing.T) { selfTestCouplingSurface(t) })                // RULE-F diff predicate, synthetic (round 049 TD-1)
 	if !reflect.DeepEqual(ranSelfTests, wantSelfTests) {
 		t.Fatalf("internal error: expected self-tests %v to run, got %v", wantSelfTests, ranSelfTests)
 	}
@@ -682,6 +837,13 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	if properties != 3 {
 		t.Fatalf("internal error: expected all 3 properties to run, got %d", properties)
 	}
+
+	// Property 4 — RULE-F: the application coupling surface (round 049 TD-1).
+	// The baseline ratchet governs EDGES; RULE-F governs the IDENTIFIERS crossing
+	// a tracked edge, so a shrunk edge cannot silently re-inflate. Runs before the
+	// `*updateBaseline` branch (regenerating the baseline must not launder a
+	// re-inflated surface into a green gate).
+	assertCouplingSurface(t, root)
 
 	path := filepath.Join(root, "tools", "arch", "baseline.txt")
 	if *updateBaseline {

@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-18
 
-**Status**: Draft — plan package created by `/axb-specify`. Anchor issue [#101](https://github.com/gosharplite/tellme/issues/101) (**R5** of [#92](https://github.com/gosharplite/tellme/issues/92)). **Clarify round 1 CLOSED**: **Q1 → B** (re-cut) · **Q2 → (i)** (all three crossing contracts → `internal/domain/agent`) · **Q3 → (a)** (reference + delete; no alias). Round 047 = **R5.1** (the RULE-E gate + baseline); round 048 = **R5.2** (the `cli → ui/tui/prompt` edge).
+**Status**: Draft (clarify CLOSED; round implemented — PR [#112](https://github.com/gosharplite/tellme/pull/112) open) — plan package created by `/axb-specify`. Anchor issue [#101](https://github.com/gosharplite/tellme/issues/101) (**R5** of [#92](https://github.com/gosharplite/tellme/issues/92)). **Clarify round 1 CLOSED**: **Q1 → B** (re-cut) · **Q2 → (i)** (all three crossing contracts → `internal/domain/agent`) · **Q3 → (a)** (reference + delete; no alias). Round 047 = **R5.1** (the RULE-E gate + baseline); round 048 = **R5.2** (the `cli → ui/tui/prompt` edge).
 
 **Input**: Issue [#101](https://github.com/gosharplite/tellme/issues/101) — **R5**. The committed baseline records the **2** residual unsanctioned edges (measured 2026-09-18 @ `dev` `12964d6`):
 
@@ -172,7 +172,7 @@ As a maintainer/operator, I want the re-cut decision, the extracted domain contr
 #### Functional Requirements
 
 - **FR-010**: The round MUST preserve **zero behavioural change** (FR-003), leave the RULE-E baseline **byte-identical**, and ship the extraction + truth/ADR records as **one PR**; it MUST NOT touch the `AgentLoop` construction, the `→ ui` edge, any flag/exit-code/stream contract, or any domain business logic.
-- **FR-011**: The round MUST include **falsifiability witnesses** reproduced then reverted (ADR 0010): (a) leave one of the extracted contracts referenced from `internal/agent` in `internal/cli` ⇒ the identifier count is **2+**, not 1 (the extraction is incomplete); (b) flip a domain contract's field so the CLI's read breaks ⇒ a compile failure at the seam; (c) a partial extraction that leaves a second `→ agent` identifier ⇒ rejected by the identifier-count check.
+- **FR-011**: The round MUST include **falsifiability witnesses** reproduced then reverted (ADR 0010): (a) **compile-level** — delete a domain contract declaration ⇒ the loop/CLI seam fails to compile; (b) flip a domain contract's field name ⇒ a compile failure at the seam; (c) **count-level** — add a *surviving* `internal/agent` identifier to `internal/cli` production ⇒ **RULE-F fails** (the new identifier is not in the coupling-surface allow-list) while the baseline stays green. The count witness is carried **mechanically** by RULE-F (added this round; ADR 0018), not by a human grep.
 - **FR-012**: The round MUST NOT modify a delivered `specs/plans/NNN-*` package and MUST record the deferred inversion + F-6/F-7/F-8 on the live issue [#101](https://github.com/gosharplite/tellme/issues/101).
 
 #### Non-Functional Requirements
@@ -192,7 +192,7 @@ As a maintainer/operator, I want the re-cut decision, the extracted domain contr
 
 - **SC-001**: `internal/cli` production references exactly **one** `internal/agent` identifier (`agent.AgentLoop`); the turn-result/error/`ToolDefs` are imported from `internal/domain/**`; RULE-A/B/C stay **0**; cycles **0**. (covers FR-001, FR-005)
 - **SC-002**: `make verify` is **green** at delivery with `tools/arch/baseline.txt` **byte-identical** (0 new / 0 stale); `go test -count=1 ./...` green (incl. the godog E2E); the topology audit unchanged. (covers FR-003, FR-006, NFR-004)
-- **SC-003**: The falsifiability witnesses are reproduced then reverted — an incomplete extraction shows **2+** identifiers (not 1); a flipped domain contract breaks the CLI seam at compile time. (covers FR-010, FR-011)
+- **SC-003**: The falsifiability witnesses are reproduced then reverted — a deleted domain declaration breaks the seam at compile time; a flipped `Result` field breaks it at compile time; and a new surviving `internal/agent` identifier makes **RULE-F fail** with the baseline still green (the count-level witness). (covers FR-010, FR-011)
 - **SC-004**: The extracted contracts live in **`internal/domain/**`** referencing only stdlib + domain types (RULE-C preserved; no `agent` type crosses in); `internal/agent` consumes them downward; no cycle. (covers FR-002, FR-004)
 - **SC-005**: `specs/truth/techstack.md` (Build & Tooling) records the re-cut + the **unchanged (2)** figure (citing the new ADR); the ADR + its index row are present; `go.mod`/`go.sum` unchanged. (covers FR-007, FR-008, NFR-003, NFR-005)
 - **SC-006**: The deferred inversion + the `→ ui` edge + F-6/F-7/F-8 are recorded on [#101](https://github.com/gosharplite/tellme/issues/101); no frozen plan package is touched. (covers FR-009, FR-012)

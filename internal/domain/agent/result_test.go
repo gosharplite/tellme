@@ -82,6 +82,16 @@ func TestToolDefs(t *testing.T) {
 		t.Fatalf("ToolDefs(nil) = %v, want nil", defs)
 	}
 
+	// An EMPTY but non-nil registry projects to a non-nil, zero-length slice
+	// (`make(..., 0, 0)`): the nil/empty distinction is observable to callers
+	// (json parity, len vs nil checks), so it is pinned deliberately (round-049
+	// review N-3).
+	if defs := agentport.ToolDefs(tools.NewRegistry()); defs == nil {
+		t.Errorf("ToolDefs(empty registry) = nil, want non-nil zero-length slice")
+	} else if len(defs) != 0 {
+		t.Errorf("ToolDefs(empty registry) len = %d, want 0", len(defs))
+	}
+
 	reg := tools.NewRegistry(
 		pinTool{name: "read_files", desc: "read"},
 		pinTool{name: "write_file", desc: "write"},

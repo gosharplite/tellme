@@ -773,7 +773,7 @@ The delivery + end-of-day closeout for round 048: PR [#111](https://github.com/g
 
 ## Session 23 (2026-09-18, cont.) — round 049 `049-cli-agent-decoupling` (R5.3 of [#101](https://github.com/gosharplite/tellme/issues/101)): **re-cut** the `cli → agent` de-coupling; sub-slice 1 (contracts → domain) delivered
 
-A third session on the same calendar day: bootstrap (Steps 1–8), then round **049** — the **R5.3** de-coupling of the residual RULE-E edge **`internal/cli → internal/agent`**. Grounding corrected an earlier shorthand: ADR 0017 §Forward classifies this edge as *"the deepest slice"* (4 crossing identifiers / 2 files), **not** edge-sized — so clarify **Q1 → (B)** re-cut it into ordered sub-slices. This round is **sub-slice 1** — the loop's crossing **contracts** → `internal/domain/agent`; sub-slice 2 (a later round) inverts the `AgentLoop` construction and moves the baseline **2 → 1**.
+A later session on the same calendar day: bootstrap (Steps 1–8), then round **049** — the **R5.3** de-coupling of the residual RULE-E edge **`internal/cli → internal/agent`**. Grounding corrected an earlier shorthand: ADR 0017 §Forward classifies this edge as *"the deepest slice"* (4 crossing identifiers / 2 files), **not** edge-sized — so clarify **Q1 → (B)** re-cut it into ordered sub-slices. This round is **sub-slice 1** — the loop's crossing **contracts** → `internal/domain/agent`; sub-slice 2 (a later round) inverts the `AgentLoop` construction and moves the baseline **2 → 1**.
 
 ### At a glance
 
