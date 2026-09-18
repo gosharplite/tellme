@@ -645,6 +645,9 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	// Ordering is load-bearing: these run BEFORE the `*updateBaseline` branch
 	// below, so `make verify-architecture-update` cannot launder a stale allow-list
 	// entry into a freshly generated baseline (review §1). Keep them ahead of it.
+	// The name set is compared ORDER-SENSITIVELY (reflect.DeepEqual) by design:
+	// the load-bearing property is "all four run before the *updateBaseline
+	// branch", and the order is also pinned (review N-3′).
 	wantSelfTests := []string{"predicate", "allow-list", "tier-coverage", "sanctioned-in-use"}
 	var ranSelfTests []string
 	runSelfTest := func(name string, fn func(*testing.T)) {
