@@ -820,10 +820,9 @@ func selfTestCouplingSurface(t *testing.T) {
 // regeneration path, would be governed by the edge ratchet but have an
 // unprotected identifier surface. This is the direct analogue of RULE-E's
 // assertSanctionedInUse (ADR 0016 D4).
-func assertSurfaceCoversBaseline(t *testing.T, governedAppEdges []string) {
-	t.Helper()
+func uncoveredSurfaceEdges(edges []string) []string {
 	var uncovered []string
-	for _, line := range governedAppEdges {
+	for _, line := range edges {
 		src, dst, ok := strings.Cut(line, " -> ")
 		if !ok || !isApplicationTier(src) || strings.Contains(dst, "(unranked") {
 			continue
@@ -832,9 +831,37 @@ func assertSurfaceCoversBaseline(t *testing.T, governedAppEdges []string) {
 			uncovered = append(uncovered, line)
 		}
 	}
-	if len(uncovered) > 0 {
-		sort.Strings(uncovered)
+	sort.Strings(uncovered)
+	return uncovered
+}
+
+func assertSurfaceCoversBaseline(t *testing.T, governedAppEdges []string) {
+	t.Helper()
+	if uncovered := uncoveredSurfaceEdges(governedAppEdges); len(uncovered) > 0 {
 		t.Errorf("RULE-F coverage: governed application edge(s) with no couplingSurface entry: %v — governed by the edge ratchet but with an unprotected identifier surface (add a couplingSurface entry)", uncovered)
+	}
+}
+
+// selfTestSurfaceCoverage unit-tests the pure coverage predicate
+// `uncoveredSurfaceEdges` on synthetic inputs (round-049 fold review §3): a
+// covered edge reports nothing; a not-in-table governed application edge is
+// reported; a non-application edge and the unranked marker are ignored. This
+// pins the WIRING property — that coverage is driven by the passed-in edge set —
+// as behaviour rather than prose.
+func selfTestSurfaceCoverage(t *testing.T) {
+	t.Helper()
+	covered := []string{"internal/cli -> internal/agent", "internal/cli -> internal/ui"}
+	if u := uncoveredSurfaceEdges(covered); len(u) != 0 {
+		t.Fatalf("surface-coverage self-test: covered edges reported uncovered: %v", u)
+	}
+	mixed := []string{
+		"internal/cli -> internal/agent",
+		"internal/app/deps -> internal/agent",         // governed app edge, no table entry
+		"internal/domain/llm -> internal/config",      // non-application src — ignored
+		"internal/cli -> (unranked governed package)", // marker — ignored
+	}
+	if u := uncoveredSurfaceEdges(mixed); len(u) != 1 || u[0] != "internal/app/deps -> internal/agent" {
+		t.Fatalf("surface-coverage self-test: expected exactly [internal/app/deps -> internal/agent], got %v", u)
 	}
 }
 
@@ -864,9 +891,9 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	// below, so `make verify-architecture-update` cannot launder a stale allow-list
 	// entry into a freshly generated baseline (review §1). Keep them ahead of it.
 	// The name set is compared ORDER-SENSITIVELY (reflect.DeepEqual) by design:
-	// the load-bearing property is "all seven run before the *updateBaseline
+	// the load-bearing property is "all eight run before the *updateBaseline
 	// branch", and the order is also pinned (review N-3′).
-	wantSelfTests := []string{"predicate", "allow-list", "tier-coverage", "sanctioned-in-use", "surface-predicate", "surface", "surface-coverage"}
+	wantSelfTests := []string{"predicate", "allow-list", "tier-coverage", "sanctioned-in-use", "surface-predicate", "surface-coverage-predicate", "surface", "surface-coverage"}
 	var ranSelfTests []string
 	runSelfTest := func(name string, fn func(*testing.T)) {
 		// Record the ATTEMPT, not the pass: run the subtest then append its name
@@ -876,11 +903,12 @@ func TestVerifyRealArchitecture(t *testing.T) {
 		t.Run(name, fn)
 		ranSelfTests = append(ranSelfTests, name)
 	}
-	runSelfTest("predicate", selfTestPredicate)                                              // RULE-A/B/C/D + RULE-E, synthetic (ADR 0011 D2 / ADR 0016 D1)
-	runSelfTest("allow-list", selfTestAllowList)                                             // RULE-E coverage predicate, synthetic (ADR 0016 D4 / review F-2)
-	runSelfTest("tier-coverage", func(t *testing.T) { assertNoUnrankedGoverned(t, graph) })  // RULE-D coverage, real graph
-	runSelfTest("sanctioned-in-use", func(t *testing.T) { assertSanctionedInUse(t, graph) }) // RULE-E allow-list in use, real graph (ADR 0016 D4)
-	runSelfTest("surface-predicate", func(t *testing.T) { selfTestCouplingSurface(t) })      // RULE-F diff predicate, synthetic (round 049 TD-1)
+	runSelfTest("predicate", selfTestPredicate)                                                  // RULE-A/B/C/D + RULE-E, synthetic (ADR 0011 D2 / ADR 0016 D1)
+	runSelfTest("allow-list", selfTestAllowList)                                                 // RULE-E coverage predicate, synthetic (ADR 0016 D4 / review F-2)
+	runSelfTest("tier-coverage", func(t *testing.T) { assertNoUnrankedGoverned(t, graph) })      // RULE-D coverage, real graph
+	runSelfTest("sanctioned-in-use", func(t *testing.T) { assertSanctionedInUse(t, graph) })     // RULE-E allow-list in use, real graph (ADR 0016 D4)
+	runSelfTest("surface-predicate", func(t *testing.T) { selfTestCouplingSurface(t) })          // RULE-F diff predicate, synthetic (round 049 TD-1)
+	runSelfTest("surface-coverage-predicate", func(t *testing.T) { selfTestSurfaceCoverage(t) }) // RULE-F coverage predicate, synthetic (round 049 fold §3)
 
 	// Property 4 — RULE-F: the application coupling surface. The baseline ratchet
 	// governs EDGES; RULE-F governs the IDENTIFIERS crossing a tracked edge, so a
@@ -889,7 +917,7 @@ func TestVerifyRealArchitecture(t *testing.T) {
 	// a silent drop (review F-2), and they run BEFORE the `*updateBaseline` branch
 	// (regenerating the baseline must not launder a re-inflated surface green).
 	runSelfTest("surface", func(t *testing.T) { assertCouplingSurface(t, root) })                      // RULE-F identifier allow-list, real graph (round 049 TD-1)
-	runSelfTest("surface-coverage", func(t *testing.T) { assertSurfaceCoversBaseline(t, violations) }) // RULE-F coverage of baselined app edges, real graph (round 049 TD-2)
+	runSelfTest("surface-coverage", func(t *testing.T) { assertSurfaceCoversBaseline(t, violations) }) // RULE-F coverage of governed app edges, real graph (round 049 TD-2)
 	if !reflect.DeepEqual(ranSelfTests, wantSelfTests) {
 		t.Fatalf("internal error: expected self-tests %v to run, got %v", wantSelfTests, ranSelfTests)
 	}
