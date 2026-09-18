@@ -35,3 +35,22 @@
 ## Pre-Delivery Orphan Sweep — 0 orphans
 
 `green`/`colorGreen` (the adapters), `formatPayloadStatusColour`/`formatReadyColour`/`formatToolReasonColour` (the adapters), `consumeListValue` (parseFlags), `chromeColour` (runTurn), `NewLines`/`ToolLines` colour flag (cmd/tellme + cli). No new Makefile target.
+
+---
+
+## Fold ledger — PR [#119](https://github.com/gosharplite/tellme/pull/119) review (`5737154767`) + fold-verification (`5737246516`)
+
+Append-only record of the review folds (kept so the pre-fold execution log above survives). Fold head **`74e0eb2`**.
+
+- **B-54-1 `[ARCHITECTURAL BLOCKER]` — the colour leaked into `turns.log`.** The renderer produced the **coloured** string and the round-053 tee (`io.MultiWriter(stderr, file)`) sent it to **both** sinks, so the artifact carried SGR bytes and `-t | …` ceased to be plain (violating `FR-006`/Q3/ADR-0023-D4, with an inverted NOOP in the ledger). **Fold:** the per-call renderer now holds **two** `render.Lines` — coloured for `stderr`, a **plain** one (`dp.NewLines(false)`) for the file leg — and a single `emit(build)` helper writes each chrome line to both sinks, building the file leg from the plain renderer; the tee is the **raw file writer** (no `MultiWriter`), and `diag()` is deleted. `turns.log` is control-free **by construction** (render-don't-strip, the stronger contract). Carried by the new acceptance Rule + interface Rule + `chat/dsl.md` row + E2E `thenTurnLogNoDecoration`; witnessed by re-introducing the coloured file leg (red).
+- **F-54-1 `--last`** — the dead `arg == \"--last\"` branch is deleted; FR-001 + the `cli.go` comments corrected to `-l`/`--list`.
+- **F-54-2** — the round-039 "control-free `[Tool …]`" policy is **qualified** (it governs the **model-authored value**; tellme's own `[Tool Reason]` accent is a distinct, terminal-gated class; the control-free rows hold for their non-terminal fixtures) in `techstack.md` + `chat/dsl.md`; the wrong **NOOP** for the Turn-log row is now a **MODIFY**.
+- **F-54-3** — `chromeColour` now delegates to `spinnerGate` (one predicate, one home).
+- **F-54-4** — the dropped `FR-006` requirement re-carried (acceptance Rule + interface Rule + DSL row + carrier); the checklist line corrected.
+- **RF-54-1 (closed)** — the plain `FormatPayloadStatus`/`FormatReady`/`FormatToolReason` are the **single entry points** the colour siblings return on the colour-off path (production call edges; no orphans).
+- **RF-54-2 (closed)** — the terminal gate is resolved **once** in `runTurn` (`colourOn`) and threaded to the three consumers.
+- **RF-54-3 / nit 1 (recorded)** — the `consumeListValue` boundary cases + the `-l`-beats-a-positional precedence in **ADR 0023 RF-54-4**.
+- **R-54-1 / R-54-2 (residual, non-blocking)** — the new carrier and the negative Example are tool-less; the `emit(build)` seam is uniform and mutation-proved, so a tool-using fixture is a strengthening, recorded for when the file is next touched.
+- **R-54-3 (this section)** — the fold ledger, appended per the round-053 precedent.
+
+**Fold-head verification:** `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (incl. the godog E2E, **Strict**, 240 scenarios) · `go.mod`/`go.sum` unchanged. Fold-verification `5737246516` — **ALL FOLDS VERIFIED, CLEARED FOR MERGE**.
