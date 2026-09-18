@@ -32,7 +32,7 @@
 ## Gaps & clarify strategy
 
 - [x] **Q1 → D LOCKED** — one round closing #101: the `→ ui` collapse (baseline 1 → 0) + F-6/F-7/F-8; internal sub-slice ordering is an RD decision (Q3); a blast-radius re-cut is the recorded caveat
-- [ ] **Q2 → TBD** — the value-type homes
+- [x] **Q2 → (i) LOCKED** — reuse existing domain peers: `Pricing`(+`ComputeCost`/`HitRate`)→`internal/domain/llm`; `UsageCounts`→`internal/domain/metrics`; `ToolUsageRow`→`internal/domain/history` (folded onto `history.ToolUsageCounts`)
 - [ ] **Q3 → TBD** — the `→ ui` inversion mechanism
 - [ ] **Q4 → TBD** — F-6/F-7/F-8 folding + F-8 acceptability
 - [x] Questions asked **one at a time**; capped at 1–3 per round (this round may need Q1–Q4 given the programme size — disclosed)
