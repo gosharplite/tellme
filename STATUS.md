@@ -32,13 +32,13 @@ Per-round detail lives in the archives; **044 is the most recently delivered rou
 
 | Branch | State | Role |
 | --- | --- | --- |
-| `main` | merged up from `dev` (`4ce056c`) | Stable / released line |
-| `dev` | round 044 **delivered** (`8da0b88`, PR #104) | Integration line (round work lands here before `main`) |
+| `main` | merged up from `dev` (`ebaeebc`, no-ff) | Stable / released line |
+| `dev` | round 044 **delivered** (`8da0b88`, PR #104) + closeout (`2ade59f`) | Integration line (round work lands here before `main`) |
 | `044-implement-composition-root-extraction` | **merged into `dev`** (PR [#104](https://github.com/gosharplite/tellme/pull/104) → `8da0b88`; frozen head `ba64508`); **branch deleted (local + remote)** after merge | Round 044's implementation branch — `deps` + `cmd/tellme` composition root + the MCP move + the gate ratchet 8→1 + the PR #104 review folds. |
 | `044-composition-root-extraction` | **merged** (PR [#102](https://github.com/gosharplite/tellme/pull/102) → `dev` `4fd57fc`); **branch deleted** after merge | Round 044's plan branch — spec → clarify Q1–Q7 → ADR 0013 → techstack → the PR #102 grill-round fold. |
 
 > **Branch convention**: each round works on its own `NNN-*` branch off `dev`; only a human merges the PR. Propagation is the no-ff merge `dev → main`.
-> **Propagation history**: rounds 026–043 — **DONE (no-ff)** (round 043 `4ce056c`); the round-043 branch-model rows are archived in [`2026-09-18.md`](docs/archives/status/2026-09-18.md).
+> **Propagation history**: rounds 026–043 — **DONE (no-ff)** (round 043 `4ce056c`); **round 044 — DONE (no-ff, `ebaeebc`; `main^{tree}` == `dev^{tree}`)**. (The round-043 branch-model rows are archived in [`2026-09-18.md`](docs/archives/status/2026-09-18.md).)
 > Read live heads with `git rev-parse --short origin/main origin/dev`.
 
 ## Roadmap — next slices
