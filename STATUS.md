@@ -1,7 +1,7 @@
 # tellme — Status
 
 **Last updated**: 2026-09-19 (session 31 — round **057** `057-tool-chrome-colour-and-payload-delta` **DELIVERED / FROZEN** — three operator **chrome** requests: (a) the whole `[Tool Output]` **header** line + **both** horizontal separators are now **grey** (`\033[0;90m`) and the whole `[Tool Action]` line is **yellow** (`\033[0;33m`) on a terminal (`-r` off), extending the round-054 policy (ADR 0023); (b) `argValueCap` **189 → 500**; (c) the pre-flight **estimated** payload line becomes a **signed increment** `Payload: +<delta> ~<n> tokens - <mode> - <model>` (the `/budget` dropped; the **measured** line unchanged); **ADR 0027**; PR [#123](https://github.com/gosharplite/tellme/pull/123) human-merged into `dev` `1ac41f7` (**merge commit**)). Prior: session 30 — round 056 (detail relocated to the archive below). **Session mode**: `butler`.
-**Active branch**: `dev` (round 057 delivered/frozen; the next round `058-*` opens off `dev`)
+**Active branch**: `058-grey-tool-output-content` (round **058** in flight — plan + research/ADR 0028 + system-analysis + dsl-refine + tasks + implement done; PR open for human review; `dev` is the integration line)
 **Daily log**: [`docs/session-summary/2026/09/19/session-summary.md`](docs/session-summary/2026/09/19/session-summary.md)
 
 ## Last delivered round — 057 `057-tool-chrome-colour-and-payload-delta` (DELIVERED / FROZEN — PR [#123](https://github.com/gosharplite/tellme/pull/123) merged into `dev` `1ac41f7`, **merge commit**)
