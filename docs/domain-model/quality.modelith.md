@@ -2,12 +2,12 @@
 
 # tellme — Quality Process
 
-Models how tellme maintains its own quality: the ordered `QualityPipeline` of gates run by `make verify` (plus the E2E suite and the Gherkin/DSL topology audit), the ADR governance that records durable decisions, and the triage loop that homes a deferred item on a live issue or an ADR's Forward section. tellme's process is deliberately lighter than the reference's: it has **no** committed `NonFixCatalog` and (until round 060) **no** domain-model toolchain.
+Models how tellme maintains its own quality: the ordered `QualityPipeline` of gates run by `make verify` (plus the E2E suite and the Gherkin/DSL topology audit), the ADR governance that records durable decisions, and the triage loop that homes a deferred item on a live issue or an ADR's Forward section. tellme's process is deliberately lighter than the reference's: it has **no** committed `NonFixCatalog`; it adopted a domain-model toolchain (a drift gate) in round 060 (**ADR 0030**) but **not** the reference's advisory code↔model gates.
 
 ## Glossary
 
 - **`NonFixCatalog`** — The reference's curated catalog of accepted non-fixes (`docs/architect/INTENTIONAL_NON_FIXES.md`). tellme **deliberately has none** — a deferred item is homed on a **live issue** or an **ADR Forward section** instead, so it outlives a frozen plan package. This is a recorded divergence.
-- **`QualityPipeline`** — The ordered set of gates a change must pass before a round is delivered. Its aggregate entry point is `make verify`; the E2E contract runs under `make test` / `go test`; the topology audit and `modelith-check` are extra checks.
+- **`QualityPipeline`** — The ordered set of gates a change must pass before a round is delivered. Its aggregate entry point is `make verify` (which includes `modelith-check`); the E2E contract runs under `make test` / `go test`; the topology audit is a carried check, not a `make verify` member.
 - **`Residual`** — A deferred, non-blocking item discovered while delivering a round. It MUST be homed on a durable surface — a live issue or an ADR's Forward section — never left only in a frozen plan package.
 - **`Round`** — One development iteration, carried by a plan package (`specs/plans/NNN-<slug>/`). A delivered round is frozen; a closeout marks it with an annotated `round-NNN` git tag on the `dev -> main` propagation merge.
 

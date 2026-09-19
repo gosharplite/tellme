@@ -8,14 +8,15 @@ description: >
   audit), the ADR governance that records durable decisions, and the triage loop
   that homes a deferred item on a live issue or an ADR's Forward section. tellme's
   process is deliberately lighter than the reference's: it has **no** committed
-  `NonFixCatalog` and (until round 060) **no** domain-model toolchain.
+  `NonFixCatalog`; it adopted a domain-model toolchain (a drift gate) in round 060
+  (**ADR 0030**) but **not** the reference's advisory code↔model gates.
 
 glossary:
   QualityPipeline: >
     The ordered set of gates a change must pass before a round is delivered. Its
-    aggregate entry point is `make verify`; the E2E contract runs under
-    `make test` / `go test`; the topology audit and `modelith-check` are extra
-    checks.
+    aggregate entry point is `make verify` (which includes `modelith-check`); the
+    E2E contract runs under `make test` / `go test`; the topology audit is a
+    carried check, not a `make verify` member.
   NonFixCatalog: >
     The reference's curated catalog of accepted non-fixes
     (`docs/architect/INTENTIONAL_NON_FIXES.md`). tellme **deliberately has none** —
