@@ -3,7 +3,6 @@ package mcp
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -74,12 +73,14 @@ func (t *Tool) Description() string { return t.description }
 
 // MCPPayloadKey is the envelope property carrying the remote server's own
 // arguments. tellme owns this envelope; the server never sees it (round 056 /
-// ADR 0025 D1/D2).
-const MCPPayloadKey = "MCP_PAYLOAD"
+// ADR 0025 D1/D2). It aliases the shared domain constant so the wire key has one
+// authoritative spelling (round-056 review R-056-1).
+const MCPPayloadKey = domaintools.PayloadArgKey
 
 // ReasonKey is the envelope's tellme-owned reason property (required). It is
 // rendered by tellme and never forwarded to the server (round 056 / ADR 0025).
-const ReasonKey = "reason"
+// It aliases the shared domain constant (round-056 review R-056-1).
+const ReasonKey = domaintools.ReasonArgKey
 
 // reasonDescription is the tellme-authored description of the envelope's
 // required `reason` property — the ask the model reads in the offered
@@ -96,15 +97,44 @@ const reasonDescription = "Why you are calling this tool (required). Put the too
 func (t *Tool) Parameters() json.RawMessage { return mcpEnvelope(t.parameters) }
 
 // mcpEnvelope builds the offered declaration around the server's advertised
-// schema (already normalized — see NormalizeMCPSchema). An empty schema degrades
-// to the freeform object so the envelope is always well-formed.
+// schema (already normalized — see NormalizeMCPSchema). It composes the envelope
+// STRUCTURALLY (json.Marshal of typed values; the server schema is carried as a
+// json.RawMessage, so it is relayed verbatim) rather than by string formatting —
+// Go's %q is Go-escaping, not JSON-escaping, and string interpolation of a
+// third-party schema is the round-031/#64 catastrophic class. A non-JSON schema
+// degrades to the freeform object (round-056 review R-056-2 hardening).
 func mcpEnvelope(serverSchema json.RawMessage) json.RawMessage {
-	if len(serverSchema) == 0 {
-		serverSchema = json.RawMessage(`{"type":"object","properties":{}}`)
+	if len(serverSchema) == 0 || !json.Valid(serverSchema) {
+		return freeformEnvelope()
 	}
-	return json.RawMessage(fmt.Sprintf(
-		`{"type":"object","properties":{%q:{"type":"string","description":%q},%q:%s},"required":[%q]}`,
-		ReasonKey, reasonDescription, MCPPayloadKey, string(serverSchema), ReasonKey))
+	reasonProp, err := json.Marshal(map[string]string{"type": "string", "description": reasonDescription})
+	if err != nil {
+		return freeformEnvelope()
+	}
+	env := struct {
+		Type       string                     `json:"type"`
+		Properties map[string]json.RawMessage `json:"properties"`
+		Required   []string                   `json:"required"`
+	}{
+		Type: "object",
+		Properties: map[string]json.RawMessage{
+			ReasonKey:     reasonProp,
+			MCPPayloadKey: serverSchema,
+		},
+		Required: []string{ReasonKey},
+	}
+	out, err := json.Marshal(env)
+	if err != nil {
+		return freeformEnvelope()
+	}
+	return out
+}
+
+// freeformEnvelope is the well-formed envelope whose MCP_PAYLOAD is the empty
+// object schema — the degrade target when the server's schema is absent or not
+// valid JSON.
+func freeformEnvelope() json.RawMessage {
+	return json.RawMessage(`{"type":"object","properties":{"reason":{"type":"string"},"MCP_PAYLOAD":{"type":"object","properties":{}}},"required":["reason"]}`)
 }
 
 // envelopeViolation is the recoverable result tellme returns, WITHOUT contacting
@@ -159,7 +189,12 @@ func (t *Tool) Execute(ctx context.Context, arguments string, budget domaintools
 func unwrapEnvelope(arguments string) (map[string]interface{}, bool) {
 	raw := map[string]interface{}{}
 	if s := strings.TrimSpace(arguments); s != "" {
-		if err := json.Unmarshal([]byte(s), &raw); err != nil {
+		// UseNumber preserves integer literals beyond 2^53 through the decode
+		// (round-056 review TD-056-5): a plain Unmarshal would turn an int64-shaped
+		// argument into float64 and silently alter it on the way to the server.
+		dec := json.NewDecoder(strings.NewReader(s))
+		dec.UseNumber()
+		if err := dec.Decode(&raw); err != nil {
 			return nil, false
 		}
 		if raw == nil {

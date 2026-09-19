@@ -173,14 +173,13 @@ func (s *Server) recordToolCall(name string) {
 	s.mu.Unlock()
 }
 
-// ReceivedArguments returns the JSON-marshalled arguments the fake received for
-// each call to the named tool, in call order (round 056). It lets a Then assert
-// exactly what tellme forwarded to the server — e.g. that the envelope's outer
-// keys never reached it (the payload-purity witness).
-func (s *Server) ReceivedArguments(tool string) []string {
+// CallCount returns how many tool calls the fake received (round 056) — the
+// force-bearing carrier for "a refused call never reaches the server": a refused
+// attempt must not increment this.
+func (s *Server) CallCount() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return append([]string(nil), s.callArgs[tool]...)
+	return len(s.calls)
 }
 
 // recordToolArguments appends one call's marshalled arguments under the tool.

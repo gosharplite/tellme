@@ -33,6 +33,20 @@ type ByteBudget int
 // loop's backstop (review TD3), so the two copies cannot drift.
 const TruncationMarker = "\n... (truncated)\n"
 
+// ReasonArgKey is the SINGLE authoritative spelling of the call-level `reason`
+// argument tellme renders as `[Tool Reason]` and (round 056 / ADR 0025) refuses a
+// call without. It is shared so the wire key cannot drift across the loop's
+// extraction, the native schema builders, the MCP envelope, and the
+// presentation seam (round-056 review R-056-1). NOTE: a struct-tag
+// (`json:"reason"`) and raw schema-template literals cannot interpolate it; those
+// sites are documented in ADR 0025 §Forward.
+const ReasonArgKey = "reason"
+
+// PayloadArgKey is the MCP envelope property carrying a remote server's own
+// arguments (round 056 / ADR 0025 D1/D2). tellme owns the envelope; the server
+// never sees this key (only the payload object is forwarded).
+const PayloadArgKey = "MCP_PAYLOAD"
+
 // Tool is one capability the model may invoke during a prompt run. Execute runs
 // the tool with the model's raw arguments string and the resolved byte budget,
 // and returns its result text. A tool failure is returned as an error and is

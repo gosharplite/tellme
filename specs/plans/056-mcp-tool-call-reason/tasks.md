@@ -223,3 +223,21 @@
 **Gate (T020)** — `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (arch baseline header-only; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (**243 scenarios · 1796 steps**, 0 undefined, no failures) · the Gherkin/DSL topology audit is back to the **5 pre-existing errors** (round 056 adds none) · `go.mod`/`go.sum` unchanged.
 
 **T021** — `STATUS.md` updated (round 056 in flight) + **PR [#122](https://github.com/gosharplite/tellme/pull/122)** opened (human merge).
+
+## Round-056 fold ledger — PR [#122](https://github.com/gosharplite/tellme/pull/122) review [`5254253670`](https://github.com/gosharplite/tellme/pull/122#pullrequestreview-5254253670) (**APPROVE WITH REQUIRED FOLDS — no blocker**)
+
+| # | Item | Disposition |
+| --- | --- | --- |
+| **TD-056-1** | SC-006/FR-003 had no force-bearing carrier ("never reached the server"; shape-violation unit-only) | **FOLDED** — `requiring-a-reason-to-call-a-tool.feature` gains `the MCP server "shop" received exactly one call` (the refused attempt must not increment the count) + a new **shape-violation Rule/Example** (`received no call`); `mcptest.CallCount()` is the new carrier; 3 `dsl.md` rows + stepdefs. Witness: weakening the envelope refusal ⇒ the new Example RED. |
+| **TD-056-2** | `[Tool Engine]` "executed round" wording overstates after a refusal-only round | **FOLDED (wording)** — the `techstack.md` clause is qualified to "a round that **requests** tools" + a `chat/dsl.md` note clause; also records that a refused call prints action+result without executing. |
+| **TD-056-3** | nil-`Lines` fail-open pinned with no composition guard | **RECORDED** — named standing invariant + a future carrier (a composition-seam assertion) in ADR 0025 **RF-056-2**. |
+| **TD-056-4** | refusals uncounted + unbounded refusal retries | **RECORDED (decision)** — ADR 0025 **RF-056-3** states the deliberate "uncounted" choice and names the two future controls (`ToolOutcomeRefused` / a consecutive-refusal bound). |
+| **TD-056-5** | `float64` round-trip alters large numbers | **FOLDED** — `unwrapEnvelope` decodes with `dec.UseNumber()`; unit pin `TestTool_ExecutePreservesLargeIntegerPayload` (2⁵³+1 preserved). |
+| **R-056-1** | `reason` key has 5 spellings | **PARTIAL FOLD** — `internal/domain/tools.ReasonArgKey`/`PayloadArgKey` added; consumed by the MCP envelope, `internal/ui`'s filter, the E2E helper; the struct tag / schema-builder literals recorded in **RF-056-7**. |
+| **R-056-2** | `fmt.Sprintf`+`%q` composes JSON | **FOLDED** — `mcpEnvelope` composes structurally (`json.Marshal` of typed values; the server schema stays a `json.RawMessage`) + a `json.Valid` guard with a freeform fallback. |
+| **R-056-3** | twin reason predicate | **FOLDED** — `ui.ToolReasonRenders` now delegates to the single owner (`ToolLineRenderer.ReasonLine`). |
+| **R-056-4** | nits a–e | **FOLDED** — (a) `ReceivedArguments` replaced by `CallCount` (no dead accessor); (b) `recordedToolsRequest` named once; (c) the E2E helper imports `mcp.MCPPayloadKey`; (d) the `dsl.md` row's duplicate `來源` → `通道`; (e) the refusal text now asks for a reason **that renders**. |
+
+**Presentation notes (recorded, no action)** — folded into the `chat/dsl.md` round-056 note: a refused call prints `[Tool Action]` + `[Tool Result] … error: a reason is required…` (the gate runs after the action line) — action+result does **not** imply execution; and an executed MCP call's `[Tool Action]` lists `MCP_PAYLOAD: {…}` (round-034's `reason`-excluded rule).
+
+**Re-verification at the fold head** — `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (**244 scenarios · 1800 steps**, 0 undefined) · topology audit back to the 5 pre-existing errors · `go.mod`/`go.sum` unchanged.

@@ -121,3 +121,25 @@ func TestTool_ExecuteRefusesShapeViolationWithoutContactingServer(t *testing.T) 
 		})
 	}
 }
+
+// T015/TD-056-5 [UNIT] — a large integer in the payload is preserved through the
+// decode (UseNumber), so it is not silently altered to a float64 on the wire.
+func TestTool_ExecutePreservesLargeIntegerPayload(t *testing.T) {
+	c := &recordingClient{text: "$42"}
+	tool := NewTool("shop", domaintools.MCPToolDefinition{Name: "lookup_order"}, c, time.Second)
+	const big = "9007199254740993" // 2^53 + 1 — not representable as float64
+	got, err := tool.Execute(context.Background(), `{"reason":"why","MCP_PAYLOAD":{"order_id":`+big+`}}`, 0)
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if got != "$42" {
+		t.Fatalf("unexpected result %q", got)
+	}
+	num, ok := c.args["order_id"].(json.Number)
+	if !ok {
+		t.Fatalf("the integer must survive as json.Number, got %T (%v)", c.args["order_id"], c.args["order_id"])
+	}
+	if num.String() != big {
+		t.Fatalf("the integer literal must be preserved verbatim; got %q want %q", num.String(), big)
+	}
+}

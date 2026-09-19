@@ -226,7 +226,7 @@ func (a *AgentLoop) notifyCallEnd(callIndex int, usage llm.Usage, roundReasons [
 // reasonRequiredResult is the recoverable result the loop folds back for a
 // refused (reason-less) tool call (round 056 / ADR 0025 D3). It is a normal
 // (nil-error) tool message, not a terminal failure, so the model can retry.
-const reasonRequiredResult = `error: a reason is required to call a tool; retry with a non-empty "reason" argument`
+const reasonRequiredResult = `error: a reason is required to call a tool; retry with a "reason" that renders (non-blank after folding/sanitizing)`
 
 // refuseReasonless applies the universal *no reason, no go* rule (round 056 /
 // ADR 0025 D3; folds #121) for one call. It returns (result, true) when the call

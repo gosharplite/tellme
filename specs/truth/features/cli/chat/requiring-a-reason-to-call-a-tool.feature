@@ -16,8 +16,24 @@ Feature: Requiring a reason to call a tool
       And a configured provider "test-model" whose endpoint first asks tellme to use the MCP tool "lookup_price" from the server "shop" without a reason and then with the reason "check the gadget price" and then answers with "The gadget costs $42."
       When the operator starts tellme with the prompt "What does the gadget cost?"
       Then the MCP server "shop" received only the arguments its tool expects
+      And the MCP server "shop" received exactly one call
       And the run asked for a reason before running a tool
       And the run reported the reason "check the gadget price" for the MCP tool "lookup_price" on the server "shop"
+      And tellme exits successfully
+
+  Rule: An MCP call that is not a valid envelope is refused without contacting the server
+
+    # Round-056 review TD-056-1: the shape-violation half of FR-003 had only a Go
+    # unit pin. A stray top-level key is refused at the adapter BEFORE CallTool, so
+    # the server records no call at all.
+
+    Example: A call carrying a stray argument is refused and the server is not contacted
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" with the reason "check the gadget price" and a stray argument, and then answers with "done"
+      When the operator starts tellme with the prompt "What does the gadget cost?"
+      Then the MCP server "shop" received no call
       And tellme exits successfully
 
   Rule: tellme's own tool call that states no reason does not run

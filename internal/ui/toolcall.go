@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
 // Round-034 decomposed tool-call rendering
@@ -102,7 +104,8 @@ func formatToolReasonLine(t time.Time, text string) string {
 // retained as a TEST-FACING public helper (its own unit pin) and as the documented
 // statement of the predicate. A future round may fold it onto ReasonLine.
 func ToolReasonRenders(reason string) bool {
-	return strings.TrimSpace(toolReasonText(reason)) != ""
+	_, renders := ToolLineRenderer{}.ReasonLine(time.Time{}, reason)
+	return renders
 }
 
 // FormatToolAction renders the action line — the tool name plus its sorted,
@@ -137,7 +140,7 @@ func formatToolArgs(arguments string) string {
 	if err := dec.Decode(&raw); err != nil || raw == nil {
 		return ""
 	}
-	delete(raw, "reason")
+	delete(raw, domaintools.ReasonArgKey)
 	if len(raw) == 0 {
 		return ""
 	}

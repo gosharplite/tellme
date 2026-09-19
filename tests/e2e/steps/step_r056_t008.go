@@ -25,14 +25,7 @@ func thenOfferedMCPToolWithReasonAndSchema(ctx context.Context, tool, server str
 	if f == nil {
 		return fmt.Errorf("no provider fake recorded a request")
 	}
-	var body struct {
-		Tools []struct {
-			Function struct {
-				Name       string          `json:"name"`
-				Parameters json.RawMessage `json:"parameters"`
-			} `json:"function"`
-		} `json:"tools"`
-	}
+	var body recordedToolsRequest
 	if err := json.Unmarshal([]byte(f.LastBody()), &body); err != nil {
 		return fmt.Errorf("could not decode the recorded request tools: %w", err)
 	}
@@ -73,14 +66,17 @@ func thenOfferedMCPToolWithReasonAndSchema(ctx context.Context, tool, server str
 	return fmt.Errorf("the request did not offer %q; offered tools=%v", want, toolNamesOf(body))
 }
 
-func toolNamesOf(body struct {
+// recordedToolsRequest is the decoded `tools` array of a recorded provider request.
+type recordedToolsRequest struct {
 	Tools []struct {
 		Function struct {
 			Name       string          `json:"name"`
 			Parameters json.RawMessage `json:"parameters"`
 		} `json:"function"`
 	} `json:"tools"`
-}) []string {
+}
+
+func toolNamesOf(body recordedToolsRequest) []string {
 	var out []string
 	for _, t := range body.Tools {
 		out = append(out, t.Function.Name)
