@@ -160,7 +160,7 @@ Feature: Using tools from a remote MCP server
       And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
       And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" with the reason "check the gadget price" and then answers with "The gadget costs $42."
       When the operator starts tellme with the prompt "What does the gadget cost?"
-      Then the run reported the reason "check the gadget price" for the tool call "lookup_price"
+      Then the run reported the reason "check the gadget price" for the MCP tool "lookup_price" on the server "shop"
       And the MCP server "shop" received only the arguments its tool expects
       And tellme exits successfully
 
