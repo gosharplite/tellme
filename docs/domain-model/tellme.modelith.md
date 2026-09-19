@@ -32,6 +32,15 @@ The wire-protocol family backing a `Provider` — the compile-time-safe dispatch
 | `openai` | OpenAI-compatible (covers openai, deepseek, kimi, and any OpenAI-protocol vendor). |
 | `gemini` | Google Gemini / Vertex AI (covers the google and gemini labels). |
 
+### `ToolGate`
+
+The capability gate on a `Tool`'s availability (round 062; ADR 0032). A `vision` tool (`read_image`) is offered only to a `Provider` that declares `vision`; `none` is offered to every provider.
+
+| Value | Definition |
+| --- | --- |
+| `none` | Always offered (the readers, the write pair, `execute_command`, `list_skills`). |
+| `vision` | Offered only when the selected `Provider` declares `vision`. |
+
 ### `ToolOutcome`
 
 The recorded fate of one executed `ToolCall`.
@@ -226,7 +235,7 @@ The shared, user-global prompt log at `~/.tellme/global_prompts.jsonl` — one `
 
 ### `Provider`
 
-An LLM backend reachable via one ProviderFamily. It carries a model id, a base URL, authentication, and optional thinking settings; one is selected per session from the `Config` registry. tellme speaks the three families through thin transports; a vendor is just a label mapping to a family.
+An LLM backend reachable via one ProviderFamily. It carries a model id, a base URL, authentication, and optional thinking settings; one is selected per session from the `Config` registry. tellme speaks the two families through thin transports; a vendor is just a label mapping to a family.
 
 **Relationships**
 
@@ -298,13 +307,13 @@ A capability the model may invoke, advertised with a JSON argument schema. The s
 | --- | --- | --- |
 | `name` | string | The unique wire tool name. |
 | `requiresReason` | boolean | Always true — every tool call must carry a reason. |
-| `capabilityGated` | boolean | True for `read_image`, which is offered only when the selected `Provider` declares `vision` (round 062 / ADR 0032); false for the always-offered tools. |
+| `gate` | ToolGate | The capability gate (round 062 / ADR 0032): `vision` for `read_image` (offered only when the selected `Provider` declares `vision`), `none` otherwise — the readers, the write pair, `execute_command`, and `list_skills` are always offered. |
 
 **Invariants**
 
 - **tool-name-unique** — Each `Tool` has a unique name.
 - **tool-result-bounded** — Every tool bounds its own output at the source; the loop clamp is the backstop.
-- **tool-offered-only-when-capable** — `read_image` is offered to the model only when the selected `Provider` declares `vision`; the offered set is a function of the selected provider's capability.
+- **tool-offered-only-when-capable** — `read_image` (its `gate` is `vision`) is offered to the model only when the selected `Provider` declares `vision`; the offered set is a function of the selected provider's capability.
 
 ### `ToolCall`
 
@@ -554,7 +563,7 @@ With a `Provider` that declares `vision`, the model calls `read_image`. The tool
 
 **Invariants touched**
 
-- **tool-offered-only-when-capable** — `read_image` is offered to the model only when the selected `Provider` declares `vision`; the offered set is a function of the selected provider's capability.
+- **tool-offered-only-when-capable** — `read_image` (its `gate` is `vision`) is offered to the model only when the selected `Provider` declares `vision`; the offered set is a function of the selected provider's capability.
 - **image-kind-sniffed-from-content** — An `ImageContent`'s kind is resolved from the file's content (magic bytes), never the file name nor a declared MIME.
 - **image-inline-limit** — An image larger than the 32 MiB inline ceiling is a loud refusal — never truncated and never partially sent.
 - **image-never-silently-dropped** — A media-bearing message on a family without an image path is a loud failure; an image is never silently lost.

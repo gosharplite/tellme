@@ -20,10 +20,11 @@ const readImageToolName = "read_image"
 // LOUD recoverable tool result, never truncated or partially sent.
 const imageMaxBytes = 32 << 20
 
-// The loud refusals (recoverable tool results fed back to the model).
+// The loud refusals (recoverable tool results fed back to the model). The
+// `ERROR:` prefix matches the sibling readers' nil-error recoverable class.
 const (
-	imageTooLargeResult = "error: the image is too large to send inline (it exceeds the 32 MiB limit)."
-	notAPictureResult   = "error: the content is not a supported picture (expected JPEG, PNG, GIF, or WebP)."
+	imageTooLargeResult = "ERROR: the image is too large to send inline (it exceeds the 32 MiB limit)."
+	notAPictureResult   = "ERROR: the content is not a supported picture (expected JPEG, PNG, GIF, or WebP)."
 )
 
 // readImage is the `read_image` agent tool (round 062): it reads a local image
@@ -85,7 +86,7 @@ func (readImage) Execute(ctx context.Context, arguments string, _ domaintools.By
 		return "", fmt.Errorf("read_image: failed to read file: %w", err)
 	}
 	if info.IsDir() {
-		return "error: the path is a directory; read_image expects an image file.", nil
+		return "ERROR: the path is a directory; read_image expects an image file.", nil
 	}
 	if info.Size() > imageMaxBytes {
 		return imageTooLargeResult, nil

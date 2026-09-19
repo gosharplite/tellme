@@ -92,24 +92,6 @@ func givenWorkspaceNotAPicture(ctx context.Context, name string) error {
 	return sc.writeWorkFile(name, "this is plainly not a picture")
 }
 
-// writeVisionConfig writes the default config selecting `provider` (an
-// OpenAI-compatible family entry pointing at the fake) with VISION set per the
-// vision argument.
-func writeVisionConfig(sc *scenarioContext, provider, url string, vision bool) error {
-	cfg := fmt.Sprintf("MODE: butler\n"+
-		"PERSON: \"e2e persona\"\n"+
-		"SELECTED_PROVIDER: %s\n"+
-		"PROVIDERS:\n"+
-		"  %s:\n"+
-		"    TYPE: deepseek\n"+
-		"    MODEL: deepseek-v4-flash\n"+
-		"    URL: %s\n"+
-		"    API_KEY: test-key\n"+
-		"    VISION: %t\n",
-		provider, provider, url, vision)
-	return sc.writeFile("configs/butler.yaml", []byte(cfg))
-}
-
 // givenVisionProviderReadsImage arranges a vision-enabled provider whose fake
 // scripts one `read_image` call (for {path}), then answers {answer}.
 func givenVisionProviderReadsImage(ctx context.Context, provider, path, answer string) error {
@@ -130,7 +112,10 @@ func givenVisionProviderReadsImage(ctx context.Context, provider, path, answer s
 	sc.scriptedAnswerSet = true
 	sc.scriptedTool = "read_image"
 	sc.registerFake(provider, f)
-	return writeVisionConfig(sc, provider, f.URL(), true)
+	if err := sc.writeDefaultConfig(provider, map[string]string{provider: f.URL()}); err != nil {
+		return err
+	}
+	return sc.setSelectedProviderVision(true)
 }
 
 // givenVisionProviderReportsTools arranges a vision-enabled provider whose fake
@@ -142,11 +127,14 @@ func givenVisionProviderReportsTools(ctx context.Context, provider, answer strin
 	sc.scriptedAnswer = unescapeText(answer)
 	sc.scriptedAnswerSet = true
 	sc.registerFake(provider, f)
-	return writeVisionConfig(sc, provider, f.URL(), true)
+	if err := sc.writeDefaultConfig(provider, map[string]string{provider: f.URL()}); err != nil {
+		return err
+	}
+	return sc.setSelectedProviderVision(true)
 }
 
-// givenBlindProviderReportsTools arranges a provider WITHOUT vision (no VISION
-// key) whose fake reports the offered tool set then answers {answer}.
+// givenBlindProviderReportsTools arranges a provider WITHOUT vision whose fake
+// reports the offered tool set then answers {answer}.
 func givenBlindProviderReportsTools(ctx context.Context, provider, answer string) error {
 	sc := scenarioFrom(ctx)
 	f := sc.newFake()
@@ -154,7 +142,10 @@ func givenBlindProviderReportsTools(ctx context.Context, provider, answer string
 	sc.scriptedAnswer = unescapeText(answer)
 	sc.scriptedAnswerSet = true
 	sc.registerFake(provider, f)
-	return writeVisionConfig(sc, provider, f.URL(), false)
+	if err := sc.writeDefaultConfig(provider, map[string]string{provider: f.URL()}); err != nil {
+		return err
+	}
+	return sc.setSelectedProviderVision(false)
 }
 
 // lastBody returns the most recent recorded request body across the scenario's
@@ -197,39 +188,48 @@ func imageURIs(body string) []string {
 	return uris
 }
 
-// requestContentText returns the concatenated string content of every recorded
-// message (used to find a folded-back tool result).
-func requestContentText(body string) string {
+// readImageToolResult returns the raw content of the `tool`-role message that
+// answers the recorded `read_image` call (matched by tool_call_id) — so the
+// refusal Thens read the RIGHT authority, not any message (PR #129 fold
+// F-062-5a).
+func readImageToolResult(body string) (string, bool) {
 	var req struct {
 		Messages []struct {
-			Content json.RawMessage `json:"content"`
+			Role       string          `json:"role"`
+			Content    json.RawMessage `json:"content"`
+			ToolCallID string          `json:"tool_call_id"`
+			ToolCalls  []struct {
+				ID       string `json:"id"`
+				Function struct {
+					Name string `json:"name"`
+				} `json:"function"`
+			} `json:"tool_calls"`
 		} `json:"messages"`
 	}
 	if err := json.Unmarshal([]byte(body), &req); err != nil {
-		return ""
+		return "", false
 	}
-	var sb strings.Builder
+	callID := ""
 	for _, m := range req.Messages {
-		var s string
-		if err := json.Unmarshal(m.Content, &s); err == nil {
-			sb.WriteString(s)
-			sb.WriteString("\n")
-			continue
-		}
-		var parts []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-		}
-		if err := json.Unmarshal(m.Content, &parts); err == nil {
-			for _, p := range parts {
-				if p.Type == "text" {
-					sb.WriteString(p.Text)
-					sb.WriteString("\n")
-				}
+		for _, tc := range m.ToolCalls {
+			if tc.Function.Name == "read_image" {
+				callID = tc.ID
 			}
 		}
 	}
-	return sb.String()
+	if callID == "" {
+		return "", false
+	}
+	for _, m := range req.Messages {
+		if m.Role == "tool" && m.ToolCallID == callID {
+			var s string
+			if err := json.Unmarshal(m.Content, &s); err == nil {
+				return s, true
+			}
+			return string(m.Content), true
+		}
+	}
+	return "", false
 }
 
 // thenRequestCarriedImage asserts the recorded request carries the named file's
@@ -308,22 +308,32 @@ func thenOfferedNoReadImage(ctx context.Context) error {
 	return nil
 }
 
-// thenToolResultImageTooLarge asserts the folded-back tool result reports the
-// image is too large.
+// thenToolResultImageTooLarge asserts the read_image TOOL RESULT reports the
+// image is too large (bound to that call's result, not any message — fold
+// F-062-5a).
 func thenToolResultImageTooLarge(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
-	if strings.Contains(requestContentText(lastBody(sc)), "too large") {
+	res, ok := readImageToolResult(lastBody(sc))
+	if !ok {
+		return fmt.Errorf("no read_image tool result in the recorded request")
+	}
+	if strings.Contains(res, "too large") {
 		return nil
 	}
-	return fmt.Errorf("the folded-back tool result did not report the image is too large")
+	return fmt.Errorf("the read_image tool result did not report the image is too large: %q", res)
 }
 
-// thenToolResultNotAPicture asserts the folded-back tool result reports the
-// content is not a supported picture.
+// thenToolResultNotAPicture asserts the read_image TOOL RESULT reports the
+// content is not a supported picture (bound to that call's result — fold
+// F-062-5a).
 func thenToolResultNotAPicture(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
-	if strings.Contains(requestContentText(lastBody(sc)), "not a supported picture") {
+	res, ok := readImageToolResult(lastBody(sc))
+	if !ok {
+		return fmt.Errorf("no read_image tool result in the recorded request")
+	}
+	if strings.Contains(res, "not a supported picture") {
 		return nil
 	}
-	return fmt.Errorf("the folded-back tool result did not report a not-a-picture refusal")
+	return fmt.Errorf("the read_image tool result did not report a not-a-picture refusal: %q", res)
 }

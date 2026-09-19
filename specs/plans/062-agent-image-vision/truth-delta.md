@@ -41,3 +41,15 @@
 **Domain model** (`docs/domain-model/tellme.modelith.{yaml,md}`, ADR 0030 — descriptive, subordinate to truth): refreshed for the round-062 capability (the `Provider.vision` attribute · the `Tool` capability gate + `tool-offered-only-when-capable` · the new `ImageContent` entity · a *Reading a local image* scenario); `make modelith-check` green (no drift).
 
 **Topology audit** (`axb-gherkin-and-dsl` script over `specs/truth/features/cli`): 48 features · 6 modules · 16 root + 375 module rows · 1894 steps — the **same 5 pre-existing errors** as at round 061, **none new**; round 062's feature + Example match exactly one row each.
+
+## Review folds (PR [#129](https://github.com/gosharplite/tellme/pull/129), review `5255211125`)
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| MODIFY | `specs/truth/techstack.md` — *Tool-usage accounting* | the reported set is the **union** of the base and capability-gated sets, so `read_image` (recordable) is shown with zero; enumerate the eight. | review **F-062-1** |
+| MODIFY | `specs/truth/techstack.md` — *Image filesystem tool (`read_image`)* | names the media **channel** (per-call context collector) + the estimate-counts-media note + the refusal casing alignment. | reviews **F-062-2**, **F-062-3**, nit (d) |
+| MODIFY | `docs/decisions/0032-agent-image-vision.md` | D7a (the channel mechanism) · D7b (the capability-aware offered/recorded sets) · the PR-#129 fold record · §Forward RF-062-9 (closed) / RF-062-10 (refactor candidates) / RF-062-11. | reviews **F-062-1…F-062-5** |
+| MODIFY | `docs/domain-model/tellme.modelith.{yaml,md}` | the capability fact modelled as a `ToolGate` enum (`none`/`vision`) rather than a one-true boolean; the pre-existing "three families" wording corrected to "two". | review nit (e) |
+| ADD | `internal/domain/llm/token.go` (media term) + `internal/domain/llm/token_test.go` | the estimate counts an attached media part's base64 expansion. | review **F-062-2** |
+| MODIFY | `tests/e2e/steps/**` (the refusal Thens bound to the `read_image` result; the split offered/recordable enumerators; the shared-config + `VISION` mutator) | predicate scope = the right authority; the two authoritaties kept distinct. | reviews **F-062-1**, **F-062-5a**, nit (c) |
+| MODIFY | `STATUS.md` + `docs/session-summary/2026/09/19/session-summary.md` | the round-062 in-flight block + the PM follow-up (the 4th acceptance Rule carries a comment, not Examples). | review **F-062-5b**, **(f)** |

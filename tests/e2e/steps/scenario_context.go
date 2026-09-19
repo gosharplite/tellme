@@ -718,6 +718,37 @@ func (sc *scenarioContext) writeGeminiConfig(provider, model, fakeBase, keyPath 
 	return sc.writeFile("configs/butler.yaml", []byte(cfg+sc.mcpServersYAML()))
 }
 
+// setSelectedProviderVision sets (or clears) the effective config's selected
+// provider entry VISION key (round 062; PR #129 fold F-062-5c) — a targeted
+// mutator over the shared default-config writer so the VISION line cannot drift
+// from the shared config shape.
+func (sc *scenarioContext) setSelectedProviderVision(vision bool) error {
+	p := sc.homePath("configs/butler.yaml")
+	data, err := os.ReadFile(p)
+	if err != nil {
+		return fmt.Errorf("the default configuration must exist before setting VISION: %w", err)
+	}
+	var cfg map[string]any
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return err
+	}
+	sel, _ := cfg["SELECTED_PROVIDER"].(string)
+	providers, _ := cfg["PROVIDERS"].(map[string]any)
+	if providers == nil {
+		return fmt.Errorf("the default configuration has no PROVIDERS registry")
+	}
+	entry, _ := providers[sel].(map[string]any)
+	if entry == nil {
+		return fmt.Errorf("the selected provider %q is not in the registry", sel)
+	}
+	entry["VISION"] = vision
+	out, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(p, out, 0o644)
+}
+
 // setSelectedProviderMaxTokens sets the effective config's selected provider
 // entry MAX_TOKENS to n (round-013 Given: the configured Gemini provider entry
 // allows at most N output tokens).

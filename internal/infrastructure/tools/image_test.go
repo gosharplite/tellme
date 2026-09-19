@@ -89,7 +89,7 @@ func TestReadImageRefusesNotAPicture(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Execute should return a recoverable result, got error %v", err)
 	}
-	if !strings.HasPrefix(res, "error:") || !strings.Contains(res, "not a supported picture") {
+	if !strings.HasPrefix(res, "ERROR:") || !strings.Contains(res, "not a supported picture") {
 		t.Errorf("result = %q, want the not-a-picture refusal", res)
 	}
 	if len(media) != 0 {

@@ -14,12 +14,13 @@ func init() {
 	})
 }
 
-// thenReviewEveryToolZero (必查 呈現結果): the report lists EVERY tool the LIVE
-// registry enumerates, each with zero invocations — so a tool add/remove cannot
-// pass vacuously (round-026 review F8).
+// thenReviewEveryToolZero (必查 呈現結果): the report lists EVERY recordable tool
+// (the union of the base and capability-gated sets — round 062 / PR #129 fold
+// F-062-1), each with zero invocations — so a tool add/remove cannot pass
+// vacuously (round-026 review F8).
 func thenReviewEveryToolZero(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
-	names := registeredToolNames()
+	names := recordableToolNames()
 	if len(names) == 0 {
 		return fmt.Errorf("the live registry enumerates no tools")
 	}
