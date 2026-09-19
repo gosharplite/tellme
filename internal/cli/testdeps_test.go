@@ -132,7 +132,7 @@ func defaultTestDeps(mods ...func(*deps.Dependencies)) deps.Dependencies {
 		NewLines:     func(bool) render.Lines { return fakeLines{} },
 		NewToolLines: func(bool) agentport.ToolLineRenderer { return noopToolLines{} },
 		NewAnswer:    func() render.Answer { return &stubRenderer{} },
-		NewProgress: func(stream io.Writer, now func() time.Time, model string, epoch time.Time, columns func() int, idleGap time.Duration, enabled bool) render.TurnProgress {
+		NewProgress: func(stream io.Writer, now func() time.Time, model string, epoch time.Time, columns func() int, idleGap time.Duration, enabled, colour bool) render.TurnProgress {
 			return render.TurnProgress{ToolOutput: fakeSink{}}
 		},
 		UserHomeDir: func() (string, error) { return "/tmp/tellme-test-home", nil },
@@ -213,6 +213,10 @@ func (fakeLines) TurnGap() string { return "<gap>" }
 
 func (fakeLines) PayloadStatus(t time.Time, tokens, budget int, mode, model string, estimated bool) string {
 	return fmt.Sprintf("<payload %d/%d %s %s estimated=%t>", tokens, budget, mode, model, estimated)
+}
+
+func (fakeLines) PayloadEstimate(t time.Time, tokens, delta int, mode, model string) string {
+	return fmt.Sprintf("<estimate %d %+d %s %s>", tokens, delta, mode, model)
 }
 
 func (fakeLines) Metrics(t time.Time, provider string, u metrics.UsageCounts) string {

@@ -38,3 +38,20 @@ Feature: Colouring the session chrome
       When the operator starts tellme with the prompt "Say hi."
       Then the session turn log carries no decoration
       And tellme exits successfully
+
+  Rule: The tool output frame is grey and the action line is yellow at a terminal
+
+    # Round 057 (ADR 0027): two more chrome elements gain a terminal-gated accent —
+    # the whole `[Tool Output]` header line and BOTH horizontal separators are
+    # grey; the whole `[Tool Action]` line is yellow. The streamed content lines
+    # and the `turns.log` artifact stay plain.
+
+    Example: A command run at a terminal colours the frame and the action line
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the diagnostics are shown at a terminal
+      And a configured provider "test-model" whose endpoint runs a colouring command and then answers with "done"
+      When the operator starts tellme with the prompt "Run the colouring command."
+      Then the tool output frame is shown in grey
+      And the action line is shown in yellow
+      And tellme exits successfully

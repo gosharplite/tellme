@@ -23,7 +23,14 @@ type Lines interface {
 	InputCaptured(t time.Time) string
 	TurnOpening(turn int, mode string) string
 	TurnGap() string
+	// PayloadStatus renders the MEASURED payload line (`<tokens>/<budget> tokens
+	// - <mode> - <model>`; round 009, unchanged by round 057).
 	PayloadStatus(t time.Time, tokens, budget int, mode, model string, estimated bool) string
+	// PayloadEstimate renders the ESTIMATED pre-flight payload line (round 057;
+	// ADR 0027): `+<delta> ~<tokens> tokens - <mode> - <model>`. The delta is the
+	// increment over the previous estimate (`0` when there is none) and the budget
+	// is not shown.
+	PayloadEstimate(t time.Time, tokens, delta int, mode, model string) string
 	Metrics(t time.Time, provider string, u metrics.UsageCounts) string
 	Ready(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64) string
 	ToolReason(t time.Time, reason string) string
@@ -61,7 +68,8 @@ type TurnProgress struct {
 
 // ProgressFactory builds a turn's TurnProgress over the diagnostic stream, the
 // writer's clock seam, the model label, the elapsed epoch, the stderr-column
-// probe, the idle-gap threshold, and whether the indicator is enabled (the
-// spinner gate). It is the injected seam (a func-typed deps field) that keeps
+// probe, the idle-gap threshold, whether the indicator is enabled (the spinner
+// gate), and whether the chrome colour is enabled (the round-057 grey `[Tool
+// Output]` accent). It is the injected seam (a func-typed deps field) that keeps
 // internal/cli free of internal/ui.
-type ProgressFactory func(stream io.Writer, now func() time.Time, model string, epoch time.Time, columns func() int, idleGap time.Duration, indicatorEnabled bool) TurnProgress
+type ProgressFactory func(stream io.Writer, now func() time.Time, model string, epoch time.Time, columns func() int, idleGap time.Duration, indicatorEnabled, colour bool) TurnProgress

@@ -50,12 +50,14 @@ func TestFormatToolAction_UnparseableRendersEmptyArgs(t *testing.T) {
 }
 
 func TestFormatToolAction_ValuesAreRuneCapped(t *testing.T) {
-	long := strings.Repeat("a", 190) // exceeds the 189-rune cap
+	long := strings.Repeat("a", 501) // exceeds the 500-rune cap
 	got := FormatToolAction(r034Clock, "write_file", `{"content":"`+long+`"}`)
 	const prefix = "[20:29:51] [Tool Action] write_file(content: "
 	value := strings.TrimSuffix(strings.TrimPrefix(got, prefix), ")")
-	if got2 := utf8.RuneCountInString(value); got2 != argValueCap {
-		t.Errorf("capped value is %d runes; want %d (value=%q)", got2, argValueCap, value)
+	// Round 057 (ADR 0027): pin the LITERAL 500 (not argValueCap), so lowering the
+	// constant reds this test — the cap's falsifiability witness.
+	if got2 := utf8.RuneCountInString(value); got2 != 500 {
+		t.Errorf("capped value is %d runes; want the 500-rune cap (value=%q)", got2, value)
 	}
 	if !strings.HasSuffix(value, "…") {
 		t.Errorf("capped value does not end with one U+2026; value=%q", value)

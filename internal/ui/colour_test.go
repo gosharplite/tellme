@@ -84,3 +84,89 @@ func TestChromeColour(t *testing.T) {
 		}
 	})
 }
+
+// Round 057 (ADR 0027): the grey `[Tool Output]` frame + the yellow `[Tool Action]`
+// line, and the estimated-payload increment line.
+func TestChromeColourRound057(t *testing.T) {
+	t.Parallel()
+	ts := time.Date(2026, 9, 19, 6, 25, 11, 0, time.UTC)
+	const gray = "\033[0;90m"
+	const yellow = "\033[0;33m"
+	const r = "\033[0m"
+
+	t.Run("tool output header + separators are grey; plain when off", func(t *testing.T) {
+		t.Parallel()
+		var buf strings.Builder
+		w := &ToolOutputWriter{W: &buf, Now: func() time.Time { return ts }, Colour: true}
+		w.Begin()
+		_, _ = w.Write([]byte("hello\n"))
+		w.End()
+		out := buf.String()
+		if !strings.Contains(out, gray+"[06:25:11] [Tool Output] Executing... (Output shown below)"+r) {
+			t.Errorf("header not grey: %q", out)
+		}
+		if n := strings.Count(out, gray+ToolOutputSeparator+r); n != 2 {
+			t.Errorf("expected both separators grey; got %d in %q", n, out)
+		}
+		// The streamed content line stays plain (no grey wrap around it).
+		if strings.Contains(out, gray+"[06:25:11] [Tool Output] hello") {
+			t.Errorf("content line must stay plain: %q", out)
+		}
+
+		var plain strings.Builder
+		pw := &ToolOutputWriter{W: &plain, Now: func() time.Time { return ts }}
+		pw.Begin()
+		_, _ = pw.Write([]byte("hello\n"))
+		pw.End()
+		if got := plain.String(); got != "[06:25:11] [Tool Output] Executing... (Output shown below)\n"+ToolOutputSeparator+"\n[06:25:11] [Tool Output] hello\n"+ToolOutputReset+ToolOutputSeparator+"\n" {
+			t.Errorf("plain block = %q", got)
+		}
+	})
+
+	t.Run("action line is yellow; plain when off", func(t *testing.T) {
+		t.Parallel()
+		line := formatToolActionColour(ts, "read_files", `{"path":"a"}`, true)
+		if !strings.HasPrefix(line, yellow) || !strings.HasSuffix(line, r) {
+			t.Errorf("action line not wrapped yellow: %q", line)
+		}
+		if !strings.Contains(line, "[06:25:11] [Tool Action] read_files(path: a)") {
+			t.Errorf("action text missing: %q", line)
+		}
+		if got, want := formatToolActionColour(ts, "read_files", `{"path":"a"}`, false), FormatToolAction(ts, "read_files", `{"path":"a"}`); got != want {
+			t.Errorf("colour-off action = %q, want plain %q", got, want)
+		}
+	})
+
+}
+
+// TestPayloadEstimateRound057 pins the round-057 (ADR 0027) estimated payload line:
+// a signed increment, no budget, the green MODE accent, and the plain colour-off path.
+func TestPayloadEstimateRound057(t *testing.T) {
+	t.Parallel()
+	ts := time.Date(2026, 9, 19, 6, 25, 11, 0, time.UTC)
+	t.Run("payload estimate: signed increment, no budget, green mode", func(t *testing.T) {
+		t.Parallel()
+		if got, want := FormatPayloadEstimate(ts, 203148, 100, "butler", "deepseek-flash"), "[06:25:11] Payload: +100 ~203148 tokens - butler - deepseek-flash"; got != want {
+			t.Errorf("estimate = %q; want %q", got, want)
+		}
+		if got, want := FormatPayloadEstimate(ts, 5, 0, "butler", "m"), "[06:25:11] Payload: +0 ~5 tokens - butler - m"; got != want {
+			t.Errorf("no-predecessor estimate = %q; want %q", got, want)
+		}
+		if got, want := FormatPayloadEstimate(ts, 203000, -1000, "butler", "m"), "[06:25:11] Payload: -1000 ~203000 tokens - butler - m"; got != want {
+			t.Errorf("shrunken estimate = %q; want %q", got, want)
+		}
+		if strings.Contains(FormatPayloadEstimate(ts, 5, 0, "butler", "m"), "/") {
+			t.Errorf("estimate must not show a budget")
+		}
+		col := formatPayloadEstimateColour(ts, 203148, 100, "butler", "deepseek-flash", true)
+		if !strings.Contains(col, "- "+"\033[0;32m"+"butler"+"\033[0m"+" - ") {
+			t.Errorf("estimate mode not green: %q", col)
+		}
+		if strings.Contains(col, "\033[0;32m"+"203148"+"\033[0m") {
+			t.Errorf("estimated token number must stay plain: %q", col)
+		}
+		if got, want := formatPayloadEstimateColour(ts, 1, 0, "butler", "m", false), FormatPayloadEstimate(ts, 1, 0, "butler", "m"); got != want {
+			t.Errorf("colour-off estimate = %q, want plain %q", got, want)
+		}
+	})
+}

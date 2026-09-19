@@ -716,7 +716,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// spinner and the chrome colour share one predicate, chromeColour) so the
 	// three consumers cannot disagree.
 	colourOn := chromeColour(opts, env)
-	prog := dp.NewProgress(env.stderr, env.now, res.Provider.Model, turnStart, stderrColumns(env), toolOutputIdleGap(dp.NewLines(false)), colourOn)
+	prog := dp.NewProgress(env.stderr, env.now, res.Provider.Model, turnStart, stderrColumns(env), toolOutputIdleGap(dp.NewLines(false)), colourOn, colourOn)
 	ind := prog.Indicator
 	if ind != nil {
 		defer ind.Stop() // panic-safe residue guard (idempotent)

@@ -85,7 +85,7 @@ func thenTrailingReasonSummaryFollowsBlank(ctx context.Context) error {
 func measuredPayloadIndexes(lines []string) []int {
 	var idx []int
 	for i, l := range lines {
-		if strings.Contains(l, "Payload: ") && !strings.Contains(l, "Payload: ~") {
+		if strings.Contains(l, "Payload: ") && !isEstimatePayloadLine(l) {
 			idx = append(idx, i)
 		}
 	}
@@ -124,7 +124,7 @@ func thenTurnClosingStatusNoBlank(ctx context.Context) error {
 		return fmt.Errorf("standard error carried no measured payload status line; stderr=%q", sc.stderr)
 	}
 	for _, i := range idx {
-		if i >= 2 && lines[i-1] == "" && strings.Contains(lines[i-2], "Payload: ~") {
+		if i >= 2 && lines[i-1] == "" && isEstimatePayloadLine(lines[i-2]) {
 			continue // exactly the round-017 frame gap — the correct, unchanged shape
 		}
 		return fmt.Errorf("a tool-less turn's closing status was not preceded by exactly the frame gap (an extra blank?); stderr=%q", sc.stderr)

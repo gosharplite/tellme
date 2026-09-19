@@ -106,12 +106,14 @@ func (m *missingAccent) Error() string {
 	return "the chrome is missing the green " + m.name + " accent; stderr=" + quoteForLog(m.stderr)
 }
 
-// thenChromeNoColour (必查 呈現結果): the captured stderr carries no round-054
-// green accent.
+// thenChromeNoColour (必查 呈現結果): the captured stderr carries no chrome
+// accent — neither the round-054 green nor the round-057 grey/yellow.
 func thenChromeNoColour(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
-	if strings.Contains(sc.stderr, "\x1b[0;32m") {
-		return &unexpectedColour{stderr: sc.stderr}
+	for _, code := range []string{"\x1b[0;32m", "\x1b[0;90m", "\x1b[0;33m"} {
+		if strings.Contains(sc.stderr, code) {
+			return &unexpectedColour{stderr: sc.stderr}
+		}
 	}
 	return nil
 }

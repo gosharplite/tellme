@@ -56,6 +56,14 @@ type callRenderer struct {
 	// sentence all say a non-tool turn is unchanged).
 	renderedToolRound bool
 
+	// prevEstimate / haveEstimate carry the round-057 payload-increment baseline
+	// (ADR 0027): the last ESTIMATED payload emitted this process, so the next
+	// estimate can show its growth (`+<delta>`). It is in-memory and
+	// session-scoped — a fresh process has no predecessor (the first estimate
+	// renders `+0`). No persistence.
+	prevEstimate int
+	haveEstimate bool
+
 	finalTail func()
 }
 
@@ -109,8 +117,17 @@ func (r *callRenderer) OnCallBegin(callIndex int, messages []llm.Message) {
 		r.emit(false, func(l render.Lines) string { return l.TurnOpening(turn, r.res.Mode) })
 	}
 	estimate := llm.EstimatePayload(r.res.Person, agentport.ToolDefs(r.reg), messages)
+	// Round 057 (ADR 0027): the estimated line shows the increment over the
+	// previous estimate emitted this process (0 when there is none). The tracker
+	// is in-memory and session-scoped; no persistence.
+	delta := 0
+	if r.haveEstimate {
+		delta = estimate - r.prevEstimate
+	}
+	r.prevEstimate = estimate
+	r.haveEstimate = true
 	r.emit(true, func(l render.Lines) string {
-		return l.PayloadStatus(r.env.now(), estimate, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, true)
+		return l.PayloadEstimate(r.env.now(), estimate, delta, r.res.Mode, r.res.Provider.Model)
 	})
 	if r.chrome {
 		r.emit(false, func(l render.Lines) string { return l.TurnGap() })

@@ -40,6 +40,13 @@ func (l Lines) PayloadStatus(t time.Time, tokens, budget int, mode, model string
 	return formatPayloadStatusColour(t, tokens, budget, mode, model, estimated, l.colour)
 }
 
+// PayloadEstimate renders the estimated pre-flight payload line (round 057;
+// ADR 0027): `+<delta> ~<tokens> tokens - <mode> - <model>` with the round-054
+// green MODE accent.
+func (l Lines) PayloadEstimate(t time.Time, tokens, delta int, mode, model string) string {
+	return formatPayloadEstimateColour(t, tokens, delta, mode, model, l.colour)
+}
+
 // Metrics renders the per-turn metrics line.
 func (Lines) Metrics(t time.Time, provider string, u metrics.UsageCounts) string {
 	return FormatMetrics(t, provider, u)
@@ -80,12 +87,12 @@ func (a Answer) WarnDegraded(w io.Writer) { a.r.WarnDegraded(w) }
 // spinner (nil when indicatorEnabled is false) and the `[Tool Output]`
 // coordinator (always present; it renders unconditionally). It is bound at the
 // composition root as the deps.ProgressFactory seam.
-func NewTurnProgress(stream io.Writer, now func() time.Time, model string, epoch time.Time, m metrics.SystemMetricsProvider, columns func() int, idleGap time.Duration, indicatorEnabled bool) render.TurnProgress {
+func NewTurnProgress(stream io.Writer, now func() time.Time, model string, epoch time.Time, m metrics.SystemMetricsProvider, columns func() int, idleGap time.Duration, indicatorEnabled, colour bool) render.TurnProgress {
 	var sp *Spinner
 	if indicatorEnabled {
 		sp = NewSpinner(stream, model, epoch, m, columns)
 	}
-	coord := NewToolOutputCoordinator(stream, now, sp, idleGap)
+	coord := NewToolOutputCoordinator(stream, now, sp, idleGap, colour)
 	var ind render.Indicator
 	if sp != nil {
 		ind = sp
