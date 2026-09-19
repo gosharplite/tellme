@@ -52,6 +52,7 @@
 - **參考實作**：`tell-me-go` 以 **typed per-family schema model** 轉換，vendor 標註根本進不了 Vertex payload（parity precedent）。
 - **實測殘留風險**：同一 GitHub server 另有 `anyOf` ×2、`additionalProperties` ×2 — S-2 default-deny 會在 probe 判定不支援時一併移除。
 - **CQ-4（probe）已核准**：S-4 的 live probe 於 `ait-comment`（provider `dev` / `gemini-3.8-flash`）對 `websc-dev-433809` 發送宣告-only 的 `generateContent`，結果逐字記入 ADR 0031。
+- **CQ-5（gate 位置）已拍板 → A**：回歸 gate 為既有測試樹中的 **hermetic unit pin**（走 `go test` / `make test`），**不新增 `make verify` 成員**（S-5）。
 
 ## Ready 判定
 
