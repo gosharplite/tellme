@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: **`/axb-technical-research` rows RECORDED** (2026-09-20). Clarify **not escalated** (0 questions). `api`/`data` **NOOP**; `dsl-refine` row still **pending** (that phase has not run).
+> **Status**: **all owner rows RECORDED** (2026-09-20). Clarify **not escalated** (0 questions). `api`/`data` **NOOP**; domain model **NOOP**. Implementation landed (adapter batching + unit/E2E pins); gates green.
 
 ## /axb-technical-research
 
@@ -32,7 +32,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `specs/truth/features/cli/chat/*.feature` + `chat/dsl.md` | a parallel-round Rule/Example (a Gemini turn with ≥2 tool calls completes; the recorded request carried the round's results together; a two-image round reaches both images). | `spec.md` US1/US2, FR-001…FR-009; `research.md` D5(c) |
+| MODIFY | `specs/truth/features/cli/chat/calling-several-tools-in-one-round.feature` (NEW) + `chat/dsl.md` | a parallel-round interface Rule set: a Gemini turn with **two** tool calls completes (the recorded Vertex request carries the round's results in **one** `user` turn with **two** `functionResponse` parts — the new Then `the Gemini provider received the answer to both read requests together`); a **two-picture** round still carries both (`the request carried the image file` ×2); a **single** call is unchanged (the round-013 Given reused). The `## Given (round 065)` block adds the two multi-tool Givens (a Vertex model turn scripting **two** `read_files` / two `read_image` calls) + a `## Then (round 065)` row + the module note. | `spec.md` US1/US2, FR-001…FR-009; `research.md` D5(c); `acceptance-coverage` |
 
 **Domain model** (`docs/domain-model/tellme.modelith.{yaml,md}`, ADR 0030 — descriptive, subordinate to truth): **NOOP** (checked) — this round changes no modelled entity or invariant (the wire serialization is not a domain concept).
 

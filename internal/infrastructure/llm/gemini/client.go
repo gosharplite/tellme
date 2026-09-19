@@ -161,12 +161,41 @@ func requestBody(prompt string, prior []llm.Message, toolDefs []llm.ToolDef, max
 // Vertex `contents`: assistant tool calls under `role:"model"` functionCall, tool
 // results under `role:"user"` functionResponse (Vertex rejects `role:"tool"`),
 // and text turns under their mapped role.
+//
+// Round 065 (ADR 0035; closes #132): a model round's tool results are BATCHED.
+// When a `model` turn carries N `functionCall` parts, the next N `tool` results
+// are emitted as ONE `user` turn carrying N `functionResponse` parts (in call
+// order) — Vertex requires the responses to a function-call turn to share one
+// turn (`len(functionResponse) == len(functionCall)` per turn). Round-scoped
+// media: the round's media messages are buffered and emitted as their own
+// standalone `user` turns AFTER the batched function-response turn (so the
+// #1441 inlineData/functionResponse ordering hazard still cannot arise). The
+// batching is invisible for N == 1 and for media-free rounds, so those paths are
+// byte-identical to before (I-2/I-3); the OpenAI-compatible family is untouched.
 func buildContents(prompt string, prior []llm.Message) []map[string]any {
 	contents := make([]map[string]any, 0, len(prior)+1)
-	pending := make([]string, 0) // names of tool calls awaiting their result
+	pending := make([]string, 0) // names of tool calls awaiting their result (FIFO)
+	// The current round's buffered results + media (flushed at a round boundary).
+	results := make([]map[string]any, 0) // one functionResponse PART per tool result
+	mediaTurns := make([][]map[string]any, 0)
+
+	// flush emits the buffered round: the batched function-response turn (when
+	// any results were buffered) followed by the round's standalone media turns.
+	flush := func() {
+		if len(results) > 0 {
+			contents = append(contents, map[string]any{"role": "user", "parts": results})
+			results = make([]map[string]any, 0)
+		}
+		for _, parts := range mediaTurns {
+			contents = append(contents, map[string]any{"role": "user", "parts": parts})
+		}
+		mediaTurns = make([][]map[string]any, 0)
+	}
+
 	for _, m := range prior {
 		switch {
 		case len(m.ToolCalls) > 0:
+			flush() // a new model turn starts a new round
 			parts := make([]map[string]any, 0, len(m.ToolCalls))
 			for _, tc := range m.ToolCalls {
 				pending = append(pending, tc.Name)
@@ -183,34 +212,31 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 				parts = append(parts, part)
 			}
 			contents = append(contents, map[string]any{"role": "model", "parts": parts})
-		case m.ToolCallID != "":
+		case m.ToolCallID != "" || m.Role == "tool":
+			// A tool result — buffered into the current round, not emitted yet.
 			name := ""
 			if len(pending) > 0 {
 				name = pending[0]
 				pending = pending[1:]
 			}
-			contents = append(contents, map[string]any{
-				"role":  "user",
-				"parts": []map[string]any{{"functionResponse": map[string]any{"name": name, "response": map[string]any{"content": m.Content}}}},
-			})
+			results = append(results, map[string]any{"functionResponse": map[string]any{"name": name, "response": map[string]any{"content": m.Content}}})
 		case len(m.Media) > 0:
-			// Round 063 (ADR 0033 D2/D3): a media-bearing message becomes its OWN
-			// `user` turn — media lead the turn — serialized directly AFTER the
-			// round's `functionResponse` turn. It is never merged INTO a
-			// functionResponse turn, so the Vertex parser's ordering hazard
-			// (#1441: a user turn whose functionResponse precedes an inlineData
-			// part) cannot arise by construction.
-			contents = append(contents, map[string]any{
-				"role":  "user",
-				"parts": inlineDataParts(m.Content, m.Media),
-			})
+			// Round 063 (ADR 0033 D2/D3): a media-bearing message is its OWN
+			// `user` turn — media lead the turn. Round 065 buffers it so the
+			// round's media turns are emitted AFTER the batched function-response
+			// turn; it is never merged INTO a functionResponse turn, so the Vertex
+			// parser's ordering hazard (#1441: a user turn whose functionResponse
+			// precedes an inlineData part) cannot arise by construction.
+			mediaTurns = append(mediaTurns, inlineDataParts(m.Content, m.Media))
 		default:
+			flush()
 			contents = append(contents, map[string]any{
 				"role":  vertexRole(m.Role),
 				"parts": []map[string]any{{"text": m.Content}},
 			})
 		}
 	}
+	flush()
 	if prompt != "" {
 		contents = append(contents, map[string]any{"role": "user", "parts": []map[string]any{{"text": prompt}}})
 	}
