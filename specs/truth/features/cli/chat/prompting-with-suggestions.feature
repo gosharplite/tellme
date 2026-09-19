@@ -1,11 +1,14 @@
 Feature: Prompting with live suggestions
 
   # Interface truth (CLI end, `chat` module). The `-i` interactive TUI prompt offers live
-  # suggestions from three sources — recent prompts (the shared log + session), workspace paths, and
-  # registered tools — while the operator types. Acceptance journey:
-  # features/acceptance/composing-a-prompt-with-live-suggestions.feature. Driven end-to-end through
-  # the `TELL_ME_FORCE_STDIN_TTY` seam with a scripted key sequence; the suggestion list is asserted
-  # as presence in the captured output (not exact ANSI bytes).
+  # suggestions from three sources — recent prompts (the user-global shared log), workspace
+  # paths (path-like queries only), and registered tools — while the operator types. (Round
+  # 064 / ADR 0034: the shared log is the only prompt source; there is no separate session
+  # source.) Acceptance journeys:
+  # features/acceptance/composing-a-prompt-with-live-suggestions.feature and
+  # features/acceptance/finding-a-recent-prompt-beyond-the-shallow-window.feature. Driven
+  # end-to-end through the `TELL_ME_FORCE_STDIN_TTY` seam with a scripted key sequence; the
+  # suggestion list is asserted as presence in the captured output (not exact ANSI bytes).
 
   Rule: The interactive prompt suggests a recent prompt that matches what the operator types
 
@@ -23,11 +26,10 @@ Feature: Prompting with live suggestions
     # Round 064 (ADR 0034; operator request): the recent-prompt candidate pool is the
     # newest 50 distinct prompts (the reference's LoadTopN(ctx, 50)) — not 10 — so a
     # match older than the newest 10 is offered again; the surfaced list stays capped
-    # at 10. Acceptance journey:
+    # at 10 (carried executably by the Rule below). Acceptance journey:
     # features/acceptance/finding-a-recent-prompt-beyond-the-shallow-window.feature.
-    # [unit-pinned (round 064)] the ≤10 surfaced cap and "a match beyond the newest 10"
-    # are pinned by the unit layer (internal/app/suggestions): the engine asks the
-    # source for the deepened depth and the accumulator still caps at 10.
+    # [unit-pinned (round 064)] the engine's requested depth and the ≤10 cap arithmetic
+    # are additionally pinned at the unit layer (internal/app/suggestions).
 
     Example: A recent prompt older than the newest ten is still offered
       Given the operator has a runnable tellme installation
@@ -37,6 +39,26 @@ Feature: Prompting with live suggestions
       And the shared prompt log holds 12 newer prompts about other topics
       When the operator opens the interactive prompt and types "commits"
       Then the interactive prompt offers the recent prompt "review the last two commits"
+      And tellme exits successfully
+
+  Rule: The prompt never shows more than ten suggestions
+
+    # Round 064 (ADR 0034; review TD-1): the surface cap (10) is an executable
+    # acceptance rule, not a comment — with more matching prompts than the cap,
+    # the surplus is dropped. The fixture appends twenty distinct matching prompts;
+    # read newest-first, the cap offers the newest ten and drops the rest, so
+    # "commit note 20" (newest) is offered and "commit note 10" (the eleventh) is not.
+    # [unit-pinned] the exact ≤10 arithmetic is additionally pinned at the unit layer
+    # (internal/app/suggestions: the accumulator caps at maxSuggestions).
+
+    Example: The ten nearest matches are offered and the surplus is dropped
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the operator is working at an interactive terminal
+      And the shared prompt log holds 20 newer prompts that each mention "commit note"
+      When the operator opens the interactive prompt and types "commit"
+      Then the interactive prompt offers the recent prompt "commit note 20"
+      And the interactive prompt does not offer the recent prompt "commit note 10"
       And tellme exits successfully
 
   Rule: The interactive prompt suggests a workspace entry for a path-like query

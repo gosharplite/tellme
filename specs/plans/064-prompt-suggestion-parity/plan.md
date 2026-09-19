@@ -27,7 +27,7 @@
 | 1 | `internal/app/suggestions/service.go` | split the single `maxSuggestions = 10` into **`promptPoolDepth = 50`** (the depth the history source is asked for) + **`maxSuggestions = 10`** (the surfaced cap, unchanged); `addPrompts` requests `promptPoolDepth` |
 | 2 | `internal/app/suggestions/service_test.go` | a unit pin: the engine asks the source for the deepened depth and still caps the surfaced list at 10 (a fake `PromptSource` records the requested `n`) |
 | 3 | `tests/e2e/steps/*` (suggestion Givens/Whens) | a Given that seeds the shared log beyond the newest-10 window; reuse the existing `-i` seams (`TELL_ME_FORCE_STDIN_TTY`, `TELL_ME_TUI_DEBOUNCE=0`) |
-| 4 | `docs/domain-model/tellme.modelith.{yaml,md}` | **expected NOOP** (the model's suggestion facts are source-shape, not depth); `make modelith-check` must stay green |
+| 4 | `docs/domain-model/tellme.modelith.{yaml,md}` | **MODIFY** (review TD-3): correct the stale "seeds from the `PromptLog`, **the session**, the workspace, and the tool registry" clause to "no separate session source"; `make modelith-render` + `modelith-check` green (ADR 0030 §D4 — truth wins, the descriptive docs are corrected) |
 
 ## Layer/architecture notes
 
@@ -41,7 +41,7 @@
 | Layer | Carrier |
 | --- | --- |
 | Unit (engine) | a fake `PromptSource` recording the requested `n` — proves the pool depth is the deepened constant while the surfaced list stays capped at 10; a table over match counts proves the ≤10 cap and the subsequence rule |
-| E2E | the truth feature's new depth Example (a scripted `-i` run whose shared-log pool holds a match **beyond the newest 10** offers it; and a many-match query offers exactly ten) |
+| E2E | the truth feature's round-064 Rules: the **depth** Example (a scripted `-i` run whose shared-log pool holds a match **beyond the newest 10** offers it) and the **cap** Example (20 matching prompts: the newest is offered, the eleventh is *not*) |
 | Regression | the existing suggestion Examples (recent-prompt, workspace path, tool name, accept, >3-line drop) stay GREEN — the change is depth-only |
 
-Witnesses (reproduced then reverted): (a) restoring the depth constant to **10** turns the depth Example (and the unit depth pin) **RED**; (b) raising the surfaced cap constant would make the "exactly ten" Example RED — i.e. the cap pin is non-vacuous.
+Witnesses (reproduced then reverted): (a) restoring the depth constant to **10** turns the E2E depth Example **RED** and the unit depth pin **RED** (`promptPoolDepth (10) must be strictly deeper than the surface cap (10)`); (b) the **cap** is non-vacuous — its carrier is the unit pin's many-match case (20 matches collapse to exactly 10), not an interface Example (review R-3).

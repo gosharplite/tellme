@@ -60,9 +60,9 @@
 
 | # | Question | Why it is high-impact | Answer |
 | --- | --- | --- | --- |
-| **Q1** ✅ **ANSWERED (A)** | What is the exact scope of **"behaviour only"** — **(A)** widen the recent-prompt pool to the newest **50** and nothing else, or **(B)** also adopt the reference's **other** source behaviours: an **empty** query shows the **first 5** **and** the **active session's last user prompt** is merged as an extra source? | It decides the requirement set (US2 appears or not), whether the CLI's deliberate "no startup disk I/O" property is preserved, and the acceptance scenarios. | **Operator chose (A) — pool-only** (2026-09-20). The recent-prompt pool deepens to the newest 50; the surfaced list stays capped at 10; the empty-query count stays today's; **no** session source is added, so the *no-startup-disk-I/O* property is preserved. Recorded as **S-1/S-3 (locked)** / **FR-001…FR-004**. **US2 and FR-005…FR-007 are dropped** (recorded as forward items). |
+| **Q1** ✅ **ANSWERED (A)** | What is the exact scope of **"behaviour only"** — **(A)** widen the recent-prompt pool to the newest **50** and nothing else, or **(B)** also adopt the reference's **other** source behaviours: an **empty** query shows the **first 5** **and** the **active session's last user prompt** is merged as an extra source? | It decides the requirement set (US2 appears or not), whether the CLI's deliberate "no startup disk I/O" property is preserved, and the acceptance scenarios. | **Operator chose (A) — pool-only** (2026-09-20). The recent-prompt pool deepens to the newest 50; the surfaced list stays capped at 10; the empty-query count stays today's; **no** session source is added, so the *no-startup-disk-I/O* property is preserved. Recorded as **S-1/S-3 (locked)** / **FR-001…FR-005**. **US2 and FR-006…FR-008 are dropped** (recorded as forward items). |
 
-> **Q1 → A consequence**: US2 and **FR-005…FR-007** are **removed** from the requirement set; the empty-query count and the session source are carried as **forward items** (see *Out of scope*). `checklists/requirements.md` records the resolution.
+> **Q1 → A consequence**: US2 and **FR-006…FR-008** are **removed** from the requirement set; the empty-query count and the session source are carried as **forward items** (see *Out of scope*). `checklists/requirements.md` records the resolution.
 
 ---
 

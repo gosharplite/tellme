@@ -11,13 +11,13 @@
 ## Phase 1 — Foundational
 
 - [x] **T002** [SETUP] Record the truth/ADR (research phase): `techstack.md` row MODIFY + ADR 0034 + index (done in the research phase).
-- [x] **T003** [BDD-ALIGN] CLI truth: add the depth Rule/Example to `prompting-with-suggestions.feature` + the `dsl.md` row/note (done in the dsl-refine phase).
-- [x] **T004** [SETUP] E2E fixture: the new `step_r064_suggestions.go` Given (`the shared prompt log holds {count} newer prompts about other topics`).
+- [x] **T003** [BDD-ALIGN] CLI truth: add the depth Rule/Example (and the cap Rule/Example) to `prompting-with-suggestions.feature` + the `dsl.md` rows/note. (Authored together with the implementation in the single round commit `6fc1ba9`; the round ran as one work session, so there is no separate `/axb-dsl-refine` commit.)
+- [x] **T004** [SETUP] E2E fixtures: `step_r064_suggestions.go` (the two deep-log Givens) and `step_r064_then_no_recent_prompt.go` (the negative Then). (Same single round commit `6fc1ba9`.)
 
 ## Phase 2 — Test Alignment (RED, no product change)
 
-- [x] **T005** [RED][UNIT] Add `TestSuggest_RecentPromptPoolDepth` in `internal/app/suggestions/service_test.go`: a fake `PromptSource` records the requested `n`; assert the engine asks for the **deepened depth** (50) and never the shallow 10; and a many-match case still surfaces **≤10** (the cap). *Fails against today's code (asks for 10).*
-- [x] **T006** [RED][E2E] The new depth Example (the shared log holds a match followed by 12 unrelated records; typing the term still offers that match). *Fails against today's code (the 10-prompt window excludes it).*
+- [x] **T005** [RED][UNIT] Add `TestServiceSuggestAsksForDeepenedPoolAndCapsAtTen` in `internal/app/suggestions/service_test.go`: a fake `PromptSource` records the requested `n`; assert the engine asks for the **deepened depth** (50), that `promptPoolDepth > maxSuggestions`, and that a many-match case still surfaces **≤10** (the cap). *Fails against today's code (asks for 10 / the constants are equal).*
+- [x] **T006** [RED][E2E] The depth Example (the shared log holds a match followed by 12 unrelated records; typing the term still offers that match) **and** the cap Example (20 matching prompts: the newest is offered, the eleventh is not). *The depth Example fails against today's code (the 10-prompt window excludes it).*
 
 ## Phase 3 — Feature
 
@@ -27,7 +27,7 @@
 ## Phase 4 — Regression & witnesses
 
 - [x] **T009** [REGRESSION] The existing suggestion Examples stay GREEN (recent-prompt, workspace path, tool name, accept, >3-line drop) — the change is depth-only.
-- [x] **T010** [WITNESS] Reproduce then revert: (a) restoring `promptPoolDepth` to **10** turns T005 + T006 **RED**; (b) the cap is non-vacuous (T005's many-match case asserts ≤10).
+- [x] **T010** [WITNESS] Reproduce then revert: (a) restoring `promptPoolDepth` to **10** turned the unit pin T005 **RED** (`promptPoolDepth (10) must be strictly deeper than the surface cap (10)`) and the E2E depth Example **RED** (`267 scenarios (266 passed, 1 failed)`); the cap is non-vacuous — its carrier is the unit pin's many-match case (T005), not an interface Example (see review R-3).
 - [x] **T011** [RECORD] `truth-delta.md` dsl-refine rows + STATUS update; commit the round.
 
 ## Conventions

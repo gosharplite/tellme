@@ -29,8 +29,11 @@ const promptPoolDepth = 50
 // unbounded scan (round-015 PR #38 review directive ③).
 const dirBatch = 100
 
-// PromptSource yields recent operator prompts, newest-first (the shared global
-// log seeded first, then the active session's prompts).
+// PromptSource yields recent operator prompts, newest-first. The production
+// source is the user-global shared prompt log (`~/.tellme/global_prompts.jsonl`,
+// round 028); there is no separate session source (round 064 / ADR 0034 corrects
+// the earlier "seeded first, then the active session's prompts" note — the shared
+// log is the only prompt source).
 type PromptSource interface {
 	RecentPrompts(ctx context.Context, n int) []string
 }

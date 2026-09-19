@@ -25,8 +25,9 @@ Feature: Finding a recent prompt beyond the shallow window
 
   Rule: The prompt never shows more than ten suggestions
 
-    Example: More matching prompts than the limit produces exactly the limit
+    Example: Only the ten nearest matches are offered
       Given the operator has a runnable tellme installation
-      And the shared prompt log already holds many recent prompts that each mention "commit"
+      And the shared prompt log already holds twenty recent prompts that each mention "commit note"
       When the operator opens the interactive prompt and types "commit"
-      Then the interactive prompt offers ten suggestions
+      Then the interactive prompt offers the recent prompt "commit note 20"
+      And the interactive prompt does not offer the recent prompt "commit note 10"
