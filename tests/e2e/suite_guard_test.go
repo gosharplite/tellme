@@ -94,6 +94,7 @@ func TestGuardSelection(t *testing.T) {
 		{"the root itself is refused", root, true},
 		{"traversal to the root is refused", root + "/../cli", true},
 		{"all modules are refused", strings.Join(allModules, ","), true},
+		{"a superset (root + extra) is refused", root + ",../../specs/plans/001-cli-bootstrap-and-config/features/acceptance", true},
 		{"a missing path is refused (fail loud)", "../../specs/truth/features/cli/nope", true},
 	}
 	for _, tc := range cases {

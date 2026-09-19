@@ -93,8 +93,10 @@ func splitFeaturePaths(selection string) []string {
 // "a subset selects for convenience and NEVER excludes from the gate". The gate
 // itself (no selection) is legitimate and is never refused, and a genuine
 // subset returns nil. The decision is made on RESOLVED paths (the set of
-// `.feature` files each selection contains), never on synthesized strings, so
-// `../cli` traversal and an all-modules list are both caught (review B-055-1).
+// `.feature` files each selection contains), never on synthesized strings, and
+// it refuses a selection that COVERS the whole contract (equality or superset),
+// so `../cli` traversal, an all-modules list, and a root-plus-extras selection
+// are all caught (reviews B-055-1, R-055-1).
 func guardSelection(selection string) error {
 	paths := splitFeaturePaths(selection)
 	if len(paths) == 0 {
@@ -111,17 +113,18 @@ func guardSelection(selection string) error {
 	if err != nil {
 		return err
 	}
-	if len(selected) == len(root) {
-		same := true
-		for f := range root {
-			if _, ok := selected[f]; !ok {
-				same = false
-				break
-			}
+	// Refuse when the selection COVERS the whole contract (equality OR superset):
+	// a selection that contains every root feature plus extras still runs the
+	// gate, and must not run under a "NOT THE GATE" banner (review R-055-1).
+	covers := true
+	for f := range root {
+		if _, ok := selected[f]; !ok {
+			covers = false
+			break
 		}
-		if same {
-			return fmt.Errorf("the selection resolves to the WHOLE contract (%s) — that is the gate; run without -godog.paths (or `make test`)", e2eFeaturesRoot)
-		}
+	}
+	if covers {
+		return fmt.Errorf("the selection resolves to the WHOLE contract (%s) — that is the gate; run without -godog.paths (or `make test`)", e2eFeaturesRoot)
 	}
 	return nil
 }

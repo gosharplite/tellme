@@ -160,9 +160,14 @@ test-fast:
 	if [ -z "$$(echo $(E2E_FAST_MODULES))" ]; then \
 		echo "❌ test-fast: no modules selected (E2E_FAST_MODULES is empty)."; exit 1; \
 	fi; \
+	rootp="$$(cd "$$root" && pwd -P)"; \
 	paths=""; \
 	for m in $(E2E_FAST_MODULES); do \
 		if [ ! -d "$$root/$$m" ]; then echo "❌ test-fast: no such module '$$m' under $$root"; exit 1; fi; \
+		if [ "$$(cd "$$root/$$m" && pwd -P)" = "$$rootp" ]; then \
+			echo "❌ test-fast refuses to run: module '$$m' resolves to the whole contract ($$root)."; \
+			echo "   That is the gate — run: make test"; exit 1; \
+		fi; \
 		case ",$$paths," in *,$$rel/$$m,*) ;; *) paths="$$paths$${paths:+,}$$rel/$$m" ;; esac; \
 	done; \
 	echo "════════════════════════════════════════════════════════════════"; \
