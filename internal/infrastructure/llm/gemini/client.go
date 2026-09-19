@@ -184,23 +184,21 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 	// The current round's buffered results + media (flushed at a round boundary).
 	results := make([]map[string]any, 0) // one functionResponse PART per tool result
 	mediaTurns := make([][]map[string]any, 0)
-	roundCalls := 0 // the driving model turn's functionCall count (the round's N)
 
 	// flush emits the buffered round: the batched function-response turn (when
 	// any results were buffered) followed by the round's standalone media turns.
-	// It also drops any UNPAIRED names a short round left in the FIFO (a round
-	// yielding M < N results) so a later round's part names cannot be mispaired;
-	// the batched turn then carries M parts (the doc-recorded shape — a provider
-	// that rejects it surfaces the same 400, never a silent name mispair).
+	// It also drops EVERY name still pending at the boundary: a round boundary
+	// means no further result can arrive for the flushed round, so any name left
+	// in the FIFO is unpaired (a round that yielded M < N results). Dropping them
+	// keeps a LATER round's part names from mispairing; the batched turn then
+	// carries the M parts the round actually produced (the doc-recorded shape — a
+	// provider that rejects it surfaces the same 400, never a silent mispair).
 	flush := func() {
 		if len(results) > 0 {
 			contents = append(contents, map[string]any{"role": "user", "parts": results})
 			results = make([]map[string]any, 0)
 		}
-		if short := roundCalls - len(pending); short > 0 && short <= len(pending) {
-			pending = pending[short:]
-		}
-		roundCalls = 0
+		pending = pending[:0]
 		for _, parts := range mediaTurns {
 			contents = append(contents, map[string]any{"role": "user", "parts": parts})
 		}
@@ -211,7 +209,6 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 		switch {
 		case len(m.ToolCalls) > 0:
 			flush() // a new model turn starts a new round
-			roundCalls = len(m.ToolCalls)
 			parts := make([]map[string]any, 0, len(m.ToolCalls))
 			for _, tc := range m.ToolCalls {
 				pending = append(pending, tc.Name)
