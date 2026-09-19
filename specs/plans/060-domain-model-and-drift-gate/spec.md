@@ -17,15 +17,16 @@
 ## Locked decisions (clarify round 1 — one at a time)
 
 - **Q1 → Option 3 — author ALL THREE models.** The round produces the **reference-aligned trio**: the **product** model (`tellme.modelith.yaml/.md`), the **quality** model (`quality.modelith.yaml/.md`), and the **environment-management** model (`environment-management.modelith.yaml/.md`). The environment model describes tellme's environment management, which lives in the **external** Niffler manager (`tellme.sh`) — so it is authored as a model of that external system, with the divergence recorded (`spec.md` FR-003/Edge Cases; `research.md`).
+- **Q2 → Option 1 — adopt the modelith fork + `make modelith-lint|render|check` targets.** The YAML is the single source of truth and the `.md` is **generated**; `modelith` is a **dev-tool binary** prerequisite (like `golangci-lint`/`govulncheck`, resolved from `$GOPATH/bin`), **not** a `go.mod` dependency; the fork branch + version are **pinned in docs**. This reopens **ADR 0011 D10** ("no modelith toolchain") ⇒ **ADR 0030** (`spec.md` FR-004/FR-006/FR-007).
 
-> The remaining clarify questions are **dependent** on Q1, so they are asked **one at a time** (Q2 → then Q3). Q4/Q5 are expected to converge as recorded spec assumptions. Answers are folded into this spec as they arrive.
+> The remaining clarify question (Q3) is the last of round 1; Q4/Q5 are expected to converge as recorded spec assumptions. Answers are folded into this spec as they arrive.
 
 ## Pending clarify decisions (round 1)
 
 | # | Decision axis | Status |
 | --- | --- | --- |
 | **Q1** | **Scope** — which model(s)? (product only · + quality · + environment) | ✅ **locked → 3** (all three) |
-| **Q2** | **Toolchain** — adopt the modelith fork + `make modelith-*` targets (reopens ADR 0011 D10 ⇒ ADR 0030), or hand-authored Markdown (no gate)? | ⏳ pending |
+| **Q2** | **Toolchain** — adopt the modelith fork + `make modelith-*` targets (reopens ADR 0011 D10 ⇒ ADR 0030), or hand-authored Markdown (no gate)? | ✅ **locked → 1** (adopt the fork) |
 | **Q3** | **Gate strictness + hermeticity** — is `modelith-check` a **zero-tolerance `verify` member**? What happens when the fork binary is absent (round-043 hermeticity; the fork branch is unmerged)? | ⏳ pending |
 | **Q4** | **Authority boundary** — the model is **descriptive docs**, not an AIxBDD `TruthArtifact`; rule it *must never contradict* `specs/truth/**` (truth wins)? | ⏳ pending (expect: recorded as a spec assumption) |
 | **Q5** | **Lifecycle** — who refreshes the model (each round's truth owner vs. a periodic sweep), given it is not a plan package and has no `delivered` freeze? | ⏳ pending (expect: recorded as a spec assumption) |
@@ -92,7 +93,7 @@ As a maintainer, I want the rendered model checked for drift in the standard qua
 
 **Functional Requirements**:
 
-- **FR-004**: The round MUST provide a **modelith drift gate** (`modelith-check`) wired per **Q3** (its placement in `make verify` and its absent-binary behaviour are pinned by Q3; the round-043 hermeticity principle applies — a gate MUST NOT become a spurious-red generator).
+- **FR-004**: The round MUST **adopt the modelith toolchain** (the `gosharplite/modelith` fork, `@feat/self-domain-model`) and add `make` targets: **`modelith-lint`** (validate every `*.modelith.yaml`), **`modelith-render`** (regenerate the `*.modelith.md` from the YAML), and **`modelith-check`** (fail if any committed `.md` is stale). It MUST provide the **modelith drift gate** (`modelith-check`) wired into the aggregate quality command per **Q3**. `modelith` is a **dev-tool binary** prerequisite (resolved from `$GOPATH/bin`, like `golangci-lint`/`govulncheck`), **not** a `go.mod` dependency; the fork branch + version are pinned in docs (a README row).
 - **FR-005**: On drift the gate MUST exit non-zero and name the stale artifact; the round MUST reproduce the drift witness (edit-and-not-render ⇒ red) **then revert** (ADR 0010 doctrine).
 - **FR-006**: The gate MUST be **deterministic** and MUST add **no** third-party Go dependency (`go.mod`/`go.sum` unchanged); the modelith binary is a **dev toolchain** prerequisite, not a module dependency.
 
@@ -154,7 +155,7 @@ As a maintainer/operator, I want the model and its toolchain recorded in `specs/
 ### Key Entities *(include if feature involves data)*
 
 - **DomainModel**: `docs/domain-model/*.modelith.yaml` (canonical sources) + the rendered `*.modelith.md` (generated; never hand-edited) — **descriptive** artifacts, not AIxBDD `TruthArtifact`s (Q4). Three of them: **product** (`tellme.*`), **quality** (`quality.*`), **environment-management** (`environment-management.*`).
-- **Modelith toolchain**: the `gosharplite/modelith` fork binary + the `make modelith-lint|render|check` targets (Q2/Q3).
+- **Modelith toolchain**: the `gosharplite/modelith` fork binary (dev-tool prerequisite; not a `go.mod` dep) + the `make modelith-lint|render|check` targets (Q2 = 1; gate placement pinned by Q3).
 - **Drift gate**: `modelith-check` — fails when the committed `.md` is stale; placement/absent-binary policy pinned by **Q3**.
 
 ## Success Criteria *(mandatory)*
