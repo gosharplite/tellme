@@ -135,6 +135,12 @@ entities:
       - name: model
         type: string
         description: The model identifier sent on the wire.
+      - name: vision
+        type: boolean
+        description: >
+          Whether this provider accepts image input (YAML `VISION`, default
+          false; round 062 / ADR 0032). Declared, never inferred from the model
+          name or the family; when false the `read_image` `Tool` is not offered.
     relationships:
       - entity: Pricing
         cardinality: "n:1"
@@ -265,10 +271,12 @@ entities:
       A capability the model may invoke, advertised with a JSON argument schema.
       The surface is deliberately small: the reader trio (`list_files`,
       `read_files`, `get_tree`), the write pair (`write_file`, `replace_text`),
-      `execute_command` (`bash -c`), and `list_skills`. Every tool is bounded by
-      the resource contract (`max_output_tokens` / `timeout` — default + param +
-      ceiling) and requires a `reason`. There is no consent gate and no path
-      boundary.
+      `execute_command` (`bash -c`), and `list_skills`. When the selected
+      `Provider` declares `vision`, one more tool is offered — `read_image`,
+      which reads a local image and attaches it as `ImageContent`. Every tool is
+      bounded by the resource contract (`max_output_tokens` / `timeout` —
+      default + param + ceiling) and requires a `reason`. There is no consent
+      gate and no path boundary.
     attributes:
       - name: name
         type: string
@@ -276,11 +284,49 @@ entities:
       - name: requiresReason
         type: boolean
         description: Always true — every tool call must carry a reason.
+      - name: capabilityGated
+        type: boolean
+        description: >
+          True for `read_image`, which is offered only when the selected
+          `Provider` declares `vision` (round 062 / ADR 0032); false for the
+          always-offered tools.
     invariants:
       - id: tool-name-unique
         statement: "Each `Tool` has a unique name."
       - id: tool-result-bounded
         statement: "Every tool bounds its own output at the source; the loop clamp is the backstop."
+      - id: tool-offered-only-when-capable
+        statement: "`read_image` is offered to the model only when the selected `Provider` declares `vision`; the offered set is a function of the selected provider's capability."
+
+  ImageContent:
+    definition: >
+      An image a `Tool` (`read_image`) attached to a turn (round 062 / ADR 0032):
+      the media kind and the file's bytes. Its kind is resolved from the file's
+      **content** (magic bytes: JPEG/PNG/GIF/WebP), never the name; it is
+      serialized inline (a base64 `image_url` block) on the OpenAI-compatible
+      wire, riding a `user` message after the tool result. The Gemini family has
+      no image path — a media-bearing message there is a loud failure, never a
+      silent drop. The image is in-flight only: it is never persisted with the
+      `Turn` (the history step stores the tool's text result).
+    attributes:
+      - name: mimeType
+        type: string
+        description: The media type resolved from the file's content (a magic-byte sniff).
+      - name: data
+        type: object
+        description: The image bytes, attached inline (never truncated).
+    relationships:
+      - entity: ToolCall
+        cardinality: "n:1"
+        ownership: referenced
+        note: The tool call that produced (attached) the image.
+    invariants:
+      - id: image-kind-sniffed-from-content
+        statement: "An `ImageContent`'s kind is resolved from the file's content (magic bytes), never the file name nor a declared MIME."
+      - id: image-inline-limit
+        statement: "An image larger than the 32 MiB inline ceiling is a loud refusal — never truncated and never partially sent."
+      - id: image-never-silently-dropped
+        statement: "A media-bearing message on a family without an image path is a loud failure; an image is never silently lost."
 
   MCPServer:
     definition: >
@@ -567,6 +613,21 @@ scenarios:
       - "For a closed-wire family, the declaration is projected onto the provider's supported surface (default-deny)."
       - "The turn reaches the model; the server still receives its own arguments."
     invariants_touched: [mcp-server-definition-preserved, tool-declaration-fits-the-provider-wire]
+
+  - name: Reading a local image
+    description: >
+      With a `Provider` that declares `vision`, the model calls `read_image`.
+      The tool resolves the file's kind from its content, attaches the image, and
+      the loop folds it back on a `user` message after the tool result — so the
+      model can see the picture. A provider without `vision` is not offered the
+      tool; an oversize or non-picture file is a loud refusal.
+    actors: [Orchestrator, Tool, ToolCall, ImageContent, Provider]
+    steps:
+      - "`Provider` returns a call to `read_image` carrying a `reason`."
+      - "The tool reads the file and resolves its kind from the content (magic bytes)."
+      - "The loop attaches the `ImageContent` and folds it onto a `user` message after the tool result."
+      - "The `Provider` sees the image; the turn completes."
+    invariants_touched: [tool-offered-only-when-capable, image-kind-sniffed-from-content, image-inline-limit, image-never-silently-dropped]
 
   - name: Listing and using skills
     description: >

@@ -742,7 +742,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// Round 052 (closes #115 R-2; ADR 0021): the registry is built with the
 	// `[Tool Output]` sink injected at construction (`prog.ToolOutput`) — the
 	// round-034 `BindToolOutput` rebind no longer exists.
-	reg := dp.NewToolRegistry(prog.ToolOutput)
+	reg := dp.NewToolRegistry(prog.ToolOutput, res.Provider.Vision)
 	// Round 033 (FR-009): bind the `list_skills` catalog source on the
 	// prompt-bearing turn path ONLY — the runtime home is resolved here. The load
 	// stays lazy (inside the tool's Execute), so no registration reads docs/skills
@@ -990,10 +990,11 @@ func dispatchReporting(f *flags, homeDir string, env runtimeEnv, newHistoryStore
 // diagnostic stream (the report path is offline, so stderr is free), so an
 // unreadable log is distinguishable from "no tool ever used"; the all-zero report
 // still prints and the command succeeds.
-func renderToolUsage(env runtimeEnv, newToolRegistry func(domaintools.OutputSink) domaintools.Registry, newToolUsageStore func(func() (string, error)) history.ToolUsageStore, userHome func() (string, error), lines render.Lines) int {
+func renderToolUsage(env runtimeEnv, newToolRegistry func(domaintools.OutputSink, bool) domaintools.Registry, newToolUsageStore func(func() (string, error)) history.ToolUsageStore, userHome func() (string, error), lines render.Lines) int {
 	// The offline report never executes a tool, so the registry is built with a
-	// nil `[Tool Output]` sink (round 052; ADR 0021).
-	reg := newToolRegistry(nil)
+	// nil `[Tool Output]` sink (round 052; ADR 0021) and no vision capability
+	// (the report enumerates the base tool set; round 062).
+	reg := newToolRegistry(nil, false)
 	tools := reg.Tools()
 	counts, err := newToolUsageStore(userHome).Aggregate()
 	if err != nil {

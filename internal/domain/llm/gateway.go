@@ -37,9 +37,17 @@ type ToolCall struct {
 // ToolCallID (round-008 research Decision 2). It is empty on the request's first
 // turn; on later turns it carries the persisted conversation (round-007
 // research Decision 2 / RF-3).
+// Media, when non-empty, carries image (or other media) content attached to
+// this message (round 062; ADR 0032). A message with NO media serializes
+// exactly as before (a plain string `content`), so the text path is
+// byte-identical; a message WITH media is serialized by the adapter as a
+// content array (a text part when the message states text, then one image part
+// per MediaPart). Media rides a `user` message (the ref-less capability the
+// OpenAI-compatible family accepts inline).
 type Message struct {
 	Role       string
 	Content    string
+	Media      []MediaPart
 	ToolCalls  []ToolCall
 	ToolCallID string
 }

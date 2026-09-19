@@ -6,6 +6,7 @@ package openai
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -117,7 +118,7 @@ func requestURL(baseURL string) string {
 func requestBody(model, prompt string, prior []llm.Message, toolDefs []llm.ToolDef, maxTokens int, thinkingLevel, persona string) ([]byte, error) {
 	messages := make([]map[string]any, 0, len(prior)+1)
 	for _, m := range prior {
-		msg := map[string]any{"role": m.Role, "content": m.Content}
+		msg := map[string]any{"role": m.Role, "content": messageContent(m)}
 		if len(m.ToolCalls) > 0 {
 			tcs := make([]map[string]any, 0, len(m.ToolCalls))
 			for _, tc := range m.ToolCalls {
@@ -175,6 +176,33 @@ func requestBody(model, prompt string, prior []llm.Message, toolDefs []llm.ToolD
 		payload["reasoning_effort"] = thinkingLevel
 	}
 	return json.Marshal(payload)
+}
+
+// messageContent renders one conversation message's `content` field (round 062;
+// ADR 0032). A message with NO media returns the plain string content — so a
+// text-only turn is byte-identical to before. A message WITH media returns a
+// content ARRAY: a leading text part when the message states text, then one
+// inline base64 `image_url` block per media part (media-first).
+func messageContent(m llm.Message) any {
+	if len(m.Media) == 0 {
+		return m.Content
+	}
+	parts := make([]any, 0, len(m.Media)+1)
+	if m.Content != "" {
+		parts = append(parts, map[string]any{"type": "text", "text": m.Content})
+	}
+	for _, mp := range m.Media {
+		parts = append(parts, map[string]any{
+			"type":      "image_url",
+			"image_url": map[string]any{"url": dataURI(mp)},
+		})
+	}
+	return parts
+}
+
+// dataURI renders an inline base64 data URI for one media part.
+func dataURI(mp llm.MediaPart) string {
+	return "data:" + mp.MIMEType + ";base64," + base64.StdEncoding.EncodeToString(mp.Data)
 }
 
 // requestHeaders builds the outbound headers (pure helper).

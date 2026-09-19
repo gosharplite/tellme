@@ -38,4 +38,6 @@
 | ADD | `specs/truth/features/cli/chat/dsl.md` — `## Given (round 062)` (6 rows) + `## Then (round 062)` (7 rows) + a round-062 note | The new sentences: the workspace image-file Givens (kind / oversize / not-a-picture), the capability-declaring provider Givens, and the image/offered-set/loud-refusal Thens. | `spec.md` FR-001…FR-012 (`dsl-exact-one-match`) |
 | NOOP (checked) | the interface-root `specs/truth/features/cli/dsl.md` + sibling modules | No cross-module row changed; the new rows are module-local to `chat`. | `dsl-single-authority` holds |
 
+**Domain model** (`docs/domain-model/tellme.modelith.{yaml,md}`, ADR 0030 — descriptive, subordinate to truth): refreshed for the round-062 capability (the `Provider.vision` attribute · the `Tool` capability gate + `tool-offered-only-when-capable` · the new `ImageContent` entity · a *Reading a local image* scenario); `make modelith-check` green (no drift).
+
 **Topology audit** (`axb-gherkin-and-dsl` script over `specs/truth/features/cli`): 48 features · 6 modules · 16 root + 375 module rows · 1894 steps — the **same 5 pre-existing errors** as at round 061, **none new**; round 062's feature + Example match exactly one row each.

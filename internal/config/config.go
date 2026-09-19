@@ -99,6 +99,11 @@ type Provider struct {
 	Headers        map[string]string `yaml:"HEADERS"`
 	ThinkingBudget int               `yaml:"THINKING_BUDGET"`
 	ThinkingLevel  string            `yaml:"THINKING_LEVEL"`
+	// Vision declares that this provider accepts image input (round 062; ADR
+	// 0032). Default false — an absent key means the provider cannot take images,
+	// so the `read_image` agent tool is NOT offered to the model. Capability is
+	// DECLARED, never inferred from the model name or the family.
+	Vision bool `yaml:"VISION"`
 }
 
 // Validate validates that mandatory fields (TYPE, MODEL, URL) are non-empty and

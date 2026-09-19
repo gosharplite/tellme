@@ -121,6 +121,27 @@ The persisted record of a session's completed `Turn`s — an append-only JSON-Li
 
 - **history-append-after-complete** — A `Turn` is persisted only after it completes (append-only).
 
+### `ImageContent`
+
+An image a `Tool` (`read_image`) attached to a turn (round 062 / ADR 0032): the media kind and the file's bytes. Its kind is resolved from the file's **content** (magic bytes: JPEG/PNG/GIF/WebP), never the name; it is serialized inline (a base64 `image_url` block) on the OpenAI-compatible wire, riding a `user` message after the tool result. The Gemini family has no image path — a media-bearing message there is a loud failure, never a silent drop. The image is in-flight only: it is never persisted with the `Turn` (the history step stores the tool's text result).
+
+**Relationships**
+
+- `ToolCall` — n:1 — referenced — The tool call that produced (attached) the image.
+
+**Attributes**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `mimeType` | string | The media type resolved from the file's content (a magic-byte sniff). |
+| `data` | object | The image bytes, attached inline (never truncated). |
+
+**Invariants**
+
+- **image-kind-sniffed-from-content** — An `ImageContent`'s kind is resolved from the file's content (magic bytes), never the file name nor a declared MIME.
+- **image-inline-limit** — An image larger than the 32 MiB inline ceiling is a loud refusal — never truncated and never partially sent.
+- **image-never-silently-dropped** — A media-bearing message on a family without an image path is a loud failure; an image is never silently lost.
+
 ### `MCPServer`
 
 An external MCP server declared under `MCP_SERVERS` — only a **remote** server (a URL entry) is supported; a COMMAND (local stdio) entry is warned about and skipped. Its tools are offered to the model with tellme's own `{reason, MCP_PAYLOAD}` envelope. The server still receives its own arguments, but the declaration the **model** is offered is filtered so a strict provider cannot reject the whole request: a family-agnostic floor drops vendor extensions (`x-…`, `$schema`), and for a closed-wire family (Vertex/Gemini) the declaration is projected onto the provider's supported schema surface (default-deny) before it reaches the wire.
@@ -218,6 +239,7 @@ An LLM backend reachable via one ProviderFamily. It carries a model id, a base U
 | `label` | string | The free-form provider label (e.g. `deepseek`, `kimi`). |
 | `family` | ProviderFamily | _Derived:_ Resolved from the label. |
 | `model` | string | The model identifier sent on the wire. |
+| `vision` | boolean | Whether this provider accepts image input (YAML `VISION`, default false; round 062 / ADR 0032). Declared, never inferred from the model name or the family; when false the `read_image` `Tool` is not offered. |
 
 **Invariants**
 
@@ -268,7 +290,7 @@ A guidance block (a SKILL.md file) under the `$TELL_ME_HOME/docs/skills/` catalo
 
 ### `Tool`
 
-A capability the model may invoke, advertised with a JSON argument schema. The surface is deliberately small: the reader trio (`list_files`, `read_files`, `get_tree`), the write pair (`write_file`, `replace_text`), `execute_command` (`bash -c`), and `list_skills`. Every tool is bounded by the resource contract (`max_output_tokens` / `timeout` — default + param + ceiling) and requires a `reason`. There is no consent gate and no path boundary.
+A capability the model may invoke, advertised with a JSON argument schema. The surface is deliberately small: the reader trio (`list_files`, `read_files`, `get_tree`), the write pair (`write_file`, `replace_text`), `execute_command` (`bash -c`), and `list_skills`. When the selected `Provider` declares `vision`, one more tool is offered — `read_image`, which reads a local image and attaches it as `ImageContent`. Every tool is bounded by the resource contract (`max_output_tokens` / `timeout` — default + param + ceiling) and requires a `reason`. There is no consent gate and no path boundary.
 
 **Attributes**
 
@@ -276,11 +298,13 @@ A capability the model may invoke, advertised with a JSON argument schema. The s
 | --- | --- | --- |
 | `name` | string | The unique wire tool name. |
 | `requiresReason` | boolean | Always true — every tool call must carry a reason. |
+| `capabilityGated` | boolean | True for `read_image`, which is offered only when the selected `Provider` declares `vision` (round 062 / ADR 0032); false for the always-offered tools. |
 
 **Invariants**
 
 - **tool-name-unique** — Each `Tool` has a unique name.
 - **tool-result-bounded** — Every tool bounds its own output at the source; the loop clamp is the backstop.
+- **tool-offered-only-when-capable** — `read_image` is offered to the model only when the selected `Provider` declares `vision`; the offered set is a function of the selected provider's capability.
 
 ### `ToolCall`
 
@@ -361,6 +385,7 @@ erDiagram
     Config {}
     Context {}
     History {}
+    ImageContent {}
     MCPServer {}
     MCPTool {}
     Persona {}
@@ -384,6 +409,7 @@ erDiagram
     Context }o..o{ Skill : ""
     Context }o..|| History : ""
     History ||--o{ Turn : ""
+    ImageContent }o..|| ToolCall : ""
     MCPServer ||--o{ MCPTool : ""
     Provider }o..|| Pricing : ""
     Session ||--o{ Turn : ""
@@ -512,6 +538,26 @@ A remote server annotates an argument with a vendor extension. tellme's family-a
 
 - **mcp-server-definition-preserved** — The `MCPServer` still receives its own arguments — only the declaration **offered to the model** is filtered before the provider wire (vendor extensions dropped for every family; a closed-wire family receives only keywords its schema reader accepts).
 - **tool-declaration-fits-the-provider-wire** — A declaration offered to a closed-wire provider carries only keywords its schema reader accepts; tellme drops an unsupported keyword or a wrong-kind value rather than coerce it, and fails closed to the freeform object.
+
+### Reading a local image
+
+With a `Provider` that declares `vision`, the model calls `read_image`. The tool resolves the file's kind from its content, attaches the image, and the loop folds it back on a `user` message after the tool result — so the model can see the picture. A provider without `vision` is not offered the tool; an oversize or non-picture file is a loud refusal.
+
+**Actors:** Orchestrator, Tool, ToolCall, ImageContent, Provider
+
+**Steps**
+
+1. `Provider` returns a call to `read_image` carrying a `reason`.
+2. The tool reads the file and resolves its kind from the content (magic bytes).
+3. The loop attaches the `ImageContent` and folds it onto a `user` message after the tool result.
+4. The `Provider` sees the image; the turn completes.
+
+**Invariants touched**
+
+- **tool-offered-only-when-capable** — `read_image` is offered to the model only when the selected `Provider` declares `vision`; the offered set is a function of the selected provider's capability.
+- **image-kind-sniffed-from-content** — An `ImageContent`'s kind is resolved from the file's content (magic bytes), never the file name nor a declared MIME.
+- **image-inline-limit** — An image larger than the 32 MiB inline ceiling is a loud refusal — never truncated and never partially sent.
+- **image-never-silently-dropped** — A media-bearing message on a family without an image path is a loud failure; an image is never silently lost.
 
 ### Listing and using skills
 

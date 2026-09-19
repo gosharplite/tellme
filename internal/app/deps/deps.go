@@ -64,7 +64,7 @@ type Dependencies struct {
 	// NewTUIRegistry builds the three-reader registry the `-i` suggestion source
 	// consumes — a DISTINCT, narrower set (round-044 fix-1; reusing the agent
 	// registry would change the suggested tool names).
-	NewToolRegistry func(sink domaintools.OutputSink) domaintools.Registry
+	NewToolRegistry func(sink domaintools.OutputSink, vision bool) domaintools.Registry
 	NewTUIRegistry  func() domaintools.Registry
 
 	// BindSkillsCatalog rebinds the list_skills catalog source over the given

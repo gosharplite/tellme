@@ -17,7 +17,7 @@ import (
 // agentTools(). No stream assertions (cli.Run hard-binds os.Stdin/Stdout/Stderr).
 
 func TestNewToolRegistryOffersAgentTools(t *testing.T) {
-	reg := newToolRegistry(nil)
+	reg := newToolRegistry(nil, false)
 	got := map[string]bool{}
 	for _, tl := range reg.Tools() {
 		got[tl.Name()] = true
@@ -108,7 +108,7 @@ func TestAgentToolSchemasAreWellFormed(t *testing.T) {
 		assembler[tl.Name()] = true
 	}
 	fromRegistry := map[string]bool{}
-	for _, tl := range newToolRegistry(nil).Tools() {
+	for _, tl := range newToolRegistry(nil, false).Tools() {
 		fromRegistry[tl.Name()] = true
 	}
 	if len(assembler) != len(fromRegistry) {
