@@ -28,6 +28,20 @@ Feature: Colouring the session chrome
       Then the session chrome carries no colour
       And tellme exits successfully
 
+    # Round 058 (ADR 0028; F-058-1): the negative must exercise an ACTUAL
+    # `[Tool Output]` block — the tool-less Example above builds none, so it cannot
+    # witness "the block is plain when the gate is off". This Example runs a
+    # command (so the block exists) off a terminal; the first Then is the
+    # anti-vacuity clause.
+    Example: A piped command run keeps its whole output block plain
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured provider "test-model" whose endpoint runs a colouring command and then answers with "done"
+      When the operator starts tellme with the prompt "Run the colouring command."
+      Then the run streamed the command's output on its diagnostic output
+      And the session chrome carries no colour
+      And tellme exits successfully
+
   Rule: The saved turn log carries the same content, plain
 
     # Round 057 (ADR 0027; F-057-2): the operator's Q3 → 1 lock is CONTENT parity —
@@ -44,14 +58,14 @@ Feature: Colouring the session chrome
       And the saved turn log carries the pre-flight payload with its increment and no allowance
       And tellme exits successfully
 
-  Rule: The tool output frame is grey and the action line is yellow at a terminal
+  Rule: Every tool output line is grey and the action line is yellow at a terminal
 
-    # Round 057 (ADR 0027): two more chrome elements gain a terminal-gated accent —
-    # the whole `[Tool Output]` header line and BOTH horizontal separators are
-    # grey; the whole `[Tool Action]` line is yellow. The streamed content lines
-    # and the `turns.log` artifact stay plain.
+    # Round 057 (ADR 0027) greyed the `[Tool Output]` header + BOTH separators and
+    # the yellow `[Tool Action]` line. Round 058 (ADR 0028) EXTENDS the grey to the
+    # streamed CONTENT lines too, so the whole `[Tool Output]` block reads as one
+    # grey region (superseding round 057's A3). The `turns.log` artifact stays plain.
 
-    Example: A command run at a terminal colours the frame and the action line
+    Example: A command run at a terminal colours the whole output block and the action line
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the diagnostics are shown at a terminal

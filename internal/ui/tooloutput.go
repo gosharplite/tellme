@@ -67,6 +67,17 @@ func FormatToolOutputLine(t time.Time, line string) string {
 	return fmt.Sprintf("[%s] [Tool Output] %s", formatClock(t), sanitizeControl(line))
 }
 
+// formatToolOutputLineColour is FormatToolOutputLine with the round-058 grey
+// accent (ADR 0028): the WHOLE content line — the `[HH:MM:SS] [Tool Output] `
+// framing plus the SANITIZED content — is wrapped grey when enabled, so the whole
+// `[Tool Output]` block (header + every content line + both separators) reads as
+// one grey region. The wrap is applied OUTSIDE the sanitizer, so a command's
+// control bytes cannot escape it. The colour-off path returns the plain line
+// verbatim (byte-identical).
+func formatToolOutputLineColour(t time.Time, line string, colour bool) string {
+	return grey(FormatToolOutputLine(t, line), colour)
+}
+
 // ToolOutputWriter streams a shell command's complete output lines as a
 // `[Tool Output]` block on the diagnostic stream (FR-010). It is an io.Writer so
 // the command's bounded stdout/stderr pipes can each tee into it; the mutex
@@ -77,10 +88,11 @@ type ToolOutputWriter struct {
 	W io.Writer
 	// Now is the injected clock seam; nil falls back to time.Now.
 	Now func() time.Time
-	// Colour, when true, wraps the header line and both horizontal separators grey
-	// (round 057; ADR 0027). The streamed CONTENT lines stay plain (their sanitizer
-	// is the round-038 policy). The plain path is byte-identical to the pre-057
-	// literals.
+	// Colour, when true, wraps EVERY `[Tool Output]` line grey — the header, each
+	// streamed content line (round 058; ADR 0028), and both horizontal separators
+	// (round 057; ADR 0027). The content wrap sits OUTSIDE the round-038 sanitizer,
+	// so grey is the line's only escape. The plain path is byte-identical to the
+	// pre-057 literals.
 	Colour bool
 
 	mu   sync.Mutex
@@ -151,7 +163,7 @@ func (w *ToolOutputWriter) WriteWith(p []byte, beforeLine func()) (int, error) {
 			beforeLine()
 		}
 		now := w.now()
-		_, _ = fmt.Fprintln(w.W, FormatToolOutputLine(now, line))
+		_, _ = fmt.Fprintln(w.W, formatToolOutputLineColour(now, line, w.Colour))
 		w.lastLine = now
 	}
 	return len(p), nil

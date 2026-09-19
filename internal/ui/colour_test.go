@@ -87,7 +87,7 @@ func TestChromeColourRound057(t *testing.T) {
 	const yellow = "\033[0;33m"
 	const r = "\033[0m"
 
-	t.Run("tool output header + separators are grey; plain when off", func(t *testing.T) {
+	t.Run("tool output header + separators are grey; block plain when off", func(t *testing.T) {
 		t.Parallel()
 		var buf strings.Builder
 		w := &ToolOutputWriter{W: &buf, Now: func() time.Time { return ts }, Colour: true}
@@ -100,10 +100,6 @@ func TestChromeColourRound057(t *testing.T) {
 		}
 		if n := strings.Count(out, gray+ToolOutputSeparator+r); n != 2 {
 			t.Errorf("expected both separators grey; got %d in %q", n, out)
-		}
-		// The streamed content line stays plain (no grey wrap around it).
-		if strings.Contains(out, gray+"[06:25:11] [Tool Output] hello") {
-			t.Errorf("content line must stay plain: %q", out)
 		}
 
 		var plain strings.Builder
@@ -130,6 +126,43 @@ func TestChromeColourRound057(t *testing.T) {
 		}
 	})
 
+}
+
+// TestChromeColourRound058 (ADR 0028): the streamed `[Tool Output]` CONTENT line
+// is grey too — the whole block reads as one grey region — and the plain path is
+// byte-identical (the content line included). Round-labelled so the behaviour is
+// greppable by round (R-058-2).
+func TestChromeColourRound058(t *testing.T) {
+	t.Parallel()
+	ts := time.Date(2026, 9, 19, 6, 25, 11, 0, time.UTC)
+	const gray = "\033[0;90m"
+	const r = "\033[0m"
+
+	var buf strings.Builder
+	w := &ToolOutputWriter{W: &buf, Now: func() time.Time { return ts }, Colour: true}
+	w.Begin()
+	_, _ = w.Write([]byte("hello\n"))
+	_, _ = w.Write([]byte("world\n"))
+	w.End()
+	out := buf.String()
+	if !strings.Contains(out, gray+"[06:25:11] [Tool Output] hello"+r) ||
+		!strings.Contains(out, gray+"[06:25:11] [Tool Output] world"+r) {
+		t.Errorf("each content line must be grey; got %q", out)
+	}
+	// The content text is unchanged: the grey wraps the sanitized line only.
+	if !strings.Contains(out, "[06:25:11] [Tool Output] hello") {
+		t.Errorf("content text changed: %q", out)
+	}
+
+	// Colour OFF ⇒ the whole block is byte-identical (content line included).
+	var plain strings.Builder
+	pw := &ToolOutputWriter{W: &plain, Now: func() time.Time { return ts }}
+	pw.Begin()
+	_, _ = pw.Write([]byte("hello\n"))
+	pw.End()
+	if got := plain.String(); got != "[06:25:11] [Tool Output] Executing... (Output shown below)\n"+ToolOutputSeparator+"\n[06:25:11] [Tool Output] hello\n"+ToolOutputReset+ToolOutputSeparator+"\n" {
+		t.Errorf("plain block = %q", got)
+	}
 }
 
 // TestPayloadEstimateRound057 pins the round-057 (ADR 0027) estimated payload line:

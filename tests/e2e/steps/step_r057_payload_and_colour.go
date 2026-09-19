@@ -33,6 +33,34 @@ var (
 	reOldEstimateCur = regexp.MustCompile(`Payload: ~[0-9]+/[0-9]+ tokens`)
 )
 
+// greyToolOutputContentLineCount counts grey-wrapped `[Tool Output]` lines that
+// are NOT the header (round 058; TD-058-2). A Go `regexp` (RE2) has no lookahead,
+// so the header text is excluded by a scan rather than a negative-lookahead
+// pattern: a line is a CONTENT line when it is grey and carries the `[Tool Output]`
+// prefix but not the fixed header text. This keeps the content assertion genuinely
+// distinct from the header check (the header cannot satisfy it), unlike counting
+// the shared prefix.
+func greyToolOutputContentLineCount(stderr string) int {
+	n := 0
+	for _, line := range strings.Split(stderr, "\n") {
+		if !strings.HasPrefix(line, "\x1b[0;90m") {
+			continue
+		}
+		if !reGreyHeader.MatchString(line) {
+			continue
+		}
+		if strings.Contains(line, toolOutputHeaderText) {
+			continue // the header, not a content line
+		}
+		n++
+	}
+	return n
+}
+
+// toolOutputHeaderText is the fixed header payload the writer emits (the header
+// line's tail); a grey `[Tool Output]` line carrying it is the header.
+const toolOutputHeaderText = "Executing... (Output shown below)"
+
 // thenEstimatedNoAllowance: the estimated line no longer carries the `/budget`
 // allowance (it now shows a signed increment before the estimated size).
 func thenEstimatedNoAllowance(ctx context.Context) error {
@@ -72,8 +100,10 @@ func thenLaterEstimatePositive(ctx context.Context) error {
 	return fmt.Errorf("no estimated payload line showed a positive increase; stderr=%q", sc.stderr)
 }
 
-// thenToolOutputGrey: the `[Tool Output]` header line and BOTH horizontal
-// separators are wrapped grey on the colour-enabled terminal.
+// thenToolOutputGrey: EVERY line of the `[Tool Output]` block — the header,
+// each streamed CONTENT line, and BOTH horizontal separators — is wrapped grey on
+// the colour-enabled terminal (round 057 greyed the frame; round 058 (ADR 0028)
+// extends it to the content lines, so the whole block reads as one grey region).
 func thenToolOutputGrey(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	if !reGreyHeader.MatchString(sc.stderr) {
@@ -81,6 +111,12 @@ func thenToolOutputGrey(ctx context.Context) error {
 	}
 	if n := len(reGreySeparator.FindAllString(sc.stderr, -1)); n < 2 {
 		return fmt.Errorf("expected the opening and closing separators grey; found %d grey separator(s); stderr=%q", n, sc.stderr)
+	}
+	// The header shares the `[Tool Output]` prefix with a content line, so count
+	// grey CONTENT lines explicitly (header text excluded) — the header cannot
+	// satisfy this check (round-058 fold TD-058-2).
+	if n := greyToolOutputContentLineCount(sc.stderr); n < 1 {
+		return fmt.Errorf("expected at least one grey `[Tool Output]` CONTENT line; found %d; stderr=%q", n, sc.stderr)
 	}
 	return nil
 }
