@@ -632,3 +632,13 @@ A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` S
 ### PM follow-ups
 
 - None new (docs/tooling round; no user-facing journey — `/axb-spec-by-example` NOOP, as in rounds 042/043/055).
+
+### 16 (cont.) — PR #126 review folded (B-060-1 + TD-060-1…4 + nits)
+
+Review `5254902427` (**REQUEST CHANGES** — 1 architectural blocker + 4 folds + 3 nits) folded at **`2f59f91`**:
+
+- **B-060-1 (blocker)** — the documented (and gate-printed) `go install github.com/gosharplite/modelith/cmd/modelith@feat/self-domain-model` **does not resolve**. I **reproduced both falsifications** myself (query form rejected; pseudo-version form fails on the declared upstream path) and **executed the fix**: a clone + pinned build (`git clone … && git checkout b4153541cee8 && go install ./cmd/modelith`) built a working tool (`modelith version v0.0.0-20260815121344-b4153541cee8`). Single-sourced in `docs/domain-model/README.md`; `$(MODELITH_INSTALL)` + the gate's failure message quote it; ADR 0030 D2 + the truth row cite it (5 surfaces re-aligned).
+- **TD-060-1** — immutable pin (commit `b4153541cee8`) named in the gate's message; branch-tracking is a documented upgrade. **TD-060-2** — `MODELITH_MODELS := $(wildcard …)` + a non-empty assertion (default-deny). **TD-060-3** — `SESSION-BOOTSTRAP.md` now owned by **FR-011** (+ `plan.md` tree + truth-delta rows). **TD-060-4** — ADR 0011's `Status` + index row carry a forward pointer to 0030. **Nits** — `skill-unique-name` restated to the shipped mechanism; README provenance reframed; the pre-existing `staticcheck` truth row corrected.
+- **Re-verified**: `modelith lint` 0/0 ×3 · `modelith-check` up to date · witness (b) ⇒ fails naming the **clone route** · TD-060-2 witness (a 4th model auto-covered) ⇒ reverted green · `make verify` OK · `go test -count=1 ./...` green.
+
+Next: the review chain continues — fold-verification → human merge into `dev` → closeout Steps 1–8.
