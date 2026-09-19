@@ -8,31 +8,69 @@ import (
 	"strings"
 )
 
-// isVendorExtension reports whether a schema keyword is a vendor extension or a
+// isVendorExtension reports whether a schema KEYWORD is a vendor extension or a
 // non-standard annotation that tellme strips for EVERY provider family (round
 // 061 / ADR 0031 D-floor): an `x-…` extension (e.g. the GitHub MCP server's
 // `x-mcp-header`, which only tells the SERVER to route the argument as an HTTP
 // header and means nothing to the model) or the `$schema` dialect declaration.
+//
+// It is a KEYWORD predicate: a property NAME may itself begin with `x-`, so the
+// caller must apply it at keyword positions only (see stripVendorExtensions).
 func isVendorExtension(key string) bool {
 	return strings.HasPrefix(key, "x-") || key == "$schema"
 }
 
-// stripVendorExtensions removes vendor-extension keywords from a decoded schema
-// in place, recursively — a mark may sit on a nested property or inside an
-// `items`/`oneOf` subtree, not only at the root.
-func stripVendorExtensions(v any) {
-	switch node := v.(type) {
-	case map[string]any:
-		for k, val := range node {
-			if isVendorExtension(k) {
-				delete(node, k)
-				continue
-			}
-			stripVendorExtensions(val)
+// schemaNodeChildKeys are the keywords whose VALUE is a nested schema node, so
+// the floor descends into them.
+var schemaNodeChildKeys = []string{
+	"items", "additionalProperties", "not", "contains", "if", "then", "else",
+	"propertyNames", "unevaluatedItems", "unevaluatedProperties",
+}
+
+// schemaNodeChildLists are the keywords whose value is a LIST of schema nodes.
+var schemaNodeChildLists = []string{"anyOf", "allOf", "oneOf", "prefixItems"}
+
+// schemaNodeChildMaps are the keywords whose value is a MAP FROM NAME TO a schema
+// node — the map's keys are names (opaque), never keywords.
+var schemaNodeChildMaps = []string{"properties", "patternProperties", "dependentSchemas"}
+
+// stripVendorExtensions removes vendor-extension KEYWORDS from a decoded schema
+// node in place, recursively and STRUCTURE-AWARELY (round 061 / ADR 0031 D6b;
+// the fold of review B-061-1).
+//
+// It descends only through schema-node positions and never walks a data value:
+// a declared argument whose NAME begins with `x-` is preserved (and
+// `required ⊆ properties` still holds), and an `x-…` member inside a
+// `default`/`enum`/`const`/`examples` VALUE is data, not a keyword.
+func stripVendorExtensions(node map[string]any) {
+	for k := range node {
+		if isVendorExtension(k) {
+			delete(node, k)
 		}
-	case []any:
-		for _, e := range node {
-			stripVendorExtensions(e)
+	}
+	for _, k := range schemaNodeChildKeys {
+		if m, ok := node[k].(map[string]any); ok {
+			stripVendorExtensions(m)
+		}
+	}
+	for _, k := range schemaNodeChildLists {
+		if list, ok := node[k].([]any); ok {
+			for _, e := range list {
+				if m, ok := e.(map[string]any); ok {
+					stripVendorExtensions(m)
+				}
+			}
+		}
+	}
+	for _, k := range schemaNodeChildMaps {
+		children, ok := node[k].(map[string]any)
+		if !ok {
+			continue
+		}
+		for _, sub := range children { // names are opaque — never filtered
+			if m, ok := sub.(map[string]any); ok {
+				stripVendorExtensions(m)
+			}
 		}
 	}
 }
@@ -83,7 +121,18 @@ func NormalizeMCPSchema(raw json.RawMessage) (json.RawMessage, error) {
 	// provider family. The floor is family-agnostic — the OpenAI-compatible
 	// transport tolerates an annotation, but the byte-identity of a declaration
 	// is not worth a per-family rule, and the annotation is server-side plumbing.
+	// Round 061 (ADR 0031 D-floor): drop vendor-extension KEYWORDS for every
+	// family, then RE-ASSERT the round-031/#64 postcondition on the post-floor
+	// object — the floor deletes keywords only and a property NAME is opaque, but
+	// the invariant must hold by construction, not by argument (review B-061-1).
 	stripVendorExtensions(obj)
+	postProps, _ := obj["properties"].(map[string]any)
+	if postProps == nil {
+		postProps = map[string]any{}
+	}
+	if err := checkRequiredDeclared(obj["required"], postProps); err != nil {
+		return nil, err
+	}
 	out, err := json.Marshal(obj)
 	if err != nil {
 		return nil, fmt.Errorf("marshal normalized schema: %w", err)

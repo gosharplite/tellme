@@ -2,6 +2,7 @@ package gemini
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -36,19 +37,39 @@ const recordedEnvelope = `{
   "required": ["reason"]
 }`
 
-// forbiddenKeys are the keywords the live probe measured as REJECTED (ADR 0031):
-// any of them on the wire fails the whole request.
-var forbiddenKeys = []string{
-	"x-mcp-header", "$schema", "$ref", "$defs", "definitions", "const", "examples",
-	"deprecated", "readOnly", "writeOnly", "multipleOf", "uniqueItems", "anyOf",
-	"uniques",
+// assertContainment walks a projected declaration STRUCTURE-AWARELY and asserts
+// every schema KEYWORD it carries is in the provider's supported surface — the
+// named owner (round-061 FR-007 / review F-061-1). Property NAMES and data
+// values (default/enum/const/examples) are not keywords and are not judged.
+func assertContainment(t *testing.T, node any, path string) {
+	t.Helper()
+	m, ok := node.(map[string]any)
+	if !ok {
+		return
+	}
+	for k, v := range m {
+		if !SupportedSchemaKeys()[k] {
+			t.Errorf("unsupported keyword %q at %s reached the wire", k, path)
+			continue
+		}
+		switch k {
+		case "properties":
+			props, _ := v.(map[string]any)
+			for name, sub := range props {
+				assertContainment(t, sub, path+".properties."+name)
+			}
+		case "items", "additionalProperties":
+			assertContainment(t, v, path+"."+k)
+		case "oneOf", "allOf":
+			if list, ok := v.([]any); ok {
+				for i, e := range list {
+					assertContainment(t, e, fmt.Sprintf("%s.%s[%d]", path, k, i))
+				}
+			}
+		}
+	}
 }
 
-// TestProjectToolDeclarations_NoUnsupportedKeywordReachesTheWire is the round-061
-// regression pin (S-5 / SC-002). It drives the PRODUCTION declaration path
-// (`buildToolDeclarations`) with the envelope an MCP tool offers and asserts that
-// no keyword the provider rejects survives — at any depth. Deleting the
-// projection turns this test RED (witness reproduced during the round).
 func TestProjectToolDeclarations_NoUnsupportedKeywordReachesTheWire(t *testing.T) {
 	decls := buildToolDeclarations([]llm.ToolDef{{
 		Name:        "mcp_github_add_issue_comment",
@@ -63,19 +84,122 @@ func TestProjectToolDeclarations_NoUnsupportedKeywordReachesTheWire(t *testing.T
 		t.Fatalf("marshal projected parameters: %v", err)
 	}
 	wire := string(raw)
-	for _, k := range forbiddenKeys {
+	for _, k := range []string{"x-mcp-header", "$schema", "$ref", "$defs", "definitions", "const",
+		"examples", "deprecated", "readOnly", "writeOnly", "multipleOf", "uniqueItems", "anyOf", "uniques"} {
 		if strings.Contains(wire, `"`+k+`"`) {
 			t.Errorf("unsupported keyword %q reached the Gemini wire; parameters=%s", k, wire)
 		}
 	}
 	// The supported surface must still be there (the projection is a carve-out,
-	// not a lobotomy): the arguments, their types/descriptions, the enum, the
-	// array bounds and the nested structure all survive.
+	// not a lobotomy).
 	for _, want := range []string{`"owner"`, `"repo"`, `"body"`, `"Repository owner"`, `"Repository name"`,
 		`"enum"`, `"minItems"`, `"maxItems"`, `"default"`, `"title"`, `"nested"`, `"deep"`, `"required"`} {
 		if !strings.Contains(wire, want) {
 			t.Errorf("the projected declaration lost %s; parameters=%s", want, wire)
 		}
+	}
+	// CONTAINMENT (review F-061-1): every keyword the declaration carries must be
+	// in the provider's OWNER set — the gate fails on a keyword nobody listed.
+	var tree any
+	if err := json.Unmarshal([]byte(wire), &tree); err != nil {
+		t.Fatalf("decode projected declaration: %v", err)
+	}
+	assertContainment(t, tree, "parameters")
+}
+
+// measuredSupportedKeys is the GOLDEN set: the keywords the round-061 probe
+// measured as accepted (ADR 0031 D2). The owner must equal it exactly — so
+// DELETING a key from the owner (which would silently strip it from every
+// declaration) fails here, and ADDING an unmeasured key fails here too (review
+// F-061-1: "deleting `items` turns nothing red").
+var measuredSupportedKeys = []string{
+	"type", "description", "properties", "required", "items", "enum", "format",
+	"title", "default", "nullable", "pattern", "minimum", "maximum", "minLength",
+	"maxLength", "minItems", "maxItems", "oneOf", "allOf", "additionalProperties",
+	"propertyOrdering",
+}
+
+// TestSupportedSchemaKeys_MatchTheMeasuredProbe pins the owner set to the probe.
+func TestSupportedSchemaKeys_MatchTheMeasuredProbe(t *testing.T) {
+	golden := map[string]bool{}
+	for _, k := range measuredSupportedKeys {
+		golden[k] = true
+	}
+	for k := range SupportedSchemaKeys() {
+		if !golden[k] {
+			t.Errorf("the owner declares %q, which the probe did not verify as accepted — add it only with a fresh probe (ADR 0031 D2)", k)
+		}
+	}
+	for _, k := range measuredSupportedKeys {
+		if !SupportedSchemaKeys()[k] {
+			t.Errorf("the owner is MISSING the measured-accepted keyword %q — deleting it would silently strip it from every declaration", k)
+		}
+	}
+}
+
+// ownerFixtures is one declaration per measured-supported keyword, each carrying
+// that keyword at a schema position.
+var ownerFixtures = map[string]string{
+	"type":                 `{"type":"object","properties":{"a":{"type":"string"}}}`,
+	"description":          `{"type":"object","properties":{"a":{"type":"string","description":"v"}}}`,
+	"properties":           `{"type":"object","properties":{"a":{"type":"string"}}}`,
+	"required":             `{"type":"object","properties":{"a":{"type":"string"}},"required":["a"]}`,
+	"items":                `{"type":"object","properties":{"a":{"type":"array","items":{"type":"string"}}}}`,
+	"enum":                 `{"type":"object","properties":{"a":{"type":"string","enum":["x"]}}}`,
+	"format":               `{"type":"object","properties":{"a":{"type":"string","format":"date-time"}}}`,
+	"title":                `{"type":"object","properties":{"a":{"type":"string","title":"t"}}}`,
+	"default":              `{"type":"object","properties":{"a":{"type":"string","default":"v"}}}`,
+	"nullable":             `{"type":"object","properties":{"a":{"type":"string","nullable":true}}}`,
+	"pattern":              `{"type":"object","properties":{"a":{"type":"string","pattern":"^a$"}}}`,
+	"minimum":              `{"type":"object","properties":{"a":{"type":"integer","minimum":1}}}`,
+	"maximum":              `{"type":"object","properties":{"a":{"type":"integer","maximum":9}}}`,
+	"minLength":            `{"type":"object","properties":{"a":{"type":"string","minLength":1}}}`,
+	"maxLength":            `{"type":"object","properties":{"a":{"type":"string","maxLength":9}}}`,
+	"minItems":             `{"type":"object","properties":{"a":{"type":"array","items":{"type":"string"},"minItems":1}}}`,
+	"maxItems":             `{"type":"object","properties":{"a":{"type":"array","items":{"type":"string"},"maxItems":1}}}`,
+	"oneOf":                `{"type":"object","properties":{"a":{"oneOf":[{"type":"string"}]}}}`,
+	"allOf":                `{"type":"object","properties":{"a":{"allOf":[{"type":"string"}]}}}`,
+	"additionalProperties": `{"type":"object","properties":{"a":{"type":"string"}},"additionalProperties":false}`,
+	"propertyOrdering":     `{"type":"object","properties":{"a":{"type":"string"}},"propertyOrdering":["a"]}`,
+}
+
+// TestProjectedDeclaration_CoversTheOwnerSet is the COVERAGE half of the gate
+// (review F-061-1): every keyword in the owner set survives projection, so
+// deleting one from the set cannot silently strip it from every declaration.
+func TestProjectedDeclaration_CoversTheOwnerSet(t *testing.T) {
+	for _, k := range measuredSupportedKeys {
+		fixture, ok := ownerFixtures[k]
+		if !ok {
+			t.Fatalf("the coverage pin has no fixture for measured key %q — add one", k)
+		}
+		if got := string(ProjectSchema(json.RawMessage(fixture))); !strings.Contains(got, `"`+k+`"`) {
+			t.Errorf("measured key %q did not survive projection: %s", k, got)
+		}
+	}
+}
+
+// TestProjectSchema_NormalizesValueShapes pins the value-shape normalization the
+// live probe forced (ADR 0031 D2, value-shape rows; review F-061-2):
+// `type` array → single member (+ nullable), ambiguous → dropped; `enum` members
+// → strings.
+func TestProjectSchema_NormalizesValueShapes(t *testing.T) {
+	got := string(ProjectSchema(json.RawMessage(
+		`{"type":"object","properties":{"a":{"type":["string","null"]},"b":{"type":["string","number"]},"c":{"type":"integer","enum":[1,2,3]}}}`)))
+	for _, want := range []string{`"type":"string"`, `"nullable":true`, `"enum":["1","2","3"]`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("value-shape normalization missing %s; got %s", want, got)
+		}
+	}
+	// The ambiguous member list is dropped rather than guessed.
+	if strings.Contains(got, `["string","number"]`) {
+		t.Errorf("an ambiguous `type` array must be dropped; got %s", got)
+	}
+	var tree map[string]any
+	if err := json.Unmarshal([]byte(got), &tree); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if _, present := tree["properties"].(map[string]any)["b"].(map[string]any)["type"]; present {
+		t.Errorf("the ambiguous property kept a `type`; got %s", got)
 	}
 }
 
@@ -83,7 +207,7 @@ func TestProjectToolDeclarations_NoUnsupportedKeywordReachesTheWire(t *testing.T
 // contract on a flat fixture (the named allowlist is the single owner, S-2).
 func TestProjectSchema_KeepsOnlySupportedKeys(t *testing.T) {
 	in := `{"type":"object","title":"t","$schema":"x","x-any":1,"properties":{"a":{"type":"string","description":"d","readOnly":true,"pattern":"^a$"}},"required":["a"],"additionalProperties":false}`
-	got := string(projectSchema(json.RawMessage(in)))
+	got := string(ProjectSchema(json.RawMessage(in)))
 	for _, gone := range []string{"$schema", "x-any", "readOnly"} {
 		if strings.Contains(got, gone) {
 			t.Errorf("projection kept %q; got %s", gone, got)
@@ -100,7 +224,7 @@ func TestProjectSchema_KeepsOnlySupportedKeys(t *testing.T) {
 // non-JSON schema degrades to the freeform object (never a new failure mode).
 func TestProjectSchema_FailsClosed(t *testing.T) {
 	for _, in := range []string{``, `not json`, `"a string"`} {
-		got := string(projectSchema(json.RawMessage(in)))
+		got := string(ProjectSchema(json.RawMessage(in)))
 		if in == "" {
 			if got != "" {
 				t.Errorf("empty schema: want empty passthrough, got %q", got)

@@ -32,13 +32,14 @@ Feature: Keeping a Gemini turn usable when a remote MCP server annotates its too
       Then the offered tool "add_issue_comment" from the MCP server "github" carries no server-side mark
       And tellme exits successfully
 
-    Example: A server with no argument marks is unaffected
+    Example: A server with no argument marks still offers its tool
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
       And a configured gemini provider "test-model" whose endpoint reports the offered tools and then answers with "done"
       When the operator starts tellme with the prompt "Which tools can you use?"
       Then the request offered the tool "lookup_price" from the MCP server "shop" alongside the agent tools
+      And the offered tool "lookup_price" from the MCP server "shop" carries no server-side mark
       And tellme exits successfully
 
   Rule: The offered tool still describes the server's real arguments

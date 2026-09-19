@@ -33,7 +33,10 @@
 // (`mcp.NormalizeMCPSchema`, S-6) — the two seams have one concern each (S-1).
 package gemini
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // supportedSchemaKeys is the named owner of the provider's supported schema
 // surface — the single home the projection and its regression pin both read
@@ -66,10 +69,17 @@ var supportedSchemaKeys = map[string]bool{
 // parsed (a declaration the wire always accepts).
 const freeformParameters = `{"type":"object","properties":{}}`
 
-// projectSchema projects a tool declaration's parameter schema onto the
+// SupportedSchemaKeys returns the provider's supported schema surface — the
+// NAMED OWNER both the projection and its regression gate read (round-061
+// FR-007; the fold of review F-061-1). Callers must treat the result as
+// read-only.
+func SupportedSchemaKeys() map[string]bool { return supportedSchemaKeys }
+
+// ProjectSchema projects a tool declaration's parameter schema onto the
 // provider's supported surface, recursively (round 061 / ADR 0031). It is pure
-// and never fails: an unparseable schema degrades to the freeform object.
-func projectSchema(raw json.RawMessage) json.RawMessage {
+// and never fails: an empty schema passes through, and an unparseable or
+// non-object schema degrades to the freeform object.
+func ProjectSchema(raw json.RawMessage) json.RawMessage {
 	if len(raw) == 0 {
 		return raw
 	}
@@ -88,6 +98,68 @@ func projectSchema(raw json.RawMessage) json.RawMessage {
 		return json.RawMessage(freeformParameters)
 	}
 	return out
+}
+
+// stringEnumMember renders a non-string `enum` member as the string Gemini's
+// `Schema.enum` (repeated string) requires — measured rejected otherwise
+// (ADR 0031 D2, value-shape probe: `enum: [1,2,3]` → TYPE_STRING).
+func stringEnumMember(v any) any {
+	if s, ok := v.(string); ok {
+		return s
+	}
+	b, err := json.Marshal(v)
+	if err != nil {
+		return fmt.Sprint(v)
+	}
+	return string(b)
+}
+
+// normalizeTypeKeyword rewrites an ARRAY `type` into the single-valued form
+// Gemini's `Schema.type` accepts (measured: `type: ["string"]` is rejected as an
+// unknown name — ADR 0031 D2, value-shape probe). Per JSON-Schema `type`
+// semantics: drop the `"null"` member and record it as `nullable: true`; keep the
+// lone remaining member; drop the keyword entirely when the remainder is empty or
+// ambiguous (more than one member — no faithful single value exists).
+func normalizeTypeKeyword(node map[string]any) {
+	list, ok := node["type"].([]any)
+	if !ok {
+		return
+	}
+	nullable := false
+	kept := make([]any, 0, len(list))
+	for _, t := range list {
+		s, isStr := t.(string)
+		if isStr && s == "null" {
+			nullable = true
+			continue
+		}
+		kept = append(kept, t)
+	}
+	switch {
+	case len(kept) == 1:
+		node["type"] = kept[0]
+	case len(kept) == 0:
+		delete(node, "type")
+	default:
+		delete(node, "type") // ambiguous — drop rather than guess a member type
+	}
+	if nullable {
+		if _, set := node["nullable"]; !set {
+			node["nullable"] = true
+		}
+	}
+}
+
+// normalizeEnumKeyword coerces every `enum` member to a string (Gemini's
+// `Schema.enum` is `repeated string`; a numeric member is rejected — ADR 0031 D2).
+func normalizeEnumKeyword(node map[string]any) {
+	if raw, ok := node["enum"].([]any); ok {
+		out := make([]any, len(raw))
+		for i, v := range raw {
+			out[i] = stringEnumMember(v)
+		}
+		node["enum"] = out
+	}
 }
 
 // projectValue projects one schema node: a map keeps only allowlisted keys (and
@@ -112,6 +184,8 @@ func projectValue(v any) any {
 				out[k] = val
 			}
 		}
+		normalizeTypeKeyword(out)
+		normalizeEnumKeyword(out)
 		return out
 	case []any:
 		return projectList(node)

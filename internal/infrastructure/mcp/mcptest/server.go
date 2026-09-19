@@ -276,7 +276,7 @@ func AnnotatedSchema() any {
 	    "owner":{"type":"string","description":"Repository owner","x-mcp-header":"owner"},
 	    "repo":{"type":"string","description":"Repository name","x-mcp-header":"repo"},
 	    "body":{"type":"string","description":"The comment text","default":"n/a"},
-	    "files":{"type":"array","description":"A string or an array","minItems":1,"maxItems":100,"items":{"type":"string"}},
+	    "files":{"type":"array","description":"A string or an array","minItems":1,"maxItems":100,"items":{"type":"string","x-nested":"gone"}},
 	    "kind":{"type":"string","enum":["a","b"],"const":"a"},
 	    "nested":{"type":"object","description":"d","properties":{"deep":{"type":"string","readOnly":true}}}
 	  },

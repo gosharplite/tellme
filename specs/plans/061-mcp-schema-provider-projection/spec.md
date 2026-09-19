@@ -76,7 +76,7 @@ As the **operator** running tellme with a `TYPE: gemini` provider and a remote M
 
 1. **Given** a `gemini` provider and an enabled remote MCP server whose advertised schema carries a keyword the Gemini `Schema` cannot carry (`x-mcp-header`), **When** a prompt turn offers that server's tools, **Then** the request is accepted and the turn produces an answer (no `the provider request failed`, no 400).
 2. **Given** the same configuration, **When** the offered declaration is inspected, **Then** the Gemini payload contains **no** keyword outside the provider-supported surface.
-3. **Given** an MCP server with **no** annotations, **When** a turn runs, **Then** the offered declaration is **unchanged** from today.
+3. **Given** an MCP server with **no** annotations, **When** a turn runs, **Then** the offered declaration still carries the server’s arguments and the tool is still offered (**semantic** invariance — the projection re-serialises every declaration, so byte identity is *not* claimed; folded per review F-061-3(1)).
 
 **Functional Requirements**:
 

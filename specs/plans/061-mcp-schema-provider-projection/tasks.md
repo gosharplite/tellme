@@ -33,3 +33,18 @@
 
 - Witness executions are recorded here (TD-6 convention); the red output of both witnesses is reproducible from the two call sites (`buildToolDeclarations`'s projection call, `NormalizeMCPSchema`'s floor call).
 - No product file outside the five sites in `plan.md` was touched; `go.mod`/`go.sum` unchanged.
+
+## Phase 5 — Review folds (PR #128, review `5740291616`)
+
+- [X] **T015** (`B-061-1`) — the floor is **structure-aware** (keyword positions only; `properties` names opaque; data values never walked) **+** `NormalizeMCPSchema` re-asserts `required ⊆ properties` on the post-floor object. Three pins: a property **named** `x-…` survives with the postcondition holding; an `x-`-keyed member inside a `default` **value** is preserved; an undeclared `required` entry is still refused.
+- [X] **T016** (`F-061-1`, also `TD-061-2`) — the gate now reads the **owner** (`gemini.SupportedSchemaKeys()`): a **containment** pin walks the projected declaration structure-aware and fails on any keyword not in the set, and a **golden-set** pin asserts the owner equals the probe's measured set **bidirectionally** (delete a key → RED; add an unmeasured key → RED), and a **coverage** pin proves every allowlisted key survives. The former hardcoded deny-lists are gone; the E2E containment check reads the same owner.
+- [X] **T017** (`F-061-2`) — value-shape normalization (`type` arrays, `enum` coercion) implemented + pinned; the shape probe (2 rejected shapes, 2 accepted controls) recorded in `research.md` and ADR 0031 D2/D6a.
+- [X] **T018** (`F-061-3`) — (1) the no-mark control Example now exists in **both** the plan-side acceptance journey and the interface feature, and the invariance claim is narrowed to **semantic** invariance (spec US1 AS3); (2) the args Then asserts **declared properties of the `MCP_PAYLOAD` subschema with descriptions**, matching its DSL row; (3) all three Thens are **declaration-scoped** (the body-wide `x-` substring scan is gone).
+- [X] **T019** (`TD-061-1`, `RF-061-4`) — ADR §Forward records the **unclosed class** for the OpenAI-compatible wire (RF-061-7) and the `$ref`+`$defs` dangling-subschema loosening; a new `cmd/tellme` pin runs every **native** declaration through the projection and asserts semantic identity (RF-061-4 closed durably, not by inspection).
+- [X] **T020** (nits 1–4) — the redundant `json.RawMessage(...)` conversion is gone (`ProjectSchema` is exported and returns the type); the two freeform literals + the `ProjectSchema` empty-input doc are named in ADR §Forward (RF-061-9); the value-shape fixtures are consistent across the pins.
+
+### Fold witnesses (reproduced RED, then reverted)
+
+- **C** — making the floor context-blind again (walking every map) turns `TestNormalizeMCPSchema_PreservesPropertyNamedLikeAnExtension` RED.
+- **D** — deleting a measured key from the owner (`items` removed from `supportedSchemaKeys`) turns the **golden-set** pin RED (the review's F-061-1 failure mode: under the former deny-list this change was invisible); the owner is pinned **bidirectionally** to the probe's measured set, so adding an unmeasured key fails too.
+- **E** — removing the `type`-array normalization turns `TestProjectSchema_NormalizesValueShapes` RED.

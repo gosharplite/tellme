@@ -42,3 +42,13 @@
 | Action | Artifact | Change Summary | Reason |
 | --- | --- | --- | --- |
 | ADD | `docs/decisions/0031-provider-supported-schema-surface.md` + `docs/decisions/README.md` (+ the ADR 0025 **Status** pointer) | The provider-supported schema surface: the floor + the default-deny projection, the measured table, and §Forward RF-061-1…6. **Amends ADR 0025 D1** at the provider wire (CQ-3 → i). | `spec.md` FR-009, S-3 |
+
+## Review folds (PR [#128](https://github.com/gosharplite/tellme/pull/128), review `5740291616`)
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| MODIFY | `specs/truth/techstack.md` — *Tool-declaration schema projection (Vertex/Gemini)* | The projection **normalizes value shapes** too (array `type` → its lone member + `nullable`; `enum` members → strings), and both new probe rows are recorded (ADR 0031 D2/D6a). | review **F-061-2** |
+| MODIFY | `specs/truth/techstack.md` — *Tool-declaration schema-projection gate* | The gate reads the **owner** both directions (containment + coverage) and a native-declaration semantic-identity pin is added; the deny-lists are gone. | reviews **F-061-1**, **TD-061-2**, **RF-061-4** |
+| MODIFY | `specs/truth/techstack.md` — *MCP tool-schema normalization* | The floor is **structure-aware** (keyword positions only) and the postcondition is re-asserted. | review **B-061-1** |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` — the round-061 args + containment rows | The args row is envelope-scoped (declared `MCP_PAYLOAD` properties **with descriptions**); the containment row states the **owner-set** check, declaration-scoped; the round-056 row records the value-shape normalization. | reviews **F-061-1/2/3** |
+| MODIFY | `docs/decisions/0031-provider-supported-schema-surface.md` | D6a (value shapes) · D6b (structure-aware floor + re-assertion) · the shape-probe rows · §Forward RF-061-7…9. | reviews **B-061-1**, **F-061-2**, **TD-061-1/2**, nits |

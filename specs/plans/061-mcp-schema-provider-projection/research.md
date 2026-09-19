@@ -30,7 +30,20 @@ Harness: `POST {url}/{model}:generateContent` with `contents` = one trivial user
 - **rejected** — any `x-…`, `$schema` (root), `$ref`, `$defs`, `definitions`, `const`, `examples`, `deprecated`, `readOnly`, `writeOnly`, `multipleOf`, `uniqueItems`; an unknown key at a **nested** level; and `anyOf` **whenever another schema keyword sits on the same node** (*"when using any_of, it must be the only field set"*).
 - `anyOf` **alone** is accepted — **not** allowlisted (shape a projection cannot guarantee; ADR 0031 D3/§Forward).
 
-**Design consequence**: the projection is **recursive** (nested marks/kets are rejected too) and **fail-closed** (a non-object schema → the freeform object).
+**Design consequence**: the projection is **recursive** (a nested unknown key is rejected too) and **fail-closed** (a non-object schema → the freeform object).
+
+### Value-shape probe (fold of review F-061-2 — the round-061 fold, same channel)
+
+The first probe measured keyword **presence**; the review asked whether a keyword's **value shape** also matters. Measured (declaration-only, same channel):
+
+| Shape | Result |
+| --- | --- |
+| `"type": ["string"]` / `["string","null"]` | **rejected** (unknown name) — `Schema.type` is a single enum |
+| `"enum": [1,2,3]` on an integer property | **rejected** (`TYPE_STRING`) — `Schema.enum` is `repeated string` |
+| a property carrying only `{}` | **accepted** — so an empty subschema is safe |
+| `"nullable": true` beside a string `type` | **accepted** |
+
+**Consequence**: the projection also normalizes value shapes — an array `type` → its lone non-`null` member (+ `nullable: true` when `"null"` was present; dropped when ambiguous), and `enum` members → their JSON string form. Recorded in ADR 0031 D6a.
 
 ## Alternatives considered
 

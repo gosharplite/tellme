@@ -247,7 +247,7 @@ func buildToolDeclarations(toolDefs []llm.ToolDef) []map[string]any {
 		if len(params) == 0 {
 			params = json.RawMessage(freeformParameters)
 		}
-		decls = append(decls, map[string]any{"name": td.Name, "description": td.Description, "parameters": json.RawMessage(projectSchema(params))})
+		decls = append(decls, map[string]any{"name": td.Name, "description": td.Description, "parameters": ProjectSchema(params)})
 	}
 	return decls
 }
