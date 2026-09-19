@@ -18,6 +18,7 @@ func init() {
 		ctx.Then(`^the MCP server "([^"]*)" received no call$`, thenMCPServerReceivedNoCall)
 		ctx.Then(`^the MCP server "([^"]*)" received exactly one call$`, thenMCPServerReceivedExactlyOneCall)
 		ctx.Given(`^a configured provider "([^"]*)" whose endpoint asks tellme to use the MCP tool "([^"]*)" from the server "([^"]*)" with the reason "([^"]*)" and a stray argument, and then answers with "([^"]*)"$`, givenProviderMCPStrayArgument)
+		ctx.Given(`^a configured provider "([^"]*)" whose endpoint asks tellme to use the MCP tool "([^"]*)" from the server "([^"]*)" with the reason "([^"]*)" and a non-object payload, and then answers with "([^"]*)"$`, givenProviderMCPNonObjectPayload)
 	})
 }
 
@@ -55,6 +56,26 @@ func thenMCPServerReceivedExactlyOneCall(ctx context.Context, server string) err
 func givenProviderMCPStrayArgument(ctx context.Context, provider, tool, server, reason, answer string) error {
 	sc := scenarioFrom(ctx)
 	env := mcpEnvelopeWithStray(unescapeText(reason))
+	name := "mcp_" + server + "_" + tool
+	f := sc.newFake()
+	f.Script(
+		fakeprovider.Reply{ToolName: name, Arguments: env},
+		fakeprovider.Reply{Answer: unescapeText(answer)},
+	)
+	sc.scriptedTool = name
+	sc.scriptedAnswer = unescapeText(answer)
+	sc.scriptedAnswerSet = true
+	sc.registerFake(provider, f)
+	return sc.writeDefaultConfig(provider, map[string]string{provider: f.URL()})
+}
+
+// givenProviderMCPNonObjectPayload scripts a single MCP call whose MCP_PAYLOAD is
+// a string (not an object) — a shape violation the adapter refuses before
+// contacting the server (then the answer). Closes the R-056-b residual: the
+// non-object half of the shape violation now has an interface carrier.
+func givenProviderMCPNonObjectPayload(ctx context.Context, provider, tool, server, reason, answer string) error {
+	sc := scenarioFrom(ctx)
+	env := mcpEnvelopeWithNonObjectPayload(unescapeText(reason))
 	name := "mcp_" + server + "_" + tool
 	f := sc.newFake()
 	f.Script(

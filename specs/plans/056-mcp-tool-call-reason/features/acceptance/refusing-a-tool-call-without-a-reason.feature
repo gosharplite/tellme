@@ -29,3 +29,15 @@ Feature: Refusing a tool call that does not say why
       And the assistant was asked to try again with a reason
       And the retried read happened and tellme showed its reason
       And tellme exits successfully
+
+  Rule: A remote call that is not shaped as tellme expects is turned away before the server is contacted
+
+    Example: A remote call carrying an unexpected extra argument is turned away
+      Given the operator has a runnable tellme installation
+      And the runtime home holds a configuration with a remote MCP server "shop" that offers a tool "lookup_price"
+      And the MCP server "shop" is reachable
+      And the assistant calls the tool "lookup_price" on the server "shop" saying why but with an unexpected extra argument
+      When the operator asks tellme "What does the gadget cost?"
+      Then the call did not reach the server "shop"
+      And the assistant was asked to try again with the expected shape
+      And tellme exits successfully

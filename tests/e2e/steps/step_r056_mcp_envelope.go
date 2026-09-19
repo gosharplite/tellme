@@ -38,3 +38,14 @@ func mcpEnvelopeWithStray(reason string) string {
 	out, _ := json.Marshal(m)
 	return string(out)
 }
+
+// mcpEnvelopeWithNonObjectPayload builds a shape-violating envelope whose
+// MCP_PAYLOAD is a JSON string rather than an object (round 056 review R-056-b).
+func mcpEnvelopeWithNonObjectPayload(reason string) string {
+	m := map[string]json.RawMessage{}
+	r, _ := json.Marshal(reason)
+	m["reason"] = r
+	m[mcpPayloadKey] = json.RawMessage(`"not an object"`)
+	out, _ := json.Marshal(m)
+	return string(out)
+}

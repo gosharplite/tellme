@@ -36,6 +36,15 @@ Feature: Requiring a reason to call a tool
       Then the MCP server "shop" received no call
       And tellme exits successfully
 
+    Example: A call whose payload is not an object is refused and the server is not contacted
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" with the reason "check the gadget price" and a non-object payload, and then answers with "done"
+      When the operator starts tellme with the prompt "What does the gadget cost?"
+      Then the MCP server "shop" received no call
+      And tellme exits successfully
+
   Rule: tellme's own tool call that states no reason does not run
 
     Example: A reasonless built-in call is turned away, then retried with a reason

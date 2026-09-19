@@ -241,3 +241,15 @@
 **Presentation notes (recorded, no action)** — folded into the `chat/dsl.md` round-056 note: a refused call prints `[Tool Action]` + `[Tool Result] … error: a reason is required…` (the gate runs after the action line) — action+result does **not** imply execution; and an executed MCP call's `[Tool Action]` lists `MCP_PAYLOAD: {…}` (round-034's `reason`-excluded rule).
 
 **Re-verification at the fold head** — `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (**244 scenarios · 1804 steps**, 0 undefined) · topology audit back to the 5 pre-existing errors · `go.mod`/`go.sum` unchanged.
+
+### Fold-verification residuals — PR [#122](https://github.com/gosharplite/tellme/pull/122) comment [`5738880177`](https://github.com/gosharplite/tellme/pull/122#issuecomment-5738880177) (**FOLDS VERIFIED — CLEARED FOR MERGE**)
+
+| # | Residual | Disposition |
+| --- | --- | --- |
+| **R-056-a** | the fold note counted 1800 steps; the suite reports 1804 | **FIXED** (corrected to 1804 in the ledger + the PR comment). |
+| **R-056-b** | the non-object `MCP_PAYLOAD` violation was unit-only | **FOLDED** — a new interface Example (*"A call whose payload is not an object is refused and the server is not contacted"*) + a new Given + its `dsl.md` row, driven through `the MCP server "shop" received no call`. **Witness:** accepting a non-object payload at the adapter ⇒ the new Example REDs. |
+| **R-056-c** | the new shape-violation interface Rule had no acceptance precursor | **FOLDED (PM-side)** — an acceptance Rule (*"A remote call that is not shaped as tellme expects is turned away before the server is contacted"*) + Example added to `specs/plans/056-mcp-tool-call-reason/features/acceptance/refusing-a-tool-call-without-a-reason.feature`. Acceptance is PM-owned; authored here in **butler** mode (single-agent session) and recorded as a PM-side action. |
+| **R-056-d** | RF-056-7's reachability claim was half-right | **FIXED** — ADR 0025 **RF-056-7** now distinguishes the native builders' **required-list** entries (ordinary Go string args — a constant *can* reach them) from the inline `properties` template literals and the loop's struct tag (out of reach). |
+| **R-056-e** | `techstack.md` had a stray `.;` | **FIXED**. |
+
+**Re-verification at the residual-fold head** — `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (**245 scenarios · 1811 steps**, 0 undefined) · topology audit back to the 5 pre-existing errors · `go.mod`/`go.sum` unchanged.
