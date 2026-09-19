@@ -171,7 +171,7 @@ As the **operator**, I want **no** tool call to execute without a stated reason 
 - **SC-002**: The remote server records **exactly** the `MCP_PAYLOAD` contents as its arguments — no `reason`, no envelope keys (witnessed against the E2E fake's recorded call).
 - **SC-003**: The server's advertised input schema appears **verbatim** in the offered declaration; no round-032 MCP behaviour regresses (all existing MCP scenarios stay green).
 - **SC-004**: The round's own gates hold: `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (all Examples) · native-tool rendering byte-identical · `go.mod`/`go.sum` unchanged.
-- **SC-005**: The elicit-and-render path is **declaration-carried** (no system-prompt change) and **MCP-only** (native tools untouched) — demonstrable, not just stated.
+- **SC-005**: The reason-required rule is **declaration-or-prompt-free for the ask** (no system-prompt change) and **single-owned** across native **and** MCP calls (I-5/FR-009) — demonstrable, not just stated.
 - **SC-006**: A non-conforming MCP call is **refused without contacting the server** (witnessed against the E2E fake's recorded calls: zero calls), and a subsequent conforming call succeeds — the "not optional" guarantee (Q2 → B).
 - **SC-007**: A **native** tool call with no/blank `reason` does **not** execute (witnessed: the tool's side effect is absent) and the model receives a recoverable retry result; a conforming native call is unchanged (FR-008/FR-010 — the [#121](https://github.com/gosharplite/tellme/issues/121) fold).
 - **SC-008**: The reason-required rule is **single-owned** — demonstrable: **one** predicate drives the gate for native **and** MCP calls (FR-009) — not two site-local copies.
