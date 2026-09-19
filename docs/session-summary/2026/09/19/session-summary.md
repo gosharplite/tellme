@@ -655,3 +655,15 @@ Fold-verification comment `5740054490`: **FOLDS VERIFIED 5/5** (B-060-1 + TD-060
 - Residuals recorded: **R-060-1** (ADR copy static vs Makefile-derived — defensible), **R-060-2** (`$(wildcard)` directory order), **R-060-3** (witness executions in the ledger).
 
 Re-verified at `0d63674`: `make verify` **OK** · `go test -count=1 ./...` green · `gofmt` clean · `go.mod`/`go.sum` unchanged. Next: reviewer re-verification → human merge into `dev` → closeout Steps 1–8.
+
+### 16 (cont.) — re-verification folded (TF-060-2) → `50e1ed7` ⇒ CERTIFIED MERGE-READY
+
+Re-verification comment `5740073150`: **FOLDS VERIFIED 4/4 + FR-004** → **CERTIFIED MERGE-READY** on one one-line residue (**TF-060-2**) the re-verifier found *and owned* (their TF-060-1 sweep grepped the literal `go install github.com/…`, so an **elided** `go install …@feat/self-domain-model` in the **T005 task row** slipped past both the sweep and the fold).
+
+**TF-060-2** folded at **`50e1ed7`**:
+- `tasks.md` **T005 row** → the **clone + pinned-build** route (immutable commit `b4153541cee8`; single-sourced in `docs/domain-model/README.md`).
+- `tasks.md` **TOOLCHAIN locked decision** + the remaining **live** fork refs (`research.md` D1, `plan.md` Q2 row, `spec.md` grounding, `truth-delta.md`) → the branch ref **qualified** with the immutable tip commit `b4153541cee8`, so the elided form cannot recur.
+
+The falsified string now survives **only** where quoted *as the falsified form* (the fold ledgers, `research.md` D5, the historical witness at `tasks.md:96` with its forward pointer).
+
+Re-verified at `50e1ed7`: `make verify` **OK** · `go test -count=1 ./...` green · `gofmt` clean · `go.mod`/`go.sum` unchanged. **No further review pass needed** (doc-only). Next: **human merge into `dev`** → closeout Steps 1–8 (propagate `dev → main` no-ff, `main^{tree} == dev^{tree}`, tag `round-060`, `go install`, `STATUS.md` Rule-12 split, issue-tracker pass — #91/#13 stay open).
