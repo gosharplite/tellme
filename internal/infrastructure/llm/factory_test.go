@@ -106,3 +106,22 @@ func writeTestServiceAccount(t *testing.T) string {
 	}
 	return path
 }
+
+// TestFamily pins the single-owner label→family classification (round 063;
+// ADR 0033 D4) that the composition root uses to resolve the image ceiling.
+func TestFamily(t *testing.T) {
+	cases := map[string]string{
+		"openai":    "openai",
+		"deepseek":  "openai",
+		"kimi":      "openai",
+		" GEMINI ":  "gemini",
+		"google":    "gemini",
+		"anthropic": "",
+		"":          "",
+	}
+	for label, want := range cases {
+		if got := Family(label); got != want {
+			t.Errorf("Family(%q) = %q, want %q", label, got, want)
+		}
+	}
+}
