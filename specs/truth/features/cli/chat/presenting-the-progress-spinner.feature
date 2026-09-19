@@ -48,6 +48,14 @@ Feature: Presenting the progress spinner
 
   Rule: The spinner names the tools and the resources while tools run
 
+    # Round 059 (ADR 0029): the resource figures are REAL and refresh at 1 Hz. On
+    # macOS the round-019 arm reported 0.0% for every host (a hardcoded CPU stub and
+    # a mis-decoded hw.memsize); the macOS sampler is now the reference's
+    # cgo-Mach / cgo-less-runtime-metrics split, so `the progress spinner reports the
+    # machine's resource usage` also asserts a non-zero memory figure. The figures
+    # are sampled at most once per second (the braille frame still advances at
+    # 200 ms); the cadence arithmetic is a unit pin (internal/ui).
+
     Example: The turn runs a single tool
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"

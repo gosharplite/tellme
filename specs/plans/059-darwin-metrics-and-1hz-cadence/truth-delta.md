@@ -11,8 +11,8 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| MODIFY (expected) | `specs/truth/techstack.md` — **System metrics provider (telemetry)** row | **Round 059 (ADR 0029):** macOS CPU lands (cgo Mach + !cgo `runtime/metrics` fallback — the recorded "pending a cgo mach sampler" gap closes); sysctl reads move to `golang.org/x/sys/unix`; MEM is the reference-exact per-platform definition; the 1 Hz sample cadence is recorded. | `spec.md` FR-001…FR-003, S-2/S-4 |
-| MODIFY (expected) | `specs/truth/techstack.md` — **Go dependency set** (as applicable) | **Round 059:** add `golang.org/x/sys` (direct). | `spec.md` A2 |
+| MODIFY | `specs/truth/techstack.md` — **System metrics provider (telemetry)** row | **Round 059 (ADR 0029):** macOS CPU lands (cgo Mach + !cgo `runtime/metrics` fallback — the recorded "pending a cgo mach sampler" gap closes); sysctl reads move to `golang.org/x/sys/unix`; MEM is the reference-exact per-platform definition; the 1 Hz sample cadence is recorded. | `spec.md` FR-001…FR-003, S-2/S-4 |
+| MODIFY | `specs/truth/techstack.md` — **System metrics provider (telemetry)** row (dep note) | **Round 059:** the row now records `golang.org/x/sys/unix` as the macOS `sysctl` reader (a new **direct** dependency) — no separate dependency row exists. | `spec.md` A2 |
 
 ## /axb-api-plan
 
@@ -30,10 +30,10 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| MODIFY (expected) | `specs/truth/features/cli/chat/presenting-the-progress-spinner.feature` (+ `chat/dsl.md`) | **Round 059:** the tool-phase resource Rule gains the 1 Hz refresh qualification (the figures refresh once per second; the wheel still animates). | `spec.md` FR-006/FR-007 |
+| MODIFY | `specs/truth/features/cli/chat/presenting-the-progress-spinner.feature` (+ `chat/dsl.md`) | **Round 059:** the tool-phase resource Rule gains the 1 Hz refresh qualification (the figures refresh once per second; the wheel still animates). | `spec.md` FR-006/FR-007 |
 
 ## Governance (ADR)
 
 | Action | Artifact | Change Summary | Reason |
 | --- | --- | --- | --- |
-| ADD (expected) | `docs/decisions/0029-darwin-metrics-and-sample-cadence.md` (+ index row) | Records the darwin sampler split (cgo Mach + !cgo `runtime/metrics`), the `x/sys` adoption, the reference-exact MEM definitions, and the 1 Hz sample throttle; §Forward RF-059-x. | `spec.md` A5 |
+| ADD | `docs/decisions/0029-darwin-metrics-and-sample-cadence.md` (+ index row) | Records the darwin sampler split (cgo Mach + !cgo `runtime/metrics`), the `x/sys` adoption, the reference-exact MEM definitions, and the 1 Hz sample throttle; §Forward RF-059-x. | `spec.md` A5 |

@@ -26,6 +26,11 @@ import (
 // call (stamped in OnInferenceStart). Terminology: a turn is the whole prompt
 // exchange (1..k model calls); the second figure measures the current model call.
 //
+// Round 059 (ADR 0029) THROTTLES the tool-phase resource segment: the metrics
+// provider is sampled at most once per ResourceSampleInterval (1 s), the last
+// pair reused between samples, while the frame keeps its 200 ms cadence — so the
+// numbers are readable instead of refreshing 5×/s.
+//
 // Round 025 makes the line WIDTH-SAFE (research Decisions 1–3): the several-tool
 // status label is BOUNDED (` Executing tools [<first> and <N-1> more]...`), and
 // the presenter tracks the rendered-row count of its last frame and erases EVERY
@@ -37,6 +42,12 @@ var SpinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "�
 
 // SpinnerInterval is the reference's ~200 ms redraw cadence.
 const SpinnerInterval = 200 * time.Millisecond
+
+// ResourceSampleInterval is the round-059 throttle for the tool-phase CPU/MEM
+// figures (reference parity — `metrics_shouldSample`): the metrics provider is
+// sampled at most once per second while the braille frame keeps advancing on
+// SpinnerInterval, so the numbers are readable and the animation stays smooth.
+const ResourceSampleInterval = time.Second
 
 // clearControl is the carriage-return + ANSI erase-to-end-of-line redraw prefix
 // (round-019 research Decision 2). It is a cursor control, not colour. For a
@@ -189,6 +200,14 @@ type Spinner struct {
 	stopCh     chan struct{}
 	doneCh     chan struct{}
 	stopTicker func()
+
+	// resource-sample throttle (round 059): the tool-phase provider is sampled at
+	// most once per ResourceSampleInterval, and the last pair is reused between
+	// samples (the frames in between redraw the cached figures).
+	haveSample bool
+	lastSample time.Time
+	cachedCPU  float64
+	cachedMem  float64
 }
 
 // NewSpinner builds a spinner writing to w, labelling the model, counting the
@@ -401,10 +420,7 @@ func (s *Spinner) renderLocked() {
 	now := s.now()
 	resource := ""
 	if s.toolPhase {
-		var cpu, mem float64
-		if s.metrics != nil {
-			cpu, mem = s.metrics.Sample()
-		}
+		cpu, mem := s.sampleResources(now)
 		resource = FormatResourceSegment(cpu, mem)
 	}
 	line := FormatSpinnerLine(frame, s.status, wholeSecondsSince(s.epoch, now), wholeSecondsSince(s.callEpoch, now), resource)
@@ -430,4 +446,25 @@ func (s *Spinner) columnsWidth() int {
 		return 0
 	}
 	return s.columns()
+}
+
+// sampleResources returns the machine's CPU/memory percentages for the
+// tool-phase resource segment, throttled to at most one provider Sample per
+// ResourceSampleInterval (round 059). The frame redraws every 200 ms, but the
+// figures refresh once per second — the last sampled pair is reused in between —
+// so the numbers stay readable while the wheel keeps animating; a nil metrics
+// provider disables the segment. The throttle reads the spinner's injected clock
+// (this method runs under the spinner mu, with `now` already taken by
+// renderLocked), so it is deterministic under test.
+func (s *Spinner) sampleResources(now time.Time) (cpu, mem float64) {
+	if s.metrics == nil {
+		return 0, 0
+	}
+	if s.haveSample && now.Sub(s.lastSample) < ResourceSampleInterval {
+		return s.cachedCPU, s.cachedMem
+	}
+	s.cachedCPU, s.cachedMem = s.metrics.Sample()
+	s.lastSample = now
+	s.haveSample = true
+	return s.cachedCPU, s.cachedMem
 }
