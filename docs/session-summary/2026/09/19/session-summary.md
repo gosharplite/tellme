@@ -323,3 +323,35 @@ A later session on the same calendar day: bootstrapped/continued on `dev`, opene
 ### PM follow-ups
 
 - **R-056-c** (recorded): the round-056 shape-violation acceptance Rule was authored in a `butler` (single-agent) session; acceptance is PM-owned — flagged for PM visibility (the package is still *active*).
+
+---
+
+## 11. Post-closeout (session 30, cont.) — round-close **tag** convention adopted (**ADR 0026**); `round-056` created
+
+After the round-056 closeout, the operator asked *"when and how should a git `tag` '056' be created?"* — and grounding showed the repo had **no tag convention at all** (`git tag -l` / `git ls-remote --tags` empty; neither bootstrap nor closeout mentioned tags; the only "version" was `VERSION ?= dev`). The operator chose the **round-close marker** convention (not a release scheme).
+
+### What landed
+
+| Item | Detail |
+| --- | --- |
+| **ADR 0026** (`docs/decisions/0026-round-close-tags.md` + index row) | Adopt an **annotated `round-NNN`** tag, on the **`dev → main` propagation merge commit**, created by the closeout **Step 7** **after** `main^{tree} == dev^{tree}` and with **operator approval**; **immutable**; **not** a version (`--version` stays `dev`; a SemVer scheme is a separate decision). Rounds ≠ versions. |
+| **`SESSION-CLOSEOUT.md`** | Step 7 gains the tag sub-step (exact `git tag -a round-NNN <merge-sha> -m …` + push, verify-first); **Rule 15** added (*tag the round, not a version*). |
+| **`STATUS.md`** env notes | The convention recorded (and that `round-056` is tagged at `e1502cc`). |
+| **Tag created** | **`round-056`** (annotated) → **`e1502cc`** (the round-056 propagation merge on `main`); pushed; recorded as forward-only (rounds 001–055 deliberately untagged, RF-026-3). |
+
+### Commits
+
+| Commit | Note |
+| --- | --- |
+| `f360049` (on `dev`) | `docs(026)`: adopt round-close tags — ADR 0026 + closeout Step 7 sub-step + Rule 15 + STATUS env note |
+| `ba1a45c` (on `main`) | no-ff merge `dev → main` (the convention adoption) |
+| `round-056` (tag) | annotated tag → `e1502cc` |
+
+### State at end of session
+
+- `dev` == `origin/dev` == `f360049`; `main` == `origin/main` == `ba1a45c`; `main^{tree} == dev^{tree}`; **working tree clean**; no unpushed commits; **`round-056`** pushed.
+
+### Next steps
+
+1. Round **`057-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development/context · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
