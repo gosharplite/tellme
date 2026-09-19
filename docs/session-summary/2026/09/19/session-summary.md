@@ -597,3 +597,38 @@ A later session on the same calendar day: bootstrapped/continued on `dev`, opene
 ### PM follow-ups
 
 - **R-059-c** (recorded; PM-owned).
+
+---
+
+## 16. Session 34 (2026-09-19, cont.) — round 060 `060-domain-model-and-drift-gate`: tellme's own domain model + a modelith drift gate → full pipeline → **PR #126 open for human review**
+
+A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8), answered the operator's question (*"I want tellme to have domain model — does this need an aixbdd round?"* → **yes**, it changes truth + adds a gate + reopens ADR 0011 D10), opened round **060**, ran the full AIxBDD pipeline, and opened **PR [#126](https://github.com/gosharplite/tellme/pull/126)**. **No product code; `go.mod`/`go.sum` unchanged.**
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | operator request (no anchor issue): give tellme its own **domain model** under `docs/domain-model/` (the folder was **empty**; `git log -- docs/domain-model` empty ⇒ it had never had one) + a **modelith drift gate** |
+| Grounding | **ADR 0011 D10** records tellme's "no modelith toolchain" divergence ⇒ the round **amends** it (new **ADR 0030**); the modelith fork binary + the `domain-model-*` skills are available; `modelith` is **not** a `go.mod` dep |
+| Clarify (one at a time; round 1 closed) | **Q1 → 3** (all three models) · **Q2 → 1** (adopt the fork + `make modelith-lint\|render\|check`) · **Q3 → 1** (zero-tolerance `verify` member; absent binary hard-fails). Q4/Q5 converged as assumptions A6/A7 |
+| Pipeline | specify ✅ · clarify ✅ · spec-by-example **NOOP** · technical-research ✅ (**ADR 0030** + `techstack.md`) · system-analysis ✅ (0 interfaces; api/data/dsl-refine **NOOP**) · tasks ✅ (T001–T008) · implement ✅ |
+| Deliverable | `docs/domain-model/{tellme,quality,environment-management}.modelith.{yaml,md}` + `README.md`; `Makefile` `modelith-lint`/`modelith-render`/`modelith-check` (+ `verify` member); **ADR 0030** + index; `specs/truth/techstack.md` (Domain model row + `verify` member + the D10-line correction) |
+| Verification | `modelith lint` **0/0** ×3 · `modelith-check` all up-to-date · **drift witness (a)** red→reverted · **absent-binary witness (b)** red→restored · `make verify` **OK** · `go test -count=1 ./...` **green** · `gofmt` clean · `go.mod`/`go.sum` unchanged |
+| Delivery | branch `060-domain-model-and-drift-gate` (off `dev`); **PR [#126](https://github.com/gosharplite/tellme/pull/126) open — a human merges** (no Copilot review) |
+
+### Work done
+
+1. **Bootstrap** — Steps 1–8; grounded the answer in the repo (empty folder; ADR 0011 D10; no `modelith-*` target; the fork binary present).
+2. **Round opened** — `/axb-specify` created `specs/plans/060-domain-model-and-drift-gate/` on a new branch off `dev`; `/axb-clarify` (Q1–Q3, one at a time) locked the scope/toolchain/gate; Q4/Q5 → assumptions.
+3. **Pipeline** — `/axb-spec-by-example` **NOOP** → `/axb-technical-research` (`research.md` D1–D12 + **ADR 0030** + `techstack.md` MODIFY) → `/axb-system-analysis` (`plan.md`; 0 interfaces; api/data/dsl-refine NOOP) → `/axb-tasks` (T001–T008) → `/axb-implement`.
+4. **Implementation** — three models authored 3-pass to **0/0** lint; `Makefile` targets added and `modelith-check` wired into `verify`; two falsifiability witnesses reproduced then reverted; full `make verify` + `go test` green.
+5. **PR** — pushed the branch, opened PR #126 (base `dev`). **Stops at PR open** (a human merges).
+
+### Next steps
+
+1. Human reviews + merges PR [#126](https://github.com/gosharplite/tellme/pull/126) → then `SESSION-CLOSEOUT.md` (Steps 1–8): propagate `dev → main`, tag `round-060`, `go install`, STATUS split.
+2. Re-read `SESSION-BOOTSTRAP.md` next session.
+
+### PM follow-ups
+
+- None new (docs/tooling round; no user-facing journey — `/axb-spec-by-example` NOOP, as in rounds 042/043/055).
