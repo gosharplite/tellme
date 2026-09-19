@@ -5,7 +5,7 @@
 **Status file**: [`STATUS.md`](../../../../../STATUS.md) *(back-link — the single live-state source)*
 **Workspace**: `…/mbp-johndoe-niffler/ait-tellme` (`$TELL_ME_HOME`); darwin/arm64 host (Go 1.26.6).
 **Session mode**: `butler`.
-**Branch**: `dev` @ `63aaa62` — round 064 delivered via **PR [#131](https://github.com/gosharplite/tellme/pull/131)** (merged **fast-forward**); round branch deleted (local + remote); propagation `dev → main` **PENDING** (Step 7).
+**Branch**: `dev` @ `a076b33` — round 064 delivered via **PR [#131](https://github.com/gosharplite/tellme/pull/131)** (merged **fast-forward**); round branch deleted (local + remote); propagation `dev → main` **DONE (no-ff, `8914fee`)**, tagged `round-064`.
 **Status at end of day**: round **064** `064-prompt-suggestion-parity` **DELIVERED / FROZEN** — the `-i` suggestion **recent-prompt candidate pool deepens from the newest 10 distinct prompts to the newest 50** (the reference's `LoadTopN(ctx, 50)`), the surfaced list **still capped at 10**; **ADR 0034**; operator request (no anchor issue).
 
 ---
@@ -71,9 +71,10 @@ Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 063 delivered/frozen; ac
 
 ## 3. Next steps
 
-1. **Operator**: approve the `dev → main` propagation (Step 7) → tag **`round-064`** on the propagation merge commit; refresh the installed binary (`go install ./cmd/tellme`).
-2. Open round **`065-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling · a PM pass to retire **RF-063-10**).
-3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+1. Open round **`065-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling · a PM pass to retire **RF-063-10**).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+*(Round 064 is fully closed out: PR #131 human-merged into `dev` (`63aaa62`, fast-forward); propagation `dev → main` **DONE** (**no-ff**, `8914fee`), tagged **`round-064`** with operator approval; the installed binary was refreshed from the `dev` head.)*
 
 ## 4. PM follow-ups
 
