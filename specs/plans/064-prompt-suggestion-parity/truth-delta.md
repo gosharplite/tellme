@@ -5,25 +5,26 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: **Clarify OPEN — Q1** (the scope of "behaviour only": pool-only vs. the reference's other source behaviours) is pending the operator's answer. Owner rows are recorded once their phases run.
+> **Status**: **Clarify CLOSED — Q1 → A** (pool-only: deepen the recent-prompt candidate pool to the newest 50; the surfaced cap stays 10) locked by the operator (2026-09-20). Owner rows: `research`/`api`/`data` **recorded below**; `dsl-refine` rows follow once that phase runs.
 
 ## /axb-technical-research
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| *(pending)* | `specs/truth/techstack.md` — *Prompt suggestion engine* | *(to be recorded: the candidate-pool depth 10 → newest 50; the cap stays 10)* | `spec.md` FR-001…FR-004, SC-001…SC-003 |
+| MODIFY | `specs/truth/techstack.md` — *Prompt suggestion engine* | the row now states the recent-prompt **candidate pool** is the newest **50** distinct prompts (`promptPoolDepth`), the surfaced list stays **capped at 10** (`maxSuggestions`), and the two are **distinct single-owner constants**; corrected the stale "active session" prompt-source clause (the user-global shared log is the only prompt source) and dropped "session" from the mechanism cell. | `spec.md` FR-001…FR-005, S-1/S-3 (Q1 → A); `research.md` D1/D2/D3 |
+| ADD | `docs/decisions/0034-prompt-suggestion-pool-depth.md` (+ the index row) | the decision: the pool deepens to the newest 50 (the reference's `LoadTopN(ctx, 50)`), the cap stays 10, the kept divergences (tool source, `~/.tellme/` log, no `WorkspacePolicy`, no compaction) and the unadopted forward items (empty-query-first-5, session source). | `spec.md` S-1/S-4/S-5; `research.md` D6 |
 
 ## /axb-api-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| *(pending)* | `specs/truth/` (**no `contracts/**`**) | expected **NOOP (checked)** — single CLI end; no OpenAPI/HTTP surface changes. | `spec.md` A3 (`contract-authoritative` holds vacuously) |
+| NOOP (checked) | `specs/truth/` (**no `contracts/**`**) | Single CLI end; no OpenAPI/HTTP surface exists or changed. | `spec.md` A3 (`contract-authoritative` holds vacuously) |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| *(pending)* | `specs/truth/data/data-model.dbml` | expected **NOOP (checked)** — the shared prompt-log record shape is unchanged; only the read depth into it changes. | `spec.md` A3 (`data-model-covers-all-state` holds) |
+| NOOP (checked) | `specs/truth/data/data-model.dbml` | No persisted shape changes: the shared prompt-log record (`prompt_log_entry`) is unchanged; only the read depth into it moves. | `spec.md` A3 (`data-model-covers-all-state` holds) |
 
 ## /axb-dsl-refine
 
