@@ -152,3 +152,88 @@ A later session on the same calendar day: bootstrapped/continued on `dev`, opene
 ### PM follow-ups
 
 - None new.
+
+---
+
+## 9. Session 29 (2026-09-19, cont.) — round 055 `055-e2e-suite-throughput`: opened → full pipeline → review (B-055-1 blocker) folded → two fold-verifications → **merged (PR #120)** → closeout (Steps 1–8)
+
+A later session on the same calendar day: bootstrapped/continued on `dev`, opened round **055** from an **operator request** (*"full test takes more than 60 sec"* — the E2E suite is the cost), ran the full AIxBDD pipeline, took **PR [#120](https://github.com/gosharplite/tellme/pull/120)** through an architectural review (**REQUEST CHANGES — B-055-1** + TD-055-1…TD-055-7 + R-A/R-B/R-055-x), a fold, a fold-verification (**FOLDS VERIFIED, CLEARED FOR MERGE**; R-055-1…R-055-4), a second fold, and a **final verification (CERTIFIED MERGE-READY)**, saw the **human merge** (merge commit), and ran `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | **test-tooling / developer-throughput** (operator request; **no anchor issue**): parallel E2E scenarios by default + a subset target that can never be the gate |
+| Clarify (one at a time) | **Q1 → B** (parallelism **on by default** at `4` + the `TELL_ME_E2E_CONCURRENCY` seam; ADR-0010 timing protection) · **Q2 → A** (`make test-fast` over `godog.paths`; banner + never-the-gate guard; default = the non-`chat` modules) · **Q3 → A** (gate ≤ 60 % of the paired serial baseline; N = 5) |
+| Pipeline | specify ✅ · clarify ✅ (Q1–Q3) · spec-by-example **NOOP** (tooling round) · technical-research ✅ (**ADR 0024** + `techstack.md` MODIFY ×4) · system-analysis ✅ (0 interfaces; api/data/dsl-refine NOOP) · tasks ✅ (T001–T008) · implement ✅ |
+| Measured | `tests/e2e` **≈50.7 s → ≈16.9 s** (**3.0×**, 5/5 green); paired full gate **55.0 s → 20.7 s** (**38 %**, 2.7×); **240/240 Examples** still executed; `-race` green |
+| Review chain (PR #120) | review `5737679923` (REQUEST CHANGES — **B-055-1** + TD-055-1…7 + R-A/R-B/R-055-x) → fold **`da5f971`** (+ `27c6b42`) → fold-verification `5737827816` — **FOLDS VERIFIED, CLEARED FOR MERGE** (R-055-1…R-055-4) → fold **`1561281`** (+ `a28285e`) → final verification `5737871344` — **FOLDS VERIFIED — CERTIFIED MERGE-READY** |
+| Merge | PR [#120](https://github.com/gosharplite/tellme/pull/120) merged **`0531a8f`** (**merge commit**); remote + local branch deleted |
+| Propagation | `dev → main` — **DONE (no-ff)** (see Step 7) |
+| `go install` | `go install ./cmd/tellme` refreshed at closeout; `--version` → `dev` |
+| Closeout | `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (240/240) · `-race` green · diff-level secret scan clean · `STATUS.md` split (Rule 12: round-054 detail + its env note + the 052 branch row → `2026-09-19.md`) · **nothing to close** (operator request) |
+
+### The change
+
+- **US1** — `tests/e2e/suite_test.go`: `e2eDefaultConcurrency = 4` + `e2eConcurrency()` (reads `TELL_ME_E2E_CONCURRENCY`, else 4) + `godog.Options{Concurrency: …}`. Timing-sensitive scenarios keep their bounds and pass 5/5; the gain is **wait-overlap** (the 3 never-answering MCP scenarios + the `sleep` legs), which is why `4` survives a small CI.
+- **US2** — `Makefile test-fast` + `E2E_FAST_MODULES` (default the non-`chat` modules = 43 Examples) → a `godog.paths` subset, behind a `SUBSET — NOT THE GATE` banner.
+- **The invariant** — the subset **never** becomes the gate: `make test`/`go test -count=1 ./...` always runs **all 240 Examples**; `test-fast` is not a `verify` member and not referenced by `test`. Enforced by `guardSelection`/`featureSet` in the **harness on resolved paths** (refuses a selection that **covers** the contract — equality **or** superset — so a traversal, an all-modules list, and a root-plus-extras selection are all caught) + a `Makefile` pre-check (empty list / missing module / module resolving to the root).
+
+### Folds
+
+| # | Item | Fold |
+| --- | --- | --- |
+| **B-055-1** (blocker) | the guard enforced *spellings*, not *resolutions*; the harness entry point was unguarded | moved the guard into the **harness on resolved paths** + a harness banner — **both** entry points obey it |
+| TD-055-1 | dead `paths = root` clause + a mislabelled empty message | clause deleted; empty case reworded; one canonical containment check |
+| TD-055-2 | no unit pins for the new resolvers | new `tests/e2e/suite_guard_test.go` (4 tests / 11 subtests, incl. traversal + all-modules + missing-path + no-selection) |
+| TD-055-3 | `spec.md` FR-005 named `MODULES=` | folded to the shipped **`E2E_FAST_MODULES`** |
+| TD-055-4 | ADR "1746 steps" / "≈54 s" | reconciled to `research.md` (**1770 steps**, **≈55 s**) |
+| TD-055-5 | 3 glued `techstack.md` rows | `. ` separator ×3 |
+| TD-055-6 | `make help` omitted `test-fast` | help line added |
+| TD-055-7 | no RF-055-x in `STATUS.md` | pointer line added (owner = ADR 0024 §Forward) |
+| R-A / R-B / R-055-x / §10 | race witness; ratio point→range; flag-namespace caveats; wait-overlap rationale | recorded |
+| R-055-1 | guard decided on set **equality**, not containment (a superset slipped through) | refuse when the selection **covers** the contract (**equality or superset**); `TestGuardSelection` gains the superset row |
+| R-055-2 / R-055-3 / R-055-4 | ADR D5 point→range; banner-visibility wording; banner-before-refusal | folded |
+| R-055-4b | banner precedes the refusal for a union/parent spelling (`..`) | **recorded, per the reviewer** (the run fails; one authority stays the harness) |
+
+### Commits (branch `055-e2e-suite-throughput`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `df1b426` | `docs(055)`: plan package + spec |
+| `ba80a8c` | fold clarify Q1 → B |
+| `2c1d35b` | fold clarify Q2 → A |
+| `abb905a` | close clarify round 1 (Q3 → A) |
+| `42f942a` | `feat(055)`: parallel E2E scenarios by default + a `test-fast` subset (ADR 0024) |
+| `da5f971` | fold PR #120 review — B-055-1 + TD-055-1…7 + R-A/R-B/R-055-x |
+| `27c6b42` | STATUS — PR #120 + fold head |
+| `1561281` | fold PR #120 fold-verification — R-055-1…R-055-4 |
+| `a28285e` | record R-055-4b (doc-only) |
+| `0531a8f` | PR [#120](https://github.com/gosharplite/tellme/pull/120) merge into `dev` (by `thptcnec`) |
+| *(this closeout, on `dev`)* | `docs(055)`: day close — round 055 delivered + propagated; STATUS split + 09/19 summary §9 |
+
+### Steps 1–8
+
+- **Step 1 — working tree**: synced `dev` to `0531a8f`; the merged round branch deleted (local + remote); no frozen package touched (`specs/plans/054-*`, `053-*` untouched).
+- **Step 2 — gates**: `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** · `go test -count=1 ./...` green (240/240 Examples, 25 s) · `go test -race -count=1 ./tests/e2e/` green · diff-level secret scan clean · `go.mod`/`go.sum` unchanged.
+- **Step 3 — `STATUS.md`**: round 055 **DELIVERED / FROZEN**; Rule-12 split (the round-054 detail + its env note + the round-052 branch-model row → `docs/archives/status/2026-09-19.md`); branch model + roadmap + open items + env notes refreshed; no liveness contradiction.
+- **Step 4 — day summary**: **appended** this §9 (the §1–§8 record preserved).
+- **Step 5 — reconciliation**: `STATUS.md` ↔ §1–§9 agree.
+- **Step 6 — commit**: `docs(055): day close — …`.
+- **Step 7 — propagation + handoff**: `dev → main` **DONE (no-ff)**; `go install ./cmd/tellme` refreshed from the dev head; next = `dev`, round `056-*`.
+- **Step 8 — issue tracker**: nothing to close/revise (operator request, no anchor issue); [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) open (accurate).
+
+### Residuals (non-blocking, recorded)
+
+- **RF-055-1…RF-055-6** in ADR 0024 §Forward (tags for a chat-scope subset; the backstop ceiling; CI concurrency; per-file selection; an optional `-race` verify member; the flag-namespace mimicry).
+- **R-055-4b** (banner ordering for a union spelling) — recorded, deliberately not "fixed" (one guard authority).
+- **Pre-existing Gherkin/DSL topology-audit errors** (5, in round-054/earlier features) — not caused by round 055; the script is not a `make verify` member; carried item.
+
+### Next steps
+
+1. Open round **`056-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella — context management; [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new.
