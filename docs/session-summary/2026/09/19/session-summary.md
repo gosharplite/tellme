@@ -471,3 +471,75 @@ A later session on the same calendar day: answered two grounding questions (the 
 ### Issue tracker (closeout Step 8)
 
 **No changes** — round 057 was an **operator request** (no anchor issue) and nothing else moved. **[#91](https://github.com/gosharplite/tellme/issues/91)** · **[#13](https://github.com/gosharplite/tellme/issues/13)** — LEFT OPEN (still accurate). No closes, no revisions.
+
+---
+
+## 14. Session 32 (2026-09-19, cont.) — round 058 `058-grey-tool-output-content`: the whole `[Tool Output]` block grey → full pipeline → **review → folds → fold-verification → fold-back (CERTIFIED MERGE-READY)** → **human-merged (PR #124)** → closeout (Steps 1–8)
+
+A later session on the same calendar day: a one-element follow-up to round 057 — the operator asked for **every** `[Tool Output]` line grey, not just the frame. Opened round **058**, ran the whole AIxBDD pipeline, took **PR [#124](https://github.com/gosharplite/tellme/pull/124)** through a **review → fold → fold-verification → fold-back** chain to **CERTIFIED MERGE-READY**, saw the **human merge** (fast-forward `0e0844a`), deleted the branch (after the human deleted the remote), ran `go install`, and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | **operator chrome follow-up** (no anchor issue): **every** `[Tool Output]` line grey — the whole block (header + each streamed content line + both separators); extends round 057, **supersedes its plain-content assumption A3** |
+| Clarify (1/1) | **Q1 → A1** (the trailing partial line is **never printed** — stays dropped; flushing it would be a round-034 FR-010 behaviour change outside the request). Operator-vetoable |
+| Pipeline | specify ✅ · clarify ✅ (Q1 → A1) · spec-by-example ✅ (1 journey) · technical-research ✅ (**ADR 0028** + `techstack.md` ×2 rows) · system-analysis ✅ (1 CLI end; api/data **NOOP**) · dsl-refine ✅ · tasks ✅ (T001–T009 + the fold ledger) · implement ✅ |
+| Deliverable | `internal/ui/tooloutput.go` (`formatToolOutputLineColour`; `WriteWith` uses it with `w.Colour`) · `internal/ui/colour.go` (docs) · `internal/ui/colour_test.go` (`TestChromeColourRound058`) · `tests/e2e/steps/step_r057_payload_and_colour.go` · CLI truth (`chat/colouring-the-session-chrome.feature`, `chat/dsl.md`) · **ADR 0028** + index (+ the ADR 0027 `Status` annotation) · `specs/truth/techstack.md` ×2 rows |
+| Verification | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** · `go test -count=1 ./...` green (**248 scenarios · 1836 steps**) · **two** falsifiability witnesses reproduced + reverted · topology audit back to the **same 5 pre-existing errors** (round 058 adds none; 357 module rows / 1812 steps) · `go.mod`/`go.sum` unchanged |
+| Review chain (PR #124) | review `5254692990` (**APPROVE WITH REQUIRED FOLDS** — no blocker; F-058-1…2 + TD-058-1…2 + R-058-2) → fold **`14dc166`** → fold-verification `5739547989` (**FOLDS VERIFIED 5/5** + the required record fold-back **TF-058-1**) → **`2be386b`** (+ the R-058-c record `0e0844a`) → **CERTIFIED MERGE-READY** |
+| Merge | PR [#124](https://github.com/gosharplite/tellme/pull/124) merged into `dev` **`0e0844a`** (**fast-forward**); remote branch deleted by the human, local branch deleted after an ancestor check |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `0e0844a`; `--version` → `dev`; `vcs.revision=0e0844a…`, `vcs.modified=false` |
+| Propagation | `dev → main` — **DONE (no-ff)** at this closeout |
+| Closeout | `STATUS.md` split (Rule 12: the round-057 detail + its env note + the round-055 branch-model row → [`docs/archives/status/2026-09-19.md`](../../../archives/status/2026-09-19.md)) · §14 appended · **nothing to close** (operator request) |
+
+### Work done
+
+1. **Round opened** — `/axb-specify` created `specs/plans/058-grey-tool-output-content/` on a new branch `058-grey-tool-output-content` off `dev`; `/axb-clarify` (1 question) → **Q1 → A1**.
+2. **Pipeline** — `/axb-spec-by-example` (1 journey) → `/axb-technical-research` (**ADR 0028** + `techstack.md` ×2) → `/axb-system-analysis` (1 CLI end; api/data NOOP) → `/axb-dsl-refine` (the grey Rule text + `dsl.md` row) → `/axb-tasks` (T001–T009) → `/axb-implement`.
+3. **Implementation** — `formatToolOutputLineColour(t, line, colour)` = `grey(FormatToolOutputLine(...))`; the writer's `WriteWith` calls it with the block's `Colour` flag. The wrap sits **outside** the round-038 sanitizer (grey is the line's only escape); the neutral close and the plain path are unchanged. Unit pin + E2E predicate (a header-excluding content-line counter).
+4. **Review + folds** — review `5254692990` (APPROVE WITH REQUIRED FOLDS, no blocker) → fold `14dc166`: **F-058-1** (an **anti-vacuity** plain-block Example — the negative previously had no block; built from **existing** sentences), **F-058-2** (ADR 0027's `Status` + index row annotate the A3 supersession), **TD-058-1** (three stale scope docs), **TD-058-2** (a header-excluding content-line counter — Go RE2 has no lookahead, so a scan), **R-058-2** (`TestChromeColourRound058`).
+5. **Fold-verification + fold-back** — `5739547989` (**FOLDS VERIFIED 5/5**) required **TF-058-1**: the fold's own ADR-0027 `Status` line was a **double paste** (a JSON `\u2014` escape artifact) — fixed at `2be386b`; the non-blocking **R-058-c** PM follow-up recorded at `0e0844a`.
+6. **Merge + binary + closeout** — the operator merged PR #124 (`0e0844a`, fast-forward) and deleted the remote branch; the local branch was deleted after verifying the head is an ancestor of `origin/dev`; `go install ./cmd/tellme`; `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 058)
+
+| # | Decision |
+| --- | --- |
+| Q1 → A1 | The trailing partial line is never printed (round-034 FR-010 drop) ⇒ "all lines" = the **printed** lines; the drop is unchanged (operator-vetoable). |
+| S-1/S-2 | Every `[Tool Output]` line grey on a colour-enabled stream; the wrap is applied **outside** the sanitizer (the grey pair is the line's only escape). |
+| S-3/S-4 | The round-054 gate is reused; `turns.log`/`-t` stays **plain** (the block is stderr-only). |
+| S-5/S-6 | The neutral-close restore is unchanged; the yellow `[Tool Action]`, the 500-rune cap, and the payload increment are untouched. |
+| ADR | **ADR 0028** (extends ADR 0027; supersedes its assumption A3 → ADR 0027's `Status` + index row annotated). |
+
+### Commits (branch `058-grey-tool-output-content`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `69f669d` | `docs(058)`: plan package + spec |
+| `62ee22a` | `feat(058)`: every `[Tool Output]` line grey (whole block incl. content lines; ADR 0028) |
+| `7434c46` | `docs(058)`: STATUS in flight |
+| `14dc166` | fold PR #124 review (F-058-1…2 + TD-058-1…2 + R-058-2) |
+| `2be386b` | fold PR #124 fold-verification (TF-058-1) |
+| `0e0844a` | R-058-c PM follow-up record (the merge head) |
+| `0e0844a` | PR [#124](https://github.com/gosharplite/tellme/pull/124) merge into `dev` (**fast-forward**) |
+| *(this closeout, on `dev`)* | `docs(058)`: day close — round 058 delivered + propagated; STATUS split (round-057 detail + env note + round-055 branch row → `2026-09-19.md`) |
+
+### Open items (non-blocking)
+
+- **RF-058-x** in **ADR 0028 §Forward** (the content text is not rune-capped · the trailing partial line stays dropped · the block is stderr-only · **RF-058-4** the round-038 predicate is scope-blind).
+- **PM follow-up R-058-c** (recorded): the plan-side acceptance Rule is weaker than its now-non-vacuous interface carrier; mirror the anti-vacuity Example at the next PM pass.
+- Carried: the **same 5 pre-existing** Gherkin/DSL topology-audit errors; PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`.
+
+### Next steps
+
+1. Open round **`059-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella — context management; [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- **R-058-c** (recorded, PM-owned): the acceptance journey's plain-block Rule carries two Examples that build no block; mirror the interface anti-vacuity Example into it at the next PM pass.
+
+### Issue tracker (closeout Step 8)
+
+**No changes** — round 058 was an **operator request** (no anchor issue) and nothing else moved. **[#91](https://github.com/gosharplite/tellme/issues/91)** · **[#13](https://github.com/gosharplite/tellme/issues/13)** — LEFT OPEN (still accurate). No closes, no revisions.
