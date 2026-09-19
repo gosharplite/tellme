@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — produced by `/axb-specify` from operator tasking. **Clarify round 1 OPEN** (asked one question at a time; the payload-increment semantics carry the open gaps). No `specs/truth/**` file is written by this skill.
+**Status**: Draft — produced by `/axb-specify` from operator tasking. **Clarify round 1 OPEN** (asked one question at a time): **Q1 → Option 2 (LOCKED)** — only the **estimated pre-flight** line gains the delta and drops the budget; the **measured** line keeps today's `<tokens>/<budget>` form. **Q2 (the previous payload's definition/storage) and Q3 (budget-removal scope · no-predecessor form · negative delta) remain OPEN.** No `specs/truth/**` file is written by this skill.
 
 **Input (operator, 2026-09-19, this session)** — three terse chrome requests, given after the operator inspected `tell-me-go`'s palette:
 
@@ -56,7 +56,7 @@
 
 | # | Question | Status |
 | --- | --- | --- |
-| **Q1** | **Which payload line(s) carry the increment, and does the measured post-turn line change too?** The estimated pre-flight line (your example, `~…`) always changes; the measured line (`Payload: 203148/1000000 tokens …`, no `~`) is a separate emission from `usage.PromptTokens`. Options: **(A)** both lines change — each prints its own delta and drops the budget (estimated prints its delta vs the previous estimate; measured prints its delta vs the previous measured reading); **(B)** only the **estimated** line changes (delta + no budget); the measured line keeps the absolute `tokens/budget` form; **(C)** only the **measured** line changes; the estimated line keeps today's form. | ⏳ **OPEN** |
+| **Q1** | **Which payload line(s) carry the increment, and does the measured post-turn line change too?** The estimated pre-flight line (your example, `~…`) always changes; the measured line (`Payload: 203148/1000000 tokens …`, no `~`) is a separate emission from `usage.PromptTokens`. Options: **(A)** both lines change — each prints its own delta and drops the budget (estimated prints its delta vs the previous estimate; measured prints its delta vs the previous measured reading); **(B)** only the **estimated** line changes (delta + no budget); the measured line keeps the absolute `tokens/budget` form; **(C)** only the **measured** line changes; the estimated line keeps today's form. | ✅ **LOCKED → Option 2** (operator, 2026-09-19): **only the estimated pre-flight line** changes — it prints `+<delta> ~<tokens>` and drops the `/budget`; the **measured** line keeps today's `<tokens>/<budget>` absolute form. So exactly one line per call changes, and `/budget` is dropped on the estimated line only (Q3 → (a) is thereby scoped). |
 | **Q2** | **What is "the previous payload" — and is it held in memory or persisted?** Options: **(A)** the last payload value **emitted in this session**, held in memory by the CLI (zero persistence; resets on `--new`/restart — a resumed session starts with no predecessor); **(B)** the previous **measured** `prompt_tokens` **persisted** on the turn record (a round-027-`Calls`-style `Entry` field; survives `--new`/restart; a data-model change under `data/**`); **(C)** the previous call **within the current turn** rather than the previous turn. | ⏳ **OPEN** |
 | **Q3** | **Budget removal, no-predecessor, and negative deltas.** (a) Is `/budget` dropped from **every** payload line, or only from the line(s) that gain a delta? (b) With no predecessor (first payload of a session, or right after `--new`/restart), what prints — `+0`, an omitted delta, or the absolute-only form? (c) When the current payload is **smaller** than the previous one (compaction, pruned/summarised history, `--new`), does the delta print negative (`-1234`), or clamp to `+0`? | ⏳ **OPEN** |
 
@@ -104,14 +104,14 @@ As the **operator**, when I read a turn's payload line I want to see the **incre
 
 **Acceptance Scenarios**:
 
-1. **Given** a session whose previous payload was `203048` and whose current estimate is `203148`, **When** the payload line is rendered, **Then** the token segment is `+100 ~203148` (S-4) and the line no longer contains `/1000000`.
+1. **Given** a session whose previous **estimated** payload was `203048` and whose current estimate is `203148`, **When** the estimated payload line is rendered, **Then** its token segment is `+100 ~203148` (Q1 → 2, S-4) and that line no longer contains `/1000000`; the **measured** line below it still prints `<tokens>/1000000`.
 2. **Given** a first payload of a session (no predecessor), **When** the line is rendered, **Then** the delta follows the Q3 → (b) decision (a defined, non-crashing form).
 3. **Given** a current payload **smaller** than the previous one, **When** the line is rendered, **Then** the delta follows the Q3 → (c) decision (a defined form).
 4. **Given** any payload line, **When** it is rendered, **Then** the rest of the line (timestamp, `Payload:`, `tokens`, ` - <mode> - <model>`) is unchanged (I-1) and `turns.log` still receives the plain form.
 
 **Functional Requirements**:
 
-- **FR-006**: the payload status line MUST render its token segment as `+<delta> <tokens>` (delta resolving per Q1/Q2), with the `/budget` portion removed per Q3 → (a) (S-4).
+- **FR-006**: the **estimated pre-flight payload line** MUST render its token segment as `+<delta> ~<tokens>` (delta resolving per Q2), with the `/budget` portion removed (Q1 → 2, S-4). The **measured** line is **unchanged** (`<tokens>/<budget>`).
 - **FR-007**: the line MUST resolve its delta and its no-predecessor / negative cases per the clarify decisions, deterministically (Q2/Q3).
 - **FR-008**: the payload line's remaining content MUST be unchanged (timestamp, label, `tokens`, mode, model — I-1), and the round-054 green accents MUST be preserved or extended per the delta's colour decision.
 - **FR-009**: the delta MUST be display-only — no persistence beyond whatever Q2 requires, no change to the round-024 effective budget, the round-026 tool-usage accounting, or any exit code (I-3/I-4).
