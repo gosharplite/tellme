@@ -90,6 +90,12 @@ func TestServiceSuggestAsksForDeepenedPoolAndCapsAtTen(t *testing.T) {
 	if src.asked != promptPoolDepth {
 		t.Fatalf("history source asked for n = %d, want the deepened pool %d (round 064)", src.asked, promptPoolDepth)
 	}
+	// Literal pin (review R-4 recorded; the round-057 argValueCap = 500 pattern):
+	// the parity depth itself is bound, so a silent drift to 51 (or any non-50 value)
+	// is caught here, not only by the qualitative depth>cap relation.
+	if promptPoolDepth != 50 {
+		t.Fatalf("promptPoolDepth = %d, want the reference's 50 (ADR 0034)", promptPoolDepth)
+	}
 	if promptPoolDepth <= maxSuggestions {
 		t.Fatalf("promptPoolDepth (%d) must be strictly deeper than the surface cap (%d)", promptPoolDepth, maxSuggestions)
 	}

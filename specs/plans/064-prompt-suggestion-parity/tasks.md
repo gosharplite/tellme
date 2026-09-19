@@ -27,7 +27,7 @@
 ## Phase 4 — Regression & witnesses
 
 - [x] **T009** [REGRESSION] The existing suggestion Examples stay GREEN (recent-prompt, workspace path, tool name, accept, >3-line drop) — the change is depth-only.
-- [x] **T010** [WITNESS] Reproduce then revert: (a) restoring `promptPoolDepth` to **10** turned the unit pin T005 **RED** (`promptPoolDepth (10) must be strictly deeper than the surface cap (10)`) and the E2E depth Example **RED** (`267 scenarios (266 passed, 1 failed)`); the cap is non-vacuous — its carrier is the unit pin's many-match case (T005), not an interface Example (see review R-3).
+- [x] **T010** [WITNESS] Reproduce then revert: (a) restoring `promptPoolDepth` to **10** turned the unit pin T005 **RED** (`promptPoolDepth (10) must be strictly deeper than the surface cap (10)`) and the E2E depth Example **RED** (`267 scenarios (266 passed, 1 failed)`); (b) raising the **surface cap** (`maxSuggestions = 20`) turned the **E2E cap Example RED** (`The ten nearest matches are offered and the surplus is dropped`, `267 passed, 1 failed`) while the **unit pin stayed GREEN** — its `len(got) == maxSuggestions` clause is self-referential, so the E2E cap Example is the value-binding cap carrier (review R-4).
 - [x] **T011** [RECORD] `truth-delta.md` dsl-refine rows + STATUS update; commit the round.
 
 ## Conventions
