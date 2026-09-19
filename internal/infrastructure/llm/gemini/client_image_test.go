@@ -264,7 +264,7 @@ func TestRequestBody_ShortRound_DropsUnpairedNames(t *testing.T) {
 				{ID: "call_2", Name: "list_files", Arguments: `{}`},
 			},
 			results:  []llm.Message{{Role: "tool", Content: "only a", ToolCallID: "call_1"}},
-			wantLeft: []string{"read_files"}, wantNext: "get_tree",
+			wantLeft: []string{"read_files"}, wantNext: "search",
 		},
 		{
 			name: "N=3 M=1",
@@ -274,7 +274,7 @@ func TestRequestBody_ShortRound_DropsUnpairedNames(t *testing.T) {
 				{ID: "call_3", Name: "get_tree", Arguments: `{}`},
 			},
 			results:  []llm.Message{{Role: "tool", Content: "only a", ToolCallID: "call_1"}},
-			wantLeft: []string{"read_files"}, wantNext: "get_tree",
+			wantLeft: []string{"read_files"}, wantNext: "search",
 		},
 		{
 			name: "N=3 M=2",
@@ -287,7 +287,7 @@ func TestRequestBody_ShortRound_DropsUnpairedNames(t *testing.T) {
 				{Role: "tool", Content: "note a", ToolCallID: "call_1"},
 				{Role: "tool", Content: "listing", ToolCallID: "call_2"},
 			},
-			wantLeft: []string{"read_files", "list_files"}, wantNext: "get_tree",
+			wantLeft: []string{"read_files", "list_files"}, wantNext: "search",
 		},
 	}
 	for _, tc := range cases {
@@ -295,7 +295,7 @@ func TestRequestBody_ShortRound_DropsUnpairedNames(t *testing.T) {
 			prior := append([]llm.Message{{Role: "assistant", ToolCalls: tc.calls}}, tc.results...)
 			// A second round with its own single call + result must pair correctly.
 			prior = append(prior,
-				llm.Message{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_9", Name: "get_tree", Arguments: `{}`}}},
+				llm.Message{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_9", Name: "search", Arguments: `{}`}}},
 				llm.Message{Role: "tool", Content: "tree", ToolCallID: "call_9"},
 			)
 			body, err := requestBody("", prior, nil, 0, 0, "", "")
