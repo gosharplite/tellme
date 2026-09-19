@@ -23,14 +23,14 @@ So the block currently reads as a grey frame with plain content inside it; the o
 
 **D4 — The trailing partial line stays dropped.** A partial line (no terminating newline) is never printed (round-034 FR-010), so there is nothing to grey; flushing it would be a behaviour change outside the request. *(The operator-vetoable assumption A1.)*
 
-**D5 — Round 057's assumption A3 is superseded; the round-057 package stays frozen.** This ADR records the reversal. ADR 0027's body is **immutable** (an `Accepted` ADR is not edited); the extension is recorded here and linked from ADR 0027's lineage and from `specs/truth/techstack.md`.
+**D5 — Round 057's assumption A3 is superseded; the round-057 package stays frozen.** This ADR records the reversal. ADR 0027's **body** is immutable (an `Accepted` ADR is not rewritten), but its **`Status` field** carries the designated channel for this update: ADR 0027's Status line now reads *“assumption A3 — the plain `[Tool Output]` content lines — superseded by ADR 0028”* (the partial-supersession precedent is ADR 0005 D7), and its index row is annotated `Accepted (A3 superseded by 0028)`. `specs/truth/techstack.md` records the same supersession in the Turn-chrome row.
 
 ## Consequences
 
 - **Positive**: the `[Tool Output]` block reads as one visually distinct region at a terminal, which is what the operator asked for; the change is one formatter + one call site.
 - **Unchanged guarantees**: the sanitizer boundary (the wrap cannot be escaped), the neutral close, the plain file leg, and off-terminal/`-r` byte-identity.
 - **Recorded divergence**: the **element set** is tellme's own (the reference greys its whole output block too, but with a different sanitizer/neutral-close lineage).
-- **Forward** (RF-058-x): (1) the content text is **not** rune-capped (unchanged — a very long line is grey in full); (2) the trailing partial line stays dropped (a future flush must decide its colour in the same change); (3) the block is stderr-only — a future turn-log inclusion of `[Tool Output]` (round-053 RF-53-1) must render the file leg plain.
+- **Forward** (RF-058-x): (1) the content text is **not** rune-capped (unchanged — a very long line is grey in full); (2) the trailing partial line stays dropped (a future flush must decide its colour in the same change); (3) the block is stderr-only — a future turn-log inclusion of `[Tool Output]` (round-053 RF-53-1) must render the file leg plain; (4) **the round-038 sanitize predicate is now scope-blind (round-058 review note, pre-existing, not this round's debt).** `tests/e2e/steps/step_r038.go`'s `r038ControlFree` fails any `[Tool Output]` content line carrying a **single `0x1b`** byte; post-058 every content line carries tellme's own grey pair (two `0x1b` bytes). Its two Examples (`watching-the-tool-loop.feature` lines 89/98) do **not** arrange a terminal, which is the only reason the suite is green — the suite currently asserts *"content lines contain no ESC"* off-terminal and *"content lines are ESC-wrapped"* on-terminal over the same fixture, separated only by the gate. The durable form scopes the predicate to the **sanitizer's contribution** (allow the known grey pair, then assert ESC-free); until then, a terminal-arranged Example sharing that Then would report a false failure about tellme's own wrapper.
 
 ## Alternatives considered
 

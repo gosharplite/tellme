@@ -28,6 +28,20 @@ Feature: Colouring the session chrome
       Then the session chrome carries no colour
       And tellme exits successfully
 
+    # Round 058 (ADR 0028; F-058-1): the negative must exercise an ACTUAL
+    # `[Tool Output]` block — the tool-less Example above builds none, so it cannot
+    # witness "the block is plain when the gate is off". This Example runs a
+    # command (so the block exists) off a terminal; the first Then is the
+    # anti-vacuity clause.
+    Example: A piped command run keeps its whole output block plain
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured provider "test-model" whose endpoint runs a colouring command and then answers with "done"
+      When the operator starts tellme with the prompt "Run the colouring command."
+      Then the run streamed the command's output on its diagnostic output
+      And the session chrome carries no colour
+      And tellme exits successfully
+
   Rule: The saved turn log carries the same content, plain
 
     # Round 057 (ADR 0027; F-057-2): the operator's Q3 → 1 lock is CONTENT parity —

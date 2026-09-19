@@ -1,6 +1,6 @@
 # ADR 0027 — Tool-chrome colour accents, a 500-rune `[Tool Action]` cap, and a pre-flight payload increment
 
-- **Status:** Accepted
+- **Status:** Accepted (**assumption A3 — the plain `[Tool Output]` content lines — superseded by [ADR 0028](0028-grey-tool-output-block.md)**) (**assumption A3 — the plain `[Tool Output]` content lines — superseded by [ADR 0028](0028-grey-tool-output-block.md)**)
 - **Date:** 2026-09-19
 - **Deciders:** tellme owner
 - **Related:** [ADR 0023](0023-list-default-and-chrome-colour.md) (the round-054 chrome-colour policy this ADR extends), [ADR 0022](0022-offline-session-config-and-turns-log.md) (the `turns.log` file leg this ADR keeps plain), [ADR 0005](0005-tool-call-log-parity.md) (the decomposed tool-log rendering + the rune-safe caps this ADR re-parameterises), [ADR 0008](0008-terminal-safe-lines-and-blank-line-grouping.md) (the sanitize policy the colour wraps around), [ADR 0014](0014-yield-policy-owner.md) (the `[Tool Output]` coordinator this ADR re-parameterises), round 057 (`specs/plans/057-tool-chrome-colour-and-payload-delta`)

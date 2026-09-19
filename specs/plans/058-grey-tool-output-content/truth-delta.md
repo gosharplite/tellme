@@ -37,3 +37,5 @@
 | Action | Artifact | Change Summary | Reason |
 | --- | --- | --- | --- |
 | ADD | `docs/decisions/0028-grey-tool-output-block.md` (+ index row) | Records the block-wide grey; **supersedes round 057's A3** (the round-057 package stays frozen); §Forward RF-058-x. | `spec.md` A4/A5; `research.md` D8 |
+
+| MODIFY (fold) | `specs/truth/features/cli/chat/colouring-the-session-chrome.feature` | **Round 058 fold (PR #124 review F-058-1):** a new anti-vacuity Example (A piped command run keeps its whole output block plain) in the plain Rule - an actual block off a terminal (existing sentences only). | PR #124 review F-058-1 |

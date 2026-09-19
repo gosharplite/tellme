@@ -27,14 +27,39 @@ func init() {
 
 // The reference's grey/yellow SGR pairs (tell-me-go colors.go).
 var (
-	reGreyHeader    = regexp.MustCompile("\x1b\\[0;90m\\[[0-9]{2}:[0-9]{2}:[0-9]{2}\\] \\[Tool Output\\] ")
-	reGreySeparator = regexp.MustCompile("\x1b\\[0;90m-{60}\x1b\\[0m")
-	// reGreyToolOutputPrefix matches a grey-wrapped `[Tool Output] …` line (header
-	// OR content); round 058 counts them to prove the content lines are grey.
-	reGreyToolOutputPrefix = regexp.MustCompile("\x1b\\[0;90m\\[[0-9]{2}:[0-9]{2}:[0-9]{2}\\] \\[Tool Output\\] ")
-	reYellowAction         = regexp.MustCompile("\x1b\\[0;33m\\[[0-9]{2}:[0-9]{2}:[0-9]{2}\\] \\[Tool Action\\] ")
-	reOldEstimateCur       = regexp.MustCompile(`Payload: ~[0-9]+/[0-9]+ tokens`)
+	reGreyHeader     = regexp.MustCompile("\x1b\\[0;90m\\[[0-9]{2}:[0-9]{2}:[0-9]{2}\\] \\[Tool Output\\] ")
+	reGreySeparator  = regexp.MustCompile("\x1b\\[0;90m-{60}\x1b\\[0m")
+	reYellowAction   = regexp.MustCompile("\x1b\\[0;33m\\[[0-9]{2}:[0-9]{2}:[0-9]{2}\\] \\[Tool Action\\] ")
+	reOldEstimateCur = regexp.MustCompile(`Payload: ~[0-9]+/[0-9]+ tokens`)
 )
+
+// greyToolOutputContentLineCount counts grey-wrapped `[Tool Output]` lines that
+// are NOT the header (round 058; TD-058-2). A Go `regexp` (RE2) has no lookahead,
+// so the header text is excluded by a scan rather than a negative-lookahead
+// pattern: a line is a CONTENT line when it is grey and carries the `[Tool Output]`
+// prefix but not the fixed header text. This keeps the content assertion genuinely
+// distinct from the header check (the header cannot satisfy it), unlike counting
+// the shared prefix.
+func greyToolOutputContentLineCount(stderr string) int {
+	n := 0
+	for _, line := range strings.Split(stderr, "\n") {
+		if !strings.HasPrefix(line, "\x1b[0;90m") {
+			continue
+		}
+		if !reGreyHeader.MatchString(line) {
+			continue
+		}
+		if strings.Contains(line, toolOutputHeaderText) {
+			continue // the header, not a content line
+		}
+		n++
+	}
+	return n
+}
+
+// toolOutputHeaderText is the fixed header payload the writer emits (the header
+// line's tail); a grey `[Tool Output]` line carrying it is the header.
+const toolOutputHeaderText = "Executing... (Output shown below)"
 
 // thenEstimatedNoAllowance: the estimated line no longer carries the `/budget`
 // allowance (it now shows a signed increment before the estimated size).
@@ -88,10 +113,10 @@ func thenToolOutputGrey(ctx context.Context) error {
 		return fmt.Errorf("expected the opening and closing separators grey; found %d grey separator(s); stderr=%q", n, sc.stderr)
 	}
 	// The header shares the `[Tool Output]` prefix with a content line, so count
-	// every grey-wrapped `[Tool Output] …` line: header (1) + at least one content
-	// line ⇒ ≥ 2 total.
-	if n := len(reGreyToolOutputPrefix.FindAllString(sc.stderr, -1)); n < 2 {
-		return fmt.Errorf("expected the header AND at least one content line grey (>=2 grey `[Tool Output]` lines); found %d; stderr=%q", n, sc.stderr)
+	// grey CONTENT lines explicitly (header text excluded) — the header cannot
+	// satisfy this check (round-058 fold TD-058-2).
+	if n := greyToolOutputContentLineCount(sc.stderr); n < 1 {
+		return fmt.Errorf("expected at least one grey `[Tool Output]` CONTENT line; found %d; stderr=%q", n, sc.stderr)
 	}
 	return nil
 }

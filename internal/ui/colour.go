@@ -4,9 +4,9 @@ package ui
 // The diagnostic chrome gains GREEN accents on four elements — the whole
 // `[Tool Reason]` line, the `MODE` token in both `Payload` lines, the measured
 // token number in the measured `Payload` line, and the third (session) cost in
-// `╰─⠿ Ready` — plus, since round 057, GREY on the `[Tool Output]` header line and
-// both horizontal separators, and YELLOW on the whole `[Tool Action]` line. The
-// COLOUR CODES are the reference's (`tell-me-go/internal/ui/colors.go`:
+// `╰─⠿ Ready` — plus, since round 057, GREY on the whole `[Tool Output]` block (the
+// header + both separators; round 058 (ADR 0028) extends it to the streamed
+// content lines), and YELLOW on the whole `[Tool Action]` line. The COLOUR CODES are the reference's (`tell-me-go/internal/ui/colors.go`:
 // `colorGreen` / `colorGray` / `colorYellow`); the ELEMENT SET is tellme's own — a
 // recorded divergence.
 //
@@ -20,8 +20,10 @@ const (
 	// colorGreen is the reference's 8-colour SGR green (tell-me-go colors.go).
 	colorGreen = "\033[0;32m"
 	// colorGray is the reference's bright-black (grey) SGR (tell-me-go
-	// colors.go). Round 057 (ADR 0027): the `[Tool Output]` header line and both
-	// horizontal separators are wrapped grey on a colour-enabled terminal.
+	// colors.go). Round 057 (ADR 0027) greyed the `[Tool Output]` header line and
+	// both horizontal separators; round 058 (ADR 0028) extends the grey to the
+	// streamed content lines, so the whole block is grey on a colour-enabled
+	// terminal.
 	colorGray = "\033[0;90m"
 	// colorYellow is the reference's SGR yellow (tell-me-go colors.go). Round 057
 	// (ADR 0027): the whole `[Tool Action]` line is wrapped yellow on a

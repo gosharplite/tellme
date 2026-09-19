@@ -88,10 +88,11 @@ type ToolOutputWriter struct {
 	W io.Writer
 	// Now is the injected clock seam; nil falls back to time.Now.
 	Now func() time.Time
-	// Colour, when true, wraps the header line and both horizontal separators grey
-	// (round 057; ADR 0027). The streamed CONTENT lines stay plain (their sanitizer
-	// is the round-038 policy). The plain path is byte-identical to the pre-057
-	// literals.
+	// Colour, when true, wraps EVERY `[Tool Output]` line grey — the header, each
+	// streamed content line (round 058; ADR 0028), and both horizontal separators
+	// (round 057; ADR 0027). The content wrap sits OUTSIDE the round-038 sanitizer,
+	// so grey is the line's only escape. The plain path is byte-identical to the
+	// pre-057 literals.
 	Colour bool
 
 	mu   sync.Mutex
