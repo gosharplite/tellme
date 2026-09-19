@@ -75,6 +75,9 @@ The change is confined to `internal/infrastructure/llm/gemini` (`client.go` `bui
 - **RF-066-4** — concurrent tool **execution** itself ([#36](https://github.com/gosharplite/tellme/issues/36) item 3) — this round makes the wire *ready*; it does not add concurrency (sequential tools remain a settled exclusion).
 - **RF-066-6** — an **order-independence carrier**: US2's order-independent property has no in-system producer today (the loop is sequential; a replayed round is one call/one result), so it is exercised only by a hand-built `prior`; it gets a real carrier when concurrent dispatch lands ([#36](https://github.com/gosharplite/tellme/issues/36) item 3). *(R-066-2.)*
 - **RF-066-7** — surface the **unpaired** calls of an `M < N` round (an id accessor) to replace the still-open `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual (F-066-1; the boundary drop is unchanged this round).
+- **RF-066-8** — the `N=2 M=1` residual itself stays open (the pin cannot kill the pre-fold partial-drop mutant — inherent `M == N/2` arithmetic equivalence); carried from round 065, unchanged.
+- **RF-066-9** *(fold-verification R-066-6)* — the replay id-primary claim is pinned with a **hand-built `prior`**, not `agent.BuildMessages` output, and no E2E asserts the wire `id`; adapter↔`BuildMessages` coherence rests on fixture convergence.
+- **RF-066-10** *(fold-verification R-066-5, convention)* — the in-group live-check harness resolves the closeout-refreshed **GOPATH** binary; a mid-round live check must build the branch binary and record `go version -m` provenance.
 
 ## References
 

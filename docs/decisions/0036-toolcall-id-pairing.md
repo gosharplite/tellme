@@ -23,7 +23,7 @@ The FIFO is **correct today** only because the `AgentLoop` dispatches tool calls
 
 **D4 — Scope is family-local: `internal/infrastructure/llm/gemini`.** The OpenAI-compatible adapter, the loop, the ports, the tools, the config, and the persisted records are **untouched**. No new dependency (`encoding/json` only); POSIX-only; hermetic.
 
-**D5 — The round boundary is unchanged; unmatched calls are identified by identity.** At a round boundary the adapter still emits the `M` parts the round produced (ADR 0035's recorded shape); with the per-round call index the **unpaired** calls are now known **by id**. The observable output is unchanged; there is no new failure mode.
+**D5 — The round boundary (and its drop) is unchanged.** At a round boundary the adapter still emits the `M` parts the round produced (ADR 0035's recorded shape); a call left unpaired contributes no part and `pending` is cleared — behaviourally identical to the round-065 `pending[:0]`. The **`N - M` unpaired calls are not surfaced** (no error, log, or accessor); surfacing them is a forward item (RF-066-7). No new failure mode. *(Corrected at the fold verification's F-066-3: this clause previously claimed the unpaired calls are identified by identity, which the code does not deliver.)*
 
 **D6 — Invariants held.** The OpenAI-compatible wire is **byte-preserved**; the round-065 batched **shape** is preserved (one `user` turn, N `functionResponse` parts, media turns after) — the added `id` key is the sole difference, so a **tool-bearing** Gemini body is **shape-identical, not byte-identical**; the media-free **text** path is **byte-identical**; no silent media loss (ADR 0032/0033) — the id-less-`tool`-message widening is restricted to a **media-free** `tool` message, so a media-bearing one is still carried (the review's F-066-2); round-014 replay fidelity holds via the **id-primary** match (D3), with the FIFO fallback defensive.
 
@@ -37,7 +37,7 @@ The FIFO is **correct today** only because the `AgentLoop` dispatches tool calls
 
 - A round's calls and results are **id-linked** on the Vertex wire — reference parity, and safe against a provider that requires it.
 - Pairing is **order-independent**: the adapter stays correct if tool calls are ever dispatched concurrently ([#36](https://github.com/gosharplite/tellme/issues/36) item 3) — the property ADR 0035 D2 anticipated.
-- The FIFO fallback preserves the **replay** path (persisted steps carry no stored wire id).
+- The **id-primary** pairing preserves the **replay** path (the loop's `BuildMessages` sets the same `call_step_<n>` on both sides) — the FIFO fallback is the defensive path for an id-less result.
 - The OpenAI-compatible wire and the media-free text path are **byte-identical**; the round-065 batched shape is **preserved**.
 - One adapter function + pins — small and provable.
 
@@ -87,6 +87,8 @@ The FIFO is **correct today** only because the `AgentLoop` dispatches tool calls
 - **RF-066-6** — an **order-independence carrier**: US2's order-independent property has no in-system producer today (the loop is sequential; a replayed round is one call/one result), so it is exercised only by a hand-built fixture; a real carrier arrives with concurrent dispatch ([#36](https://github.com/gosharplite/tellme/issues/36) item 3). *(the review's R-066-2.)*
 - **RF-066-7** — surface the **unpaired** calls of an `M < N` round (an id accessor) to replace the still-open `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual; this round leaves the boundary drop unchanged. *(the review's F-066-1 option (i).)*
 - **RF-066-8** — the still-open `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual (the pin cannot kill the pre-fold partial-drop mutant — inherent `M == N/2` arithmetic equivalence); carried from round 065, unchanged this round.
+- **RF-066-9** *(fold-verification R-066-6)* — the replay id-primary claim is pinned with a **hand-built `prior`**, not `agent.BuildMessages` output, and no E2E asserts the wire `id`; adapter↔`BuildMessages` coherence rests on fixture convergence.
+- **RF-066-10** *(fold-verification R-066-5, convention)* — the in-group live-check harness resolves the closeout-refreshed **GOPATH** binary, so a **mid-round** live check silently exercises the last install; a mid-round live check must build the **branch** binary and record its `go version -m` provenance.
 
 ## Outcome
 

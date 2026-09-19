@@ -58,6 +58,6 @@ docs/decisions/0036-toolcall-id-pairing.md    ADD (+ README index; ADR 0035 anno
 ## 6. Task directives (handed to `/axb-tasks`)
 
 1. **Phase 3 (RED first)** — land the unit pins over the built request body *before* the change: (a) every `functionCall`/`functionResponse` part carries an `id` (response id == call id); (b) an out-of-order result set pairs by identity; (c) an empty-`ToolCallID` result omits the id and pairs by FIFO; (d) the media-free text body is byte-identical; (e) the OpenAI-compatible body is byte-identical. Extend the round-065 batch pins (`TestRequestBody_MultiCallRound_BatchesFunctionResponses` etc.) with the id assertion.
-2. **Phase 4 (GREEN)** — implement the id-link + id-keyed pairing in `buildContents`; keep the round-065 batch shape and media placement; re-anchor the `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual to exact unmatched-id accounting if the pairing change reaches it (SC-005).
+2. **Phase 4 (GREEN)** — implement the id-link + id-keyed pairing in `buildContents`; keep the round-065 batch shape and media placement; keep the `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual unchanged — the pairing change does **not** reach the boundary drop (F-066-1; an unpaired-call accessor is RF-066-7).
 3. **Regression** — the round-065 E2E journeys stay green unchanged; `make verify` + `go test -count=1 ./...`; topology audit unchanged (no feature/DSL edit); `go.mod`/`go.sum` unchanged.
 4. **`[BDD-REMOVE]` applicant** — none (no dead stepdef).

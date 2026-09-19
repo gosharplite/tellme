@@ -51,7 +51,7 @@
 - **I-2 — The round-065 batched shape is preserved.** A round of **N** calls still serializes to **one** `user` turn carrying **N** `functionResponse` parts (in call order), with the round's media turns after it (ADR 0035 D1/D3). Round 066 **adds ids**; it does not change the turn/part structure.
 - **I-3 — The media-free text path is byte-preserved** on **both** families (no tool parts ⇒ no id change).
 - **I-4 — No silent media loss** (ADR 0032 D8 / ADR 0033): every image a round attached is carried on the wire or the turn fails loudly; never dropped (a fix MUST NOT satisfy a shape check by dropping media).
-- **I-5 — Round-014 replay fidelity is preserved:** a resumed turn's persisted `steps` (which carry no stored wire id) still pair deterministically via the FIFO fallback; a replayed body is stable.
+- **I-5 — Round-014 replay fidelity is preserved:** a resumed turn's persisted `steps` are replayed with the loop's synthesised deterministic `call_step_<n>` on **both** the call and the result, so the round pairs by identity (id-primary) and the body is stable; the FIFO fallback is the defensive path for a result that carries no id. *(Corrected — F-066-3: the earlier wording attributed replay to the FIFO fallback.)*
 - **I-6 — No security layer, POSIX-only, hermetic.** No new dependency; every gate offline (ADR 0012).
 - **I-7 — The universal reason gate (ADR 0025) and the round-024 tool resource contract are untouched.**
 
@@ -78,7 +78,7 @@ As the **operator** running `tellme` against a **Gemini/Vertex** provider, I wan
 **Acceptance Scenarios**:
 
 1. **Given** a Gemini round whose model turn carries **N ≥ 1** `functionCall` parts, **When** the request body is built, **Then** every `functionCall` part carries an `id` and every `functionResponse` part carries the `id` of the call it answers.
-2. **Given** a `tool` result whose `ToolCallID` is **empty** (a replay step), **When** the body is built, **Then** the `functionResponse` part emits **no** `id` key (never `"id":""`) and pairs via the FIFO fallback.
+2. **Given** a `tool` result whose `ToolCallID` is **empty** (an id-less step), **When** the body is built, **Then** the `functionResponse` part emits **no** `id` key (never an empty id) and pairs via the FIFO fallback.
 3. **Given** the **single-call** round and the **media-free text** round, **When** the body is built, **Then** the text path is **byte-identical** to today and the single-call shape is unchanged apart from the added id (I-2/I-3).
 
 **Functional Requirements**:
@@ -95,12 +95,12 @@ As the **operator**, I want each tool result bound to the call it answers **by i
 
 **Why this priority**: it is the substantive robustness gain (#134 item 2), but it is not user-visible today (the loop is sequential), so it ranks below the id-carrying that makes it meaningful.
 
-**Independent verification**: drive a round whose results are presented **out of call order** and assert each `functionResponse` carries its **own** call's `name` and `id` (not the arrival-order pairing); and drive a **replayed** round (no stored id) and assert the FIFO fallback still pairs correctly. Witnesses: a wrong-id pairing and a dropped-fallback each go red.
+**Independent verification**: drive a round whose results are presented **out of call order** and assert each `functionResponse` carries its **own** call's `name` and `id` (not the arrival-order pairing); and drive a **replayed** round (the loop's `call_step_<n>` on both sides) and assert the parts carry equal ids (replay is id-primary); an **id-less** result still pairs via the FIFO fallback. Witnesses: a wrong-id pairing and a dropped-fallback each go red.
 
 **Acceptance Scenarios**:
 
 1. **Given** a Gemini round with **two** calls (`A`, `B`) whose results are presented in the order **`B, A`**, **When** the body is built, **Then** the response for `B`'s result carries `B`'s name and id and `A`'s carries `A`'s — i.e. the pairing follows **identity**, not position.
-2. **Given** a **replayed** round whose `tool` steps carry only the synthesised deterministic id (or none), **When** the body is built, **Then** the results pair via the **FIFO fallback** and the body is stable (round-014 fidelity).
+2. **Given** a **replayed** round whose call and result carry the synthesised deterministic `call_step_<n>`, **When** the body is built, **Then** the results pair by identity (id-primary) and the body is stable (round-014 fidelity); an **id-less** result still pairs via the FIFO fallback.
 3. **Given** a round that yields **fewer** results than calls (`M < N`), **When** the body is built, **Then** the unpaired calls are dropped/accounted **by identity** (not by a positional truncation), and no result is silently mispaired.
 
 **Functional Requirements**:
@@ -118,7 +118,7 @@ As the **operator**, I want each tool result bound to the call it answers **by i
 - **N = 1** (single call) — id-carrying applies; the turn shape is unchanged (I-2).
 - **N = 0** — no tool round; the text path is **byte-preserved** (I-3).
 - **Results arrive out of order** — paired by id (US2 Scenario 1).
-- **A result with no `ToolCallID`** (replay) — FIFO fallback; no `id` key emitted (FR-003).
+- **A result with no `ToolCallID`** (an id-less step) — FIFO fallback; no `id` key emitted (FR-003).
 - **`M < N`** (some calls unpaired) — the emitted turn carries the `M` produced parts; the unpaired calls are dropped at the boundary and not surfaced (FR-008).
 - **An id that matches no call of the round** — falls back to FIFO deterministically (FR-007); recorded, never a silent mispair.
 - **Media on only some calls / every call** — only those calls contribute `inlineData`; the batched turn carries all `M`/`N` results; no media loss (I-4).
@@ -139,10 +139,10 @@ As the **operator**, I want each tool result bound to the call it answers **by i
 
 - **SC-001**: Every `functionCall` and `functionResponse` part in a Gemini tool round carries an `id`; a response's id equals its call's id (US1). *(Unit pin over the built request body.)*
 - **SC-002**: An **out-of-order** round pairs each result to its own call (name + id) — the identity pairing (US2 Scenario 1). *(Unit pin.)*
-- **SC-003**: A **replayed** round (no stored id / empty `ToolCallID`) still pairs via the FIFO fallback and produces a **stable** body (I-5). *(Unit pin.)*
+- **SC-003**: A **replayed** round (the loop's `call_step_<n>` on both sides) re-emits parts that pair by identity and produces a **stable** body; an **id-less** result still pairs via the FIFO fallback (I-5). *(Unit pins: `TestRequestBody_ReplayedStepIDsPairByIdentity` + `TestRequestBody_EmptyToolCallIDOmitsID`.)*
 - **SC-004**: The **media-free text** path and the **OpenAI-compatible** wire are **byte-identical** to the pre-round serialization (I-1/I-3); the **tool-bearing Gemini** path is **shape-identical** apart from the added id (I-2). *(Regression pins.)*
 - **SC-005**: With `M < N` results, the batched turn carries the `M` parts produced and the round boundary prevents a later round from mispairing — carried by the existing `TestRequestBody_ShortRound_DropsUnpairedNames` (the `N=2 M=1` residual **stands**; the boundary drop is unchanged — F-066-1). *(Unit pin.)*
-- **SC-006**: A red-capable carrier proves the change: removing the id from the wire reds SC-001; a positional (arrival-order) pairing reds SC-002; dropping the FIFO fallback reds SC-003.
+- **SC-006**: A red-capable carrier proves the change: removing the id from the wire reds SC-001; a positional (arrival-order) pairing reds SC-002; dropping the FIFO fallback reds the empty-id fallback leg of SC-003.
 - **SC-007**: `make verify` + `go test -count=1 ./...` green (incl. the E2E contract); the topology/DSL audit adds **no** new findings; no new dependency; `go.mod`/`go.sum` unchanged.
 
 ## Assumptions
