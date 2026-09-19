@@ -201,9 +201,11 @@ func readArgs(path string) string {
 }
 
 // readFilesArgs builds the read_files tool arguments JSON for several paths
-// (round 021 multi-file contract).
+// (round 021 multi-file contract). Round 056: a call MUST state a reason (the
+// universal *no reason, no go* gate, ADR 0025), so a fixed reason is included —
+// a reason-less read would now be refused.
 func readFilesArgs(paths []string) string {
-	b, _ := json.Marshal(map[string]any{"filepaths": paths})
+	b, _ := json.Marshal(map[string]any{"filepaths": paths, "reason": "read the requested files"})
 	return string(b)
 }
 

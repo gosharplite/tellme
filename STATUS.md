@@ -1,7 +1,7 @@
 # tellme — Status
 
 **Last updated**: 2026-09-19 (session 29 — round **055** `055-e2e-suite-throughput` **DELIVERED / FROZEN** — godog E2E scenarios now run **in parallel by default** (`Concurrency = 4`, overridable via `TELL_ME_E2E_CONCURRENCY`) and **`make test-fast`** runs a subset that can **never** be the gate; measured paired full gate **55.0 s → 20.7 s** (38 %), `tests/e2e` ≈**50.7 s → ≈16.9 s** (**3.0×**) with **all 240 Examples** still executed; **ADR 0024**; PR [#120](https://github.com/gosharplite/tellme/pull/120) human-merged into `dev` `0531a8f` (**merge commit**)). Prior: session 28 — round **054** `054-l-default-and-chrome-colour` **DELIVERED / FROZEN** (ADR 0023; PR #119 merged `c1d248a` — detail relocated to the archive below). **Session mode**: `butler`.
-**Active branch**: `dev` (round 055 delivered/frozen; the next round `056-*` opens off `dev`)
+**Active branch**: `056-mcp-tool-call-reason` — **round 056 IN FLIGHT** (off `dev`; PR open for human merge). Round 055 remains the last **DELIVERED / FROZEN** round.
 **Daily log**: [`docs/session-summary/2026/09/19/session-summary.md`](docs/session-summary/2026/09/19/session-summary.md)
 
 ## Last delivered round — 055 `055-e2e-suite-throughput` (DELIVERED / FROZEN — PR [#120](https://github.com/gosharplite/tellme/pull/120) merged into `dev` `0531a8f`)
@@ -69,6 +69,7 @@ Per-round detail lives in the archives (the delivered-rounds index above records
 | **053** | [#103](https://github.com/gosharplite/tellme/issues/103) | The offline session commands honour **`-c`** (`-l`, prompt-less `--new`) + a **`-t`** turn-log flag with a per-session `turns.log` writer; **closes #103**; **ADR 0022**. | ✅ **Delivered** — PR [#118](https://github.com/gosharplite/tellme/pull/118) merged into `dev` (`8c100e5`); **#103 closed** |
 | **054** | — (operator request) | Bare `-l`/`--list` defaults to **1** + four green chrome accents on a terminal (whole `[Tool Reason]` line; `MODE` in both `Payload` lines; the measured token number; the `Ready` session cost); **ADR 0023**. | ✅ **Delivered** — PR [#119](https://github.com/gosharplite/tellme/pull/119) merged into `dev` (`c1d248a`, ff) |
 | **055** | — (operator request) | **E2E suite throughput** — parallel godog scenarios by default (`Concurrency=4` + the `TELL_ME_E2E_CONCURRENCY` seam) + a `make test-fast` subset that is never the gate; **ADR 0024**. | ✅ **Delivered** — PR [#120](https://github.com/gosharplite/tellme/pull/120) merged into `dev` (`0531a8f`) |
+| **056** | — (operator request) | **MCP tool-call reason** — tellme's own `{"reason":…,"MCP_PAYLOAD":…}` envelope for MCP calls (the server's schema relayed **verbatim**; only `MCP_PAYLOAD` forwarded) + a **universal, single-owned *no reason, no go* gate** for every tool call (folds [#121](https://github.com/gosharplite/tellme/issues/121)); **ADR 0025**. | 🔄 **In flight** (PR) |
 | **future slices** | [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) | the **self-development umbrella** ([#91](https://github.com/gosharplite/tellme/issues/91)) · **coverage tooling** ([#13](https://github.com/gosharplite/tellme/issues/13)). | ⏳ **Candidates** |
 
 ## Open items (non-blocking)

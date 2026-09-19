@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -71,8 +72,44 @@ func (t *Tool) Name() string { return t.name }
 // Description is the server-advertised description (or a generated fallback).
 func (t *Tool) Description() string { return t.description }
 
-// Parameters is the normalized input schema offered to the model.
-func (t *Tool) Parameters() json.RawMessage { return t.parameters }
+// MCPPayloadKey is the envelope property carrying the remote server's own
+// arguments. tellme owns this envelope; the server never sees it (round 056 /
+// ADR 0025 D1/D2).
+const MCPPayloadKey = "MCP_PAYLOAD"
+
+// ReasonKey is the envelope's tellme-owned reason property (required). It is
+// rendered by tellme and never forwarded to the server (round 056 / ADR 0025).
+const ReasonKey = "reason"
+
+// reasonDescription is the tellme-authored description of the envelope's
+// required `reason` property — the ask the model reads in the offered
+// declaration. It lives only in tellme's declaration; the server's definition is
+// never mutated.
+const reasonDescription = "Why you are calling this tool (required). Put the tool's own arguments in MCP_PAYLOAD."
+
+// Parameters is the model-visible declaration tellme OFFERS for the MCP tool
+// (round 056 / ADR 0025 D1): tellme's OWN envelope — a required `reason` plus
+// `MCP_PAYLOAD`, whose subschema is the remote server's advertised input schema
+// carried VERBATIM (never mutated; only positioned inside the envelope). The
+// server's definition is untouched and the system prompt is unchanged — the
+// declared `reason` is the same elicitation mechanism the native tools use.
+func (t *Tool) Parameters() json.RawMessage { return mcpEnvelope(t.parameters) }
+
+// mcpEnvelope builds the offered declaration around the server's advertised
+// schema (already normalized — see NormalizeMCPSchema). An empty schema degrades
+// to the freeform object so the envelope is always well-formed.
+func mcpEnvelope(serverSchema json.RawMessage) json.RawMessage {
+	if len(serverSchema) == 0 {
+		serverSchema = json.RawMessage(`{"type":"object","properties":{}}`)
+	}
+	return json.RawMessage(fmt.Sprintf(
+		`{"type":"object","properties":{%q:{"type":"string","description":%q},%q:%s},"required":[%q]}`,
+		ReasonKey, reasonDescription, MCPPayloadKey, string(serverSchema), ReasonKey))
+}
+
+// envelopeViolation is the recoverable result tellme returns, WITHOUT contacting
+// the server, when an MCP call is not a valid envelope (round 056 / ADR 0025 D2).
+const envelopeViolation = `error: an MCP tool call must be {"reason":"...","MCP_PAYLOAD":{...}}; nothing was sent to the server`
 
 // Contract exposes the MCP tool's default timeout so the loop resolves the same
 // effective bound as for a native tool.
@@ -91,14 +128,14 @@ func (t *Tool) Contract() domaintools.ToolContract {
 // ("recoverable inline failures count as ok"). A future distinction would need
 // an explicit error marker on the fed-back result text.
 func (t *Tool) Execute(ctx context.Context, arguments string, budget domaintools.ByteBudget) (string, error) {
-	args := map[string]interface{}{}
-	if s := strings.TrimSpace(arguments); s != "" {
-		_ = json.Unmarshal([]byte(s), &args) // a non-object / unparseable arg degrades to {}
-		if args == nil {
-			args = map[string]interface{}{}
-		}
+	payload, ok := unwrapEnvelope(arguments)
+	if !ok {
+		// Round 056 (ADR 0025 D2): a shape violation is REFUSED — the server is
+		// never contacted — and the model receives a recoverable result (nil error,
+		// the round-032 TD1 convention) asking it to retry with the envelope.
+		return envelopeViolation, nil
 	}
-	res, err := t.client.CallTool(ctx, t.tool, args)
+	res, err := t.client.CallTool(ctx, t.tool, payload)
 	if err != nil {
 		// CallTool never returns a call-time error today (TD1/R3); if a future
 		// implementation did, surface it as a recoverable result text.
@@ -109,4 +146,43 @@ func (t *Tool) Execute(ctx context.Context, arguments string, budget domaintools
 		text = strings.ToValidUTF8(text[:b], "") + domaintools.TruncationMarker
 	}
 	return text, nil
+}
+
+// unwrapEnvelope validates the round-056 MCP call envelope and returns the
+// object to forward to the server (the `MCP_PAYLOAD` contents). It returns
+// ok=false for any shape violation — a top-level key other than `reason` /
+// `MCP_PAYLOAD`, or a `MCP_PAYLOAD` present but not a JSON object. An ABSENT
+// `MCP_PAYLOAD` (with a reason) is a legitimate empty payload ({}).
+//
+// It deliberately does NOT re-implement the reason-presence half of the rule —
+// the loop's universal gate owns that (ADR 0025 D3/D4: one owner per rule).
+func unwrapEnvelope(arguments string) (map[string]interface{}, bool) {
+	raw := map[string]interface{}{}
+	if s := strings.TrimSpace(arguments); s != "" {
+		if err := json.Unmarshal([]byte(s), &raw); err != nil {
+			return nil, false
+		}
+		if raw == nil {
+			raw = map[string]interface{}{}
+		}
+	}
+	payload := map[string]interface{}{}
+	for k, v := range raw {
+		switch k {
+		case ReasonKey:
+			// tellme's own field: rendered by the loop, never forwarded.
+		case MCPPayloadKey:
+			if v == nil {
+				return nil, false // present-but-null is not an object
+			}
+			obj, isObj := v.(map[string]interface{})
+			if !isObj {
+				return nil, false
+			}
+			payload = obj
+		default:
+			return nil, false // a stray top-level key is a shape violation
+		}
+	}
+	return payload, true
 }

@@ -17,7 +17,7 @@ Feature: Requiring a reason to call a tool
       When the operator starts tellme with the prompt "What does the gadget cost?"
       Then the MCP server "shop" received only the arguments its tool expects
       And the run asked for a reason before running a tool
-      And the run reported the reason "check the gadget price" for the tool call "lookup_price"
+      And the run reported the reason "check the gadget price" for the MCP tool "lookup_price" on the server "shop"
       And tellme exits successfully
 
   Rule: tellme's own tool call that states no reason does not run

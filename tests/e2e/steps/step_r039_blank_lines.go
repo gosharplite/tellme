@@ -16,7 +16,6 @@ import (
 func init() {
 	registrars = append(registrars, func(ctx *godog.ScenarioContext) {
 		ctx.Then(`^each tool call's report begins after a blank line$`, thenEachCallReportBeginsAfterBlank)
-		ctx.Then(`^the action of the call without a reason begins after a blank line$`, thenReasonlessActionBeginsAfterBlank)
 		ctx.Then(`^the trailing reason summary follows a blank line$`, thenTrailingReasonSummaryFollowsBlank)
 		ctx.Then(`^the turn's closing status follows a blank line$`, thenTurnClosingStatusFollowsBlank)
 		ctx.Then(`^the closing status is preceded by exactly the frame gap$`, thenTurnClosingStatusNoBlank)
@@ -51,28 +50,6 @@ func thenEachCallReportBeginsAfterBlank(ctx context.Context) error {
 	}
 	if blank != total {
 		return fmt.Errorf("only %d/%d tool-call begin blocks were preceded by a blank line; stderr=%q", blank, total, sc.stderr)
-	}
-	return nil
-}
-
-func thenReasonlessActionBeginsAfterBlank(ctx context.Context) error {
-	sc := scenarioFrom(ctx)
-	lines := stderrLines(sc.stderr)
-	found := false
-	for i, l := range lines {
-		if !strings.Contains(l, toolActionMarker) {
-			continue
-		}
-		if i > 0 && strings.Contains(lines[i-1], toolReasonMarker) {
-			continue // this call stated a reason; its block starts at the reason line
-		}
-		found = true
-		if i == 0 || lines[i-1] != "" {
-			return fmt.Errorf("a reason-less call's action line was not preceded by a blank line; stderr=%q", sc.stderr)
-		}
-	}
-	if !found {
-		return fmt.Errorf("no reason-less tool call was reported; stderr=%q", sc.stderr)
 	}
 	return nil
 }
