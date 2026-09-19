@@ -102,12 +102,15 @@ root `specs/truth`; truth-delta `specs/plans/060-domain-model-and-drift-gate/tru
 `docs/architect/**` tree): `tellme.modelith.*`, `quality.modelith.*`, `environment-management.modelith.*`.
 The environment model models the **external** Niffler `tellme.sh` (recorded divergence, RF-060-2).
 
-**Gate wiring (Q2/Q3 + research D5).** POSIX-only; `MODELITH := $(shell command -v modelith 2>/dev/null)`
-(no `go run …@branch` fallback); `modelith-check` requires the binary (else a named install instruction +
-`exit 1`) and runs `modelith render --check` over the three YAMLs; it is added to the `verify` aggregate.
+**Gate wiring (Q2/Q3 + research D5; TD-060-2).** POSIX-only; `MODELITH := $(shell command -v modelith 2>/dev/null)`
+(no `go run …@branch` fallback); `modelith-check` requires the binary (else the named **clone + pinned-build** route
++ `exit 1`) and runs `modelith render --check` over `$(wildcard docs/domain-model/*.modelith.yaml)` with a
+**non-empty assertion** (an empty set fails — never a vacuous green); it is added to the `verify` aggregate.
 
-**Fork pin (research D6).** `docs/domain-model/README.md` + the truth row pin
-`go install github.com/gosharplite/modelith/cmd/modelith@feat/self-domain-model` and the observed version.
+**Fork pin (research D6; B-060-1 + TD-060-1).** The fork declares the **upstream** module path, so it is not
+`go install`-able from its GitHub path. The route is a **clone + pinned build**
+(`git clone https://github.com/gosharplite/modelith && cd modelith && git checkout b4153541cee8 && go install ./cmd/modelith`),
+single-sourced in `docs/domain-model/README.md`; the pin is the **immutable commit `b4153541cee8`** (not a branch).
 
 ---
 

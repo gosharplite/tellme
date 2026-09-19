@@ -20,7 +20,7 @@
 
 - **[SCOPE / Q1, D1/D2]** 產出**三份**模型於 `docs/domain-model/`：**product**（`tellme.modelith.*`）· **quality**（`quality.modelith.*`）· **environment-management**（`environment-management.modelith.*`，描述**外部** Niffler `tellme.sh`，記錄為 divergence）。
 - **[TOOLCHAIN / Q2, D1]** YAML 為唯一真相源；`.md` 由 modelith **產生**（never hand-edit）。modelith = `gosharplite/modelith` fork `@feat/self-domain-model`，**dev-tool 二進位**（`$GOPATH/bin`），**不入 `go.mod`**。
-- **[GATE / Q3, D5]** `Makefile` 新增 `modelith-lint`／`modelith-render`／`modelith-check`；`modelith-check` 為 `verify` 的 **zero-tolerance** 成員：**drift ⇒ fail**；**binary 缺席 ⇒ fail**（具名 `go install …@feat/self-domain-model`）。**無** `go run …@branch` fallback（hermetic）。
+- **[GATE / Q3, D5]** `Makefile` 新增 `modelith-lint`／`modelith-render`／`modelith-check`；`modelith-check` 為 `verify` 的 **zero-tolerance** 成員：**drift ⇒ fail**；**binary 缺席 ⇒ fail**（具名 **安裝路徑**：clone + pinned build，見 `docs/domain-model/README.md`；非 `go install @path`）。**無** `go run …@branch` fallback（hermetic）。
 - **[BOUNDARY / Q4, D8]** 模型為**描述性 docs，非 truth**；與 `specs/truth/**` 衝突時 **truth 勝**。drift gate 只保 **model-internal**（YAML ↔ `.md`）一致；reference 的 `modelith-drift`／`modelith-layers` **不採用**。
 - **[LIFECYCLE / Q5, D9]** 隨 truth 變更刷新；無排程 pass；模型無 `delivered` freeze。
 - **[CONVENTIONS / D1]** PascalCase entity keys；freeform 以 backtick 包 entity；`cardinality ∈ {1:1,1:n,n:1,n:n}`；`ownership ∈ {owned,referenced}`；3-pass build order。
@@ -93,7 +93,7 @@
 - **T005** — `docs/domain-model/README.md` (toolchain install + observed version pin; conventions incl. the "plain scalar must not start with a backtick" rule; the descriptive-docs-not-truth boundary; lifecycle).
 - **T006 — verification + witnesses** (reproduced then reverted, ADR 0010 doctrine):
   - **drift witness (a)**: edit `tellme.modelith.yaml` without re-render ⇒ `make modelith-check` **FAILS** (`… .md is out of date — regenerate it …`) — reverted ⇒ green.
-  - **absent-binary witness (b)**: `PATH=/usr/bin:/bin make modelith-check` ⇒ **FAILS** naming `go install github.com/gosharplite/modelith/cmd/modelith@feat/self-domain-model` — restored ⇒ green.
+  - **absent-binary witness (b)**: `PATH=/usr/bin:/bin make modelith-check` ⇒ **FAILS** naming `go install github.com/gosharplite/modelith/cmd/modelith@feat/self-domain-model` — restored ⇒ green. *(**Superseded by the PR #126 fold `2f59f91`**: the message now names the clone + pinned-build route; the quoted form does not resolve. Kept as the pre-fold witness history.)*
   - `make modelith-lint` → 0/0 (three models); `make modelith-check` → all three up to date.
 - **T007 — regression**: `make verify` **OK** (incl. the new `modelith-check` member; `golangci-lint` 0 issues; `govulncheck` no reachable vulns; cross-compile 4/4); `go test -count=1 ./...` **green** (all packages incl. the godog E2E); `gofmt -l .` clean; `go.mod`/`go.sum` **unchanged**; no product code touched; no `specs/truth/features/**` change (topology audit unchanged).
 - **T008** — markers flipped; `truth-delta.md` unchanged from the plan half (truth + ADR already delivered there).
@@ -117,3 +117,20 @@
 | **nit 3** | Pre-existing `staticcheck` truth row corrected (`command -v` only — the `$GOPATH/bin` fallback was never in the Makefile). |
 
 **Re-verified after the fold**: `make modelith-lint` 0/0 ×3 · `make modelith-check` all up to date · **witness (b)** absent binary ⇒ fails naming the **clone route** · **TD-060-2 witness** a 4th model auto-covered (gate reds on its missing `.md`) ⇒ reverted green · `make verify` **OK** · `go test -count=1 ./...` green · `gofmt` clean · `go.mod`/`go.sum` unchanged.
+
+### Fold-verification fold-back (PR #126 comment `5740054490`; **TF-060-1**)
+
+**FOLDS VERIFIED 5/5 (B-060-1 + TD-060-1…4 + 3 nits)**, with one required claim-surface fold-back: the fold re-aligned 5 **outward** surfaces but left in-package ones naming the falsified command.
+
+| # | Surface | Fold |
+| --- | --- | --- |
+| 1 | `spec.md` Edge Cases | install command → the **clone + pinned-build** route (FR-004). |
+| 2 | `plan.md` Fork pin | pin restated as the **immutable commit `b4153541cee8`** + the clone route (cites the README single owner). |
+| 3 | `tasks.md` locked-decisions block | the MUST constraint now names the **install route** (clone + pinned build), not `go install @path`. |
+| 4 | `plan.md` Gate wiring | `$(wildcard docs/domain-model/*.modelith.yaml)` + a **non-empty assertion** (TD-060-2 drift). |
+| — | `spec.md` FR-004 (live requirement) | aligned: names the **install route** + the **immutable commit pin**. |
+| hist | `spec.md` Q3 line · `tasks.md` pre-fold witness · `research.md` D5 fold note | **not rewritten**; a *"superseded by the fold `2f59f91`"* forward pointer added where it names the falsified form. |
+
+**Residuals (recorded, non-blocking)**: **R-060-1** the ADR 0030 copy of the route is static while the Makefile's derives from `$(MODELITH_PIN)` (defensible — an ADR is self-contained) · **R-060-2** `$(wildcard)` returns directory order (harmless) · **R-060-3** witness executions live in this ledger (TD-6 convention).
+
+**Re-verified after TF-060-1**: `make verify` **OK** · `go test -count=1 ./...` **green** · `gofmt` clean · `go.mod`/`go.sum` unchanged. Fold-back head: *see the PR comment*.
