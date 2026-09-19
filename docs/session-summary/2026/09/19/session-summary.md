@@ -722,3 +722,49 @@ Continuation after the architectural reviewer's **final certification** (`574009
 ### PM follow-ups
 
 - None new (docs/tooling round; no user-facing journey).
+
+## 18. Session 35 (2026-09-19, cont.) — round 061 `061-mcp-schema-provider-projection`: PR #128 merged → branch cleaned up → closeout (Steps 1–8)
+
+The operator merged **PR [#128](https://github.com/gosharplite/tellme/pull/128)** and deleted the remote branch; the local branch was deleted after an ancestor check; then `SESSION-CLOSEOUT.md` Steps 1–8 ran on `dev`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Bootstrap | Operator asked to *"take a look"* at a live failure paste → diagnosed it as **issue [#127](https://github.com/gosharplite/tellme/issues/127)** (a `gemini` provider + an `x-mcp-header`-annotated MCP server 400'd **every** turn) → filed it → opened round **061** |
+| Pipeline | `/axb-specify` → `/axb-clarify` (**CQ-1 → C** · **CQ-2 → ii** · **CQ-3 → i**; plus CQ-4 probe approved · CQ-5 → A gate · CQ-6 floor cross-family · CQ-7 → A silent; one question at a time) → `/axb-spec-by-example` → `/axb-technical-research` (**the live probe** → **ADR 0031** D2) → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` (T001–T033) → `/axb-implement` |
+| Review chain | review `5740291616` (**B-061-1** + F-061-1…3 + TD-061-1/2 + nits) → `e67954c` → verification `5740338531` (R-1…R-4) → `b81b6c9` → re-verification `5740370401` (**R-5**) → `ef8b66d` → verification-2 `5740392315` (**V-061-1**) → `faaa29f` → verification-3 `5740423585` (**W-061-1**) → `d6b2786` → certification `5740450136` — **CERTIFIED MERGE-READY; review loop CLOSED** |
+| Merge | PR #128 merged into `dev` **`902642a`** (**merge commit** — `Merge pull request #128 from gosharplite/061-mcp-schema-provider-projection`), `mergedAt 2026-09-19T08:23:02Z`; remote branch deleted by the human; **local branch deleted** after `git merge-base --is-ancestor` confirmed containment |
+| Gates (Step 2) | `gofmt` clean · `go vet` clean · `make verify` **OK** (layer gate 0 · modelith-check up to date · golangci-lint 0 · govulncheck clean · cross-compile 4/4) · `go test -count=1 ./...` **green** (24 pkgs; E2E 251/251) · diff-level secret scan clean |
+| Live check (S-4/CQ-4) | `go install ./cmd/tellme` refreshed, then a real **`gemini-3.8-flash` turn with the GitHub MCP server enabled** (`ait-comment`) → **reached the model and answered** (`OK`; exit 0; `Payload: 11096/1000000`; `╰─⠿ Ready`) — the configuration that 400'd at bootstrap |
+| Propagation (Step 7) | `dev → main` — **DONE (no-ff)**; tag **`round-061`** (annotated) on the propagation merge (ADR 0026) |
+| Closeout | `STATUS.md` → round 061 **DELIVERED / FROZEN** + **Rule-12 split** (the round-060 detail + its env note → `docs/archives/status/2026-09-19.md`) · this §18 · Step 8 closed **#127** |
+
+### The change (one paragraph)
+
+A **family-agnostic floor** (`mcp.NormalizeMCPSchema` drops `x-…`/`$schema` recursively at **keyword positions only** — a property *named* `x-…` is an argument and survives; `properties`/`$defs`/`definitions` maps are traversed; data values are never walked) **plus** a **provider-side projection** (`internal/infrastructure/llm/gemini/schema.go`) that is **default-deny on two axes** — the surface's single owner is `supportedSchemaValueKinds` (key → required JSON kind; `supportedSchemaKeys` derived), the projection keeps only a kind match (measured coercions only: `type` array → its lone string member (+`nullable`), `enum` scalars → strings, a non-object schema node → `{}`) and **drops every other mismatch**; the gate reads the same owner four ways (containment + value kind + golden set + coverage) **+ a round-trip pin**.
+
+### Steps 1–8
+
+- **Step 1 — working tree**: `dev` clean; no frozen `specs/plans/**` touched; no stray files (the probe token file was deleted).
+- **Step 2 — gates**: as the at-a-glance row (all green), on the merged `dev`.
+- **Step 3 — `STATUS.md`**: header → 2026-09-19 (session 35) · **Round in flight: none** · active branch `dev` · round 061 **DELIVERED / FROZEN** (`902642a`) · **Rule-12 split** (round-060 detail + env note → the archive) · delivered-rounds index + branch model + roadmap + open items (the #127 closure + RF-061-1…12) + env notes refreshed; no liveness contradiction.
+- **Step 4 — day summary**: **appended** this §18.
+- **Step 5 — reconciliation**: `STATUS.md` ↔ §1–§18 agree (round 061 delivered; `dev` active; #127 closed, #91/#13 open; the RF-061 forwards; next round `062-*`).
+- **Step 6 — commit**: `docs(061): day close — round 061 delivered + propagated; STATUS split + 09/19 summary §18`.
+- **Step 7 — propagation + handoff**: `dev → main` **DONE (no-ff)**; `main^{tree} == dev^{tree}` verified; tag **`round-061`** on the propagation merge; `go install ./cmd/tellme` refreshed from `902642a`; next-session start point = `dev`, round **`062-*`** off `dev`.
+- **Step 8 — issue tracker**: **#127 CLOSED** with a linking comment; [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) left OPEN (accurate).
+
+### Residuals (non-blocking, recorded)
+
+- **RF-061-1…12** + **TD-061-1/TD-061-2** in **ADR 0031 §Forward** / `STATUS.md`.
+- Carried: the 5 pre-existing Gherkin/DSL topology-audit errors (not a `make verify` member); PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the round-060 **ER-060-1** (`make verify` needs the modelith dev tool).
+
+### Next steps
+
+1. Open round **`062-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella; [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling; the RF-061-x residual batch).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (the round's acceptance journey gained the executed no-mark control in the interface feature — review R-4 — so the R-058-c class does not recur here).
