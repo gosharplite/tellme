@@ -189,7 +189,9 @@ func TestProjectSchema_CoercedShapesAreTheMeasuredOnes(t *testing.T) {
 	  "int":{"type":"integer","enum":[1,2,3]},
 	  "boolprop":{"type":"boolean","enum":[true,false]},
 	  "weird":true,
-	  "itemsweird":{"type":"array","items":false}
+	  "itemsweird":{"type":"array","items":false},
+	  "union":{"oneOf":[true,{"type":"string"}]},
+	  "unionall":{"allOf":[false]}
 	}}`)))
 	// A `["null"]`-only type must leave NEITHER `type` NOR `nullable` (a nullable
 	// with no type is rejected).
@@ -213,6 +215,12 @@ func TestProjectSchema_CoercedShapesAreTheMeasuredOnes(t *testing.T) {
 	for k, want := range map[string]string{"int": `["1","2","3"]`, "boolprop": `["true","false"]`} {
 		if !strings.Contains(got, `"enum":`+want) {
 			t.Errorf("%s: want the coerced string enum %s; got %s", k, want, got)
+		}
+	}
+	// R-5: the ELEMENT position of oneOf/allOf is a schema node too.
+	for k, want := range map[string]any{"union": []any{map[string]any{}, map[string]any{"type": "string"}}, "unionall": []any{map[string]any{}}} {
+		if !reflect.DeepEqual(props[k].(map[string]any)["oneOf"], want) && !reflect.DeepEqual(props[k].(map[string]any)["allOf"], want) {
+			t.Errorf("%s: a non-object union element must degrade to {}; got %v", k, props[k])
 		}
 	}
 	for _, k := range []string{"weird", "itemsweird"} {

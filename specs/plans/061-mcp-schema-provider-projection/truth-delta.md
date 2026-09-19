@@ -61,3 +61,5 @@
 | MODIFY | `specs/truth/techstack.md` — *Tool-declaration schema projection (Vertex/Gemini)* | the coercion emits only measured shapes (`nullable` only beside a `type`; `enum` only beside a scalar type; non-object subschema → `{}`). | reviews **R-2**, **R-3** |
 | MODIFY | `specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature` | the no-mark control gains an **executed** Then (`…:18`) — the F-061-3(1) carrier, folded after verification R-4. | review **R-4** (`truth-current`) |
 | MODIFY | `docs/decisions/0031-provider-supported-schema-surface.md` | D6a′ (coerced-shape rows) · D6c (non-object → `{}`) · the `$defs` traversal · RF-061-10. | reviews **R-1**, **R-2**, **R-3**, nit 2 |
+
+| MODIFY | `specs/truth/techstack.md` (projection row) | a non-object subschema degrades to `{}` at **every** schema-node position — incl. `oneOf`/`allOf` **elements** (R-5); the `additionalProperties` bool form is measured accepted at both levels. | review **R-5**, nit 2 |

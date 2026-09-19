@@ -210,8 +210,9 @@ func projectValue(v any) any {
 			case "items":
 				out[k] = projectSubschema(val)
 			case "additionalProperties":
-				// a bool is a legal JSON-Schema value AND accepted by the wire
-				// (measured at the root); anything else must be a schema node.
+				// a bool is a legal JSON-Schema value AND accepted by the wire at
+				// both root and property level (probe, ADR 0031 D2); anything
+				// else must be a schema node.
 				if _, isBool := val.(bool); isBool {
 					out[k] = val
 				} else {
@@ -257,7 +258,9 @@ func projectSubschema(v any) any {
 	return projectValue(v)
 }
 
-// projectList projects each element of a keyword list (oneOf/allOf).
+// projectList projects each element of a keyword list (oneOf/allOf). The element
+// position IS a schema node, so a non-object element degrades to the accepted
+// empty `{}` exactly as R-3 requires one keyword over (fold of review R-5).
 func projectList(v any) any {
 	list, ok := v.([]any)
 	if !ok {
@@ -265,7 +268,7 @@ func projectList(v any) any {
 	}
 	out := make([]any, len(list))
 	for i, e := range list {
-		out[i] = projectValue(e)
+		out[i] = projectSubschema(e)
 	}
 	return out
 }

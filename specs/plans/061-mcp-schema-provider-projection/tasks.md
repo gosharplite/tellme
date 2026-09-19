@@ -62,3 +62,14 @@
 - **F** — restoring a context-blind `$defs` (i.e. removing it from the child maps) turns `TestNormalizeMCPSchema_StripsMarksInsideDefinitionMaps` RED.
 - **G** — re-emitting `nullable` without a `type` (the pre-R-2 behaviour) turns `TestProjectSchema_CoercedShapesAreTheMeasuredOnes` RED.
 - **H** — passing a non-object subschema through (the pre-R-3 behaviour) turns the same pin RED.
+
+## Phase 7 — Re-verification folds (PR #128, verification `5740370401`)
+
+- [X] **T026** (`R-5`) — `projectList` now routes its elements through `projectSubschema`, so a boolean/scalar element inside `oneOf`/`allOf` (allowlisted *because* their elements are schema nodes) degrades to the accepted `{}` instead of reaching the wire. Pin rows added (`oneOf:[true]`, `allOf:[false]`); ADR D6c widened to "every position that *is* a schema node".
+- [X] **T027** (nit 1) — the stray duplicate `D6b` heading (an empty stub left by an earlier fold) is deleted from ADR 0031.
+- [X] **T028** (nit 2) — the `additionalProperties` bool form was **probed** at both root and property level (both accepted) and the rows + the site comment now cite the measurement rather than an assumption.
+- [X] **T029** (nit 3) — recorded as **RF-061-11** (an `enum` with no/non-scalar `type` loses the constraint; the string-enum shape is the measured-accepted alternative) — a forward item, not adopted.
+
+### Re-verification witness (reproduced RED, then reverted)
+
+- **I** — routing `oneOf`/`allOf` elements back through `projectValue` turns `TestProjectSchema_CoercedShapesAreTheMeasuredOnes` RED (a `true`/`false` element on the wire).

@@ -56,6 +56,8 @@ The remedy replaced measured-rejected shapes with *unmeasured* ones, so the shap
 | `enum` with **no** `type` | **rejected** (same) |
 | string `enum` beside `integer` / `number` / `boolean` | **accepted** |
 | `nullable: false` beside a string `type` | accepted |
+| `additionalProperties: false`/`true` (root **and** property level) | accepted — the bool form is passed through |
+| a `{}` element inside `oneOf` (R-5 control) | accepted |
 
 **Consequence**: `nullable` is recorded **only when a `type` remains** (a `["null"]`-only type → the accepted empty `{}`), and `enum` is **dropped** unless the node's type is scalar. A `null` enum member is dropped. ADR 0031 D6a′.
 
