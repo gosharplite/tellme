@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked and names what it inspected.
 >
-> **Status**: skeleton initialized by `/axb-specify`. **Clarify round 1 CLOSED** — **Q1 → A** (the offered envelope: required top-level `reason` + `MCP_PAYLOAD` carrying the server schema verbatim) · **Q2 → B, STRICT** (a non-envelope MCP call is refused; the server is never contacted). **Scope extended (operator, decision (ii)):** the refusal generalises to a **universal, single-owned *no reason, no go* gate** for every call (native **and** MCP); **[#121](https://github.com/gosharplite/tellme/issues/121) folded into this round** (closed as superseded). **Owner rows recorded:** `/axb-technical-research` = 3 MODIFY (recorded) · governance = **ADR 0025** ADD (recorded); `/axb-api-plan` + `/axb-data-plan` = NOOP (recorded); `/axb-dsl-refine` = 1 MODIFY + 1 ADD + 1 MODIFY (recorded). |
+> **Status**: skeleton initialized by `/axb-specify`. **Clarify round 1 CLOSED** — **Q1 → A** (the offered envelope: required top-level `reason` + `MCP_PAYLOAD` carrying the server schema verbatim) · **Q2 → B, STRICT** (a non-envelope MCP call is refused; the server is never contacted). **Scope extended (operator, decision (ii)):** the refusal generalises to a **universal, single-owned *no reason, no go* gate** for every call (native **and** MCP); **[#121](https://github.com/gosharplite/tellme/issues/121) folded into this round** (closed as superseded). **Owner rows recorded:** `/axb-technical-research` = 3 MODIFY (recorded) · governance = **ADR 0025** ADD (recorded); `/axb-api-plan` + `/axb-data-plan` = NOOP (recorded); `/axb-dsl-refine` = 1 MODIFY + 1 ADD + 1 MODIFY (recorded) + 1 **fold** MODIFY (recorded). |
 
 ## /axb-technical-research
 
@@ -33,6 +33,8 @@
 | --- | --- | --- | --- |
 | MODIFY | `specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature` (+ `chat/dsl.md`) | **Round 056**: a new Rule/Example — an MCP tool call renders a `[Tool Reason]` row, and the server receives only its payload; an envelope-less MCP call is refused. | `spec.md` US1/US2 / FR-001…FR-006 |
 | ADD + MODIFY | `specs/truth/features/cli/chat/requiring-a-reason-to-call-a-tool.feature` (ADD) + `chat/watching-the-tool-loop.feature` (MODIFY — one obsolete Example removed) + `chat/dsl.md` | **Round 056**: a Rule/Example for the **universal** gate — a native tool call with no/blank `reason` is refused (recoverable retry), a conforming call renders its row; the round-022 schema-nonconforming `read_files`-without-reason fixture is updated. | `spec.md` US3 / FR-008 / FR-010 |
+
+| MODIFY (fold) | `specs/truth/features/cli/chat/requiring-a-reason-to-call-a-tool.feature` (+ `chat/dsl.md`) | **Round 056 fold (PR [#122](https://github.com/gosharplite/tellme/pull/122) review TD-056-1):** a new **Rule/Example** for a shape-violating MCP call (`the MCP server "shop" received no call`) and a `received exactly one call` Then on the reasonless Example — the force-bearing carriers for SC-006/FR-003 at the server boundary; three new `dsl.md` rows. | `spec.md` SC-006 / I-4; PR [#122](https://github.com/gosharplite/tellme/pull/122) review TD-056-1 |
 
 ## Governance (ADR)
 
