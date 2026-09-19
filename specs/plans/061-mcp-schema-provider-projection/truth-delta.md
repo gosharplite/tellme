@@ -6,7 +6,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: skeleton initialized by `/axb-specify`. **Clarify CLOSED** (3 decisions, one at a time) — **CQ-1 → C** (layered: a `NormalizeMCPSchema` vendor-extension floor + a Gemini-adapter projection) · **CQ-2 → ii** (a named, **empirically-verified** supported-key allowlist, **default-deny**) · **CQ-3 → i** (a **new ADR 0031** amending ADR 0025 + the round-056 declaration-row MODIFY). No residual `NEEDS CLARIFICATION`; the package is ready for the owner phases.
+> **Status**: skeleton initialized by `/axb-specify`. **Clarify CLOSED** (3 decisions, one at a time) — **CQ-1 → C** (layered: a `NormalizeMCPSchema` vendor-extension floor + a Gemini-adapter projection) · **CQ-2 → ii** (a named, **empirically-verified** supported-key allowlist, **default-deny**) · **CQ-3 → i** (a **new ADR 0031** amending ADR 0025 + the round-056 declaration-row MODIFY). **CQ-4 approved** — the allowlist is established by a **live probe** (`ait-comment` → `websc-dev-433809`, declaration-only calls; the table is recorded verbatim in ADR 0031; the probe is research-time, not a gate). No residual `NEEDS CLARIFICATION`; the package is ready for the owner phases.
 
 ## /axb-technical-research
 

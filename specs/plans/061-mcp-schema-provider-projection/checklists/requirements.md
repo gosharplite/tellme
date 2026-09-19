@@ -50,7 +50,8 @@
 - **家族差異**：OpenAI-compatible（`client.go:156`）容忍，所以只有 Gemini 掛 — 這使修法有「家族範圍」的取捨。
 - **#64/round 031 的復發軸線**：round 031 修的是 tellme **自己** tool 的 `required ⊆ properties`，gate 只覆蓋 `agentTools()`，不含 MCP relay、也不含未知關鍵字。
 - **參考實作**：`tell-me-go` 以 **typed per-family schema model** 轉換，vendor 標註根本進不了 Vertex payload（parity precedent）。
-- **實測殘留風險**：同一 GitHub server 另有 `anyOf` ×2、`additionalProperties` ×2 — 若投影只處理 `x-*`（CQ-2 → i），這 4 個 tool 仍是潛在 400。
+- **實測殘留風險**：同一 GitHub server 另有 `anyOf` ×2、`additionalProperties` ×2 — S-2 default-deny 會在 probe 判定不支援時一併移除。
+- **CQ-4（probe）已核准**：S-4 的 live probe 於 `ait-comment`（provider `dev` / `gemini-3.8-flash`）對 `websc-dev-433809` 發送宣告-only 的 `generateContent`，結果逐字記入 ADR 0031。
 
 ## Ready 判定
 
