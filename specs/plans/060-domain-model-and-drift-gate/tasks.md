@@ -97,3 +97,4 @@
   - `make modelith-lint` → 0/0 (three models); `make modelith-check` → all three up to date.
 - **T007 — regression**: `make verify` **OK** (incl. the new `modelith-check` member; `golangci-lint` 0 issues; `govulncheck` no reachable vulns; cross-compile 4/4); `go test -count=1 ./...` **green** (all packages incl. the godog E2E); `gofmt -l .` clean; `go.mod`/`go.sum` **unchanged**; no product code touched; no `specs/truth/features/**` change (topology audit unchanged).
 - **T008** — markers flipped; `truth-delta.md` unchanged from the plan half (truth + ADR already delivered there).
+- **Companion (post-tasks, operator-requested)** — `SESSION-BOOTSTRAP.md` updated so **Step 1** reads tellme's **three domain models** immediately after `README.md` (a new step-1 detail section + Agent Rule 10). This **must land with round 060**: the bootstrap references `docs/domain-model/*.modelith.md`, which exist only once this round merges.
