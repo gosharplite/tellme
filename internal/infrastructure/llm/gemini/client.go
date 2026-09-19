@@ -69,6 +69,14 @@ func New(cfg Config) (*Client, error) {
 // Complete sends exactly one non-streaming Vertex `:generateContent` request and
 // returns the normalized answer. Every failure is wrapped in a *llm.ProviderError.
 func (c *Client) Complete(ctx context.Context, req llm.Request) (llm.Response, error) {
+	// Round 062 (ADR 0032 D4): the Gemini family has NO `inline_data` image path
+	// this round, so a media-bearing message is a LOUD failure rather than a
+	// silent drop — a capability the operator declared must never quietly lose an
+	// image. (A provider entry declaring VISION: true on a gemini family is an
+	// operator declaration error surfaced here.)
+	if hasMedia(req.Messages) {
+		return llm.Response{}, c.wrap(fmt.Errorf("this provider family cannot carry images yet; remove VISION: true or use an OpenAI-compatible provider"))
+	}
 	body, err := requestBody(req.Prompt, req.Messages, req.Tools, c.cfg.MaxTokens, c.cfg.ThinkingBudget, c.cfg.ThinkingLevel, c.cfg.Persona)
 	if err != nil {
 		return llm.Response{}, c.wrap(err)
@@ -154,6 +162,16 @@ func requestBody(prompt string, prior []llm.Message, toolDefs []llm.ToolDef, max
 		payload["tools"] = []map[string]any{{"functionDeclarations": decls}}
 	}
 	return json.Marshal(payload)
+}
+
+// hasMedia reports whether any conversation message carries media (round 062).
+func hasMedia(msgs []llm.Message) bool {
+	for _, m := range msgs {
+		if len(m.Media) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // buildContents maps the conversation (prior messages + the current prompt) to

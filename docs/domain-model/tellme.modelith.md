@@ -2,7 +2,7 @@
 
 # tellme — Multi-Provider Reasoning Agent (POSIX CLI)
 
-A disciplined, POSIX/bash-only re-creation of tell-me-go. A CLI that turns a prompt into a multi-round reasoning turn: it assembles a provider payload (persona + matched skills + recent history + the prompt), drives a bounded think→act→observe loop against a multi-provider `Provider` (OpenAI-compatible, Anthropic, Gemini), executes agent `Tool`s, streams a diagnostic `Chrome`, and persists the session. Three operator-declared directions shape it: **no security layer**, **no Windows**, and **bash-first** — hence a deliberately small tool surface.
+A disciplined, POSIX/bash-only re-creation of tell-me-go. A CLI that turns a prompt into a multi-round reasoning turn: it assembles a provider payload (persona + matched skills + recent history + the prompt), drives a bounded think→act→observe loop against a multi-provider `Provider` (the two families tellme drives — OpenAI-compatible and Gemini), executes agent `Tool`s, streams a diagnostic `Chrome`, and persists the session. Three operator-declared directions shape it: **no security layer**, **no Windows**, and **bash-first** — hence a deliberately small tool surface.
 
 ## Glossary
 
@@ -20,18 +20,26 @@ The two payload figures the `Chrome` reports per `Turn`.
 
 | Value | Definition |
 | --- | --- |
-| `estimated` | The pre-flight estimate (`~<n>`), computed before the provider call. |
+| `estimated` | The pre-flight estimate, rendered as a signed increment plus the estimate (`+<delta> ~<n> tokens`), computed before the provider call. |
 | `measured` | The post-turn measured count, from the provider's usage report. |
 
 ### `ProviderFamily`
 
-The wire-protocol family backing a `Provider` — the compile-time-safe dispatch dimension, distinct from the user-facing provider label (which may name an OpenAI-compatible vendor).
+The wire-protocol family backing a `Provider` — the compile-time-safe dispatch dimension, distinct from the user-facing provider label (which may name an OpenAI-compatible vendor). tellme drives exactly two families; a label resolving to any other family (for example `anthropic`) is refused with the frozen provider-error phrase and never reaches a transport.
 
 | Value | Definition |
 | --- | --- |
 | `openai` | OpenAI-compatible (covers openai, deepseek, kimi, and any OpenAI-protocol vendor). |
-| `anthropic` | Anthropic Messages API. |
-| `gemini` | Google Gemini / Vertex AI. |
+| `gemini` | Google Gemini / Vertex AI (covers the google and gemini labels). |
+
+### `ToolGate`
+
+The capability gate on a `Tool`'s availability (round 062; ADR 0032). A `vision` tool (`read_image`) is offered only to a `Provider` that declares `vision`; `none` is offered to every provider.
+
+| Value | Definition |
+| --- | --- |
+| `none` | Always offered (the readers, the write pair, `execute_command`, `list_skills`). |
+| `vision` | Offered only when the selected `Provider` declares `vision`. |
 
 ### `ToolOutcome`
 
@@ -68,7 +76,7 @@ The diagnostic surface on `stderr`: the turn rule and header, the payload status
 
 ### `Config`
 
-The YAML configuration loaded at startup (the `-c` path, else the default). It carries the `Persona` (MODE/PERSON), the `Provider` registry plus `SELECTED_PROVIDER`, per-model `Pricing`/context-window overrides, the tool-resource defaults, the session limits (`MAX_TOOL_LOOP`, `MAX_HISTORY_TOKENS`, `WRAP_WIDTH`, the HTTP timeout), and the `MCPServer` declarations. `${VAR}` placeholders are expanded at load. It carries **no** security/consent keys — the no-security-layer direction.
+The YAML configuration loaded at startup (the `-c` path, else the default). It carries the `Persona` (MODE/PERSON), the `Provider` registry plus `SELECTED_PROVIDER`, per-model `Pricing`/context-window overrides, the `USE_TUI_PROMPT` toggle, the session limits (`MAX_TOOL_LOOP`, `MAX_HISTORY_TOKENS`, `WRAP_WIDTH` — the tool-resource budget derives from `MAX_HISTORY_TOKENS`), and the `MCPServer` declarations. `${VAR}` placeholders are expanded at load. It carries **no** security/consent keys — the no-security-layer direction.
 
 **Relationships**
 
@@ -122,9 +130,30 @@ The persisted record of a session's completed `Turn`s — an append-only JSON-Li
 
 - **history-append-after-complete** — A `Turn` is persisted only after it completes (append-only).
 
+### `ImageContent`
+
+An image a `Tool` (`read_image`) attached to a turn (round 062 / ADR 0032): the media kind and the file's bytes. Its kind is resolved from the file's **content** (magic bytes: JPEG/PNG/GIF/WebP), never the name; it is serialized inline (a base64 `image_url` block) on the OpenAI-compatible wire, riding a `user` message after the tool result. The Gemini family has no image path — a media-bearing message there is a loud failure, never a silent drop. The image is in-flight only: it is never persisted with the `Turn` (the history step stores the tool's text result).
+
+**Relationships**
+
+- `ToolCall` — n:1 — referenced — The tool call that produced (attached) the image.
+
+**Attributes**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `mimeType` | string | The media type resolved from the file's content (a magic-byte sniff). |
+| `data` | object | The image bytes, attached inline (never truncated). |
+
+**Invariants**
+
+- **image-kind-sniffed-from-content** — An `ImageContent`'s kind is resolved from the file's content (magic bytes), never the file name nor a declared MIME.
+- **image-inline-limit** — An image larger than the 32 MiB inline ceiling is a loud refusal — never truncated and never partially sent.
+- **image-never-silently-dropped** — A media-bearing message on a family without an image path is a loud failure; an image is never silently lost.
+
 ### `MCPServer`
 
-An external MCP server declared under `MCP_SERVERS` — reached over a remote URL or spawned as a local stdio child. Its tools are relayed to the model **verbatim** (tellme never rewrites the server's names/descriptions/ schemas); tellme offers its own `{reason, MCP_PAYLOAD}` envelope so a `reason` is always present.
+An external MCP server declared under `MCP_SERVERS` — only a **remote** server (a URL entry) is supported; a COMMAND (local stdio) entry is warned about and skipped. Its tools are offered to the model with tellme's own `{reason, MCP_PAYLOAD}` envelope. The server still receives its own arguments, but the declaration the **model** is offered is filtered so a strict provider cannot reject the whole request: a family-agnostic floor drops vendor extensions (`x-…`, `$schema`), and for a closed-wire family (Vertex/Gemini) the declaration is projected onto the provider's supported schema surface (default-deny) before it reaches the wire.
 
 **Relationships**
 
@@ -135,11 +164,12 @@ An external MCP server declared under `MCP_SERVERS` — reached over a remote UR
 | Name | Type | Description |
 | --- | --- | --- |
 | `name` | string | The unique server key. |
-| `transport` | string | One of: `url` (remote) or `command` (local stdio). |
+| `transport` | string | Only a URL entry (remote) is supported; a COMMAND (local stdio) entry is warn+skipped. |
 
 **Invariants**
 
-- **mcp-server-definition-preserved** — An `MCPServer`'s own tool definitions are relayed verbatim — never altered.
+- **mcp-server-definition-preserved** — The `MCPServer` still receives its own arguments — only the declaration **offered to the model** is filtered before the provider wire (vendor extensions dropped for every family; a closed-wire family receives only keywords its schema reader accepts).
+- **tool-declaration-fits-the-provider-wire** — A declaration offered to a closed-wire provider carries only keywords its schema reader accepts; tellme drops an unsupported keyword or a wrong-kind value rather than coerce it, and fails closed to the freeform object.
 - **mcp-token-never-logged** — MCP credentials/headers MUST never be logged.
 
 ### `MCPTool`
@@ -205,7 +235,7 @@ The shared, user-global prompt log at `~/.tellme/global_prompts.jsonl` — one `
 
 ### `Provider`
 
-An LLM backend reachable via one ProviderFamily. It carries a model id, a base URL, authentication, and optional thinking settings; one is selected per session from the `Config` registry. tellme speaks the three families through thin transports; a vendor is just a label mapping to a family.
+An LLM backend reachable via one ProviderFamily. It carries a model id, a base URL, authentication, and optional thinking settings; one is selected per session from the `Config` registry. tellme speaks the two families through thin transports; a vendor is just a label mapping to a family.
 
 **Relationships**
 
@@ -218,10 +248,12 @@ An LLM backend reachable via one ProviderFamily. It carries a model id, a base U
 | `label` | string | The free-form provider label (e.g. `deepseek`, `kimi`). |
 | `family` | ProviderFamily | _Derived:_ Resolved from the label. |
 | `model` | string | The model identifier sent on the wire. |
+| `vision` | boolean | Whether this provider accepts image input (YAML `VISION`, default false; round 062 / ADR 0032). Declared, never inferred from the model name or the family; when false the `read_image` `Tool` is not offered. |
 
 **Invariants**
 
 - **provider-label-resolves-to-one-family** — Every provider label MUST resolve to exactly one ProviderFamily.
+- **provider-family-must-be-drivable** — A label resolving to a family tellme cannot drive (e.g. `anthropic`) is refused with the frozen provider-error phrase — tellme drives only the `openai` and `gemini` families.
 
 ### `Session`
 
@@ -267,7 +299,7 @@ A guidance block (a SKILL.md file) under the `$TELL_ME_HOME/docs/skills/` catalo
 
 ### `Tool`
 
-A capability the model may invoke, advertised with a JSON argument schema. The surface is deliberately small: the reader trio (`list_files`, `read_files`, `get_tree`), the write pair (`write_file`, `replace_text`), `execute_command` (`bash -c`), and `list_skills`. Every tool is bounded by the resource contract (`max_output_tokens` / `timeout` — default + param + ceiling) and requires a `reason`. There is no consent gate and no path boundary.
+A capability the model may invoke, advertised with a JSON argument schema. The surface is deliberately small: the reader trio (`list_files`, `read_files`, `get_tree`), the write pair (`write_file`, `replace_text`), `execute_command` (`bash -c`), and `list_skills`. When the selected `Provider` declares `vision`, one more tool is offered — `read_image`, which reads a local image and attaches it as `ImageContent`. Every tool is bounded by the resource contract (`max_output_tokens` / `timeout` — default + param + ceiling) and requires a `reason`. There is no consent gate and no path boundary.
 
 **Attributes**
 
@@ -275,11 +307,13 @@ A capability the model may invoke, advertised with a JSON argument schema. The s
 | --- | --- | --- |
 | `name` | string | The unique wire tool name. |
 | `requiresReason` | boolean | Always true — every tool call must carry a reason. |
+| `gate` | ToolGate | The capability gate (round 062 / ADR 0032): `vision` for `read_image` (offered only when the selected `Provider` declares `vision`), `none` otherwise — the readers, the write pair, `execute_command`, and `list_skills` are always offered. |
 
 **Invariants**
 
 - **tool-name-unique** — Each `Tool` has a unique name.
 - **tool-result-bounded** — Every tool bounds its own output at the source; the loop clamp is the backstop.
+- **tool-offered-only-when-capable** — `read_image` (its `gate` is `vision`) is offered to the model only when the selected `Provider` declares `vision`; the offered set is a function of the selected provider's capability.
 
 ### `ToolCall`
 
@@ -360,6 +394,7 @@ erDiagram
     Config {}
     Context {}
     History {}
+    ImageContent {}
     MCPServer {}
     MCPTool {}
     Persona {}
@@ -383,6 +418,7 @@ erDiagram
     Context }o..o{ Skill : ""
     Context }o..|| History : ""
     History ||--o{ Turn : ""
+    ImageContent }o..|| ToolCall : ""
     MCPServer ||--o{ MCPTool : ""
     Provider }o..|| Pricing : ""
     Session ||--o{ Turn : ""
@@ -492,7 +528,45 @@ The model calls an MCP-backed tool. It must be tellme's own `{reason, MCP_PAYLOA
 
 - **mcp-call-is-an-envelope** — An MCP call MUST be a `{reason, MCP_PAYLOAD}` envelope; a non-envelope call is refused.
 - **mcp-payload-forwarded-alone** — Only `MCP_PAYLOAD` reaches the server.
-- **mcp-server-definition-preserved** — An `MCPServer`'s own tool definitions are relayed verbatim — never altered.
+- **mcp-server-definition-preserved** — The `MCPServer` still receives its own arguments — only the declaration **offered to the model** is filtered before the provider wire (vendor extensions dropped for every family; a closed-wire family receives only keywords its schema reader accepts).
+
+### A schema a strict provider cannot parse
+
+A remote server annotates an argument with a vendor extension. tellme's family-agnostic floor drops the annotation, and a closed-wire transport projects the declaration onto the supported surface, so the turn reaches the model instead of failing with a whole-request rejection.
+
+**Actors:** MCPServer, MCPTool, Tool, Orchestrator
+
+**Steps**
+
+1. An `MCPServer` advertises a tool whose argument carries a vendor-extension keyword (`x-…`).
+2. The floor drops the extension for every family.
+3. For a closed-wire family, the declaration is projected onto the provider's supported surface (default-deny).
+4. The turn reaches the model; the server still receives its own arguments.
+
+**Invariants touched**
+
+- **mcp-server-definition-preserved** — The `MCPServer` still receives its own arguments — only the declaration **offered to the model** is filtered before the provider wire (vendor extensions dropped for every family; a closed-wire family receives only keywords its schema reader accepts).
+- **tool-declaration-fits-the-provider-wire** — A declaration offered to a closed-wire provider carries only keywords its schema reader accepts; tellme drops an unsupported keyword or a wrong-kind value rather than coerce it, and fails closed to the freeform object.
+
+### Reading a local image
+
+With a `Provider` that declares `vision`, the model calls `read_image`. The tool resolves the file's kind from its content, attaches the image, and the loop folds it back on a `user` message after the tool result — so the model can see the picture. A provider without `vision` is not offered the tool; an oversize or non-picture file is a loud refusal.
+
+**Actors:** Orchestrator, Tool, ToolCall, ImageContent, Provider
+
+**Steps**
+
+1. `Provider` returns a call to `read_image` carrying a `reason`.
+2. The tool reads the file and resolves its kind from the content (magic bytes).
+3. The loop attaches the `ImageContent` and folds it onto a `user` message after the tool result.
+4. The `Provider` sees the image; the turn completes.
+
+**Invariants touched**
+
+- **tool-offered-only-when-capable** — `read_image` (its `gate` is `vision`) is offered to the model only when the selected `Provider` declares `vision`; the offered set is a function of the selected provider's capability.
+- **image-kind-sniffed-from-content** — An `ImageContent`'s kind is resolved from the file's content (magic bytes), never the file name nor a declared MIME.
+- **image-inline-limit** — An image larger than the 32 MiB inline ceiling is a loud refusal — never truncated and never partially sent.
+- **image-never-silently-dropped** — A media-bearing message on a family without an image path is a loud failure; an image is never silently lost.
 
 ### Listing and using skills
 
@@ -527,6 +601,21 @@ The effective token budget for a session derives from the configured `MAX_HISTOR
 
 - **pricing-unique-model** — Each `modelName` appears at most once in the pricing table.
 - **context-figures-reported** — The `Context`'s size is reported twice per turn — an `estimated` pre-flight figure and a `measured` post-turn figure.
+
+### A provider family tellme cannot drive
+
+The operator selects a provider whose label resolves to a family tellme does not drive. tellme refuses to proceed with the frozen provider-error phrase; no transport is built.
+
+**Actors:** Config, Provider, Orchestrator
+
+**Steps**
+
+1. `Config` selects a `Provider` whose label resolves to no drivable family (e.g. `anthropic`).
+2. tellme refuses to proceed and reports the frozen provider-error phrase.
+
+**Invariants touched**
+
+- **provider-family-must-be-drivable** — A label resolving to a family tellme cannot drive (e.g. `anthropic`) is refused with the frozen provider-error phrase — tellme drives only the `openai` and `gemini` families.
 
 ### Reading the session's logs
 

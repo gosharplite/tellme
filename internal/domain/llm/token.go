@@ -16,6 +16,15 @@ func estimateTerm(s string) int {
 	return (len(s)+bytesPerToken-1)/bytesPerToken + perMessageOverhead
 }
 
+// estimateMediaTerm approximates the token cost of one attached media part
+// (round 062; PR #129 fold F-062-2): its base64 wire expansion (4 bytes per 3)
+// over the bytes-per-token ratio, plus the per-part overhead. So the pre-flight
+// estimate RESPONDS to media and an image-bearing turn is not under-reported.
+func estimateMediaTerm(nBytes int) int {
+	base64Len := 4 * ((nBytes + 2) / 3)
+	return (base64Len+bytesPerToken-1)/bytesPerToken + perMessageOverhead
+}
+
 // EstimateTokens returns a deterministic, offline estimate of the token size of
 // an assembled conversation (round-009 research Decision 1). It is a
 // dependency-free heuristic — a fixed bytes-per-token ratio plus a small
@@ -25,10 +34,17 @@ func estimateTerm(s string) int {
 // The exact ratio is deliberately NOT a contract term: the DSL pins only that
 // the estimate is deterministic (round-009 chat/dsl.md, `the payload status
 // measures against a budget of {budget} tokens`).
+//
+// Round 062 (PR #129 fold F-062-2): an attached media part is counted too — its
+// base64 wire expansion over the same ratio — so the pre-flight figure (and thus
+// the budget view) reflects an image, not only text.
 func EstimateTokens(messages []Message) int {
 	total := 0
 	for _, m := range messages {
 		total += estimateTerm(m.Content)
+		for _, mp := range m.Media {
+			total += estimateMediaTerm(len(mp.Data))
+		}
 	}
 	return total
 }

@@ -85,29 +85,37 @@ func buildDeps() deps.Dependencies {
 
 // agentTools assembles the agent tool set in offer order: the read-only
 // filesystem readers, the write pair (round 029), the bash-first command tool,
-// and the read-only skills listing tool (round 033). It stays PARAMETERLESS and
-// READ-FREE (round-033 FR-009): the `list_skills` catalog source is unbound here
-// and bound on the prompt path only (round 044). Moved here from internal/cli by
-// round 044 / ADR 0013; the round-031 well-formedness gate iterates it here.
-func agentTools() []domaintools.Tool { return assembleAgentTools(nil) }
+// the read-only skills listing tool (round 033), and — only for a vision-enabled
+// provider (round 062; ADR 0032) — the image reader. It stays PARAMETERLESS for
+// the no-vision default (the round-031 well-formedness gate iterates it here):
+// the `list_skills` catalog source is unbound here and bound on the prompt path
+// only (round 044).
+func agentTools() []domaintools.Tool { return assembleAgentTools(nil, false) }
 
 // assembleAgentTools builds the agent tool set with the `[Tool Output]` sink
 // injected into the command tool at CONSTRUCTION (round 052, closing #115 R-2;
 // ADR 0021). agentTools() passes a nil sink (the round-031 gate and the offline
 // `--tool-usage` path never execute a tool); the prompt path passes the live
-// `prog.ToolOutput` sink.
-func assembleAgentTools(sink domaintools.OutputSink) []domaintools.Tool {
+// `prog.ToolOutput` sink. The `vision` flag (round 062) appends the `read_image`
+// tool only when the selected provider declares the capability, so the offered
+// set tells the model the truth.
+func assembleAgentTools(sink domaintools.OutputSink, vision bool) []domaintools.Tool {
 	tools := infratools.NewFilesystemTools()
 	tools = append(tools, infratools.NewWriteTools()...)
 	tools = append(tools, infratools.NewCommandTool(sink))
 	tools = append(tools, infratools.NewSkillsTool(nil))
+	if vision {
+		tools = append(tools, infratools.NewReadImageTool())
+	}
 	return tools
 }
 
-// newToolRegistry builds the seven-tool agent registry (the agent loop's set),
-// with the `[Tool Output]` sink injected at construction (round 052; ADR 0021).
-func newToolRegistry(sink domaintools.OutputSink) domaintools.Registry {
-	return domaintools.NewRegistry(assembleAgentTools(sink)...)
+// newToolRegistry builds the agent registry (the agent loop's set), with the
+// `[Tool Output]` sink injected at construction (round 052; ADR 0021) and the
+// `read_image` tool gated by the provider's declared vision capability (round
+// 062; ADR 0032).
+func newToolRegistry(sink domaintools.OutputSink, vision bool) domaintools.Registry {
+	return domaintools.NewRegistry(assembleAgentTools(sink, vision)...)
 }
 
 // newTUIRegistry builds the three-reader registry the `-i` suggestion source

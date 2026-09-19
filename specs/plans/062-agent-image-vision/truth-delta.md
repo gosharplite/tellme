@@ -1,0 +1,78 @@
+# Truth Delta: 062-agent-image-vision
+
+**Plan Package**: `specs/plans/062-agent-image-vision`
+**Truth Root**: `specs/truth`
+
+> Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
+>
+> **Status**: skeleton initialized by `/axb-specify`. **Clarify CLOSED** (5 decisions, one at a time) — **Q1 → 1** (OpenAI-compatible family only; Gemini `inline_data` a forward item) · **Q2 → 1** (explicit per-provider `VISION` config key, default off) · **Q3 → 1** (`read_image` only) · **Q4 → 1** (`read_image` not offered when `VISION` off — the offered set is a function of capability) · **Q5 → 1** (inline only, 32 MiB ceiling, oversize = loud tool error). No residual `NEEDS CLARIFICATION`; the package is ready for the owner phases. Owner rows below are placeholders until the owners run.
+
+## /axb-technical-research
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| ADD | `specs/truth/techstack.md` — *Image filesystem tool (`read_image`)* | The first media read tool: `read_image(filepath, reason)`; content-sniffed kind (JPEG/PNG/GIF/WebP magic bytes); 32 MiB inline ceiling with a loud oversize error; offered only for a vision-declaring provider; no path boundary; stdlib-only. | `spec.md` FR-001/FR-003/FR-005, S-4/S-6/S-7 |
+| ADD | `specs/truth/techstack.md` — *Image content on the provider wire (OpenAI-compatible)* | The inline base64 `image_url` content array; the `user`-message-after-tool-result placement (media-first); the byte-identical text path; the 32 MiB inline ceiling; the Gemini family refuses media loudly (no silent drop). | `spec.md` FR-002/FR-004, S-2/S-6, `research.md` D4/D5/D7/D8 |
+| MODIFY | `specs/truth/techstack.md` — *Provider entry schema* | Adds the `VISION` boolean (default false) — the explicit capability declaration; capability is never inferred from the model name/family. | `spec.md` FR-006, S-3 |
+| MODIFY | `specs/truth/techstack.md` — *Agent tool schemas* | The offered set becomes a function of the selected provider's capability: the assembler takes a vision flag and offers `read_image` (through `resourceSchema`, so `required ⊆ properties` holds) only when `VISION: true`. | `spec.md` FR-007/FR-008/FR-009, S-5 |
+| ADD | `docs/decisions/0032-agent-image-vision.md` (+ index row) | The capability key (not a name heuristic), the openai-only scope, the content sniff, the 32 MiB inline ceiling, the media placement, and §Forward RF-062-1…8. | `spec.md` S-8, `research.md` D10 |
+
+## /axb-api-plan
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| NOOP (checked) | `specs/truth/` (**no `contracts/**`**) | Single CLI end; no OpenAPI/HTTP surface exists or changed. | `spec.md` A3 (`contract-authoritative` holds vacuously) |
+
+## /axb-data-plan
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| NOOP (checked) | `specs/truth/data/data-model.dbml` | No persisted shape changes: a `read_image` step persists its **text** result only; the image is in-memory/in-flight (never written). The in-memory conversation is outside the dbml's modelled scope (persisted logs only). | `spec.md` FR-001, `research.md` D7, ADR 0032 RF-062-6 (`data-model-covers-all-state` holds — no persisted state changes) |
+
+## /axb-dsl-refine
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| ADD | `specs/truth/features/cli/chat/reading-a-local-image.feature` | A new CLI-end feature: 3 Rules (the image reaches the wire, content-sniffed kind; the capability-dependent offered set; the loud refusals) + a documented-narrowing Rule. | `spec.md` US1/US2/US3 (`acceptance-coverage`) |
+| MODIFY | `specs/truth/features/cli/chat/offering-the-agent-tools.feature` | The header notes the set is a **function of the selected provider's capability**; a new Example asserts a vision-enabled provider is additionally offered `read_image`. | `spec.md` FR-009, S-5 |
+| ADD | `specs/truth/features/cli/chat/dsl.md` — `## Given (round 062)` (6 rows) + `## Then (round 062)` (7 rows) + a round-062 note | The new sentences: the workspace image-file Givens (kind / oversize / not-a-picture), the capability-declaring provider Givens, and the image/offered-set/loud-refusal Thens. | `spec.md` FR-001…FR-012 (`dsl-exact-one-match`) |
+| NOOP (checked) | the interface-root `specs/truth/features/cli/dsl.md` + sibling modules | No cross-module row changed; the new rows are module-local to `chat`. | `dsl-single-authority` holds |
+
+**Domain model** (`docs/domain-model/tellme.modelith.{yaml,md}`, ADR 0030 — descriptive, subordinate to truth): refreshed for the round-062 capability (the `Provider.vision` attribute · the `Tool` capability gate + `tool-offered-only-when-capable` · the new `ImageContent` entity · a *Reading a local image* scenario); `make modelith-check` green (no drift).
+
+**Topology audit** (`axb-gherkin-and-dsl` script over `specs/truth/features/cli`): 48 features · 6 modules · 16 root + 375 module rows · 1894 steps — the **same 5 pre-existing errors** as at round 061, **none new**; round 062's feature + Example match exactly one row each.
+
+## Review folds (PR [#129](https://github.com/gosharplite/tellme/pull/129), review `5255211125`)
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| MODIFY | `specs/truth/techstack.md` — *Tool-usage accounting* | the reported set is the **union** of the base and capability-gated sets, so `read_image` (recordable) is shown with zero; enumerate the eight. | review **F-062-1** |
+| MODIFY | `specs/truth/techstack.md` — *Image filesystem tool (`read_image`)* | names the media **channel** (per-call context collector) + the estimate-counts-media note + the refusal casing alignment. | reviews **F-062-2**, **F-062-3**, nit (d) |
+| MODIFY | `docs/decisions/0032-agent-image-vision.md` | D7a (the channel mechanism) · D7b (the capability-aware offered/recorded sets) · the PR-#129 fold record · §Forward RF-062-9 (closed) / RF-062-10 (refactor candidates) / RF-062-11. | reviews **F-062-1…F-062-5** |
+| MODIFY | `docs/domain-model/tellme.modelith.{yaml,md}` | the capability fact modelled as a `ToolGate` enum (`none`/`vision`) rather than a one-true boolean; the pre-existing "three families" wording corrected to "two". | review nit (e) |
+| ADD | `internal/domain/llm/token.go` (media term) + `internal/domain/llm/token_test.go` | the estimate counts an attached media part's base64 expansion. | review **F-062-2** |
+| MODIFY | `tests/e2e/steps/**` (the refusal Thens bound to the `read_image` result; the split offered/recordable enumerators; the shared-config + `VISION` mutator) | predicate scope = the right authority; the two authoritaties kept distinct. | reviews **F-062-1**, **F-062-5a**, nit (c) |
+| MODIFY | `STATUS.md` + `docs/session-summary/2026/09/19/session-summary.md` | the round-062 in-flight block + the PM follow-up (the 4th acceptance Rule carries a comment, not Examples). | review **F-062-5b**, **(f)** |
+
+## Fold verification (PR [#129](https://github.com/gosharplite/tellme/pull/129), verification `5255235795`)
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` — the `the review shows every tool with no uses` row | restated `集合`/`必查` as the **recordable union** (base ∪ capability-gated; eight tools, the stale four-tool `today:` list refreshed) — a tool that can be recorded must not be invisible in the report. | review **TF-062-1** (the round-057 TF-057-1 class) |
+| MODIFY | `specs/truth/features/cli/chat/accounting-for-the-tool-use.feature` (the `--version`-class comment) + `internal/ui/toolusage.go` doc | "the live registry" → the recordable union. | review **TF-062-1** |
+| ADD | `docs/decisions/0032-agent-image-vision.md` §Forward | RF-062-12 (the E2E union duplicate → a shared enumerator) · RF-062-13 (the report is capability-blind by design) + the fold-verification record. | review **R-062-1/R-062-3** |
+| ADD | `internal/cli/tool_usage_union_test.go` | `unionToolNames` unit pin (first-seen order, de-dup, nil registry). | review **R-062-2** |
+
+## Certification nit (PR [#129](https://github.com/gosharplite/tellme/pull/129), certification `5255246963`)
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| MODIFY | `specs/truth/techstack.md` (*Tool-usage accounting*) + `specs/truth/features/cli/chat/dsl.md` (the `the operator reviews how the tools have been used` row) | the two residual "reads only `os.UserHomeDir()` + the live registry" phrases → the **recordable set** (the union); the row gains the capability-blindness half-sentence. | review **N-062-1** |
+| MODIFY | `tests/e2e/steps/step_t014_chat_then_review_all_zero.go` (a diagnostic string) + `docs/decisions/0032-agent-image-vision.md` RF-062-13's parenthetical | wording aligned to the recordable union / the §Forward home. | review **N-062-1** |
+
+## Nit-verification note (PR [#129](https://github.com/gosharplite/tellme/pull/129), verification `5255255480`)
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` — the `the request offered exactly the agent tools` row | states the sentence pins the **base offered set** (a provider without `vision`; the offered set is capability-dependent — D3). | review `5255255480` (the precision note) |
+| MODIFY | `tests/e2e/steps/step_r021_t026_chat_then_offered_tools.go` (diagnostics) + `docs/decisions/0032-agent-image-vision.md` (**RF-062-14**) | the diagnostics name the base offered set; the scope note homed in ADR 0032 §Forward. | review `5255255480` |

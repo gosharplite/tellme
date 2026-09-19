@@ -742,7 +742,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// Round 052 (closes #115 R-2; ADR 0021): the registry is built with the
 	// `[Tool Output]` sink injected at construction (`prog.ToolOutput`) — the
 	// round-034 `BindToolOutput` rebind no longer exists.
-	reg := dp.NewToolRegistry(prog.ToolOutput)
+	reg := dp.NewToolRegistry(prog.ToolOutput, res.Provider.Vision)
 	// Round 033 (FR-009): bind the `list_skills` catalog source on the
 	// prompt-bearing turn path ONLY — the runtime home is resolved here. The load
 	// stays lazy (inside the tool's Execute), so no registration reads docs/skills
@@ -990,23 +990,45 @@ func dispatchReporting(f *flags, homeDir string, env runtimeEnv, newHistoryStore
 // diagnostic stream (the report path is offline, so stderr is free), so an
 // unreadable log is distinguishable from "no tool ever used"; the all-zero report
 // still prints and the command succeeds.
-func renderToolUsage(env runtimeEnv, newToolRegistry func(domaintools.OutputSink) domaintools.Registry, newToolUsageStore func(func() (string, error)) history.ToolUsageStore, userHome func() (string, error), lines render.Lines) int {
-	// The offline report never executes a tool, so the registry is built with a
-	// nil `[Tool Output]` sink (round 052; ADR 0021).
-	reg := newToolRegistry(nil)
-	tools := reg.Tools()
+func renderToolUsage(env runtimeEnv, newToolRegistry func(domaintools.OutputSink, bool) domaintools.Registry, newToolUsageStore func(func() (string, error)) history.ToolUsageStore, userHome func() (string, error), lines render.Lines) int {
+	// The offline report never executes a tool; it lists every tool that can be
+	// RECORDED — the UNION of the base set and the capability-gated set (round
+	// 062; PR #129 fold F-062-1) — so a capability-gated tool (`read_image`) is
+	// shown (with zero) rather than invisible while its records accumulate. One
+	// authority for "a tool that can be recorded": the same two registries the
+	// prompt path builds.
+	names := unionToolNames(newToolRegistry(nil, false), newToolRegistry(nil, true))
 	counts, err := newToolUsageStore(userHome).Aggregate()
 	if err != nil {
 		_, _ = fmt.Fprintf(env.stderr, "[tool-usage] could not read the usage log: %v\n", err)
 		counts = nil
 	}
-	rows := make([]history.ToolUsageRow, 0, len(tools))
-	for _, t := range tools {
-		c := counts[t.Name()] // zero value when the tool has no records
-		rows = append(rows, history.ToolUsageRow{Tool: t.Name(), Counts: c})
+	rows := make([]history.ToolUsageRow, 0, len(names))
+	for _, n := range names {
+		rows = append(rows, history.ToolUsageRow{Tool: n, Counts: counts[n]})
 	}
 	_, _ = fmt.Fprint(env.stdout, lines.ToolUsage(rows))
 	return Success
+}
+
+// unionToolNames enumerates the tool names across the given registries, in
+// first-seen order, de-duplicated by name (round 062; PR #129 fold F-062-1).
+func unionToolNames(regs ...domaintools.Registry) []string {
+	seen := make(map[string]bool)
+	var names []string
+	for _, reg := range regs {
+		if reg == nil {
+			continue
+		}
+		for _, t := range reg.Tools() {
+			if seen[t.Name()] {
+				continue
+			}
+			seen[t.Name()] = true
+			names = append(names, t.Name())
+		}
+	}
+	return names
 }
 
 // renderHistoryList lists the last N persisted messages (round-007 FR-007..FR-009)

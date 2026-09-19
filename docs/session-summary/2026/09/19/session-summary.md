@@ -768,3 +768,116 @@ A **family-agnostic floor** (`mcp.NormalizeMCPSchema` drops `x-…`/`$schema` re
 ### PM follow-ups
 
 - None new (the round's acceptance journey gained the executed no-mark control in the interface feature — review R-4 — so the R-058-c class does not recur here).
+
+---
+
+## 19. Session 36 (2026-09-19, cont.) — round 062 `062-agent-image-vision`: operator request *"make tellme have vision"* → full plan+truth+implementation on the round branch → **PR #129 OPEN** → architectural review (APPROVE WITH REQUIRED FOLDS) → **folds F-062-1…F-062-5 landed**
+
+A later session on the same calendar day: opened round **062** from an **operator request** (no anchor issue — *"Can tell-me-go read image with deepseek-flash?"* → the operator supplied the current DeepSeek doc: `deepseek-flash` now accepts images, `deepseek-v4-flash-vision-exp` retired; JPEG/PNG/GIF/WebP; the type is detected from the file **content** → *"We need to refer tell-me-go and make tellme to have vision."*). The reference gates vision on a **model-ID substring** (`strings.Contains(model,"vision")`) and its ADR-070 assumed `deepseek-v4-flash` was text-only — **stale**; tellme does **not** copy it.
+
+**Workspace**: `…/mbp-johndoe-niffler/ait-tellme`; darwin/arm64 host (Go 1.26.6). **Session mode**: `butler`. **Branch**: `062-agent-image-vision` (off `dev` `41d6a93`) — **PR [#129](https://github.com/gosharplite/tellme/pull/129) OPEN**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | tellme's **first non-text capability** — `read_image` (agent tool) + an explicit `VISION` provider key + an inline `image_url` block on the OpenAI-compatible wire |
+| Clarify (one at a time, 5/5) | **Q1 → 1** OpenAI-compatible family only · **Q2 → 1** explicit per-provider `VISION` key · **Q3 → 1** `read_image` only · **Q4 → 1** the tool is not offered when `VISION` is off · **Q5 → 1** inline, 32 MiB ceiling, oversize = a loud tool error |
+| Pipeline | specify ✅ · clarify ✅ · spec-by-example ✅ · technical-research ✅ (**ADR 0032** + `techstack.md` ×4) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine ✅ (new `chat/reading-a-local-image.feature` + `offering-the-agent-tools.feature` + 13 DSL rows) · tasks ✅ (T001–T035) · implement ✅ (all `[X]`) |
+| Product | `internal/domain/llm/media.go` (`MediaPart` + the per-call collector) · `llm.Message.Media` · `config.Provider.Vision` · `internal/infrastructure/tools/image.go` (magic-byte sniff + 32 MiB ceiling + attach) · `openai.messageContent` (content array; text path byte-identical) · `gemini` loud media refusal · the loop's `user`-message (media-first) placement · `cmd/tellme` vision-gated assemblage (+ `deps.NewToolRegistry(sink, vision)`) |
+| Verification | `gofmt`/`go vet` clean · `go test -count=1 ./...` green · `make verify` **OK** (arch 0 · modelith-check up to date · lint 0 · govulncheck clean · cross-compile 4/4) · **E2E 259 scenarios / 1918 steps** green · topology audit 5 pre-existing, none new · `go.mod`/`go.sum` unchanged · witnesses (a)/(b)/(c) reproduced + reverted |
+| Domain model | `docs/domain-model/tellme.modelith.{yaml,md}` refreshed (`Provider.vision` · `Tool.gate` (ToolGate) · the `ImageContent` entity · a *Reading a local image* scenario) — **ADR 0030**; `make modelith-check` green |
+| Review (PR #129, `5255211125`) | **APPROVE WITH REQUIRED FOLDS** — F-062-1 … F-062-5 (see below); **no blocker** |
+| Delivery | branch `062-agent-image-vision` + PR [#129](https://github.com/gosharplite/tellme/pull/129) **OPEN** — a human merges |
+
+### The folds (PR #129 review, folded on the round branch)
+
+| # | Fold |
+| --- | --- |
+| **F-062-1** | The `--tool-usage` report's row source is the **union** of the base and capability-gated registries, so `read_image` (recordable) is shown with zero; the E2E splits the **offered** (base) set from the **recordable** (union) set; the *Tool-usage accounting* truth row + a `truth-delta.md` entry record it. |
+| **F-062-2** | The token estimate **counts media** — `llm.EstimateTokens` adds a base64-expansion term per media part (`estimateMediaTerm`), so an image-bearing turn's pre-flight figure / budget view is no longer blind; pinned (`TestEstimateTokensCountsMedia`); a truth clause added. (RF-062-9 closed.) |
+| **F-062-3** | The media **channel** mechanism (a per-call `context` collector) is named in **ADR 0032 D7a** + the *Image filesystem tool* truth row; the cleaner port-widening is recorded as **RF-062-10** (next-round refactor). |
+| **F-062-5a** | The two refusal E2E Thens are bound to the `read_image` **tool result** (matched by `tool_call_id`), not any message text. |
+| **F-062-5b** | This summary + `STATUS.md` updated (the round-062 in-flight block; the PM follow-up). |
+| Nits | (c) the E2E uses the shared config writer + a `VISION` mutator · (d) the refusal casing aligned to the readers' `ERROR:` · (e) the domain-model capability fact modelled as a `ToolGate` enum (replacing the one-true boolean) + the pre-existing "three families"→"two" wording fixed. |
+| F-062-4 | **Not a merge gate** — a `ToolSetSpec` seam instead of a bare positional `vision bool`; recorded as **RF-062-10**. |
+
+### Commits (branch `062-agent-image-vision`)
+
+| Commit | Note |
+| --- | --- |
+| `d3b0024` | `docs(062)`: plan package + spec + clarify (5 decisions) |
+| `e4d817b` | `docs(062)`: acceptance Gherkin + technical research + ADR 0032 + techstack truth |
+| `03914f0` | `docs(062)`: system-analysis plan (1 CLI end; api/data NOOP) |
+| `021fbed` | `docs(062)`: CLI interface truth — `reading-a-local-image` feature + capability-dependent offered set + DSL rows |
+| `7f7a297` | `docs(062)`: tasks.md (T001–T035) |
+| `b5ee70d` | `feat(062)`: the implementation (T001–T035) + domain-model refresh |
+| *(review folds)* | `docs(062)`/`fix(062)`: F-062-1…F-062-5 + nits c/d/e |
+
+### Open items (non-blocking)
+
+- **PR [#129](https://github.com/gosharplite/tellme/pull/129) awaits a human review + merge** → then `SESSION-CLOSEOUT.md` Steps 1–8 (propagate `dev → main`, `round-062` tag on approval; close nothing — operator request).
+- **ADR 0032 §Forward**: RF-062-1…RF-062-11 (Gemini `inline_data` · the Files-API upload leg · multiple-image aggregate bound · video/documents · a CLI `--image` flag · image persistence · capability inference · the media-channel refactor `RF-062-10`).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; [#91](https://github.com/gosharplite/tellme/issues/91) / [#13](https://github.com/gosharplite/tellme/issues/13).
+
+### Next steps
+
+1. Human reviews + merges **PR [#129](https://github.com/gosharplite/tellme/pull/129)** → propagate `dev → main` → `SESSION-CLOSEOUT.md`.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `062-agent-image-vision` until merged, then `dev`).
+
+### PM follow-ups
+
+- **R-062-c** (PM-owned): the acceptance journey's 4th Rule (*The protection is part of every delivery*) carries a comment rather than Examples — the round-059/R-059-c precedent (legitimate, documented); the next PM pass should mirror it into a runner-owned form if one appears.
+
+### Session 36 (cont.) — PR #129 fold verification → TF-062-1 folded
+
+The fold verification ([`5255235795`](https://github.com/gosharplite/tellme/pull/129#pullrequestreview-5255235795)) returned **FOLDS VERIFIED 5/5** with **certification withheld** pending one truth fold-back: **TF-062-1** — the `--tool-usage` owning **interface** row (`chat/dsl.md`, `the review shows every tool with no uses`) still stated the **retired** four-tool set and no longer described the stepdef (now the **recordable union** of eight). Folded (truth-only): the row restated as the recordable union; the adjacent `accounting-for-the-tool-use.feature` comment + the `ui.FormatToolUsage` doc aligned; a `truth-delta.md` row. Residuals: **R-062-1/R-062-3** recorded (ADR 0032 §Forward **RF-062-12/RF-062-13**); **R-062-2** closed by a `unionToolNames` unit pin. Re-verified: `gofmt`/`vet` clean · `go test -count=1 ./...` green · `make verify` **OK** · E2E green · topology audit 5 pre-existing, none new.
+
+---
+
+## 20. Session 36 (cont.) — round 062 `062-agent-image-vision` **DELIVERED** (PR #129 merged → `dev` `cff2515`) → branch cleaned up → closeout (Steps 1–8) + `go install`
+
+The delivery + end-of-day closeout for round 062: the operator merged **PR [#129](https://github.com/gosharplite/tellme/pull/129)** (fast-forward into `dev`), deleted the remote branch, and I deleted the local branch after an ancestor check; then ran `SESSION-CLOSEOUT.md` Steps 1–8 and refreshed the installed binary.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#129](https://github.com/gosharplite/tellme/pull/129) **human-merged** into `dev` (`cff2515`, **fast-forward** — no merge commit; the round head is the `dev` tip) |
+| Branch cleanup | remote branch deleted by the operator; local `062-agent-image-vision` deleted after `git merge-base --is-ancestor 062-agent-image-vision origin/dev` → **YES** (`git branch -d`, was `cff2515`) |
+| Closeout Step 1 | tree clean on `dev` (in sync with `origin/dev`); no frozen `specs/plans/**` touched |
+| Closeout Step 2 | `gofmt` clean · `go vet ./...` clean · `go test -count=1 ./...` **green** (24 pkgs incl. E2E) · `make verify` **OK** |
+| Closeout Step 3 | `STATUS.md` → round 062 **DELIVERED / FROZEN**; **Rule-12 split** (the round-061 detail + its env note → [`docs/archives/status/2026-09-19.md`](../../../archives/status/2026-09-19.md); the duplicated full round-060 env note dropped — already archived); header/branch-model/roadmap/open-items(build 062 forward items + R-062-c)/env-note updated; 062 added to the delivered-rounds index + fold ledger |
+| Closeout Step 4 | this §20 appended (the §1–§19 record preserved) |
+| Closeout Step 5 | `STATUS.md` ↔ this log reconciled |
+| Closeout Step 6 | committed + pushed on `dev` |
+| Closeout Step 7 | **propagated `dev → main`** (no-ff) + tagged **`round-062`** (ADR 0026; operator-approved by the closeout instruction) + `go install ./cmd/tellme` |
+| Closeout Step 8 | issue tracker: **nothing to close/revise** (operator request, no anchor issue); [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) remain OPEN (accurate) |
+
+### Round 062 — what landed
+
+- **Deliverable**: tellme's **first non-text capability** — an agent **`read_image`** tool (content-sniffed JPEG/PNG/GIF/WebP; 32 MiB inline ceiling; loud oversize/not-a-picture refusals) + an explicit per-provider **`VISION`** capability key (default off; declared, never inferred) + an inline base64 `image_url` block on the **OpenAI-compatible** wire (media-first `user` message after the tool result); the Gemini family refuses media loudly. **ADR 0032**.
+- **Artifacts**: `specs/plans/062-agent-image-vision/**` · **ADR 0032** (+ index) · `specs/truth/techstack.md` ×4 rows · `chat/reading-a-local-image.feature` (new) + `offering-the-agent-tools.feature` + `chat/dsl.md` (13 rows + the union/scope notes) · `docs/domain-model/tellme.modelith.{yaml,md}` (Provider.vision · Tool.gate · the `ImageContent` entity · a *Reading a local image* scenario) · code: `internal/domain/llm/media.go`, `llm.Message.Media`, `config.Provider.Vision`, `internal/infrastructure/tools/image.go`, the openai content-array serializer, the gemini loud refusal, the loop's `user`-message placement, `cmd/tellme` vision-gated assemblage.
+- **Review chain (4 passes, CLOSED)**: review `5255211125` (APPROVE WITH REQUIRED FOLDS) → fold `744e10d` → verification `5255235795` (FOLDS VERIFIED 5/5) → fold `0916560` (TF-062-1) → certification `5255246963` (CERTIFIED MERGE-READY) → nit fold `f2a67d3` (N-062-1) → nit verification `5255255480` → scope-note fold `dadf808` (RF-062-14) → final diagnostic `cff2515`.
+- **Verification**: E2E **259 scenarios / 1918 steps**; `make verify` OK (arch 0 / empty baseline · modelith-check ×3 · lint 0 · govulncheck clean · cross-compile 4/4); topology audit **5 pre-existing, none new**; `go.mod`/`go.sum` unchanged.
+
+### Commits (on `dev`)
+
+| Commit | Note |
+| --- | --- |
+| `cff2515` | PR [#129](https://github.com/gosharplite/tellme/pull/129) merge into `dev` (fast-forward; by the operator) |
+| *(this closeout, on `dev`)* | `docs(062)`: day close — round 062 delivered + propagated; STATUS split + 09/19 summary §20 |
+
+### Open items (non-blocking)
+
+- **Round-062 forward items RF-062-1…RF-062-14** (all in **ADR 0032 §Forward**; esp. **RF-062-10** the media-channel/`ToolSetSpec` refactor, **RF-062-12** the shared enumerator) + **PM follow-up R-062-c**.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the 5 pre-existing topology-audit errors.
+
+### Next steps
+
+1. Open round **`063-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- **R-062-c** (recorded in `STATUS.md`): the acceptance journey's 4th Rule carries a comment rather than Examples (the R-056-c/R-059-c class; the package was still *active*).

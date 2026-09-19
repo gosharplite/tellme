@@ -125,16 +125,35 @@ func parseReportLine(stdout, tool string) (reportToolCounts, bool) {
 // constructors cli.newToolRegistry uses), so the all-zero Then cannot pass
 // vacuously when a tool is added or removed (round-026 review F8). Round 029 adds
 // the write pair (write_file, replace_text) and round 033 adds the read-only
-// list_skills tool, keeping this in sync with cli.newToolRegistry.
+// list_skills tool, keeping this in sync with cli.newToolRegistry. This is the
+// BASE set — the tools a non-vision provider is offered (round 062: the
+// capability-gated read_image is NOT here; see recordableToolNames).
 func registeredToolNames() []string {
-	reg := domaintools.NewRegistry(append(
-		append(
-			append(infratools.NewFilesystemTools(), infratools.NewWriteTools()...),
-			infratools.NewCommandTool(nil),
-		),
-		infratools.NewSkillsTool(nil),
-	)...)
-	tools := reg.Tools()
+	return flattenToolNames(infratools.NewFilesystemTools(),
+		infratools.NewWriteTools(),
+		[]domaintools.Tool{infratools.NewCommandTool(nil)},
+		[]domaintools.Tool{infratools.NewSkillsTool(nil)})
+}
+
+// recordableToolNames enumerates every tool that can be RECORDED in the tool-usage
+// log — the UNION of the base set and the capability-gated set (round 062;
+// PR #129 fold F-062-1). The offline `--tool-usage` report lists this union, so
+// the all-zero guard reads the same authority.
+func recordableToolNames() []string {
+	return flattenToolNames(infratools.NewFilesystemTools(),
+		infratools.NewWriteTools(),
+		[]domaintools.Tool{infratools.NewCommandTool(nil)},
+		[]domaintools.Tool{infratools.NewSkillsTool(nil)},
+		[]domaintools.Tool{infratools.NewReadImageTool()})
+}
+
+// flattenToolNames flattens the given tool groups into their wire names, in order.
+func flattenToolNames(groups ...[]domaintools.Tool) []string {
+	var all []domaintools.Tool
+	for _, g := range groups {
+		all = append(all, g...)
+	}
+	tools := domaintools.NewRegistry(all...).Tools()
 	names := make([]string, 0, len(tools))
 	for _, t := range tools {
 		names = append(names, t.Name())

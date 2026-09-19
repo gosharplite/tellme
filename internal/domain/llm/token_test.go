@@ -65,3 +65,21 @@ func TestEstimatePayloadCountsWireInputs(t *testing.T) {
 		t.Errorf("EstimatePayload empty = %d, want 0", got)
 	}
 }
+
+// TestEstimateTokensCountsMedia pins round 062 (PR #129 fold F-062-2): the
+// estimate RESPONDS to an attached media part — an image-bearing message
+// estimates strictly more than the same message with no media, and strictly more
+// as the image grows.
+func TestEstimateTokensCountsMedia(t *testing.T) {
+	base := []Message{{Role: "user", Content: "what is this?"}}
+	small := []Message{{Role: "user", Content: "what is this?", Media: []MediaPart{{MIMEType: "image/png", Data: make([]byte, 3000)}}}}
+	large := []Message{{Role: "user", Content: "what is this?", Media: []MediaPart{{MIMEType: "image/png", Data: make([]byte, 300000)}}}}
+
+	b, s, l := EstimateTokens(base), EstimateTokens(small), EstimateTokens(large)
+	if s <= b {
+		t.Errorf("a media part must estimate more: %d vs %d", s, b)
+	}
+	if l <= s {
+		t.Errorf("a larger image must estimate more: %d vs %d", l, s)
+	}
+}

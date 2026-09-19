@@ -146,6 +146,12 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 				continue
 			}
 			tctx, cancel := context.WithTimeout(ctx, a.callTimeout(tool, tc.Arguments))
+			// Round 062 (ADR 0032 D7): install a FRESH per-call media collector so
+			// a tool (read_image) can attach an image; the loop folds it back as a
+			// `user` message after this call's tool result (DeepSeek accepts images
+			// in user messages only; media-first).
+			var media []llm.MediaPart
+			tctx = llm.WithMediaCollector(tctx, &media)
 			byteBudget := a.callByteBudget(tc.Arguments)
 			result, terr := tool.Execute(tctx, tc.Arguments, tools.ByteBudget(byteBudget))
 			// Read the per-call deadline signal BEFORE cancel() (round 026): it is
@@ -163,6 +169,12 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 			a.recordToolUsage(tc.Name, terr, toolTimedOut)
 			a.logResult(tc, result)
 			turn = append(turn, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})
+			// Round 062 (ADR 0032 D7): a call that attached media gets ONE `user`
+			// message (media-first) immediately after its tool result, so the model
+			// can see the image and the tool result stays paired.
+			if len(media) > 0 {
+				turn = append(turn, llm.Message{Role: "user", Media: media})
+			}
 			steps = append(steps, history.Step{Tool: tc.Name, Arguments: tc.Arguments, Result: result, Signature: tc.Signature})
 		}
 		a.notifyToolsEnd()
