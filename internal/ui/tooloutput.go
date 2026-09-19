@@ -52,9 +52,11 @@ func formatToolOutputHeaderColour(t time.Time, colour bool) string {
 	return grey(FormatToolOutputHeader(t), colour)
 }
 
-// ToolOutputSeparatorColour wraps the fixed separator literal grey when enabled
-// (round 057); the plain path returns the pinned literal unchanged.
-func ToolOutputSeparatorColour(colour bool) string { return grey(ToolOutputSeparator, colour) }
+// toolOutputSeparatorColour wraps the fixed separator literal grey when enabled
+// (round 057 fold R-057-1: unexported — both call sites are in this file and the
+// literal's owner stays internal, matching formatToolOutputHeaderColour); the
+// plain path returns the pinned literal unchanged.
+func toolOutputSeparatorColour(colour bool) string { return grey(ToolOutputSeparator, colour) }
 
 // FormatToolOutputLine renders one streamed output line (FR-010):
 // `[HH:MM:SS] [Tool Output] <line>`. Round 038 (FR-001, issue #78): the streamed
@@ -116,7 +118,7 @@ func (w *ToolOutputWriter) Begin() {
 	now := w.now()
 	w.lastLine = now
 	_, _ = fmt.Fprintln(w.W, formatToolOutputHeaderColour(now, w.Colour))
-	_, _ = fmt.Fprintln(w.W, ToolOutputSeparatorColour(w.Colour))
+	_, _ = fmt.Fprintln(w.W, toolOutputSeparatorColour(w.Colour))
 }
 
 // Write assembles complete lines and emits each as a `[Tool Output]` line; a
@@ -182,7 +184,7 @@ func (w *ToolOutputWriter) EndWith(beforeSeparator func()) {
 		beforeSeparator()
 	}
 	_, _ = fmt.Fprint(w.W, ToolOutputReset)
-	_, _ = fmt.Fprintln(w.W, ToolOutputSeparatorColour(w.Colour))
+	_, _ = fmt.Fprintln(w.W, toolOutputSeparatorColour(w.Colour))
 }
 
 // withLock is the round-040 bookkeeping/idle entry point (ADR 0009 D4, R-11): it

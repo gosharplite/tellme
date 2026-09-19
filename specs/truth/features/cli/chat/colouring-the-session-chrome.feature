@@ -28,7 +28,11 @@ Feature: Colouring the session chrome
       Then the session chrome carries no colour
       And tellme exits successfully
 
-  Rule: The saved turn log stays free of decoration
+  Rule: The saved turn log carries the same content, plain
+
+    # Round 057 (ADR 0027; F-057-2): the operator's Q3 → 1 lock is CONTENT parity —
+    # the file carries the same lines as the terminal (including the new estimated
+    # `+<delta> ~<n>` payload shape) but no colour.
 
     Example: A coloured terminal turn keeps a plain turn log
       Given the operator has a runnable tellme installation
@@ -37,6 +41,7 @@ Feature: Colouring the session chrome
       And a configured provider "test-model" whose endpoint answers with "ok"
       When the operator starts tellme with the prompt "Say hi."
       Then the session turn log carries no decoration
+      And the saved turn log carries the pre-flight payload with its increment and no allowance
       And tellme exits successfully
 
   Rule: The tool output frame is grey and the action line is yellow at a terminal

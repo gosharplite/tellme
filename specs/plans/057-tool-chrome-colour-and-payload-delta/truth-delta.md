@@ -39,3 +39,6 @@
 | Action | Artifact | Change Summary | Reason |
 | --- | --- | --- | --- |
 | ADD | `docs/decisions/0027-tool-chrome-colour-and-payload-delta.md` (+ the `docs/decisions/README.md` index row) | Records the two new colour elements (extending ADR 0023), the `argValueCap` re-parameterisation (ADR 0005 lineage), the signed-increment payload line, and a §Forward (RF-057-x). | `spec.md` A5; `research.md` D8 |
+
+| MODIFY (fold) | `specs/truth/features/cli/chat/colouring-the-session-chrome.feature` (+ `chat/dsl.md`) | **Round 057 fold (PR [#123](https://github.com/gosharplite/tellme/pull/123) review F-057-2):** the turn-log Rule becomes *"carries the same content, plain"* with a new `Then` — the saved turn log carries the pre-flight payload with its increment (**and no allowance**); one new `dsl.md` row pins the pair. | `spec.md` FR-013 / Q3 → 1; PR #123 review F-057-2 |
+| MODIFY (fold) | `specs/truth/features/cli/history/reviewing-the-turn-log.feature`'s carrier `thenSessionTurnsLogHoldsProgress` (+ `history/dsl.md`) | **Round 057 fold (F-057-2):** the `turns.log` progress assertion pins the round-057 `Payload: +<delta> ~<n> tokens` shape instead of the bare `Payload:` substring (which the retired form also satisfied). | PR #123 review F-057-2 |

@@ -17,16 +17,9 @@ func TestChromeColour(t *testing.T) {
 	const g = "\033[0;32m"
 	const r = "\033[0m"
 
-	t.Run("payload: mode green in both; measured tokens green only", func(t *testing.T) {
+	t.Run("measured payload: the mode and the token number are green", func(t *testing.T) {
 		t.Parallel()
-		est := formatPayloadStatusColour(ts, 282827, 1000000, "butler", "deepseek-flash", true, true)
-		if !strings.Contains(est, "- "+g+"butler"+r+" - ") {
-			t.Errorf("estimated payload mode not green: %q", est)
-		}
-		if strings.Contains(est, g+"282827"+r) {
-			t.Errorf("estimated payload token number must stay plain: %q", est)
-		}
-		meas := formatPayloadStatusColour(ts, 438165, 1000000, "butler", "deepseek-flash", false, true)
+		meas := formatPayloadMeasuredColour(ts, 438165, 1000000, "butler", "deepseek-flash", true)
 		if !strings.Contains(meas, g+"438165"+r) {
 			t.Errorf("measured payload token number not green: %q", meas)
 		}
@@ -34,8 +27,8 @@ func TestChromeColour(t *testing.T) {
 			t.Errorf("measured payload mode not green: %q", meas)
 		}
 
-		// Disabled ⇒ byte-identical to the plain formatters.
-		if got, want := formatPayloadStatusColour(ts, 438165, 1000000, "butler", "deepseek-flash", false, false), FormatPayloadStatus(ts, 438165, 1000000, "butler", "deepseek-flash", false); got != want {
+		// Disabled ⇒ byte-identical to the plain formatter.
+		if got, want := formatPayloadMeasuredColour(ts, 438165, 1000000, "butler", "deepseek-flash", false), FormatPayloadMeasured(ts, 438165, 1000000, "butler", "deepseek-flash"); got != want {
 			t.Errorf("colour-off payload = %q, want plain %q", got, want)
 		}
 	})
@@ -70,7 +63,7 @@ func TestChromeColour(t *testing.T) {
 
 	t.Run("empty mode is not wrapped", func(t *testing.T) {
 		t.Parallel()
-		line := formatPayloadStatusColour(ts, 1, 1000000, "", "m", false, true)
+		line := formatPayloadMeasuredColour(ts, 1, 1000000, "", "m", true)
 		if strings.Contains(line, g+r) {
 			t.Errorf("an empty mode must not emit an empty green pair: %q", line)
 		}

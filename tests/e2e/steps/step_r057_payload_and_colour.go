@@ -3,6 +3,8 @@ package steps
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -19,6 +21,7 @@ func init() {
 		ctx.Then(`^a later estimated payload line shows a positive increase$`, thenLaterEstimatePositive)
 		ctx.Then(`^the tool output frame is shown in grey$`, thenToolOutputGrey)
 		ctx.Then(`^the action line is shown in yellow$`, thenActionYellow)
+		ctx.Then(`^the saved turn log carries the pre-flight payload with its increment and no allowance$`, thenTurnLogPayloadParity)
 	})
 }
 
@@ -87,6 +90,34 @@ func thenActionYellow(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	if !reYellowAction.MatchString(sc.stderr) {
 		return fmt.Errorf("the action line is not yellow; stderr=%q", sc.stderr)
+	}
+	return nil
+}
+
+// reTurnLogEstimate matches the round-057 estimated payload line as persisted in
+// `turns.log` (no colour escapes — the file leg is plain by construction).
+var reTurnLogEstimate = regexp.MustCompile(`Payload: [+-][0-9]+ ~[0-9]+ tokens`)
+var reOldTurnLogEstimate = regexp.MustCompile(`Payload: ~[0-9]+/[0-9]+ tokens`)
+
+// thenTurnLogPayloadParity (F-057-2, round-057 review): the saved turn log is
+// CONTENT-EQUAL to the terminal chrome (Q3 → 1) but plain — so it must carry the
+// new estimated shape (`Payload: +<delta> ~<n> tokens`) and must NOT carry the
+// retired `Payload: ~<n>/<budget>` allowance form.
+func thenTurnLogPayloadParity(ctx context.Context) error {
+	sc := scenarioFrom(ctx)
+	data, err := os.ReadFile(filepath.Join(sc.historyDir(), "turns.log"))
+	if err != nil {
+		return fmt.Errorf("the saved turn log must exist: %w", err)
+	}
+	got := string(data)
+	if !reTurnLogEstimate.MatchString(got) {
+		return fmt.Errorf("the saved turn log must carry the estimated payload with its increment; got %q", got)
+	}
+	if reOldTurnLogEstimate.MatchString(got) {
+		return fmt.Errorf("the saved turn log must not carry the retired allowance form; got %q", got)
+	}
+	if strings.ContainsRune(got, '\x1b') {
+		return fmt.Errorf("the saved turn log must carry no colour; got %q", got)
 	}
 	return nil
 }

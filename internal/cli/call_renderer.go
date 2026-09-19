@@ -158,7 +158,7 @@ func (r *callRenderer) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []
 			r.emit(true, func(render.Lines) string { return "" })
 		}
 		r.emit(true, func(l render.Lines) string {
-			return l.PayloadStatus(r.env.now(), usage.PromptTokens, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model, false)
+			return l.PayloadMeasured(r.env.now(), usage.PromptTokens, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model)
 		})
 		r.emitMetrics(usage)
 	}
