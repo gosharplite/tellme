@@ -182,4 +182,4 @@ A later session on the same calendar day: opened **round 065** from anchor issue
 1. Open round **`066-*`** off `dev` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling · the `ToolSetSpec` seam RF-062-10/RF-063-6 · RF-063-10 the meta-Rule clean-up).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
-*(Round 065 is fully closed out: PR #133 human-merged into `dev` (`b904281`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-065`**; the installed binary refreshed; [#132](https://github.com/gosharplite/tellme/issues/132) closed.)*
+*(Round 065 is fully closed out: PR #133 human-merged into `dev` (`b904281`, merge commit); propagation `dev → main` **DONE (no-ff, `3b9bf8c`)**, tagged **`round-065`**; the installed binary refreshed; [#132](https://github.com/gosharplite/tellme/issues/132) closed.)*
