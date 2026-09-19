@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — plan half only (spec → clarify → technical-research → system-analysis → tasks → implement). Clarify is **in flight** (see *Pending clarify decisions* below); this spec is refined as answers land.
+**Status**: Draft — plan half (spec → clarify → technical-research → system-analysis → tasks → implement). **Clarify round 1 CLOSED**: Q1 → **3** (all three models), Q2 → **1** (adopt the modelith fork + `make modelith-*` targets), Q3 → **1** (zero-tolerance `make verify` member; absent binary hard-fails); Q4/Q5 converged as assumptions A6/A7.
 
 **Input**: Operator request (verbatim, this session): *"`/Users/…/tellme/docs/domain-model` — I want tellme to have domain model. Does this need a aixbdd round?"* → after grounding (below) the operator said **proceed**. The request is: give `tellme` its **own** canonical domain model under `docs/domain-model/` (the folder exists but is **empty**), in the lineage of the reference's `tell-me-go.modelith.*` / `quality.modelith.*` models.
 
@@ -18,8 +18,9 @@
 
 - **Q1 → Option 3 — author ALL THREE models.** The round produces the **reference-aligned trio**: the **product** model (`tellme.modelith.yaml/.md`), the **quality** model (`quality.modelith.yaml/.md`), and the **environment-management** model (`environment-management.modelith.yaml/.md`). The environment model describes tellme's environment management, which lives in the **external** Niffler manager (`tellme.sh`) — so it is authored as a model of that external system, with the divergence recorded (`spec.md` FR-003/Edge Cases; `research.md`).
 - **Q2 → Option 1 — adopt the modelith fork + `make modelith-lint|render|check` targets.** The YAML is the single source of truth and the `.md` is **generated**; `modelith` is a **dev-tool binary** prerequisite (like `golangci-lint`/`govulncheck`, resolved from `$GOPATH/bin`), **not** a `go.mod` dependency; the fork branch + version are **pinned in docs**. This reopens **ADR 0011 D10** ("no modelith toolchain") ⇒ **ADR 0030** (`spec.md` FR-004/FR-006/FR-007).
+- **Q3 → Option 1 — zero-tolerance `make verify` member; an absent `modelith` is a hard failure with a named install instruction.** `modelith-check` joins the aggregate `make verify`; **drift ⇒ fail**; **no `modelith` binary ⇒ fail**, naming the install command (`go install github.com/gosharplite/modelith/cmd/modelith@feat/self-domain-model`). The gate never silently skips (matched by the reference's `make check` membership). Recorded consequence: a host running `make verify` MUST have the modelith dev tool installed.
 
-> The remaining clarify question (Q3) is the last of round 1; Q4/Q5 are expected to converge as recorded spec assumptions. Answers are folded into this spec as they arrive.
+> Clarify round 1 is **CLOSED**: Q1 → 3, Q2 → 1, Q3 → 1 (asked one at a time); Q4/Q5 converged as spec assumptions A6/A7. No further clarify rounds are needed (the 5-question session budget is not exceeded: 3 asked).
 
 ## Pending clarify decisions (round 1)
 
@@ -27,9 +28,9 @@
 | --- | --- | --- |
 | **Q1** | **Scope** — which model(s)? (product only · + quality · + environment) | ✅ **locked → 3** (all three) |
 | **Q2** | **Toolchain** — adopt the modelith fork + `make modelith-*` targets (reopens ADR 0011 D10 ⇒ ADR 0030), or hand-authored Markdown (no gate)? | ✅ **locked → 1** (adopt the fork) |
-| **Q3** | **Gate strictness + hermeticity** — is `modelith-check` a **zero-tolerance `verify` member**? What happens when the fork binary is absent (round-043 hermeticity; the fork branch is unmerged)? | ⏳ pending |
-| **Q4** | **Authority boundary** — the model is **descriptive docs**, not an AIxBDD `TruthArtifact`; rule it *must never contradict* `specs/truth/**` (truth wins)? | ⏳ pending (expect: recorded as a spec assumption) |
-| **Q5** | **Lifecycle** — who refreshes the model (each round's truth owner vs. a periodic sweep), given it is not a plan package and has no `delivered` freeze? | ⏳ pending (expect: recorded as a spec assumption) |
+| **Q3** | **Gate strictness + hermeticity** — is `modelith-check` a **zero-tolerance `verify` member**? What happens when the fork binary is absent (round-043 hermeticity; the fork branch is unmerged)? | ✅ **locked → 1** (zero-tolerance; absent binary = hard fail) |
+| **Q4** | **Authority boundary** — the model is **descriptive docs**, not an AIxBDD `TruthArtifact`; rule it *must never contradict* `specs/truth/**` (truth wins)? | ✅ **converged → spec A6/FR-008** (truth wins; the model is descriptive docs, not a TruthArtifact) |
+| **Q5** | **Lifecycle** — who refreshes the model (each round's truth owner vs. a periodic sweep), given it is not a plan package and has no `delivered` freeze? | ✅ **converged → spec A7** (refreshed alongside a round's truth changes; the drift gate is the safety net; no separate scheduled pass) |
 
 ---
 
@@ -93,7 +94,7 @@ As a maintainer, I want the rendered model checked for drift in the standard qua
 
 **Functional Requirements**:
 
-- **FR-004**: The round MUST **adopt the modelith toolchain** (the `gosharplite/modelith` fork, `@feat/self-domain-model`) and add `make` targets: **`modelith-lint`** (validate every `*.modelith.yaml`), **`modelith-render`** (regenerate the `*.modelith.md` from the YAML), and **`modelith-check`** (fail if any committed `.md` is stale). It MUST provide the **modelith drift gate** (`modelith-check`) wired into the aggregate quality command per **Q3**. `modelith` is a **dev-tool binary** prerequisite (resolved from `$GOPATH/bin`, like `golangci-lint`/`govulncheck`), **not** a `go.mod` dependency; the fork branch + version are pinned in docs (a README row).
+- **FR-004**: The round MUST **adopt the modelith toolchain** (the `gosharplite/modelith` fork, `@feat/self-domain-model`) and add `make` targets: **`modelith-lint`** (validate every `*.modelith.yaml`), **`modelith-render`** (regenerate the `*.modelith.md` from the YAML), and **`modelith-check`** (fail if any committed `.md` is stale). `modelith-check` MUST be a **zero-tolerance member of the aggregate `make verify`** (Q3 = 1): **drift ⇒ fail**, and an **absent `modelith` binary ⇒ fail**, naming the install command. The gate MUST NEVER silently skip. `modelith` is a **dev-tool binary** prerequisite (resolved from `$GOPATH/bin`, like `golangci-lint`/`govulncheck`), **not** a `go.mod` dependency; the fork branch + version are pinned in a README row.
 - **FR-005**: On drift the gate MUST exit non-zero and name the stale artifact; the round MUST reproduce the drift witness (edit-and-not-render ⇒ red) **then revert** (ADR 0010 doctrine).
 - **FR-006**: The gate MUST be **deterministic** and MUST add **no** third-party Go dependency (`go.mod`/`go.sum` unchanged); the modelith binary is a **dev toolchain** prerequisite, not a module dependency.
 
@@ -132,7 +133,7 @@ As a maintainer/operator, I want the model and its toolchain recorded in `specs/
 
 - **YAML edited, `.md` not re-rendered** → the drift gate **fails** (FR-005); the `.md` is regenerated in the same commit.
 - **`.md` hand-edited** → forbidden: the rendered file is generated (`domainmodel-md-generated`); the drift gate reds on the next render.
-- **modelith binary absent** on a host running `make verify` → resolved by **Q3** (the round-043 hermeticity principle: the gate MUST NOT be a spurious-red generator).
+- **modelith binary absent** on a host running `make verify` → per **Q3 = 1** the gate **fails**, naming the install command (`go install github.com/gosharplite/modelith/cmd/modelith@feat/self-domain-model`); the gate never silently skips. (Consequence recorded: `make verify` now requires the modelith dev tool.)
 - **A model claim contradicting `specs/truth/**`** → the **truth** wins; the model is corrected (FR-008).
 - **The model naming a deliberately excluded entity** (a security/Windows concept) → forbidden (FR-002).
 - **Fork-branch drift** — the modelith fork is unmerged; a toolchain version change could change rendering → recorded as a residual (a forward item), pinned in `research.md`.
@@ -165,7 +166,8 @@ As a maintainer/operator, I want the model and its toolchain recorded in `specs/
 - **SC-001**: `modelith lint` over the committed YAML reports **0 errors / 0 warnings**, and `modelith render --check` reports the committed `.md` **up to date**. (covers FR-001)
 - **SC-002**: The models cover their shipped subjects — **product** entities (`Session`/`Turn`/`Provider`/`Tool`/`ToolCall`/context/`History`/`Skill`/`MCP`/`Config`/presentation), the **quality** process (the gate catalog + ADR governance + triage), and the **environment** manager (environments/personas/provisioning/hot-swap); the models contain **no** excluded entity (no security layer / no Windows). (covers FR-002, FR-003)
 - **SC-003**: A YAML edit without a re-render makes the drift gate **fail**, reproduced as a falsifiability witness then reverted; a fresh render makes it pass. (covers FR-004, FR-005)
-- **SC-004**: `specs/truth/techstack.md` records the model + toolchain + gate; **ADR 0030** + its index row amend ADR 0011 D10; every pre-round gate's behaviour is unchanged; **no production Go behaviour** changes; `go.mod`/`go.sum` unchanged; the topology audit is unchanged/green. (covers FR-007, FR-008, FR-009, FR-006, NFR-002, NFR-003, NFR-004)
+- **SC-004**: `specs/truth/techstack.md` records the models + toolchain + gate; **ADR 0030** + its index row amend ADR 0011 D10; every pre-round gate's behaviour is unchanged; **no production Go behaviour** changes; `go.mod`/`go.sum` unchanged; the topology audit is unchanged/green. (covers FR-007, FR-008, FR-009, FR-006, NFR-002, NFR-003, NFR-004)
+- **SC-005**: `modelith-check` is a **member of `make verify`** and is **zero-tolerance**: with drift present it fails; with the `modelith` binary **absent** it fails and names the install command (reproduced as a witness, then reverted). (covers FR-004, Q3)
 
 ## Assumptions
 
