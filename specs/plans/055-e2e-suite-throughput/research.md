@@ -21,7 +21,7 @@
 | 4 (the chosen default) | **16.66–17.07 s** (final 5-run evidence: 16.66/16.77/16.76/17.07/16.93) | **~3.0×** |
 | 8 | 14.9 s | 3.4× |
 
-**Why 4, not 8**: the marginal gain from 4 → 8 is ~1.2 s while the concurrent-child count doubles; 4 keeps headroom on a 2–4-core CI box and on a loaded laptop. The seam means a fast machine can raise it locally without a code change.
+**Why 4, not 8**: the marginal gain from 4 → 8 is ~1.2 s while the concurrent-child count doubles; 4 keeps headroom on a 2–4-core CI box and on a loaded laptop. The seam means a fast machine can raise it locally without a code change. **Why the gain is real and not CPU-bound**: it is **wait-overlap**, not CPU parallelism — the serial floor is dominated by the three never-answering MCP scenarios (~11 s each) plus the `sleep`-based timeout legs, so overlapping *waiting* is what yields ~3× (review §10). That is also why a small CI still benefits from 4.
 
 **Why on by default (not opt-in)**: the complaint the round answers is the *gate's* wall-clock; hiding the speedup behind an env var would leave the default slow.
 
@@ -40,6 +40,8 @@
 | `[Tool Output]` idle-gap resume (round 040) | child `sleep 2`; forced threshold `TELL_ME_FORCE_TOOLOUTPUT_IDLE_MS=50` | the *idle gap* is the subject | the witness asserts the resume + the following synchronous clear, not a wall-clock budget |
 | `execute_command` never-returns / descendant (round 024) | child `sleep 60`, tool `"timeout": 1`; `pollProcessGone(…, 2s)` | the *bound* is the subject | the bound is genuinely the test's subject (ADR-0010's own exception); the descendant leg additionally asserts the late sentinel was **not** written |
 | harness stdin handshake | `markerDeadline = 10s` | ceiling only | 10 s is a generous ceiling, not a tight budget |
+
+**Race witness (review R-A)**: `go test -race -count=1 ./tests/e2e/` is **green (19.7 s, no `DATA RACE`)** under the new default concurrency — reproduced 2026-09-19 on the reference host. This is the round's *executed* carrier for the "isolation-sound ⇒ parallel-safe" claim (the pinned godog wraps the formatter per scenario and guards its failure flag with a mutex; `testing.T.Run` concurrency is permitted). An optional `-race` E2E check in `verify` is a **forward item** (`verify` has no `-race` member today).
 
 **Residual (recorded, not closed)**: if a *future* host/CI is slow enough that a scenario's margin is exceeded, the remedy is ADR-0010's — raise **that** test's local margin and keep the shape assertion; do **not** pin scenarios serial or introduce a hand-maintained timing-feature list (which would drift as features move).
 
@@ -65,6 +67,8 @@
 
 **Why `godog.paths` and not tags**: godog **v0.16.0** exposes only `Paths` and `Tags` as selectors (there is **no name filter**), and the tree carries **zero tags**. A tag-based subset would require editing `specs/truth/features/**` — a **truth-owner** change (`/axb-dsl-refine`), i.e. a different round. Recorded as a forward item (RF-055-1).
 
+**The guard (review B-055-1)** is enforced in the **harness** (`guardSelection`), on **resolved paths** — it resolves each selection to the set of `.feature` files it contains and refuses a set equal to the whole contract — so a traversal (`…/cli/../cli`) or an all-modules list is caught, and **both** entry points (`make test-fast` and a hand-typed `go test -args -godog.paths`) obey it. The `Makefile` only assembles the selection (and fails loud on an empty list or a missing module). `test-fast` prints the banner; the harness also prints it (visible under `-v`).
+
 **The gate invariant** (spec FR-002/FR-006, proposed and *not* open to interpretation): the subset **selects for convenience** and **never excludes from the gate** — `make test` / `go test -count=1 ./...` always executes **all 240** Examples. `test-fast` is deliberately **not** a member of `verify` and is not referenced by `test`. The guard exists to prevent the round-040 TD-1 failure mode (scenarios silently dropping while the suite still exits 0).
 
 ---
@@ -85,7 +89,7 @@
 
 ## D5 — The measurable bar (spec Q3 → A)
 
-- **Primary (gate-able)**: the full gate is **≤ 60 %** of the **paired serial baseline** measured on the **same host in the same session** (i.e. ≥ 1.6× faster). Measured: the **paired full gate** went **55.0 s → 20.7 s = 38 %** (2.7×), and the **`tests/e2e` package** went **~50.7 s → ~16.9 s = 33 %** (3.0×) ⇒ comfortably met.
+- **Primary (gate-able)**: the full gate is **≤ 60 %** of the **paired serial baseline** measured on the **same host in the same session** (i.e. ≥ 1.6× faster). Measured **across sessions (review R-B)**: the **`tests/e2e` package** ratio is stable at **~33 %** (3.0×), while the **paired full gate** ratio is **load-sensitive — observed 38 % (55.0 s → 20.7 s) here and 47 % (54.0 s → 25.6 s) under the reviewer's concurrent load** (the full-gate figure sits near the ≈25 s backstop — which is exactly why the backstop is not a gate assertion). Either way the ≤ 60 % bar is met; record the **range (33–47 %)**, not a point.
 - **Secondary (recorded, not asserted)**: a loose absolute **ceiling** — ≈ 25 s on the reference host — recorded in **ADR 0024** as a sanity backstop only (an absolute bar goes born-stale on a slower machine; ADR-0010).
 - **Stability**: **N = 5** consecutive full parallel runs green (measured: 5/5, the D1 table).
 
