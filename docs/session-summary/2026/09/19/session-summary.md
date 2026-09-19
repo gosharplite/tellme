@@ -355,3 +355,38 @@ After the round-056 closeout, the operator asked *"when and how should a git `ta
 
 1. Round **`057-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development/context · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 12. Session 31 (2026-09-19, cont.) — round 057 `057-tool-chrome-colour-and-payload-delta`: opened from three operator chrome requests → clarify (Q1–Q3) → full plan+truth+implementation on the round branch → **PR open for human review**
+
+A later session on the same calendar day: bootstrapped/continued on `dev`, answered two grounding questions (the reference's palette; the `[Tool Action]` character limit), took three operator requests (then a `-t` parity remark), and opened round **057**. Ran `/axb-specify` → `/axb-clarify` (3 questions, one at a time) → `/axb-spec-by-example` (3 journeys) → `/axb-technical-research` (**ADR 0027** + `techstack.md` ×2 rows) → `/axb-system-analysis` (1 CLI end; api/data NOOP) → `/axb-dsl-refine` (colour/increment/cap rules) → `/axb-tasks` (T001–T018) → `/axb-implement`. **PR open — human-only merge, no Copilot review.**
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | **operator chrome requests** (no anchor issue): grey `[Tool Output]` frame + yellow `[Tool Action]`; `argValueCap` 189 → 500; a signed pre-flight payload increment |
+| Clarify (one at a time) | **Q1 → 2** (only the estimated pre-flight line changes) · **Q2 → 1** (baseline = the last estimate in-process, in memory; no persistence) · **Q3 → 1** (`-t`/`turns.log` content-equal but plain). Boundary forms A7 (`+0`) / A8 (signed) / A9 (plain delta) exposed as vetoable assumptions (the 1–3 question budget was spent) |
+| Pipeline | specify ✅ · clarify ✅ (Q1–Q3) · spec-by-example ✅ · technical-research ✅ (**ADR 0027**) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine ✅ · tasks ✅ (T001–T018) · implement ✅ |
+| Product | `internal/ui/colour.go` (`colorGray`/`colorYellow` + `grey`/`yellow`/`wrap`) · `tooloutput.go` (`Colour`; grey header + separators) · `toolrenderer.go` (`ActionLine` yellow) · `toolcall.go` (`argValueCap = 500` + `formatToolActionColour`) · `status.go` (`FormatPayloadEstimate`) · `render_ports.go` + `internal/domain/render/ports.go` (`Lines.PayloadEstimate`; `ProgressFactory(+colour)`) · `coordinator.go` · `internal/cli/call_renderer.go` (in-memory prev-estimate tracker) · `cli.go` · `cmd/tellme/deps.go` |
+| Verification | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** · `go test -count=1 ./...` green (**247 scenarios · 1828 steps**) · topology audit back to the **same 5 pre-existing errors** (round 057 adds none; +6 module rows / +17 steps) · 3 falsifiability witnesses reproduced + reverted (un-gate colour → the no-colour Example reds; drop the delta → the increment Example reds; cap → 499 → the cap pin reds) · `go.mod`/`go.sum` unchanged |
+| Delivery | branch `057-tool-chrome-colour-and-payload-delta` (off `dev`); **PR open — a human merges** |
+
+### Decisions locked (round 057)
+
+| # | Decision |
+| --- | --- |
+| Q1 → 2 | Only the **estimated** pre-flight line changes (`+<delta> ~<n>`; no `/budget`); the **measured** line keeps `<tokens>/<budget>`. |
+| Q2 → 1 | The increment baseline is the last estimate emitted **in-process**, held **in memory** (no persistence ⇒ `/axb-data-plan` NOOP). |
+| Q3 → 1 | `turns.log`/`-t` stays **content-equal but plain** — it follows the new estimated-line shape and the cap, keeps no colour, and keeps its current line set. |
+| S-1/S-2 | Grey = the `[Tool Output]` header + both separators (whole line); yellow = the whole `[Tool Action]` line; the streamed **content** lines stay plain (A3). |
+| S-3 | `argValueCap` 500 (one U+2026 inside the cap, rune-safe; keys/list uncapped). |
+| S-5 | Colour follows the round-054 gate (terminal + `-r` off); never in `stdout`/`turns.log`. |
+| ADR | **ADR 0027** (extends ADR 0023; ADR 0005 lineage for the cap) |
+
+### Open items (non-blocking)
+
+- **PR open** — a human merges into `dev`, then propagate `dev → main` + `SESSION-CLOSEOUT.md`.
+- **RF-057-x** (ADR 0027 §Forward): the delta is plain · only values are capped · `--color=always` excluded · the `[Tool Output]` content lines stay plain.
+- Carried: the same 5 pre-existing Gherkin/DSL topology-audit errors (round-054/earlier; not a `make verify` member).
