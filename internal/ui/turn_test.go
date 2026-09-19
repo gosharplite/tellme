@@ -61,12 +61,12 @@ func TestFormatTurnGapIsBlankLine(t *testing.T) {
 	}
 }
 
-// The round-009 payload line text is the round-017 chrome's inner line and MUST
-// stay unchanged (research Decision 3).
-func TestPayloadStatusTextUnchanged(t *testing.T) {
-	got := FormatPayloadStatus(time.Date(2026, 9, 14, 13, 16, 25, 0, time.UTC), 1234, 1000000, "butler", "deepseek-v4-flash", true)
-	want := "[13:16:25] Payload: ~1234/1000000 tokens - butler - deepseek-v4-flash"
+// The round-017 chrome's inner line is the round-057 estimated payload line
+// (`+<delta> ~<n>`; ADR 0027); the measured line keeps the round-009 shape.
+func TestPayloadEstimateLineText(t *testing.T) {
+	got := FormatPayloadEstimate(time.Date(2026, 9, 14, 13, 16, 25, 0, time.UTC), 1234, 0, "butler", "deepseek-v4-flash")
+	want := "[13:16:25] Payload: +0 ~1234 tokens - butler - deepseek-v4-flash"
 	if got != want {
-		t.Fatalf("payload line changed: got %q, want %q", got, want)
+		t.Fatalf("estimated payload line changed: got %q, want %q", got, want)
 	}
 }

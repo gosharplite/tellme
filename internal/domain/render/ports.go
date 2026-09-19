@@ -23,7 +23,16 @@ type Lines interface {
 	InputCaptured(t time.Time) string
 	TurnOpening(turn int, mode string) string
 	TurnGap() string
-	PayloadStatus(t time.Time, tokens, budget int, mode, model string, estimated bool) string
+	// PayloadMeasured renders the MEASURED payload line (`<tokens>/<budget> tokens
+	// - <mode> - <model>`; round 009). Round 057 (ADR 0027; TD-057-1): the retired
+	// `~`-estimated shape no longer exists here — the estimate is its own method
+	// (PayloadEstimate), so ONE shape per line and no unreachable branch.
+	PayloadMeasured(t time.Time, tokens, budget int, mode, model string) string
+	// PayloadEstimate renders the ESTIMATED pre-flight payload line (round 057;
+	// ADR 0027): `+<delta> ~<tokens> tokens - <mode> - <model>`. The delta is the
+	// increment over the previous estimate (`0` when there is none) and the budget
+	// is not shown.
+	PayloadEstimate(t time.Time, tokens, delta int, mode, model string) string
 	Metrics(t time.Time, provider string, u metrics.UsageCounts) string
 	Ready(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64) string
 	ToolReason(t time.Time, reason string) string
@@ -59,9 +68,28 @@ type TurnProgress struct {
 	ToolOutput domaintools.OutputSink
 }
 
-// ProgressFactory builds a turn's TurnProgress over the diagnostic stream, the
-// writer's clock seam, the model label, the elapsed epoch, the stderr-column
-// probe, the idle-gap threshold, and whether the indicator is enabled (the
-// spinner gate). It is the injected seam (a func-typed deps field) that keeps
-// internal/cli free of internal/ui.
-type ProgressFactory func(stream io.Writer, now func() time.Time, model string, epoch time.Time, columns func() int, idleGap time.Duration, indicatorEnabled bool) TurnProgress
+// ProgressSpec is the progress factory's named-field input (round 057 fold
+// TD-057-2; the repo's `LoopSpec` pattern, ADR 0019). It replaces a positional
+// call whose two trailing bools meant DIFFERENT policies — the round-054 spinner
+// gate and the round-054/057 chrome-colour gate — which a silent argument swap
+// could not be caught on.
+type ProgressSpec struct {
+	Stream  io.Writer
+	Now     func() time.Time
+	Model   string
+	Epoch   time.Time
+	Columns func() int
+	// IdleGap is the `[Tool Output]` block's resume threshold (ADR 0009 D3).
+	IdleGap time.Duration
+	// Spinner is the round-054 spinner gate (a bool-returning probe).
+	Spinner bool
+	// Colour is the chrome-colour gate (ADR 0023/0027): the diagnostic stream is a
+	// terminal AND `-r` is off. Today it resolves to the same predicate as Spinner,
+	// but it is a distinct policy — naming it keeps a future divergence honest.
+	Colour bool
+}
+
+// ProgressFactory builds a turn's TurnProgress from a ProgressSpec. It is the
+// injected seam (a func-typed deps field) that keeps internal/cli free of
+// internal/ui.
+type ProgressFactory func(spec ProgressSpec) TurnProgress

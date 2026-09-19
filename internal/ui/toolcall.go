@@ -26,8 +26,11 @@ import (
 // arguments (round-014 replay fidelity).
 
 // argValueCap is the maximum total rendered rune length of one argument value
-// (FR-003): fold first, truncate iff > 189 runes → first 188 runes + one U+2026.
-const argValueCap = 189
+// (FR-003): fold first, truncate iff > 500 runes → first 499 runes + one U+2026.
+// Round 057 (ADR 0027): raised from 189 to 500 — the mechanic is unchanged, and
+// the recorded reference divergence (rune-safe caps vs byte slices) now differs
+// in magnitude too (the reference caps at 189 bytes).
+const argValueCap = 500
 
 // resultValueCap is the maximum total rendered rune length of a result snippet
 // (FR-004): fold first, truncate iff > 200 runes → first 199 runes + one U+2026.
@@ -36,7 +39,7 @@ const resultValueCap = 200
 // reasonValueCap is the maximum total rendered rune length of the model-authored
 // reason (round 036, issue #74, ADR 0006): fold + trim first, truncate iff > 200
 // runes → first 199 runes + one U+2026. It mirrors resultValueCap, so the reason
-// joins its sibling sanitize+cap family (cap set {189, 200, 200}).
+// joins its sibling sanitize+cap family (cap set {500, 200, 200}).
 const reasonValueCap = 200
 
 // FormatToolEngine renders the per-executed-round step marker (FR-001):
@@ -114,6 +117,18 @@ func ToolReasonRenders(reason string) bool {
 // arguments render the empty argument list (`<tool>()`).
 func FormatToolAction(t time.Time, tool, arguments string) string {
 	return fmt.Sprintf("[%s] [Tool Action] %s(%s)", formatClock(t), tool, formatToolArgs(arguments))
+}
+
+// formatToolActionColour is FormatToolAction with the round-057 yellow accent
+// (ADR 0027): the WHOLE `[HH:MM:SS] [Tool Action] <tool>(<args>)` line is wrapped
+// yellow. The colour wraps the ALREADY-sanitized line, so no control byte from an
+// argument can escape the wrapper. The colour-off path returns FormatToolAction
+// verbatim (the single plain entry point), so the plain bytes stay byte-identical.
+func formatToolActionColour(t time.Time, tool, arguments string, colour bool) string {
+	if !colour {
+		return FormatToolAction(t, tool, arguments)
+	}
+	return yellow(FormatToolAction(t, tool, arguments), true)
 }
 
 // FormatToolResult renders the result line — the tool name plus the folded,

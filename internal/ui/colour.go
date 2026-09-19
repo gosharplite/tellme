@@ -1,12 +1,14 @@
 package ui
 
-// Round-054 chrome colour policy (ADR 0023). The diagnostic chrome gains GREEN
-// accents on four elements — the whole `[Tool Reason]` line, the `MODE` token in
-// both `Payload` lines, the measured token number in the measured `Payload` line,
-// and the third (session) cost in `╰─⠿ Ready`. The COLOUR CODE is the reference's
-// (`tell-me-go/internal/ui/colors.go`: `colorGreen = "\033[0;32m"`); the ELEMENT
-// SET is tellme's own — a recorded divergence (the reference greens only the
-// session cost, and prints its reason line / payload mode in gray).
+// Round-054 chrome colour policy (ADR 0023), extended by round 057 (ADR 0027).
+// The diagnostic chrome gains GREEN accents on four elements — the whole
+// `[Tool Reason]` line, the `MODE` token in both `Payload` lines, the measured
+// token number in the measured `Payload` line, and the third (session) cost in
+// `╰─⠿ Ready` — plus, since round 057, GREY on the `[Tool Output]` header line and
+// both horizontal separators, and YELLOW on the whole `[Tool Action]` line. The
+// COLOUR CODES are the reference's (`tell-me-go/internal/ui/colors.go`:
+// `colorGreen` / `colorGray` / `colorYellow`); the ELEMENT SET is tellme's own — a
+// recorded divergence.
 //
 // The colour is emitted only when the caller passes enabled=true — the CLI gates
 // it on the diagnostic stream being a terminal AND `-r` being off (the round-019
@@ -17,6 +19,14 @@ package ui
 const (
 	// colorGreen is the reference's 8-colour SGR green (tell-me-go colors.go).
 	colorGreen = "\033[0;32m"
+	// colorGray is the reference's bright-black (grey) SGR (tell-me-go
+	// colors.go). Round 057 (ADR 0027): the `[Tool Output]` header line and both
+	// horizontal separators are wrapped grey on a colour-enabled terminal.
+	colorGray = "\033[0;90m"
+	// colorYellow is the reference's SGR yellow (tell-me-go colors.go). Round 057
+	// (ADR 0027): the whole `[Tool Action]` line is wrapped yellow on a
+	// colour-enabled terminal.
+	colorYellow = "\033[0;33m"
 	// colorReset clears the SGR state, returning the terminal to default.
 	colorReset = "\033[0m"
 )
@@ -25,9 +35,21 @@ const (
 // is never wrapped (so a format slot for an empty field — e.g. an empty MODE —
 // contributes no stray escape), and a disabled call returns s verbatim (the
 // byte-identical plain form).
-func green(s string, enabled bool) string {
+func green(s string, enabled bool) string { return wrap(s, colorGreen, enabled) }
+
+// grey wraps s in the reference's grey SGR pair when enabled (round 057; the
+// same whole-value, empty-safe, plain-when-disabled rule as green).
+func grey(s string, enabled bool) string { return wrap(s, colorGray, enabled) }
+
+// yellow wraps s in the reference's yellow SGR pair when enabled (round 057).
+func yellow(s string, enabled bool) string { return wrap(s, colorYellow, enabled) }
+
+// wrap applies one SGR pair around s when enabled. An empty string is never
+// wrapped (no stray escape for an empty slot) and a disabled call returns s
+// verbatim (the byte-identical plain form).
+func wrap(s, code string, enabled bool) string {
 	if !enabled || s == "" {
 		return s
 	}
-	return colorGreen + s + colorReset
+	return code + s + colorReset
 }

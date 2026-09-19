@@ -35,9 +35,17 @@ func (Lines) TurnOpening(turn int, mode string) string { return FormatTurnOpenin
 // TurnGap renders the blank line separating the frame from the answer.
 func (Lines) TurnGap() string { return FormatTurnGap() }
 
-// PayloadStatus renders one payload status line (round-054 green accents).
-func (l Lines) PayloadStatus(t time.Time, tokens, budget int, mode, model string, estimated bool) string {
-	return formatPayloadStatusColour(t, tokens, budget, mode, model, estimated, l.colour)
+// PayloadMeasured renders the measured payload status line (round-054 green
+// accents).
+func (l Lines) PayloadMeasured(t time.Time, tokens, budget int, mode, model string) string {
+	return formatPayloadMeasuredColour(t, tokens, budget, mode, model, l.colour)
+}
+
+// PayloadEstimate renders the estimated pre-flight payload line (round 057;
+// ADR 0027): `+<delta> ~<tokens> tokens - <mode> - <model>` with the round-054
+// green MODE accent.
+func (l Lines) PayloadEstimate(t time.Time, tokens, delta int, mode, model string) string {
+	return formatPayloadEstimateColour(t, tokens, delta, mode, model, l.colour)
 }
 
 // Metrics renders the per-turn metrics line.
@@ -80,12 +88,12 @@ func (a Answer) WarnDegraded(w io.Writer) { a.r.WarnDegraded(w) }
 // spinner (nil when indicatorEnabled is false) and the `[Tool Output]`
 // coordinator (always present; it renders unconditionally). It is bound at the
 // composition root as the deps.ProgressFactory seam.
-func NewTurnProgress(stream io.Writer, now func() time.Time, model string, epoch time.Time, m metrics.SystemMetricsProvider, columns func() int, idleGap time.Duration, indicatorEnabled bool) render.TurnProgress {
+func NewTurnProgress(spec render.ProgressSpec, m metrics.SystemMetricsProvider) render.TurnProgress {
 	var sp *Spinner
-	if indicatorEnabled {
-		sp = NewSpinner(stream, model, epoch, m, columns)
+	if spec.Spinner {
+		sp = NewSpinner(spec.Stream, spec.Model, spec.Epoch, m, spec.Columns)
 	}
-	coord := NewToolOutputCoordinator(stream, now, sp, idleGap)
+	coord := NewToolOutputCoordinator(spec.Stream, spec.Now, sp, spec.IdleGap, spec.Colour)
 	var ind render.Indicator
 	if sp != nil {
 		ind = sp

@@ -76,8 +76,8 @@ func buildDeps() deps.Dependencies {
 		NewLines:     func(colour bool) render.Lines { return ui.NewLines(colour) },
 		NewToolLines: func(colour bool) agentport.ToolLineRenderer { return ui.ToolLines(colour) },
 		NewAnswer:    func() render.Answer { return ui.NewAnswer() },
-		NewProgress: func(stream io.Writer, now func() time.Time, model string, epoch time.Time, columns func() int, idleGap time.Duration, enabled bool) render.TurnProgress {
-			return ui.NewTurnProgress(stream, now, model, epoch, infratelemetry.NewSystemMetricsProvider(), columns, idleGap, enabled)
+		NewProgress: func(spec render.ProgressSpec) render.TurnProgress {
+			return ui.NewTurnProgress(spec, infratelemetry.NewSystemMetricsProvider())
 		},
 		UserHomeDir: os.UserHomeDir,
 	}

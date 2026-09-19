@@ -27,9 +27,10 @@ func (ToolLineRenderer) EngineLine(t time.Time, step, total int) string {
 	return FormatToolEngine(t, step, total)
 }
 
-// ActionLine renders the `[Tool Action] <tool>(<args>)` line.
-func (ToolLineRenderer) ActionLine(t time.Time, tool, arguments string) string {
-	return FormatToolAction(t, tool, arguments)
+// ActionLine renders the `[Tool Action] <tool>(<args>)` line. Round 057
+// (ADR 0027): the whole line is yellow when the adapter's colour flag is set.
+func (r ToolLineRenderer) ActionLine(t time.Time, tool, arguments string) string {
+	return formatToolActionColour(t, tool, arguments, r.colour)
 }
 
 // ResultLine renders the `[Tool Result] <tool>: <snippet>` line.

@@ -45,6 +45,19 @@ func FormatToolOutputHeader(t time.Time) string {
 	return fmt.Sprintf("[%s] [Tool Output] Executing... (Output shown below)", formatClock(t))
 }
 
+// formatToolOutputHeaderColour is FormatToolOutputHeader with the round-057 grey
+// accent (ADR 0027): the whole header line is wrapped grey on a colour-enabled
+// terminal. The colour-off path returns the plain header verbatim.
+func formatToolOutputHeaderColour(t time.Time, colour bool) string {
+	return grey(FormatToolOutputHeader(t), colour)
+}
+
+// toolOutputSeparatorColour wraps the fixed separator literal grey when enabled
+// (round 057 fold R-057-1: unexported — both call sites are in this file and the
+// literal's owner stays internal, matching formatToolOutputHeaderColour); the
+// plain path returns the pinned literal unchanged.
+func toolOutputSeparatorColour(colour bool) string { return grey(ToolOutputSeparator, colour) }
+
 // FormatToolOutputLine renders one streamed output line (FR-010):
 // `[HH:MM:SS] [Tool Output] <line>`. Round 038 (FR-001, issue #78): the streamed
 // content is SANITIZED — every terminal control sequence is removed — so a
@@ -64,6 +77,11 @@ type ToolOutputWriter struct {
 	W io.Writer
 	// Now is the injected clock seam; nil falls back to time.Now.
 	Now func() time.Time
+	// Colour, when true, wraps the header line and both horizontal separators grey
+	// (round 057; ADR 0027). The streamed CONTENT lines stay plain (their sanitizer
+	// is the round-038 policy). The plain path is byte-identical to the pre-057
+	// literals.
+	Colour bool
 
 	mu   sync.Mutex
 	buf  []byte
@@ -99,8 +117,8 @@ func (w *ToolOutputWriter) Begin() {
 	w.buf = w.buf[:0]
 	now := w.now()
 	w.lastLine = now
-	_, _ = fmt.Fprintln(w.W, FormatToolOutputHeader(now))
-	_, _ = fmt.Fprintln(w.W, ToolOutputSeparator)
+	_, _ = fmt.Fprintln(w.W, formatToolOutputHeaderColour(now, w.Colour))
+	_, _ = fmt.Fprintln(w.W, toolOutputSeparatorColour(w.Colour))
 }
 
 // Write assembles complete lines and emits each as a `[Tool Output]` line; a
@@ -166,7 +184,7 @@ func (w *ToolOutputWriter) EndWith(beforeSeparator func()) {
 		beforeSeparator()
 	}
 	_, _ = fmt.Fprint(w.W, ToolOutputReset)
-	_, _ = fmt.Fprintln(w.W, ToolOutputSeparator)
+	_, _ = fmt.Fprintln(w.W, toolOutputSeparatorColour(w.Colour))
 }
 
 // withLock is the round-040 bookkeeping/idle entry point (ADR 0009 D4, R-11): it
