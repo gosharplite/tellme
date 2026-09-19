@@ -52,3 +52,12 @@
 | MODIFY | `specs/truth/techstack.md` — *MCP tool-schema normalization* | The floor is **structure-aware** (keyword positions only) and the postcondition is re-asserted. | review **B-061-1** |
 | MODIFY | `specs/truth/features/cli/chat/dsl.md` — the round-061 args + containment rows | The args row is envelope-scoped (declared `MCP_PAYLOAD` properties **with descriptions**); the containment row states the **owner-set** check, declaration-scoped; the round-056 row records the value-shape normalization. | reviews **F-061-1/2/3** |
 | MODIFY | `docs/decisions/0031-provider-supported-schema-surface.md` | D6a (value shapes) · D6b (structure-aware floor + re-assertion) · the shape-probe rows · §Forward RF-061-7…9. | reviews **B-061-1**, **F-061-2**, **TD-061-1/2**, nits |
+
+## Fold-verification folds (PR [#128](https://github.com/gosharplite/tellme/pull/128), verification `5740338531`)
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| MODIFY | `specs/truth/techstack.md` — *MCP tool-schema normalization* | the floor traverses `$defs`/`definitions`/`dependencies` again (definition maps are name→schema maps). | review **R-1** |
+| MODIFY | `specs/truth/techstack.md` — *Tool-declaration schema projection (Vertex/Gemini)* | the coercion emits only measured shapes (`nullable` only beside a `type`; `enum` only beside a scalar type; non-object subschema → `{}`). | reviews **R-2**, **R-3** |
+| MODIFY | `specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature` | the no-mark control gains an **executed** Then (`…:18`) — the F-061-3(1) carrier, folded after verification R-4. | review **R-4** (`truth-current`) |
+| MODIFY | `docs/decisions/0031-provider-supported-schema-surface.md` | D6a′ (coerced-shape rows) · D6c (non-object → `{}`) · the `$defs` traversal · RF-061-10. | reviews **R-1**, **R-2**, **R-3**, nit 2 |

@@ -32,7 +32,7 @@ var schemaNodeChildLists = []string{"anyOf", "allOf", "oneOf", "prefixItems"}
 
 // schemaNodeChildMaps are the keywords whose value is a MAP FROM NAME TO a schema
 // node — the map's keys are names (opaque), never keywords.
-var schemaNodeChildMaps = []string{"properties", "patternProperties", "dependentSchemas"}
+var schemaNodeChildMaps = []string{"properties", "patternProperties", "dependentSchemas", "$defs", "definitions", "dependencies"}
 
 // stripVendorExtensions removes vendor-extension KEYWORDS from a decoded schema
 // node in place, recursively and STRUCTURE-AWARELY (round 061 / ADR 0031 D6b;

@@ -3,6 +3,7 @@ package gemini
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -84,12 +85,8 @@ func TestProjectToolDeclarations_NoUnsupportedKeywordReachesTheWire(t *testing.T
 		t.Fatalf("marshal projected parameters: %v", err)
 	}
 	wire := string(raw)
-	for _, k := range []string{"x-mcp-header", "$schema", "$ref", "$defs", "definitions", "const",
-		"examples", "deprecated", "readOnly", "writeOnly", "multipleOf", "uniqueItems", "anyOf", "uniques"} {
-		if strings.Contains(wire, `"`+k+`"`) {
-			t.Errorf("unsupported keyword %q reached the Gemini wire; parameters=%s", k, wire)
-		}
-	}
+	// The reject surface is the OWNER, read by the containment walk below — no
+	// second transcription of the deny-list (review nit 4).
 	// The supported surface must still be there (the projection is a carve-out,
 	// not a lobotomy).
 	for _, want := range []string{`"owner"`, `"repo"`, `"body"`, `"Repository owner"`, `"Repository name"`,
@@ -174,6 +171,57 @@ func TestProjectedDeclaration_CoversTheOwnerSet(t *testing.T) {
 		}
 		if got := string(ProjectSchema(json.RawMessage(fixture))); !strings.Contains(got, `"`+k+`"`) {
 			t.Errorf("measured key %q did not survive projection: %s", k, got)
+		}
+	}
+}
+
+// TestProjectSchema_CoercedShapesAreTheMeasuredOnes pins the SHAPES THE COERCION
+// EMITS against the probe (ADR 0031 D2, extended by review R-2): `nullable`
+// without a `type` is REJECTED, and an `enum` beside a non-scalar `type` (or with
+// no type) is REJECTED — so the coercion must not produce either. A non-object
+// subschema is coerced to the accepted empty `{}` (review R-3).
+func TestProjectSchema_CoercedShapesAreTheMeasuredOnes(t *testing.T) {
+	got := string(ProjectSchema(json.RawMessage(`{"type":"object","properties":{
+	  "onlynull":{"type":["null"]},
+	  "arr":{"type":"array","items":{"type":"string"},"enum":["a","b"]},
+	  "notype":{"enum":["a","b"]},
+	  "obj":{"type":"object","enum":["{}"]},
+	  "int":{"type":"integer","enum":[1,2,3]},
+	  "boolprop":{"type":"boolean","enum":[true,false]},
+	  "weird":true,
+	  "itemsweird":{"type":"array","items":false}
+	}}`)))
+	// A `["null"]`-only type must leave NEITHER `type` NOR `nullable` (a nullable
+	// with no type is rejected).
+	var tree map[string]any
+	if err := json.Unmarshal([]byte(got), &tree); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	props := tree["properties"].(map[string]any)
+	onlyNull := props["onlynull"].(map[string]any)
+	if _, has := onlyNull["type"]; has {
+		t.Errorf("a [\"null\"]-only type must be dropped; got %v", onlyNull)
+	}
+	if _, has := onlyNull["nullable"]; has {
+		t.Errorf("`nullable` without a `type` is rejected by the wire; got %v", onlyNull)
+	}
+	for _, k := range []string{"arr", "notype", "obj"} {
+		if _, has := props[k].(map[string]any)["enum"]; has {
+			t.Errorf("%s: an enum beside a non-scalar or absent type must be dropped; got %v", k, props[k])
+		}
+	}
+	for k, want := range map[string]string{"int": `["1","2","3"]`, "boolprop": `["true","false"]`} {
+		if !strings.Contains(got, `"enum":`+want) {
+			t.Errorf("%s: want the coerced string enum %s; got %s", k, want, got)
+		}
+	}
+	for _, k := range []string{"weird", "itemsweird"} {
+		sub := props[k]
+		if k == "itemsweird" {
+			sub = props[k].(map[string]any)["items"]
+		}
+		if !reflect.DeepEqual(sub, map[string]any{}) {
+			t.Errorf("%s: a non-object subschema must degrade to {}; got %v", k, sub)
 		}
 	}
 }

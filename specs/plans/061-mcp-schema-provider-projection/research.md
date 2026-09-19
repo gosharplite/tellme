@@ -45,6 +45,20 @@ The first probe measured keyword **presence**; the review asked whether a keywor
 
 **Consequence**: the projection also normalizes value shapes — an array `type` → its lone non-`null` member (+ `nullable: true` when `"null"` was present; dropped when ambiguous), and `enum` members → their JSON string form. Recorded in ADR 0031 D6a.
 
+### Coerced-shape probe (fold of review R-2 — the round-061 fold, same channel)
+
+The remedy replaced measured-rejected shapes with *unmeasured* ones, so the shapes the coercion **emits** were probed too:
+
+| Emitted shape | Result |
+| --- | --- |
+| `nullable: true` with **no** `type` | **rejected** ("schema didn't specify the schema type field") |
+| `enum` beside `type: object` / `type: array` | **rejected** ("for schema with enum values, schema type should not be OBJECT or ARRAY") |
+| `enum` with **no** `type` | **rejected** (same) |
+| string `enum` beside `integer` / `number` / `boolean` | **accepted** |
+| `nullable: false` beside a string `type` | accepted |
+
+**Consequence**: `nullable` is recorded **only when a `type` remains** (a `["null"]`-only type → the accepted empty `{}`), and `enum` is **dropped** unless the node's type is scalar. A `null` enum member is dropped. ADR 0031 D6a′.
+
 ## Alternatives considered
 
 | Option | Verdict |

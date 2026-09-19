@@ -69,11 +69,17 @@ var supportedSchemaKeys = map[string]bool{
 // parsed (a declaration the wire always accepts).
 const freeformParameters = `{"type":"object","properties":{}}`
 
-// SupportedSchemaKeys returns the provider's supported schema surface — the
-// NAMED OWNER both the projection and its regression gate read (round-061
-// FR-007; the fold of review F-061-1). Callers must treat the result as
-// read-only.
-func SupportedSchemaKeys() map[string]bool { return supportedSchemaKeys }
+// SupportedSchemaKeys returns a COPY of the provider's supported schema surface —
+// the NAMED OWNER both the projection and its regression gate read (round-061
+// FR-007; folded per reviews F-061-1 and R-verification nit 1). A copy keeps the
+// owner single: a caller cannot alias, add to, or delete from it.
+func SupportedSchemaKeys() map[string]bool {
+	out := make(map[string]bool, len(supportedSchemaKeys))
+	for k := range supportedSchemaKeys {
+		out[k] = true
+	}
+	return out
+}
 
 // ProjectSchema projects a tool declaration's parameter schema onto the
 // provider's supported surface, recursively (round 061 / ADR 0031). It is pure
@@ -138,28 +144,53 @@ func normalizeTypeKeyword(node map[string]any) {
 	switch {
 	case len(kept) == 1:
 		node["type"] = kept[0]
-	case len(kept) == 0:
-		delete(node, "type")
 	default:
-		delete(node, "type") // ambiguous — drop rather than guess a member type
+		// zero members (a `["null"]`-only list) or an ambiguous list — drop the
+		// keyword rather than guess a member type.
+		delete(node, "type")
 	}
-	if nullable {
+	// `nullable` is only accepted BESIDE a type (probe: "schema didn't specify
+	// the schema type field"), so it is recorded only when a type remains —
+	// otherwise the property legitimately degrades to the accepted empty `{}`.
+	if _, typed := node["type"]; nullable && typed {
 		if _, set := node["nullable"]; !set {
 			node["nullable"] = true
 		}
 	}
 }
 
+// scalarTypeNames are the schema types a Gemini `enum` may sit beside — the probe
+// rejected an enum on an OBJECT or ARRAY type and an enum with no type at all
+// ("for schema with enum values, schema type should not be OBJECT or ARRAY").
+var scalarTypeNames = map[string]bool{"string": true, "integer": true, "number": true, "boolean": true}
+
 // normalizeEnumKeyword coerces every `enum` member to a string (Gemini's
-// `Schema.enum` is `repeated string`; a numeric member is rejected — ADR 0031 D2).
+// `Schema.enum` is `repeated string`; a numeric member is rejected — ADR 0031 D2)
+// and DROPS the keyword when it cannot be legal: beside a non-scalar type
+// (object/array), or with no type at all (both measured rejected). A `null`
+// member is meaningless and is dropped.
 func normalizeEnumKeyword(node map[string]any) {
-	if raw, ok := node["enum"].([]any); ok {
-		out := make([]any, len(raw))
-		for i, v := range raw {
-			out[i] = stringEnumMember(v)
-		}
-		node["enum"] = out
+	raw, ok := node["enum"].([]any)
+	if !ok {
+		return
 	}
+	t, _ := node["type"].(string)
+	if !scalarTypeNames[t] {
+		delete(node, "enum")
+		return
+	}
+	out := make([]any, 0, len(raw))
+	for _, v := range raw {
+		if v == nil {
+			continue
+		}
+		out = append(out, stringEnumMember(v))
+	}
+	if len(out) == 0 {
+		delete(node, "enum")
+		return
+	}
+	node["enum"] = out
 }
 
 // projectValue projects one schema node: a map keeps only allowlisted keys (and
@@ -176,8 +207,16 @@ func projectValue(v any) any {
 			switch k {
 			case "properties":
 				out[k] = projectProperties(val)
-			case "items", "additionalProperties":
-				out[k] = projectValue(val)
+			case "items":
+				out[k] = projectSubschema(val)
+			case "additionalProperties":
+				// a bool is a legal JSON-Schema value AND accepted by the wire
+				// (measured at the root); anything else must be a schema node.
+				if _, isBool := val.(bool); isBool {
+					out[k] = val
+				} else {
+					out[k] = projectSubschema(val)
+				}
 			case "oneOf", "allOf":
 				out[k] = projectList(val)
 			default:
@@ -193,7 +232,10 @@ func projectValue(v any) any {
 	return v
 }
 
-// projectProperties projects each declared property's subschema.
+// projectProperties projects each declared property's subschema. A subschema
+// that is not an object (a boolean schema, a bare string, …) is unrepresentable
+// as a Schema message, so it degrades to the accepted empty `{}` rather than
+// reaching the wire as a proto type error (review R-3).
 func projectProperties(v any) any {
 	props, ok := v.(map[string]any)
 	if !ok {
@@ -201,9 +243,18 @@ func projectProperties(v any) any {
 	}
 	out := make(map[string]any, len(props))
 	for name, sub := range props {
-		out[name] = projectValue(sub)
+		out[name] = projectSubschema(sub)
 	}
 	return out
+}
+
+// projectSubschema projects a value that must BE a schema node, coercing a
+// non-object to the empty `{}` (review R-3).
+func projectSubschema(v any) any {
+	if _, ok := v.(map[string]any); !ok {
+		return map[string]any{}
+	}
+	return projectValue(v)
 }
 
 // projectList projects each element of a keyword list (oneOf/allOf).

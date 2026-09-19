@@ -22,6 +22,7 @@ Feature: Using tools from a remote MCP server
       And a configured provider "test-model" whose endpoint reports the offered tools and then answers with "done"
       When the operator starts tellme with the prompt "Which tools can you use?"
       Then the request offered the tool "lookup_price" from the MCP server "shop" alongside the agent tools
+      And the offered tool "lookup_price" from the MCP server "shop" carries no server-side mark
       And tellme exits successfully
 
   Rule: A prompt that needs an MCP tool is answered using it

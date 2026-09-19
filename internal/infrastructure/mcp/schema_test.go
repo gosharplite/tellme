@@ -100,6 +100,26 @@ func TestNormalizeMCPSchema_StripsVendorExtensions(t *testing.T) {
 	}
 }
 
+// T-061 R-1 fold — `$defs`/`definitions`/`dependencies` are name->schema maps, so
+// a vendor mark inside them is still reached and deleted (the floor's contract is
+// unchanged for every family).
+func TestNormalizeMCPSchema_StripsMarksInsideDefinitionMaps(t *testing.T) {
+	in := json.RawMessage(`{"type":"object","properties":{"a":{"type":"string"}},"$defs":{"Thing":{"type":"string","x-mcp-header":"owner"}},"definitions":{"T2":{"type":"string","x-other":"repo"}}}`)
+	out, err := NormalizeMCPSchema(in)
+	if err != nil {
+		t.Fatalf("normalize: %v", err)
+	}
+	got := string(out)
+	for _, gone := range []string{"x-mcp-header", "x-other"} {
+		if strings.Contains(got, gone) {
+			t.Errorf("a mark inside a definition map survived the floor (%q); got %s", gone, got)
+		}
+	}
+	if !strings.Contains(got, `"$defs"`) || !strings.Contains(got, `"definitions"`) {
+		t.Errorf("the floor must not delete the definition maps themselves; got %s", got)
+	}
+}
+
 // T-061 B-061-1 fold — the floor is structure-aware: a property whose NAME begins
 // with `x-` is an argument, not a keyword; it survives with its subschema and the
 // round-031 `required ⊆ properties` postcondition still holds on the output.
