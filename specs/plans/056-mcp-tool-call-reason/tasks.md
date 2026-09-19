@@ -222,4 +222,4 @@
 
 **Gate (T020)** — `gofmt -l .` clean · `go vet ./...` clean · `make verify` **OK** (arch baseline header-only; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (**243 scenarios · 1796 steps**, 0 undefined, no failures) · the Gherkin/DSL topology audit is back to the **5 pre-existing errors** (round 056 adds none) · `go.mod`/`go.sum` unchanged.
 
-**T021** — `STATUS.md` updated (round 056 in flight) + PR opened (human merge).
+**T021** — `STATUS.md` updated (round 056 in flight) + **PR [#122](https://github.com/gosharplite/tellme/pull/122)** opened (human merge).
