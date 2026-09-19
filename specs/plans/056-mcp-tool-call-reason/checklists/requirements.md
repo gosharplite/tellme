@@ -34,7 +34,7 @@
 - [x] 只有高影響缺口才升級到 `/axb-clarify`（Q1 如何向模型請求 reason；Q2 未包裝/legacy 呼叫的處置）
 - [x] 本輪 clarify 題數控制在 1 至 3 題（2 題）
 - [x] 低風險未定細節已用 `NEEDS CLARIFICATION` 或假設揭露
-- [ ] 仍保留的 `NEEDS CLARIFICATION` 已標示是否阻塞後續規劃 — **Q1/Q2 為 OPEN**；Q1 阻塞 `spec-by-example` 的正式宣告形狀，Q2 阻塞驗收情境的第 3 條（legacy 呼叫）；`/axb-spec-by-example` 前需先收斂
+- [ ] 仍保留的 `NEEDS CLARIFICATION` 已標示是否阻塞後續規劃 — **Q1 已 LOCKED → A（宣告形狀已定）**；**Q2 仍 OPEN**（未包裝/legacy 呼叫的處置，阻塞驗收情境第 3 條與 `spec-by-example` 的 legacy 分支）
 
 ## 可驗證性與成功標準
 
@@ -46,7 +46,7 @@
 ## 問題與修正紀錄
 
 - **設計已於 spec 收斂**：S-1…S-6 記述 operator 於本輪會話確認的設計（server definition 不可變；tellme 請求並渲染 `reason`；呼叫 JSON 為 `{reason, MCP_PAYLOAD}`，僅轉送 `MCP_PAYLOAD`；不動 system prompt；MCP-only；server 自帶 `reason` 不衝突）。
-- **Q1（OPEN）** — 在「不動 system prompt、不動 server schema」前提下，tellme 究竟以何種宣告向模型請求 `reason`（建議 Option A：envelope `{reason(required), MCP_PAYLOAD}`，server 的 schema 原樣作為 `MCP_PAYLOAD` 的子 schema）。
+- **Q1（LOCKED → A）** — tellme 以自身宣告向模型請求 `reason`：頂層 `reason`（required，tellme 擁有）+ `MCP_PAYLOAD`（原樣承載 server 的 schema）；server definition 不改，system prompt 不改。
 - **Q2（OPEN）** — 未包裝/legacy 呼叫（無 `MCP_PAYLOAD`）如何處置（建議 Option A：視為 legacy payload 直通）。
 - **A4** — round-032 既有 MCP E2E fixture（scripted `Arguments: "{}"`）需於實作半更新；本 skill 不寫入 `specs/truth/**`。
 

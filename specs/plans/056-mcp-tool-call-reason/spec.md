@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — produced by `/axb-specify` from operator tasking. **Clarify round 1 OPEN** (2 questions — see below, asked one at a time). No `specs/truth/**` file is written by this skill; the design below is the operator-confirmed intent and the open gaps are marked.
+**Status**: Draft — produced by `/axb-specify` from operator tasking. **Clarify round 1 IN PROGRESS (asked one question at a time): Q1 → Option A (LOCKED — the offered envelope carries the server's schema verbatim as `MCP_PAYLOAD`); Q2 OPEN (un-wrapped / legacy call disposition).** No `specs/truth/**` file is written by this skill.
 
 **Input (operator, 2026-09-19)**: a design conversation that began from *"Why calling MCP doesn't have `[Tool Reason]`?"* and settled the following operator intent:
 
@@ -41,7 +41,22 @@
 | **S-5** | **MCP-only.** Native tools are unchanged (they already declare a mandatory `reason` via `resourceSchema`/the inline command schema). |
 | **S-6** | Because the reason is tellme's own field (outside `MCP_PAYLOAD`), a server that *itself* declares a `reason` argument is unaffected: its `reason` (if the model supplies it) rides **inside `MCP_PAYLOAD`**, distinct from tellme's outer `reason`. |
 
-> **This spec's own reading, to be ratified by clarify Q1/Q2:** *how* the ask is carried in the offered declaration (the envelope is the offered top-level shape, with the server's schema carried inside it) and *how an un-wrapped / legacy call is handled* are the two open questions below. Everything else follows mechanically from S-1…S-6.
+> **Q1 has since LOCKED → Option A** (below): tellme offers **its own declaration** for an MCP tool whose parameters are the envelope `{reason (required), MCP_PAYLOAD}`, with the remote server's advertised schema carried **verbatim** as `MCP_PAYLOAD`'s subschema. The only remaining open question is **Q2** (un-wrapped / legacy call disposition).
+
+**The offered declaration (locked by Q1 → A).** For an MCP tool, tellme offers the model:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "reason": { "type": "string", "description": "<tellme's reason description>" },
+    "MCP_PAYLOAD": <the remote server's advertised input schema, VERBATIM>
+  },
+  "required": ["reason"]
+}
+```
+
+The server's advertised schema is **relayed unchanged** (only *positioned* inside `MCP_PAYLOAD` — no property added, removed, or renamed); `reason` is tellme's **own** declared property (required), exactly the mechanism native tools use. The model's call is therefore `{"reason":"…","MCP_PAYLOAD":{…}}`; tellme renders `reason` and forwards **the `MCP_PAYLOAD` contents** to `CallTool`. `MCP_PAYLOAD` is **not** marked required (a server tool may take no arguments).
 
 ---
 
@@ -49,7 +64,7 @@
 
 | # | Question | Status |
 | --- | --- | --- |
-| **Q1** | **How is `reason` elicited given "no prompt change" — i.e. what exactly does tellme offer the model for an MCP tool?** Options: **(A)** tellme offers its **own** declaration for the MCP tool whose parameters are the envelope `{reason (required), MCP_PAYLOAD}` — the server's advertised schema is carried **verbatim** as `MCP_PAYLOAD`'s subschema, so the model sees the real structure; **(B)** offer the server's schema **byte-verbatim at top level** and elicit `reason` some other way (would re-open the no-prompt constraint); **(C)** other. **Recommended: (A).** | ⏳ **OPEN** |
+| **Q1** | **How is `reason` elicited given "no prompt change" — i.e. what exactly does tellme offer the model for an MCP tool?** Options: **(A)** tellme offers its **own** declaration for the MCP tool whose parameters are the envelope `{reason (required), MCP_PAYLOAD}` — the server's advertised schema is carried **verbatim** as `MCP_PAYLOAD`'s subschema, so the model sees the real structure; **(B)** offer the server's schema **byte-verbatim at top level** and elicit `reason` some other way (would re-open the no-prompt constraint); **(C)** other. | ✅ **LOCKED → Option A** (operator, 2026-09-19): tellme's **own** declaration is offered — top-level `reason` (required, tellme-owned) + `MCP_PAYLOAD` carrying the server's advertised schema **verbatim**; the server's definition is never mutated (only positioned as `MCP_PAYLOAD`'s subschema); no system-prompt change. |
 | **Q2** | **How is a call that does *not* use the envelope handled** — e.g. a bare `{"sku":"A1"}` with no `MCP_PAYLOAD` (a server-advertised call, a legacy fixture, or a model that ignored the shape)? Options: **(A)** accept it as a **legacy/pass-through** payload (forward the object as the server args; render a reason only if a top-level `reason` happens to be present); **(B)** treat it as a **recoverable error** fed back to the model to retry ("call the tool with `reason` and `MCP_PAYLOAD`"); **(C)** treat a missing `MCP_PAYLOAD` as an empty `{}` payload. **Recommended: (A)** — keeps already-working server calls alive; the reason row stays best-effort for that path. | ⏳ **OPEN** |
 
 **Non-negotiable invariants (proposed, not open):**
