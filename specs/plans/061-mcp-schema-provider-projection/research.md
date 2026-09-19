@@ -61,6 +61,10 @@ The remedy replaced measured-rejected shapes with *unmeasured* ones, so the shap
 
 **Consequence**: `nullable` is recorded **only when a `type` remains** (a `["null"]`-only type → the accepted empty `{}`), and `enum` is **dropped** unless the node's type is scalar. A `null` enum member is dropped. ADR 0031 D6a′.
 
+### Value-kind probe (fold of review V-061-1 — same channel)
+
+The last axis: a value whose JSON **kind** does not match its proto field. Measured: `description:123`, `title:true`, `type:5`, `required:"x"`, `required:[5]`, `properties:"nope"`, `enum:[{"x":1}]` → **all rejected**; `minItems:"3"`, `nullable:"yes"`, `oneOf:{…}` → tolerated, and still dropped for uniformity. The projection therefore enforces a **kind per key** from one table (`supportedSchemaValueKinds`), dropping any mismatch. ADR 0031 **D8**.
+
 ## Alternatives considered
 
 | Option | Verdict |

@@ -53,6 +53,10 @@ func assertContainment(t *testing.T, node any, path string) {
 			t.Errorf("unsupported keyword %q at %s reached the wire", k, path)
 			continue
 		}
+		// SHAPE half (V-061-1): the value must have the kind the key requires.
+		if !SchemaValueKindOK(k, v) {
+			t.Errorf("keyword %q at %s has a value of the wrong kind: %v", k, path, v)
+		}
 		switch k {
 		case "properties":
 			props, _ := v.(map[string]any)
@@ -290,5 +294,75 @@ func TestProjectSchema_FailsClosed(t *testing.T) {
 		if got != freeformParameters {
 			t.Errorf("schema %q: want the freeform object, got %s", in, got)
 		}
+	}
+}
+
+// TestProjectSchema_ValueKindsAreEnforced pins the SHAPE half of the surface
+// (ADR 0031 D8; the fold of review V-061-1): a value whose JSON kind does not
+// match its field is dropped, and a kind-correct value survives.
+func TestProjectSchema_ValueKindsAreEnforced(t *testing.T) {
+	bad := string(ProjectSchema(json.RawMessage(`{"type":"object","properties":{"a":{
+	  "description":123,"title":true,"pattern":7,"format":{"x":1},"type":5,
+	  "nullable":"yes","minItems":"3","minimum":"1","items":"nope","oneOf":{"type":"string"},
+	  "required":[5],"enum":[{"x":1}],"properties":"nope"
+	}},"required":"x"}`)))
+	var tree map[string]any
+	if err := json.Unmarshal([]byte(bad), &tree); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	a := tree["properties"].(map[string]any)["a"].(map[string]any)
+	for _, k := range []string{"description", "title", "pattern", "format", "type", "nullable",
+		"minItems", "minimum", "oneOf", "required", "enum", "properties"} {
+		if _, has := a[k]; has {
+			t.Errorf("wrong-kind %q survived the projection; got %v", k, a[k])
+		}
+	}
+	if _, has := tree["required"]; has {
+		t.Errorf("a wrong-kind root `required` survived: %v", tree["required"])
+	}
+	if got, ok := a["items"].(map[string]any); !ok || len(got) != 0 {
+		t.Errorf("a non-object `items` must degrade to {}; got %v", a["items"])
+	}
+	good := string(ProjectSchema(json.RawMessage(`{"type":"object","properties":{"a":{
+	  "type":"string","description":"d","title":"t","format":"date-time","pattern":"^a$",
+	  "nullable":true,"minLength":1,"maxLength":9,"enum":["x","y"]
+	}},"required":["a"],"propertyOrdering":["a"]}`)))
+	for _, want := range []string{`"description":"d"`, `"title":"t"`, `"format":"date-time"`,
+		`"pattern":"^a$"`, `"nullable":true`, `"minLength":1`, `"maxLength":9`, `"propertyOrdering":["a"]`} {
+		if !strings.Contains(good, want) {
+			t.Errorf("a kind-correct value was dropped: missing %s; got %s", want, good)
+		}
+	}
+}
+
+// TestSchemaValueKindOK_MirrorsTheTable pins the gate helper to the table: every
+// key accepts its own kind and rejects a foreign one.
+func TestSchemaValueKindOK_MirrorsTheTable(t *testing.T) {
+	okValues := map[string]any{
+		"type": "string", "description": "d", "title": "t", "format": "f", "pattern": "p",
+		"default": []any{1}, "enum": []any{"x"}, "properties": map[string]any{"a": map[string]any{}},
+		"required": []any{"a"}, "propertyOrdering": []any{"a"}, "items": map[string]any{},
+		"additionalProperties": false, "oneOf": []any{map[string]any{}}, "allOf": []any{map[string]any{}},
+		"minimum": 1.0, "maximum": 9.0, "minLength": 1.0, "maxLength": 9.0,
+		"minItems": 1.0, "maxItems": 9.0, "nullable": true,
+	}
+	for k, v := range okValues {
+		if !SchemaValueKindOK(k, v) {
+			t.Errorf("SchemaValueKindOK(%q, %v) = false; want true", k, v)
+		}
+	}
+	for _, wrong := range []struct {
+		k string
+		v any
+	}{{"description", 1}, {"nullable", "yes"}, {"required", "x"}, {"minItems", "3"}, {"type", 5}, {"properties", "nope"}} {
+		if SchemaValueKindOK(wrong.k, wrong.v) {
+			t.Errorf("SchemaValueKindOK(%q, %v) accepted a wrong kind", wrong.k, wrong.v)
+		}
+	}
+	if SchemaValueKindOK("not-a-key", "x") {
+		t.Error("an unknown key must not be whitelisted by the kind helper")
+	}
+	if SupportedSchemaKeys()["not-a-key"] {
+		t.Error("an unknown key must not be in the owner set")
 	}
 }

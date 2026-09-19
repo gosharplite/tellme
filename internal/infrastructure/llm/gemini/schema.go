@@ -4,31 +4,19 @@
 // Why this exists: tellme relays a remote MCP server's advertised input schema
 // into the declaration it offers the model. Vertex/Gemini parses
 // `functionDeclarations[].parameters` as the CLOSED proto message
-// `google.ai.generativelanguage.Schema`, so ANY keyword it does not define makes
-// the API reject the WHOLE request (HTTP 400, `the provider request failed`) and
-// no turn reaches the model. A third-party server's annotations (the GitHub
-// server's `x-mcp-header`) therefore used to break every Gemini turn.
+// `google.ai.generativelanguage.Schema`, so ANY keyword it does not define — or
+// any value whose JSON kind does not match the field — makes the API reject the
+// WHOLE request (HTTP 400, `the provider request failed`) and no turn reaches the
+// model. A third-party server's annotations (the GitHub server's `x-mcp-header`)
+// therefore used to break every Gemini turn.
 //
-// The rule is DEFAULT-DENY: a keyword reaches the wire only if it is in the
-// empirically-verified set below. The set was measured against the live Vertex
-// endpoint (declaration-only `generateContent` calls, 2026-09-19,
-// `gemini-3.8-flash`, project `websc-dev-433809`; ADR 0031 records the table):
+// The rule is DEFAULT-DENY on BOTH axes: a keyword reaches the wire only if it is
+// in the empirically-verified set below, and only with a value of the kind its
+// field requires. The set was measured against the live Vertex endpoint
+// (declaration-only `generateContent` calls, 2026-09-19, `gemini-3.8-flash`,
+// project `websc-dev-433809`; ADR 0031 D2 records the table).
 //
-//	accepted  — type, description, properties, required, items, enum, format,
-//	            title, default, nullable, pattern, minimum, maximum, minLength,
-//	            maxLength, minItems, maxItems, oneOf, allOf,
-//	            additionalProperties, propertyOrdering, `type: "null"`
-//	rejected  — x-* (any vendor extension), $schema, const, examples,
-//	            deprecated, readOnly, writeOnly, multipleOf, uniqueItems,
-//	            $ref, $defs, definitions, and `anyOf` whenever any other schema
-//	            keyword sits beside it ("when using any_of, it must be the only
-//	            field set")
-//
-// `anyOf` is deliberately NOT allowlisted: it is accepted only when it is the
-// sole schema keyword on its node, a shape the projection cannot guarantee, so
-// default-deny drops it (ADR 0031 §Forward records the enrichment idea).
-//
-// This is the provider-side GUARANTEE. The family-agnostic floor that removes
+// The provider-side GUARANTEE is this file; the family-agnostic floor that removes
 // vendor extensions for every provider lives in the MCP normalizer
 // (`mcp.NormalizeMCPSchema`, S-6) — the two seams have one concern each (S-1).
 package gemini
@@ -36,49 +24,89 @@ package gemini
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 )
 
-// supportedSchemaKeys is the named owner of the provider's supported schema
-// surface — the single home the projection and its regression pin both read
-// (round-061 S-2/FR-007).
-var supportedSchemaKeys = map[string]bool{
-	"type":                 true,
-	"description":          true,
-	"properties":           true,
-	"required":             true,
-	"items":                true,
-	"enum":                 true,
-	"format":               true,
-	"title":                true,
-	"default":              true,
-	"nullable":             true,
-	"pattern":              true,
-	"minimum":              true,
-	"maximum":              true,
-	"minLength":            true,
-	"maxLength":            true,
-	"minItems":             true,
-	"maxItems":             true,
-	"oneOf":                true,
-	"allOf":                true,
-	"additionalProperties": true,
-	"propertyOrdering":     true,
+// schemaValueKind is the JSON value kind a supported keyword requires — the
+// second axis of the provider-supported surface (round 061 / ADR 0031 D8; the
+// fold of review V-061-1). A key whose value has the wrong kind is a decode error
+// of the whole request on a closed proto, so a wrong-kind value is DROPPED (an
+// absent keyword is always accepted) — never emitted, never coerced into an
+// unmeasured shape.
+type schemaValueKind int
+
+const (
+	kindAny              schemaValueKind = iota // data — passed through (`default`)
+	kindString                                  // string
+	kindBool                                    // bool
+	kindNumber                                  // number
+	kindInt                                     // int32 / int64
+	kindStringList                              // repeated string
+	kindEnum                                    // repeated string (a single-valued enum)
+	kindType                                    // a single-valued type enum (an array is coerced)
+	kindSchemaNode                              // a Schema message (a non-object degrades to {})
+	kindBoolOrSchemaNode                        // a Schema message or a bool
+	kindSchemaList                              // repeated Schema
+	kindObjectOfSchema                          // map<string, Schema>
+)
+
+// supportedSchemaValueKinds is the ONE owner of the surface: the key set AND each
+// key's required value kind. `supportedSchemaKeys` is derived from it, so a key
+// cannot exist without a kind (round 061 / ADR 0031 D8; the fold of V-061-1).
+var supportedSchemaValueKinds = map[string]schemaValueKind{
+	"type":                 kindType,
+	"description":          kindString,
+	"title":                kindString,
+	"format":               kindString,
+	"pattern":              kindString,
+	"default":              kindAny,
+	"enum":                 kindEnum,
+	"properties":           kindObjectOfSchema,
+	"required":             kindStringList,
+	"propertyOrdering":     kindStringList,
+	"items":                kindSchemaNode,
+	"additionalProperties": kindBoolOrSchemaNode,
+	"oneOf":                kindSchemaList,
+	"allOf":                kindSchemaList,
+	"minimum":              kindNumber,
+	"maximum":              kindNumber,
+	"minLength":            kindInt,
+	"maxLength":            kindInt,
+	"minItems":             kindInt,
+	"maxItems":             kindInt,
+	"nullable":             kindBool,
+}
+
+// supportedSchemaKeys is derived from the kind table (one literal source).
+func supportedSchemaKeys() map[string]bool {
+	out := make(map[string]bool, len(supportedSchemaValueKinds))
+	for k := range supportedSchemaValueKinds {
+		out[k] = true
+	}
+	return out
 }
 
 // freeformParameters is the fail-closed declaration used when a schema cannot be
 // parsed (a declaration the wire always accepts).
 const freeformParameters = `{"type":"object","properties":{}}`
 
-// SupportedSchemaKeys returns a COPY of the provider's supported schema surface —
-// the NAMED OWNER both the projection and its regression gate read (round-061
-// FR-007; folded per reviews F-061-1 and R-verification nit 1). A copy keeps the
-// owner single: a caller cannot alias, add to, or delete from it.
-func SupportedSchemaKeys() map[string]bool {
-	out := make(map[string]bool, len(supportedSchemaKeys))
-	for k := range supportedSchemaKeys {
-		out[k] = true
+// SupportedSchemaKeys returns a COPY of the provider's supported KEY set — the
+// named owner both the projection and its regression gate read (round-061
+// FR-007; folded per reviews F-061-1 and V-061-1). A copy keeps the owner single:
+// a caller cannot alias, add to, or delete from it.
+func SupportedSchemaKeys() map[string]bool { return supportedSchemaKeys() }
+
+// SchemaValueKindOK reports whether a value has the JSON kind the key requires
+// (the shape half of the gate; round 061 / ADR 0031 D8). The gate reads this so
+// it checks SHAPE as well as key membership — a wrong-typed value is as invisible
+// to a key-only walk as an unlisted key was before F-061-1.
+func SchemaValueKindOK(key string, value any) bool {
+	kind, ok := supportedSchemaValueKinds[key]
+	if !ok {
+		return false
 	}
-	return out
+	_, keep := applyValueKind(kind, value)
+	return keep
 }
 
 // ProjectSchema projects a tool declaration's parameter schema onto the
@@ -106,9 +134,135 @@ func ProjectSchema(raw json.RawMessage) json.RawMessage {
 	return out
 }
 
-// stringEnumMember renders a non-string `enum` member as the string Gemini's
-// `Schema.enum` (repeated string) requires — measured rejected otherwise
-// (ADR 0031 D2, value-shape probe: `enum: [1,2,3]` → TYPE_STRING).
+// applyValueKind returns the value to keep for a key (and whether to keep it).
+// A kind-matched value passes through; the measured coercions apply (`type`
+// array, `enum` scalars, a non-object schema node); anything else is dropped.
+func applyValueKind(kind schemaValueKind, val any) (any, bool) {
+	switch kind {
+	case kindAny:
+		return val, true
+	case kindString:
+		s, ok := val.(string)
+		return s, ok
+	case kindBool:
+		b, ok := val.(bool)
+		return b, ok
+	case kindNumber:
+		f, ok := val.(float64)
+		return f, ok
+	case kindInt:
+		f, ok := val.(float64)
+		return f, ok && f == math.Trunc(f)
+	case kindStringList:
+		return normalizeStringList(val)
+	case kindEnum:
+		return normalizeEnum(val)
+	case kindType:
+		return normalizeType(val)
+	case kindSchemaNode:
+		return projectSubschema(val)
+	case kindBoolOrSchemaNode:
+		if b, ok := val.(bool); ok {
+			return b, true
+		}
+		return projectSubschema(val)
+	case kindSchemaList:
+		return projectList(val)
+	case kindObjectOfSchema:
+		return projectProperties(val)
+	}
+	return nil, false
+}
+
+// normalizeStringList keeps a `repeated string` value only when EVERY member is a
+// string (one bad member drops the keyword).
+func normalizeStringList(val any) (any, bool) {
+	list, ok := val.([]any)
+	if !ok {
+		return nil, false
+	}
+	out := make([]any, 0, len(list))
+	for _, e := range list {
+		s, ok := e.(string)
+		if !ok {
+			return nil, false
+		}
+		out = append(out, s)
+	}
+	return out, true
+}
+
+// normalizeType rewrites a supported `type` value to the single-valued form the
+// wire accepts (ADR 0031 D2): a string passes through; an ARRAY is reduced to its
+// lone non-`null` member (the `"null"` member is recorded by projectValue as
+// `nullable: true`; an ambiguous list is dropped); any other kind is dropped.
+func normalizeType(val any) (any, bool) {
+	if s, ok := val.(string); ok {
+		return s, true
+	}
+	list, ok := val.([]any)
+	if !ok {
+		return nil, false
+	}
+	kept := make([]any, 0, len(list))
+	for _, t := range list {
+		if s, isStr := t.(string); isStr && s == "null" {
+			continue
+		}
+		kept = append(kept, t)
+	}
+	if len(kept) != 1 {
+		return nil, false // zero or ambiguous members — drop rather than guess
+	}
+	return kept[0], true
+}
+
+// scalarTypeNames are the schema types a Gemini `enum` may sit beside — the probe
+// rejected an enum on an OBJECT or ARRAY type and an enum with no type at all
+// (ADR 0031 D2, R-2).
+var scalarTypeNames = map[string]bool{"string": true, "integer": true, "number": true, "boolean": true}
+
+// typeCarriesNull reports whether a `type` value carried the `"null"` member.
+func typeCarriesNull(val any) bool {
+	list, ok := val.([]any)
+	if !ok {
+		return false
+	}
+	for _, t := range list {
+		if s, isStr := t.(string); isStr && s == "null" {
+			return true
+		}
+	}
+	return false
+}
+
+// normalizeEnum coerces scalar `enum` members to their string form (Gemini's
+// `Schema.enum` is `repeated string`) and DROPS non-scalar / `null` members; an
+// empty result drops the keyword (ADR 0031 D2/D6a′; the object-member nit of the
+// V-061-1 review — a stringified object would hand the model a fake value).
+func normalizeEnum(val any) (any, bool) {
+	list, ok := val.([]any)
+	if !ok {
+		return nil, false
+	}
+	out := make([]any, 0, len(list))
+	for _, m := range list {
+		switch m.(type) {
+		case string:
+			out = append(out, m)
+		case float64, bool:
+			out = append(out, stringEnumMember(m))
+		}
+	}
+	if len(out) == 0 {
+		return nil, false
+	}
+	return out, true
+}
+
+// stringEnumMember renders a non-string SCALAR `enum` member as the string
+// Gemini's `Schema.enum` (repeated string) requires — measured rejected
+// otherwise (ADR 0031 D2: `enum: [1,2,3]` → TYPE_STRING).
 func stringEnumMember(v any) any {
 	if s, ok := v.(string); ok {
 		return s
@@ -120,155 +274,83 @@ func stringEnumMember(v any) any {
 	return string(b)
 }
 
-// normalizeTypeKeyword rewrites an ARRAY `type` into the single-valued form
-// Gemini's `Schema.type` accepts (measured: `type: ["string"]` is rejected as an
-// unknown name — ADR 0031 D2, value-shape probe). Per JSON-Schema `type`
-// semantics: drop the `"null"` member and record it as `nullable: true`; keep the
-// lone remaining member; drop the keyword entirely when the remainder is empty or
-// ambiguous (more than one member — no faithful single value exists).
-func normalizeTypeKeyword(node map[string]any) {
-	list, ok := node["type"].([]any)
-	if !ok {
-		return
-	}
-	nullable := false
-	kept := make([]any, 0, len(list))
-	for _, t := range list {
-		s, isStr := t.(string)
-		if isStr && s == "null" {
-			nullable = true
-			continue
-		}
-		kept = append(kept, t)
-	}
-	switch {
-	case len(kept) == 1:
-		node["type"] = kept[0]
-	default:
-		// zero members (a `["null"]`-only list) or an ambiguous list — drop the
-		// keyword rather than guess a member type.
-		delete(node, "type")
-	}
-	// `nullable` is only accepted BESIDE a type (probe: "schema didn't specify
-	// the schema type field"), so it is recorded only when a type remains —
-	// otherwise the property legitimately degrades to the accepted empty `{}`.
-	if _, typed := node["type"]; nullable && typed {
-		if _, set := node["nullable"]; !set {
-			node["nullable"] = true
-		}
-	}
-}
-
-// scalarTypeNames are the schema types a Gemini `enum` may sit beside — the probe
-// rejected an enum on an OBJECT or ARRAY type and an enum with no type at all
-// ("for schema with enum values, schema type should not be OBJECT or ARRAY").
-var scalarTypeNames = map[string]bool{"string": true, "integer": true, "number": true, "boolean": true}
-
-// normalizeEnumKeyword coerces every `enum` member to a string (Gemini's
-// `Schema.enum` is `repeated string`; a numeric member is rejected — ADR 0031 D2)
-// and DROPS the keyword when it cannot be legal: beside a non-scalar type
-// (object/array), or with no type at all (both measured rejected). A `null`
-// member is meaningless and is dropped.
-func normalizeEnumKeyword(node map[string]any) {
-	raw, ok := node["enum"].([]any)
-	if !ok {
-		return
-	}
-	t, _ := node["type"].(string)
-	if !scalarTypeNames[t] {
-		delete(node, "enum")
-		return
-	}
-	out := make([]any, 0, len(raw))
-	for _, v := range raw {
-		if v == nil {
-			continue
-		}
-		out = append(out, stringEnumMember(v))
-	}
-	if len(out) == 0 {
-		delete(node, "enum")
-		return
-	}
-	node["enum"] = out
-}
-
-// projectValue projects one schema node: a map keeps only allowlisted keys (and
-// recurses where structure lives), a list projects its elements, a scalar is
-// returned as-is.
+// projectValue projects one schema node: it keeps only the keys in the value-kind
+// table (the single owner) and applies each key's required kind, recursing where
+// the kind says the value is (or contains) a schema node.
 func projectValue(v any) any {
-	switch node := v.(type) {
-	case map[string]any:
-		out := make(map[string]any, len(node))
-		for k, val := range node {
-			if !supportedSchemaKeys[k] {
-				continue
-			}
-			switch k {
-			case "properties":
-				out[k] = projectProperties(val)
-			case "items":
-				out[k] = projectSubschema(val)
-			case "additionalProperties":
-				// a bool is a legal JSON-Schema value AND accepted by the wire at
-				// both root and property level (probe, ADR 0031 D2); anything
-				// else must be a schema node.
-				if _, isBool := val.(bool); isBool {
-					out[k] = val
-				} else {
-					out[k] = projectSubschema(val)
-				}
-			case "oneOf", "allOf":
-				out[k] = projectList(val)
-			default:
-				out[k] = val
-			}
-		}
-		normalizeTypeKeyword(out)
-		normalizeEnumKeyword(out)
-		return out
-	case []any:
-		return projectList(node)
-	}
-	return v
-}
-
-// projectProperties projects each declared property's subschema. A subschema
-// that is not an object (a boolean schema, a bare string, …) is unrepresentable
-// as a Schema message, so it degrades to the accepted empty `{}` rather than
-// reaching the wire as a proto type error (review R-3).
-func projectProperties(v any) any {
-	props, ok := v.(map[string]any)
+	m, ok := v.(map[string]any)
 	if !ok {
 		return v
 	}
-	out := make(map[string]any, len(props))
-	for name, sub := range props {
-		out[name] = projectSubschema(sub)
+	out := make(map[string]any, len(m))
+	for k, val := range m {
+		kind, ok := supportedSchemaValueKinds[k]
+		if !ok {
+			continue // not on the supported surface
+		}
+		if got, keep := applyValueKind(kind, val); keep {
+			out[k] = got
+		}
+	}
+	// An `enum` is only accepted beside a SCALAR type (ADR D6a′ / R-2): the probe
+	// rejects an enum on an object/array type or with no type at all, so the
+	// keyword drops whenever its node cannot legally carry it.
+	if _, hasEnum := out["enum"]; hasEnum {
+		if t, _ := out["type"].(string); !scalarTypeNames[t] {
+			delete(out, "enum")
+		}
+	}
+	// A `["null"]`-only type yields no `type`, and `nullable` is only accepted
+	// BESIDE a type (ADR D6a′) — drop a `nullable` derived from such a type.
+	if _, typed := out["type"]; !typed && typeCarriesNull(m["type"]) {
+		delete(out, "nullable")
+	}
+	// Record the `"null"` member of an array type as `nullable: true` (only when a
+	// type remains).
+	if _, typed := out["type"]; typed && typeCarriesNull(m["type"]) {
+		if _, set := out["nullable"]; !set {
+			out["nullable"] = true
+		}
 	}
 	return out
 }
 
-// projectSubschema projects a value that must BE a schema node, coercing a
-// non-object to the empty `{}` (review R-3).
-func projectSubschema(v any) any {
-	if _, ok := v.(map[string]any); !ok {
-		return map[string]any{}
+// projectProperties projects each declared property's subschema. A subschema that
+// is not an object (a boolean schema, a bare scalar, …) is unrepresentable as a
+// Schema message, so it degrades to the accepted empty `{}` (ADR D6c / R-3), and
+// a `properties` value that is not a map drops the keyword.
+func projectProperties(v any) (any, bool) {
+	props, ok := v.(map[string]any)
+	if !ok {
+		return nil, false
 	}
-	return projectValue(v)
+	out := make(map[string]any, len(props))
+	for name, sub := range props {
+		out[name], _ = projectSubschema(sub)
+	}
+	return out, true
+}
+
+// projectSubschema projects a value that must BE a schema node, coercing a
+// non-object to the empty `{}` (ADR D6c / R-3).
+func projectSubschema(v any) (any, bool) {
+	if _, ok := v.(map[string]any); !ok {
+		return map[string]any{}, true
+	}
+	return projectValue(v), true
 }
 
 // projectList projects each element of a keyword list (oneOf/allOf). The element
 // position IS a schema node, so a non-object element degrades to the accepted
-// empty `{}` exactly as R-3 requires one keyword over (fold of review R-5).
-func projectList(v any) any {
+// empty `{}` (ADR D6c / R-5); a non-list value drops the keyword.
+func projectList(v any) (any, bool) {
 	list, ok := v.([]any)
 	if !ok {
-		return v
+		return nil, false
 	}
 	out := make([]any, len(list))
 	for i, e := range list {
-		out[i] = projectSubschema(e)
+		out[i], _ = projectSubschema(e)
 	}
-	return out
+	return out, true
 }

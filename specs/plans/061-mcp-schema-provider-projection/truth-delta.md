@@ -63,3 +63,5 @@
 | MODIFY | `docs/decisions/0031-provider-supported-schema-surface.md` | D6a′ (coerced-shape rows) · D6c (non-object → `{}`) · the `$defs` traversal · RF-061-10. | reviews **R-1**, **R-2**, **R-3**, nit 2 |
 
 | MODIFY | `specs/truth/techstack.md` (projection row) | a non-object subschema degrades to `{}` at **every** schema-node position — incl. `oneOf`/`allOf` **elements** (R-5); the `additionalProperties` bool form is measured accepted at both levels. | review **R-5**, nit 2 |
+
+| MODIFY | `specs/truth/techstack.md` (projection + gate rows) | the single owner is now a **key + value-kind** table; the gate checks shape too. | review **V-061-1** |

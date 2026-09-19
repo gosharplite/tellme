@@ -73,3 +73,12 @@
 ### Re-verification witness (reproduced RED, then reverted)
 
 - **I** — routing `oneOf`/`allOf` elements back through `projectValue` turns `TestProjectSchema_CoercedShapesAreTheMeasuredOnes` RED (a `true`/`false` element on the wire).
+
+## Phase 8 — Verification-2 fold (PR #128, verification `5740392315`)
+
+- [X] **T030** (`V-061-1`, FOLD path chosen) — the surface's single owner is now the **key + value-kind table** `supportedSchemaValueKinds` (`supportedSchemaKeys` derived); the projection applies each key's kind, dropping a mismatch and applying only the **measured** coercions. Wrong-kind values were probed (7 rejected, 3 tolerated-but-dropped) and the rows recorded (ADR D2/D8, `research.md`). Pins: `TestProjectSchema_ValueKindsAreEnforced`, `TestSchemaValueKindOK_MirrorsTheTable`; the containment walker now asserts **shape** as well as key membership. **Witness J** (kind enforcement bypassed) reproduced RED.
+- [X] **T031** (the review's enum-object nit) — a non-scalar `enum` member is **dropped** rather than JSON-stringified into a fake value; pinned in `TestProjectSchema_ValueKindsAreEnforced`.
+
+### Witness (reproduced RED, then reverted)
+
+- **J** — `applyValueKind` returning every value unvalidated turns `TestProjectSchema_ValueKindsAreEnforced` RED (`description: 123` on the wire).
