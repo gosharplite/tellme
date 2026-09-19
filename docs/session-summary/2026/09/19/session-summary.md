@@ -675,3 +675,50 @@ Certification comment `5740091537`: **TF-060-2 FOLDS VERIFIED — CERTIFIED MERG
 **Review chain (closed):** review `5254902427` (REQUEST CHANGES — B-060-1 + TD-060-1…4 + nits) → fold `2f59f91` → fold-verification `5740054490` (5/5 + TF-060-1) → fold-back `0d63674` → re-verification `5740073150` (4/4 + FR-004 + TF-060-2) → fold-back `50e1ed7` → **certification `5740091537`**.
 
 **Awaiting the human merge** into `dev` (only a human merges; no Copilot review), then `SESSION-CLOSEOUT.md` Steps 1–8 (propagate `dev → main` no-ff, `main^{tree} == dev^{tree}`, tag `round-060`, `go install ./cmd/tellme`, `STATUS.md` Rule-12 split of the round-059 detail, issue-tracker pass — #91/#13 stay open). Round-060 forward items (RF-060-1…5 + R-060-1…3) recorded in `STATUS.md` open items.
+
+---
+
+## 17. Session 34 (2026-09-19, cont.) — round 060 `060-domain-model-and-drift-gate` **MERGED** (PR #126 → `dev` `801b905`) + closeout (Steps 1–8)
+
+Continuation after the architectural reviewer's **final certification** (`5740091537`, CERTIFIED MERGE-READY, review loop CLOSED): the operator **merged PR [#126](https://github.com/gosharplite/tellme/pull/126)** and deleted the remote branch; the local branch was deleted after an ancestor check (the remote was verified gone first); then `SESSION-CLOSEOUT.md` Steps 1–8 ran on `dev`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#126](https://github.com/gosharplite/tellme/pull/126) merged into `dev` **`801b905`** (**fast-forward** — no merge commit; `801b905` was the round head); remote branch deleted by the human; **local branch deleted** after verifying the tip is an ancestor of `origin/dev` |
+| Gates (Step 2) | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** (incl. the new `modelith-check`) · `go test -count=1 ./...` **green** (24 pkgs incl. the godog E2E) · `modelith lint` 0/0 ×3 · diff-level secret scan clean |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from the `dev` head; `--version` → `dev` |
+| Propagation (Step 7) | `dev → main` — **DONE (no-ff)**; tag **`round-060`** (annotated) on the propagation merge (ADR 0026) |
+| Closeout | `STATUS.md` → round 060 **DELIVERED / FROZEN** + Rule-12 split (round-059 detail + its env note + the round-057 branch-model row → `docs/archives/status/2026-09-19.md`) · this §17 · **nothing to close** (operator request) |
+
+### Work done
+
+1. **Branch cleanup** — `git fetch --prune` showed `[deleted] origin/060-domain-model-and-drift-gate`; `git ls-remote --heads origin 060-…` empty (remote gone); the round tip `801b905` verified an **ancestor of `origin/dev`** ⇒ `git branch -d 060-domain-model-and-drift-gate` (safe) → *"Deleted branch … (was 801b905)"*. `gh pr view 126` → `state: MERGED`, `mergeCommit 801b905`.
+2. **Closeout Steps 1–8** (below).
+
+### Steps 1–8
+
+- **Step 1 — working tree**: `dev` clean (`## dev...origin/dev`, 0 porcelain lines); no frozen `specs/plans/**` touched; no stray files.
+- **Step 2 — gates**: as the at-a-glance row (all green). `make verify` now includes `modelith-check` (ADR 0030).
+- **Step 3 — `STATUS.md`**: header → 2026-09-19 (session 34) · active branch → `dev` · round 060 **DELIVERED / FROZEN** (PR #126 → `801b905`, fast-forward; certified fold head `50e1ed7`) · **Rule-12 split** → `docs/archives/status/2026-09-19.md` (the round-059 detail + its env note + the round-057 branch-model row, verbatim) · delivered-rounds index + branch model + roadmap + open items (RF-060/R-060) + env notes refreshed; no liveness contradiction.
+- **Step 4 — day summary**: **appended** this §17 (the in-flight §16 record preserved).
+- **Step 5 — reconciliation**: `STATUS.md` ↔ §1–§17 agree (round 060 delivered; `dev` active; #91/#13 open; the RF-060/R-060 forwards; next round `061-*`).
+- **Step 6 — commit**: `docs(060): day close — round 060 delivered + propagated; STATUS split + 09/19 summary §17`.
+- **Step 7 — propagation + handoff**: `dev → main` **DONE (no-ff)**; `main^{tree} == dev^{tree}` verified; tag **`round-060`** on the propagation merge; `go install ./cmd/tellme`; next-session start point = `dev`, round **`061-*`** off `dev`.
+- **Step 8 — issue tracker**: nothing to close/revise (operator request, no anchor issue); [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) left OPEN (accurate).
+
+### Residuals (non-blocking, recorded)
+
+- **RF-060-1…5** + **R-060-1…3** in **ADR 0030 §Forward** / `STATUS.md`.
+- Carried: the 5 pre-existing Gherkin/DSL topology-audit errors (not a `make verify` member); PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`.
+- **ER-060-1 (new, dev-tooling)** — `make verify` now requires the **modelith** dev tool; install via the clone + pinned-build route in `docs/domain-model/README.md` (ADR 0030 §D2/D3).
+
+### Next steps
+
+1. Open round **`061-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella — context management; [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`; **Step 1 now reads the three domain models**).
+
+### PM follow-ups
+
+- None new (docs/tooling round; no user-facing journey).
