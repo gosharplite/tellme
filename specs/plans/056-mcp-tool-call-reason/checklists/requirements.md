@@ -47,6 +47,7 @@
 
 - **設計已於 spec 收斂**：S-1…S-6 記述 operator 於本輪會話確認的設計（server definition 不可變；tellme 請求並渲染 `reason`；呼叫 JSON 為 `{reason, MCP_PAYLOAD}`，僅轉送 `MCP_PAYLOAD`；不動 system prompt；MCP-only；server 自帶 `reason` 不衝突）。
 - **Q1（LOCKED → A）** — tellme 以自身宣告向模型請求 `reason`：頂層 `reason`（required，tellme 擁有）+ `MCP_PAYLOAD`（原樣承載 server 的 schema）；server definition 不改，system prompt 不改。
+- **範圍已擴充（operator，決策 (ii)）** — 「no reason, no go」閘門**通用化**為所有工具呼叫（native + MCP），單一 owner；**[#121](https://github.com/gosharplite/tellme/issues/121) 併入本輪**（以 superseded 關閉）。新增 US3 及 FR-008 / FR-009 / FR-010。
 - **Q2（LOCKED → B, STRICT）** — 未使用 envelope 的 MCP 呼叫（缺 `reason`/空白 `reason`/非物件 `MCP_PAYLOAD`）一律拒絕：不接觸 server，回可恢復結果要求模型以 envelope 重試；缺 `MCP_PAYLOAD` 但 `reason` 有效 = 空 payload `{}`。
 - **A4** — round-032 既有 MCP E2E fixture（scripted `Arguments: "{}"`）需於實作半更新；本 skill 不寫入 `specs/truth/**`。
 
