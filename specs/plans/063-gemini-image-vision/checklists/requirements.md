@@ -31,10 +31,10 @@
 
 ## 缺口與澄清策略
 
-- [ ] 只有高影響缺口才升級到 `/axb-clarify` — **Q1**（能力鍵是否沿用 `VISION`）、**Q2**（Gemini inline 尺寸上限）已升級；**Q3**（wire 放置位置）刻意留給 `/axb-technical-research`（不改變驗收標準）
-- [ ] 本輪 clarify 題數控制在 1 至 3 題／session 上限 5 題 — **OPEN：Q1、Q2 尚未拍板，一題一問進行中**
+- [ ] 只有高影響缺口才升級到 `/axb-clarify` — **Q1**（能力鍵是否沿用 `VISION`）已升級並拍板（**Q1 → A：沿用 `VISION`**，2026-09-19）；**Q2**（Gemini inline 尺寸上限）已升級、待拍板；**Q3**（wire 放置位置）刻意留給 `/axb-technical-research`（不改變驗收標準）
+- [ ] 本輪 clarify 題數控制在 1 至 3 題／session 上限 5 題 — **進行中：Q1 → A 已鎖定；Q2 待拍板**（一題一問）
 - [x] 低風險未定細節已用 `NEEDS CLARIFICATION` 或假設揭露（A1–A6）
-- [ ] 仍保留的 `NEEDS CLARIFICATION` 已標示是否阻塞後續規劃 — **Q1、Q2 為阻塞項**（決定 config 介面、提供面語意與一個編號驗收標準）；收斂前不進入 handoff
+- [ ] 仍保留的 `NEEDS CLARIFICATION` 已標示是否阻塞後續規劃 — **Q2 為阻塞項**（決定一個編號驗收標準、超限拒絕行為，以及 tool 上限是否 family-aware）；收斂前不進入 handoff
 
 ## 可驗證性與成功標準
 
@@ -54,6 +54,6 @@
 ## Ready 判定
 
 - [ ] 已可進入後續規劃
-- [x] 仍需先補高影響需求缺口 — **Q1（能力鍵）、Q2（Gemini inline 上限）** 尚未拍板
+- [x] 仍需先補高影響需求缺口 — **Q2（Gemini inline 上限與超限拒絕歸屬）** 尚未拍板（Q1 已鎖定）
 
-**備註**: spec 已完整記錄需求來源、現況實測與不變式；US/FR/SC 骨架已就位，等待 Q1／Q2 拍板後即可進入 `/axb-spec-by-example` 與 `/axb-technical-research`。
+**備註**: spec 已完整記錄需求來源、現況實測與不變式；**Q1 → A（沿用單一 `VISION` 鍵）已鎖定**，US/FR/SC 骨架已就位，等待 Q2 拍板後即可進入 `/axb-spec-by-example` 與 `/axb-technical-research`。

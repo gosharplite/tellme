@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: skeleton initialized by `/axb-specify`. **Clarify OPEN** — **Q1** (capability key: reuse `VISION`?) and **Q2** (the Gemini inline size ceiling) are pending, asked one at a time. **Q3** (the `inline_data` wire placement) is deliberately left to `/axb-technical-research`. Owner rows below are **expected** shapes, not yet recorded.
+> **Status**: skeleton initialized by `/axb-specify`. **Clarify IN PROGRESS** — **Q1 → A (reuse the single `VISION` key) LOCKED** (operator, 2026-09-19); **Q2** (the Gemini inline size ceiling) is pending, asked one at a time. **Q3** (the `inline_data` wire placement) is deliberately left to `/axb-technical-research`. Owner rows below are **expected** shapes, not yet recorded.
 
 ## /axb-technical-research
 

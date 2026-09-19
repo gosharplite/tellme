@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — produced by `/axb-specify` from an **operator request** (no anchor issue). **Clarify OPEN** — **Q1 (capability key: reuse `VISION`?)** and **Q2 (the Gemini inline size ceiling)** are high-impact gaps asked one at a time (see *Clarify (open)* below). No `specs/truth/**` file is written by this skill.
+**Status**: Draft — produced by `/axb-specify` from an **operator request** (no anchor issue). **Clarify IN PROGRESS** — **Q1 → A (reuse the single `VISION` key) LOCKED** (operator, 2026-09-19); **Q2 (the Gemini inline size ceiling)** is the remaining high-impact gap, asked one at a time (see *Clarify* below). No `specs/truth/**` file is written by this skill.
 
 **Input (operator, 2026-09-19, this session)**:
 
@@ -35,11 +35,11 @@
 
 ---
 
-## Design (proposed by grounding — Q1/Q2 pending the operator's confirmation)
+## Design (S-1 locked by Q1 → A; the rest proposed by grounding — Q2 pending the operator's confirmation)
 
 | # | Decision | Status |
 | --- | --- | --- |
-| **S-1** | **The capability key is unchanged: `VISION: true` (per provider), and it now works on the Gemini family.** The offered-set gate (round 062 D3/FR-007) needs **no change** — it is already family-agnostic; only the adapter's serialization + the refusal change. | *pending Q1* |
+| **S-1** | **The capability key is unchanged: `VISION: true` (per provider), and it now works on the Gemini family.** The offered-set gate (round 062 D3/FR-007) needs **no change** — it is already family-agnostic; only the adapter's serialization + the refusal change. | **locked (Q1 → A)** |
 | **S-2** | **The Gemini image is an `inline_data` blob** — a `{"inline_data":{"mime_type":<sniffed>,"data":<base64>}}` part on a **`user`** turn (the Vertex/Gemini REST shape; the reference's `genai.Blob` shape). | proposed |
 | **S-3** | **The content sniff is shared, not duplicated** — the same magic-byte table (JPEG/PNG/GIF/WebP) and the same `read_image` tool serve both families; the kind resolution has **one owner**. | proposed |
 | **S-4** | **Media placement keeps the functionCall→functionResponse pairing intact** (the Gemini parser rejects an unanswered `functionCall`; the reference merges `InlineData` **before** the `functionResponse` in the same `user` turn — #1441). The exact wire placement is a `/axb-technical-research` decision informed by the reference; the spec requires only that the request be **accepted** and the model **see** the image. | proposed |
@@ -58,14 +58,14 @@
 
 ---
 
-## Clarify (open — one question at a time)
+## Clarify (one question at a time)
 
-> Per `/axb-clarify`, only **high-impact** gaps are asked. Two are open; the third is left to research.
+> Per `/axb-clarify`, only **high-impact** gaps are asked. **Q1 is answered**; **Q2 is open**; the third is left to research.
 
 | # | Question | Why it is high-impact | Recommendation |
 | --- | --- | --- | --- |
-| **Q1** | Is the Gemini image capability declared by the **same** `VISION` key (so `VISION: true` alone enables the Gemini image path), or by a **separate** Gemini key? | It decides whether the config surface grows and whether the round-062 offered-set semantics change (a separate key would make the offered set family-*and*-key-dependent). | **Reuse `VISION`** — the key is already family-agnostic, the request is *"let gemini have `read_image` too"*, and a second key would let an entry declare one family's capability for the other. |
-| **Q2** | What **inline size ceiling** applies to the Gemini path — keep **32 MiB** (the round-062/OpenAI number, for symmetry), or a **Gemini/Vertex-specific** bound (the Vertex inline request limit)? | It changes a numbered acceptance criterion and the oversize-refusal behaviour; the two families have different documented limits. | **A Gemini-specific ceiling with a loud error**, exact number from `/axb-technical-research`'s measurement (the honest bound, like round 062's 32 MiB); symmetrizing at 32 MiB only if the measured Vertex bound permits it. |
+| **Q1** ✅ **ANSWERED (A)** | Is the Gemini image capability declared by the **same** `VISION` key (so `VISION: true` alone enables the Gemini image path), or by a **separate** Gemini key? | It decides whether the config surface grows and whether the round-062 offered-set semantics change. | **Operator chose (A) — reuse `VISION`** (2026-09-19). The key stays family-agnostic; `VISION: true` on a `gemini`/`vertex` provider now enables the image path; **no second key**; the offered-set gate is unchanged. Recorded as **S-1 (locked)** / **FR-007**. |
+| **Q2** ⏳ **OPEN** | What **inline size ceiling** governs the Gemini path — one **shared** ceiling (**32 MiB**, the round-062/OpenAI number, kept global), or a **family-aware** ceiling (the Vertex inline request bound, enforced by `read_image` per selected provider so the oversize case is a loud **tool** error before the wire)? | It changes a numbered acceptance criterion, the oversize-refusal behaviour, and whether the tool's ceiling becomes capability-aware. | **Recommend (B) family-aware** with the value sourced/measured in `/axb-technical-research` (the honest bound, mirroring round 062's 32 MiB rationale); **(A)** keeps one global ceiling and lets the provider reject an oversize image (a loud *provider* error, not a loud *tool* error). |
 | *(Q3 — not asked)* | The exact **wire placement** of `inline_data` relative to the tool result (merge into the functionResponse `user` turn — the reference's media-first shape — vs the round-062 separate trailing `user` message). | Technical shape; the spec requires acceptance + visibility only. | Left to `/axb-technical-research` (grounded in the reference's `[InlineData][FunctionResponse][other]` normalization, #1441). |
 
 ---
@@ -111,7 +111,7 @@ As the **operator**, I want the **same** `VISION` declaration and the **same** `
 
 **Functional Requirements**:
 
-- **FR-007**: The capability key MUST remain the single **`VISION`** boolean (no new key) (S-1, pending Q1).
+- **FR-007**: The capability key MUST remain the single **`VISION`** boolean (no new key) (S-1, **Q1 → A locked**).
 - **FR-008**: The offered-set gate (round 062 FR-007) MUST be **unchanged** — capability, not family, decides (S-1).
 - **FR-009**: The round-062 Gemini **refusal** text/path MUST be retired, and the owning truth (techstack row / feature / `dsl.md` / the `client_image_test.go` pin) MODIFY-ed to the new behaviour.
 
