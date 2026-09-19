@@ -41,7 +41,7 @@ func thenOfferedTools(ctx context.Context) error {
 	offered := f.ToolNamesAt(-1)
 	want := registeredToolNames()
 	if len(want) == 0 {
-		return fmt.Errorf("the live registry enumerates no tools")
+		return fmt.Errorf("the base offered set enumerates no tools")
 	}
 	if len(offered) != len(want) {
 		return fmt.Errorf("offered tools = %v; want exactly the base offered set %v", offered, want)
