@@ -18,6 +18,27 @@ Feature: Prompting with live suggestions
       Then the interactive prompt offers the recent prompt "deploy to staging with version 015"
       And tellme exits successfully
 
+  Rule: The interactive prompt searches a deep window of recent prompts
+
+    # Round 064 (ADR 0034; operator request): the recent-prompt candidate pool is the
+    # newest 50 distinct prompts (the reference's LoadTopN(ctx, 50)) — not 10 — so a
+    # match older than the newest 10 is offered again; the surfaced list stays capped
+    # at 10. Acceptance journey:
+    # features/acceptance/finding-a-recent-prompt-beyond-the-shallow-window.feature.
+    # [unit-pinned (round 064)] the ≤10 surfaced cap and "a match beyond the newest 10"
+    # are pinned by the unit layer (internal/app/suggestions): the engine asks the
+    # source for the deepened depth and the accumulator still caps at 10.
+
+    Example: A recent prompt older than the newest ten is still offered
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the operator is working at an interactive terminal
+      And the shared prompt log already holds "review the last two commits"
+      And the shared prompt log holds 12 newer prompts about other topics
+      When the operator opens the interactive prompt and types "commits"
+      Then the interactive prompt offers the recent prompt "review the last two commits"
+      And tellme exits successfully
+
   Rule: The interactive prompt suggests a workspace entry for a path-like query
 
     Example: A local file is offered as the operator types a path

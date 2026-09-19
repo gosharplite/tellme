@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: **Clarify CLOSED — Q1 → A** (pool-only: deepen the recent-prompt candidate pool to the newest 50; the surfaced cap stays 10) locked by the operator (2026-09-20). Owner rows: `research`/`api`/`data` **recorded below**; `dsl-refine` rows follow once that phase runs.
+> **Status**: **Clarify CLOSED — Q1 → A** (pool-only: deepen the recent-prompt candidate pool to the newest 50; the surfaced cap stays 10) locked by the operator (2026-09-20). Owner rows: `research`/`api`/`data` **recorded**; `dsl-refine` rows **recorded** (the phase has run). Implementation: `promptPoolDepth = 50` split from `maxSuggestions = 10` (`internal/app/suggestions/service.go`); unit pin + E2E carrier; gates green.
 
 ## /axb-technical-research
 
@@ -30,7 +30,9 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| *(pending)* | `specs/truth/features/cli/chat/prompting-with-suggestions.feature` (+ `chat/dsl.md`) | *(to be recorded: a depth-distinguishing Example — a prompt beyond the newest 10 but within the newest 50 is offered)* | `spec.md` US1; `acceptance-coverage` |
+| MODIFY | `specs/truth/features/cli/chat/prompting-with-suggestions.feature` | ADD-ed the round-064 depth Rule (*The interactive prompt searches a deep window of recent prompts*) + its Example (a match older than the newest 10 is still offered), reusing the existing Given/Then sentences plus the new deep-log Given. | `spec.md` US1; acceptance `finding-a-recent-prompt-beyond-the-shallow-window.feature` (`acceptance-coverage`) |
+| ADD | `specs/truth/features/cli/chat/dsl.md` — `the shared prompt log holds {count} newer prompts about other topics` (Given) + a round-064 note | the depth-distinguishing fixture Given (append `{count}` unrelated records so a match falls beyond the newest-10 window but inside the newest-50 pool) and the module note (the deepened pool, the unchanged cap, the kept disciplines). **No new Then row** — the existing `the interactive prompt offers the recent prompt "{prompt}"` row is reused. | `spec.md` FR-001/FR-002/FR-004 (`dsl-exact-one-match`; each new step matches one row) |
+| NOOP (checked) | the interface-root `dsl.md` + the other `chat/**` features | no cross-module row changed; the workspace/tool/accept/over-long Rules are untouched (depth-only change). | `spec.md` S-2/I-2 (`dsl-single-authority` holds) |
 
 **Domain model** (`docs/domain-model/tellme.modelith.{yaml,md}`, ADR 0030 — descriptive, subordinate to truth): expected unchanged unless a suggestion-source fact's wording changes; `make modelith-check` must stay green.
 

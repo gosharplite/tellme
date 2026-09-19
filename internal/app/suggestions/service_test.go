@@ -56,3 +56,44 @@ func TestServiceSuggestOffersTool(t *testing.T) {
 	}
 	t.Fatalf("Suggest(read) = %v, want it to offer the tool read_files", got)
 }
+
+// recordingPrompts records the n the engine requests and returns a canned list.
+type recordingPrompts struct {
+	asked int
+	items []string
+}
+
+func (r *recordingPrompts) RecentPrompts(_ context.Context, n int) []string {
+	r.asked = n
+	if n > 0 && len(r.items) > n {
+		return r.items[:n]
+	}
+	return r.items
+}
+
+// TestServiceSuggestAsksForDeepenedPoolAndCapsAtTen (round-064 T005, ADR 0034):
+// the engine asks the history source for the deepened candidate pool
+// (promptPoolDepth = 50), not the shallow 10, AND still surfaces at most
+// maxSuggestions (10) suggestions. Two claims: the pool depth is deepened, and
+// the surfaced cap is unchanged and non-vacuous (20 matches collapse to 10).
+func TestServiceSuggestAsksForDeepenedPoolAndCapsAtTen(t *testing.T) {
+	// 20 matching prompts (subsequence "commit") — more than the cap.
+	items := make([]string, 0, 20)
+	for i := 0; i < 20; i++ {
+		items = append(items, "commit workspace "+string(rune('a'+i)))
+	}
+	src := &recordingPrompts{items: items}
+	svc := New(src, fakeWorkspace{}, fakeTools{})
+
+	got := svc.Suggest(context.Background(), "commit")
+
+	if src.asked != promptPoolDepth {
+		t.Fatalf("history source asked for n = %d, want the deepened pool %d (round 064)", src.asked, promptPoolDepth)
+	}
+	if promptPoolDepth <= maxSuggestions {
+		t.Fatalf("promptPoolDepth (%d) must be strictly deeper than the surface cap (%d)", promptPoolDepth, maxSuggestions)
+	}
+	if len(got) != maxSuggestions {
+		t.Fatalf("Suggest(commit) surfaced %d suggestions, want exactly the cap %d", len(got), maxSuggestions)
+	}
+}
