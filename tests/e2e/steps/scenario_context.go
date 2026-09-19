@@ -713,7 +713,9 @@ func (sc *scenarioContext) writeGeminiConfig(provider, model, fakeBase, keyPath 
 		"    THINKING_BUDGET: 32768\n"+
 		"    THINKING_LEVEL: HIGH\n",
 		provider, provider, model, url, keyPath, maxTokens)
-	return sc.writeFile("configs/butler.yaml", []byte(cfg))
+	// Round 061: a gemini-family leg may also arrange MCP servers; append the
+	// block (it renders "" when none was arranged).
+	return sc.writeFile("configs/butler.yaml", []byte(cfg+sc.mcpServersYAML()))
 }
 
 // setSelectedProviderMaxTokens sets the effective config's selected provider

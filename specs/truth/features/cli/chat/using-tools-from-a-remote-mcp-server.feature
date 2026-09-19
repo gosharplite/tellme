@@ -22,6 +22,7 @@ Feature: Using tools from a remote MCP server
       And a configured provider "test-model" whose endpoint reports the offered tools and then answers with "done"
       When the operator starts tellme with the prompt "Which tools can you use?"
       Then the request offered the tool "lookup_price" from the MCP server "shop" alongside the agent tools
+      And the offered tool "lookup_price" from the MCP server "shop" carries no server-side mark
       And tellme exits successfully
 
   Rule: A prompt that needs an MCP tool is answered using it
@@ -171,4 +172,42 @@ Feature: Using tools from a remote MCP server
       And a configured provider "test-model" whose endpoint reports the offered tools and then answers with "done"
       When the operator starts tellme with the prompt "Which tools can you use?"
       Then the request offered the tool "lookup_price" from the MCP server "shop" with a reason and the server's declared schema
+      And tellme exits successfully
+
+  Rule: A server's argument marks never reach the provider
+
+    # Round 061 (issue #127 / ADR 0031): a server may annotate its arguments with
+    # vendor extensions (the GitHub server's `x-mcp-header`, which only tells the
+    # SERVER to route the argument as an HTTP header). A provider whose
+    # tool-definition reader is closed (Vertex/Gemini) rejects the WHOLE request
+    # when it meets such a keyword, so the annotation must not reach any provider;
+    # the declared arguments are preserved.
+
+    Example: A Gemini turn survives an annotated server
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "github" that offers a tool "add_issue_comment" answering "commented" whose arguments carry a server-side mark
+      And a configured gemini provider "test-model" whose endpoint reports the offered tools and then answers with "done"
+      When the operator starts tellme with the prompt "comment on the issue"
+      Then the offered tool "add_issue_comment" from the MCP server "github" carries no server-side mark
+      And the offered tool "add_issue_comment" from the MCP server "github" carries no keyword the provider cannot read
+      And tellme prints the provider's answer "done"
+      And tellme exits successfully
+
+    Example: The server's arguments survive the projection
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "github" that offers a tool "add_issue_comment" answering "commented" whose arguments carry a server-side mark
+      And a configured gemini provider "test-model" whose endpoint reports the offered tools and then answers with "done"
+      When the operator starts tellme with the prompt "comment on the issue"
+      Then the offered tool "add_issue_comment" from the MCP server "github" still describes the arguments "owner,repo,body"
+      And tellme exits successfully
+
+    Example: A tolerant provider also receives no server-side mark
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "github" that offers a tool "add_issue_comment" answering "commented" whose arguments carry a server-side mark
+      And a configured provider "test-model" whose endpoint reports the offered tools and then answers with "done"
+      When the operator starts tellme with the prompt "comment on the issue"
+      Then the offered tool "add_issue_comment" from the MCP server "github" carries no server-side mark
       And tellme exits successfully

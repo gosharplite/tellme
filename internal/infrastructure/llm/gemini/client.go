@@ -232,7 +232,11 @@ func buildGenerationConfig(maxTokens, thinkingBudget int, thinkingLevel string) 
 }
 
 // buildToolDeclarations maps the tool definitions to Vertex function
-// declarations, returning nil when none are offered.
+// declarations, returning nil when none are offered. Each declaration's
+// parameters are projected onto the provider's supported schema surface
+// (round 061 / ADR 0031) — Vertex parses `parameters` as a CLOSED proto, so an
+// unprojected keyword (an MCP server's annotation, `anyOf`, …) fails the whole
+// request.
 func buildToolDeclarations(toolDefs []llm.ToolDef) []map[string]any {
 	if len(toolDefs) == 0 {
 		return nil
@@ -241,9 +245,9 @@ func buildToolDeclarations(toolDefs []llm.ToolDef) []map[string]any {
 	for _, td := range toolDefs {
 		params := td.Parameters
 		if len(params) == 0 {
-			params = json.RawMessage(`{"type":"object","properties":{}}`)
+			params = json.RawMessage(freeformParameters)
 		}
-		decls = append(decls, map[string]any{"name": td.Name, "description": td.Description, "parameters": params})
+		decls = append(decls, map[string]any{"name": td.Name, "description": td.Description, "parameters": ProjectSchema(params)})
 	}
 	return decls
 }

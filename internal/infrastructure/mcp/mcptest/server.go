@@ -260,3 +260,26 @@ func schemaJSON(s string) any {
 func SchemaWithProperty(name string) any {
 	return schemaJSON(`{"type":"object","properties":{"` + strings.TrimSpace(name) + `":{"type":"string"}},"required":["` + strings.TrimSpace(name) + `"]}`)
 }
+
+// AnnotatedSchema returns a server-advertised input schema carrying the GitHub
+// MCP server's shape (round 061, issue #127): two arguments annotated with the
+// vendor extension `x-mcp-header`, plus standard-but-unsupported keywords
+// (`anyOf`, `const`, `readOnly`) and supported ones (`title`, `default`, array
+// `minItems`/`maxItems`, `enum`) — the fixture the round-061 floor + projection
+// must sanitize for the wire without losing the declared arguments.
+func AnnotatedSchema() any {
+	return schemaJSON(`{
+	  "type":"object",
+	  "$schema":"https://json-schema.org/draft/2020-12/schema",
+	  "title":"params",
+	  "properties":{
+	    "owner":{"type":"string","description":"Repository owner","x-mcp-header":"owner"},
+	    "repo":{"type":"string","description":"Repository name","x-mcp-header":"repo"},
+	    "body":{"type":"string","description":"The comment text","default":"n/a"},
+	    "files":{"type":"array","description":"A string or an array","minItems":1,"maxItems":100,"items":{"type":"string","x-nested":"gone"}},
+	    "kind":{"type":"string","enum":["a","b"],"const":"a"},
+	    "nested":{"type":"object","description":"d","properties":{"deep":{"type":"string","readOnly":true}}}
+	  },
+	  "required":["owner","repo"]
+	}`)
+}
