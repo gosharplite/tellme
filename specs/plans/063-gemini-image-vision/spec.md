@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — produced by `/axb-specify` from an **operator request** (no anchor issue). **Clarify IN PROGRESS** — **Q1 → A (reuse the single `VISION` key) LOCKED** (operator, 2026-09-19); **Q2 (the Gemini inline size ceiling)** is the remaining high-impact gap, asked one at a time (see *Clarify* below). No `specs/truth/**` file is written by this skill.
+**Status**: Draft — produced by `/axb-specify` from an **operator request** (no anchor issue). **Clarify CLOSED** — **Q1 → A** (reuse the single `VISION` key) and **Q2 → B** (a **family-aware** inline ceiling, enforced by `read_image` as a loud tool error) locked by the operator, one at a time (2026-09-19). **Q3** (the `inline_data` wire placement) is deliberately left to `/axb-technical-research`. No `specs/truth/**` file is written by this skill.
 
 **Input (operator, 2026-09-19, this session)**:
 
@@ -44,7 +44,7 @@
 | **S-3** | **The content sniff is shared, not duplicated** — the same magic-byte table (JPEG/PNG/GIF/WebP) and the same `read_image` tool serve both families; the kind resolution has **one owner**. | proposed |
 | **S-4** | **Media placement keeps the functionCall→functionResponse pairing intact** (the Gemini parser rejects an unanswered `functionCall`; the reference merges `InlineData` **before** the `functionResponse` in the same `user` turn — #1441). The exact wire placement is a `/axb-technical-research` decision informed by the reference; the spec requires only that the request be **accepted** and the model **see** the image. | proposed |
 | **S-5** | **The round-062 loud Gemini refusal is retired** (it existed because there was no image path; D8's "never silently lose an image" is preserved because the image now **is** carried). | proposed |
-| **S-6** | **A family-appropriate inline ceiling with a loud oversize error** — the Vertex inline request has a documented bound; whether tellme keeps the 32 MiB ceiling for symmetry or adds a Gemini-specific one is **Q2**. | *pending Q2* |
+| **S-6** | **A family-aware inline ceiling, enforced by the tool (Q2 → B).** `read_image` accepts the **selected provider's resolved** inline ceiling (injected like the vision flag), so an oversize image is a **loud tool error naming the limit** on **both** families — caught **before** the wire, never truncated. The exact per-family numbers are sourced/measured in `/axb-technical-research`. | **locked (Q2 → B)** |
 | **S-7** | **The text path stays byte-identical on both families** — a Gemini request with no media is unchanged. | proposed |
 | **S-8** | **Governance: extend ADR 0032 (or a new ADR?)** — RF-062-1 landing is a *decision* about the Gemini wire; the repo's pattern (round 057→058, 038→039) is a **new ADR** that extends the prior one and records the superseded forward item. The exact choice is a `/axb-technical-research` call. | proposed |
 
@@ -58,14 +58,14 @@
 
 ---
 
-## Clarify (one question at a time)
+## Clarify (closed — Q1 → A, Q2 → B)
 
-> Per `/axb-clarify`, only **high-impact** gaps are asked. **Q1 is answered**; **Q2 is open**; the third is left to research.
+> Per `/axb-clarify`, only **high-impact** gaps are asked. **Q1 and Q2 are answered**; the third is left to research.
 
 | # | Question | Why it is high-impact | Recommendation |
 | --- | --- | --- | --- |
 | **Q1** ✅ **ANSWERED (A)** | Is the Gemini image capability declared by the **same** `VISION` key (so `VISION: true` alone enables the Gemini image path), or by a **separate** Gemini key? | It decides whether the config surface grows and whether the round-062 offered-set semantics change. | **Operator chose (A) — reuse `VISION`** (2026-09-19). The key stays family-agnostic; `VISION: true` on a `gemini`/`vertex` provider now enables the image path; **no second key**; the offered-set gate is unchanged. Recorded as **S-1 (locked)** / **FR-007**. |
-| **Q2** ⏳ **OPEN** | What **inline size ceiling** governs the Gemini path — one **shared** ceiling (**32 MiB**, the round-062/OpenAI number, kept global), or a **family-aware** ceiling (the Vertex inline request bound, enforced by `read_image` per selected provider so the oversize case is a loud **tool** error before the wire)? | It changes a numbered acceptance criterion, the oversize-refusal behaviour, and whether the tool's ceiling becomes capability-aware. | **Recommend (B) family-aware** with the value sourced/measured in `/axb-technical-research` (the honest bound, mirroring round 062's 32 MiB rationale); **(A)** keeps one global ceiling and lets the provider reject an oversize image (a loud *provider* error, not a loud *tool* error). |
+| **Q2** ✅ **ANSWERED (B)** | What **inline size ceiling** governs the Gemini path — one **shared** ceiling (**32 MiB**), or a **family-aware** ceiling (enforced by `read_image` per selected provider so oversize is a loud **tool** error)? | It changes a numbered acceptance criterion, the oversize-refusal behaviour, and whether the tool's ceiling becomes capability-aware. | **Operator chose (B) — family-aware** (2026-09-19). `read_image` takes the selected provider's **resolved** inline ceiling (sourced/measured in `/axb-technical-research`), so oversize is a loud **tool** error naming the limit **before** the wire on **both** families. Recorded as **S-6 (locked)** / **FR-004**. |
 | *(Q3 — not asked)* | The exact **wire placement** of `inline_data` relative to the tool result (merge into the functionResponse `user` turn — the reference's media-first shape — vs the round-062 separate trailing `user` message). | Technical shape; the spec requires acceptance + visibility only. | Left to `/axb-technical-research` (grounded in the reference's `[InlineData][FunctionResponse][other]` normalization, #1441). |
 
 ---
@@ -91,7 +91,7 @@ As the **operator** running tellme with a `gemini`/`vertex` provider declaring `
 - **FR-001**: The Gemini/Vertex adapter MUST serialize a media-bearing message as an `inline_data` content part (`{"inline_data":{"mime_type":<sniffed>,"data":<base64>}}`) on a `user` turn (S-2).
 - **FR-002**: The serialization MUST keep the conversation valid for the Vertex parser — in particular the `functionCall` → `functionResponse` pairing must not be broken by the image part (the reference's media-first user-turn shape, #1441) (S-4).
 - **FR-003**: The MIME type MUST come from the **shared** content sniff (S-3) — the same magic-byte table the OpenAI path uses; the extension/declared MIME is never trusted.
-- **FR-004**: The Gemini path MUST enforce its inline **size ceiling** with a **loud** tool error (never truncated/partial); the ceiling value is Q2.
+- **FR-004**: The Gemini path MUST enforce the **selected provider's resolved inline ceiling** with a **loud tool error** naming the limit (never truncated/partial, never sent), caught **before** the wire (S-6, **Q2 → B**). The OpenAI-compatible path keeps its existing 32 MiB ceiling; the per-family values are sourced/measured in `/axb-technical-research`. `read_image` therefore takes the resolved ceiling as a construction input (the same seam that already carries the vision flag) — recorded as the natural continuation of **RF-062-10**'s `ToolSetSpec` seam (a next-round refactor, not required here).
 - **FR-005**: A provider declaring `VISION: true` on the Gemini family MUST produce a **working** image turn (the round-062 loud refusal is retired) (S-5).
 - **FR-006**: A media-free Gemini request MUST remain **byte-identical** to the pre-round shape (I-1).
 
@@ -137,7 +137,7 @@ As the **maintainer**, I want the Gemini image serialization proven by a hermeti
 
 ## Edge Cases
 
-- **An image exactly at the ceiling / one byte over** — the ceiling is inclusive; one over is the loud error (boundary pinned both ways).
+- **An image exactly at the ceiling / one byte over** — each family's ceiling is inclusive; one byte over is the loud tool error (boundary pinned both ways, per family).
 - **A `.txt`/truncated/0-byte file** — the shared sniff fails → the round-062 loud error (unchanged; the sniffer is shared, S-3).
 - **A media-bearing message with the provider `VISION` off** — `read_image` is not offered (unchanged); a stale history naming it hits the existing "tool not available" path.
 - **An image turn that also has text tool results** — the `functionCall`→`functionResponse` pairing must survive (FR-002); the exact ordering is the research decision (Q3).
@@ -159,9 +159,9 @@ As the **maintainer**, I want the Gemini image serialization proven by a hermeti
 - **SC-001**: With a Gemini provider declaring `VISION: true`, a turn that calls `read_image` **completes** and its request carries the image as an `inline_data` blob (decoded bytes == file bytes; sniffed `mime_type`). *(Hermetic: fake Vertex-shaped provider. A live spot-check against a real Vertex endpoint is a non-gating closeout step, mirroring rounds 061/062.)*
 - **SC-002**: A hermetic check proves the image reaches the Gemini wire; **removing the serialization turns it red**.
 - **SC-003**: A media-free Gemini turn is **byte-identical** to the pre-round shape (I-1), pinned.
-- **SC-004**: The offered set is unchanged (capability-driven); no "cannot carry images" refusal remains for a declared-`VISION` Gemini provider.
+- **SC-004**: The offered set is unchanged (capability-driven); no "cannot carry images" refusal remains for a declared-`VISION` Gemini provider; an oversize image on either family is a loud **tool** error naming that family's ceiling (SC-002-class carrier).
 - **SC-005**: `make verify` + `go test -count=1 ./...` green (including the E2E contract); the topology/DSL audit adds **no** new findings; any dependency change is recorded.
-- **SC-006**: Every changed behaviour (the blob, the retired refusal, the ceiling) has a reproduced falsifiability witness.
+- **SC-006**: Every changed behaviour (the blob, the retired refusal, the family-aware ceiling) has a reproduced falsifiability witness.
 
 ## Assumptions
 

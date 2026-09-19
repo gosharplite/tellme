@@ -5,13 +5,14 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: skeleton initialized by `/axb-specify`. **Clarify IN PROGRESS** — **Q1 → A (reuse the single `VISION` key) LOCKED** (operator, 2026-09-19); **Q2** (the Gemini inline size ceiling) is pending, asked one at a time. **Q3** (the `inline_data` wire placement) is deliberately left to `/axb-technical-research`. Owner rows below are **expected** shapes, not yet recorded.
+> **Status**: skeleton initialized by `/axb-specify`. **Clarify CLOSED** — **Q1 → A** (reuse the single `VISION` key) and **Q2 → B** (a **family-aware** inline ceiling enforced by `read_image` as a loud tool error) locked by the operator, one at a time (2026-09-19). **Q3** (the `inline_data` wire placement) is deliberately left to `/axb-technical-research`. Owner rows below are **expected** shapes, not yet recorded.
 
 ## /axb-technical-research
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| MODIFY | `specs/truth/techstack.md` — *Image content on the provider wire* | the Gemini/Vertex family carries the image as an `inline_data` blob (`mime_type` + base64 `data`) on a `user` turn; the round-062 loud Gemini refusal is retired; a family-appropriate inline ceiling (Q2). | `spec.md` FR-001…FR-005, S-2/S-5 |
+| MODIFY | `specs/truth/techstack.md` — *Image content on the provider wire* | the Gemini/Vertex family carries the image as an `inline_data` blob (`mime_type` + base64 `data`) on a `user` turn; the round-062 loud Gemini refusal is retired; **a family-aware inline ceiling** enforced by `read_image` (Q2 → B; per-family values sourced here). | `spec.md` FR-001…FR-005, S-2/S-5/S-6 |
+| MODIFY | `specs/truth/techstack.md` — *Image filesystem tool (`read_image`)* | the tool now takes the **selected provider's resolved inline ceiling** as a construction input (alongside the round-062 vision gate), so oversize is a loud tool error on both families. | `spec.md` FR-004, S-6 (Q2 → B) |
 | MODIFY | `specs/truth/techstack.md` — *Provider entry schema* / capability note | the single `VISION` boolean is now honoured by **both** families (no second key). | `spec.md` FR-007/FR-008, S-1 |
 | ADD | `docs/decisions/00NN-*.md` (+ index row) | the Gemini `inline_data` path; extends ADR 0032; supersedes `RF-062-1`. | `spec.md` S-8, `research.md` (TBD) |
 | NOOP (checked) | the OpenAI-compatible image row | unchanged by this round (the round-062 `image_url` shape stands). | `spec.md` S-7 |
