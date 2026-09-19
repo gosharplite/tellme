@@ -237,3 +237,89 @@ A later session on the same calendar day: bootstrapped/continued on `dev`, opene
 ### PM follow-ups
 
 - None new.
+
+---
+
+## 10. Session 30 (2026-09-19, cont.) — round 056 `056-mcp-tool-call-reason`: design session → full pipeline → review (TD-056-1 blocker-free, no blocker, APPROVE WITH REQUIRED FOLDS) folded → two fold-verifications → **merged (PR #122)** → closeout (Steps 1–8)
+
+A later session on the same calendar day: bootstrapped/continued on `dev`, opened round **056** from an **operator design conversation** that began as *"Why calling MCP doesn't have `[Tool Reason]`?"*, ran the full AIxBDD pipeline, took **PR [#122](https://github.com/gosharplite/tellme/pull/122)** through an architectural review (**APPROVE WITH REQUIRED FOLDS** — no blocker) and **two** fold-verifications (**FOLDS VERIFIED → CERTIFIED MERGE-READY**), saw the **human merge** (fast-forward), and ran `SESSION-CLOSEOUT.md` Steps 1–8. It also **folded** issue [#121](https://github.com/gosharplite/tellme/issues/121) into scope (operator decision **(ii)**).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | **operator design conversation** (no anchor issue) → **MCP tool-call `reason`** + a **universal, single-owned *no reason, no go* gate**; **ADR 0025**; folds [#121](https://github.com/gosharplite/tellme/issues/121) |
+| Settled design | S-1…S-7: server definition **never altered** · **no system-prompt change** · declaration-carried ask · call JSON `{reason, MCP_PAYLOAD}` · forward **only** `MCP_PAYLOAD` · the gate is **universal** (native + MCP) and **single-owned** |
+| Clarify (one at a time) | **Q1 → A** (tellme's own offered envelope: required `reason` + `MCP_PAYLOAD` carrying the server schema **verbatim**) · **Q2 → B, STRICT** (an envelope-less MCP call is refused; the server is never contacted) |
+| Pipeline | specify ✅ · clarify ✅ (Q1/Q2) · spec-by-example ✅ (3 journeys) · technical-research ✅ (**ADR 0025** + `techstack.md` ×3) · system-analysis ✅ (1 CLI interface; api/data NOOP) · dsl-refine ✅ · tasks ✅ (T001–T021) · implement ✅ |
+| Deliverable | `internal/infrastructure/mcp/tool.go` (envelope + forward-only-payload + shape refusal; `UseNumber`; structural compose) · `internal/agent/agentloop.go` (the universal gate reusing `Lines.ReasonLine`) · `internal/domain/tools/tools.go` (key constants) · `internal/ui/toolcall.go` (key + single predicate) · `mcptest/server.go` (`CallCount`/arg recording) · CLI truth (`chat/requiring-a-reason-to-call-a-tool.feature` NEW + 2 modified) · stepdefs |
+| Verification | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** (arch gate header-only; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (**245 scenarios · 1811 steps**, 0 undefined) · topology audit back to the **5 pre-existing errors** (round 056 adds none) · `go.mod`/`go.sum` unchanged |
+| Review chain (PR #122) | review `5254253670` (**APPROVE WITH REQUIRED FOLDS** — TD-056-1…5 + R-056-1…4 + presentation notes) → fold **`368b504`** (+ `78631f0`) → fold-verification `5738880177` (**FOLDS VERIFIED — CLEARED FOR MERGE**; residuals R-056-a…e) → fold **`77a8115`** (+ `db31d8b` record) → final verification `5738914284` — **FOLDS VERIFIED — CERTIFIED MERGE-READY** |
+| Merge | PR [#122](https://github.com/gosharplite/tellme/pull/122) merged **`db31d8b`** (**fast-forward** — no merge commit); **remote branch deleted**; local branch deleted at closeout |
+| Propagation | `dev → main` — **DONE (no-ff)** at this closeout |
+| `go install` | `go install ./cmd/tellme` refreshed from `db31d8b`; `--version` → `dev`; `vcs.revision=db31d8b…`, `vcs.modified=false` |
+| Closeout | `STATUS.md` split (Rule 12: the round-055 detail + its env note + the round-053 branch-model row → `docs/archives/status/2026-09-19.md`) · §10 appended · **nothing to close** (operator request; #121 already closed as folded) |
+
+### Work done
+
+1. **Design conversation** — settled S-1…S-7 with the operator (server definition untouched; no prompt change; a tellme-owned `reason` alongside the payload; `{reason, MCP_PAYLOAD}`; forward only the payload; the rule universal + single-owned). Two clarify questions asked one at a time (Q1 → A, Q2 → B/strict).
+2. **Scope fold (decision (ii))** — extended the refusal to a **universal** gate (native + MCP) and **folded [#121](https://github.com/gosharplite/tellme/issues/121)** (closed `not_planned` with a linking comment). Added spec **US3 / FR-008…FR-010 / I-5 / SC-007/SC-008**.
+3. **Pipeline** — `/axb-specify` → `/axb-clarify` (Q1/Q2) → `/axb-spec-by-example` (3 acceptance journeys) → `/axb-technical-research` (**ADR 0025** + `techstack.md` ×3 rows) → `/axb-system-analysis` (1 CLI interface; api/data NOOP) → `/axb-dsl-refine` (MCP Rules + a new gate feature; the round-039 unreachable reason-less Example retired) → `/axb-tasks` (T001–T021) → `/axb-implement`.
+4. **Implementation** — the envelope in `mcp/tool.go` (`Parameters()` = tellme's own declaration; `unwrapEnvelope` forwards only the payload; a shape violation is refused before `CallTool`; `UseNumber`; structural compose + `json.Valid`); the universal gate in `agentloop.go` (`refuseReasonless`, reusing `Lines.ReasonLine` — no second predicate; nil renderer ⇒ no gate); the shared key constants in `domain/tools`; stepdefs + unit pins.
+5. **Review + folds** — the **TD-056-1** gap (SC-006 had no force-bearing carrier) fixed at the server boundary (`received no call` / `received exactly one call`; `mcptest.CallCount`); TD-056-2 wording qualified; TD-056-3/4 **recorded**; TD-056-5 `UseNumber`; R-056-1…4 folded. Two fold-verifications (the reviewer reproduced the TD-056-1 and R-056-b witnesses independently) → **CERTIFIED MERGE-READY**.
+6. **Merge + closeout** — PR #122 merged (`db31d8b`, ff); `go install` (twice, per operator instruction); `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 056)
+
+| # | Decision |
+| --- | --- |
+| **S-1 / I-1** | The remote MCP server's definition (name/description/input schema) is **never altered**; the server receives **only** its own payload object. |
+| **S-2/S-3/I-2** | A tellme-owned **`reason`** is requested alongside the payload; the call JSON is `{reason, MCP_PAYLOAD}`; the reason is **rendered by tellme and never forwarded**. |
+| **S-4 / D1** | The ask is **declaration-carried** (tellme's own offered envelope) — **no system-prompt/persona change**. |
+| **S-5/S-7 / D3** | *No reason, no go* is **universal** (native + MCP) and **single-owned**: the loop's gate **reuses** the round-046 `ReasonLine` predicate (no second predicate); a nil renderer ⇒ no gate (a named standing invariant). |
+| **Q2 → B (strict)** | An MCP call that is not a valid envelope is **refused** (the server is never contacted); a shape violation is refused at the adapter. |
+| **R-056-c (PM follow-up)** | The shape-violation acceptance Rule was authored in this single-agent (`butler`) session (legitimate — the package is still *active*); recorded in `STATUS.md` so the authorship is visible. |
+| **Operator convention (recorded)** | tellme PRs are **human-reviewed only — no Copilot review**; **only a human merges**; an agent stops at "PR open". |
+
+### Commits (branch `056-mcp-tool-call-reason`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `7807055` | `docs(056)`: plan package + spec |
+| `da4fc07` | fold clarify Q1 → A |
+| `4be80f8` | fold clarify Q2 → B (strict); clarify CLOSED |
+| `69cf1a1` | link #121 in the out-of-scope items |
+| `c891350` | scope (ii): generalise the gate to every tool call; fold #121 |
+| `f553835` | fix SC-005 for the universal scope |
+| `74fa2c6` | acceptance Gherkin (3 journeys) + technical research + ADR 0025 + techstack truth |
+| `ee1801d` | add ADR 0025 + index row |
+| `5517d74` | techstack truth (MCP reason envelope row + the universal gate) |
+| `2674383` | align FR-009 with research D2 |
+| `d215009` | system-analysis plan (1 CLI interface) |
+| `8f79b3b` | dsl-refine follow-up (MCP-aware reason sentence S7) |
+| `4958338` | `tasks.md` (T001–T021) |
+| `83e7fd1` | `feat(056)`: MCP reason envelope + the universal gate (T001–T021) |
+| `2e18ddf` | record PR #122 |
+| `368b504` | fold PR #122 review — TD-056-1…5 + R-056-1…4 |
+| `78631f0` | correct the fold ledger step count + record the TD-056-1 witnesses |
+| `b06c812` | fold truth-delta row + the PR review/merge convention |
+| `77a8115` | fold fold-verification residuals R-056-a…e |
+| `db31d8b` | review-chain record + closeout carry-forwards (merge head) |
+| *(this closeout, on `dev`)* | `docs(056)`: day close — round 056 delivered; STATUS split + 09/19 summary §10 |
+
+### Residuals (non-blocking, recorded)
+
+- **Live attestation (nice)**: during this very closeout the round-056 gate fired on the **agent's own** MCP tool calls — `list_issues`/`issue_read` were first **refused** (*"a reason is required to call a tool…"* / *"an MCP tool call must be `{"reason":…,"MCP_PAYLOAD":{…}}`"*) until the arguments were re-sent as the tellme envelope. The shipped rule is in force end-to-end, on the very tools this session used.
+- **RF-056-1…8** in **ADR 0025 §Forward** (escape-only refusal · the nil-`Lines` standing invariant + its future carrier · uncounted refusals + no refusal bound · a terminal refusal variant · wording/naming · unreachable key literals · the `freeformEnvelope` literal).
+- **R-056-d** (fold-verification precision, no action now) — a future sweep adopting `ReasonKey` at the native builders' **required-lists** must **quote** it (a JSON fragment, not a bare key).
+- The **5 pre-existing Gherkin/DSL topology-audit errors** (round-054/earlier) — carried; not a `make verify` member.
+
+### Next steps
+
+1. ~~Propagate `dev → main`~~ — **DONE (no-ff)** at this closeout.
+2. Open round **`057-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella — context management; [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- **R-056-c** (recorded): the round-056 shape-violation acceptance Rule was authored in a `butler` (single-agent) session; acceptance is PM-owned — flagged for PM visibility (the package is still *active*).

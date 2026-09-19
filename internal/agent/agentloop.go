@@ -135,6 +135,16 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 				return agentport.Result{Steps: steps, Calls: calls}, &agentport.ErrIncomplete{Reason: fmt.Sprintf("tool %q is not available", tc.Name)}
 			}
 			a.logAction(tc)
+			// Round 056 (ADR 0025 D3 / folds #121): *no reason, no go*. A call whose
+			// reason does not render is REFUSED — the tool does not execute — and the
+			// model receives a recoverable result asking it to retry with a reason.
+			// The rule is universal (native and MCP calls) and its predicate is the
+			// single-owned reason renderer the loop already holds (Lines).
+			if result, refused := a.refuseReasonless(tc); refused {
+				a.logResult(tc, result)
+				turn = append(turn, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})
+				continue
+			}
 			tctx, cancel := context.WithTimeout(ctx, a.callTimeout(tool, tc.Arguments))
 			byteBudget := a.callByteBudget(tc.Arguments)
 			result, terr := tool.Execute(tctx, tc.Arguments, tools.ByteBudget(byteBudget))
@@ -211,6 +221,33 @@ func (a *AgentLoop) notifyCallEnd(callIndex int, usage llm.Usage, roundReasons [
 	if a.Observer != nil {
 		a.Observer.OnCallEnd(callIndex, usage, roundReasons, final)
 	}
+}
+
+// reasonRequiredResult is the recoverable result the loop folds back for a
+// refused (reason-less) tool call (round 056 / ADR 0025 D3). It is a normal
+// (nil-error) tool message, not a terminal failure, so the model can retry.
+const reasonRequiredResult = `error: a reason is required to call a tool; retry with a "reason" that renders (non-blank after folding/sanitizing)`
+
+// refuseReasonless applies the universal *no reason, no go* rule (round 056 /
+// ADR 0025 D3; folds #121) for one call. It returns (result, true) when the call
+// must be REFUSED — i.e. its reason does not render — and ("", false) when the
+// call may proceed.
+//
+// The predicate is the SINGLE-OWNED reason renderer (`Lines.ReasonLine`) the loop
+// already holds: asking it reuses the round-046 owner rather than defining a
+// second reason-presence predicate (ADR 0025 D3/D4). Gating on `renders` (not raw
+// presence) means a reason the operator cannot see is not a reason — an
+// escape-only reason is refused. A nil `Lines` renderer (the round-031 assembler
+// gate / offline `--tool-usage` path — no prompt turn) means NO gate (ADR 0025
+// boundary: there is no predicate to ask).
+func (a *AgentLoop) refuseReasonless(tc llm.ToolCall) (string, bool) {
+	if a.Lines == nil {
+		return "", false
+	}
+	if _, renders := a.Lines.ReasonLine(a.now(), toolReason(tc.Arguments)); renders {
+		return "", false
+	}
+	return reasonRequiredResult, true
 }
 
 // reasonsOf returns the non-empty top-level `reason` of each requested call, in

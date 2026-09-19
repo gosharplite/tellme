@@ -63,6 +63,8 @@ type Server struct {
 	connections int
 	auths       []string
 	calls       []string
+	callArgs    map[string][]string
+	allArgs     []string
 	closeOnce   sync.Once
 }
 
@@ -171,11 +173,45 @@ func (s *Server) recordToolCall(name string) {
 	s.mu.Unlock()
 }
 
+// CallCount returns how many tool calls the fake received (round 056) — the
+// force-bearing carrier for "a refused call never reaches the server": a refused
+// attempt must not increment this.
+func (s *Server) CallCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return len(s.calls)
+}
+
+// recordToolArguments appends one call's marshalled arguments under the tool.
+func (s *Server) recordToolArguments(name string, args any) {
+	b, err := json.Marshal(args)
+	if err != nil {
+		b = []byte("{}")
+	}
+	s.mu.Lock()
+	if s.callArgs == nil {
+		s.callArgs = map[string][]string{}
+	}
+	s.callArgs[name] = append(s.callArgs[name], string(b))
+	s.allArgs = append(s.allArgs, string(b))
+	s.mu.Unlock()
+}
+
+// AllReceivedArguments returns every recorded tool-call's marshalled arguments,
+// in call order (round 056 — the payload-purity witness does not need to key by
+// tool name).
+func (s *Server) AllReceivedArguments() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.allArgs...)
+}
+
 // handleTool is the low-level SDK tool handler: it records the call and returns
 // either the scripted result or an MCP-level tool error.
 func (s *Server) handleTool(_ context.Context, req *sdk.CallToolRequest) (*sdk.CallToolResult, error) {
 	if req != nil && req.Params != nil {
 		s.recordToolCall(req.Params.Name)
+		s.recordToolArguments(req.Params.Name, req.Params.Arguments)
 	}
 	if s.opts.ToolError {
 		return &sdk.CallToolResult{
