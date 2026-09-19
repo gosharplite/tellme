@@ -33,4 +33,9 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| TBD | `specs/truth/features/cli/**` | (awaiting `/axb-dsl-refine`) | — |
+| ADD | `specs/truth/features/cli/chat/reading-a-local-image.feature` | A new CLI-end feature: 3 Rules (the image reaches the wire, content-sniffed kind; the capability-dependent offered set; the loud refusals) + a documented-narrowing Rule. | `spec.md` US1/US2/US3 (`acceptance-coverage`) |
+| MODIFY | `specs/truth/features/cli/chat/offering-the-agent-tools.feature` | The header notes the set is a **function of the selected provider's capability**; a new Example asserts a vision-enabled provider is additionally offered `read_image`. | `spec.md` FR-009, S-5 |
+| ADD | `specs/truth/features/cli/chat/dsl.md` — `## Given (round 062)` (6 rows) + `## Then (round 062)` (7 rows) + a round-062 note | The new sentences: the workspace image-file Givens (kind / oversize / not-a-picture), the capability-declaring provider Givens, and the image/offered-set/loud-refusal Thens. | `spec.md` FR-001…FR-012 (`dsl-exact-one-match`) |
+| NOOP (checked) | the interface-root `specs/truth/features/cli/dsl.md` + sibling modules | No cross-module row changed; the new rows are module-local to `chat`. | `dsl-single-authority` holds |
+
+**Topology audit** (`axb-gherkin-and-dsl` script over `specs/truth/features/cli`): 48 features · 6 modules · 16 root + 375 module rows · 1894 steps — the **same 5 pre-existing errors** as at round 061, **none new**; round 062's feature + Example match exactly one row each.
