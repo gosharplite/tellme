@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — produced by `/axb-specify` from operator tasking. **Clarify round 1 IN PROGRESS (asked one question at a time): Q1 → Option A (LOCKED — the offered envelope carries the server's schema verbatim as `MCP_PAYLOAD`); Q2 OPEN (un-wrapped / legacy call disposition).** No `specs/truth/**` file is written by this skill.
+**Status**: Draft — produced by `/axb-specify` from operator tasking. **Clarify round 1 CLOSED (asked one question at a time): Q1 → Option A** (tellme's own offered envelope: a required top-level `reason` + `MCP_PAYLOAD` carrying the server's advertised schema **verbatim**); **Q2 → Option B, STRICT** (an MCP call that is not a valid envelope — missing/blank `reason`, or a non-object `MCP_PAYLOAD` — is **refused**; the server is never contacted; a recoverable result asks the model to retry). No open `NEEDS CLARIFICATION`. No `specs/truth/**` file is written by this skill.
 
 **Input (operator, 2026-09-19)**: a design conversation that began from *"Why calling MCP doesn't have `[Tool Reason]`?"* and settled the following operator intent:
 
@@ -65,13 +65,14 @@ The server's advertised schema is **relayed unchanged** (only *positioned* insid
 | # | Question | Status |
 | --- | --- | --- |
 | **Q1** | **How is `reason` elicited given "no prompt change" — i.e. what exactly does tellme offer the model for an MCP tool?** Options: **(A)** tellme offers its **own** declaration for the MCP tool whose parameters are the envelope `{reason (required), MCP_PAYLOAD}` — the server's advertised schema is carried **verbatim** as `MCP_PAYLOAD`'s subschema, so the model sees the real structure; **(B)** offer the server's schema **byte-verbatim at top level** and elicit `reason` some other way (would re-open the no-prompt constraint); **(C)** other. | ✅ **LOCKED → Option A** (operator, 2026-09-19): tellme's **own** declaration is offered — top-level `reason` (required, tellme-owned) + `MCP_PAYLOAD` carrying the server's advertised schema **verbatim**; the server's definition is never mutated (only positioned as `MCP_PAYLOAD`'s subschema); no system-prompt change. |
-| **Q2** | **How is a call that does *not* use the envelope handled** — e.g. a bare `{"sku":"A1"}` with no `MCP_PAYLOAD` (a server-advertised call, a legacy fixture, or a model that ignored the shape)? Options: **(A)** accept it as a **legacy/pass-through** payload (forward the object as the server args; render a reason only if a top-level `reason` happens to be present); **(B)** treat it as a **recoverable error** fed back to the model to retry ("call the tool with `reason` and `MCP_PAYLOAD`"); **(C)** treat a missing `MCP_PAYLOAD` as an empty `{}` payload. **Recommended: (A)** — keeps already-working server calls alive; the reason row stays best-effort for that path. | ⏳ **OPEN** |
+| **Q2** | **How is a call that does *not* use the envelope handled** — e.g. a bare `{"sku":"A1"}` with no `MCP_PAYLOAD` (a server-advertised call, a legacy fixture, or a model that ignored the shape)? Options: **(A)** accept it as a **legacy/pass-through** payload (forward the object as the server args; render a reason only if a top-level `reason` happens to be present); **(B)** treat it as a **recoverable error** fed back to the model to retry ("call the tool with `reason` and `MCP_PAYLOAD`"); **(C)** treat a missing `MCP_PAYLOAD` as an empty `{}` payload. | ✅ **LOCKED → Option B (STRICT)** (operator, 2026-09-19): *"If a model tries to call MCP with no reason, no go. You won't give money to someone without knowing why."* — an MCP call whose arguments are **not a valid envelope** (a missing/blank `reason`, or a `MCP_PAYLOAD` that is not an object) is **refused**: the server is **never contacted**, and tellme returns a **recoverable result** instructing the model to retry with the envelope. An **absent `MCP_PAYLOAD` with a valid `reason`** is a legitimate **empty payload** (`{}`). No legacy/flat pass-through. |
 
 **Non-negotiable invariants (proposed, not open):**
 
 - **I-1** — the remote server's advertised schema is **byte-identical** in what tellme relays (never mutated, never extended); the server receives **only** the payload object (S-1/S-3).
 - **I-2** — `reason` is **tellme's field**: it is rendered by tellme and **never forwarded** to the server (S-3).
 - **I-3** — the change is **MCP-only**; `resourceSchema`-backed native tools and the system prompt are untouched (S-4/S-5).
+- **I-4** — an MCP call is **refused unless it is a valid envelope** (a non-blank `reason` + `MCP_PAYLOAD` absent-or-an-object); a refused call **never reaches the server** (Q2 → B — the operator's "no go" / the purpose gate for external calls). A stray top-level key other than `reason`/`MCP_PAYLOAD` is a shape violation and is **not** forwarded.
 
 ---
 
@@ -89,13 +90,14 @@ As the **operator**, when the model calls a tool on a remote MCP server, I want 
 
 1. **Given** a remote MCP server offering a tool, **When** the model calls that tool with a `reason` alongside the server payload, **Then** tellme renders a `[Tool Reason] <reason>` row for the call (the same row a native tool produces) and the call still executes.
 2. **Given** the same call, **When** it completes, **Then** the reason is also carried in the grouped post-call tail (the round-034 rendering), consistent with a native tool.
-3. **Given** tellme offers the MCP tool to the model, **When** the offered declaration is inspected, **Then** its shape is the model-visible envelope that **requests** `reason` (S-4/Q1), with the server's advertised schema carried **verbatim** inside it (I-1).
+3. **Given** tellme offers the MCP tool to the model, **When** the offered declaration is inspected, **Then** its shape is the model-visible envelope that **requests** `reason` (S-4/Q1 → A), with the server's advertised schema carried **verbatim** inside it (I-1).
+4. **Given** the model calls an MCP tool with arguments that are **not a valid envelope** (no `reason`, a blank `reason`, or a non-object `MCP_PAYLOAD`), **When** tellme handles the call, **Then** the remote server is **never contacted** and tellme returns a **recoverable result** telling the model to retry with `{"reason":…,"MCP_PAYLOAD":…}`; a later conforming call then executes normally (Q2 → B).
 
 **Functional Requirements**:
 
 - **FR-001**: tellme MUST offer each discovered MCP tool to the model with a declaration that **requests a `reason`** (a declared `reason` property), so the model is told to provide one — **without** a system-prompt/persona change (S-4).
 - **FR-002**: tellme MUST render the MCP call's `reason` as a `[Tool Reason]` row on the same surfaces a native tool uses (begin line + grouped tail), via the existing single-owned reason path (`agentport.ToolLineRenderer` / `ui.ToolLineRenderer.ReasonLine`) — **no** MCP-specific renderer.
-- **FR-003**: the reason MUST be **mandatory** for an MCP call (S-2): the offered declaration marks `reason` required; a call that omits it is handled per clarify **Q2**.
+- **FR-003**: the reason MUST be **mandatory** for an MCP call (S-2/Q2 → B): the offered declaration marks `reason` required, **and** tellme **enforces** it at call time — an MCP call that is not a valid envelope (a missing/blank `reason`, or a `MCP_PAYLOAD` that is not an object) MUST be **refused**: the remote server MUST NOT be contacted, and tellme MUST return a **recoverable result** instructing the model to retry with `{"reason":…,"MCP_PAYLOAD":…}` (the in-turn recoverable-error path, a nil-error result — never the terminal request-level failure). An **absent `MCP_PAYLOAD` with a valid `reason`** is a legitimate **empty payload** (`{}`).
 - **FR-004**: tellme MUST forward to the remote server **only the contents of `MCP_PAYLOAD`** — the outer `reason`/`MCP_PAYLOAD` keys MUST NOT reach `CallTool` (S-3/I-2).
 
 ### User Story 2 - the remote server's definition and payload are untouched (Priority: P1)
@@ -122,7 +124,7 @@ As the **operator**, I want the remote MCP server to see **exactly its own defin
 
 ## Edge Cases
 
-- **Un-wrapped / legacy call** — the model (or an existing scripted fixture) sends the server args at top level with no `MCP_PAYLOAD` ⇒ clarify **Q2**.
+- **Un-wrapped / legacy call** — a call that is not a valid envelope is **refused** (Q2 → B): the server is never contacted and the model receives a recoverable retry instruction. There is **no** legacy/flat pass-through (the round-032 fixtures that script `Arguments: "{}"` are updated in the implementation half — A4).
 - **A server that itself declares `reason`** — its `reason` lives **inside `MCP_PAYLOAD`**, distinct from tellme's outer `reason` (S-6); no collision by construction. (The old flat-key design had this collision; the envelope removes it.)
 - **Blank reason** — the round-036 blank-reason predicate already suppresses an empty/whitespace-only reason row; the envelope does not change that (a blank reason renders no row, the call still executes).
 - **A non-object `MCP_PAYLOAD`** (e.g. a string) — must be handled deterministically (degrade to `{}` or a recoverable error; pinned in the implementation, matching clarify Q2's disposition).
@@ -146,6 +148,7 @@ As the **operator**, I want the remote MCP server to see **exactly its own defin
 - **SC-003**: The server's advertised input schema appears **verbatim** in the offered declaration; no round-032 MCP behaviour regresses (all existing MCP scenarios stay green).
 - **SC-004**: The round's own gates hold: `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (all Examples) · native-tool rendering byte-identical · `go.mod`/`go.sum` unchanged.
 - **SC-005**: The elicit-and-render path is **declaration-carried** (no system-prompt change) and **MCP-only** (native tools untouched) — demonstrable, not just stated.
+- **SC-006**: A non-conforming MCP call is **refused without contacting the server** (witnessed against the E2E fake's recorded calls: zero calls), and a subsequent conforming call succeeds — the "not optional" guarantee (Q2 → B).
 
 ## Assumptions
 
@@ -160,5 +163,5 @@ As the **operator**, I want the remote MCP server to see **exactly its own defin
 - **Altering the remote server's definition** — never (the operator's constraint).
 - **A system-prompt / persona change** — explicitly excluded (S-4).
 - **Native-tool changes** — they already carry `reason`.
-- **A hard gate that refuses a reasonless call** — only if clarify **Q2** selects option (B).
+- **A hard gate that refuses a reasonless call** — **IN SCOPE for MCP calls** (Q2 → B, FR-003). Extending the same refusal to **native** tools (today a native call without `reason` still executes — the round-022 schema-nonconforming fixture) is **out of scope** and a recorded forward item.
 - The locked exclusions: no security/consent layer · no Windows · sequential tool calls ([#47](https://github.com/gosharplite/tellme/issues/47) `not_planned`).

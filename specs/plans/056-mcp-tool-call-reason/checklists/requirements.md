@@ -34,7 +34,7 @@
 - [x] 只有高影響缺口才升級到 `/axb-clarify`（Q1 如何向模型請求 reason；Q2 未包裝/legacy 呼叫的處置）
 - [x] 本輪 clarify 題數控制在 1 至 3 題（2 題）
 - [x] 低風險未定細節已用 `NEEDS CLARIFICATION` 或假設揭露
-- [ ] 仍保留的 `NEEDS CLARIFICATION` 已標示是否阻塞後續規劃 — **Q1 已 LOCKED → A（宣告形狀已定）**；**Q2 仍 OPEN**（未包裝/legacy 呼叫的處置，阻塞驗收情境第 3 條與 `spec-by-example` 的 legacy 分支）
+- [x] 仍保留的 `NEEDS CLARIFICATION` 已標示是否阻塞後續規劃 — **Q1 → A LOCKED；Q2 → B（STRICT）LOCKED**；本輪無殘留 `NEEDS CLARIFICATION`
 
 ## 可驗證性與成功標準
 
@@ -47,12 +47,12 @@
 
 - **設計已於 spec 收斂**：S-1…S-6 記述 operator 於本輪會話確認的設計（server definition 不可變；tellme 請求並渲染 `reason`；呼叫 JSON 為 `{reason, MCP_PAYLOAD}`，僅轉送 `MCP_PAYLOAD`；不動 system prompt；MCP-only；server 自帶 `reason` 不衝突）。
 - **Q1（LOCKED → A）** — tellme 以自身宣告向模型請求 `reason`：頂層 `reason`（required，tellme 擁有）+ `MCP_PAYLOAD`（原樣承載 server 的 schema）；server definition 不改，system prompt 不改。
-- **Q2（OPEN）** — 未包裝/legacy 呼叫（無 `MCP_PAYLOAD`）如何處置（建議 Option A：視為 legacy payload 直通）。
+- **Q2（LOCKED → B, STRICT）** — 未使用 envelope 的 MCP 呼叫（缺 `reason`/空白 `reason`/非物件 `MCP_PAYLOAD`）一律拒絕：不接觸 server，回可恢復結果要求模型以 envelope 重試；缺 `MCP_PAYLOAD` 但 `reason` 有效 = 空 payload `{}`。
 - **A4** — round-032 既有 MCP E2E fixture（scripted `Arguments: "{}"`）需於實作半更新；本 skill 不寫入 `specs/truth/**`。
 
 ## Ready 判定
 
-- [ ] 已可進入後續規劃
-- [x] 仍需先補高影響需求缺口
+- [x] 已可進入後續規劃
+- [ ] 仍需先補高影響需求缺口
 
-**備註**: spec 主體、故事切分、FR 歸戶與成功標準已成立；唯 **Q1/Q2 為高影響缺口**，須先進入 `/axb-clarify` 收斂後，才可進入 `/axb-spec-by-example` / `/axb-technical-research`。
+**備註**: Q1/Q2 皆已 LOCKED；spec 主體、故事切分、FR 歸戶、成功標準與 clarify 皆已收斂，可進入 `/axb-spec-by-example` 與 `/axb-technical-research`。
