@@ -114,3 +114,72 @@ The operator confirmed the round-063 live check by hand ("I have done the above.
 ### Next steps
 
 1. Open round **`065-*`** off `dev` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) · RF-063-10 PM clean-up · the `ToolSetSpec` seam RF-062-10/RF-063-6). **[#132](https://github.com/gosharplite/tellme/issues/132)** is a low-priority candidate (fix only if parallel tool rounds are used).
+
+---
+
+## 6. Session 42 (2026-09-20, cont.) — round 065 `065-gemini-parallel-tool-calls`: anchor **#132** → full pipeline → architect review-fold loop (4 passes) → **human-merged (PR #133 → `dev` `b904281`)** → branch cleanup → closeout (Steps 1–8) + `go install`
+
+A later session on the same calendar day: opened **round 065** from anchor issue **[#132](https://github.com/gosharplite/tellme/issues/132)** (the media-agnostic Gemini multi-call 400 the round-063 live check had found), ran the full AIxBDD pipeline, took **PR [#133](https://github.com/gosharplite/tellme/pull/133)** through a **review → fold → fold-verification → fold → final fold-verification** chain (the `architect` peer, initialised by `SESSION-BOOTSTRAP.md`), saw the **human merge** (a merge commit), deleted the branch (local + remote), and ran `SESSION-CLOSEOUT.md` Steps 1–8 with `go install`.
+
+**Workspace**: `$TELL_ME_HOME` = `…/mbp-johndoe-niffler/ait-tellme`; **darwin/arm64** host (Go 1.26.6). **Session mode**: `butler`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | anchor [#132](https://github.com/gosharplite/tellme/issues/132): a Gemini/Vertex turn with **≥2 parallel tool calls** 400'd; the adapter now **batches a round's tool results into one `user` turn** |
+| Clarify | **not escalated (0 questions)** — the goal (close #132) and the fix were unambiguous; the residual choices were technical (`/axb-technical-research`) |
+| Pipeline | specify ✅ · clarify ✅ (not escalated) · spec-by-example ✅ · technical-research ✅ (**ADR 0035** + `techstack.md` ×3) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine ✅ · tasks ✅ (T001–T010) · implement ✅ |
+| The change | `internal/infrastructure/llm/gemini/client.go` `buildContents` batches — a `model` turn's **N** calls ⇒ the round's **N** `functionResponse` parts in **one** `user` turn (call order); the round's media turns follow (round-scoped placement). **Family-local**: the loop, ports, tools, config, and the OpenAI-compatible wire are untouched |
+| Review chain (PR #133, the `architect` peer) | review `5745379718` (APPROVE WITH REQUIRED FOLDS; **TD-065-1/2** + **R-065-1/2/3** + **N-065-1/2**) → fold `6ec36a8` → fold verification `5745407336` (**FOLDS VERIFIED WITH RESIDUALS** — the drop was correct only for `M ≥ N/2`) → fold `35a662c` (`pending[:0]` + the short-round pin) → re-verification `5745432548` (fix correct; carrier residual) → fold `588a2c5` (round-2 call renamed `search`) → **final fold verification `5745449629` — FOLDS VERIFIED WITH RESIDUALS (mergeable)** |
+| Merge | PR [#133](https://github.com/gosharplite/tellme/pull/133) **human-merged** into `dev` (`b904281`, **merge commit**); remote branch deleted by the human, then the **local branch deleted** after an ancestor check (`git branch -d`, was `588a2c5`) |
+| Issue | [#132](https://github.com/gosharplite/tellme/issues/132) was **manually closed (completed)** — the PR body's `Closes **#132**` did **not** auto-close (the bold markers defeated the keyword) |
+| Closeout | `gofmt`/`go vet`/`go build` clean · `go test -count=1 ./...` **green** (271/271 E2E) · `make verify` **OK** · topology audit **5 pre-existing, none new** (49 features · 384 module rows · 1989 steps) · diff-level secret scan clean · `STATUS.md` split (round-064 detail + row + env note → `docs/archives/status/2026-09-20.md`) · `go install ./cmd/tellme` · **propagated `dev → main` (no-ff)** + tag **`round-065`** |
+
+### Work done
+
+1. **Grounding + round opened** — `/axb-specify` created `specs/plans/065-gemini-parallel-tool-calls/` off a new branch; the defect was already reproduced (round-063 live check).
+2. **Pipeline** — acceptance Gherkin (3 Rules) → `/axb-technical-research` (D1–D9 + **ADR 0035** + `techstack.md` ×3 rows) → `/axb-system-analysis` (1 CLI end; api/data NOOP) → `/axb-dsl-refine` (`chat/calling-several-tools-in-one-round.feature` + `dsl.md` round-065 rows) → `/axb-tasks` → `/axb-implement`.
+3. **The fix** — `pending = pending[:0]` at a round boundary; a family-local batching in `buildContents`; new unit pins + the E2E journey. Witness reproduced and reverted.
+4. **The review-fold loop (the `architect` peer)** — 7 required folds, then two *real* residual catches (the `M ≥ N/2` arithmetic and the coincident cookie name) fixed; final verdict mergeable.
+5. **Merge + cleanup + closeout + `go install`** — PR #133 merged (`b904281`); branch deleted (local + remote); `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 065)
+
+| # | Decision |
+| --- | --- |
+| Fix shape | A model round's **N** tool results share **one** `user` turn (call order); the pairing stays the FIFO name match (`ToolCallID` optional); the round's media turns follow the batch |
+| Family-local | The change is confined to `internal/infrastructure/llm/gemini`; the OpenAI-compatible wire, the loop, ports, tools and config are untouched |
+| Byte/shape identity | **I-1/I-2/I-3** — the OpenAI wire, the single-call Gemini path, and the media-free text path are unchanged |
+| ADR | **ADR 0035** records it; extends **ADR 0033**, **supersedes its RF-063-7**, annotates its D2 note |
+
+### Commits (branch `065-gemini-parallel-tool-calls`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `f96e8d8` | `docs(065)`: plan package + spec |
+| `4c2b78b` | `docs(065)`: acceptance + research + ADR 0035 + techstack truth |
+| `e7903d5` | `feat(065)`: batch a Gemini round's tool results into one `user` turn |
+| `6ec36a8` | `fix(065)`: fold the architect review (TD-065-1/2 + R-065-1…3 + N-065-1/2) |
+| `35a662c` | `fix(065)`: fold the fold-verification residual (drop all unpaired names) |
+| `588a2c5` | `test(065)`: strengthen the short-round pin (round-2 call renamed) |
+| `b904281` | PR [#133](https://github.com/gosharplite/tellme/pull/133) merge into `dev` (by the operator) |
+| *(this closeout, on `dev`)* | `docs(065)`: day close — round 065 delivered + propagated; STATUS split + 09/20 summary §6 |
+
+### Verification (2026-09-20, on `dev` @ `b904281`)
+
+- `gofmt -l .` clean · `go vet ./...` clean · `go build ./...` clean · `go test -count=1 ./...` **green** (24 packages incl. the godog E2E, **271/271 scenarios**) · `make verify` **OK** (arch gate 0 · modelith-check ×3 · lint 0 · govulncheck clean · cross-compile 4/4) · topology audit **5 pre-existing, none new** (49 features · 384 module rows · 1989 steps) · `go.mod`/`go.sum` unchanged · diff-level secret scan clean.
+- **`go install ./cmd/tellme`** refreshed → `$(go env GOPATH)/bin/tellme`; `--version` → `dev`.
+
+### Open items (non-blocking)
+
+- **Round-065 live check (pending, non-gating)** — one real Vertex turn with two tool calls (not run hermetically).
+- **RF-065-1…5** in **ADR 0035 §Forward**; the review residual (the `N=2 M=1` sub-case's inherent equivalence) recorded + accepted as mergeable.
+- **RF-063-7** — **SUPERSEDED by ADR 0035** (round 065); **#132 closed**.
+
+### Next steps
+
+1. Open round **`066-*`** off `dev` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling · the `ToolSetSpec` seam RF-062-10/RF-063-6 · RF-063-10 the meta-Rule clean-up).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+*(Round 065 is fully closed out: PR #133 human-merged into `dev` (`b904281`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-065`**; the installed binary refreshed; [#132](https://github.com/gosharplite/tellme/issues/132) closed.)*
