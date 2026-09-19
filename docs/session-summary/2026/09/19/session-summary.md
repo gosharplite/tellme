@@ -752,7 +752,7 @@ A **family-agnostic floor** (`mcp.NormalizeMCPSchema` drops `x-…`/`$schema` re
 - **Step 4 — day summary**: **appended** this §18.
 - **Step 5 — reconciliation**: `STATUS.md` ↔ §1–§18 agree (round 061 delivered; `dev` active; #127 closed, #91/#13 open; the RF-061 forwards; next round `062-*`).
 - **Step 6 — commit**: `docs(061): day close — round 061 delivered + propagated; STATUS split + 09/19 summary §18`.
-- **Step 7 — propagation + handoff**: `dev → main` **DONE (no-ff)**; `main^{tree} == dev^{tree}` verified; tag **`round-061`** on the propagation merge; `go install ./cmd/tellme` refreshed from `902642a`; next-session start point = `dev`, round **`062-*`** off `dev`.
+- **Step 7 — propagation + handoff**: `dev → main` **DONE (no-ff)** — propagation merge **`dd9b43b`** (`git rev-parse main`); `main^{tree} == dev^{tree}` verified (`0a3463d`); tag **`round-061`** (annotated) pushed on `dd9b43b`; `go install ./cmd/tellme` refreshed from `902642a`; next-session start point = `dev`, round **`062-*`** off `dev`.
 - **Step 8 — issue tracker**: **#127 CLOSED** with a linking comment; [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) left OPEN (accurate).
 
 ### Residuals (non-blocking, recorded)
