@@ -79,3 +79,38 @@ Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 063 delivered/frozen; ac
 ## 4. PM follow-ups
 
 - None new (spec/acceptance complete; the review's TD-1 folded the only PM-owned gap this round introduced).
+
+---
+
+## 5. Session 40 (2026-09-20, cont.) — round-063 closeout **live check** performed: single-image Vertex vision verified (RF-063-2 CLOSED); a pre-existing, media-agnostic multi-call defect surfaced and filed (#132)
+
+The operator confirmed the round-063 live check by hand ("I have done the above. It works."), then asked for first-party evidence produced **through a peer agent** on the gemini `dev` provider. The check ran via the **`coder`** peer (per `tmg-chat-ingroup`: remote-party-marked prompt staged in `/tmp`, `env -u TELL_ME_MODE`, `TELL_ME_SELECTED_PROVIDER=dev` — `gemini-3.8-flash`, Vertex `websc-dev-433809`, `VISION: true`), with two tiny prepared PNGs.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Run A — **1 × `read_image`** (control/baseline) | **PASS, `exit 0`** — coder: *"CONFIRM: read and attached. CONTENT: Solid red (#FF0000). ANOMALY: None."* → the model **sees** the image on the Vertex wire |
+| Run B — **2 × `read_image`** in one round (the widened check) | **FAIL, `exit 6`** — both calls ran; the **next** Vertex request 400'd |
+| Run C — **2 × `read_files`**, one round, **no media** | **FAIL, `exit 6`** — the **identical 400** ⇒ the defect is **media-agnostic** |
+| 400 (verbatim) | `provider dev: provider returned status 400: Please ensure that the number of function response parts is equal to the number of function call parts of the function call turn.` |
+| Root cause | `internal/agent/agentloop.go` appends **one `tool` message per call**; `gemini.buildContents` maps **each** to its **own** `user` turn with **one** `functionResponse` part — Vertex requires a function-call turn's responses in **one** turn |
+| Provenance | per-call tool message = round **008** (`5a37fe4`); per-message `functionResponse` user turn = round **013** (`de79fc0`); round **063** (`e8e0880`) added only the `inlineData` branch. **Pre-existing** — not introduced by round 063 |
+| Blast radius | **Gemini/Vertex only**, any round with **≥2 tool calls** (OpenAI-compatible unaffected — separate `role:"tool"` messages). Not hit when a round has exactly one tool call (the shipped single-image usage) |
+| Filed | **[#132](https://github.com/gosharplite/tellme/issues/132)** (low priority) — the adapter must batch a round's `functionResponse` parts into one `user` turn (the ADR 0033 RF-063-7 "round-scoped placement") |
+
+### Forward-item disposition
+
+- **RF-063-2** — standalone-`user`-turn placement — **CLOSED (live-verified)** by run A.
+- **RF-063-7** — multi-call round placement — **reframed**: moot for the shipped one-tool-call-per-round usage; the two-image variant 400s on the **media-agnostic** defect above ([#132](https://github.com/gosharplite/tellme/issues/132)).
+- **RF-063-1** — the 14 MiB Gemini ceiling — **still open** (the 427-byte fixtures did not exercise the magnitude).
+
+### Records
+
+- `docs/decisions/0033-gemini-image-vision.md` — §Forward RF-063-1/2/7 annotated + the Verification *Live* bullet records the outcome (the ADR-0032 in-place forward-annotation precedent).
+- `STATUS.md` — header (session 40) + the Round-063 forward-items line + a live-check bullet + the #132 tracker note.
+- Evidence (transient, `/tmp`): `/tmp/tellme-livecheck/{single,send,ctrl}.{stdout,stderr}` + `{alpha-red,beta-blue}.png`.
+
+### Next steps
+
+1. Open round **`065-*`** off `dev` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) · RF-063-10 PM clean-up · the `ToolSetSpec` seam RF-062-10/RF-063-6). **[#132](https://github.com/gosharplite/tellme/issues/132)** is a low-priority candidate (fix only if parallel tool rounds are used).
