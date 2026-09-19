@@ -219,3 +219,36 @@ The round-063 live check had produced a three-run matrix whose **Run C** — *2 
 1. Open round **`066-*`** off `dev` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling · the `ToolSetSpec` seam RF-062-10/RF-063-6 · RF-065-1 the `ToolCallID` pairing · RF-063-10 the meta-Rule clean-up).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
+---
+
+## 8. Session 44 (2026-09-20, cont.) — round 066 `066-toolcall-id-pairing` **OPENED** (goal: close [#134](https://github.com/gosharplite/tellme/issues/134)): `/axb-specify` delivered the plan package
+
+A later session on the same calendar day: the operator chose the RF-065-1 candidate and directed *"Open round 066-*, **the goal is to close issue #134**."* A new branch **`066-toolcall-id-pairing`** was created **off `dev`**, and **`/axb-specify`** produced the round's plan package (`spec.md` · `checklists/requirements.md` · `truth-delta.md` skeleton). No `specs/truth/**` file is written by this skill.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`066-toolcall-id-pairing`** (off `dev` `babeff7`) |
+| Anchor | [#134](https://github.com/gosharplite/tellme/issues/134) (ADR 0035 §Forward **RF-065-1**) — **the round's DoD is closing #134** |
+| Theme | **hardening/parity, not a defect fix**: the Gemini/Vertex adapter **carries an `id` on every `functionCall`/`functionResponse` part** and binds each result to its call **by `ToolCallID`** (order-independent), **FIFO name matching retained as fallback** |
+| Clarify | **not escalated (0 questions)** — the goal is unambiguous and the change is grounded + reproduced in #134; the residuals (id provenance/fallback spelling, unmatched accounting) are **technical** → `/axb-technical-research` |
+| Artifacts | `spec.md` (US1 id-linked wire — P1 · US2 pair-by-id — P2 · FR-001…FR-010 · SC-001…SC-007 · S-1…S-7 · I-1…I-7 · A1…A7) · `checklists/requirements.md` (Ready) · `truth-delta.md` skeleton (owner rows expected) |
+| Key disclosure | the round **adds an `id` key** to the Gemini tool parts ⇒ a tool-bearing Gemini body is **shape-identical, not byte-identical**; **byte-identity is claimed only** for the media-free text path (I-3) and the OpenAI-compatible wire (I-1) — the round-065 I-2/I-3 byte claims are **narrowed** (A7) |
+
+### Decisions locked (round 066, this phase)
+
+| # | Decision |
+| --- | --- |
+| — | Round **066** opens from **anchor [#134](https://github.com/gosharplite/tellme/issues/134)**; **DoD = closing #134**. |
+| — | **Family-local** scope (`internal/infrastructure/llm/gemini`) + pins + the round-066 truth rows; the **OpenAI-compatible wire is frozen** (I-1). |
+| — | The residual **technical** choices are **S-4** (id provenance / fallback spelling) and **S-6** (exact unmatched accounting) → `/axb-technical-research`; **no** `NEEDS CLARIFICATION` remains. |
+| — | `/axb-spec-by-example` is **expected NOOP** (no user-visible behaviour change — the 042/043/045–052 structure-round precedent); `/axb-dsl-refine` is **NOOP or a small MODIFY** iff the fake can observe wire ids (research decides). |
+
+### Next steps
+
+1. `/axb-spec-by-example` (expected **NOOP**) + `/axb-technical-research` (the id decision + `techstack.md` MODIFY + the new ADR) → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`.
+2. Then the review chain (the `architect` peer) → **human merge** of the round PR into `dev` → closeout (propagate `dev → main` no-ff, tag `round-066`, close [#134](https://github.com/gosharplite/tellme/issues/134)).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `066-toolcall-id-pairing`).
+
+
