@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — produced by `/axb-specify` from **issue [#127](https://github.com/gosharplite/tellme/issues/127)**. **Clarify PENDING** (3 high-impact gaps, `NEEDS CLARIFICATION` below). No `specs/truth/**` file is written by this skill.
+**Status**: Draft — produced by `/axb-specify` from **issue [#127](https://github.com/gosharplite/tellme/issues/127)**. **Clarify IN PROGRESS** — **CQ-1 settled → C** (layered: normalizer floor + adapter projection, below); **CQ-2** (projection scope) and **CQ-3** (ADR governance) still open (`NEEDS CLARIFICATION` below). No `specs/truth/**` file is written by this skill.
 
 **Input (operator, 2026-09-19, this session)**:
 
@@ -36,14 +36,17 @@
 
 ---
 
-## Settled design *(PENDING clarify — candidates, not decisions)*
+## Settled design
 
-> No decision is settled yet. The table records the candidate options so the clarify can put a precise question to the operator. **Do not treat a candidate as decided.**
+| # | Decision (source) |
+| --- | --- |
+| **S-1** | **The projection is layered — C (CQ-1 → C, operator 2026-09-19).** Two seams, each with one concern: **(B-floor)** `NormalizeMCPSchema` drops **vendor-extension / non-standard** keywords (`x-*`, `$schema`) for **every** family — one family-agnostic home for "drop vendor noise"; **(A-guarantee)** the **Gemini** adapter projects the relayed declaration onto the **provider-supported schema surface** before serializing — the guarantee that no wire-incompatible keyword reaches Vertex (covers standard-but-unsupported keywords the floor does not). Neither seam renames, re-types, or drops a **declared argument**. |
+
+**Open questions (PENDING clarify — candidates, not decisions):**
 
 | # | Question | Candidates |
 | --- | --- | --- |
-| **CQ-1** | **Where does the projection live?** | **(A)** Gemini-adapter projection (family-scoped, at the transport); **(B)** normalizer-side strip in `NormalizeMCPSchema` (family-agnostic, once); **(C)** **both, layered** (B as a vendor-noise floor + A as the provider guarantee) — *spec author's recommendation*; **(D)** discovery-time skip of an unsupported-schema tool (+ warning). |
-| **CQ-2** | **What is the projection's scope?** | **(i)** drop non-standard / `x-*` keywords only; **(ii)** project onto a **named Gemini-supported allowlist** (drops standard-but-unsupported keywords too — measured: the GitHub server also carries `anyOf` ×2 and `additionalProperties` ×2). |
+| **CQ-2** | **What is the A-side projection's scope?** | **(i)** drop non-standard / `x-*` keywords only; **(ii)** project onto a **named Gemini-supported allowlist** (drops standard-but-unsupported keywords too — measured: the GitHub server also carries `anyOf` ×2 and `additionalProperties` ×2). |
 | **CQ-3** | **Truth + ADR governance** | **(i)** a **new ADR 0031** (the "provider-supported schema surface" rule) + a MODIFY of the round-056 `dsl.md:364` row / the MCP feature, and the OpenAI family's behaviour recorded; **(ii)** amend **ADR 0025** in place with the same MODIFY. |
 
 **Non-negotiable invariants (proposed, not open):**
@@ -74,8 +77,8 @@ As the **operator** running tellme with a `TYPE: gemini` provider and a remote M
 
 **Functional Requirements**:
 
-- **FR-001**: Under a `gemini` provider, a prompt turn whose offered declaration includes a tool relayed from an MCP server carrying a **provider-unsupported** schema keyword MUST complete successfully — the request MUST NOT be rejected (no `the provider request failed` / 400). [NEEDS CLARIFICATION: the projection site — CQ-1]
-- **FR-002**: The declaration MUST be **projected** onto the selected provider's supported schema surface before it is serialized onto the wire in `internal/infrastructure/llm/gemini/client.go`. [NEEDS CLARIFICATION: the supported-key set and its single home — CQ-1/CQ-2]
+- **FR-001**: Under a `gemini` provider, a prompt turn whose offered declaration includes a tool relayed from an MCP server carrying a **provider-unsupported** schema keyword MUST complete successfully — the request MUST NOT be rejected (no `the provider request failed` / 400) (S-1).
+- **FR-002**: The declaration MUST be **projected** onto the selected provider's supported schema surface before it is serialized onto the wire in `internal/infrastructure/llm/gemini/client.go`, and a **normalizer-side floor** MUST drop vendor-extension keywords for every family (S-1). [NEEDS CLARIFICATION: the supported-key set and its single home — CQ-2]
 - **FR-003**: The projection MUST be derived from the **provider family** (or from an explicitly named supported-key set), not from an inline ad-hoc filter at the wire site.
 
 ### User Story 2 - the offered declaration still describes the server's real arguments (Priority: P2)
