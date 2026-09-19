@@ -253,3 +253,16 @@
 | **R-056-e** | `techstack.md` had a stray `.;` | **FIXED**. |
 
 **Re-verification at the residual-fold head** — `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (**245 scenarios · 1811 steps**, 0 undefined) · topology audit back to the 5 pre-existing errors · `go.mod`/`go.sum` unchanged.
+
+## Round-056 review chain (PR [#122](https://github.com/gosharplite/tellme/pull/122)) — CLOSED
+
+| Round | Reviewed head | Outcome | Fold |
+| --- | --- | --- | --- |
+| review [`5254253670`](https://github.com/gosharplite/tellme/pull/122#pullrequestreview-5254253670) | `2e18ddf` | **APPROVE WITH REQUIRED FOLDS** (no blocker) — TD-056-1…5 + R-056-1…4 + presentation notes | `368b504` (+ `78631f0` count/witness record) |
+| fold verification [`5738880177`](https://github.com/gosharplite/tellme/pull/122#issuecomment-5738880177) | `368b504` | **FOLDS VERIFIED — CLEARED FOR MERGE** (TD-056-1 witnesses reproduced both directions) + residuals R-056-a…e | `77a8115` |
+| final fold verification [`5738914284`](https://github.com/gosharplite/tellme/pull/122#issuecomment-5738914284) | `77a8115` | **FOLDS VERIFIED — CERTIFIED MERGE-READY** (R-056-b witness reproduced; R-056-a/c/d/e verified) — **review loop CLOSED** | — (no further folds) |
+
+## Closeout carry-forwards (for `SESSION-CLOSEOUT.md`, post-merge)
+
+- **R-056-c (PM follow-up)** — the round's acceptance Rule for the shape violation (*"A remote call that is not shaped as tellme expects is turned away before the server is contacted"*) was authored in a single-agent (`butler`) session; acceptance is **PM-owned**. The reviewer recorded this as a **PM follow-up** so the authorship is visible in `STATUS.md` at closeout (the plan package is still **active**, so authoring it here was legitimate — no frozen-history breach).
+- **R-056-d (precision, no action now)** — when a future sweep adopts `domaintools.ReasonArgKey` at the native schema builders' **required-list** entries, the constant must be **quoted** (`fmt.Sprintf("%q", …)` / `strconv.Quote`) — the argument is a JSON fragment, not a bare key. The reachability claim in ADR 0025 RF-056-7 holds; this is a usage note.
