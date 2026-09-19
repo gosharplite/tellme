@@ -14,6 +14,8 @@
 | MODIFY | `specs/truth/techstack.md` — **Agent tool loop** row | **Round 057 (ADR 0027):** the `[Tool Action]` argument-**value** cap rises **189 → 500** rendered runes (cap set `{500, 200, 200}`; same rune-safe mechanic — the recorded divergence from the reference's 189 **bytes** now differs in magnitude too); the whole `[Tool Action]` line gains the terminal-gated **yellow** accent. | `spec.md` US3 / FR-010…FR-012; `research.md` D3/D4 |
 | MODIFY | `specs/truth/techstack.md` — **Turn chrome (operator)** row | **Round 057 (ADR 0027):** the colour element set gains (v) the whole `[Tool Output]` **header** line + **both** separators (**grey** `\033[0;90m`) and (vi) the whole `[Tool Action]` line (**yellow** `\033[0;33m`); the pre-flight **estimated** payload line becomes `+<delta> ~<tokens> tokens - <mode> - <model>` (signed increment over the previous in-process estimate; `/budget` dropped). The **measured** line is unchanged. | `spec.md` US1 / US2 |
 
+| MODIFY (fold) | `specs/truth/techstack.md` — **Payload status line** row | **Round 057 fold (PR [#123](https://github.com/gosharplite/tellme/pull/123) fold-verification TF-057-1):** the row that OWNS the payload-line behaviour updated to the round-057 form — the pre-flight clause becomes `Payload: +<delta> ~<est> tokens` (no `/budget`), the retired `~<n>/<budget>` pre-flight shape is recorded as gone (the port now renders the measured line only, `PayloadMeasured`), and the **R-057-2(a)** consequence is recorded (the effective budget is visible only on the measured line ⇒ only when the provider reports usage). | PR #123 fold-verification TF-057-1 (`truth-current` staleness) |
+
 ## /axb-api-plan
 
 | Action | Truth Spec | Change Summary | Reason |

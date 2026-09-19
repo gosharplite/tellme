@@ -843,11 +843,6 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	return Success
 }
 
-// emitPayloadStatus writes one payload status line to the diagnostic stream
-// (stderr) using the runtime's injected clock seam (round-009 FR-001/FR-006).
-// `estimated` selects the pre-flight `~` form; the measured form omits it. The
-// line carries no `tellme: ` prefix (FR-014) and names the effective mode and the
-// provider's configured MODEL (TD-2).
 // effectiveBudget returns the budget the payload status line renders: the
 // run-static EffectiveBudget when set (the resolve() path), else MaxHistoryTokens
 // (directly-constructed resolutions in unit tests).

@@ -112,7 +112,7 @@ func thenTurnClosingStatusFollowsBlank(ctx context.Context) error {
 // round-017 frame gap already puts exactly ONE blank between the pre-flight
 // estimate and the measured payload, so the assertion is TARGETED — the line
 // immediately before the measured `Payload:` line must be that single frame-gap
-// blank whose own predecessor is the pre-flight (`Payload: ~…`) line. A global
+// blank whose own predecessor is the pre-flight estimate line (`Payload: +<delta> ~<n> …`; round 057). A global
 // `\n\n\n` absence would go silent if the frame gap were ever retuned; this form
 // fails visibly in both directions (it asserts the separation is exactly the frame
 // gap, not an added blank). This step is valid only on a TOOL-LESS turn.
