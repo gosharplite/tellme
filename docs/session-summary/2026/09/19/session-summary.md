@@ -642,3 +642,16 @@ Review `5254902427` (**REQUEST CHANGES** — 1 architectural blocker + 4 folds +
 - **Re-verified**: `modelith lint` 0/0 ×3 · `modelith-check` up to date · witness (b) ⇒ fails naming the **clone route** · TD-060-2 witness (a 4th model auto-covered) ⇒ reverted green · `make verify` OK · `go test -count=1 ./...` green.
 
 Next: the review chain continues — fold-verification → human merge into `dev` → closeout Steps 1–8.
+
+### 16 (cont.) — fold-verification folded (TF-060-1) → `0d63674`
+
+Fold-verification comment `5740054490`: **FOLDS VERIFIED 5/5** (B-060-1 + TD-060-1…4 + 3 nits — every fold checked *as behaviour*; the blocker's fix executed end-to-end, and the pinned rebuild **reproduces the committed renders**), with **one required fold-back**: **TF-060-1**.
+
+**TF-060-1** (the round-059 TF-059-1 / round-057 TF-057-1 class — the correction reached the 5 *outward* surfaces but left the *in-package* ones): folded at **`0d63674`** —
+- `spec.md` Edge Cases + **FR-004** (live requirement) → the **clone + pinned-build** route (install route, not `go install @path`) + the immutable commit pin;
+- `plan.md` Fork pin → immutable commit `b4153541cee8`; Gate wiring → `$(wildcard …)` + a non-empty assertion;
+- `tasks.md` locked-decisions MUST block → the install route;
+- historical records (`spec.md` Q3 line, `tasks.md` pre-fold witness, `research.md` D5) **not rewritten** — a *"superseded by the fold `2f59f91`"* forward pointer added.
+- Residuals recorded: **R-060-1** (ADR copy static vs Makefile-derived — defensible), **R-060-2** (`$(wildcard)` directory order), **R-060-3** (witness executions in the ledger).
+
+Re-verified at `0d63674`: `make verify` **OK** · `go test -count=1 ./...` green · `gofmt` clean · `go.mod`/`go.sum` unchanged. Next: reviewer re-verification → human merge into `dev` → closeout Steps 1–8.
