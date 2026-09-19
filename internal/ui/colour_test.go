@@ -101,9 +101,10 @@ func TestChromeColourRound057(t *testing.T) {
 		if n := strings.Count(out, gray+ToolOutputSeparator+r); n != 2 {
 			t.Errorf("expected both separators grey; got %d in %q", n, out)
 		}
-		// The streamed content line stays plain (no grey wrap around it).
-		if strings.Contains(out, gray+"[06:25:11] [Tool Output] hello") {
-			t.Errorf("content line must stay plain: %q", out)
+		// Round 058 (ADR 0028): the streamed content line is grey too — the whole
+		// block reads as one grey region.
+		if !strings.Contains(out, gray+"[06:25:11] [Tool Output] hello"+r) {
+			t.Errorf("content line must be grey; got %q", out)
 		}
 
 		var plain strings.Builder

@@ -27,10 +27,13 @@ func init() {
 
 // The reference's grey/yellow SGR pairs (tell-me-go colors.go).
 var (
-	reGreyHeader     = regexp.MustCompile("\x1b\\[0;90m\\[[0-9]{2}:[0-9]{2}:[0-9]{2}\\] \\[Tool Output\\] ")
-	reGreySeparator  = regexp.MustCompile("\x1b\\[0;90m-{60}\x1b\\[0m")
-	reYellowAction   = regexp.MustCompile("\x1b\\[0;33m\\[[0-9]{2}:[0-9]{2}:[0-9]{2}\\] \\[Tool Action\\] ")
-	reOldEstimateCur = regexp.MustCompile(`Payload: ~[0-9]+/[0-9]+ tokens`)
+	reGreyHeader    = regexp.MustCompile("\x1b\\[0;90m\\[[0-9]{2}:[0-9]{2}:[0-9]{2}\\] \\[Tool Output\\] ")
+	reGreySeparator = regexp.MustCompile("\x1b\\[0;90m-{60}\x1b\\[0m")
+	// reGreyToolOutputPrefix matches a grey-wrapped `[Tool Output] …` line (header
+	// OR content); round 058 counts them to prove the content lines are grey.
+	reGreyToolOutputPrefix = regexp.MustCompile("\x1b\\[0;90m\\[[0-9]{2}:[0-9]{2}:[0-9]{2}\\] \\[Tool Output\\] ")
+	reYellowAction         = regexp.MustCompile("\x1b\\[0;33m\\[[0-9]{2}:[0-9]{2}:[0-9]{2}\\] \\[Tool Action\\] ")
+	reOldEstimateCur       = regexp.MustCompile(`Payload: ~[0-9]+/[0-9]+ tokens`)
 )
 
 // thenEstimatedNoAllowance: the estimated line no longer carries the `/budget`
@@ -72,8 +75,10 @@ func thenLaterEstimatePositive(ctx context.Context) error {
 	return fmt.Errorf("no estimated payload line showed a positive increase; stderr=%q", sc.stderr)
 }
 
-// thenToolOutputGrey: the `[Tool Output]` header line and BOTH horizontal
-// separators are wrapped grey on the colour-enabled terminal.
+// thenToolOutputGrey: EVERY line of the `[Tool Output]` block — the header,
+// each streamed CONTENT line, and BOTH horizontal separators — is wrapped grey on
+// the colour-enabled terminal (round 057 greyed the frame; round 058 (ADR 0028)
+// extends it to the content lines, so the whole block reads as one grey region).
 func thenToolOutputGrey(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	if !reGreyHeader.MatchString(sc.stderr) {
@@ -81,6 +86,12 @@ func thenToolOutputGrey(ctx context.Context) error {
 	}
 	if n := len(reGreySeparator.FindAllString(sc.stderr, -1)); n < 2 {
 		return fmt.Errorf("expected the opening and closing separators grey; found %d grey separator(s); stderr=%q", n, sc.stderr)
+	}
+	// The header shares the `[Tool Output]` prefix with a content line, so count
+	// every grey-wrapped `[Tool Output] …` line: header (1) + at least one content
+	// line ⇒ ≥ 2 total.
+	if n := len(reGreyToolOutputPrefix.FindAllString(sc.stderr, -1)); n < 2 {
+		return fmt.Errorf("expected the header AND at least one content line grey (>=2 grey `[Tool Output]` lines); found %d; stderr=%q", n, sc.stderr)
 	}
 	return nil
 }

@@ -44,14 +44,14 @@ Feature: Colouring the session chrome
       And the saved turn log carries the pre-flight payload with its increment and no allowance
       And tellme exits successfully
 
-  Rule: The tool output frame is grey and the action line is yellow at a terminal
+  Rule: Every tool output line is grey and the action line is yellow at a terminal
 
-    # Round 057 (ADR 0027): two more chrome elements gain a terminal-gated accent —
-    # the whole `[Tool Output]` header line and BOTH horizontal separators are
-    # grey; the whole `[Tool Action]` line is yellow. The streamed content lines
-    # and the `turns.log` artifact stay plain.
+    # Round 057 (ADR 0027) greyed the `[Tool Output]` header + BOTH separators and
+    # the yellow `[Tool Action]` line. Round 058 (ADR 0028) EXTENDS the grey to the
+    # streamed CONTENT lines too, so the whole `[Tool Output]` block reads as one
+    # grey region (superseding round 057's A3). The `turns.log` artifact stays plain.
 
-    Example: A command run at a terminal colours the frame and the action line
+    Example: A command run at a terminal colours the whole output block and the action line
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the diagnostics are shown at a terminal
