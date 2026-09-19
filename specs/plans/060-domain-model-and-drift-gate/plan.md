@@ -36,6 +36,7 @@ docs/domain-model/                          # the models (NEW content; the folde
 ├── quality.modelith.yaml / .md             # NEW — the QUALITY process model (source + rendered)
 └── environment-management.modelith.yaml / .md  # NEW — the ENVIRONMENT model (external Niffler; source + rendered)
 Makefile                                    # CHANGED — add `modelith-lint`/`modelith-render`/`modelith-check`; wire `modelith-check` into `verify`; `.PHONY` + `help`
+SESSION-BOOTSTRAP.md                        # CHANGED — Step 1 reads the three models right after README.md (+ Agent Rule 10) — FR-011
 docs/decisions/0030-domain-model-and-modelith-toolchain.md  # NEW — adoption + ADR 0011 D10 amendment; index row ✓ done
 specs/truth/techstack.md                    # MODIFY — Build & Tooling: the Domain model row + the `verify` aggregate member ✓ done
 go.mod / go.sum                             # unchanged — no new dependency (modelith is a dev-tool binary)

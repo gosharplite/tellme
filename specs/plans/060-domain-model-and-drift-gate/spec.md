@@ -148,6 +148,7 @@ As a maintainer/operator, I want the model and its toolchain recorded in `specs/
 
 - **FR-009**: The round MUST be **docs + tooling + truth only**: it MUST add the model, its toolchain wiring, the drift gate, the ADR, and the truth/spec records, and MUST NOT modify any production Go behaviour or any existing gate's semantics.
 - **FR-010**: The round MUST pin, in `research.md`/`plan.md`: the **scope** (Q1: the three models) + the **file locations** (where the environment model lives — under `docs/domain-model/` or mirroring the reference's `docs/architect/environments/domain-model/`); the **toolchain form** (Q2), the **gate placement + absent-binary policy** (Q3), the **authority boundary** vs `specs/truth/**` (Q4 Q→FR-008), and the **refresh lifecycle** (Q5) — and MUST re-verify the models against the code/scripts before freeze. Shape: **ADD** — three models + toolchain + gate + truth/ADR records; it amends one recorded ADR position (0011 D10) and adds one techstack area.
+- **FR-011**: The round MUST update `SESSION-BOOTSTRAP.md` so its **Step 1** directs the agent to read the three domain models **right after `README.md`** (and records the descriptive-docs/truth-wins boundary as a bootstrap rule). It MUST land **with** this round (the bootstrap references model files that exist only once the round merges) and MUST be **traceable** — listed in `plan.md`'s expected-changes tree and recorded in `truth-delta.md`.
 
 #### Non-Functional Requirements
 

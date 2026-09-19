@@ -263,7 +263,7 @@ A guidance block (a SKILL.md file) under the `$TELL_ME_HOME/docs/skills/` catalo
 
 **Invariants**
 
-- **skill-unique-name** — Each `Skill` has a unique name.
+- **skill-unique-name** — A `Skill`'s name is unique across the catalog; the loader resolves a duplicate by keeping the first discovered and dropping the later one silently (no error).
 
 ### `Tool`
 
@@ -508,7 +508,7 @@ A prompt matches a `Skill`; its guidance is injected into the `Context`. The mod
 
 **Invariants touched**
 
-- **skill-unique-name** — Each `Skill` has a unique name.
+- **skill-unique-name** — A `Skill`'s name is unique across the catalog; the loader resolves a duplicate by keeping the first discovered and dropping the later one silently (no error).
 
 ### The budget tracks the model
 

@@ -336,7 +336,7 @@ entities:
         note: A matched skill's content is injected into the context.
     invariants:
       - id: skill-unique-name
-        statement: "Each `Skill` has a unique name."
+        statement: "A `Skill`'s name is unique across the catalog; the loader resolves a duplicate by keeping the first discovered and dropping the later one silently (no error)."
 
   Context:
     definition: >

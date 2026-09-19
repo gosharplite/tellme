@@ -23,9 +23,20 @@ The operator requested (*"I want tellme to have domain model"*) that tellme obta
 - **Quality** — `quality.modelith.*` (tellme's actual process: the `make verify` gate catalog, E2E, topology audit, ADR governance, triage per `research.md` D4).
 - **Environment management** — `environment-management.modelith.*` (the **external** Niffler manager `tellme.sh` + `ait-<tag>` environments + personas + hot-swap per `research.md` D2).
 
-**D2 — the toolchain is a dev-tool binary, not a `go.mod` dependency.** `make modelith-lint|render|check` are added (POSIX-only; `command -v modelith`, **no** `go run …@branch` network fallback). `modelith` is installed like `golangci-lint`/`govulncheck` (`go install github.com/gosharplite/modelith/cmd/modelith@feat/self-domain-model`). `go.mod`/`go.sum` are **unchanged**. The fork branch + observed version are pinned in `docs/domain-model/README.md` + the truth row.
+**D2 — the toolchain is a dev-tool binary, not a `go.mod` dependency.** `make modelith-lint|render|check` are added (POSIX-only; `command -v modelith`, **no** network fallback). `go.mod`/`go.sum` are **unchanged**.
 
-**D3 — the drift gate is a zero-tolerance `make verify` member.** `modelith-check` (`modelith render --check`) joins the aggregate `verify`: **drift ⇒ fail**; an **absent `modelith` binary ⇒ fail**, naming the install command. The gate **never** silently skips. (Recorded consequence: `make verify` requires the modelith dev tool.)
+*Acquisition (the fork is not installable from its GitHub path).* The `gosharplite/modelith` fork **declares the upstream module path** (`github.com/stacklok/modelith`), so `go install github.com/gosharplite/modelith/...@<ref>` fails at **any** ref — the branch query form is rejected (`invalid version … disallowed version string`) and the pseudo-version form fails (`module declares its path as: github.com/stacklok/modelith`). The working route is a **local clone of the fork, checked out at an immutable commit, built locally** (a local module build is unaffected by the declared-path mismatch):
+
+```sh
+git clone https://github.com/gosharplite/modelith && cd modelith && git checkout b4153541cee8 && go install ./cmd/modelith
+```
+
+- **Single source:** this route lives in `docs/domain-model/README.md`; the `Makefile`'s `$(MODELITH_INSTALL)` and the `modelith-check` failure message quote it, and `specs/truth/techstack.md` cites it — never restated in five prose copies.
+- **Pinned identifier (immutable):** commit **`b4153541cee8`** (the `feat/self-domain-model` tip this round was authored against). Branch-tracking is an explicit, documented **upgrade**, not the default. A fork move changes the renderer ⇒ a committed `.md` renders differently ⇒ `verify` reds on a re-install with **no repo change** (the ADR-0012 "spurious-red generator" class, here a *tool-version* non-hermeticity) — the observable consequence of the pin (**TD-060-1**).
+- **Known-good provenance:** `github.com/stacklok/modelith v0.0.0-20260815121344-b4153541cee8`, commit `b4153541cee8`, `vcs.modified=false` — the build the three committed `.md` files were rendered with (recorded as provenance, not as a claim about which tool the gate "supports").
+- **Enumeration is a tree property (TD-060-2):** `MODELITH_MODELS = $(wildcard docs/domain-model/*.modelith.yaml)` with a non-empty assertion, so a newly added model is covered by construction and an empty set fails (never a vacuous green) — the round-042 B-2 / round-047 RULE-D default-deny lineage.
+
+**D3 — the drift gate is a zero-tolerance `make verify` member.** `modelith-check` (`modelith render --check`) joins the aggregate `verify`: **drift ⇒ fail**; an **absent `modelith` binary ⇒ fail**, naming the install route (D2). The gate **never** silently skips. (Recorded consequence: `make verify` requires the modelith dev tool.)
 
 **D4 — the models are descriptive docs, subordinate to truth.** They are **not** AIxBDD `TruthArtifact`s; on any conflict with `specs/truth/**`, **truth wins** and the model is corrected. The drift gate protects model-internal consistency (YAML ↔ `.md`), **not** model-vs-code.
 
@@ -42,8 +53,8 @@ The operator requested (*"I want tellme to have domain model"*) that tellme obta
 
 ## Forward (non-blocking)
 
-- **RF-060-1** — fork-branch version drift: a fork update may require a re-render (the drift gate makes it a visible red, not silent rot); pinning to a commit hash is a recorded option.
+- **RF-060-1** — tool-version drift: the pin is now the immutable commit `b4153541cee8` (D2); a deliberate fork upgrade is an explicit, documented step, and a fork move makes `verify` red on re-install (a visible red, not silent rot).
 - **RF-060-2** — the environment model is a model *about* an external system, not this repo's runtime.
 - **RF-060-3** — the reference's advisory code↔model gates (`modelith-drift`, `modelith-layers`) are not adopted.
 - **RF-060-4** — the quality model documents tellme's reality (divergences recorded, not smoothed).
-- **RF-060-5** — `make verify` now requires the modelith dev tool (D3).
+- **RF-060-5** — `make verify` now requires the modelith dev tool (D3); install it via the clone+pinned-build route (D2).

@@ -1,6 +1,6 @@
 # ADR 0011 — Layer-discipline gate: the pinned layer rule + a fail-on-stale violation baseline
 
-- **Status:** Accepted
+- **Status:** Accepted — **D10's "no modelith toolchain" clause is amended by [0030](0030-domain-model-and-modelith-toolchain.md)** (tellme now has a modelith toolchain for the **domain model + drift gate**; still **no** `modelith-layers` — the Go-guard form is retained)
 - **Date:** 2026-09-17
 - **Deciders:** tellme owner
 - **Related:** issue [#93](https://github.com/gosharplite/tellme/issues/93) (R1 of the split; the anchor) ·

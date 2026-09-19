@@ -29,28 +29,38 @@ From the shipped tree (`internal/**`, `cmd/tellme`), the product model MUST cove
 
 The quality model MUST model tellme's process, **not** a copy of the reference's: the `Makefile` **gate catalog** (`verify-no-test-sleep` · `verify-no-network` · `vet` · `verify-cross-compile` 4/4 · `verify-mcp-sdk-confinement` · `verify-architecture` (the Go-guard form + baseline) · `lint` · `vulncheck`, and the `test` target incl. the godog E2E + `test-fast`), the Gherkin/DSL **topology audit**, the **ADR governance**, and the **triage loop**. **Recorded divergence:** tellme has **no** `NonFixCatalog` (no `docs/architect/INTENTIONAL_NON_FIXES.md`) and, *before this round*, **no** modelith gate. The quality model documents tellme's reality — it must not claim a `NonFixCatalog` tellme does not have.
 
-## Decision 5: Makefile wiring + the absent-binary policy (clarify Q3 → 1)
+## Decision 5: Makefile wiring + the absent-binary policy (clarify Q3 → 1; PR #126 review **B-060-1** + **TD-060-1/2**)
 
 Three targets, POSIX-only, mirroring the reference's form but **without** its `go run …@branch` fallback (which would fetch over the network — non-hermetic):
 
 ```
 MODELITH := $(shell command -v modelith 2>/dev/null)
-MODELITH_MODELS := docs/domain-model/tellme.modelith.yaml \
-                   docs/domain-model/quality.modelith.yaml \
-                   docs/domain-model/environment-management.modelith.yaml
-modelith-lint:   # for m in $(MODELITH_MODELS): modelith lint $$m
-modelith-render: # for m in $(MODELITH_MODELS): modelith render $$m
-modelith-check:  # require $(MODELITH) non-empty (else: named install instruction, exit 1);
-                 # for m: modelith render --check $$m
+MODELITH_PIN := b4153541cee8
+MODELITH_INSTALL := git clone https://github.com/gosharplite/modelith && cd modelith && git checkout $(MODELITH_PIN) && go install ./cmd/modelith
+MODELITH_MODELS := $(wildcard docs/domain-model/*.modelith.yaml)
+modelith-lint:   # guard: MODELITH non-empty (else named install route, exit 1); MODELITH_MODELS non-empty; for m: modelith lint $$m
+modelith-render: # same guards; for m: modelith render $$m
+modelith-check:  # same guards; for m: modelith render --check $$m
 ```
 
-`modelith-check` is added to the **aggregate `verify`** target (Q3 = 1): **zero-tolerance** — drift ⇒ fail; **absent `modelith` ⇒ fail** naming `go install github.com/gosharplite/modelith/cmd/modelith@feat/self-domain-model`. The gate **never** silently skips (no warn-tier). Verified subcommands (`modelith --help`): `lint` (structural/semantic/completeness) · `render` (`--check` = non-zero on drift). Recorded consequence: a host running `make verify` MUST have the modelith dev tool installed (README documents the one-line install).
+`modelith-check` is added to the **aggregate `verify`** target (Q3 = 1): **zero-tolerance** — drift ⇒ fail; **absent `modelith` ⇒ fail** naming the **install route** (not a `go install @path` — see D6/B-060-1). The gate **never** silently skips (no warn-tier). Verified subcommands (`modelith --help`): `lint` (structural/semantic/completeness) · `render` (`--check` = non-zero on drift). Recorded consequence: a host running `make verify` MUST have the modelith dev tool installed.
 
-## Decision 6: Fork pinning + the version-drift residual
+- **B-060-1 fold** — the earlier text told a fresh host to run `go install github.com/gosharplite/modelith/cmd/modelith@feat/self-domain-model`, which **does not resolve** (reproduced: the query form is rejected; the pseudo-version form fails on the declared upstream path). Corrected: the **clone + pinned-build** route is single-sourced in `docs/domain-model/README.md`; `$(MODELITH_INSTALL)` and the gate's failure message quote it; the ADR + truth cite the single owner. **The route was executed**, not merely asserted (the round-059 B-059-1 class).
+- **TD-060-2 fold** — the enumeration is `$(wildcard docs/domain-model/*.modelith.yaml)` (a tree property) with a **non-empty assertion** in every target, so a fourth model is covered by construction and an empty set fails (default-deny; round-042 B-2 / round-047 RULE-D lineage).
 
-The fork branch is **unmerged**; a rendering change could make a committed `.md` look stale **without** a YAML edit. This round **pins** the install form (`@feat/self-domain-model`) + the observed version (`v0.0.0-20260815121344-b4153541cee8`) in a `docs/domain-model/README.md` row and the truth row. **Residual (forward item):** a fork-branch move may require a re-render; the drift gate makes that a **visible red**, not silent rot. Pinning to a commit hash is a **recorded forward option**, not adopted now.
+## Decision 6: Fork pinning + the version-drift residual (PR #126 review **B-060-1** + **TD-060-1**)
 
-## Decision 7: Governance — ADR 0030 + the technology-stack truth (clarify Q2/Q3)
+The fork (`gosharplite/modelith`) **declares the upstream module path** (`github.com/stacklok/modelith`), so it is **not** `go install`-able from its GitHub path at any ref. The working route is a **local clone checked out at an immutable commit, built locally** (a local module build is unaffected by the declared-path mismatch):
+
+```sh
+git clone https://github.com/gosharplite/modelith && cd modelith && git checkout b4153541cee8 && go install ./cmd/modelith
+```
+
+- **Immutable pin:** commit **`b4153541cee8`** (the `feat/self-domain-model` tip this round was authored against) — pinned in `Makefile` (`MODELITH_PIN`), `docs/domain-model/README.md`, ADR 0030 D2, and the truth row. Branch-tracking is an explicit, documented **upgrade**, not the default.
+- **Known-good provenance:** `github.com/stacklok/modelith v0.0.0-20260815121344-b4153541cee8`, commit `b4153541cee8`, `vcs.modified=false` — the build the three committed `.md` files were rendered with (verified this session via `go version -m $(command -v modelith)`).
+- **Residual (forward item):** a fork move changes the renderer ⇒ a committed `.md` renders differently ⇒ `verify` reds on a re-install with **no repo change** (a *tool-version* non-hermeticity; the ADR-0012 "spurious-red generator" class). The immutable pin bounds it; the drift gate makes the consequence a **visible red**, not silent rot.
+
+## Decision 7: Governance — ADR 0030 + the technology-stack truth (clarify Q2/Q3; PR #126 review **TD-060-4**)
 
 **ADR 0030** (`docs/decisions/0030-domain-model-and-modelith-toolchain.md`) records: (a) the adoption of the modelith fork + the three models; (b) the **amendment of ADR 0011 D10** — its "no modelith toolchain (no `modelith-layers` analogue)" position is **superseded for the model + drift gate** (tellme now *has* a modelith toolchain, but still ships **no** `modelith-layers` architecture gate — the Go-guard `verify-architecture` is retained); (c) the gate policy (zero-tolerance `verify` member; absent-binary hard-fail). Index row added to `docs/decisions/README.md`. `specs/truth/techstack.md` MODIFY: a new **Domain model** row (the three models + the toolchain + the drift gate) and the **Task runner** `verify` aggregate gains `modelith-check`. The ADR 0011 *Layer-discipline gate* row's recorded divergence line is corrected in the same fold (it currently claims "no modelith toolchain").
 

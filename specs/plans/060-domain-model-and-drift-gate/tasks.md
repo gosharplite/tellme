@@ -98,3 +98,22 @@
 - **T007 — regression**: `make verify` **OK** (incl. the new `modelith-check` member; `golangci-lint` 0 issues; `govulncheck` no reachable vulns; cross-compile 4/4); `go test -count=1 ./...` **green** (all packages incl. the godog E2E); `gofmt -l .` clean; `go.mod`/`go.sum` **unchanged**; no product code touched; no `specs/truth/features/**` change (topology audit unchanged).
 - **T008** — markers flipped; `truth-delta.md` unchanged from the plan half (truth + ADR already delivered there).
 - **Companion (post-tasks, operator-requested)** — `SESSION-BOOTSTRAP.md` updated so **Step 1** reads tellme's **three domain models** immediately after `README.md` (a new step-1 detail section + Agent Rule 10). This **must land with round 060**: the bootstrap references `docs/domain-model/*.modelith.md`, which exist only once this round merges.
+
+---
+
+## Fold ledger — PR #126 review (5254902427; REQUEST CHANGES)
+
+**Verdict folded**: B-060-1 (blocker) + TD-060-1…TD-060-4 (+ 3 nits).
+
+| # | Fold |
+| --- | --- |
+| **B-060-1** (blocker) | The documented (and gate-printed) `go install github.com/gosharplite/modelith/cmd/modelith@feat/self-domain-model` **does not resolve** — reproduced independently: the query form is rejected (`invalid version … disallowed version string`) and the pseudo-version form fails (`module declares its path as: github.com/stacklok/modelith`). Folded to a **single-sourced clone + pinned-build route** (`git clone … && git checkout b4153541cee8 && go install ./cmd/modelith`), **executed** (built the tool from the clone: `modelith version v0.0.0-20260815121344-b4153541cee8`), single-sourced in `docs/domain-model/README.md`, quoted by `$(MODELITH_INSTALL)` + the gate's failure message, cited by ADR 0030 D2 and the truth row (5 surfaces re-aligned). The upstream-path fact is recorded in ADR 0030 (why the clone route is needed). |
+| **TD-060-1** | Immutable pin (commit `b4153541cee8`) named by the gate's failure message; branch-tracking is an explicit documented upgrade; ADR note records that a fork move reds `verify` on re-install. Folded with B-060-1. |
+| **TD-060-2** | `MODELITH_MODELS := $(wildcard docs/domain-model/*.modelith.yaml)` + a **non-empty assertion** in every target (default-deny). Witness: adding a 4th `*.modelith.yaml` is covered by construction (the gate reds on its missing `.md`); an empty set fails. |
+| **TD-060-3** | `SESSION-BOOTSTRAP.md` now **owned by a requirement** — added to `plan.md`'s tree + **FR-011** + `truth-delta.md` companion rows. |
+| **TD-060-4** | ADR 0011's **Status** line + its index row carry a **forward pointer** to ADR 0030 (body untouched). |
+| **nit 1** | `skill-unique-name` restated to the shipped mechanism (duplicate ⇒ first discovered wins, dropped silently). |
+| **nit 2** | README provenance row reframed (provenance, not a claim about the gate's supported tool). |
+| **nit 3** | Pre-existing `staticcheck` truth row corrected (`command -v` only — the `$GOPATH/bin` fallback was never in the Makefile). |
+
+**Re-verified after the fold**: `make modelith-lint` 0/0 ×3 · `make modelith-check` all up to date · **witness (b)** absent binary ⇒ fails naming the **clone route** · **TD-060-2 witness** a 4th model auto-covered (gate reds on its missing `.md`) ⇒ reverted green · `make verify` **OK** · `go test -count=1 ./...` green · `gofmt` clean · `go.mod`/`go.sum` unchanged.
