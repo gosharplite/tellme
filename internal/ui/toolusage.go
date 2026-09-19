@@ -8,8 +8,9 @@ import (
 )
 
 // FormatToolUsage renders the offline per-tool roll-up (round 026): a header plus
-// one line per tool in the supplied order (the LIVE registry's offer order), each
-// carrying its lifetime invocation tally across every session.
+// one line per tool in the supplied order (the report's recordable order — the
+// union of the base and capability-gated sets, round 062), each carrying its
+// lifetime invocation tally across every session.
 //
 //	tool usage (all sessions):
 //	list_files: total=1 ok=1 error=0 timeout=0

@@ -90,7 +90,8 @@ Feature: Accounting for how the tools are used
 
     Example: The report works without a runtime home
       # The report is `--version`-class: it must NOT require `TELL_ME_HOME` (it reads only
-      # `os.UserHomeDir()` + the live registry). A bare `tellme --tool-usage` in a shell without
+      # `os.UserHomeDir()` + the recordable tool set — the union of the base and capability-gated
+      # registries, round 062 / PR #129). A bare `tellme --tool-usage` in a shell without
       # `TELL_ME_HOME` must succeed, not exit 4 (the `-l`-class trap).
       Given the operator has a runnable tellme installation
       And the runtime home is not set

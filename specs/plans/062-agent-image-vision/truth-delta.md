@@ -53,3 +53,12 @@
 | ADD | `internal/domain/llm/token.go` (media term) + `internal/domain/llm/token_test.go` | the estimate counts an attached media part's base64 expansion. | review **F-062-2** |
 | MODIFY | `tests/e2e/steps/**` (the refusal Thens bound to the `read_image` result; the split offered/recordable enumerators; the shared-config + `VISION` mutator) | predicate scope = the right authority; the two authoritaties kept distinct. | reviews **F-062-1**, **F-062-5a**, nit (c) |
 | MODIFY | `STATUS.md` + `docs/session-summary/2026/09/19/session-summary.md` | the round-062 in-flight block + the PM follow-up (the 4th acceptance Rule carries a comment, not Examples). | review **F-062-5b**, **(f)** |
+
+## Fold verification (PR [#129](https://github.com/gosharplite/tellme/pull/129), verification `5255235795`)
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` — the `the review shows every tool with no uses` row | restated `集合`/`必查` as the **recordable union** (base ∪ capability-gated; eight tools, the stale four-tool `today:` list refreshed) — a tool that can be recorded must not be invisible in the report. | review **TF-062-1** (the round-057 TF-057-1 class) |
+| MODIFY | `specs/truth/features/cli/chat/accounting-for-the-tool-use.feature` (the `--version`-class comment) + `internal/ui/toolusage.go` doc | "the live registry" → the recordable union. | review **TF-062-1** |
+| ADD | `docs/decisions/0032-agent-image-vision.md` §Forward | RF-062-12 (the E2E union duplicate → a shared enumerator) · RF-062-13 (the report is capability-blind by design) + the fold-verification record. | review **R-062-1/R-062-3** |
+| ADD | `internal/cli/tool_usage_union_test.go` | `unionToolNames` unit pin (first-seen order, de-dup, nil registry). | review **R-062-2** |

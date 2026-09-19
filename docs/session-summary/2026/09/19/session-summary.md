@@ -828,3 +828,7 @@ A later session on the same calendar day: opened round **062** from an **operato
 ### PM follow-ups
 
 - **R-062-c** (PM-owned): the acceptance journey's 4th Rule (*The protection is part of every delivery*) carries a comment rather than Examples — the round-059/R-059-c precedent (legitimate, documented); the next PM pass should mirror it into a runner-owned form if one appears.
+
+### Session 36 (cont.) — PR #129 fold verification → TF-062-1 folded
+
+The fold verification ([`5255235795`](https://github.com/gosharplite/tellme/pull/129#pullrequestreview-5255235795)) returned **FOLDS VERIFIED 5/5** with **certification withheld** pending one truth fold-back: **TF-062-1** — the `--tool-usage` owning **interface** row (`chat/dsl.md`, `the review shows every tool with no uses`) still stated the **retired** four-tool set and no longer described the stepdef (now the **recordable union** of eight). Folded (truth-only): the row restated as the recordable union; the adjacent `accounting-for-the-tool-use.feature` comment + the `ui.FormatToolUsage` doc aligned; a `truth-delta.md` row. Residuals: **R-062-1/R-062-3** recorded (ADR 0032 §Forward **RF-062-12/RF-062-13**); **R-062-2** closed by a `unionToolNames` unit pin. Re-verified: `gofmt`/`vet` clean · `go test -count=1 ./...` green · `make verify` **OK** · E2E green · topology audit 5 pre-existing, none new.
