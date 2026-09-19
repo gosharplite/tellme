@@ -143,7 +143,9 @@ func TestRequestBody_EmptyToolCallIDOmitsID(t *testing.T) {
 
 // TestRequestBody_UnmatchedToolCallIDFallsBackToFIFO pins FR-007: a result whose
 // id matches no call of the round pairs by the FIFO fallback (deterministic,
-// never a silent mispair) and still carries its own (unmatched) id.
+// never a silent mispair) and — TD-066-1 — emits NO `id` key, because its id is on
+// no `functionCall` part of the round (the reference's `response.id == call.id`
+// invariant; a foreign id could itself 400 a strict provider).
 func TestRequestBody_UnmatchedToolCallIDFallsBackToFIFO(t *testing.T) {
 	prior := []llm.Message{
 		{Role: "assistant", ToolCalls: []llm.ToolCall{
@@ -163,7 +165,60 @@ func TestRequestBody_UnmatchedToolCallIDFallsBackToFIFO(t *testing.T) {
 	if fr["name"] != "read_files" {
 		t.Errorf("unmatched-id result name = %v, want read_files (FIFO fallback)", fr["name"])
 	}
-	if fr["id"] != "call_zzz" {
-		t.Errorf("unmatched-id result id = %v, want call_zzz (its own id)", fr["id"])
+	if _, present := fr["id"]; present {
+		t.Errorf("a foreign id must be omitted (no functionCall carries it), got %v", fr["id"])
+	}
+}
+
+// TestRequestBody_ToolRoleMediaStillCarriesMedia pins F-066-2: the id-less-tool
+// widening is restricted to a MEDIA-FREE `tool` message, so a `tool`-role message
+// that carries media is still emitted as an inlineData turn (I-4: never silently
+// lose an image).
+func TestRequestBody_ToolRoleMediaStillCarriesMedia(t *testing.T) {
+	data := []byte{0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A}
+	prior := []llm.Message{
+		{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_1", Name: "read_image", Arguments: `{"filepath":"a.png"}`}}},
+		{Role: "tool", Content: "attached", Media: []llm.MediaPart{{MIMEType: "image/png", Data: data}}},
+	}
+	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	if err != nil {
+		t.Fatalf("requestBody: %v", err)
+	}
+	turns := decodeContents(t, body)
+	mediaFound := false
+	for _, tn := range turns {
+		for _, p := range tn.Parts {
+			if _, ok := p["inlineData"]; ok {
+				mediaFound = true
+			}
+		}
+	}
+	if !mediaFound {
+		t.Errorf("a media-bearing `tool`-role message must still carry its image (no silent media loss): %s", body)
+	}
+}
+
+// TestRequestBody_ReplayedStepIDsPairByIdentity pins TD-066-2: the replay path
+// synthesises the SAME deterministic id on both sides (`call_step_<n>`), so a
+// replayed round binds via the id-primary match (not FIFO), and the emitted
+// parts carry equal ids. This is the real mechanism behind ADR 0036's replay
+// fidelity claim (I-5).
+func TestRequestBody_ReplayedStepIDsPairByIdentity(t *testing.T) {
+	prior := []llm.Message{
+		{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_step_1", Name: "read_files", Arguments: `{}`}}},
+		{Role: "tool", Content: "note a", ToolCallID: "call_step_1"},
+	}
+	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	if err != nil {
+		t.Fatalf("requestBody: %v", err)
+	}
+	turns := decodeContents(t, body)
+	fc, _ := turns[0].Parts[0]["functionCall"].(map[string]any)
+	fr, _ := turns[1].Parts[0]["functionResponse"].(map[string]any)
+	if fc == nil || fr == nil {
+		t.Fatalf("expected a functionCall then a functionResponse: %+v", turns)
+	}
+	if fc["id"] != "call_step_1" || fr["id"] != "call_step_1" {
+		t.Errorf("replay parts must carry equal ids: functionCall.id=%v functionResponse.id=%v, want call_step_1", fc["id"], fr["id"])
 	}
 }

@@ -3,7 +3,7 @@
 **Plan Package**: `specs/plans/066-toolcall-id-pairing`
 **Anchor issue**: [#134](https://github.com/gosharplite/tellme/issues/134) (ADR 0035 §Forward RF-065-1) — **DoD: close #134**.
 **Mode**: one-shot (`/axb-implement`) — a single round, test-aligned first (RED), then GREEN.
-**Pipeline position**: specify ✅ · clarify ✅ (not escalated) · spec-by-example **NOOP** · technical-research ✅ (**ADR 0036**) · system-analysis ✅ · dsl-refine **NOOP** · tasks ✅ · implement ⏳
+**Pipeline position**: specify ✅ · clarify ✅ (not escalated) · spec-by-example **NOOP** · technical-research ✅ (**ADR 0036**) · system-analysis ✅ · dsl-refine **NOOP** · tasks ✅ · implement ✅ (PR [#135](https://github.com/gosharplite/tellme/pull/135) open; architect review folded)
 
 ## Core Inputs
 
@@ -57,3 +57,12 @@ RF-066-1 the narrowed byte-identity claim (shape-identical tool-bearing body) ·
 - **T009** — witnesses reproduced then reverted: (a) dropping the wire id ⇒ the id pins RED; (b) disabling the id match ⇒ the out-of-order pin RED (`part 0 = {id:call_B name:read_files …}`, the FIFO mispair); (c) disabling the FIFO fallback ⇒ the two fallback pins RED.
 - **T010** — the `TestRequestBody_ShortRound_DropsUnpairedNames` residual is now **exact unmatched-identity accounting** (the round-065 `pending[:0]` positional drop is replaced by the per-round index; the deferred `N=2 M=1` note is re-anchored, not re-scoped). No feature/DSL edit ⇒ the topology audit is unchanged (**5 pre-existing, none new**; no `specs/truth/features/**` change). `go.mod`/`go.sum` unchanged.
 - **Design note (recorded)** — FR-003 made reachable: the result case is now `m.ToolCallID != "" || m.Role == "tool"`, so an id-less `tool`-role message serializes as a FIFO-paired `functionResponse` (no `id` key) instead of a stray text turn. No live producer emits one (both the loop and the replay set `ToolCallID`); it closes the spec's id-less case.
+
+### Architect-review folds (2026-09-20, reviewer `5258004457` — APPROVE WITH REQUIRED FOLDS)
+
+- **F-066-1** — the "exact unmatched-identity accounting" claim was not delivered; **corrected** in `spec.md` (S-6 / FR-008 / SC-005) + `research.md` D5 → the boundary drop is unchanged; the residual is re-homed as **RF-066-7/RF-066-8** (ADR 0036 §Forward).
+- **F-066-2** — the id-less-`tool` widening is now restricted to a **media-free** `tool` message (`client.go` + a comment), so a media-bearing `tool`-role message is still carried; pinned by `TestRequestBody_ToolRoleMediaStillCarriesMedia`.
+- **TD-066-1** — a **foreign** response `id` (not equal to its bound call's id) is omitted (wire self-consistency); pinned by `TestRequestBody_UnmatchedToolCallIDFallsBackToFIFO` (updated) + ADR D2/D4 + research D4.
+- **TD-066-2** — the replay mechanism is **id-primary** (the loop sets the same `call_step_<n>` on both sides); a pin `TestRequestBody_ReplayedStepIDsPairByIdentity` added, and the wording corrected in ADR D3/D6 + the truth row.
+- **N-066-1** — `spec.md` Status + this `tasks.md` pipeline line updated. **N-066-2** — the *Vertex/Gemini adapter* truth row restores round-065's clause and **appends** the round-066 sentence.
+- **R-066-1** — the live check is performed at the closeout and recorded in ADR 0036 `## Verification` (*Live*).

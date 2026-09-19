@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-20
 
-**Status**: **Draft — `/axb-specify` output (round opened)**. Produced from **anchor issue [#134](https://github.com/gosharplite/tellme/issues/134)**, which homes **ADR 0035 §Forward RF-065-1** (the round-065 follow-up). No `specs/truth/**` file is written by this skill. Clarify: **not escalated** (see *Clarify strategy* — the goal and the fix are unambiguous; the remaining choices are technical, deferred to `/axb-technical-research`).
+**Status**: **Implemented — PR [#135](https://github.com/gosharplite/tellme/pull/135) open for human review** (branch `066-toolcall-id-pairing`; the architect review's required folds applied). Produced from **anchor issue [#134](https://github.com/gosharplite/tellme/issues/134)**, which homes **ADR 0035 §Forward RF-065-1** (the round-065 follow-up). No `specs/truth/**` file is written by this skill. Clarify: **not escalated** (see *Clarify strategy* — the goal and the fix are unambiguous; the remaining choices are technical, deferred to `/axb-technical-research`).
 
 **Input (operator, 2026-09-20, this session)**:
 
@@ -42,7 +42,7 @@
 | **S-3** | **FIFO name matching is retained as the fallback** for a result with **no** `ToolCallID` (older persisted `steps`); a result with an unmatched id also falls back deterministically rather than dropping silently. The round-014 replay-fidelity invariant is preserved. | proposed |
 | **S-4** | **Id provenance is a technical choice** — whether to prefer a **provider-issued** id (parse `functionCall.id` from the Vertex response) with a deterministic fallback, and the exact fallback spelling (`call_<n>` today vs the reference's `gemini-call-<index>-<name>`), is settled by `/axb-technical-research`. **The OpenAI-compatible wire MUST stay byte-identical** whatever is chosen. | proposed (research) |
 | **S-5** | **The id is emitted only when non-empty**; an empty id is **omitted** from the part (never sent as `"id":""`, which the reference treats as invalid) — and the position falls back to FIFO (S-3). | proposed |
-| **S-6** | **Exact unmatched accounting:** when a round yields `M < N` results (some calls unpaired), the drop is accounted by **call identity**, replacing the positional drop of the round-065 `pending[:0]` boundary (this also lets the deferred `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual — the pin cannot kill the pre-fold partial-drop mutant — be re-anchored to exact unmatched-id accounting). | proposed |
+| **S-6** | **The boundary drop is unchanged** — like the round-065 `pending[:0]`, a call left unpaired at a round boundary (a round that yielded `M < N` results) contributes no part; the batched turn carries the `M` parts the round produced, and the round boundary still prevents a later round's part from mispairing. The round-066 change is the pairing (id-keyed), not the drop; the `N − M` unpaired calls are **not** surfaced (no error, log, or accessor) — the round-065 `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual therefore **stands** (recorded in ADR 0036 §Forward). *(Corrected at the architect review F-066-1: the earlier "exact unmatched-identity accounting" claim was not delivered.)* | proposed → **corrected** |
 | **S-7** | **No new dependency / no new tool / no new config key / no port change** — stdlib-only (`encoding/json`); the change is confined to **`internal/infrastructure/llm/gemini`** (plus pins, plus possibly the round-066 truth rows). | proposed |
 
 **Non-negotiable invariants (proposed, not open):**
@@ -69,7 +69,7 @@
 
 ### User Story 1 - a round's tool results carry their calls' ids on the Gemini wire (Priority: P1)
 
-As the **operator** running `tellme` against a **Gemini/Vertex** provider, I want each `functionResponse` part to carry the **id** of the `functionCall` it answers (and each `functionCall` part to carry an id), so that the round is **id-linked** on the wire — matching the reference and safe against a provider that requires it — instead of relying on a positional name queue.
+As the **operator** running `tellme` against a **Gemini/Vertex** provider, I want each `functionResponse` part to carry the **id** of the `functionCall` it answers (and each `functionCall` part to carry an id), so that the round is **id-linked** on the wire — matching the reference's shape — instead of relying on a positional name queue. *(Structural claim: the pins assert the wire shape; whether a given provider *requires* an id is not something tellme hermetic pins can establish — a live check is a closeout item, R-066-1.)*
 
 **Why this priority**: it is the round's headline change (#134 item 1/3): the reference's whole design is *"tool parts carry ids; a part without one is an API error"*, and tellme's Gemini adapter is the outlier that drops them. It is also the prerequisite for US2.
 
@@ -107,7 +107,7 @@ As the **operator**, I want each tool result bound to the call it answers **by i
 
 - **FR-006**: The adapter MUST bind each result to its call **by `ToolCallID`** when the result carries a non-empty id, **independent of arrival order**.
 - **FR-007**: When a result carries no id (or an id matching no call of the round), the adapter MUST fall back to the **FIFO name match** deterministically — never dropping silently and never mispairing a later round (I-5).
-- **FR-008**: When a round yields `M < N` results, the adapter MUST account the **unpaired calls by identity** (the emitted batched turn carries the `M` parts the round produced; the `N − M` unpaired calls are identified, replacing the round-065 positional `pending[:0]` drop).
+- **FR-008**: When a round yields `M < N` results, the adapter MUST emit the batched turn with the **`M` parts the round produced** (a call left unpaired contributes no part), preserving the round boundary so no later round's part mispairs. The unpaired calls are **not** surfaced (the boundary drop is unchanged from the round-065 `pending[:0]`; an id-accessor is a recorded forward item). *(Corrected at the architect review F-066-1.)*
 - **FR-009**: The round-065 batched shape MUST be preserved — **one** `user` turn with **N** `functionResponse` parts in call order, media turns after it (I-2).
 - **FR-010**: Every image a round attached MUST still reach the model (I-4); a shape fix MUST NOT drop or merge media.
 
@@ -119,7 +119,7 @@ As the **operator**, I want each tool result bound to the call it answers **by i
 - **N = 0** — no tool round; the text path is **byte-preserved** (I-3).
 - **Results arrive out of order** — paired by id (US2 Scenario 1).
 - **A result with no `ToolCallID`** (replay) — FIFO fallback; no `id` key emitted (FR-003).
-- **`M < N`** (some calls unpaired) — accounted by identity (FR-008); the emitted turn carries the `M` produced parts.
+- **`M < N`** (some calls unpaired) — the emitted turn carries the `M` produced parts; the unpaired calls are dropped at the boundary and not surfaced (FR-008).
 - **An id that matches no call of the round** — falls back to FIFO deterministically (FR-007); recorded, never a silent mispair.
 - **Media on only some calls / every call** — only those calls contribute `inlineData`; the batched turn carries all `M`/`N` results; no media loss (I-4).
 - **A tool error / a reason-less refusal** — the (error/refusal) text is a `functionResponse` like any other; the count is preserved.
@@ -141,7 +141,7 @@ As the **operator**, I want each tool result bound to the call it answers **by i
 - **SC-002**: An **out-of-order** round pairs each result to its own call (name + id) — the identity pairing (US2 Scenario 1). *(Unit pin.)*
 - **SC-003**: A **replayed** round (no stored id / empty `ToolCallID`) still pairs via the FIFO fallback and produces a **stable** body (I-5). *(Unit pin.)*
 - **SC-004**: The **media-free text** path and the **OpenAI-compatible** wire are **byte-identical** to the pre-round serialization (I-1/I-3); the **tool-bearing Gemini** path is **shape-identical** apart from the added id (I-2). *(Regression pins.)*
-- **SC-005**: `M < N` unpaired calls are accounted by identity; no result is mispaired, and the round-065 short-round residual is re-anchored to exact unmatched-id accounting if the pairing change reaches it (FR-008). *(Unit pin.)*
+- **SC-005**: With `M < N` results, the batched turn carries the `M` parts produced and the round boundary prevents a later round from mispairing — carried by the existing `TestRequestBody_ShortRound_DropsUnpairedNames` (the `N=2 M=1` residual **stands**; the boundary drop is unchanged — F-066-1). *(Unit pin.)*
 - **SC-006**: A red-capable carrier proves the change: removing the id from the wire reds SC-001; a positional (arrival-order) pairing reds SC-002; dropping the FIFO fallback reds SC-003.
 - **SC-007**: `make verify` + `go test -count=1 ./...` green (incl. the E2E contract); the topology/DSL audit adds **no** new findings; no new dependency; `go.mod`/`go.sum` unchanged.
 

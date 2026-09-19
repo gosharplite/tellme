@@ -23,6 +23,7 @@ The adapter emits `id` on **every** `functionCall` part (from the model turn's `
 
 - The emitted batched `user` turn still carries the results **in call order** (a result set presented out of order is emitted ordered by its matched call's position), preserving the round-065 wire shape.
 - **Why**: the loop is **sequential** today, so position and identity agree; the id binding is the property that survives a future **concurrent** dispatch ([#36](https://github.com/gosharplite/tellme/issues/36) item 3) — the exact motivation ADR 0035 **D2** recorded when it deferred this.
+- **The replay path** (`agentloop.go` `BuildMessages`) synthesises the **same** deterministic `call_step_<n>` on both the assistant call and the tool result, so a replayed round binds via the **id-primary** match — the FIFO fallback is **defensive**, for a future producer that omits an id, not the replay mechanism. *(Corrected at the architect review TD-066-2.)*
 
 ## D3 — Id provenance: keep the existing deterministic ids (the smallest, safest choice)
 
@@ -35,9 +36,11 @@ The ids the adapter emits are the **already-produced** ones — the live path's 
 
 A part emits `id` **iff** its source id is non-empty; an empty id emits the key **omitted** and the position falls back to FIFO (D2). The reference treats an empty id as **invalid** (`isInvalidToolPart` strips it); tellme neither strips nor sends an empty id — it simply omits it, so the round can never turn a present-but-untagged result into a provider 400.
 
-## D5 — The round boundary: unmatched calls are identified, output unchanged
+**Wire self-consistency (added at the architect review TD-066-1).** On the fallback path a result's `ToolCallID` may be **foreign** — an id on no `functionCall` part of the round (a duplicate-id second result, or a genuinely unmatched id). The adapter emits the response `id` **only when it equals the id of the call it bound to** (the reference's `response.id == call.id` invariant); a foreign id is **omitted**, so the wire never carries a `functionResponse.id` absent from the round's `functionCall` parts (which could itself 400 a strict provider — the same hazard class D4 avoids). Pinned by `TestRequestBody_UnmatchedToolCallIDFallsBackToFIFO`.
 
-At a round boundary the adapter still emits the `M` parts the round produced (ADR 0035's recorded shape). With the per-round call index (D2) the **unpaired** calls are now known **by identity** (the ids with no result); the **observable output is unchanged** (no part is emitted for an unpaired call either way). This is an internal clarity gain; the deferred `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual (its pin cannot kill the pre-fold partial-drop mutant) becomes expressible as exact unmatched-id accounting — **re-anchored, not re-scoped** (SC-005). No new failure mode.
+## D5 — The round boundary: the drop is unchanged; unpaired calls are not surfaced
+
+At a round boundary the adapter still emits the `M` parts the round produced (ADR 0035's recorded shape); a call left unpaired contributes no part, and `pending` is cleared (behaviourally identical to the round-065 `pending[:0]`). The round-066 change is the *pairing*; the **`N − M` unpaired calls are not surfaced** (no error, log, or accessor) — so the `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual (its pin cannot kill the pre-fold partial-drop mutant) **stands** and is recorded in ADR 0036 §Forward. No new failure mode. *(Corrected at the architect review F-066-1: the earlier "exact unmatched-identity accounting / re-anchored" claim was not delivered by the code or the pins.)*
 
 ## D6 — Scope: family-local, adapter-only
 
@@ -66,10 +69,12 @@ The change is confined to `internal/infrastructure/llm/gemini` (`client.go` `bui
 
 ## Residual risks / forward items (non-blocking)
 
-- **RF-066-1** — the added `id` key narrows the byte-identity claim for a **tool-bearing** Gemini body to **shape**-identity (recorded; the round-065 byte claims are scoped).
+- **RF-066-1** — the added `id` key narrows the byte-identity claim for a **tool-bearing** Gemini body to **shape**-identity (recorded; the round-065 byte claims are scoped). **Live check (R-066-1):** the `id` key is the round's only wire-visible delta and is live-unverified hermetically — a round-065-style live Vertex turn is performed at the closeout and recorded in ADR 0036 `## Verification` (the key is independently revertible if it fails).
 - **RF-066-2** — **provider-issued id preference** (read `candidates[].content.parts[].functionCall.id` and prefer it, reference parity) — deferred (D3); would change the live id value and touch the OpenAI wire, so it is its own decision.
 - **RF-066-3** — a **fake-side contract check** (the E2E fake rejects a count mismatch) — RF-065-3; still deferred.
 - **RF-066-4** — concurrent tool **execution** itself ([#36](https://github.com/gosharplite/tellme/issues/36) item 3) — this round makes the wire *ready*; it does not add concurrency (sequential tools remain a settled exclusion).
+- **RF-066-6** — an **order-independence carrier**: US2's order-independent property has no in-system producer today (the loop is sequential; a replayed round is one call/one result), so it is exercised only by a hand-built `prior`; it gets a real carrier when concurrent dispatch lands ([#36](https://github.com/gosharplite/tellme/issues/36) item 3). *(R-066-2.)*
+- **RF-066-7** — surface the **unpaired** calls of an `M < N` round (an id accessor) to replace the still-open `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual (F-066-1; the boundary drop is unchanged this round).
 
 ## References
 

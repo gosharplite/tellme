@@ -198,15 +198,18 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 		switch {
 		case len(m.ToolCalls) > 0:
 			b.modelTurn(m.ToolCalls)
-		case m.ToolCallID != "" || m.Role == "tool":
+		case m.ToolCallID != "" || (m.Role == "tool" && len(m.Media) == 0):
 			b.result(m)
 		case len(m.Media) > 0:
-			// Round 063 (ADR 0033 D2/D3): a media-bearing message is its OWN
-			// `user` turn — media lead the turn. Round 065 buffers it so the
-			// round's media turns are emitted AFTER the batched function-response
-			// turn; it is never merged INTO a functionResponse turn, so the Vertex
-			// parser's ordering hazard (#1441: a user turn whose functionResponse
-			// precedes an inlineData part) cannot arise by construction.
+			// Round 063 (ADR 0033 D2/D3): a media-bearing message that is NOT a
+			// tool result is its OWN `user` turn — media lead the turn. Round 065
+			// buffers it so the round's media turns are emitted AFTER the batched
+			// function-response turn; it is never merged INTO a functionResponse
+			// turn, so the Vertex parser's ordering hazard (#1441: a user turn
+			// whose functionResponse precedes an inlineData part) cannot arise by
+			// construction. (The tool-result case above is restricted to a
+			// media-free `tool` message, so a media-bearing one is still carried —
+			// I-4: never silently lose an image.)
 			b.mediaTurns = append(b.mediaTurns, inlineDataParts(m.Content, m.Media))
 		default:
 			b.textTurn(m)
@@ -297,19 +300,23 @@ func functionCallPart(tc llm.ToolCall) map[string]any {
 }
 
 // result buffers a tool result, bound to its call by `ToolCallID` (else the FIFO
-// fallback), for the current round (not emitted yet).
+// fallback), for the current round (not emitted yet). The response `id` is
+// emitted ONLY when it equals the id of the call it bound to (the reference's
+// `response.id == call.id` invariant) — a foreign id (an unmatched result whose
+// id is on no call of the round) is omitted, so the wire never carries a
+// `functionResponse.id` that is absent from the round's `functionCall` parts.
 func (b *roundBuilder) result(m llm.Message) {
 	idx := b.bind(m.ToolCallID)
 	fr := map[string]any{"name": "", "response": map[string]any{"content": m.Content}}
-	if m.ToolCallID != "" {
-		fr["id"] = m.ToolCallID
-	}
 	if idx < 0 {
 		b.extraResults = append(b.extraResults, map[string]any{"functionResponse": fr})
 		return
 	}
 	b.pending[idx].used = true
 	fr["name"] = b.pending[idx].name
+	if m.ToolCallID != "" && m.ToolCallID == b.pending[idx].id {
+		fr["id"] = m.ToolCallID
+	}
 	b.resultParts[idx] = map[string]any{"functionResponse": fr}
 }
 
