@@ -2,7 +2,7 @@
 
 **Feature Branch**: `059-darwin-metrics-and-1hz-cadence`
 **Created**: 2026-09-19
-**Status**: Draft (clarify CLOSED — Q1 CPU source · Q2 dependency · Q3 throttle scope · Q4 MEM definition · Q5 platform scope; all → option 1)
+**Status**: Final — clarify CLOSED (Q1 CPU source · Q2 dependency · Q3 throttle scope · Q4 MEM definition · Q5 platform scope; all → option 1); the PR #125 review folds (B-059-1 + F-059-1…F-059-4) are recorded in §D7/§D8 and the `tasks.md` fold ledger.
 
 ## Terminology
 
@@ -23,7 +23,7 @@
 
 ### D1 — CPU source: machine-wide, reference-style per-build split (Q1 → 1)
 
-`darwin && cgo` samples the machine-wide Mach tick deltas; `darwin && !cgo` samples the process's own CPU via `runtime/metrics` (non-zero under load). This mirrors the reference exactly and replaces the round-019 hardcoded `0`. cgo is allowed on darwin; the accurate machine-wide figure runs on a normal `CGO_ENABLED=1` build.
+`darwin && cgo` samples the machine-wide Mach tick deltas; `darwin && !cgo` samples the process's own CPU via `getrusage` (real, non-zero — see D7a). This mirrors the reference exactly and replaces the round-019 hardcoded `0`. cgo is allowed on darwin; the accurate machine-wide figure runs on a normal `CGO_ENABLED=1` build.
 
 ### D2 — `golang.org/x/sys/unix` for the macOS `sysctl` reads (Q2 → 1)
 
@@ -45,17 +45,26 @@ cgo leg: `(active + wire + compressor) × pagesize / hw.memsize` (Mach VM stats)
 
 `system_metrics_linux.go` is not touched; its machine-wide computation and bytes are identical.
 
-### D7 — Witness plan (falsifiable, reproduced then reverted)
+### D7 — Witness matrix (falsifiable, reproduced then reverted)
 
-- **(a)** restore the old darwin `memPercent` (the mis-decoded `sysctl`) ⇒ the darwin `Sample()` pin + the strengthened E2E resource row red (MEM `0.0%`).
-- **(b)** hardcode the darwin CPU back to `0` ⇒ the darwin `Sample()` non-zero-memory pin stays green but a **cgo** noise check / the reference comparison reds; recorded as the CPU-path witness (a non-zero CPU under load is host-dependent, so the durable pin is the math table + the mach path compiling under cgo).
-- **(c)** sample on every frame (drop the throttle) ⇒ `TestSpinnerResourceSampleThrottle` red (calls = 5 within a second).
+| Witness | Mutation | Kill |
+| --- | --- | --- |
+| **(a)** darwin MEM | restore the round-019 darwin arm (or force `darwinCGOMemPercent()` → `0`) | the darwin `Sample()` MEM pin **and** the strengthened E2E resource row **RED** |
+| **(b)** cgo-less CPU | hardcode the cgo-less CPU to `0` (`skip` the `procCPUNanoseconds` branch) | `TestDarwinNoCGoCPUIsPopulated` **RED** (seeded delta ⇒ deterministic) |
+| **(b′)** cgo CPU | hardcode the cgo CPU to `0` (`return 0, darwinCGOMemPercent()`) | `TestDarwinCGoCPUIsPopulated` **RED** (seeded prior ticks) |
+| **(c)** throttle | `ResourceSampleInterval := 0` (sample every frame) | `TestSpinnerResourceSampleThrottle` **RED** (calls = 5 within a second) |
+
+Both CPU legs are therefore **killed by a seeded-delta pin** — the earlier "a non-zero CPU under load is host-dependent" admission was wrong (a seeded delta is deterministic), corrected here and by F-059-1.
+
+### D7a — the cgo-less CPU source (B-059-1)
+
+The first shape used `runtime/metrics` `/cpu/classes/total:cpu-seconds`. Review `B-059-1` showed the metric is the *available* CPU budget (`GOMAXPROCS` integrated over wall time), not consumed CPU, **and** is never updated on the darwin cgo-less host (measured `0` under a saturated core; `getrusage` read 3.003 s over the same window) — i.e. it re-shipped `CPU: 0.0%` on the gate's own build. The source is now `getrusage(RUSAGE_SELF)` (user+system CPU ÷ Δwall ÷ `NumCPU`) via `golang.org/x/sys/unix`, which is cgo-free and already the round's dependency; verified non-zero and monotonic on the darwin cgo-less build.
 
 ### D8 — Truth impact & governance
 
-- `specs/truth/techstack.md`: the **System metrics provider (telemetry)** row (rewritten: the darwin split, `x/sys`, the reference-exact MEM, the 1 Hz cadence, the recorded narrowing).
-- `specs/truth/features/cli/chat/presenting-the-progress-spinner.feature` (+ `chat/dsl.md`): the resource Rule's comment + the resource row's `必查` (non-zero MEM; the cadence unit-pin narrowing).
-- **ADR 0029** (this round), indexed.
+- `specs/truth/techstack.md`: the **System metrics provider (telemetry)** row (rewritten: the darwin split, `x/sys`, the reference-exact MEM, the 1 Hz cadence, the recorded narrowing) **and** the **Turn progress spinner (operator)** row (F-059-3: the 1 Hz resource-figure cadence).
+- `specs/truth/features/cli/chat/presenting-the-progress-spinner.feature` (+ `chat/dsl.md`): the resource Rule's comment + the resource row's `必查` (non-zero MEM; the cadence unit-pin narrowing; the R-059-3 host-dependence note).
+- **ADR 0029** (this round), indexed, incl. §Forward TD-059-1/TD-059-2/R-059-1…3.
 - `specs/truth/data/data-model.dbml`: **NOOP** (the sample cache is spinner-local presentation state).
 - New dependency: `golang.org/x/sys` (direct).
 

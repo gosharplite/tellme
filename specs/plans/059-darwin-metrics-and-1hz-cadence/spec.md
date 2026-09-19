@@ -16,7 +16,7 @@
 1. **On macOS the segment reads `0.0%` for both figures.** Two independent causes — (a) the darwin CPU leg is a hardcoded stub (`return 0, …`) with **no** non-zero fallback, whereas the reference's darwin **nocgo** build reports a real (agent) CPU; (b) the darwin **memory** leg's hand-rolled `syscall.Sysctl` decoder assumes a fixed width, but darwin returns the value **NUL-trimmed**, so `hw.memsize` decodes to `0` and the whole percentage collapses to `0.0%`.
 2. **The CPU/MEM figures refresh 5×/second** (recomputed on every 200 ms spinner frame) instead of the reference's **1×/second**.
 
-The fix mirrors `tell-me-go`: a `darwin && cgo` Mach sampler + a `darwin && !cgo` `runtime/metrics` (agent CPU) fallback, `golang.org/x/sys/unix` for the sysctl reads, the reference's per-platform memory definition, and a **1 Hz throttle on the sample/digits** (the braille wheel stays at 200 ms) on **all** platforms.
+The fix mirrors `tell-me-go`: a `darwin && cgo` Mach sampler + a `darwin && !cgo` `getrusage` (process CPU) leg — a **recorded divergence** from the reference's cgo-less `runtime/metrics` path, which reads `0` on this host (the metric is the *available* CPU budget, never updated here) — `golang.org/x/sys/unix` for the sysctl reads, the reference's per-platform memory definition, and a **1 Hz throttle on the sample/digits** (the braille wheel stays at 200 ms) on **all** platforms.
 
 ---
 
@@ -41,7 +41,7 @@ The fix mirrors `tell-me-go`: a `darwin && cgo` Mach sampler + a `darwin && !cgo
 
 | # | Decision (source) |
 | --- | --- |
-| **S-1** | **CPU source = machine-wide, reference-style split (Q1 → 1).** darwin reports **machine-wide** CPU%: under **cgo** via Mach `host_statistics64` (`HOST_CPU_LOAD_INFO`); under **!cgo** via `runtime/metrics` (tellme's **own** CPU ÷ wall-time ÷ `NumCPU`), non-zero like the reference. |
+| **S-1** | **CPU source = machine-wide, reference-style split (Q1 → 1).** darwin reports **machine-wide** CPU%: under **cgo** via Mach `host_statistics64` (`HOST_CPU_LOAD_INFO`); under **!cgo** via `getrusage(RUSAGE_SELF)` (tellme's **own** CPU ÷ wall-time ÷ `NumCPU`) — a real, non-zero measurement (the reference's cgo-less `runtime/metrics` path was rejected: it read `0` here; ADR 0029 D1a). |
 | **S-2** | **Sysctl reads via `golang.org/x/sys/unix` (Q2 → 1).** Add `golang.org/x/sys` as a direct dependency for `SysctlUint64`/`SysctlUint32`/`Getpagesize`; the hand-rolled trimmed-value decode is removed. Mach calls use C headers (unaffected by this dependency). |
 | **S-3** | **Throttle = the CPU/MEM sample + digits only (Q3 → 1).** The braille frame keeps its 200 ms cadence; `Sample()` runs at most once per second, the last value repeated between samples. |
 | **S-4** | **macOS MEM = reference-exact per platform (Q4 → 1).** cgo leg: `(active + wired + compressor) × pagesize / hw.memsize` (Mach `HOST_VM_INFO64`); nocgo leg: `(total − free − speculative − purgeable)/total`, **× 0.6** to approximate the cgo definition. |
@@ -64,20 +64,20 @@ As the **operator running tellme on macOS** at a terminal, while tools run I wan
 
 **Why this priority**: it is the operator's primary report ("cpu/mem stay at zero"); the zero is caused by two independent darwin defects.
 
-**Independent verification**: on a `darwin/arm64` `CGO_ENABLED=1` build, a tool-running turn at a terminal (or a direct `Sample()` call under load) reports a **non-zero** MEM (and a non-zero CPU after the first second); a `darwin && !cgo` build compiles and reports a non-zero **agent** CPU + non-zero MEM; `GOOS=linux` output is unchanged.
+**Independent verification**: on a `darwin/arm64` `CGO_ENABLED=1` build, a tool-running turn at a terminal (or a direct `Sample()` call under load) reports a **non-zero** MEM (and a non-zero CPU after the first second); a `darwin && !cgo` build compiles and reports a non-zero **process** CPU (`getrusage`) + non-zero MEM; `GOOS=linux` output is unchanged.
 
 **Acceptance Scenarios**:
 
 1. **Given** a cgo darwin build, **When** `Sample()` is called with memory in use, **Then** MEM reflects `(active+wired+compressor)/hw.memsize` as a percentage in `(0,100]` (the reference's cgo `GetMemoryPercent`).
 2. **Given** a cgo darwin build, **When** `Sample()` is called twice ~1 s apart under load, **Then** CPU is the machine-wide `(1 − Δidle/Δtotal) × 100` from Mach tick deltas (a non-zero value under load).
-3. **Given** a `darwin && !cgo` build, **When** `Sample()` is called twice ~1 s apart, **Then** CPU is the agent CPU (non-zero while the process burns CPU) and MEM is the reference's nocgo approximation (`(total−free−speculative−purgeable)/total × 0.6`).
+3. **Given** a `darwin && !cgo` build, **When** `Sample()` is called twice ~1 s apart, **Then** CPU is the process CPU (`getrusage`; non-zero while the process burns CPU) and MEM is the reference's nocgo approximation (`(total−free−speculative−purgeable)/total × 0.6`).
 4. **Given** a `linux` build, **When** `Sample()` is called, **Then** the CPU/MEM values and computation are byte-for-byte as today (no regression).
 5. **Given** any platform, **When** a required sysctl/API read fails, **Then** the segment degrades to `0.0%` for that figure (never panics, never blocks the frame).
 
 **Functional Requirements**:
 
 - **FR-001**: On darwin under **cgo**, `Sample()` MUST report machine-wide CPU% from the Mach `host_statistics64` `HOST_CPU_LOAD_INFO` tick deltas (`(1 − Δidle/Δtotal) × 100`; `0.0` on the first call, no prior delta) (S-1).
-- **FR-002**: On darwin under **!cgo**, `Sample()` MUST report a **non-zero** CPU% from `runtime/metrics` `/cpu/classes/total:cpu-seconds` (the process's own CPU ÷ wall-time ÷ `runtime.NumCPU() × 100`) — never a hardcoded `0` (S-1).
+- **FR-002**: On darwin under **!cgo**, `Sample()` MUST report a **non-zero** CPU% from `getrusage(RUSAGE_SELF)` (the process's own CPU ÷ wall-time ÷ `NumCPU` × 100) — never a hardcoded `0` (S-1; ADR 0029 D1a — the reference's cgo-less `runtime/metrics` metric is the *available* CPU budget and read `0` on this host).
 - **FR-003**: On darwin, MEM% MUST be decoded correctly (NUL-trim-safe) via `golang.org/x/sys/unix` and MUST match the reference: **cgo** `(active+wired+compressor)/hw.memsize`; **!cgo** `(total−free−speculative−purgeable)/total × 0.6` (clamped to `[0,100]`) (S-2/S-4).
 - **FR-004**: The linux sampler MUST be unchanged (machine-wide `/proc/stat` CPU + `/proc/meminfo` MEM) (S-6).
 - **FR-005**: The `Sample() (cpuPercent, memPercent float64)` port signature and the resource-segment format ` [CPU: %.1f%% | MEM: %.1f%%]` MUST be unchanged (S-6).
@@ -129,7 +129,7 @@ As the **operator**, while tools run I want the `[CPU: x% | MEM: y%]` figures to
 
 ## Assumptions
 
-- **A1**: The macOS machine-wide CPU requires cgo (Mach) — accepted by the operator (Q1 → 1); the `CGO_ENABLED=0` cross-compile gate therefore covers only the nocgo leg, which now reports a non-zero **agent** CPU (a deliberate, reference-matching narrowing of "machine-wide").
+- **A1**: The macOS machine-wide CPU requires cgo (Mach) — accepted by the operator (Q1 → 1); the `CGO_ENABLED=0` cross-compile gate therefore covers only the nocgo leg, which now reports a non-zero **process** CPU (`getrusage`) (a deliberate, reference-matching narrowing of "machine-wide").
 - **A2**: `golang.org/x/sys` is adopted as a direct dependency (Q2 → 1), matching the reference's usage; the techstack **System metrics provider (telemetry)** row is updated (dependency-free posture qualified).
 - **A3**: The port stays **percentage-valued** (`Sample() (cpu, mem float64)`) — the reference's raw-counter port is *not* copied; only the sampling sources/definitions are mirrored.
 - **A4**: Truth impact is expected in `specs/truth/techstack.md` (**System metrics provider** row) and possibly `specs/truth/features/cli/chat/presenting-the-progress-spinner.feature` (+ `chat/dsl.md`) if the 1 Hz cadence is expressed as an interface Rule; `/axb-api-plan` + `/axb-data-plan` are **NOOP**.

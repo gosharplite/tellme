@@ -53,7 +53,8 @@ func machCPUTicks() (total, idle uint64, ok bool) {
 	var cpuInfo C.host_cpu_load_info_data_t
 	count := C.mach_msg_type_number_t(C.HOST_CPU_LOAD_INFO_COUNT)
 	host := C.mach_host_self()
-	// architect-acceptance: Darwin-only Mach API (no cgo-free equivalent).
+	// The macOS machine-wide CPU is a darwin-only Mach API with no cgo-free
+	// equivalent (recorded forward item — ADR 0029 §Forward TD-059-2).
 	if ret := C.host_statistics64(host, C.HOST_CPU_LOAD_INFO, C.host_info64_t(unsafe.Pointer(&cpuInfo)), &count); ret != C.KERN_SUCCESS {
 		return 0, 0, false
 	}
