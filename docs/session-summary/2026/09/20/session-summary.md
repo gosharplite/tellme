@@ -183,3 +183,39 @@ A later session on the same calendar day: opened **round 065** from anchor issue
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
 *(Round 065 is fully closed out: PR #133 human-merged into `dev` (`b904281`, merge commit); propagation `dev → main` **DONE (no-ff, `3b9bf8c`)**, tagged **`round-065`**; the installed binary refreshed; [#132](https://github.com/gosharplite/tellme/issues/132) closed.)*
+
+---
+
+## 7. Session 43 (2026-09-20, cont.) — round-065 live check **PERFORMED AND PASSED**: one real Vertex turn with two tool calls in one round completes cleanly (the #132 fix witnessed on a real endpoint)
+
+A later session on the same calendar day: the round-065 closeout left exactly one open, non-gating item — the **live re-check** (a real Vertex/Gemini turn with two tool calls), which the hermetic closeout could not run for want of a live credential. At the operator's direction the check was run **through the `coder` peer on the `dev` provider** (per `tmg-chat-ingroup`: marker-led prompt staged in `/tmp`, `env -u TELL_ME_MODE`, `TELL_ME_SELECTED_PROVIDER=dev`), and the outcome was **recorded durably** (ADR 0035 + `STATUS.md`).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | witness the **round-065 / ADR 0035** batching fix on a **real Vertex** endpoint (the one open, non-gating closeout item) |
+| Method | `tmg-chat-ingroup` orchestrator side: staged a remote-party-marked prompt in `/tmp/tellme-prompt.K5stxk` (`write_file`, not a heredoc) → `env -u TELL_ME_MODE TELL_ME_HOME=$WS TELL_ME_SELECTED_PROVIDER=dev tellme --new -r -c $WS/configs/coder.yaml < $STAGING` → retrieve via `-l 1` → `rm` the staging file |
+| Provider | `dev` = `gemini-3.8-flash`, **Vertex** (real endpoint), as **explicitly requested** by the operator (the peer otherwise inherits the orchestrator's own model) |
+| The turn | **2 tool calls in ONE round**, same instant `05:44:39`: `read_files([note1.txt, note2.txt])` + `list_files(/tmp/tellme-livecheck)` — the media-free pair that 400'd as *Run C* in the round-063 live check |
+| Result | **PASS** — follow-up request completed (`Payload: 11890/1000000 tokens`), **`exit 0`**, self-reported **`ANOMALY: None`**, **zero `400`s**; chrome header read `coder - gemini-3.8-flash`; `wc -c output/coder/history.jsonl` non-zero |
+| Fixtures honoured | `NOTE1: ALPHA note: the sky is green.` · `NOTE2: BETA note: the sky is orange.` (read from `/tmp/tellme-livecheck/`) |
+| Recorded | **ADR 0035** — `## Verification` *Live* bullet now carries the outcome; §Forward gains a *Live check — CLOSED (verified)* line. **`STATUS.md`** — header (session 43) + the open item flipped **pending → DONE (live-verified)** + the round-065 env note. Evidence (transient): `/tmp/tellme-livecheck/r065_send.{stdout,stderr}` |
+
+### Why this closes it
+
+The round-063 live check had produced a three-run matrix whose **Run C** — *2 × `read_files`, no media, one round* — failed with the verbatim `400 … Please ensure that the number of function response parts is equal to the number of function call parts …` (a defect proven **media-agnostic**, per-call `tool` message since round 008). Round 065 (ADR 0035) batched a model round's `functionResponse` parts into **one** `user` turn. This session re-ran the identical *Run C* shape on a real Vertex endpoint and it now completes cleanly — the fix is verified **on the wire**, not only by the unit pin + fake-provider E2E.
+
+### Decisions / records
+
+| # | Item |
+| --- | --- |
+| — | The provider override (`dev`) was used **only** because the operator explicitly named it (the `tmg-chat-ingroup` §5 rule); the check is otherwise a standard peer dispatch. |
+| — | The live-check outcome is homed on **durable surfaces** — **ADR 0035** (the decision record) + **`STATUS.md`** (live state) — mirroring the session-40 RF-063-2 precedent. |
+| — | **No** product code, truth, or `specs/plans/**` file changed (the round-065 package stays frozen); the **only** remaining round-065 forward items are **RF-065-1…5** (ADR 0035 §Forward), all untouched by this check. |
+
+### Next steps
+
+1. Open round **`066-*`** off `dev` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling · the `ToolSetSpec` seam RF-062-10/RF-063-6 · RF-065-1 the `ToolCallID` pairing · RF-063-10 the meta-Rule clean-up).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+

@@ -76,7 +76,7 @@ A two-call round therefore serializes to `[model: fcA, fcB] [user: frA] [user: i
 - **Unit** — a pin over the built Vertex request body: a two-call round ⇒ one `user` turn with two `functionResponse` parts (call order) and the media turns after it; a three-call round; the **N = 1** and **N = 0** byte-identity controls; the superseded TD-063-1 pin rewritten.
 - **E2E** — the Vertex-shaped fake provider scripts a multi-call model turn; the acceptance journeys assert the turn completes and the recorded request carried the round's results together (and, for images, that both pictures reached the fake). Rides `go test` / `make test`.
 - **Falsifiability** — reverting to per-message turns reds the unit pin; dropping media to satisfy the count reds the two-image journey.
-- **Live (non-gating, closeout)** — a real Vertex turn with two tool calls (the round-063 live-check follow-up).
+- **Live (non-gating, closeout)** — a real Vertex turn with two tool calls (the round-063 live-check follow-up). **PERFORMED 2026-09-20 (session 43) — PASSED.** Via the `coder` peer on the `dev` provider (`gemini-3.8-flash`, Vertex, workspace `ait-tellme`), a single turn issued **two tool calls in one round** — `read_files([note1.txt, note2.txt])` and `list_files(/tmp/tellme-livecheck)`, both dispatched at the same instant (`05:44:39`) from one model round; the follow-up request completed normally (`Payload: 11890/1000000 tokens`, `exit 0`, self-reported `ANOMALY: None`, and **zero** `400`s in the chrome). This is exactly the *media-free, two-tool-call* scenario that 400'd as *Run C* in the round-063 live check (Context above) — now green on a real endpoint, confirming the D1 batching on the wire. Evidence (transient): `/tmp/tellme-livecheck/r065_send.{stdout,stderr}`.
 
 ## References
 
@@ -91,3 +91,4 @@ A two-call round therefore serializes to `[model: fcA, fcB] [user: frA] [user: i
 - **RF-065-3** — a **fake-side contract check** (the E2E fake rejects a `functionResponse`/`functionCall` count mismatch) for belt-and-braces; the unit pin is the current carrier.
 - **RF-065-4** — a **family-agnostic round-batching concept** in the domain if a third family ever needs it.
 - **RF-065-5** — the other round-063 forward items stay open (RF-063-1 the derived ceiling · RF-063-3 the aggregate bound · RF-063-4 the Files-API leg · RF-063-5 the dimension guard · RF-063-8 the family-blind fixture · RF-063-9 the ceiling placement · RF-063-10 *(PM-owned)* the meta-Rule clean-up).
+- **Live check — CLOSED (verified)** — D7's closeout live re-check (the `## Verification` *Live* bullet) was **performed 2026-09-20 (session 43) and passed**; no residual.
