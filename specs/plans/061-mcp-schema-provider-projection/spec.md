@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — produced by `/axb-specify` from **issue [#127](https://github.com/gosharplite/tellme/issues/127)**. **Clarify IN PROGRESS** — **CQ-1 → C** and **CQ-2 → ii** settled (below); **CQ-3** (ADR governance) still open. No `specs/truth/**` file is written by this skill.
+**Status**: Draft — produced by `/axb-specify` from **issue [#127](https://github.com/gosharplite/tellme/issues/127)**. **Clarify CLOSED** (3 decisions, one at a time — **CQ-1 → C**, **CQ-2 → ii**, **CQ-3 → i**; recorded below). No `specs/truth/**` file is written by this skill.
 
 **Input (operator, 2026-09-19, this session)**:
 
@@ -44,11 +44,7 @@
 
 | **S-2** | **The A-side projection is a named, empirically-verified allowlist — default-deny (CQ-2 → ii, operator 2026-09-19).** The Gemini seam keeps **only** keywords **confirmed supported** by the live Vertex/Gemini `Schema` message and **drops every other key** (so an unverified keyword cannot reach the wire, whether it is a vendor extension, a standard-but-unsupported keyword, or a future addition). The confirmed set is **established empirically during `/axb-technical-research`** (probe the live endpoint per candidate keyword: accept vs reject) and recorded in the ADR; the allowlist is the **single named owner** of the surface (S-1 / FR-007), and a hermetic unit pin covers the projection itself. |
 
-**Open questions (PENDING clarify — candidate, not a decision):**
-
-| # | Question | Candidates |
-| --- | --- | --- |
-| **CQ-3** | **Truth + ADR governance** | **(i)** a **new ADR 0031** (the "provider-supported schema surface" rule) that **amends ADR 0025** with a forward pointer (the ADR-0030→ADR-0011 precedent), + a MODIFY of the round-056 `dsl.md:364` row / the MCP feature, and the OpenAI family's unchanged behaviour recorded; **(ii)** amend **ADR 0025** in place with the same MODIFY. |
+| **S-3** | **Governance: a new ADR 0031 that amends ADR 0025 — CQ-3 → i (operator 2026-09-19).** The round writes **ADR 0031** ("the provider-supported schema surface"), carries a **forward pointer on ADR 0025** (its D1 *"relayed unchanged… no property added/removed/renamed"* is **qualified** for a provider whose wire type is closed), and **MODIFY**s the round-056 declaration row (`chat/dsl.md:364` + `using-tools-from-a-remote-mcp-server.feature`). The ADR-0030 → ADR-0011 D10 amendment pattern is the precedent; the new rule lives with the provider transports, not inside the MCP-reason ADR. §Forward records the degraded-union residual (a union expressed by `anyOf` that the wire rejects is dropped, not re-expressed) and the re-probe step on a Gemini `Schema` revision. |
 
 **Note on S-2's measured effect.** The GitHub server's 4 tools carrying `anyOf`/`additionalProperties` are covered **only if** those keys are not confirmed supported — the default-deny projection removes them, and the empirical probe decides whether they are *kept* (supported) or *dropped*. Either way no 400, and no assumption is baked in: the round **measures** the surface rather than guessing it.
 
@@ -121,7 +117,7 @@ As the **maintainer**, I want the provider-supported schema surface to have **on
 
 - **FR-007**: The provider-supported schema surface MUST have a **single named owner** (one source of truth for "what the wire can carry"), referenced by both the projection and its gate.
 - **FR-008**: A **hermetic regression gate** MUST exist covering the MCP-relayed declaration path for at least the `x-*`-extension case; it MUST be wired into the project's quality pipeline (`make verify` member or an existing test target).
-- **FR-009**: The round-056 / ADR-0025 **"verbatim"** truth rule MUST be **MODIFY**-ed with the carriage-out recorded (a `truth-delta.md` entry + an ADR), so the truth and the code agree. [NEEDS CLARIFICATION: CQ-3]
+- **FR-009**: The round-056 / ADR-0025 **"verbatim"** truth rule MUST be **MODIFY**-ed with the carve-out recorded (a `truth-delta.md` entry + **ADR 0031** amending ADR 0025), so the truth and the code agree (S-3).
 
 ---
 
@@ -160,7 +156,7 @@ As the **maintainer**, I want the provider-supported schema surface to have **on
 - **A2**: `x-mcp-header` is **server-side metadata** (it tells the *server* to route the argument as an HTTP header) and is meaningless to the model — so dropping it from the *offered* declaration is semantically free and does not weaken the tool call.
 - **A3**: This is a **plain line CLI** round — `/axb-ui-plan` is skipped; `/axb-api-plan` and `/axb-data-plan` are expected **NOOP** (no HTTP surface, no persisted state).
 - **A4**: Truth impact is expected in `specs/truth/features/cli/chat/dsl.md` (the round-056 declaration row) + `chat/using-tools-from-a-remote-mcp-server.feature`, and likely `specs/truth/techstack.md` (the MCP client / tool-schema rows).
-- **A5**: A **new ADR (next free number: 0031)** records the provider-supported-surface rule — or the round amends **ADR 0025** (CQ-3).
+- **A5**: A **new ADR (next free number: 0031)** records the provider-supported-surface rule and **amends ADR 0025** with a forward pointer (S-3); the declaration truth row is MODIFY-ed in the same round.
 - **A6**: The round is testable **hermetically** (the existing fake provider + a fake MCP server already drive the declaration path in the E2E suite), so no live MCP server is required in the gate.
 - **A7**: `NormalizeMCPSchema`'s existing well-formedness contract (round 031) is **not** weakened; the projection is added, not substituted.
 
