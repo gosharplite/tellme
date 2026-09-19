@@ -12,29 +12,33 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | `specs/truth/techstack.md` — MCP client / tool-schema rows | Anticipated: record the provider-supported schema surface + the projection. | `spec.md` FR-002/FR-007; A4 |
-| (pending) | `docs/decisions/00NN-*.md` (+ index row) | Anticipated: **ADR 0031** (the provider-supported schema surface) **or** an ADR-0025 amendment. | `spec.md` FR-009; CQ-3 |
+| MODIFY | `specs/truth/techstack.md` — *MCP tool-schema normalization* | **Round 061 (ADR 0031):** the normalizer applies a **vendor-extension floor** — `x-…`/`$schema` dropped recursively, for **every** family (S-6); the declared arguments are untouched. | `spec.md` FR-002, S-1/S-6 |
+| MODIFY | `specs/truth/techstack.md` — *MCP tool-call reason envelope* | **Round 061 (ADR 0031):** the round-056 "relayed verbatim" claim is **qualified at the provider wire** (floor for all families; projection for a closed-wire family). | `spec.md` FR-009, S-3 |
+| ADD | `specs/truth/techstack.md` — *Tool-declaration schema projection (Vertex/Gemini)* | The recursive, default-deny, fail-closed projection + the measured supported surface (the probe table is in ADR 0031). | `spec.md` FR-001/FR-002/FR-004/FR-005, S-1/S-2/S-4 |
+| ADD | `specs/truth/techstack.md` — *Tool-declaration schema-projection gate* | The hermetic unit pin over the production declaration path (red-capable) + the E2E carrier. | `spec.md` FR-008, S-5 |
+| ADD | `docs/decisions/0031-provider-supported-schema-surface.md` (+ index row; ADR 0025 §Status pointer) | The rule + the verbatim probe table + §Forward RF-061-1…6. | `spec.md` FR-009, CQ-3 |
 
 ## /axb-api-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | `specs/truth/` (**no `contracts/**`**) | Anticipated NOOP: single CLI end, no OpenAPI/HTTP surface change. | `spec.md` A3 |
+| NOOP (checked) | `specs/truth/` (**no `contracts/**`**) | Single CLI end; no OpenAPI/HTTP surface exists or changed. | `spec.md` A3 (`contract-authoritative` holds vacuously) |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | `specs/truth/data/**` | Anticipated NOOP: no persisted/in-memory domain-state change (the projection is a pure in-flight transform). | `spec.md` A3 |
+| NOOP (checked) | `specs/truth/data/**` | No persisted/in-memory domain-state change: the projection is a pure in-flight transform and the floor mutates an already-discovered schema in place. | `spec.md` A3 (`data-model-covers-all-state` holds) |
 
 ## /axb-dsl-refine
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | `specs/truth/features/cli/chat/dsl.md:364` + `chat/using-tools-from-a-remote-mcp-server.feature` | Anticipated **MODIFY**: the round-056 "verbatim" declaration rule gains the provider-wire carve-out (unsupported keywords are projected away for a family whose wire cannot carry them; the declared arguments survive). | `spec.md` FR-001/FR-009 |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` — the round-056 declaration row | The provider-wire carve-out recorded on the row (the floor + the closed-wire projection; the declared arguments survive). | `spec.md` FR-001/FR-009, S-1/S-3 |
+| ADD | `specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature` (+ `chat/dsl.md`) | A new Rule *A server's argument marks never reach the provider* with 3 Examples + 5 DSL rows (2 Given, 3 Then). | `spec.md` US1/US2/US3 (`acceptance-coverage`) |
 
 ## Governance (ADR)
 
 | Action | Artifact | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | `docs/decisions/` (next free number **0031**) + `docs/decisions/README.md` | Anticipated **ADD** or an **ADR 0025** amendment — the provider-supported schema surface + the projection rule; §Forward for the recorded residuals (e.g. the standard-but-unsupported keyword class if CQ-2 → i). | `spec.md` FR-009; CQ-3 |
+| ADD | `docs/decisions/0031-provider-supported-schema-surface.md` + `docs/decisions/README.md` (+ the ADR 0025 **Status** pointer) | The provider-supported schema surface: the floor + the default-deny projection, the measured table, and §Forward RF-061-1…6. **Amends ADR 0025 D1** at the provider wire (CQ-3 → i). | `spec.md` FR-009, S-3 |

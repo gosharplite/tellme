@@ -65,3 +65,37 @@ func TestNormalizeMCPSchema_BadShapesRejected(t *testing.T) {
 		}
 	}
 }
+
+// T-061 [UNIT] — the vendor-extension floor (round 061 / ADR 0031 D-floor): an
+// `x-…` annotation (the GitHub server's `x-mcp-header`) and `$schema` are dropped
+// for EVERY family, recursively (root, nested property, inside `items`/`oneOf`),
+// while the declared arguments and the supported surface survive.
+func TestNormalizeMCPSchema_StripsVendorExtensions(t *testing.T) {
+	in := json.RawMessage(`{
+	  "type":"object",
+	  "$schema":"https://json-schema.org/draft/2020-12/schema",
+	  "x-root":"gone",
+	  "properties":{
+	    "owner":{"type":"string","description":"Repository owner","x-mcp-header":"owner"},
+	    "repo":{"type":"string","description":"Repository name","x-mcp-header":"repo"},
+	    "files":{"type":"array","description":"d","items":{"type":"string","x-nested":"gone"}},
+	    "alt":{"anyOf":[{"type":"string","x-branch":"gone"},{"type":"number"}]}
+	  },
+	  "required":["owner","repo"]
+	}`)
+	out, err := NormalizeMCPSchema(in)
+	if err != nil {
+		t.Fatalf("a well-formed schema with vendor extensions must normalize, got err=%v", err)
+	}
+	got := string(out)
+	for _, gone := range []string{"x-mcp-header", "$schema", "x-root", "x-nested", "x-branch"} {
+		if strings.Contains(got, gone) {
+			t.Errorf("the floor kept the vendor keyword %q; got %s", gone, got)
+		}
+	}
+	for _, kept := range []string{"owner", "repo", "Repository owner", "Repository name", "files", "items", "anyOf", "required"} {
+		if !strings.Contains(got, kept) {
+			t.Errorf("the floor dropped %q, which is not a vendor extension; got %s", kept, got)
+		}
+	}
+}

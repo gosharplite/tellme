@@ -5,7 +5,37 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 )
+
+// isVendorExtension reports whether a schema keyword is a vendor extension or a
+// non-standard annotation that tellme strips for EVERY provider family (round
+// 061 / ADR 0031 D-floor): an `x-…` extension (e.g. the GitHub MCP server's
+// `x-mcp-header`, which only tells the SERVER to route the argument as an HTTP
+// header and means nothing to the model) or the `$schema` dialect declaration.
+func isVendorExtension(key string) bool {
+	return strings.HasPrefix(key, "x-") || key == "$schema"
+}
+
+// stripVendorExtensions removes vendor-extension keywords from a decoded schema
+// in place, recursively — a mark may sit on a nested property or inside an
+// `items`/`oneOf` subtree, not only at the root.
+func stripVendorExtensions(v any) {
+	switch node := v.(type) {
+	case map[string]any:
+		for k, val := range node {
+			if isVendorExtension(k) {
+				delete(node, k)
+				continue
+			}
+			stripVendorExtensions(val)
+		}
+	case []any:
+		for _, e := range node {
+			stripVendorExtensions(e)
+		}
+	}
+}
 
 // freeformSchema is the well-formed object schema used when a server advertises
 // no usable input schema: an object accepting free-form arguments. It satisfies
@@ -49,6 +79,11 @@ func NormalizeMCPSchema(raw json.RawMessage) (json.RawMessage, error) {
 	if err := normalizeSchemaObject(obj); err != nil {
 		return nil, err
 	}
+	// Round 061 (ADR 0031 D-floor): drop vendor-extension keywords for EVERY
+	// provider family. The floor is family-agnostic — the OpenAI-compatible
+	// transport tolerates an annotation, but the byte-identity of a declaration
+	// is not worth a per-family rule, and the annotation is server-side plumbing.
+	stripVendorExtensions(obj)
 	out, err := json.Marshal(obj)
 	if err != nil {
 		return nil, fmt.Errorf("marshal normalized schema: %w", err)

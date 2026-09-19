@@ -1,6 +1,6 @@
 # ADR 0025 — A tellme-owned `reason` for MCP tool calls + a universal "no reason, no go" gate
 
-- **Status:** Accepted
+- **Status:** Accepted — **D1’s "relayed unchanged" is qualified at the provider wire by [ADR 0031](0031-provider-supported-schema-surface.md)** (round 061 / issue [#127](https://github.com/gosharplite/tellme/issues/127): a closed-wire provider receives only empirically-supported schema keywords; the declared arguments are preserved).
 - **Date:** 2026-09-19
 - **Deciders:** tellme owner
 - **Related:** [ADR 0015](0015-loop-presentation-port.md) (the loop presentation port + the blank-reason predicate **single owner** this ADR's gate reuses), [ADR 0006](0006-tool-reason-fold-and-cap.md) / [ADR 0008](0008-terminal-safe-lines-and-blank-line-grouping.md) (the reason row's fold/cap/sanitize lineage), [ADR 0021](0021-ride-alongs-and-records.md) (the MCP registry re-registration the offered declaration must survive), round 032 (`specs/plans/032-mcp-client` — the MCP client this round's envelope sits on), rounds 036/039/046 (the reason row), issue [#121](https://github.com/gosharplite/tellme/issues/121) (folded into this round), round 056 (`specs/plans/056-mcp-tool-call-reason` — this ADR's round)
