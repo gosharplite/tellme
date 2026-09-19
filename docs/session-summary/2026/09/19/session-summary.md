@@ -309,6 +309,7 @@ A later session on the same calendar day: bootstrapped/continued on `dev`, opene
 
 ### Residuals (non-blocking, recorded)
 
+- **Live attestation (nice)**: during this very closeout the round-056 gate fired on the **agent's own** MCP tool calls — `list_issues`/`issue_read` were first **refused** (*"a reason is required to call a tool…"* / *"an MCP tool call must be `{"reason":…,"MCP_PAYLOAD":{…}}`"*) until the arguments were re-sent as the tellme envelope. The shipped rule is in force end-to-end, on the very tools this session used.
 - **RF-056-1…8** in **ADR 0025 §Forward** (escape-only refusal · the nil-`Lines` standing invariant + its future carrier · uncounted refusals + no refusal bound · a terminal refusal variant · wording/naming · unreachable key literals · the `freeformEnvelope` literal).
 - **R-056-d** (fold-verification precision, no action now) — a future sweep adopting `ReasonKey` at the native builders' **required-lists** must **quote** it (a JSON fragment, not a bare key).
 - The **5 pre-existing Gherkin/DSL topology-audit errors** (round-054/earlier) — carried; not a `make verify` member.
