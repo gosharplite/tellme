@@ -163,5 +163,5 @@ As the **operator**, I want the remote MCP server to see **exactly its own defin
 - **Altering the remote server's definition** — never (the operator's constraint).
 - **A system-prompt / persona change** — explicitly excluded (S-4).
 - **Native-tool changes** — they already carry `reason`.
-- **A hard gate that refuses a reasonless call** — **IN SCOPE for MCP calls** (Q2 → B, FR-003). Extending the same refusal to **native** tools (today a native call without `reason` still executes — the round-022 schema-nonconforming fixture) is **out of scope** and a recorded forward item.
+- **A hard gate that refuses a reasonless call** — **IN SCOPE for MCP calls** (Q2 → B, FR-003). Extending the same refusal to **native** tools (today a native call without `reason` still executes — the round-022 schema-nonconforming fixture) is **out of scope** and filed as **[#121](https://github.com/gosharplite/tellme/issues/121)** (a universal, single-owned reason-required gate).
 - The locked exclusions: no security/consent layer · no Windows · sequential tool calls ([#47](https://github.com/gosharplite/tellme/issues/47) `not_planned`).
