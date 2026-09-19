@@ -66,6 +66,20 @@ func TestImageCeilingForFamily(t *testing.T) {
 	}
 }
 
+// TestNewReadImageToolDefaultsCeiling pins the defensive default (PR #130 review
+// nit): a non-positive ceiling falls back to the OpenAI-compatible ceiling, so
+// the parameterless default set's `0` cannot make every image refuse.
+func TestNewReadImageToolDefaultsCeiling(t *testing.T) {
+	tl := NewReadImageTool(0)
+	ri, ok := tl.(readImage)
+	if !ok {
+		t.Fatalf("NewReadImageTool returned %T, want readImage", tl)
+	}
+	if ri.maxBytes != openAIImageCeiling {
+		t.Errorf("maxBytes = %d, want the OpenAI-compatible default %d", ri.maxBytes, openAIImageCeiling)
+	}
+}
+
 // TestReadImageAttachesMedia pins the happy path: the image is attached to the
 // call's collector with the content-sniffed MIME and its exact bytes.
 func TestReadImageAttachesMedia(t *testing.T) {

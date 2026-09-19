@@ -254,6 +254,9 @@ func (p *Provider) ToolNamesAt(i int) []string {
 	_ = json.Unmarshal([]byte(p.BodyAt(i)), &req)
 	names := make([]string, 0, len(req.Tools))
 	for _, t := range req.Tools {
+		// A given entry carries one wire shape or the other; concatenating both
+		// (rather than switching) is deliberate, so a malformed body carrying
+		// both emits both names rather than silently picking one.
 		if t.Function.Name != "" {
 			names = append(names, t.Function.Name)
 		}

@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: **Clarify CLOSED** — **Q1 → A** (reuse the single `VISION` key) and **Q2 → B** (a **family-aware** inline ceiling enforced by `read_image` as a loud tool error) locked by the operator, one at a time (2026-09-19). **Q3** (the `inlineData` wire placement) was left to `/axb-technical-research` and is decided in `research.md` **D2**. Owner rows: `research`/`api`/`data` **recorded below**; `dsl-refine` rows are **expected** (that phase has not run).
+> **Status**: **Clarify CLOSED** — **Q1 → A** (reuse the single `VISION` key) and **Q2 → B** (a **family-aware** inline ceiling enforced by `read_image` as a loud tool error) locked by the operator, one at a time (2026-09-19). **Q3** (the `inlineData` wire placement) was left to `/axb-technical-research` and is decided in `research.md` **D2**. Owner rows: `research`/`api`/`data` **recorded below**; `dsl-refine` rows are **recorded** (the phase has run — see the `/axb-dsl-refine` section).
 
 ## /axb-technical-research
 
@@ -43,3 +43,14 @@
 **Domain model** (`docs/domain-model/tellme.modelith.{yaml,md}`, ADR 0030 — descriptive, subordinate to truth): to be refreshed if the capability fact's wording changes (e.g. `Provider.vision` "honoured by both families", the *ImageContent* entity's wire note); `make modelith-check` must stay green.
 
 **Topology audit** (`axb-gherkin-and-dsl` script over `specs/truth/features/cli`): must keep the **same 5 pre-existing errors**, **none new**; each new/changed step must match exactly one `DSLRow`.
+
+## PR #130 review folds (APPROVE WITH REQUIRED FOLDS — 2026-09-19)
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| MODIFY | `docs/decisions/0032-agent-image-vision.md` | the §Forward **RF-062-1** entry annotated **SUPERSEDED — landed by ADR 0033**; the *Family asymmetry* trade-off marked **CLOSED** (the stale "only an openai-family provider until RF-062-1 lands" guidance removed). | review **F-063-1** (a Forward item must not read as open after it lands — `residual-homed-on-a-durable-surface`) |
+| MODIFY | `specs/truth/techstack.md` — *Provider family mapping* | names the exported **`Family(typeLabel)`** as the single owner of the label→family classification (same tables `NewGateway` dispatches on); the composition root consumes it for the ceiling. | review **F-063-3** (the round's new load-bearing classifier had no owning row) |
+| MODIFY | `docs/decisions/0033-gemini-image-vision.md` | §Forward gains **RF-063-7** (the multi-call media placement + the widened two-image live check) · **RF-063-8** (the family-blind oversize fixture ⇒ acceptance stronger than runner) · **RF-063-9** (`ImageCeilingForFamily` fails open / stringly-typed / package home) · **RF-063-10** (the comment-only protection Rule, the 4-round recurrence); **RF-063-6** annotated as overdue. | review **TD-063-1…TD-063-4** + the RF-062-10 note |
+| MODIFY | `internal/infrastructure/tools/image.go` + `image_test.go` | `NewReadImageTool` guards a non-positive ceiling (falls back to the OpenAI-compatible default); `TestNewReadImageToolDefaultsCeiling` pins it. | review nit (the `agentTools()` magic `0` latent trap) |
+| MODIFY | `tests/e2e/steps/tool_usage.go` + `tests/e2e/fakeprovider/fakeprovider.go` | the name-only enumerator passes `0` (no literal provider label + real ceiling); `ToolNamesAt` documents the deliberate both-shapes concatenation. | review nits |
+| ADD | `internal/infrastructure/llm/gemini/client_image_test.go` | `TestRequestBody_MultiCallRound_MediaTurnsInterleave` — the two-call round shape (model, frA, mediaA, frB, mediaB), both blobs, in order. | review **TD-063-1** (the shape had no carrier) |

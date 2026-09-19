@@ -43,7 +43,7 @@ This inverts the reference's assumption: `tell-me-go` decides "can this model se
 
 **§Forward (deferred, non-blocking).**
 
-- **RF-062-1** — the **Gemini** family's `inline_data` image path (D4) — carries ADR 0031's closed-wire concerns.
+- **RF-062-1** — the **Gemini** family's `inline_data` image path (D4) — carries ADR 0031's closed-wire concerns. **SUPERSEDED — landed by [ADR 0033](0033-gemini-image-vision.md) (round 063):** the Gemini/Vertex family now carries the image as an `inlineData` blob and the loud refusal is retired.
 - **RF-062-2** — the **Files-API upload leg** (32–64 MiB, `purpose=user_data`, turn-scoped upload + delete-on-exit) for images past the inline ceiling.
 - **RF-062-3** — **multiple images in one turn** have **no aggregate bound** (the reference caps aggregate inline at 48 MiB); a single ≤ 32 MiB image stays under it, so the gap only opens with two or more images.
 - **RF-062-4** — **`read_video`** and **`read_document`** (video is unsupported by DeepSeek; documents are a separate provider extract mechanism).
@@ -70,7 +70,7 @@ This inverts the reference's assumption: `tell-me-go` decides "can this model se
 
 ### Negative / Accepted Trade-offs
 
-- **Family asymmetry** — the capability key is honoured by the **openai** family only this round; a `VISION: true` on a `gemini` provider turns an image turn into a loud provider error (recorded, D4/RF-062-1). The operator guidance is to set `VISION: true` only for an openai-family provider until RF-062-1 lands.
+- **Family asymmetry** — *(CLOSED by [ADR 0033](0033-gemini-image-vision.md), round 063)* the capability key was honoured by the **openai** family only at this round; a `VISION: true` on a `gemini` provider turned an image turn into a loud provider error (D4/RF-062-1). **ADR 0033 lands RF-062-1**, so `VISION: true` now works on both families and the "set `VISION: true` only for an openai-family provider" guidance is retired.
 - **Inline-only** — an image just over 32 MiB cannot be sent (a loud error) where the reference would upload it (RF-062-2).
 - **Base64 expansion** — 32 MiB of file becomes ≈ 42.7 MiB of request body; with more than one image there is no aggregate guard (RF-062-3/RF-062-8).
 - **No persistence** — a resumed session replays the tool's text, not the image (RF-062-6).

@@ -51,8 +51,16 @@ type readImage struct{ maxBytes int }
 
 // NewReadImageTool builds the `read_image` agent tool with the resolved inline
 // ceiling (round 063; ADR 0033 D4) — the selected provider's family ceiling,
-// resolved at the composition root.
-func NewReadImageTool(maxBytes int) domaintools.Tool { return readImage{maxBytes: maxBytes} }
+// resolved at the composition root. A non-positive ceiling (the parameterless
+// default set never offers this tool, so it passes 0) falls back to the
+// OpenAI-compatible ceiling, so a future `vision: true` wiring mistake cannot
+// make every image refuse as "exceeds the 0 MiB limit" (PR #130 review nit).
+func NewReadImageTool(maxBytes int) domaintools.Tool {
+	if maxBytes <= 0 {
+		maxBytes = openAIImageCeiling
+	}
+	return readImage{maxBytes: maxBytes}
+}
 
 // Name is the wire-valid canonical identifier.
 func (readImage) Name() string { return readImageToolName }

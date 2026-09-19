@@ -89,3 +89,16 @@ All **T001–T028** `[X]`. Delivered sites: `internal/infrastructure/llm/gemini/
 
 **Deferred/recorded**: the 14 MiB Gemini ceiling is **derived** (confirm live — RF-063-1); the standalone-`user`-turn placement is unproven live (RF-063-2) — both are the round's non-gating closeout live check.
 
+## PR #130 review folds (APPROVE WITH REQUIRED FOLDS — 2026-09-19)
+
+| Fold | Change |
+| --- | --- |
+| **F-063-1** | `docs/decisions/0032-agent-image-vision.md`: the §Forward **RF-062-1** entry now carries the **SUPERSEDED — landed by ADR 0033** pointer, and the *Family asymmetry* trade-off is marked **CLOSED** (the stale "set `VISION: true` only for an openai-family provider until RF-062-1 lands" guidance removed from the live doc). |
+| **F-063-2** | `truth-delta.md`: the live `Status:` line now reads `dsl-refine` rows **recorded** (was "expected (that phase has not run)", which contradicted the five recorded rows beneath). |
+| **F-063-3** | `specs/truth/techstack.md` — *Provider family mapping*: names the exported **`Family(typeLabel)`** as the single owner of the label→family classification (same tables `NewGateway` dispatches on), consumed by the composition root to resolve the ceiling. |
+| **TD-063-1** | Added `TestRequestBody_MultiCallRound_MediaTurnsInterleave` (the two-call shape + both blobs, in order) and **RF-063-7** (the multi-call placement + the widened two-image live check). |
+| nits | `NewReadImageTool` now guards a non-positive ceiling (falls back to the OpenAI-compatible default) + `TestNewReadImageToolDefaultsCeiling`; `tool_usage.go`'s name-only enumerator passes `0` (no literal provider label + real ceiling); `ToolNamesAt` documents the deliberate both-shapes concatenation. |
+| recorded | **TD-063-2** → **RF-063-8** (the family-blind oversize fixture ⇒ the acceptance is stronger than its runner) · **TD-063-3** → **RF-063-9** (`ImageCeilingForFamily` fails open + stringly-typed + the mapping's package home) · **TD-063-4** → **RF-063-10** (the comment-only protection Rule, a 4-round recurrence — stop authoring meta-Rules; PM-owned) · **RF-062-10** noted as overdue. |
+
+**Re-verification at the fold**: `gofmt`/`go vet`/`go build` clean · `go test -count=1 ./...` green · `make verify` **OK**.
+
