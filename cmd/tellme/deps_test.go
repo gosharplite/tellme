@@ -3,11 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/gosharplite/tellme/internal/app/deps"
 	"github.com/gosharplite/tellme/internal/cli"
+	"github.com/gosharplite/tellme/internal/infrastructure/llm/gemini"
 )
 
 // Round 044 (relocated from internal/cli by ADR 0013): the assembler gate and the
@@ -192,5 +194,30 @@ func TestDepsValidateCatchesMissingSeam(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "is not wired") {
 		t.Errorf("Validate() error = %q, want it to name the unwired seam", err)
+	}
+}
+
+// TestAgentToolDeclarationsSurviveTheGeminiProjection closes round-061 RF-061-4
+// durably: every NATIVE tool declaration must be *semantically identical* after
+// the closed-wire projection — i.e. nothing tellme itself declares is trimmed.
+// (Semantic, not byte, equality: the projection re-serialises, so key order
+// changes.)
+func TestAgentToolDeclarationsSurviveTheGeminiProjection(t *testing.T) {
+	for _, tl := range agentTools() {
+		raw := tl.Parameters()
+		if len(raw) == 0 {
+			continue
+		}
+		var before, after any
+		if err := json.Unmarshal(raw, &before); err != nil {
+			t.Fatalf("tool %q: decode declaration: %v", tl.Name(), err)
+		}
+		projected := gemini.ProjectSchema(raw)
+		if err := json.Unmarshal(projected, &after); err != nil {
+			t.Fatalf("tool %q: decode projected declaration: %v", tl.Name(), err)
+		}
+		if !reflect.DeepEqual(before, after) {
+			t.Errorf("tool %q: the Gemini projection changed a native declaration\ngot  %s\nfrom %s", tl.Name(), projected, raw)
+		}
 	}
 }
