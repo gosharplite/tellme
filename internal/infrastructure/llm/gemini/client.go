@@ -172,88 +172,179 @@ func requestBody(prompt string, prior []llm.Message, toolDefs []llm.ToolDef, max
 // #1441 inlineData/functionResponse ordering hazard still cannot arise). The
 // batching is invisible for N == 1 and for media-free rounds, so those paths are
 // shape-identical to before (I-2/I-3); the OpenAI-compatible family is untouched.
+// Round 066 adds the id axis (below); the round-065 FIFO name matching it named
+// is now the fallback of the id-keyed pairing.
 //
 // A round boundary is a `model` turn, a plain-text message, or the prompt. A
-// tool result is recognised by its `ToolCallID` (every producer sets one: the
-// live path's `tool` message and the replay path's synthesised
-// `call_step_<n>`); a `tool` message without an id is not expected and would be
-// a producer bug, so it is not silently special-cased here.
+// tool result is recognised by its `ToolCallID` or its `tool` role (every live
+// producer sets BOTH: the loop's `tool` message and the replay path's
+// synthesised `call_step_<n>`). A result with no id (or an id that matches no
+// call of the round) pairs by the FIFO name fallback and emits no `id` key — so
+// an older/id-less persisted step still serializes as a valid functionResponse
+// rather than a stray text turn.
+//
+// Round 066 (ADR 0036; closes #134): the round's parts are ID-LINKED on the
+// wire — every emitted `functionCall` carries the call's `id`, and every
+// `functionResponse` carries its result's `id` (omitted when empty). Each result
+// is bound to its call BY `ToolCallID` (order-independent), so the pairing
+// survives a future out-of-order/concurrent result set; the positional FIFO
+// name match is retained as the FALLBACK for a result with no id (or an id that
+// matches no call of the round). The emitted batched turn still lists the round's
+// results in CALL order, so the wire shape is unchanged (the added `id` key is
+// the sole difference).
 func buildContents(prompt string, prior []llm.Message) []map[string]any {
-	contents := make([]map[string]any, 0, len(prior)+1)
-	pending := make([]string, 0) // names of tool calls awaiting their result (FIFO)
-	// The current round's buffered results + media (flushed at a round boundary).
-	results := make([]map[string]any, 0) // one functionResponse PART per tool result
-	mediaTurns := make([][]map[string]any, 0)
-
-	// flush emits the buffered round: the batched function-response turn (when
-	// any results were buffered) followed by the round's standalone media turns.
-	// It also drops EVERY name still pending at the boundary: a round boundary
-	// means no further result can arrive for the flushed round, so any name left
-	// in the FIFO is unpaired (a round that yielded M < N results). Dropping them
-	// keeps a LATER round's part names from mispairing; the batched turn then
-	// carries the M parts the round actually produced (the doc-recorded shape — a
-	// provider that rejects it surfaces the same 400, never a silent mispair).
-	flush := func() {
-		if len(results) > 0 {
-			contents = append(contents, map[string]any{"role": "user", "parts": results})
-			results = make([]map[string]any, 0)
-		}
-		pending = pending[:0]
-		for _, parts := range mediaTurns {
-			contents = append(contents, map[string]any{"role": "user", "parts": parts})
-		}
-		mediaTurns = make([][]map[string]any, 0)
-	}
-
+	b := &roundBuilder{resultParts: map[int]map[string]any{}}
 	for _, m := range prior {
 		switch {
 		case len(m.ToolCalls) > 0:
-			flush() // a new model turn starts a new round
-			parts := make([]map[string]any, 0, len(m.ToolCalls))
-			for _, tc := range m.ToolCalls {
-				pending = append(pending, tc.Name)
-				var args any = map[string]any{}
-				if strings.TrimSpace(tc.Arguments) != "" {
-					_ = json.Unmarshal([]byte(tc.Arguments), &args)
-				}
-				part := map[string]any{"functionCall": map[string]any{"name": tc.Name, "args": args}}
-				// Gemini 3 requires the model's `thoughtSignature` to be echoed
-				// back on the replayed functionCall part (else HTTP 400).
-				if tc.Signature != "" {
-					part["thoughtSignature"] = tc.Signature
-				}
-				parts = append(parts, part)
-			}
-			contents = append(contents, map[string]any{"role": "model", "parts": parts})
-		case m.ToolCallID != "":
-			// A tool result — buffered into the current round, not emitted yet.
-			name := ""
-			if len(pending) > 0 {
-				name = pending[0]
-				pending = pending[1:]
-			}
-			results = append(results, map[string]any{"functionResponse": map[string]any{"name": name, "response": map[string]any{"content": m.Content}}})
+			b.modelTurn(m.ToolCalls)
+		case m.ToolCallID != "" || (m.Role == "tool" && len(m.Media) == 0):
+			b.result(m)
 		case len(m.Media) > 0:
-			// Round 063 (ADR 0033 D2/D3): a media-bearing message is its OWN
-			// `user` turn — media lead the turn. Round 065 buffers it so the
-			// round's media turns are emitted AFTER the batched function-response
-			// turn; it is never merged INTO a functionResponse turn, so the Vertex
-			// parser's ordering hazard (#1441: a user turn whose functionResponse
-			// precedes an inlineData part) cannot arise by construction.
-			mediaTurns = append(mediaTurns, inlineDataParts(m.Content, m.Media))
+			// Round 063 (ADR 0033 D2/D3): a media-bearing message that is NOT a
+			// tool result is its OWN `user` turn — media lead the turn. Round 065
+			// buffers it so the round's media turns are emitted AFTER the batched
+			// function-response turn; it is never merged INTO a functionResponse
+			// turn, so the Vertex parser's ordering hazard (#1441: a user turn
+			// whose functionResponse precedes an inlineData part) cannot arise by
+			// construction. (The tool-result case above is restricted to a
+			// media-free `tool` message, so a media-bearing one is still carried —
+			// I-4: never silently lose an image.)
+			b.mediaTurns = append(b.mediaTurns, inlineDataParts(m.Content, m.Media))
 		default:
-			flush()
-			contents = append(contents, map[string]any{
-				"role":  vertexRole(m.Role),
-				"parts": []map[string]any{{"text": m.Content}},
-			})
+			b.textTurn(m)
 		}
 	}
-	flush()
+	b.flush()
 	if prompt != "" {
-		contents = append(contents, map[string]any{"role": "user", "parts": []map[string]any{{"text": prompt}}})
+		b.contents = append(b.contents, map[string]any{"role": "user", "parts": []map[string]any{{"text": prompt}}})
 	}
-	return contents
+	return b.contents
+}
+
+// callEntry is one function call of the current round awaiting its result.
+type callEntry struct {
+	id   string // the call's wire id (may be empty)
+	name string
+	used bool
+}
+
+// roundBuilder accumulates a round's `contents` and buffers the round's tool
+// results + media until the round boundary (see [buildContents]).
+type roundBuilder struct {
+	contents     []map[string]any
+	pending      []callEntry            // this round's function calls awaiting their result
+	resultParts  map[int]map[string]any // one functionResponse PART per matched call index
+	extraResults []map[string]any       // results with no call to bind (kept, name "")
+	mediaTurns   [][]map[string]any     // this round's standalone media turns
+}
+
+// flush emits the buffered round: the batched function-response turn (when any
+// results were buffered) — its parts in CALL order, with any unbound results
+// appended — followed by the round's standalone media turns. It also drops EVERY
+// call still pending at the boundary: a round boundary means no further result
+// can arrive for the flushed round, so a call left unpaired (a round that yielded
+// M < N results) contributes no part — the batched turn carries the M parts the
+// round actually produced (the doc-recorded shape — a provider that rejects it
+// surfaces the same 400, never a silent mispair).
+func (b *roundBuilder) flush() {
+	if len(b.resultParts) > 0 || len(b.extraResults) > 0 {
+		parts := make([]map[string]any, 0, len(b.pending))
+		for i := range b.pending {
+			if p, ok := b.resultParts[i]; ok {
+				parts = append(parts, p)
+			}
+		}
+		parts = append(parts, b.extraResults...)
+		b.contents = append(b.contents, map[string]any{"role": "user", "parts": parts})
+	}
+	b.resultParts = map[int]map[string]any{}
+	b.extraResults = nil
+	b.pending = nil
+	for _, parts := range b.mediaTurns {
+		b.contents = append(b.contents, map[string]any{"role": "user", "parts": parts})
+	}
+	b.mediaTurns = make([][]map[string]any, 0)
+}
+
+// modelTurn flushes the previous round, emits this round's `model` turn, and
+// records its calls for pairing.
+func (b *roundBuilder) modelTurn(calls []llm.ToolCall) {
+	b.flush() // a new model turn starts a new round
+	parts := make([]map[string]any, 0, len(calls))
+	for _, tc := range calls {
+		b.pending = append(b.pending, callEntry{id: tc.ID, name: tc.Name})
+		parts = append(parts, functionCallPart(tc))
+	}
+	b.contents = append(b.contents, map[string]any{"role": "model", "parts": parts})
+}
+
+// functionCallPart builds a `model` turn's functionCall part (with the call's id
+// when non-empty + the replayed `thoughtSignature` when present).
+func functionCallPart(tc llm.ToolCall) map[string]any {
+	var args any = map[string]any{}
+	if strings.TrimSpace(tc.Arguments) != "" {
+		_ = json.Unmarshal([]byte(tc.Arguments), &args)
+	}
+	fc := map[string]any{"name": tc.Name, "args": args}
+	if tc.ID != "" {
+		fc["id"] = tc.ID
+	}
+	part := map[string]any{"functionCall": fc}
+	// Gemini 3 requires the model's `thoughtSignature` to be echoed back on the
+	// replayed functionCall part (else HTTP 400).
+	if tc.Signature != "" {
+		part["thoughtSignature"] = tc.Signature
+	}
+	return part
+}
+
+// result buffers a tool result, bound to its call by `ToolCallID` (else the FIFO
+// fallback), for the current round (not emitted yet). The response `id` is
+// emitted ONLY when it equals the id of the call it bound to (the reference's
+// `response.id == call.id` invariant) — a foreign id (an unmatched result whose
+// id is on no call of the round) is omitted, so the wire never carries a
+// `functionResponse.id` that is absent from the round's `functionCall` parts.
+func (b *roundBuilder) result(m llm.Message) {
+	idx := b.bind(m.ToolCallID)
+	fr := map[string]any{"name": "", "response": map[string]any{"content": m.Content}}
+	if idx < 0 {
+		b.extraResults = append(b.extraResults, map[string]any{"functionResponse": fr})
+		return
+	}
+	b.pending[idx].used = true
+	fr["name"] = b.pending[idx].name
+	if m.ToolCallID != "" && m.ToolCallID == b.pending[idx].id {
+		fr["id"] = m.ToolCallID
+	}
+	b.resultParts[idx] = map[string]any{"functionResponse": fr}
+}
+
+// bind returns the index of the call a result pairs with — by `ToolCallID`
+// (identity, order-independent), else the FIFO fallback by arrival — or -1.
+func (b *roundBuilder) bind(id string) int {
+	if id != "" {
+		for i := range b.pending { // primary: pair by identity
+			if !b.pending[i].used && b.pending[i].id == id {
+				return i
+			}
+		}
+	}
+	for i := range b.pending { // fallback: FIFO by arrival (id-less / unmatched)
+		if !b.pending[i].used {
+			return i
+		}
+	}
+	return -1
+}
+
+// textTurn flushes the previous round and emits a plain-text turn.
+func (b *roundBuilder) textTurn(m llm.Message) {
+	b.flush()
+	b.contents = append(b.contents, map[string]any{
+		"role":  vertexRole(m.Role),
+		"parts": []map[string]any{{"text": m.Content}},
+	})
 }
 
 // inlineDataParts builds a `user` turn's parts for a media-bearing message

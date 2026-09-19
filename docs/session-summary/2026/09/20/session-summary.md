@@ -183,3 +183,111 @@ A later session on the same calendar day: opened **round 065** from anchor issue
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
 *(Round 065 is fully closed out: PR #133 human-merged into `dev` (`b904281`, merge commit); propagation `dev → main` **DONE (no-ff, `3b9bf8c`)**, tagged **`round-065`**; the installed binary refreshed; [#132](https://github.com/gosharplite/tellme/issues/132) closed.)*
+
+---
+
+## 7. Session 43 (2026-09-20, cont.) — round-065 live check **PERFORMED AND PASSED**: one real Vertex turn with two tool calls in one round completes cleanly (the #132 fix witnessed on a real endpoint)
+
+A later session on the same calendar day: the round-065 closeout left exactly one open, non-gating item — the **live re-check** (a real Vertex/Gemini turn with two tool calls), which the hermetic closeout could not run for want of a live credential. At the operator's direction the check was run **through the `coder` peer on the `dev` provider** (per `tmg-chat-ingroup`: marker-led prompt staged in `/tmp`, `env -u TELL_ME_MODE`, `TELL_ME_SELECTED_PROVIDER=dev`), and the outcome was **recorded durably** (ADR 0035 + `STATUS.md`).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | witness the **round-065 / ADR 0035** batching fix on a **real Vertex** endpoint (the one open, non-gating closeout item) |
+| Method | `tmg-chat-ingroup` orchestrator side: staged a remote-party-marked prompt in `/tmp/tellme-prompt.K5stxk` (`write_file`, not a heredoc) → `env -u TELL_ME_MODE TELL_ME_HOME=$WS TELL_ME_SELECTED_PROVIDER=dev tellme --new -r -c $WS/configs/coder.yaml < $STAGING` → retrieve via `-l 1` → `rm` the staging file |
+| Provider | `dev` = `gemini-3.8-flash`, **Vertex** (real endpoint), as **explicitly requested** by the operator (the peer otherwise inherits the orchestrator's own model) |
+| The turn | **2 tool calls in ONE round**, same instant `05:44:39`: `read_files([note1.txt, note2.txt])` + `list_files(/tmp/tellme-livecheck)` — the media-free pair that 400'd as *Run C* in the round-063 live check |
+| Result | **PASS** — follow-up request completed (`Payload: 11890/1000000 tokens`), **`exit 0`**, self-reported **`ANOMALY: None`**, **zero `400`s**; chrome header read `coder - gemini-3.8-flash`; `wc -c output/coder/history.jsonl` non-zero |
+| Fixtures honoured | `NOTE1: ALPHA note: the sky is green.` · `NOTE2: BETA note: the sky is orange.` (read from `/tmp/tellme-livecheck/`) |
+| Recorded | **ADR 0035** — `## Verification` *Live* bullet now carries the outcome; §Forward gains a *Live check — CLOSED (verified)* line. **`STATUS.md`** — header (session 43) + the open item flipped **pending → DONE (live-verified)** + the round-065 env note. Evidence (transient): `/tmp/tellme-livecheck/r065_send.{stdout,stderr}` |
+
+### Why this closes it
+
+The round-063 live check had produced a three-run matrix whose **Run C** — *2 × `read_files`, no media, one round* — failed with the verbatim `400 … Please ensure that the number of function response parts is equal to the number of function call parts …` (a defect proven **media-agnostic**, per-call `tool` message since round 008). Round 065 (ADR 0035) batched a model round's `functionResponse` parts into **one** `user` turn. This session re-ran the identical *Run C* shape on a real Vertex endpoint and it now completes cleanly — the fix is verified **on the wire**, not only by the unit pin + fake-provider E2E.
+
+### Decisions / records
+
+| # | Item |
+| --- | --- |
+| — | The provider override (`dev`) was used **only** because the operator explicitly named it (the `tmg-chat-ingroup` §5 rule); the check is otherwise a standard peer dispatch. |
+| — | The live-check outcome is homed on **durable surfaces** — **ADR 0035** (the decision record) + **`STATUS.md`** (live state) — mirroring the session-40 RF-063-2 precedent. |
+| — | **No** product code, truth, or `specs/plans/**` file changed (the round-065 package stays frozen); the **only** remaining round-065 forward items are **RF-065-1…5** (ADR 0035 §Forward), all untouched by this check. |
+
+### Next steps
+
+1. Open round **`066-*`** off `dev` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling · the `ToolSetSpec` seam RF-062-10/RF-063-6 · RF-065-1 the `ToolCallID` pairing · RF-063-10 the meta-Rule clean-up).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 8. Session 44 (2026-09-20, cont.) — round 066 `066-toolcall-id-pairing` **OPENED** (goal: close [#134](https://github.com/gosharplite/tellme/issues/134)): `/axb-specify` delivered the plan package
+
+A later session on the same calendar day: the operator chose the RF-065-1 candidate and directed *"Open round 066-*, **the goal is to close issue #134**."* A new branch **`066-toolcall-id-pairing`** was created **off `dev`**, and **`/axb-specify`** produced the round's plan package (`spec.md` · `checklists/requirements.md` · `truth-delta.md` skeleton). No `specs/truth/**` file is written by this skill.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`066-toolcall-id-pairing`** (off `dev` `babeff7`) |
+| Anchor | [#134](https://github.com/gosharplite/tellme/issues/134) (ADR 0035 §Forward **RF-065-1**) — **the round's DoD is closing #134** |
+| Theme | **hardening/parity, not a defect fix**: the Gemini/Vertex adapter **carries an `id` on every `functionCall`/`functionResponse` part** and binds each result to its call **by `ToolCallID`** (order-independent), **FIFO name matching retained as fallback** |
+| Clarify | **not escalated (0 questions)** — the goal is unambiguous and the change is grounded + reproduced in #134; the residuals (id provenance/fallback spelling, unmatched accounting) are **technical** → `/axb-technical-research` |
+| Artifacts | `spec.md` (US1 id-linked wire — P1 · US2 pair-by-id — P2 · FR-001…FR-010 · SC-001…SC-007 · S-1…S-7 · I-1…I-7 · A1…A7) · `checklists/requirements.md` (Ready) · `truth-delta.md` skeleton (owner rows expected) |
+| Key disclosure | the round **adds an `id` key** to the Gemini tool parts ⇒ a tool-bearing Gemini body is **shape-identical, not byte-identical**; **byte-identity is claimed only** for the media-free text path (I-3) and the OpenAI-compatible wire (I-1) — the round-065 I-2/I-3 byte claims are **narrowed** (A7) |
+
+### Decisions locked (round 066, this phase)
+
+| # | Decision |
+| --- | --- |
+| — | Round **066** opens from **anchor [#134](https://github.com/gosharplite/tellme/issues/134)**; **DoD = closing #134**. |
+| — | **Family-local** scope (`internal/infrastructure/llm/gemini`) + pins + the round-066 truth rows; the **OpenAI-compatible wire is frozen** (I-1). |
+| — | The residual **technical** choices are **S-4** (id provenance / fallback spelling) and **S-6** (exact unmatched accounting) → `/axb-technical-research`; **no** `NEEDS CLARIFICATION` remains. |
+| — | `/axb-spec-by-example` is **expected NOOP** (no user-visible behaviour change — the 042/043/045–052 structure-round precedent); `/axb-dsl-refine` is **NOOP or a small MODIFY** iff the fake can observe wire ids (research decides). |
+
+### Next steps
+
+1. `/axb-spec-by-example` (expected **NOOP**) + `/axb-technical-research` (the id decision + `techstack.md` MODIFY + the new ADR) → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`.
+2. Then the review chain (the `architect` peer) → **human merge** of the round PR into `dev` → closeout (propagate `dev → main` no-ff, tag `round-066`, close [#134](https://github.com/gosharplite/tellme/issues/134)).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `066-toolcall-id-pairing`).
+
+---
+
+## 9. Session 45 (2026-09-20, cont.) — round 066 `066-toolcall-id-pairing`: implementation → architect review-fold loop (4 passes, CLOSED) → **human-merged (PR #135 → `dev` `e4410e4`, fast-forward)** → branch cleanup → closeout (Steps 1–8)
+
+A later session on the same calendar day, continuing round 066: the operator directed *"Keep going unless you need to ask me question"*, then asked to **dispatch the `architect` peer** (initialised once with `SESSION-BOOTSTRAP.md`, no `--new` after) to review PR #135 and run the **review-fold loop until the PR is ready for a human to merge**. After the human merge, the operator confirmed it and the **local branch was deleted** (remote already gone), and `SESSION-CLOSEOUT.md` ran.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Implementation | `buildContents` → `roundBuilder` (`modelTurn`/`result`/`bind`/`flush`/`textTurn` + `functionCallPart`) — the id-link + id-keyed pairing; 6 new unit pins (`client_ids_test.go`) + the id assertion in the two round-065 batch pins. `buildContents` was refactored to stay under the `cyclop` lint gate (CC 26 → ≤15). |
+| Architect loop | the `architect` peer (init once with `SESSION-BOOTSTRAP.md`) — review `5258004457` (**APPROVE WITH REQUIRED FOLDS**, 0 blockers) → fold `a9d8080` → fold verification `5258037752` (**REQUEST CHANGES**: F-066-3, **F-066-4**) → fold `45239e5`/`17dc8a8` → re-verification `5258047255` (F-066-5 + nits) → fold `92d86e2` → **final `5258056611` — `FOLDS VERIFIED — CLEARED FOR HUMAN MERGE`** |
+| Real findings folded | **F-066-2** (code): the id-less-`tool` widening silently dropped media on a media-bearing `tool`-role message → restricted to media-free `tool` messages + pin. **TD-066-1** (code): a **foreign** `functionResponse.id` reached the wire → now omitted unless it equals the bound call's id. **TD-066-2**: "the FIFO fallback is load-bearing for replay" was the wrong mechanism (the loop sets the same `call_step_<n>` on both sides → replay is id-primary) → wording corrected + pin. **F-066-1/3/5** (records): the "exact unmatched-identity accounting" claim was not delivered → corrected across the plan package + ADR. **F-066-4**: the first live check had run the **GOPATH** (round-065) binary → re-run with a **branch-built** binary. |
+| Live check | branch-built binary (`go version -m` → `…-45239e5757f6`, head `45239e5`, clean tree); one Vertex turn with **two tool calls in one round** → `exit 0`, `ANOMALY: None`, zero `400`s (the new `id` key is accepted live); recorded in ADR 0036 with provenance. |
+| Merge | PR [#135](https://github.com/gosharplite/tellme/pull/135) **human-merged** into `dev` (`e4410e4`, **fast-forward**; the merge commit equals the round head); remote branch deleted by the human, then the **local branch deleted** after an ancestor check (`git branch -d`, was `e4410e4`). |
+| Closeout | gates green at the delivered head — `gofmt`/`go vet`/`go build` clean · `go test -count=1 ./...` **green** (24 pkgs incl. the godog E2E) · `make verify` **OK** · topology audit **5 pre-existing, none new** · `STATUS.md` split (round-065 detail + its branch row + its env note → `docs/archives/status/2026-09-20.md`) · propagated `dev → main` (no-ff) + tag **`round-066`** · `go install` · **[#134](https://github.com/gosharplite/tellme/issues/134) CLOSED** |
+
+### Work done
+
+1. **Implementation** — the id-link + id-keyed pairing in `buildContents` (refactored to a `roundBuilder`), the six new unit pins, the witness reproductions, the gates.
+2. **The review-fold loop** — the `architect` peer (init once with `SESSION-BOOTSTRAP.md`; every later send a continuation, **no `--new`**), which found two genuine code hazards (F-066-2 media loss; TD-066-1 foreign id) and two incorrect record claims, and — crucially — **caught that the first live check had exercised the wrong binary** (F-066-4). Each fold was posted as a PR comment ledger; the loop closed with `FOLDS VERIFIED — CLEARED FOR HUMAN MERGE`.
+3. **Merge + cleanup + closeout** — PR #135 merged (`e4410e4`); branch deleted (local + remote); `SESSION-CLOSEOUT.md` Steps 1–8; **#134 closed**.
+
+### Records / decisions
+
+| # | Item |
+| --- | --- |
+| — | **ADR 0036** records the id-link + id-keyed pairing; it **extends ADR 0035** and **delivers its §Forward RF-065-1**; ADR 0035's `Status` + D2 note + RF-065-1 + index row annotated. |
+| — | **RF-066-1…10** homed in ADR 0036 §Forward (the narrowed byte-identity claim · provider-issued id preference · a fake-side contract check · concurrent execution · an order-independence carrier · the unpaired-call accessor · the still-open `N=2 M=1` residual · the fixture-based replay pin · the branch-binary live-check convention). |
+| — | **Process note (new)**: the in-group live-check harness resolves the closeout-refreshed **GOPATH** binary — a **mid-round** live check must build the **branch** binary and record `go version -m` provenance (RF-066-10). |
+| — | **Process note (new, honest-claims)**: a review finding can be created by the **harness**, not the code (F-066-4) — verify the *instrument*, not only the artifact. |
+
+### Next steps
+
+1. Open round **`067-*`** off `dev` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling · the `ToolSetSpec` seam RF-062-10/RF-063-6 · RF-066-2 the provider-issued id preference · RF-066-7 the unpaired-call accessor).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+*(Round 066 is fully closed out: PR #135 human-merged into `dev` (`e4410e4`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-066`**; the installed binary refreshed; [#134](https://github.com/gosharplite/tellme/issues/134) closed.)*
+
+
