@@ -89,8 +89,9 @@ func buildDeps() deps.Dependencies {
 // provider (round 062; ADR 0032) — the image reader. It stays PARAMETERLESS for
 // the no-vision default (the round-031 well-formedness gate iterates it here):
 // the `list_skills` catalog source is unbound here and bound on the prompt path
-// only (round 044).
-func agentTools() []domaintools.Tool { return assembleAgentTools(nil, false) }
+// only (round 044). `read_image` is NOT part of this default set, so its ceiling
+// input is unused (0).
+func agentTools() []domaintools.Tool { return assembleAgentTools(nil, false, 0) }
 
 // assembleAgentTools builds the agent tool set with the `[Tool Output]` sink
 // injected into the command tool at CONSTRUCTION (round 052, closing #115 R-2;
@@ -98,14 +99,16 @@ func agentTools() []domaintools.Tool { return assembleAgentTools(nil, false) }
 // `--tool-usage` path never execute a tool); the prompt path passes the live
 // `prog.ToolOutput` sink. The `vision` flag (round 062) appends the `read_image`
 // tool only when the selected provider declares the capability, so the offered
-// set tells the model the truth.
-func assembleAgentTools(sink domaintools.OutputSink, vision bool) []domaintools.Tool {
+// set tells the model the truth; `imageCeiling` (round 063; ADR 0033 D4) is that
+// provider's resolved family inline ceiling, enforced by the tool as a loud
+// refusal before the wire.
+func assembleAgentTools(sink domaintools.OutputSink, vision bool, imageCeiling int) []domaintools.Tool {
 	tools := infratools.NewFilesystemTools()
 	tools = append(tools, infratools.NewWriteTools()...)
 	tools = append(tools, infratools.NewCommandTool(sink))
 	tools = append(tools, infratools.NewSkillsTool(nil))
 	if vision {
-		tools = append(tools, infratools.NewReadImageTool())
+		tools = append(tools, infratools.NewReadImageTool(imageCeiling))
 	}
 	return tools
 }
@@ -113,9 +116,12 @@ func assembleAgentTools(sink domaintools.OutputSink, vision bool) []domaintools.
 // newToolRegistry builds the agent registry (the agent loop's set), with the
 // `[Tool Output]` sink injected at construction (round 052; ADR 0021) and the
 // `read_image` tool gated by the provider's declared vision capability (round
-// 062; ADR 0032).
-func newToolRegistry(sink domaintools.OutputSink, vision bool) domaintools.Registry {
-	return domaintools.NewRegistry(assembleAgentTools(sink, vision)...)
+// 062; ADR 0032). Round 063 (ADR 0033 D4): the composition root resolves the
+// provider's family (single-owned by infrallm.Family) into the family-aware
+// inline ceiling the tool enforces.
+func newToolRegistry(sink domaintools.OutputSink, vision bool, providerType string) domaintools.Registry {
+	ceiling := infratools.ImageCeilingForFamily(infrallm.Family(providerType))
+	return domaintools.NewRegistry(assembleAgentTools(sink, vision, ceiling)...)
 }
 
 // newTUIRegistry builds the three-reader registry the `-i` suggestion source

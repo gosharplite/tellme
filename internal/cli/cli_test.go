@@ -133,7 +133,7 @@ func (failingUsageStore) Aggregate() (map[string]history.ToolUsageCounts, error)
 func TestRenderToolUsageDiagnosesReadError(t *testing.T) {
 	dp := defaultTestDeps(func(d *deps.Dependencies) {
 		d.NewToolUsageStore = func(func() (string, error)) history.ToolUsageStore { return failingUsageStore{} }
-		d.NewToolRegistry = func(domaintools.OutputSink, bool) domaintools.Registry {
+		d.NewToolRegistry = func(domaintools.OutputSink, bool, string) domaintools.Registry {
 			return domaintools.NewRegistry(noopTool{name: "list_files"})
 		}
 	})

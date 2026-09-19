@@ -15,26 +15,44 @@ import (
 // readImageToolName is the wire-valid canonical identifier (round 062; ADR 0032).
 const readImageToolName = "read_image"
 
-// imageMaxBytes is the inline image ceiling (32 MiB) — the OpenAI-compatible
-// wire's inline limit accepted by DeepSeek (ADR 0032 D6). An image past it is a
-// LOUD recoverable tool result, never truncated or partially sent.
-const imageMaxBytes = 32 << 20
+// Image inline ceilings (round 063; ADR 0033 D4) — the SINGLE owner of the
+// family-aware inline image byte ceiling. The OpenAI-compatible family keeps
+// round-062's 32 MiB (the wire's inline limit); the Gemini/Vertex family uses
+// 14 MiB, a CONSERVATIVE derivation from Vertex's documented ≈20 MB inline
+// *request* bound: the tool measures RAW file bytes and base64 expands ≈4/3, so
+// 14 MiB → ≈18.7 MiB ≈19.6 MB on the wire — under the bound, so a file the tool
+// accepts cannot be rejected purely for size. (The exact documented figure/unit
+// is a §Forward item to confirm live; one owner ⇒ cheap to move.)
+const (
+	openAIImageCeiling = 32 << 20 // 32 MiB — the OpenAI-compatible inline limit (round 062)
+	geminiImageCeiling = 14 << 20 // 14 MiB — a conservative Gemini/Vertex inline ceiling (ADR 0033 D4)
+)
+
+// ImageCeilingForFamily returns the inline image byte ceiling for a provider
+// family label ("openai" or "gemini"); any other value (including "") defaults to
+// the OpenAI-compatible ceiling.
+func ImageCeilingForFamily(family string) int {
+	if family == "gemini" {
+		return geminiImageCeiling
+	}
+	return openAIImageCeiling
+}
 
 // The loud refusals (recoverable tool results fed back to the model). The
 // `ERROR:` prefix matches the sibling readers' nil-error recoverable class.
-const (
-	imageTooLargeResult = "ERROR: the image is too large to send inline (it exceeds the 32 MiB limit)."
-	notAPictureResult   = "ERROR: the content is not a supported picture (expected JPEG, PNG, GIF, or WebP)."
-)
+const notAPictureResult = "ERROR: the content is not a supported picture (expected JPEG, PNG, GIF, or WebP)."
 
 // readImage is the `read_image` agent tool (round 062): it reads a local image
 // and attaches it to the model-visible request. It is offered to the model ONLY
 // when the selected provider declares `VISION: true` (the assemblage gate in
-// cmd/tellme); the tool itself simply reads and attaches.
-type readImage struct{}
+// cmd/tellme); the tool itself simply reads and attaches. Round 063 (ADR 0033
+// D4) makes its inline ceiling the SELECTED provider's resolved family ceiling.
+type readImage struct{ maxBytes int }
 
-// NewReadImageTool builds the `read_image` agent tool.
-func NewReadImageTool() domaintools.Tool { return readImage{} }
+// NewReadImageTool builds the `read_image` agent tool with the resolved inline
+// ceiling (round 063; ADR 0033 D4) — the selected provider's family ceiling,
+// resolved at the composition root.
+func NewReadImageTool(maxBytes int) domaintools.Tool { return readImage{maxBytes: maxBytes} }
 
 // Name is the wire-valid canonical identifier.
 func (readImage) Name() string { return readImageToolName }
@@ -58,12 +76,12 @@ func (readImage) Parameters() json.RawMessage {
 }
 
 // Execute reads the named file, resolves its kind from the file's CONTENT
-// (magic bytes — never the extension), checks the 32 MiB inline ceiling, and
-// attaches the image to the current tool call's collector (llm.AttachMedia) so
-// the loop folds it back onto a `user` message (ADR 0032 D5/D6/D7). A file that
-// is too large, or not a supported picture, returns a LOUD recoverable result
-// (nil error) naming the problem; the image never reaches the request.
-func (readImage) Execute(ctx context.Context, arguments string, _ domaintools.ByteBudget) (string, error) {
+// (magic bytes — never the extension), checks the tool's resolved inline ceiling,
+// and attaches the image to the current tool call's collector (llm.AttachMedia)
+// so the loop folds it back onto a `user` message (ADR 0032 D5/D6/D7). A file
+// that is too large, or not a supported picture, returns a LOUD recoverable
+// result (nil error) naming the problem; the image never reaches the request.
+func (t readImage) Execute(ctx context.Context, arguments string, _ domaintools.ByteBudget) (string, error) {
 	if timedOut(ctx) {
 		return timeoutMarker, nil
 	}
@@ -88,17 +106,17 @@ func (readImage) Execute(ctx context.Context, arguments string, _ domaintools.By
 	if info.IsDir() {
 		return "ERROR: the path is a directory; read_image expects an image file.", nil
 	}
-	if info.Size() > imageMaxBytes {
-		return imageTooLargeResult, nil
+	if info.Size() > int64(t.maxBytes) {
+		return t.tooLargeResult(), nil
 	}
 	// Read the whole file (bounded one byte past the ceiling so a racing growth
 	// cannot exceed it silently).
-	data, err := io.ReadAll(io.LimitReader(f, imageMaxBytes+1))
+	data, err := io.ReadAll(io.LimitReader(f, int64(t.maxBytes)+1))
 	if err != nil {
 		return "", fmt.Errorf("read_image: failed to read file: %w", err)
 	}
-	if len(data) > imageMaxBytes {
-		return imageTooLargeResult, nil
+	if len(data) > t.maxBytes {
+		return t.tooLargeResult(), nil
 	}
 	mime, ok := imageMIME(data)
 	if !ok {
@@ -109,6 +127,12 @@ func (readImage) Execute(ctx context.Context, arguments string, _ domaintools.By
 	}
 	llm.AttachMedia(ctx, llm.MediaPart{MIMEType: mime, Data: data})
 	return fmt.Sprintf("Successfully read image from %s (%s, %d bytes)", args.FilePath, mime, len(data)), nil
+}
+
+// tooLargeResult is the LOUD oversize refusal, naming the resolved limit (the
+// ceiling is family-aware — ADR 0033 D4).
+func (t readImage) tooLargeResult() string {
+	return fmt.Sprintf("ERROR: the image is too large to send inline (it exceeds the %d MiB limit).", t.maxBytes>>20)
 }
 
 // imageMIME resolves the media type from the file's CONTENT (magic bytes) for

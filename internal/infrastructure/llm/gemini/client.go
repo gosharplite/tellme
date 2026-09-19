@@ -15,6 +15,7 @@ package gemini
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -69,14 +70,6 @@ func New(cfg Config) (*Client, error) {
 // Complete sends exactly one non-streaming Vertex `:generateContent` request and
 // returns the normalized answer. Every failure is wrapped in a *llm.ProviderError.
 func (c *Client) Complete(ctx context.Context, req llm.Request) (llm.Response, error) {
-	// Round 062 (ADR 0032 D4): the Gemini family has NO `inline_data` image path
-	// this round, so a media-bearing message is a LOUD failure rather than a
-	// silent drop — a capability the operator declared must never quietly lose an
-	// image. (A provider entry declaring VISION: true on a gemini family is an
-	// operator declaration error surfaced here.)
-	if hasMedia(req.Messages) {
-		return llm.Response{}, c.wrap(fmt.Errorf("this provider family cannot carry images yet; remove VISION: true or use an OpenAI-compatible provider"))
-	}
 	body, err := requestBody(req.Prompt, req.Messages, req.Tools, c.cfg.MaxTokens, c.cfg.ThinkingBudget, c.cfg.ThinkingLevel, c.cfg.Persona)
 	if err != nil {
 		return llm.Response{}, c.wrap(err)
@@ -164,16 +157,6 @@ func requestBody(prompt string, prior []llm.Message, toolDefs []llm.ToolDef, max
 	return json.Marshal(payload)
 }
 
-// hasMedia reports whether any conversation message carries media (round 062).
-func hasMedia(msgs []llm.Message) bool {
-	for _, m := range msgs {
-		if len(m.Media) > 0 {
-			return true
-		}
-	}
-	return false
-}
-
 // buildContents maps the conversation (prior messages + the current prompt) to
 // Vertex `contents`: assistant tool calls under `role:"model"` functionCall, tool
 // results under `role:"user"` functionResponse (Vertex rejects `role:"tool"`),
@@ -210,6 +193,17 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 				"role":  "user",
 				"parts": []map[string]any{{"functionResponse": map[string]any{"name": name, "response": map[string]any{"content": m.Content}}}},
 			})
+		case len(m.Media) > 0:
+			// Round 063 (ADR 0033 D2/D3): a media-bearing message becomes its OWN
+			// `user` turn — media lead the turn — serialized directly AFTER the
+			// round's `functionResponse` turn. It is never merged INTO a
+			// functionResponse turn, so the Vertex parser's ordering hazard
+			// (#1441: a user turn whose functionResponse precedes an inlineData
+			// part) cannot arise by construction.
+			contents = append(contents, map[string]any{
+				"role":  "user",
+				"parts": inlineDataParts(m.Content, m.Media),
+			})
 		default:
 			contents = append(contents, map[string]any{
 				"role":  vertexRole(m.Role),
@@ -221,6 +215,28 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 		contents = append(contents, map[string]any{"role": "user", "parts": []map[string]any{{"text": prompt}}})
 	}
 	return contents
+}
+
+// inlineDataParts builds a `user` turn's parts for a media-bearing message
+// (round 063; ADR 0033 D3): an optional leading text part, then one `inlineData`
+// blob per media part. The keys are camelCase proto-JSON (`inlineData`/
+// `mimeType`) — consistent with the adapter's other emitted keys — and the data
+// is base64 StdEncoding (the Vertex REST proto-JSON form). The MIME kind is
+// resolved upstream by the shared `read_image` sniff, so no second sniffer exists.
+func inlineDataParts(text string, media []llm.MediaPart) []map[string]any {
+	parts := make([]map[string]any, 0, len(media)+1)
+	if text != "" {
+		parts = append(parts, map[string]any{"text": text})
+	}
+	for _, mp := range media {
+		parts = append(parts, map[string]any{
+			"inlineData": map[string]any{
+				"mimeType": mp.MIMEType,
+				"data":     base64.StdEncoding.EncodeToString(mp.Data),
+			},
+		})
+	}
+	return parts
 }
 
 // buildGenerationConfig builds the Vertex `generationConfig` (output cap +

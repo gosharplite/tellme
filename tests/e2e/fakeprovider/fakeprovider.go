@@ -235,20 +235,31 @@ func (p *Provider) BodyAt(i int) string {
 	return p.bodies[i]
 }
 
-// ToolNamesAt returns the wire tool-definition names (`tools[].function.name`)
-// sent on request i (i < 0 → the last). Round-008 T006.
+// ToolNamesAt returns the wire tool-definition names sent on request i (i < 0 →
+// the last). Round-008 T006 for the OpenAI-compatible wire
+// (`tools[].function.name`); round 063 also reads the Vertex/Gemini wire
+// (`tools[].functionDeclarations[].name`), so the offered-set assertions work on
+// either family.
 func (p *Provider) ToolNamesAt(i int) []string {
 	var req struct {
 		Tools []struct {
 			Function struct {
 				Name string `json:"name"`
 			} `json:"function"`
+			FunctionDeclarations []struct {
+				Name string `json:"name"`
+			} `json:"functionDeclarations"`
 		} `json:"tools"`
 	}
 	_ = json.Unmarshal([]byte(p.BodyAt(i)), &req)
 	names := make([]string, 0, len(req.Tools))
 	for _, t := range req.Tools {
-		names = append(names, t.Function.Name)
+		if t.Function.Name != "" {
+			names = append(names, t.Function.Name)
+		}
+		for _, d := range t.FunctionDeclarations {
+			names = append(names, d.Name)
+		}
 	}
 	return names
 }

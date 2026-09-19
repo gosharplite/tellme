@@ -158,40 +158,96 @@ func lastBody(sc *scenarioContext) string {
 	return f.BodyAt(-1)
 }
 
-// imageURIs extracts every `image_url.url` string from a recorded request body.
-func imageURIs(body string) []string {
-	var req struct {
+// recordedImage is one image block the fake provider recorded — decoded from
+// EITHER wire shape (round 063 widens the round-062 helpers family-aware).
+type recordedImage struct {
+	mime string
+	data []byte
+}
+
+// recordedImages extracts every image from a recorded request body on either
+// family: the OpenAI-compatible inline `image_url` data URI, or the
+// Vertex/Gemini `inlineData` blob. An image is either carried or it is not — no
+// other shape exists.
+func recordedImages(body string) []recordedImage {
+	var out []recordedImage
+	// OpenAI-compatible: messages[].content[] with an image_url data URI.
+	var oai struct {
 		Messages []struct {
 			Content json.RawMessage `json:"content"`
 		} `json:"messages"`
 	}
-	if err := json.Unmarshal([]byte(body), &req); err != nil {
-		return nil
-	}
-	var uris []string
-	for _, m := range req.Messages {
-		var parts []struct {
-			Type     string `json:"type"`
-			ImageURL struct {
-				URL string `json:"url"`
-			} `json:"image_url"`
-		}
-		if err := json.Unmarshal(m.Content, &parts); err != nil {
-			continue
-		}
-		for _, p := range parts {
-			if p.Type == "image_url" && p.ImageURL.URL != "" {
-				uris = append(uris, p.ImageURL.URL)
+	if json.Unmarshal([]byte(body), &oai) == nil {
+		for _, m := range oai.Messages {
+			var parts []struct {
+				Type     string `json:"type"`
+				ImageURL struct {
+					URL string `json:"url"`
+				} `json:"image_url"`
+			}
+			if json.Unmarshal(m.Content, &parts) != nil {
+				continue
+			}
+			for _, p := range parts {
+				if p.Type != "image_url" || p.ImageURL.URL == "" {
+					continue
+				}
+				if img, ok := decodeDataURI(p.ImageURL.URL); ok {
+					out = append(out, img)
+				}
 			}
 		}
 	}
-	return uris
+	// Vertex/Gemini: contents[].parts[] with an inlineData blob.
+	var vertex struct {
+		Contents []struct {
+			Parts []struct {
+				InlineData *struct {
+					MIMEType string `json:"mimeType"`
+					Data     string `json:"data"`
+				} `json:"inlineData"`
+			} `json:"parts"`
+		} `json:"contents"`
+	}
+	if json.Unmarshal([]byte(body), &vertex) == nil {
+		for _, c := range vertex.Contents {
+			for _, p := range c.Parts {
+				if p.InlineData == nil {
+					continue
+				}
+				data, err := base64.StdEncoding.DecodeString(p.InlineData.Data)
+				if err != nil {
+					continue
+				}
+				out = append(out, recordedImage{mime: p.InlineData.MIMEType, data: data})
+			}
+		}
+	}
+	return out
 }
 
-// readImageToolResult returns the raw content of the `tool`-role message that
-// answers the recorded `read_image` call (matched by tool_call_id) — so the
-// refusal Thens read the RIGHT authority, not any message (PR #129 fold
-// F-062-5a).
+// decodeDataURI decodes an inline `data:<mime>;base64,<data>` URI.
+func decodeDataURI(uri string) (recordedImage, bool) {
+	const marker = ";base64,"
+	if !strings.HasPrefix(uri, "data:") {
+		return recordedImage{}, false
+	}
+	i := strings.Index(uri, marker)
+	if i < 0 {
+		return recordedImage{}, false
+	}
+	mime := strings.TrimPrefix(uri[:i], "data:")
+	data, err := base64.StdEncoding.DecodeString(uri[i+len(marker):])
+	if err != nil {
+		return recordedImage{}, false
+	}
+	return recordedImage{mime: mime, data: data}, true
+}
+
+// readImageToolResult returns the raw content of the folded-back `read_image`
+// result on EITHER wire — the OpenAI-compatible `tool`-role message (matched by
+// tool_call_id; PR #129 fold F-062-5a) or the Vertex `functionResponse` named
+// read_image (round 063) — so the refusal Thens read the RIGHT authority.
 func readImageToolResult(body string) (string, bool) {
 	var req struct {
 		Messages []struct {
@@ -206,63 +262,74 @@ func readImageToolResult(body string) (string, bool) {
 			} `json:"tool_calls"`
 		} `json:"messages"`
 	}
-	if err := json.Unmarshal([]byte(body), &req); err != nil {
-		return "", false
-	}
-	callID := ""
-	for _, m := range req.Messages {
-		for _, tc := range m.ToolCalls {
-			if tc.Function.Name == "read_image" {
-				callID = tc.ID
+	if json.Unmarshal([]byte(body), &req) == nil {
+		callID := ""
+		for _, m := range req.Messages {
+			for _, tc := range m.ToolCalls {
+				if tc.Function.Name == "read_image" {
+					callID = tc.ID
+				}
+			}
+		}
+		if callID != "" {
+			for _, m := range req.Messages {
+				if m.Role == "tool" && m.ToolCallID == callID {
+					var s string
+					if err := json.Unmarshal(m.Content, &s); err == nil {
+						return s, true
+					}
+					return string(m.Content), true
+				}
 			}
 		}
 	}
-	if callID == "" {
-		return "", false
+	// Vertex: a user turn's functionResponse named read_image.
+	var vertex struct {
+		Contents []struct {
+			Parts []struct {
+				FunctionResponse *struct {
+					Name     string `json:"name"`
+					Response struct {
+						Content string `json:"content"`
+					} `json:"response"`
+				} `json:"functionResponse"`
+			} `json:"parts"`
+		} `json:"contents"`
 	}
-	for _, m := range req.Messages {
-		if m.Role == "tool" && m.ToolCallID == callID {
-			var s string
-			if err := json.Unmarshal(m.Content, &s); err == nil {
-				return s, true
+	if json.Unmarshal([]byte(body), &vertex) == nil {
+		for _, c := range vertex.Contents {
+			for _, p := range c.Parts {
+				if p.FunctionResponse != nil && p.FunctionResponse.Name == "read_image" {
+					return p.FunctionResponse.Response.Content, true
+				}
 			}
-			return string(m.Content), true
 		}
 	}
 	return "", false
 }
 
 // thenRequestCarriedImage asserts the recorded request carries the named file's
-// image bytes exactly (decoded from the inline data URI).
+// image bytes exactly (either wire shape; round 063 widens it family-aware).
 func thenRequestCarriedImage(ctx context.Context, name string) error {
 	sc := scenarioFrom(ctx)
 	want, err := os.ReadFile(filepath.Join(sc.workDir, filepath.FromSlash(name)))
 	if err != nil {
 		return err
 	}
-	body := lastBody(sc)
-	for _, uri := range imageURIs(body) {
-		const marker = ";base64,"
-		i := strings.Index(uri, marker)
-		if i < 0 {
-			continue
-		}
-		data, err := base64.StdEncoding.DecodeString(uri[i+len(marker):])
-		if err != nil {
-			continue
-		}
-		if string(data) == string(want) {
+	imgs := recordedImages(lastBody(sc))
+	for _, img := range imgs {
+		if string(img.data) == string(want) {
 			return nil
 		}
 	}
-	return fmt.Errorf("the request did not carry the image file %q (image URIs: %v)", name, imageURIs(body))
+	return fmt.Errorf("the request did not carry the image file %q (%d image block(s) recorded)", name, len(imgs))
 }
 
 // thenImageAttachedAs asserts the request's image block declares the MIME type.
 func thenImageAttachedAs(ctx context.Context, mime string) error {
 	sc := scenarioFrom(ctx)
-	for _, uri := range imageURIs(lastBody(sc)) {
-		if strings.HasPrefix(uri, "data:"+mime+";base64,") {
+	for _, img := range recordedImages(lastBody(sc)) {
+		if img.mime == mime {
 			return nil
 		}
 	}
@@ -272,8 +339,8 @@ func thenImageAttachedAs(ctx context.Context, mime string) error {
 // thenRequestCarriedNoImage asserts NO image block reached the request.
 func thenRequestCarriedNoImage(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
-	if uris := imageURIs(lastBody(sc)); len(uris) > 0 {
-		return fmt.Errorf("the request carried an image: %v", uris)
+	if imgs := recordedImages(lastBody(sc)); len(imgs) > 0 {
+		return fmt.Errorf("the request carried %d image block(s)", len(imgs))
 	}
 	return nil
 }

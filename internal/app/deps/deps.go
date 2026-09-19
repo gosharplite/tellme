@@ -61,10 +61,13 @@ type Dependencies struct {
 	// set), with the `[Tool Output]` sink injected into the command tool at
 	// CONSTRUCTION (round 052, closing #115 R-2; ADR 0021) — the caller passes the
 	// live sink on the prompt path and nil on the offline `--tool-usage` path.
+	// The `vision` flag (round 062) gates `read_image`; round 063 adds the
+	// provider's TYPE label so the composition root resolves the family-aware
+	// inline image ceiling the tool enforces (ADR 0033 D4).
 	// NewTUIRegistry builds the three-reader registry the `-i` suggestion source
 	// consumes — a DISTINCT, narrower set (round-044 fix-1; reusing the agent
 	// registry would change the suggested tool names).
-	NewToolRegistry func(sink domaintools.OutputSink, vision bool) domaintools.Registry
+	NewToolRegistry func(sink domaintools.OutputSink, vision bool, providerType string) domaintools.Registry
 	NewTUIRegistry  func() domaintools.Registry
 
 	// BindSkillsCatalog rebinds the list_skills catalog source over the given

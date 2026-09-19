@@ -1,28 +1,84 @@
 package gemini
 
 import (
-	"context"
-	"errors"
+	"encoding/base64"
+	"encoding/json"
 	"strings"
 	"testing"
 
 	"github.com/gosharplite/tellme/internal/domain/llm"
 )
 
-// TestCompleteRefusesMediaLoudly pins round-062 (ADR 0032 D4): the Gemini family
-// has no inline_data image path this round, so a media-bearing message is a LOUD
-// *llm.ProviderError — never a silent drop. The check fires before any network
-// I/O, so no service-account credential is needed for this pin.
-func TestCompleteRefusesMediaLoudly(t *testing.T) {
-	c := &Client{cfg: Config{ProviderName: "vertex"}}
-	_, err := c.Complete(context.Background(), llm.Request{
-		Messages: []llm.Message{{Role: "user", Media: []llm.MediaPart{{MIMEType: "image/png", Data: []byte{0x89}}}}},
-	})
-	var perr *llm.ProviderError
-	if err == nil || !errors.As(err, &perr) {
-		t.Fatalf("err = %v, want *llm.ProviderError", err)
+// TestRequestBody_MediaBecomesInlineData pins round-063 (ADR 0033 D2/D3): a
+// media-bearing message becomes its OWN `user` contents entry, carrying one
+// `inlineData` part per media part (camelCase proto-JSON keys, base64
+// StdEncoding) — emitted AFTER the tool-result functionResponse turn, so the
+// Vertex parser's [InlineData][FunctionResponse] ordering hazard (#1441) cannot
+// arise. Round 062's loud refusal is retired: the family now CARRIES the image.
+func TestRequestBody_MediaBecomesInlineData(t *testing.T) {
+	data := []byte{0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A}
+	prior := []llm.Message{
+		{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_1", Name: "read_image", Arguments: `{"filepath":"shot.png"}`}}},
+		{Role: "tool", Content: "Successfully read image", ToolCallID: "call_1"},
+		{Role: "user", Media: []llm.MediaPart{{MIMEType: "image/png", Data: data}}},
 	}
-	if !strings.Contains(perr.Err.Error(), "cannot carry images") {
-		t.Errorf("error = %q, want the loud media refusal", perr.Err.Error())
+	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	if err != nil {
+		t.Fatalf("requestBody: %v", err)
+	}
+	if strings.Contains(string(body), `"inline_data"`) || strings.Contains(string(body), `"mime_type"`) {
+		t.Errorf("the wire must use the camelCase proto-JSON keys (`inlineData`/`mimeType`): %s", body)
+	}
+	var decoded struct {
+		Contents []struct {
+			Role  string           `json:"role"`
+			Parts []map[string]any `json:"parts"`
+		} `json:"contents"`
+	}
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(decoded.Contents) != 3 {
+		t.Fatalf("contents len = %d, want 3: %s", len(decoded.Contents), body)
+	}
+	// The tool result is the functionResponse turn...
+	fr, _ := decoded.Contents[1].Parts[0]["functionResponse"].(map[string]any)
+	if decoded.Contents[1].Role != "user" || fr == nil {
+		t.Fatalf("tool result turn is not a functionResponse: %+v", decoded.Contents[1])
+	}
+	// ...and the image is carried by the FOLLOWING user turn (after it).
+	media := decoded.Contents[2]
+	if media.Role != "user" {
+		t.Errorf("media turn role = %q, want user", media.Role)
+	}
+	blob, _ := media.Parts[0]["inlineData"].(map[string]any)
+	if blob == nil {
+		t.Fatalf("media turn carries no inlineData part: %+v", media.Parts)
+	}
+	if blob["mimeType"] != "image/png" {
+		t.Errorf("inlineData.mimeType = %v, want image/png", blob["mimeType"])
+	}
+	raw, _ := blob["data"].(string)
+	got, err := base64.StdEncoding.DecodeString(raw)
+	if err != nil {
+		t.Fatalf("inlineData.data is not base64: %v", err)
+	}
+	if string(got) != string(data) {
+		t.Errorf("inlineData bytes = %x, want the file's exact bytes %x", got, data)
+	}
+}
+
+// TestRequestBody_MediaFreeIsByteIdentical pins I-1 on the Gemini family: a
+// media-free conversation serializes BYTE-FOR-BYTE as before — any drift in the
+// text path reds this (the round-062 byte-identity control, carried to Gemini).
+func TestRequestBody_MediaFreeIsByteIdentical(t *testing.T) {
+	prior := []llm.Message{{Role: "user", Content: "hi"}}
+	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	if err != nil {
+		t.Fatalf("requestBody: %v", err)
+	}
+	const want = `{"contents":[{"parts":[{"text":"hi"}],"role":"user"}]}`
+	if string(body) != want {
+		t.Errorf("media-free body drifted:\n got %s\nwant %s", body, want)
 	}
 }
