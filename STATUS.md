@@ -1,8 +1,15 @@
 # tellme — Status
 
 **Last updated**: 2026-09-19 (session 32 — round **058** `058-grey-tool-output-content` **DELIVERED / FROZEN** — an operator chrome follow-up to round 057: **every** `[Tool Output]` line is now grey (the header, **each streamed content line**, and both separators — the whole block), superseding round 057's plain-content assumption **A3**; **ADR 0028**; PR [#124](https://github.com/gosharplite/tellme/pull/124) human-merged into `dev` `0e0844a` (**fast-forward**)). Prior: session 31 — round 057 (detail relocated to the archive below). **Session mode**: `butler`.
-**Active branch**: `dev` (round 058 delivered/frozen; the next round `059-*` opens off `dev`)
+**Active branch**: `059-darwin-metrics-and-1hz-cadence` (off `dev`) — **round 059 IN FLIGHT**; `dev` holds the last delivered round 058.
 **Daily log**: [`docs/session-summary/2026/09/19/session-summary.md`](docs/session-summary/2026/09/19/session-summary.md)
+
+## Round 059 — `059-darwin-metrics-and-1hz-cadence` (IN FLIGHT)
+
+- **Theme**: an **operator request** (no anchor issue) — two operator-reported spinner defects, both divergences from `tell-me-go`: (1) on **macOS** the tool-phase `[CPU: x% | MEM: y%]` reads `0.0%` for both figures (darwin CPU is a hardcoded stub with **no** non-zero fallback; darwin MEM is `0` because the hand-rolled `syscall.Sysctl` decoder assumes a fixed width while darwin returns **NUL-trimmed** bytes — measured: `hw.memsize` 16 GiB decodes to `0`); (2) the figures refresh **5×/s** (recomputed every 200 ms frame) instead of **1×/s**.
+- **Pipeline**: `/axb-specify` ✅ (package + `spec.md` + `checklists/requirements.md` + `truth-delta.md` skeleton) · `/axb-clarify` ✅ (5 decisions, one per round, **Q1–Q5 → 1**) · next `/axb-spec-by-example` / `/axb-technical-research`.
+- **Settled design (operator-clarified)**: **S-1** CPU = machine-wide, reference-style `darwin && cgo` (Mach `host_statistics64`) + `darwin && !cgo` (`runtime/metrics` agent CPU) · **S-2** sysctl via `golang.org/x/sys/unix` (new direct dep) · **S-3** throttle the **sample + digits only** to 1 Hz (braille stays 200 ms) · **S-4** macOS MEM = reference-exact per platform (cgo `(active+wired+compressor)`; nocgo page-count `× 0.6`) · **S-5** the 1 Hz throttle applies on **every** platform · **S-6** nothing else changes.
+- **Assumptions**: **A1** cgo allowed on darwin (`CGO_ENABLED=0` cross-compile gate now covers the nocgo leg only) · **A2** add `golang.org/x/sys` · **A3** the `Sample() (cpu, mem float64)` port stays percentage-valued · **A4** truth impact in `techstack.md` (+ possibly the spinner feature Rule); api/data **NOOP** · **A5** new **ADR 0029**.
 
 ## Last delivered round — 058 `058-grey-tool-output-content` (DELIVERED / FROZEN — PR [#124](https://github.com/gosharplite/tellme/pull/124) merged into `dev` `0e0844a`, **fast-forward**)
 
