@@ -86,7 +86,7 @@ A two-call round therefore serializes to `[model: fcA, fcB] [user: frA] [user: i
 
 ## §Forward (deferred, non-blocking)
 
-- **RF-065-1** — an explicit **`ToolCallID`-keyed** name pairing (with a FIFO fallback), the natural companion of the concurrent-tools slice ([#36](https://github.com/gosharplite/tellme/issues/36) item 3).
+- **RF-065-1** — an explicit **`ToolCallID`-keyed** name pairing (with a FIFO fallback), the natural companion of the concurrent-tools slice ([#36](https://github.com/gosharplite/tellme/issues/36) item 3). **Homed → [#134](https://github.com/gosharplite/tellme/issues/134)** (the live issue: carry the call id on the Vertex wire + pair by it, reference-parity scope).
 - **RF-065-2** — **one merged media turn per round** (D3 variant (b)) if a wire issue ever appears.
 - **RF-065-3** — a **fake-side contract check** (the E2E fake rejects a `functionResponse`/`functionCall` count mismatch) for belt-and-braces; the unit pin is the current carrier.
 - **RF-065-4** — a **family-agnostic round-batching concept** in the domain if a third family ever needs it.
