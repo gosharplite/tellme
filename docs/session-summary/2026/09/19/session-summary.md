@@ -881,3 +881,72 @@ The delivery + end-of-day closeout for round 062: the operator merged **PR [#129
 ### PM follow-ups
 
 - **R-062-c** (recorded in `STATUS.md`): the acceptance journey's 4th Rule carries a comment rather than Examples (the R-056-c/R-059-c class; the package was still *active*).
+
+---
+
+## 21. Sessions 37–38 (2026-09-19) — round 063 `063-gemini-image-vision`: Gemini image vision (the `inlineData` path) → full pipeline → **three-pass review → CERTIFIED MERGE-READY** → **merged (PR #130 → `dev` `6932d3b`)** → branch cleanup → closeout (Steps 1–8) + `go install`
+
+An operator request (*"does vertex gemini have vision (read_image)?"* → *"We need to let tellme gemini have read_image too"*) opened round **063** — it **lands ADR 0032's forward item RF-062-1** (the Gemini/Vertex image path ADR 0032 D4 had deliberately deferred). The full AIxBDD pipeline ran on branch `063-gemini-image-vision`, the round went through a **three-pass architectural review to certification**, a **human merged PR [#130](https://github.com/gosharplite/tellme/pull/130)** into `dev` (`6932d3b`, a **merge commit**), the branch was deleted (local + remote), and `SESSION-CLOSEOUT.md` Steps 1–8 ran with `go install`.
+
+**Workspace**: `…/mbp-johndoe-niffler/ait-tellme` (`$TELL_ME_HOME`); **darwin/arm64** host (Go 1.26.6). **Session mode**: `butler`.
+
+### At a glance
+| Area | Outcome |
+| --- | --- |
+| Theme | **one capability, two families** — the Gemini/Vertex `inlineData` image path; the `read_image` tool, the `VISION` key, the sniff, and the offered-set gate are **unchanged**; the change is **adapter-side** + a family-aware ceiling |
+| Clarify (one at a time, CLOSED, 2/2) | **Q1 → A** reuse the single family-agnostic `VISION` key (no second key) · **Q2 → B** a **family-aware inline ceiling** enforced by `read_image` as a loud tool error before the wire. **Q3** (placement) → `/axb-technical-research` D2 |
+| Pipeline | specify ✅ · clarify ✅ · spec-by-example ✅ · technical-research ✅ (**ADR 0033** + `techstack.md` ×5) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine ✅ · tasks ✅ (T001–T028) · implement ✅ |
+| Deliverable | `internal/infrastructure/llm/gemini/client.go` (the `inlineData` serialization + the retired refusal) · `internal/infrastructure/tools/image.go` (`readImage{maxBytes}` + `ImageCeilingForFamily`) · `internal/infrastructure/llm/factory.go` (`Family`) · `internal/app/deps` + `cmd/tellme` + `internal/cli` (the widened seam + the resolved ceiling) · the family-aware E2E helpers/Givens · the domain-model refresh |
+| Review chain | review `5255377863` (APPROVE WITH REQUIRED FOLDS — no blocker) → fold `4b0106d` → fold verification `5255416866` (**FOLDS VERIFIED 4/4**) → record fold `c4ff73b` → **certification `5255487274` — CERTIFIED MERGE-READY, loop CLOSED** |
+| Merge | PR [#130](https://github.com/gosharplite/tellme/pull/130) **human-merged** into `dev` (`6932d3b`, **merge commit**); branch deleted (local + remote) |
+| Closeout | gates green · `STATUS.md` Rule-12 split (round-062 detail + its branch-model row + its env note → `docs/archives/status/2026-09-19.md`) · this §21 · `go install ./cmd/tellme` · **propagated `dev → main` (no-ff)** + tag **`round-063`** |
+
+### Work done
+1. **Bootstrap + grounding** — answered the operator's reference question (the reference's Gemini adapter carries images as `inline_data`, ungated; `SupportsVision` gates only the OpenAI transport) → opened round 063.
+2. **Plan + truth half** — `/axb-specify` → `/axb-clarify` (Q1/Q2) → `/axb-spec-by-example` → `/axb-technical-research` (**ADR 0033** extends ADR 0032, supersedes RF-062-1, narrows its D4/D8; `techstack.md` ×5) → `/axb-system-analysis` → `/axb-dsl-refine` (3 Gemini Rules in `reading-a-local-image.feature`; 5 Then rows widened family-aware; `## Given (round 063)`) → `/axb-tasks` (T001–T028).
+3. **Implementation** — the adapter `inlineData` serialization (its own `user` turn after the tool result) + the retired refusal; the injected family-aware ceiling (openai 32 MiB / gemini 14 MiB); `infrallm.Family` + the composition-root resolution; family-aware E2E; witnesses (a)/(b)/(c).
+4. **Review chain (3 passes)** — F-063-1 (ADR 0032's supersession annotation completed + the stale guidance struck) · F-063-2 · F-063-3 · TD-063-1 (the multi-call pin + RF-063-7 + the over-claim withdrawn) · R-063-1 · N-063-1…3 → **certification** (loop CLOSED).
+5. **Merge + cleanup + closeout** — PR #130 merged (`6932d3b`); branch deleted; `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 063)
+| # | Decision |
+| --- | --- |
+| Q1 → A | The capability stays the single, family-agnostic **`VISION`** key (no second key); the offered-set gate is unchanged. |
+| Q2 → B | A **family-aware inline ceiling** enforced by `read_image` (openai 32 MiB / gemini **14 MiB, derived**); oversize is a loud **tool** error naming the limit, before the wire. |
+| D2 | The image rides its **own `user` `contents` entry** after the tool result — the `#1441` ordering hazard is avoided **for the single-call round**; a multi-call round interleaves (RF-063-7). |
+| D3/D4/D9 | camelCase `inlineData`/`mimeType` proto-JSON · the single-owned ceiling table + the `Family()` classifier · **ADR 0033** (extends ADR 0032; supersedes RF-062-1). |
+
+### Commits (branch `063-gemini-image-vision`, then merged)
+| Commit | Note |
+| --- | --- |
+| `25e994c` | `docs(063)`: plan package + spec |
+| `41cb71d` `2888abd` | clarify folds Q1 → A, Q2 → B |
+| `5cda9a4` | acceptance Gherkin + technical research (ADR 0033) + techstack truth + truth-delta |
+| `966ec83` | system-analysis plan + dsl-refine + tasks.md |
+| `1dd7b92` | STATUS — round 063 in flight |
+| `e8e0880` | **implementation** (T001–T028) |
+| `1b70ce8` | STATUS — PR #130 open |
+| `4b0106d` | fold PR #130 review (F-063-1…3 + TD-063-1 pin + nits) |
+| `c4ff73b` | fold PR #130 fold-verification (R-063-1 + N-063-1…3) |
+| `6932d3b` | PR [#130](https://github.com/gosharplite/tellme/pull/130) merge into `dev` (by the operator) |
+| *(this closeout, on `dev`)* | `docs(063)`: day close — round 063 delivered + propagated; STATUS split + 09/19 summary §21 |
+
+### Verification (2026-09-19, on `dev` @ `6932d3b`)
+- `gofmt -l .` clean · `go vet ./...` clean · `go build ./...` clean · `go test -count=1 ./...` **green** (24 packages incl. the godog E2E) · `make verify` **OK** (arch gate 0 · modelith-check ×3 · lint 0 · govulncheck clean · cross-compile 4/4) · topology audit **5 pre-existing, none new** (48 features · 378 module rows · 1946 steps) · `go.mod`/`go.sum` unchanged · diff-level secret scan clean.
+- **`go install ./cmd/tellme`** refreshed → `$(go env GOPATH)/bin/tellme`; `--version` → `dev`.
+- **Falsifiability witnesses** (a)/(b)/(c) reproduced RED then reverted.
+
+### Open items (non-blocking)
+- **Round-063 forward items (RF-063-1…10)** — all in **ADR 0033 §Forward**: RF-063-1 (the 14 MiB ceiling is derived — confirm live) · RF-063-2 (the placement is unproven live) · RF-063-3/4/5 (aggregate bound · Files-API leg · dimension guard) · RF-063-6/RF-062-10 (**`ToolSetSpec` — annotated overdue**) · RF-063-7 (round-scoped placement) · RF-063-8 (the family-blind oversize E2E fixture) · RF-063-9 (`ImageCeilingForFamily` fails open / placement) · RF-063-10 (PM-owned — stop authoring meta-Rules).
+- **The widened non-gating live check**: one real Vertex turn carrying **two images** (witnesses RF-063-1/2/7); needs a live Vertex credential (the rounds-059/061 precedent — NOT runnable from this hermetic session).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / **no `flock`**; the 5 pre-existing topology-audit errors.
+
+### Next steps
+1. Open round **`064-*`** off `dev` (candidates: **RF-062-10/RF-063-6** the `ToolSetSpec` seam · **RF-063-10** the meta-Rule clean-up (PM-owned) · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13)).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+- **RF-063-10** (PM-owned, round `064-*`): stop authoring comment-only meta-Rules — delete the empty 4th Rule (or demote it to a header comment) so every Rule in a feature is executable (the R-056-c/R-058-c/R-059-c/R-062-c recurrence, now the fifth occurrence).
+
+### Issue tracker (closeout Step 8)
+Round 063 was an **operator request** (no anchor issue) → **nothing to close/revise**. [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) remain OPEN (accurate).
