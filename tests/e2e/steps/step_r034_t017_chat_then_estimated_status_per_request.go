@@ -14,7 +14,7 @@ func init() {
 	})
 }
 
-// thenEstimatedPerRequest (必查 呈現結果): the count of pre-flight `Payload: ~`
+// thenEstimatedPerRequest (必查 呈現結果): the count of pre-flight `Payload: +`
 // lines equals the number of model requests — every call reports its own
 // estimate (round 034 FR-010a).
 func thenEstimatedPerRequest(ctx context.Context) error {
