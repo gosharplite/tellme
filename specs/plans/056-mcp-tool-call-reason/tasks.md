@@ -228,7 +228,7 @@
 
 | # | Item | Disposition |
 | --- | --- | --- |
-| **TD-056-1** | SC-006/FR-003 had no force-bearing carrier ("never reached the server"; shape-violation unit-only) | **FOLDED** — `requiring-a-reason-to-call-a-tool.feature` gains `the MCP server "shop" received exactly one call` (the refused attempt must not increment the count) + a new **shape-violation Rule/Example** (`received no call`); `mcptest.CallCount()` is the new carrier; 3 `dsl.md` rows + stepdefs. Witness: weakening the envelope refusal ⇒ the new Example RED. |
+| **TD-056-1** | SC-006/FR-003 had no force-bearing carrier ("never reached the server"; shape-violation unit-only) | **FOLDED** — `requiring-a-reason-to-call-a-tool.feature` gains `the MCP server "shop" received exactly one call` (the refused attempt must not increment the count) + a new **shape-violation Rule/Example** (`received no call`); `mcptest.CallCount()` is the new carrier; 3 `dsl.md` rows + stepdefs. **Two witnesses reproduced then reverted:** (i) accepting a shape violation at the adapter ⇒ the shape-violation Example REDs on `received no call`; (ii) removing the loop gate ⇒ the refused `{}` MCP call reaches the server and the refusal Example REDs on `received exactly one call`. Both carriers have force. |
 | **TD-056-2** | `[Tool Engine]` "executed round" wording overstates after a refusal-only round | **FOLDED (wording)** — the `techstack.md` clause is qualified to "a round that **requests** tools" + a `chat/dsl.md` note clause; also records that a refused call prints action+result without executing. |
 | **TD-056-3** | nil-`Lines` fail-open pinned with no composition guard | **RECORDED** — named standing invariant + a future carrier (a composition-seam assertion) in ADR 0025 **RF-056-2**. |
 | **TD-056-4** | refusals uncounted + unbounded refusal retries | **RECORDED (decision)** — ADR 0025 **RF-056-3** states the deliberate "uncounted" choice and names the two future controls (`ToolOutcomeRefused` / a consecutive-refusal bound). |
@@ -240,4 +240,4 @@
 
 **Presentation notes (recorded, no action)** — folded into the `chat/dsl.md` round-056 note: a refused call prints `[Tool Action]` + `[Tool Result] … error: a reason is required…` (the gate runs after the action line) — action+result does **not** imply execution; and an executed MCP call's `[Tool Action]` lists `MCP_PAYLOAD: {…}` (round-034's `reason`-excluded rule).
 
-**Re-verification at the fold head** — `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (**244 scenarios · 1800 steps**, 0 undefined) · topology audit back to the 5 pre-existing errors · `go.mod`/`go.sum` unchanged.
+**Re-verification at the fold head** — `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (**244 scenarios · 1804 steps**, 0 undefined) · topology audit back to the 5 pre-existing errors · `go.mod`/`go.sum` unchanged.
