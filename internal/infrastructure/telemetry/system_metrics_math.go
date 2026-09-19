@@ -8,9 +8,11 @@ package telemetry
 
 // agentCPUPercent converts a process-CPU delta to a percentage of one core's
 // capacity over the wall-clock window, per runtime.NumCPU() —
-// `(ΔcpuSeconds / Δwall) * 100 / NumCPU`. It mirrors the reference's
-// agent-level (`runtime/metrics`) computation used on the darwin `!cgo` leg and
-// returns 0 for a non-positive window or core count.
+// `(ΔcpuSeconds / Δwall) * 100 / NumCPU`. On the darwin `!cgo` leg it is fed by
+// `getrusage` (see system_metrics_darwin_nocgo.go); it is a machine-fraction
+// normalisation (ADR 0029 D1a/D7), not the reference's cgo-less
+// `runtime/metrics` (available-CPU) figure. Returns 0 for a non-positive window
+// or core count.
 func agentCPUPercent(cpuNs int64, wallSeconds float64, ncpu int) float64 {
 	if wallSeconds <= 0 || ncpu <= 0 || cpuNs <= 0 {
 		return 0

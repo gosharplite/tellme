@@ -49,3 +49,7 @@
 | R-059-1 | (this fold) | ADR 0029 §Forward: the throttle cache is not re-armed at `OnToolsStart` (≤ 1 s staleness by design). |
 | R-059-2 | (this fold) | ADR 0029 D1a/§Forward: the `÷ NumCPU` normalisation is explicit (machine-fraction scale, distinct from the machine-wide legs). |
 | R-059-3 | (this fold) | `chat/dsl.md` resource row notes the strengthened E2E `Then` is host-dependent by construction. |
+| TF-059-1 | (this fold) | The ADR 0029 **index** row (`docs/decisions/README.md`) corrected: cgo-less `runtime/metrics` → `getrusage` + the divergence label (the round-057 TF-057-1 / round-058 TF-058-1 class). |
+| TD-059-3 | (this fold) | `system_metrics_math.go`'s `agentCPUPercent` doc provenance sentence corrected (fed by `getrusage`, not the reference's `runtime/metrics`). |
+| R-059-4 | (this fold) | The cgo-less seeded pin's ≥ 1 ns-CPU design assumption documented in the test comment. |
+| R-059-5 | (this fold) | The `techstack.md` System-metrics row carries the **recorded divergence** label (symmetry with `spec.md`). |
