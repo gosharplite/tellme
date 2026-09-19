@@ -323,6 +323,18 @@ func TestProjectSchema_ValueKindsAreEnforced(t *testing.T) {
 	if got, ok := a["items"].(map[string]any); !ok || len(got) != 0 {
 		t.Errorf("a non-object `items` must degrade to {}; got %v", a["items"])
 	}
+	// W-061-1: a `type` ARRAY whose lone member is not a string must emit NO type.
+	for _, in := range []string{`{"type":[5]}`, `{"type":[true]}`, `{"type":[{}]}`, `{"type":[["string"]]}`} {
+		got := string(ProjectSchema(json.RawMessage(`{"type":"object","properties":{"a":` + in + `}}`)))
+		var t2 map[string]any
+		if err := json.Unmarshal([]byte(got), &t2); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		sub := t2["properties"].(map[string]any)["a"].(map[string]any)
+		if _, has := sub["type"]; has {
+			t.Errorf("a non-string type-array member survived as `type`; input=%s got=%v", in, sub)
+		}
+	}
 	good := string(ProjectSchema(json.RawMessage(`{"type":"object","properties":{"a":{
 	  "type":"string","description":"d","title":"t","format":"date-time","pattern":"^a$",
 	  "nullable":true,"minLength":1,"maxLength":9,"enum":["x","y"]
@@ -364,5 +376,32 @@ func TestSchemaValueKindOK_MirrorsTheTable(t *testing.T) {
 	}
 	if SupportedSchemaKeys()["not-a-key"] {
 		t.Error("an unknown key must not be in the owner set")
+	}
+}
+
+// TestProjectSchema_OutputSatisfiesTheGate turns "the projection and its gate
+// agree" into a checked invariant (fold of review W-061-1): for a set of
+// adversarial inputs, the projected output must pass the SAME predicate the gate
+// uses — every keyword in the owner set, with the required value kind.
+func TestProjectSchema_OutputSatisfiesTheGate(t *testing.T) {
+	inputs := []string{
+		recordedEnvelope,
+		`{"type":"object","properties":{"a":{"type":[5]}}}`,
+		`{"type":"object","properties":{"a":{"type":[true]}}}`,
+		`{"type":"object","properties":{"a":{"type":[{}]}}}`,
+		`{"type":"object","properties":{"a":{"type":[["string"]]}}}`,
+		`{"type":"object","properties":{"a":{"type":["string","null"],"enum":[1,2]}}}`,
+		`{"type":"object","properties":{"a":true,"b":"nope","c":7}}`,
+		`{"type":"object","properties":{"a":{"oneOf":[true,{"type":"string"}]}}}`,
+		`{"type":"object","properties":{"a":{"items":false,"oneOf":{"x":1},"required":[5]}}}`,
+		`{"type":"object","properties":{"a":{"description":123,"nullable":"yes","minItems":"3"}}}`,
+	}
+	for _, in := range inputs {
+		out := ProjectSchema(json.RawMessage(in))
+		var tree any
+		if err := json.Unmarshal(out, &tree); err != nil {
+			t.Fatalf("the projected output is not JSON for %s: %v", in, err)
+		}
+		assertContainment(t, tree, "projected")
 	}
 }

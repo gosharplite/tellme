@@ -65,3 +65,5 @@
 | MODIFY | `specs/truth/techstack.md` (projection row) | a non-object subschema degrades to `{}` at **every** schema-node position — incl. `oneOf`/`allOf` **elements** (R-5); the `additionalProperties` bool form is measured accepted at both levels. | review **R-5**, nit 2 |
 
 | MODIFY | `specs/truth/techstack.md` (projection + gate rows) | the single owner is now a **key + value-kind** table; the gate checks shape too. | review **V-061-1** |
+
+| MODIFY | `specs/truth/techstack.md` (projection row) | the `type`-array coercion re-checks the substituted member; a round-trip pin asserts the projection’s output satisfies the gate. | review **W-061-1** |

@@ -214,7 +214,13 @@ func normalizeType(val any) (any, bool) {
 	if len(kept) != 1 {
 		return nil, false // zero or ambiguous members — drop rather than guess
 	}
-	return kept[0], true
+	// The substituted member must itself be `type`-kind (a string): the table's
+	// rule applies to the member, not only to the container (fold of W-061-1).
+	s, ok := kept[0].(string)
+	if !ok {
+		return nil, false
+	}
+	return s, true
 }
 
 // scalarTypeNames are the schema types a Gemini `enum` may sit beside — the probe

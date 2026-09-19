@@ -82,3 +82,11 @@
 ### Witness (reproduced RED, then reverted)
 
 - **J** — `applyValueKind` returning every value unvalidated turns `TestProjectSchema_ValueKindsAreEnforced` RED (`description: 123` on the wire).
+
+## Phase 9 — Verification-3 fold (PR #128, verification `5740423585`)
+
+- [X] **T032** (`W-061-1`) — `normalizeType` re-checks the **substituted member** (a `type` array's lone member must be a string, else no `type` is emitted). Pin rows (`type:[5]`, `[true]`, `[{}]`, `[["string"]]` → no `type`) + a **round-trip pin** (`TestProjectSchema_OutputSatisfiesTheGate`) asserting the projection's own output passes the gate's predicate for ten adversarial inputs. **Witness K** reproduced RED.
+
+### Witness (reproduced RED, then reverted)
+
+- **K** — returning `kept[0]` without the member-kind check turns `TestProjectSchema_ValueKindsAreEnforced` RED (`type:[5]` → `type:5`).

@@ -63,7 +63,7 @@ The remedy replaced measured-rejected shapes with *unmeasured* ones, so the shap
 
 ### Value-kind probe (fold of review V-061-1 — same channel)
 
-The last axis: a value whose JSON **kind** does not match its proto field. Measured: `description:123`, `title:true`, `type:5`, `required:"x"`, `required:[5]`, `properties:"nope"`, `enum:[{"x":1}]` → **all rejected**; `minItems:"3"`, `nullable:"yes"`, `oneOf:{…}` → tolerated, and still dropped for uniformity. The projection therefore enforces a **kind per key** from one table (`supportedSchemaValueKinds`), dropping any mismatch. ADR 0031 **D8**.
+The last axis: a value whose JSON **kind** does not match its proto field. Measured: `description:123`, `title:true`, `type:5`, `required:"x"`, `required:[5]`, `properties:"nope"`, `enum:[{"x":1}]` → **all rejected**; `minItems:"3"`, `nullable:"yes"`, `oneOf:{…}` → tolerated, and still dropped for uniformity. The projection therefore enforces a **kind per key** from one table (`supportedSchemaValueKinds`), dropping any mismatch. The rule applies to a **substituted** value too: a `type` array's lone member must be a string (fold of review **W-061-1** — `[5]` emits no `type`). ADR 0031 **D8**.
 
 ## Alternatives considered
 
