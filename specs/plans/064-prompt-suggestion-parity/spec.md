@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-20
 
-**Status**: Draft — produced by `/axb-specify` from an **operator request** (no anchor issue). **Clarify OPEN** — **Q1** (the scope of "behaviour parity": pool-only vs. the reference's other source behaviours) is pending the operator's answer. No `specs/truth/**` file is written by this skill.
+**Status**: Draft — produced by `/axb-specify` from an **operator request** (no anchor issue). **Clarify CLOSED** — **Q1 → A** (pool-only parity: widen the recent-prompt candidate pool to the newest 50; the empty-query count and the session-prompt source are **not** adopted) locked by the operator (2026-09-20). No `specs/truth/**` file is written by this skill.
 
 **Input (operator, 2026-09-20, this session)**:
 
@@ -39,7 +39,7 @@
 | --- | --- | --- |
 | **S-1** | **The recent-prompt candidate pool deepens to the reference's newest 50 distinct prompts** (was 10); the surfaced list stays **capped at 10**. One named constant owns the depth (no scattered magic numbers). | **locked (operator intent)** |
 | **S-2** | **The matching discipline is unchanged** — case-insensitive ordered-subsequence, dedup, cap 10, prompts-first ordering, workspace-only-for-path-like, tool names after. Only the *candidate depth* changes. | proposed |
-| **S-3** | **The source set is unchanged unless Q1 says otherwise** — prompts (deepened) + workspace + tools; the reference's empty-query-first-5 and session-last-prompt source are **Q1** items. | **pending Q1** |
+| **S-3** | **The source set is unchanged** — prompts (**deepened** to 50) + workspace + tools. The reference's empty-query-first-5 and the session-last-prompt source are **not** adopted (**Q1 → A**); tellme's empty query keeps today's ≤10 and the CLI keeps its deliberate *no-startup-disk-I/O* property. | **locked (Q1 → A)** |
 | **S-4** | **tellme's own features are kept** (recorded divergences): the extra **tool-name** source (the reference has none) and the round-028 user-global log location (`~/.tellme/`, ADR 0004). | proposed |
 | **S-5** | **The workspace source and compaction are out of scope** — tellme keeps its `OSSWorkspace` ignore list and plain names; the reference's `WorkspacePolicy` plumbing and its ≈150 KiB self-compaction are not adopted this round (recorded as forward items). | proposed |
 | **S-6** | **No new source, port, or dependency** — the change is confined to the existing engine + its history-prompt source; `internal/cli`'s "no startup disk I/O" note is preserved unless Q1 selects the session source. | proposed |
@@ -54,15 +54,15 @@
 
 ---
 
-## Clarify (OPEN — Q1)
+## Clarify (CLOSED — Q1 → A)
 
 > Per `/axb-clarify`, only **high-impact** gaps are asked; one question at a time.
 
-| # | Question | Why it is high-impact | Recommendation |
+| # | Question | Why it is high-impact | Answer |
 | --- | --- | --- | --- |
-| **Q1** ⏳ **OPEN** | What is the exact scope of **"behaviour only"** — **(A)** widen the recent-prompt pool to the newest **50** and nothing else, or **(B)** also adopt the reference's **other** source behaviours: an **empty** query shows the **first 5** (vs tellme's today ≤10) **and** the **active session's last user prompt** is merged as an extra recent-prompt source? | It decides the requirement set (US2 appears or not), whether the CLI's deliberate "no startup disk I/O" property is preserved (the session source must read the session history at prompt construction — the round-016 D3 retirement), and the acceptance scenarios. | **Operator's call.** (A) is the **minimal** change that delivers the requested "10 instead of 3" and keeps the no-startup-I/O property. (B) is **closer to full behavioural parity** but reintroduces a startup history read and changes the empty-query count. |
+| **Q1** ✅ **ANSWERED (A)** | What is the exact scope of **"behaviour only"** — **(A)** widen the recent-prompt pool to the newest **50** and nothing else, or **(B)** also adopt the reference's **other** source behaviours: an **empty** query shows the **first 5** **and** the **active session's last user prompt** is merged as an extra source? | It decides the requirement set (US2 appears or not), whether the CLI's deliberate "no startup disk I/O" property is preserved, and the acceptance scenarios. | **Operator chose (A) — pool-only** (2026-09-20). The recent-prompt pool deepens to the newest 50; the surfaced list stays capped at 10; the empty-query count stays today's; **no** session source is added, so the *no-startup-disk-I/O* property is preserved. Recorded as **S-1/S-3 (locked)** / **FR-001…FR-004**. **US2 and FR-005…FR-007 are dropped** (recorded as forward items). |
 
-*(No other question is raised: the empty-query count and the session source are the only other result-visible source behaviours; the workspace-policy plumbing, the tool-source, and compaction are recorded as **out of scope** / forward items, not clarify material.)*
+> **Q1 → A consequence**: US2 and **FR-005…FR-007** are **removed** from the requirement set; the empty-query count and the session source are carried as **forward items** (see *Out of scope*). `checklists/requirements.md` records the resolution.
 
 ---
 
@@ -88,31 +88,16 @@ As the **operator** using the `-i` interactive prompt, I want the suggestion lis
 - **FR-002**: The surfaced suggestion list MUST remain capped at **10** (the cap is unchanged).
 - **FR-003**: The match MUST remain a case-insensitive ordered **subsequence**; the round MUST NOT introduce substring/word matching or a scoring/ranking change.
 - **FR-004**: The prompt pool depth MUST be a **single named constant** (one owner), so the value is changed in one place and asserted directly.
+- **FR-005**: The public suggestion port (`domain/suggestions.Service`) MUST keep its contract (cap-only semantics); the deepened pool is an **engine detail**, not a port change.
 
-### User Story 2 - the remaining source behaviours match the reference (Priority: P2 — *conditional on Q1*)
+### (Recorded, not adopted) the reference's other source behaviours — dropped by Q1 → A
 
-As the **operator**, I want the other result-visible source behaviours to match the reference too — an **empty** editor showing the reference's **first 5** recent prompts, and the **active session's last prompt** offered as a recent-prompt candidate — so the prompt behaves like `tell-me-go` across the board.
+Under **Q1 → A** the round adopts **only** the candidate-pool depth. The reference's other result-visible source behaviours are **deliberately not adopted this round** and are recorded as forward items:
 
-**Why this priority**: it completes behavioural parity but is **not** required for the operator's stated goal; **it exists only if Q1 → B**.
+- **An empty editor shows the first 5 recent prompts** (the reference's empty-query limit). tellme keeps today's empty-query behaviour (up to 10). *Forward item.*
+- **The active session's last user prompt is merged as an extra recent-prompt source.** Not adopted, because it would reintroduce a startup history read (superseding the round-016 D3 "no startup disk I/O" property). *Forward item.*
 
-**Independent verification**: with an empty editor, exactly the first five recent prompts are offered; with a session whose last user prompt is not in the global log, that prompt is offered. Both are red under today's behaviour.
-
-**Acceptance Scenarios** *(if Q1 → B)*:
-
-1. **Given** a shared prompt log holding ≥6 distinct prompts, **When** the operator opens the interactive prompt with an **empty** editor, **Then** exactly the **first 5** newest distinct prompts are offered.
-2. **Given** an active session whose **last user prompt** is not present in the global log, **When** the operator opens the interactive prompt, **Then** that session prompt is available as a recent-prompt candidate.
-
-**Functional Requirements** *(if Q1 → B)*:
-
-- **FR-005**: An **empty** query MUST return the **first 5** newest distinct prompts (parity with the reference's empty-query limit).
-- **FR-006**: The **active session's last user prompt** MUST be merged into the recent-prompt candidate slice (deduped), matching the reference's `recentHistory` seed.
-- **FR-007**: If FR-006 is adopted, the CLI's prompt construction MAY read the session history again — the round-016 "no startup disk I/O" note is then explicitly **superseded** for the session seed (recorded).
-
-#### If Q1 → A (pool-only)
-
-US2 and **FR-005…FR-007** are **dropped**; the empty-query limit stays today's value and no session source is added. The spec records this as a deliberate narrowing, with the empty-query/session-source behaviours carried as **forward items**.
-
----
+*(These were the only other result-visible source behaviours; the workspace-policy plumbing, the tool-source, and log compaction are recorded in Out of scope.)*
 
 ## Edge Cases
 
@@ -151,6 +136,8 @@ US2 and **FR-005…FR-007** are **dropped**; the empty-query limit stays today's
 
 ## Out of scope (recorded forward items)
 
+- **The reference's empty-query-first-5 behaviour** (Q1 → A) — tellme keeps today's empty-query limit.
+- **The active session'`s last-user-prompt source** (Q1 → A) — not adopted; it would reintroduce a startup history read (round-016 D3).
 - **The reference's `WorkspacePolicy` ignore set + trailing-separator dir form** (S-5) — tellme keeps its hardcoded ignore list and plain names.
 - **The reference's ≈150 KiB log self-compaction** (S-5) — tellme's `wg` drain hook stays a reserved no-op.
 - **Adopting the reference's log location** (`$TELL_ME_HOME/output/global_prompts.jsonl`) — tellme keeps `~/.tellme/` (ADR 0004, a recorded divergence).
