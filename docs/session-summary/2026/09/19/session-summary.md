@@ -256,7 +256,7 @@ A later session on the same calendar day: bootstrapped/continued on `dev`, opene
 | Verification | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** (arch gate header-only; lint 0; govulncheck clean; cross-compile 4/4) · `go test -count=1 ./...` green (**245 scenarios · 1811 steps**, 0 undefined) · topology audit back to the **5 pre-existing errors** (round 056 adds none) · `go.mod`/`go.sum` unchanged |
 | Review chain (PR #122) | review `5254253670` (**APPROVE WITH REQUIRED FOLDS** — TD-056-1…5 + R-056-1…4 + presentation notes) → fold **`368b504`** (+ `78631f0`) → fold-verification `5738880177` (**FOLDS VERIFIED — CLEARED FOR MERGE**; residuals R-056-a…e) → fold **`77a8115`** (+ `db31d8b` record) → final verification `5738914284` — **FOLDS VERIFIED — CERTIFIED MERGE-READY** |
 | Merge | PR [#122](https://github.com/gosharplite/tellme/pull/122) merged **`db31d8b`** (**fast-forward** — no merge commit); **remote branch deleted**; local branch deleted at closeout |
-| Propagation | `dev → main` — **PENDING** (the human no-ff merge; recorded in `STATUS.md`) |
+| Propagation | `dev → main` — **DONE (no-ff)** at this closeout |
 | `go install` | `go install ./cmd/tellme` refreshed from `db31d8b`; `--version` → `dev`; `vcs.revision=db31d8b…`, `vcs.modified=false` |
 | Closeout | `STATUS.md` split (Rule 12: the round-055 detail + its env note + the round-053 branch-model row → `docs/archives/status/2026-09-19.md`) · §10 appended · **nothing to close** (operator request; #121 already closed as folded) |
 
@@ -316,7 +316,7 @@ A later session on the same calendar day: bootstrapped/continued on `dev`, opene
 
 ### Next steps
 
-1. **Propagate `dev → main`** (no-ff) — the human's merge at this closeout (recorded **PENDING** in `STATUS.md`).
+1. ~~Propagate `dev → main`~~ — **DONE (no-ff)** at this closeout.
 2. Open round **`057-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella — context management; [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
