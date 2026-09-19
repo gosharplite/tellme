@@ -251,4 +251,43 @@ A later session on the same calendar day: the operator chose the RF-065-1 candid
 2. Then the review chain (the `architect` peer) → **human merge** of the round PR into `dev` → closeout (propagate `dev → main` no-ff, tag `round-066`, close [#134](https://github.com/gosharplite/tellme/issues/134)).
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `066-toolcall-id-pairing`).
 
+---
+
+## 9. Session 45 (2026-09-20, cont.) — round 066 `066-toolcall-id-pairing`: implementation → architect review-fold loop (4 passes, CLOSED) → **human-merged (PR #135 → `dev` `e4410e4`, fast-forward)** → branch cleanup → closeout (Steps 1–8)
+
+A later session on the same calendar day, continuing round 066: the operator directed *"Keep going unless you need to ask me question"*, then asked to **dispatch the `architect` peer** (initialised once with `SESSION-BOOTSTRAP.md`, no `--new` after) to review PR #135 and run the **review-fold loop until the PR is ready for a human to merge**. After the human merge, the operator confirmed it and the **local branch was deleted** (remote already gone), and `SESSION-CLOSEOUT.md` ran.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Implementation | `buildContents` → `roundBuilder` (`modelTurn`/`result`/`bind`/`flush`/`textTurn` + `functionCallPart`) — the id-link + id-keyed pairing; 6 new unit pins (`client_ids_test.go`) + the id assertion in the two round-065 batch pins. `buildContents` was refactored to stay under the `cyclop` lint gate (CC 26 → ≤15). |
+| Architect loop | the `architect` peer (init once with `SESSION-BOOTSTRAP.md`) — review `5258004457` (**APPROVE WITH REQUIRED FOLDS**, 0 blockers) → fold `a9d8080` → fold verification `5258037752` (**REQUEST CHANGES**: F-066-3, **F-066-4**) → fold `45239e5`/`17dc8a8` → re-verification `5258047255` (F-066-5 + nits) → fold `92d86e2` → **final `5258056611` — `FOLDS VERIFIED — CLEARED FOR HUMAN MERGE`** |
+| Real findings folded | **F-066-2** (code): the id-less-`tool` widening silently dropped media on a media-bearing `tool`-role message → restricted to media-free `tool` messages + pin. **TD-066-1** (code): a **foreign** `functionResponse.id` reached the wire → now omitted unless it equals the bound call's id. **TD-066-2**: "the FIFO fallback is load-bearing for replay" was the wrong mechanism (the loop sets the same `call_step_<n>` on both sides → replay is id-primary) → wording corrected + pin. **F-066-1/3/5** (records): the "exact unmatched-identity accounting" claim was not delivered → corrected across the plan package + ADR. **F-066-4**: the first live check had run the **GOPATH** (round-065) binary → re-run with a **branch-built** binary. |
+| Live check | branch-built binary (`go version -m` → `…-45239e5757f6`, head `45239e5`, clean tree); one Vertex turn with **two tool calls in one round** → `exit 0`, `ANOMALY: None`, zero `400`s (the new `id` key is accepted live); recorded in ADR 0036 with provenance. |
+| Merge | PR [#135](https://github.com/gosharplite/tellme/pull/135) **human-merged** into `dev` (`e4410e4`, **fast-forward**; the merge commit equals the round head); remote branch deleted by the human, then the **local branch deleted** after an ancestor check (`git branch -d`, was `e4410e4`). |
+| Closeout | gates green at the delivered head — `gofmt`/`go vet`/`go build` clean · `go test -count=1 ./...` **green** (24 pkgs incl. the godog E2E) · `make verify` **OK** · topology audit **5 pre-existing, none new** · `STATUS.md` split (round-065 detail + its branch row + its env note → `docs/archives/status/2026-09-20.md`) · propagated `dev → main` (no-ff) + tag **`round-066`** · `go install` · **[#134](https://github.com/gosharplite/tellme/issues/134) CLOSED** |
+
+### Work done
+
+1. **Implementation** — the id-link + id-keyed pairing in `buildContents` (refactored to a `roundBuilder`), the six new unit pins, the witness reproductions, the gates.
+2. **The review-fold loop** — the `architect` peer (init once with `SESSION-BOOTSTRAP.md`; every later send a continuation, **no `--new`**), which found two genuine code hazards (F-066-2 media loss; TD-066-1 foreign id) and two incorrect record claims, and — crucially — **caught that the first live check had exercised the wrong binary** (F-066-4). Each fold was posted as a PR comment ledger; the loop closed with `FOLDS VERIFIED — CLEARED FOR HUMAN MERGE`.
+3. **Merge + cleanup + closeout** — PR #135 merged (`e4410e4`); branch deleted (local + remote); `SESSION-CLOSEOUT.md` Steps 1–8; **#134 closed**.
+
+### Records / decisions
+
+| # | Item |
+| --- | --- |
+| — | **ADR 0036** records the id-link + id-keyed pairing; it **extends ADR 0035** and **delivers its §Forward RF-065-1**; ADR 0035's `Status` + D2 note + RF-065-1 + index row annotated. |
+| — | **RF-066-1…10** homed in ADR 0036 §Forward (the narrowed byte-identity claim · provider-issued id preference · a fake-side contract check · concurrent execution · an order-independence carrier · the unpaired-call accessor · the still-open `N=2 M=1` residual · the fixture-based replay pin · the branch-binary live-check convention). |
+| — | **Process note (new)**: the in-group live-check harness resolves the closeout-refreshed **GOPATH** binary — a **mid-round** live check must build the **branch** binary and record `go version -m` provenance (RF-066-10). |
+| — | **Process note (new, honest-claims)**: a review finding can be created by the **harness**, not the code (F-066-4) — verify the *instrument*, not only the artifact. |
+
+### Next steps
+
+1. Open round **`067-*`** off `dev` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling · the `ToolSetSpec` seam RF-062-10/RF-063-6 · RF-066-2 the provider-issued id preference · RF-066-7 the unpaired-call accessor).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+*(Round 066 is fully closed out: PR #135 human-merged into `dev` (`e4410e4`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-066`**; the installed binary refreshed; [#134](https://github.com/gosharplite/tellme/issues/134) closed.)*
+
 
