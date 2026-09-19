@@ -69,3 +69,10 @@
 | --- | --- | --- | --- |
 | MODIFY | `specs/truth/techstack.md` (*Tool-usage accounting*) + `specs/truth/features/cli/chat/dsl.md` (the `the operator reviews how the tools have been used` row) | the two residual "reads only `os.UserHomeDir()` + the live registry" phrases → the **recordable set** (the union); the row gains the capability-blindness half-sentence. | review **N-062-1** |
 | MODIFY | `tests/e2e/steps/step_t014_chat_then_review_all_zero.go` (a diagnostic string) + `docs/decisions/0032-agent-image-vision.md` RF-062-13's parenthetical | wording aligned to the recordable union / the §Forward home. | review **N-062-1** |
+
+## Nit-verification note (PR [#129](https://github.com/gosharplite/tellme/pull/129), verification `5255255480`)
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` — the `the request offered exactly the agent tools` row | states the sentence pins the **base offered set** (a provider without `vision`; the offered set is capability-dependent — D3). | review `5255255480` (the precision note) |
+| MODIFY | `tests/e2e/steps/step_r021_t026_chat_then_offered_tools.go` (diagnostics) + `docs/decisions/0032-agent-image-vision.md` (**RF-062-14**) | the diagnostics name the base offered set; the scope note homed in ADR 0032 §Forward. | review `5255255480` |

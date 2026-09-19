@@ -44,7 +44,7 @@ func thenOfferedTools(ctx context.Context) error {
 		return fmt.Errorf("the live registry enumerates no tools")
 	}
 	if len(offered) != len(want) {
-		return fmt.Errorf("offered tools = %v; want exactly the live registry %v", offered, want)
+		return fmt.Errorf("offered tools = %v; want exactly the base offered set %v", offered, want)
 	}
 	set := make(map[string]bool, len(want))
 	for _, n := range want {
@@ -52,7 +52,7 @@ func thenOfferedTools(ctx context.Context) error {
 	}
 	for _, n := range offered {
 		if !set[n] {
-			return fmt.Errorf("offered unexpected tool %q (not in the live registry %v)", n, want)
+			return fmt.Errorf("offered unexpected tool %q (not in the base offered set %v)", n, want)
 		}
 	}
 	return nil
