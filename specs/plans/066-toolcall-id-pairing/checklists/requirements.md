@@ -49,7 +49,7 @@
 - **現況（grounded 2026-09-20 @ `dev` `babeff7`）**：`gemini/client.go` `buildContents` 以 `pending []string`（呼叫 **名稱** FIFO）配對，emit 的 part 為 `{"functionResponse":{"name":…,"response":…}}`，**無 `id`**；`parseResponse` 以 `call_<n>` 合成 id；`agentloop.go` 每個呼叫都設 `ToolCallID`（live: `tc.ID`；replay: `call_step_<n>`）。OpenAI-compatible wire **已**用 `tool_call_id`（`:136-137`）——Gemini 家族是落後的一方。
 - **參考實作（`tell-me-go`）**：`FunctionCall.ID`/`FunctionResponse.ID` 端到端存在，**provider id 優先**、否則 `gemini-call-<index>-<name>` 決定性 fallback；**空 id = invalid**（`isInvalidToolPart` 剝除）。其 executor **併發**執行並把 `call.ID` 拷進每個 response。註：參考仍是 **位置式組裝**，真正的 `map[id]` 查找是**超出**參考的強化。
 - **修法（issue 已載明）**：wire 上帶 id；`buildContents` 依 id 配對（FIFO fallback 為防禦路徑）；採用參考的 id 紀律。unmatched 記帳**未**交付（邊界丟棄不變 — F-066-1，改列 RF-066-7/RF-066-8）。
-- **既有 pin 需擴充**：round-065 的 `TestRequestBody_MultiCallRound_BatchesFunctionResponses` / `…_NoMedia_BatchesResults` / `TestRequestBody_ThreeCallRound_BatchesResults` / `TestRequestBody_ShortRound_DropsUnpairedNames` 目前 pin 住 **無 id 的 batched 形狀**，本輪加上 id 軸（且 S-6 可能讓 short-round pin 改以 exact unmatched id 記帳）。
+- **既有 pin 需擴充**：round-065 的 `TestRequestBody_MultiCallRound_BatchesFunctionResponses` / `…_NoMedia_BatchesResults` / `TestRequestBody_ThreeCallRound_BatchesResults` / `TestRequestBody_ShortRound_DropsUnpairedNames` 目前 pin 住 **無 id 的 batched 形狀**，本輪加上 id 軸（S-6 的「exact unmatched id 記帳」**未**交付 — F-066-1/F-066-5；邊界丟棄不變，改列 RF-066-7/RF-066-8）。
 - **治理**：預期 **新增 ADR**（id-keyed 配對；extend ADR 0035、標註其 D2 的 FIFO 註記與 §Forward RF-065-1）；`/axb-api-plan` NOOP；`/axb-data-plan` NOOP；`/axb-spec-by-example` 預期 NOOP（無 user-visible 行為）；`/axb-dsl-refine` 預期 NOOP 或小幅 MODIFY（視 fake 能否觀察 id）。預期不新增 capability/config/dependency。
 
 ## Ready 判定
