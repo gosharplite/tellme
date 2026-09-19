@@ -1,0 +1,242 @@
+# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
+kind: DomainModel
+version: v1
+title: tellme — Quality Process
+description: >
+  Models how tellme maintains its own quality: the ordered `QualityPipeline` of
+  gates run by `make verify` (plus the E2E suite and the Gherkin/DSL topology
+  audit), the ADR governance that records durable decisions, and the triage loop
+  that homes a deferred item on a live issue or an ADR's Forward section. tellme's
+  process is deliberately lighter than the reference's: it has **no** committed
+  `NonFixCatalog` and (until round 060) **no** domain-model toolchain.
+
+glossary:
+  QualityPipeline: >
+    The ordered set of gates a change must pass before a round is delivered. Its
+    aggregate entry point is `make verify`; the E2E contract runs under
+    `make test` / `go test`; the topology audit and `modelith-check` are extra
+    checks.
+  NonFixCatalog: >
+    The reference's curated catalog of accepted non-fixes
+    (`docs/architect/INTENTIONAL_NON_FIXES.md`). tellme **deliberately has none** —
+    a deferred item is homed on a **live issue** or an **ADR Forward section**
+    instead, so it outlives a frozen plan package. This is a recorded divergence.
+  Round: >
+    One development iteration, carried by a plan package
+    (`specs/plans/NNN-<slug>/`). A delivered round is frozen; a closeout marks it
+    with an annotated `round-NNN` git tag on the `dev -> main` propagation merge.
+  Residual: >
+    A deferred, non-blocking item discovered while delivering a round. It MUST be
+    homed on a durable surface — a live issue or an ADR's Forward section — never
+    left only in a frozen plan package.
+
+enums:
+  GateKind:
+    description: The category of a `QualityGate`, mirroring the Makefile sections.
+    values:
+      - name: build
+        definition: Compilation / formatting (`build`, `fmt`, `tidy`).
+      - name: lint
+        definition: Static analysis (`vet`, `staticcheck`, `lint`).
+      - name: verify
+        definition: Convention/architecture guards (`verify-*`, `modelith-check`).
+      - name: security
+        definition: Dependency vulnerability scanning (`vulncheck`).
+      - name: test
+        definition: Execution gates (`test`, the E2E contract, `test-fast`).
+  GatePolicy:
+    description: Whether a gate can fail the pipeline.
+    values:
+      - name: zero-tolerance
+        definition: Any violation fails the gate (and thus the pipeline).
+      - name: advisory
+        definition: The gate reports but never fails the pipeline.
+
+entities:
+  QualityPipeline:
+    definition: >
+      The ordered gates a change must pass. `make verify` aggregates
+      `verify-no-test-sleep` + `verify-no-network` + `vet` + `verify-cross-compile`
+      + `verify-mcp-sdk-confinement` + `verify-architecture` + `modelith-check` +
+      `lint` + `vulncheck`; the E2E contract runs under `make test`. The pipeline
+      stops at the first failing gate.
+    relationships:
+      - entity: QualityGate
+        cardinality: "1:n"
+        ownership: owned
+      - entity: E2ESuite
+        cardinality: "1:1"
+        ownership: owned
+    invariants:
+      - id: pipeline-stops-on-failure
+        statement: "The `QualityPipeline` stops at the first failing `QualityGate`."
+
+  QualityGate:
+    definition: >
+      One check backed by a Makefile target — e.g. `verify-architecture` (the
+      layer-discipline gate) or `modelith-check` (the domain-model drift gate).
+      Each gate has a GateKind and a GatePolicy. Gates that shell a tool
+      binary resolve it from PATH / GOPATH bin.
+    attributes:
+      - name: name
+        type: string
+        description: The Makefile target name.
+      - name: kind
+        type: GateKind
+        description: The gate category.
+      - name: policy
+        type: GatePolicy
+        description: Whether a violation fails the pipeline.
+    invariants:
+      - id: zero-tolerance-gate-fails
+        statement: "A `zero-tolerance` `QualityGate` fails the pipeline on the first violation."
+      - id: advisory-gate-never-blocks
+        statement: "An `advisory` `QualityGate` never fails the pipeline."
+
+  E2ESuite:
+    definition: >
+      The executable acceptance contract: godog scenarios over
+      `specs/truth/features/**`, run by `make test` / `go test -count=1 ./...`.
+      Scenarios run in parallel by default (`Concurrency = 4`, with a
+      `TELL_ME_E2E_CONCURRENCY` seam); the `test-fast` subset runs a slice of the
+      contract behind a banner and is **never** the gate.
+    invariants:
+      - id: e2e-subset-never-the-gate
+        statement: "The `test-fast` subset is never the gate — `make test` always runs the full contract."
+      - id: e2e-parallel-by-default
+        statement: "The `E2ESuite` runs its scenarios in parallel by default."
+
+  TopologyAudit:
+    definition: >
+      The Gherkin/DSL topology script (from the aixbdd-tmg toolchain) that checks
+      the truth-tree's feature/DSL structure. It is a **carried** check, not a
+      `make verify` member; a small set of pre-existing DSL-matching errors is
+      recorded rather than gated.
+    invariants:
+      - id: topology-audit-not-a-gate
+        statement: "The `TopologyAudit` is a carried check, not a `QualityPipeline` member."
+
+  ADR:
+    definition: >
+      An Architecture Decision Record under `docs/decisions/NNNN-*.md` — a numbered,
+      indexed document capturing a durable decision and its rationale. An ADR may
+      carry a **Forward** section holding the round's non-blocking residuals.
+    attributes:
+      - name: number
+        type: integer
+        description: The unique ADR number.
+      - name: path
+        type: string
+        description: The file under `docs/decisions/`.
+    relationships:
+      - entity: DecisionIndex
+        cardinality: "n:1"
+        ownership: referenced
+        note: Every ADR is listed in the index.
+    invariants:
+      - id: adr-index-consistent
+        statement: "Every `ADR` under `docs/decisions/` is listed in the `DecisionIndex`, and no number is claimed twice."
+
+  DecisionIndex:
+    definition: >
+      The `docs/decisions/README.md` index: the ordered list of `ADR`s with a
+      one-line summary and a status. It is the discoverability surface for the
+      project's durable decisions (human-curated, a plain table).
+    invariants:
+      - id: decision-index-lists-all-adrs
+        statement: "The `DecisionIndex` lists every `ADR` that exists on disk."
+
+  Residual:
+    definition: >
+      A deferred, non-blocking item discovered while delivering a `Round`. It
+      MUST be homed on a durable surface — a live issue or an `ADR` Forward
+      section — because a frozen plan package is history that later rounds do not
+      read.
+    relationships:
+      - entity: ADR
+        cardinality: "n:1"
+        ownership: referenced
+        note: An ADR Forward section is a durable home for a residual.
+    invariants:
+      - id: residual-homed-on-a-durable-surface
+        statement: "A `Residual` is homed on a live issue or an `ADR` Forward section — never only in a frozen plan package."
+
+  Round:
+    definition: >
+      One development iteration, carried by a plan package. A delivered round is
+      frozen (`plan-package-frozen`); a closeout propagates `dev -> main` (a
+      no-ff merge) and marks the delivered round with an annotated `round-NNN` git
+      tag on the propagation merge commit.
+    relationships:
+      - entity: QualityPipeline
+        cardinality: "1:1"
+        ownership: referenced
+        note: A round must pass the pipeline before delivery.
+    invariants:
+      - id: delivered-round-is-frozen
+        statement: "A delivered `Round`'s plan package is frozen history; a new iteration starts a fresh package."
+      - id: round-close-tag-on-propagation-merge
+        statement: "A delivered `Round` is marked with an annotated `round-NNN` tag on the `dev -> main` propagation merge commit."
+
+scenarios:
+  - name: A release gate run
+    description: >
+      Before delivering a round, the operator runs the pipeline. Every gate
+      passes in order, the E2E contract is green, and the round proceeds.
+    actors: [QualityPipeline, QualityGate, E2ESuite, Round]
+    steps:
+      - "The operator runs `make verify` (the aggregate gate)."
+      - "Each `QualityGate` passes in order; the pipeline does not stop."
+      - "`make test` runs the full `E2ESuite` contract green."
+      - "The round is cleared for delivery."
+    invariants_touched: [pipeline-stops-on-failure, zero-tolerance-gate-fails]
+
+  - name: A gate failure stops the pipeline
+    description: >
+      A change introduces a layer violation. The layer-discipline gate fails and
+      the pipeline stops; later gates never run until it is fixed.
+    actors: [QualityPipeline, QualityGate]
+    steps:
+      - "A change adds an illegal cross-layer import."
+      - "`verify-architecture` (zero-tolerance) fails and names the offending edge."
+      - "The `QualityPipeline` stops at the failing gate."
+      - The violation is fixed; the re-run passes.
+    invariants_touched: [pipeline-stops-on-failure, zero-tolerance-gate-fails]
+
+  - name: A residual is homed durably
+    description: >
+      A non-blocking residual surfaces during a round. It is recorded on a live
+      issue or an ADR Forward section, so it survives the round's package freeze.
+    actors: [Residual, ADR, Round]
+    steps:
+      - "A delivery review surfaces a non-blocking residual."
+      - "The `Residual` is homed on a live issue or the round's `ADR` Forward section."
+      - The round's plan package freezes without carrying the residual alone.
+    invariants_touched: [residual-homed-on-a-durable-surface, delivered-round-is-frozen]
+
+  - name: The topology audit is carried
+    description: >
+      The Gherkin/DSL topology script runs as a carried check; its pre-existing
+      findings are recorded, not gated.
+    actors: [TopologyAudit, QualityPipeline]
+    steps:
+      - "The operator runs the topology audit."
+      - "Its pre-existing DSL-matching findings are recorded, not gated."
+    invariants_touched: [topology-audit-not-a-gate]
+
+  - name: An ADR is recorded and indexed
+    description: >
+      A durable decision is written as an ADR and added to the index; the number
+      is unique.
+    actors: [ADR, DecisionIndex]
+    steps:
+      - "The operator writes a new `ADR` under `docs/decisions/`."
+      - "The ADR is added to the `DecisionIndex`."
+      - "No ADR number is claimed twice."
+    invariants_touched: [adr-index-consistent, decision-index-lists-all-adrs]
+
+invariants:
+  - id: triage-loop-closed
+    statement: "Every deferred item is either fixed or homed durably — none are silently dropped."
+  - id: no-nonfix-catalog
+    statement: "tellme keeps no committed `NonFixCatalog` — the durable home is a live issue or an ADR Forward section (a recorded divergence)."

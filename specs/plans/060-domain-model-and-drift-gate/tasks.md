@@ -53,30 +53,47 @@
 - modelith 版本／`@branch` 釘在 `docs/domain-model/README.md`（D6）。
 - review 啟動 subagent；通過前不解鎖 Phase 4。
 
-- [ ] T001 `Makefile` 接線：`modelith-lint`／`modelith-render`／`modelith-check`（`modelith-check` 進 `verify`；binary 缺席 → 具名安裝指令 + exit 1；無 network fallback）
+- [X] T001 `Makefile` 接線：`modelith-lint`／`modelith-render`／`modelith-check`（`modelith-check` 進 `verify`；binary 缺席 → 具名安裝指令 + exit 1；無 network fallback）
   - Read: `research.md` D5/D6/D11；`spec.md` FR-004/FR-006；`Makefile`（既有 gate 風格 + `.PHONY`/`help`）
   - RED-first 期望：尚無任何 `docs/domain-model/*.modelith.yaml` 時，`make modelith-check` 報錯（缺口徑）——證明 gate 未接線即不綠。
 
-- [ ] T002 產品模型 `docs/domain-model/tellme.modelith.yaml`（skeleton→behaviour→refinement；實體：`Session`/`Turn`/`Provider`/`Tool`/`ToolCall`/`Context`/`History`/`Skill`/`MCPServer`/`MCPTool`/`Config`/`Chrome`；含 invariants + scenarios）
+- [X] T002 產品模型 `docs/domain-model/tellme.modelith.yaml`（skeleton→behaviour→refinement；實體：`Session`/`Turn`/`Provider`/`Tool`/`ToolCall`/`Context`/`History`/`Skill`/`MCPServer`/`MCPTool`/`Config`/`Chrome`；含 invariants + scenarios）
   - Read: `research.md` D3；`spec.md` FR-001/FR-002/FR-003(a)；the shipped tree（`internal/**`）以為實證；README *Design Intent & Direction*（**不得**含 security/Windows/`pipe_commands`）
   - 做: 3-pass；`modelith lint` 0/0；`modelith render` 產出 `.md`。
 
-- [ ] T003 品質模型 `docs/domain-model/quality.modelith.yaml`（`QualityPipeline` + 既有 gate catalog + ADR governance + triage；**記錄**無 `NonFixCatalog` 之 divergence）
+- [X] T003 品質模型 `docs/domain-model/quality.modelith.yaml`（`QualityPipeline` + 既有 gate catalog + ADR governance + triage；**記錄**無 `NonFixCatalog` 之 divergence）
   - Read: `research.md` D4；`spec.md` FR-003(b)；`Makefile`（實際 gate 清單）；`docs/decisions/README.md`
   - 做: 3-pass；lint 0/0；render。
 
-- [ ] T004 環境模型 `docs/domain-model/environment-management.modelith.yaml`（`Environment`/`Group`/`Persona`/`SecretSet`/`TellMeHome`；hot-swap；**描述外部 Niffler `tellme.sh`**，`description` 記錄 divergence）
+- [X] T004 環境模型 `docs/domain-model/environment-management.modelith.yaml`（`Environment`/`Group`/`Persona`/`SecretSet`/`TellMeHome`；hot-swap；**描述外部 Niffler `tellme.sh`**，`description` 記錄 divergence）
   - Read: `research.md` D2；`spec.md` FR-003(c)；reference `environment-management.modelith.*`（作形狀參考，非抄）；`$TELL_ME_HOME` 佈局
   - 做: 3-pass；lint 0/0；render。
 
-- [ ] T005 `docs/domain-model/README.md`（作者慣例 + 釘住 `go install …@feat/self-domain-model` + 觀測版本 + `make modelith-*` 用法 + 「descriptive docs, not truth」）
+- [X] T005 `docs/domain-model/README.md`（作者慣例 + 釘住 `go install …@feat/self-domain-model` + 觀測版本 + `make modelith-*` 用法 + 「descriptive docs, not truth」）
   - Read: `research.md` D2/D6/D8；reference `docs/domain-model/README.md`（形狀參考）
 
-- [ ] T006 全量驗證 + 見證（`modelith lint` 三檔 0/0 · `modelith render --check` 三檔 up-to-date · `make verify` 綠 · drift 見證：改 YAML 不 re-render ⇒ `modelith-check` 紅 → revert · absent-binary 見證：以 path-shim 令 `command -v modelith` 空 ⇒ `modelith-check` 紅並具名安裝指令 → revert）
+- [X] T006 全量驗證 + 見證（`modelith lint` 三檔 0/0 · `modelith render --check` 三檔 up-to-date · `make verify` 綠 · drift 見證：改 YAML 不 re-render ⇒ `modelith-check` 紅 → revert · absent-binary 見證：以 path-shim 令 `command -v modelith` 空 ⇒ `modelith-check` 紅並具名安裝指令 → revert）
   - Read: `spec.md` SC-001…SC-005；`research.md` D5/D7；ADR 0010（見證再現後 revert）
 
 ## Phase 4: Regression & Verification
 
-- [ ] T007 Regression：`make verify`（含所有既有成員）+ `go test -count=1 ./...` + Gherkin/DSL topology audit 皆綠；`go.mod`／`go.sum` 未動；產品碼未動
+- [X] T007 Regression：`make verify`（含所有既有成員）+ `go test -count=1 ./...` + Gherkin/DSL topology audit 皆綠；`go.mod`／`go.sum` 未動；產品碼未動
   - Read: `spec.md` NFR-004；`research.md` D11/D12
-- [ ] T008 回寫 `tasks.md` `[X]`；`truth-delta.md` 無新增（plan half 已交付）；準備交付記錄
+- [X] T008 回寫 `tasks.md` `[X]`；`truth-delta.md` 無新增（plan half 已交付）；準備交付記錄
+
+---
+
+## Implementation ledger (round 060)
+
+- **T001** — `Makefile`: `MODELITH`/`MODELITH_INSTALL`/`MODELITH_MODELS` vars; `.PHONY` + `help` entries; `modelith-lint`/`modelith-render`/`modelith-check` targets (POSIX, no network fallback); `modelith-check` added to the `verify` aggregate.
+- **T002–T004** — three models authored (3-pass) — all `modelith lint` → **0 errors / 0 warnings**; all rendered:
+  - `docs/domain-model/tellme.modelith.yaml`/.md (15 entities: `Config`/`Provider`/`Pricing`/`Session`/`Turn`/`ToolCall`/`Tool`/`MCPServer`/`MCPTool`/`Skill`/`Context`/`Persona`/`History`/`UsageRecord`/`TurnLog`/`ToolUsageRecord`/`PromptLog`/`Chrome`/`PromptInput`; 9 scenarios).
+  - `docs/domain-model/quality.modelith.yaml`/.md (`QualityPipeline`/`QualityGate`/`E2ESuite`/`TopologyAudit`/`ADR`/`DecisionIndex`/`Residual`/`Round`; `NonFixCatalog` recorded as a divergence; 5 scenarios).
+  - `docs/domain-model/environment-management.modelith.yaml`/.md (`Environment`/`Group`/`Persona`/`SecretSet`/`InGroupChat`; the **external** Niffler manager recorded; 4 scenarios).
+- **T005** — `docs/domain-model/README.md` (toolchain install + observed version pin; conventions incl. the "plain scalar must not start with a backtick" rule; the descriptive-docs-not-truth boundary; lifecycle).
+- **T006 — verification + witnesses** (reproduced then reverted, ADR 0010 doctrine):
+  - **drift witness (a)**: edit `tellme.modelith.yaml` without re-render ⇒ `make modelith-check` **FAILS** (`… .md is out of date — regenerate it …`) — reverted ⇒ green.
+  - **absent-binary witness (b)**: `PATH=/usr/bin:/bin make modelith-check` ⇒ **FAILS** naming `go install github.com/gosharplite/modelith/cmd/modelith@feat/self-domain-model` — restored ⇒ green.
+  - `make modelith-lint` → 0/0 (three models); `make modelith-check` → all three up to date.
+- **T007 — regression**: `make verify` **OK** (incl. the new `modelith-check` member; `golangci-lint` 0 issues; `govulncheck` no reachable vulns; cross-compile 4/4); `go test -count=1 ./...` **green** (all packages incl. the godog E2E); `gofmt -l .` clean; `go.mod`/`go.sum` **unchanged**; no product code touched; no `specs/truth/features/**` change (topology audit unchanged).
+- **T008** — markers flipped; `truth-delta.md` unchanged from the plan half (truth + ADR already delivered there).

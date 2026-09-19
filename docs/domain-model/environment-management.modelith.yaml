@@ -1,0 +1,213 @@
+# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
+kind: DomainModel
+version: v1
+title: tellme — Environment Management (the external Niffler manager)
+description: >
+  Models how tellme environments are provisioned and run. Unlike the product and
+  quality models, the machinery here lives **outside** this repository: a
+  Niffler-style shell manager (`tellme.sh`) provisions an isolated
+  `ait-<tag>/` workspace from a self-contained group template, generating one
+  config per persona and sourcing a provider that can be hot-swapped mid-session.
+  tellme consumes the provisioned directory as `$TELL_ME_HOME`; the manager is a
+  recorded external dependency, not part of the binary.
+
+glossary:
+  Niffler: >
+    The external shell manager that provisions and sources a tellme environment
+    from a group template. It lives at
+    `~/tmp/dualnets/seed/notebooks/<host>-niffler/tellme.sh` — outside this
+    repository — and is invoked via `source tellme.sh`. A recorded divergence:
+    the reference ships its own Niffler; tellme's is external.
+  TellMeHome: >
+    The provisioned environment directory (`ait-<tag>/`) that tellme reads as
+    `$TELL_ME_HOME` — its `configs/`, `docs/skills/`, `secrets/`, and per-mode
+    `output/<mode>/` workspaces. Fixed at provisioning time.
+  HotSwap: >
+    Switching the active provider within an environment without losing session
+    state, because the provider is never encoded in the directory name.
+  MODE: >
+    A config key naming a persona's identity (e.g. `butler`). `TELL_ME_MODE`
+    selects the mode for tellme's offline session commands.
+  PERSON: >
+    A config key holding a persona's system prompt, injected as the system
+    message on every turn.
+
+enums:
+  ProvisionFlag:
+    description: Flags that modify how an environment is provisioned.
+    values:
+      - name: priority
+        definition: Use the priority-tier merge source (shared/priority provider headers).
+      - name: clean
+        definition: Skip copying the group's `docs/` (a lean, skills-free environment).
+
+entities:
+  Environment:
+    definition: >
+      A self-contained `ait-<tag>/` directory provisioned from exactly one
+      `Group`. Its `tag` fixes the directory name; only the active provider
+      changes. It holds the generated persona configs, the `SecretSet`, the
+      optional `docs/skills/` catalog, and the per-mode `output/<mode>/`
+      workspaces. tellme treats it as `TellMeHome` (`$TELL_ME_HOME`).
+    attributes:
+      - name: tag
+        type: string
+        description: The human-chosen name; forms the directory name `ait-<tag>`.
+      - name: activeProvider
+        type: string
+        description: The currently sourced provider; changeable by `HotSwap`.
+      - name: provisionFlags
+        type: ProvisionFlag
+        description: The provisioning flags applied when the environment was created.
+    relationships:
+      - entity: Group
+        cardinality: "n:1"
+        ownership: referenced
+        note: The group template this environment was provisioned from.
+      - entity: Persona
+        cardinality: "1:n"
+        ownership: owned
+        note: The generated per-persona configs.
+      - entity: SecretSet
+        cardinality: "1:1"
+        ownership: owned
+        note: The environment's copied credentials.
+    invariants:
+      - id: env-provider-not-in-path
+        statement: "The active provider is never encoded in the `Environment` directory name (it is `ait-<tag>`, not `ait-<tag>-<provider>`)."
+      - id: env-hotswap-preserves-state
+        statement: "`HotSwap`ping the provider MUST NOT affect the session's history, turns log, usage, or workspaces."
+
+  Group:
+    definition: >
+      A self-contained category template under `ait-base/<group>/` defining the
+      persona stubs, a `SecretSet`, and an optional `docs/skills/` catalog. A
+      group is never used directly by tellme; an `Environment` is provisioned
+      from exactly one group.
+    attributes:
+      - name: name
+        type: string
+        description: Directory name under `ait-base/` (e.g. `engineers`).
+    relationships:
+      - entity: Persona
+        cardinality: "1:n"
+        ownership: owned
+        note: The persona stubs discovered from the group's `configs/`.
+      - entity: SecretSet
+        cardinality: "1:1"
+        ownership: owned
+    invariants:
+      - id: group-has-butler
+        statement: "Every `Group` MUST contain a `configs/butler.yaml` master config."
+      - id: group-carries-all-providers
+        statement: "A `Group`'s master config declares all supported providers; the active one is chosen at source time."
+
+  Persona:
+    definition: >
+      A role definition — a `MODE` and a `PERSON` system prompt — stored as a
+      lightweight YAML stub in a group's `configs/`. At provision time each stub
+      is merged with the group's master config to generate a full config in the
+      `Environment`. In-group peer personas (e.g. `pm`, `rd`, `architect`,
+      `coder`, `griller`) are the same shape.
+    attributes:
+      - name: name
+        type: string
+        description: Filename stem (also the `MODE` value).
+      - name: alias
+        type: string
+        description: The single-letter shell alias, derived from the name's first letter.
+    invariants:
+      - id: persona-alias-unique
+        statement: "No two `Persona`s within the same `Group` share a first letter."
+      - id: persona-b-reserved
+        statement: "The alias `b` is reserved for the butler `Persona`."
+
+  SecretSet:
+    definition: >
+      The API keys, service-account credentials, and environment variables
+      bundled with a `Group` and copied into each provisioned `Environment`.
+      Secrets are per group and never shared between groups.
+    attributes:
+      - name: keyFile
+        type: string
+        description: Path to the service-account JSON credentials file.
+      - name: envFile
+        type: string
+        description: Path to the shell file exporting API-key variables.
+    invariants:
+      - id: secrets-per-group
+        statement: "Each `Group` template carries its own secrets — never shared between groups."
+      - id: secrets-never-transmitted-remotely
+        statement: "Credentials are never transmitted over SSH; a remote environment sources its own local copy."
+
+  InGroupChat:
+    definition: >
+      The protocol by which peer personas in one workspace converse — each agent
+      has a `MODE` identity, the active one is `TELL_ME_MODE`, and a message goes
+      to a peer mode. An agent MUST NOT message its own mode (to avoid
+      self-pollution), and dispatch is sequential.
+    attributes:
+      - name: selfMode
+        type: string
+        description: The active agent's identity (from `TELL_ME_MODE`).
+    relationships:
+      - entity: Persona
+        cardinality: "n:n"
+        ownership: referenced
+        note: The reachable peer personas.
+    invariants:
+      - id: ingroup-never-message-self
+        statement: "An agent never messages its own `MODE`."
+      - id: ingroup-sequential-dispatch
+        statement: "In-group messages are dispatched sequentially."
+
+scenarios:
+  - name: Provision a new environment
+    description: >
+      The operator provisions an environment from a group template. The
+      persona stubs are discovered, validated, and merged with the master config;
+      secrets and optional skills are copied.
+    actors: [Niffler, Group, Environment, Persona, SecretSet]
+    steps:
+      - "The operator sources `tellme.sh` naming a group, a tag, and a provider."
+      - "The `Group`'s `Persona` stubs are discovered and validated (unique aliases; `b` reserved)."
+      - "Each stub is merged with the master config into a full `Persona` config."
+      - "The `SecretSet` and the optional skills catalog are copied into the `Environment`."
+    invariants_touched: [group-has-butler, persona-alias-unique, persona-b-reserved, secrets-per-group]
+
+  - name: Mid-session provider hot-swap
+    description: >
+      The operator switches the active provider without changing the environment
+      directory; session state is preserved.
+    actors: [Environment, Persona]
+    steps:
+      - "The operator re-sources `tellme.sh` with a different provider."
+      - "The `Environment`'s `activeProvider` changes; the directory name is unchanged."
+      - "Session history, turns, usage, and workspaces are preserved."
+    invariants_touched: [env-provider-not-in-path, env-hotswap-preserves-state]
+
+  - name: Persona alias collision
+    description: >
+      Two persona stubs share a first letter; provisioning is refused and the
+      partial workspace cleaned up.
+    actors: [Group, Persona, Environment]
+    steps:
+      - "A `Group` contains two `Persona` stubs with the same first letter."
+      - "The manager detects the collision and aborts provisioning."
+      - "The partial `Environment` is cleaned up."
+    invariants_touched: [persona-alias-unique]
+
+  - name: In-group conversation
+    description: >
+      The active agent messages a peer persona in its group; it never messages
+      its own mode and dispatches sequentially.
+    actors: [InGroupChat, Persona]
+    steps:
+      - "The active agent resolves its identity from `TELL_ME_MODE`."
+      - "It selects a peer mode (never its own)."
+      - "It dispatches the message sequentially."
+    invariants_touched: [ingroup-never-message-self, ingroup-sequential-dispatch]
+
+invariants:
+  - id: environment-is-external
+    statement: "Environment management is performed by an external shell manager; tellme consumes the provisioned directory as `TellMeHome`."
