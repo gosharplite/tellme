@@ -667,3 +667,11 @@ Re-verification comment `5740073150`: **FOLDS VERIFIED 4/4 + FR-004** → **CERT
 The falsified string now survives **only** where quoted *as the falsified form* (the fold ledgers, `research.md` D5, the historical witness at `tasks.md:96` with its forward pointer).
 
 Re-verified at `50e1ed7`: `make verify` **OK** · `go test -count=1 ./...` green · `gofmt` clean · `go.mod`/`go.sum` unchanged. **No further review pass needed** (doc-only). Next: **human merge into `dev`** → closeout Steps 1–8 (propagate `dev → main` no-ff, `main^{tree} == dev^{tree}`, tag `round-060`, `go install`, `STATUS.md` Rule-12 split, issue-tracker pass — #91/#13 stay open).
+
+### 16 (cont.) — final certification ⇒ review loop CLOSED (CERTIFIED MERGE-READY)
+
+Certification comment `5740091537`: **TF-060-2 FOLDS VERIFIED — CERTIFIED MERGE-READY. No further folds; the review loop is CLOSED.** The reviewer's final sweep confirms **no command-shaped falsified form survives as a live instruction** (every remaining occurrence is negative documentation / a quoted-as-falsified historical record / a review-ledger record). Gates at the tip `8b0014f`: `gofmt` clean · `make verify` **OK** · `go test -count=1 ./...` green · `go.mod`/`go.sum` unchanged · **0 product files** touched vs `dev`.
+
+**Review chain (closed):** review `5254902427` (REQUEST CHANGES — B-060-1 + TD-060-1…4 + nits) → fold `2f59f91` → fold-verification `5740054490` (5/5 + TF-060-1) → fold-back `0d63674` → re-verification `5740073150` (4/4 + FR-004 + TF-060-2) → fold-back `50e1ed7` → **certification `5740091537`**.
+
+**Awaiting the human merge** into `dev` (only a human merges; no Copilot review), then `SESSION-CLOSEOUT.md` Steps 1–8 (propagate `dev → main` no-ff, `main^{tree} == dev^{tree}`, tag `round-060`, `go install ./cmd/tellme`, `STATUS.md` Rule-12 split of the round-059 detail, issue-tracker pass — #91/#13 stay open). Round-060 forward items (RF-060-1…5 + R-060-1…3) recorded in `STATUS.md` open items.
