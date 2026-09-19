@@ -186,6 +186,10 @@ func TestRequestBody_MultiCallRound_NoMedia_BatchesResults(t *testing.T) {
 		if resp["content"] != want {
 			t.Errorf("part %d functionResponse content = %v, want %q", i, resp["content"], want)
 		}
+		// Round 066 (ADR 0036): the part carries its call's id.
+		if wantID := []string{"call_1", "call_2"}[i]; fr["id"] != wantID {
+			t.Errorf("part %d functionResponse id = %v, want %q", i, fr["id"], wantID)
+		}
 	}
 }
 
@@ -239,6 +243,10 @@ func TestRequestBody_ThreeCallRound_BatchesResults(t *testing.T) {
 		resp, _ := fr["response"].(map[string]any)
 		if resp["content"] != want.content {
 			t.Errorf("part %d functionResponse content = %v, want %q", i, resp["content"], want.content)
+		}
+		// Round 066 (ADR 0036): the part carries its call's id, in call order.
+		if wantID := []string{"call_1", "call_2", "call_3"}[i]; fr["id"] != wantID {
+			t.Errorf("part %d functionResponse id = %v, want %q", i, fr["id"], wantID)
 		}
 	}
 }
