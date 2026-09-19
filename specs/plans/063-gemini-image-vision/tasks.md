@@ -102,3 +102,14 @@ All **T001–T028** `[X]`. Delivered sites: `internal/infrastructure/llm/gemini/
 
 **Re-verification at the fold**: `gofmt`/`go vet`/`go build` clean · `go test -count=1 ./...` green · `make verify` **OK**.
 
+## PR #130 fold verification (`5255416866`) — folds verified, + R-063-1/nits
+
+| Fold | Change |
+| --- | --- |
+| **R-063-1** | `STATUS.md` now records the review id (`5255377863`) + the fold head (`4b0106d`) + the fold-verification (`5255416866`) in the in-flight block (the round-062 F-062-5b convention: the next bootstrap's Step 7 must learn a review cycle ran). |
+| **N-063-1** | `techstack.md` *Provider family mapping*: the over-reaching clause corrected — the **tool instance** receives only the resolved `int`, but the **family→ceiling table lives in the tool package** and names `"gemini"` (RF-063-9's finding). |
+| **N-063-2** | `client_image_test.go`: restored the name-led lead line of `TestRequestBody_MediaFreeIsByteIdentical`'s doc comment (consumed when the new test was inserted above it). |
+| **N-063-3** | ADR **0033 D2** now scopes its "avoids by construction" claim to the **single-call** round and cites **RF-063-7** for the multi-call interleave (the decision's own text matched the corrected truth rows). |
+
+**Re-verification after the record fold**: `gofmt`/`go vet`/`go build` clean · `go test -count=1 ./...` green · `make verify` **OK**.
+

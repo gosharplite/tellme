@@ -138,6 +138,7 @@ func TestRequestBody_MultiCallRound_MediaTurnsInterleave(t *testing.T) {
 	}
 }
 
+// TestRequestBody_MediaFreeIsByteIdentical pins I-1 on the Gemini family: a
 // media-free conversation serializes BYTE-FOR-BYTE as before — any drift in the
 // text path reds this (the round-062 byte-identity control, carried to Gemini).
 func TestRequestBody_MediaFreeIsByteIdentical(t *testing.T) {
