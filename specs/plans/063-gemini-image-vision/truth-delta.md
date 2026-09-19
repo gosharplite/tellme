@@ -5,29 +5,30 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: skeleton initialized by `/axb-specify`. **Clarify CLOSED** — **Q1 → A** (reuse the single `VISION` key) and **Q2 → B** (a **family-aware** inline ceiling enforced by `read_image` as a loud tool error) locked by the operator, one at a time (2026-09-19). **Q3** (the `inline_data` wire placement) is deliberately left to `/axb-technical-research`. Owner rows below are **expected** shapes, not yet recorded.
+> **Status**: **Clarify CLOSED** — **Q1 → A** (reuse the single `VISION` key) and **Q2 → B** (a **family-aware** inline ceiling enforced by `read_image` as a loud tool error) locked by the operator, one at a time (2026-09-19). **Q3** (the `inlineData` wire placement) was left to `/axb-technical-research` and is decided in `research.md` **D2**. Owner rows: `research`/`api`/`data` **recorded below**; `dsl-refine` rows are **expected** (that phase has not run).
 
 ## /axb-technical-research
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| MODIFY | `specs/truth/techstack.md` — *Image content on the provider wire* | the Gemini/Vertex family carries the image as an `inline_data` blob (`mime_type` + base64 `data`) on a `user` turn; the round-062 loud Gemini refusal is retired; **a family-aware inline ceiling** enforced by `read_image` (Q2 → B; per-family values sourced here). | `spec.md` FR-001…FR-005, S-2/S-5/S-6 |
-| MODIFY | `specs/truth/techstack.md` — *Image filesystem tool (`read_image`)* | the tool now takes the **selected provider's resolved inline ceiling** as a construction input (alongside the round-062 vision gate), so oversize is a loud tool error on both families. | `spec.md` FR-004, S-6 (Q2 → B) |
-| MODIFY | `specs/truth/techstack.md` — *Provider entry schema* / capability note | the single `VISION` boolean is now honoured by **both** families (no second key). | `spec.md` FR-007/FR-008, S-1 |
-| ADD | `docs/decisions/00NN-*.md` (+ index row) | the Gemini `inline_data` path; extends ADR 0032; supersedes `RF-062-1`. | `spec.md` S-8, `research.md` (TBD) |
-| NOOP (checked) | the OpenAI-compatible image row | unchanged by this round (the round-062 `image_url` shape stands). | `spec.md` S-7 |
+| ADD | `specs/truth/techstack.md` — *Image content on the provider wire (Gemini/Vertex)* | the new row: a media-bearing message becomes one `user` `contents` entry with `inlineData` blob parts (`mimeType` + base64 `data`, camelCase proto-JSON), emitted after the tool-result `functionResponse` turn (the reference's #1441 hazard avoided by construction); the round-062 loud Gemini refusal **retired**; the family-aware inline ceiling (**14 MiB**, derived from the documented ≈20 MB inline request bound). | `spec.md` FR-001…FR-005, S-2/S-5/S-6; `research.md` D1/D2/D3/D4 |
+| MODIFY | `specs/truth/techstack.md` — *Image content on the provider wire (OpenAI-compatible)* | corrected the now-stale clause ("the Gemini adapter has no `inline_data` path … a loud `*llm.ProviderError`") to point at the new Gemini row; the `image_url` block itself is unchanged. | `spec.md` S-7; `research.md` D1 |
+| MODIFY | `specs/truth/techstack.md` — *Image filesystem tool (`read_image`)* | the tool takes the **selected provider's resolved inline ceiling** as a construction input (alongside the vision gate) and enforces it as a loud tool error on **both** families. | `spec.md` FR-004, S-6 (Q2 → B); `research.md` D4/D7 |
+| MODIFY | `specs/truth/techstack.md` — *Provider entry schema* | the single `VISION` boolean is now honoured by **both** families (no second key). | `spec.md` FR-007/FR-008, S-1 (Q1 → A); `research.md` D5 |
+| MODIFY | `specs/truth/techstack.md` — *Vertex/Gemini adapter* | the adapter now carries media (`inlineData` blobs) instead of refusing it. | `spec.md` FR-001/FR-005; `research.md` D1/D10 |
+| ADD | `docs/decisions/0033-gemini-image-vision.md` (+ the index row; and the **Status** + index-row annotation of ADR 0032) | the decision: the `inlineData` blob, the placement, the camelCase keys, the family-aware ceiling + its derivation/residual; **extends ADR 0032**, **supersedes its RF-062-1**, narrows its D4/D8. | `spec.md` S-8; `research.md` D9 |
 
 ## /axb-api-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| NOOP (checked) | `specs/truth/` (**no `contracts/**`**) | Single CLI end; no OpenAPI/HTTP surface exists or changed. | `spec.md` A3 |
+| NOOP (checked) | `specs/truth/` (**no `contracts/**`**) | Single CLI end; no OpenAPI/HTTP surface exists or changed. | `spec.md` A3 (`contract-authoritative` holds vacuously) |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| NOOP (checked, expected) | `specs/truth/data/data-model.dbml` | No persisted shape changes: the image stays in-memory/in-flight; the history step carries the tool's **text** result only (round-062 limitation). The round-062 `Message.Media` is in-memory. | `spec.md` A3, round-062 RF-062-6 |
+| NOOP (checked) | `specs/truth/data/data-model.dbml` | No persisted shape changes: the image stays in-memory/in-flight; the history step carries the tool's **text** result only (round-062 limitation). The round-062 `Message.Media` is in-memory; this round is adapter-side. | `spec.md` A3; round-062 RF-062-6 (`data-model-covers-all-state` holds) |
 
 ## /axb-dsl-refine
 

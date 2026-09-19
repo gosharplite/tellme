@@ -1,6 +1,6 @@
 # ADR 0032 — Agent image vision: an explicit capability key, a content-sniffed image, and an inline image on the OpenAI-compatible wire
 
-- **Status:** Accepted
+- **Status:** Accepted (**D4/D8 narrowed and §Forward RF-062-1 superseded by [ADR 0033](0033-gemini-image-vision.md)** — the Gemini family's `inlineData` image path; the rest of this ADR stands)
 - **Date:** 2026-09-19
 - **Deciders:** tellme owner
 - **Related:** `tell-me-go` **ADR-070** (DeepSeek vision + `FileUploadMode`; its model-ID substring capability rule is the reference this ADR **deliberately does not copy** — the operator's current DeepSeek doc retires `deepseek-v4-flash-vision-exp` and makes the rolling `deepseek-flash` alias image-capable), [ADR 0013](0013-composition-root-injection.md) (the composition-root injection the capability + tool are wired through), [ADR 0025](0025-mcp-tool-call-reason.md) (the universal `reason` gate every tool honours), [ADR 0031](0031-provider-supported-schema-surface.md) (the closed-wire provider surface — the sibling concern for the **Gemini** family, deliberately out of scope here), round 024 (the tool resource contract), round 029 (`specs/plans/029-agent-write-tools` — the last tool added), round 062 (`specs/plans/062-agent-image-vision` — this ADR's round)
