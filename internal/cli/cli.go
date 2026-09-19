@@ -733,10 +733,12 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		defer ind.Stop() // panic-safe residue guard (idempotent)
 	}
 
-	// Pre-flight payload status (round-009 FR-001): the estimated size of the
-	// assembled conversation — the resumed turns (via the shared projection,
-	// including tool steps — TD-1) plus the current prompt — measured against the
-	// payload budget. Diagnostic only, on stderr.
+	// Pre-flight payload status (round-009 FR-001; round 057 ADR 0027): the
+	// estimated size of the assembled conversation — the resumed turns (via the
+	// shared projection, including tool steps — TD-1) plus the current prompt —
+	// rendered with its increment over the previous estimate and WITHOUT a budget
+	// (the budget is shown only on the measured post-turn line). Diagnostic only,
+	// on stderr.
 	// Round 052 (closes #115 R-2; ADR 0021): the registry is built with the
 	// `[Tool Output]` sink injected at construction (`prog.ToolOutput`) — the
 	// round-034 `BindToolOutput` rebind no longer exists.
