@@ -32,9 +32,9 @@
 ## 缺口與澄清策略
 
 - [x] 只有高影響缺口才升級到 `/axb-clarify`（CQ-1 修正位置、CQ-2 投影範圍、CQ-3 truth/ADR 治理）
-- [x] 本輪 clarify 題數控制在 1 至 3 題（3 題，一題一問）— **進行中：CQ-1 → C 已拍板**（layered：normalizer floor + Gemini adapter projection）
+- [x] 本輪 clarify 題數控制在 1 至 3 題（3 題，一題一問）— **CQ-1 → C**（layered：normalizer floor + Gemini adapter 投影）· **CQ-2 → ii**（named、empirically-verified allowlist；default-deny）已拍板
 - [x] 低風險未定細節已用 `NEEDS CLARIFICATION` 或假設揭露（A1–A7）
-- [ ] 仍保留的 `NEEDS CLARIFICATION` 已標示是否阻塞後續規劃 — **CQ-2/CQ-3 仍阻塞**：未收斂前不得進入 `/axb-dsl-refine` / `/axb-tasks`（會改變驗收標準與既有 truth 行為）
+- [ ] 仍保留的 `NEEDS CLARIFICATION` 已標示是否阻塞後續規劃 — **CQ-3 仍阻塞**：未收斂前不得進入 `/axb-dsl-refine` / `/axb-tasks`（會改變驗收標準與既有 truth 行為）
 
 ## 可驗證性與成功標準
 
@@ -57,4 +57,4 @@
 - [ ] 已可進入後續規劃
 - [x] 仍需先補高影響需求缺口
 
-**備註**: spec 已完整記錄 defect、重現證據與不變式。**CQ-1 已拍板 → C**（layered：`NormalizeMCPSchema` vendor-extension floor + Gemini adapter 投影）；**CQ-2（投影範圍 i/ii）、CQ-3（ADR 治理）尚未拍板**。依 `axb-specify` Phase 2，**必須先完成 `/axb-clarify`（一題一問）**，未收斂前停止，不得自行假設答案，也不得進入 `/axb-spec-by-example` / `/axb-technical-research`。
+**備註**: spec 已完整記錄 defect、重現證據與不變式。**CQ-1 → C**（layered：`NormalizeMCPSchema` vendor-extension floor + Gemini adapter 投影）與 **CQ-2 → ii**（named、**empirically-verified** allowlist，default-deny）已拍板；**CQ-3（ADR 治理）尚未拍板**。依 `axb-specify` Phase 2，**必須先完成 `/axb-clarify`（一題一問）**，未收斂前停止，不得自行假設答案，也不得進入 `/axb-spec-by-example` / `/axb-technical-research`。

@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Draft — produced by `/axb-specify` from **issue [#127](https://github.com/gosharplite/tellme/issues/127)**. **Clarify IN PROGRESS** — **CQ-1 settled → C** (layered: normalizer floor + adapter projection, below); **CQ-2** (projection scope) and **CQ-3** (ADR governance) still open (`NEEDS CLARIFICATION` below). No `specs/truth/**` file is written by this skill.
+**Status**: Draft — produced by `/axb-specify` from **issue [#127](https://github.com/gosharplite/tellme/issues/127)**. **Clarify IN PROGRESS** — **CQ-1 → C** and **CQ-2 → ii** settled (below); **CQ-3** (ADR governance) still open. No `specs/truth/**` file is written by this skill.
 
 **Input (operator, 2026-09-19, this session)**:
 
@@ -42,12 +42,15 @@
 | --- | --- |
 | **S-1** | **The projection is layered — C (CQ-1 → C, operator 2026-09-19).** Two seams, each with one concern: **(B-floor)** `NormalizeMCPSchema` drops **vendor-extension / non-standard** keywords (`x-*`, `$schema`) for **every** family — one family-agnostic home for "drop vendor noise"; **(A-guarantee)** the **Gemini** adapter projects the relayed declaration onto the **provider-supported schema surface** before serializing — the guarantee that no wire-incompatible keyword reaches Vertex (covers standard-but-unsupported keywords the floor does not). Neither seam renames, re-types, or drops a **declared argument**. |
 
-**Open questions (PENDING clarify — candidates, not decisions):**
+| **S-2** | **The A-side projection is a named, empirically-verified allowlist — default-deny (CQ-2 → ii, operator 2026-09-19).** The Gemini seam keeps **only** keywords **confirmed supported** by the live Vertex/Gemini `Schema` message and **drops every other key** (so an unverified keyword cannot reach the wire, whether it is a vendor extension, a standard-but-unsupported keyword, or a future addition). The confirmed set is **established empirically during `/axb-technical-research`** (probe the live endpoint per candidate keyword: accept vs reject) and recorded in the ADR; the allowlist is the **single named owner** of the surface (S-1 / FR-007), and a hermetic unit pin covers the projection itself. |
+
+**Open questions (PENDING clarify — candidate, not a decision):**
 
 | # | Question | Candidates |
 | --- | --- | --- |
-| **CQ-2** | **What is the A-side projection's scope?** | **(i)** drop non-standard / `x-*` keywords only; **(ii)** project onto a **named Gemini-supported allowlist** (drops standard-but-unsupported keywords too — measured: the GitHub server also carries `anyOf` ×2 and `additionalProperties` ×2). |
-| **CQ-3** | **Truth + ADR governance** | **(i)** a **new ADR 0031** (the "provider-supported schema surface" rule) + a MODIFY of the round-056 `dsl.md:364` row / the MCP feature, and the OpenAI family's behaviour recorded; **(ii)** amend **ADR 0025** in place with the same MODIFY. |
+| **CQ-3** | **Truth + ADR governance** | **(i)** a **new ADR 0031** (the "provider-supported schema surface" rule) that **amends ADR 0025** with a forward pointer (the ADR-0030→ADR-0011 precedent), + a MODIFY of the round-056 `dsl.md:364` row / the MCP feature, and the OpenAI family's unchanged behaviour recorded; **(ii)** amend **ADR 0025** in place with the same MODIFY. |
+
+**Note on S-2's measured effect.** The GitHub server's 4 tools carrying `anyOf`/`additionalProperties` are covered **only if** those keys are not confirmed supported — the default-deny projection removes them, and the empirical probe decides whether they are *kept* (supported) or *dropped*. Either way no 400, and no assumption is baked in: the round **measures** the surface rather than guessing it.
 
 **Non-negotiable invariants (proposed, not open):**
 
@@ -78,7 +81,7 @@ As the **operator** running tellme with a `TYPE: gemini` provider and a remote M
 **Functional Requirements**:
 
 - **FR-001**: Under a `gemini` provider, a prompt turn whose offered declaration includes a tool relayed from an MCP server carrying a **provider-unsupported** schema keyword MUST complete successfully — the request MUST NOT be rejected (no `the provider request failed` / 400) (S-1).
-- **FR-002**: The declaration MUST be **projected** onto the selected provider's supported schema surface before it is serialized onto the wire in `internal/infrastructure/llm/gemini/client.go`, and a **normalizer-side floor** MUST drop vendor-extension keywords for every family (S-1). [NEEDS CLARIFICATION: the supported-key set and its single home — CQ-2]
+- **FR-002**: The declaration MUST be **projected** onto the selected provider's supported schema surface before it is serialized onto the wire in `internal/infrastructure/llm/gemini/client.go`, and a **normalizer-side floor** MUST drop vendor-extension keywords for every family (S-1); the projection is **default-deny** over a **named, empirically-verified** supported-key set (S-2).
 - **FR-003**: The projection MUST be derived from the **provider family** (or from an explicitly named supported-key set), not from an inline ad-hoc filter at the wire site.
 
 ### User Story 2 - the offered declaration still describes the server's real arguments (Priority: P2)
@@ -124,7 +127,9 @@ As the **maintainer**, I want the provider-supported schema surface to have **on
 
 ## Edge Cases
 
-- **A provider-unsupported *standard* keyword** (`anyOf`, `additionalProperties`, `$ref`, `$schema`, `examples`, `title`, `default`) — measured present on the GitHub server (`anyOf` ×2, `additionalProperties` ×2); the round MUST decide whether the projection covers these (CQ-2) or only `x-*` (in which case those 4 tools remain a latent 400).
+- **A provider-unsupported *standard* keyword** (`anyOf`, `additionalProperties`, `$ref`, `$schema`, `examples`, `title`, `default`) — measured present on the GitHub server (`anyOf` ×2, `additionalProperties` ×2). **Resolved by S-2**: default-deny drops every keyword not **empirically confirmed** supported, so this class cannot 400; the probe (not an assumption) decides each key.
+- **A key the probe confirms supported** (`anyOf` if Vertex accepts it) — it is **kept**, so a genuinely needed union survives.
+- **A future Gemini `Schema` revision** — the verified set is the single home; re-verifying is one probe run + one list edit (no scattered filters).
 - **An MCP server with no annotations** — declaration byte-identical to today (US1 scenario 3).
 - **The OpenAI-compatible family** — unchanged, or changed deliberately and recorded (CQ-1 option B/C change it; CQ-3 records it).
 - **An invalid/non-object server schema** — the existing normalizer skip (`SchemaSkippedWarning`) / freeform degradation; unchanged.
