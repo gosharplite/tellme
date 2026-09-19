@@ -102,8 +102,8 @@ func TestRunTurn_PrintsRawAnswerAndPersists(t *testing.T) {
 	// falsifiable — dropping the round-018 `if !usage.Reported` gate reds it.
 	lines := strings.Split(strings.TrimRight(errOut.String(), "\n"), "\n")
 	last := lines[len(lines)-1]
-	if !strings.HasPrefix(last, "<payload ") || !strings.HasSuffix(last, "1000000 butler deepseek-v4-flash estimated=true>") {
-		t.Errorf("last stderr line = %q, want the PRE-FLIGHT payload status line as the LAST write (unreported usage defers nothing)", last)
+	if !strings.HasPrefix(last, "<estimate ") || !strings.HasSuffix(last, "butler deepseek-v4-flash>") {
+		t.Errorf("last stderr line = %q, want the PRE-FLIGHT payload estimate line as the LAST write (unreported usage defers nothing)", last)
 	}
 	if len(st.appended) != 1 || st.appended[0].Prompt != "ping" || st.appended[0].Answer != "the answer" {
 		t.Errorf("persisted = %+v, want the completed exchange", st.appended)
@@ -205,7 +205,7 @@ func TestRunTurn_PostTurnStatusFollowsAnswer(t *testing.T) {
 		t.Fatalf("code = %d, want success", code)
 	}
 	out := buf.String()
-	pre := strings.Index(out, "<payload ")
+	pre := strings.Index(out, "<estimate ")
 	answer := strings.Index(out, "ANSWER")
 	post := strings.Index(out, "<payload 42/1000000")
 	if pre < 0 || answer < 0 || post < 0 {

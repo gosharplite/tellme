@@ -74,7 +74,7 @@ func drainWrites(w *signalWriter) {
 }
 
 func newTestCoordinator(w io.Writer, clock *uiTestClock, sp *Spinner, idle time.Duration) (*ToolOutputCoordinator, chan time.Time) {
-	c := NewToolOutputCoordinator(w, clock.now, sp, idle)
+	c := NewToolOutputCoordinator(w, clock.now, sp, idle, false)
 	tick := make(chan time.Time, 16)
 	c.newTicker = func() (<-chan time.Time, func()) { return tick, func() {} }
 	return c, tick

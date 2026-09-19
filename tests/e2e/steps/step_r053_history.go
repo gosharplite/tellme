@@ -124,7 +124,9 @@ func thenPrintsNothing(ctx context.Context) error {
 
 // thenSessionTurnsLogHoldsProgress (必查 權威狀態 / the write side of the turn
 // log): the resolved session's turns.log holds the rendered turn chrome — the
-// `╭─⠿ Turn …` header and a `Payload:` status line.
+// `╭─⠿ Turn …` header and the payload status line. Round 057 (F-057-2): the
+// payload check pins the CURRENT shape (`Payload: +<delta> ~<n> …`), not the bare
+// substring `Payload:` that the pre-057 shape would also satisfy.
 func thenSessionTurnsLogHoldsProgress(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	data, err := os.ReadFile(filepath.Join(sc.historyDir(), "turns.log"))
@@ -132,8 +134,8 @@ func thenSessionTurnsLogHoldsProgress(ctx context.Context) error {
 		return fmt.Errorf("the session turn log must be written: %w", err)
 	}
 	got := string(data)
-	if !strings.Contains(got, "╭─⠿ Turn") || !strings.Contains(got, "Payload:") {
-		return fmt.Errorf("the turn log must carry the turn chrome (header + payload); got %q", got)
+	if !strings.Contains(got, "╭─⠿ Turn") || !reTurnLogEstimate.MatchString(got) {
+		return fmt.Errorf("the turn log must carry the turn chrome (header + the round-057 payload estimate); got %q", got)
 	}
 	return nil
 }

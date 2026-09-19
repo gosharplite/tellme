@@ -716,16 +716,29 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// spinner and the chrome colour share one predicate, chromeColour) so the
 	// three consumers cannot disagree.
 	colourOn := chromeColour(opts, env)
-	prog := dp.NewProgress(env.stderr, env.now, res.Provider.Model, turnStart, stderrColumns(env), toolOutputIdleGap(dp.NewLines(false)), colourOn)
+	// Round 057 fold TD-057-2: named fields, so the spinner gate and the
+	// chrome-colour gate cannot be silently swapped.
+	prog := dp.NewProgress(render.ProgressSpec{
+		Stream:  env.stderr,
+		Now:     env.now,
+		Model:   res.Provider.Model,
+		Epoch:   turnStart,
+		Columns: stderrColumns(env),
+		IdleGap: toolOutputIdleGap(dp.NewLines(false)),
+		Spinner: colourOn,
+		Colour:  colourOn,
+	})
 	ind := prog.Indicator
 	if ind != nil {
 		defer ind.Stop() // panic-safe residue guard (idempotent)
 	}
 
-	// Pre-flight payload status (round-009 FR-001): the estimated size of the
-	// assembled conversation — the resumed turns (via the shared projection,
-	// including tool steps — TD-1) plus the current prompt — measured against the
-	// payload budget. Diagnostic only, on stderr.
+	// Pre-flight payload status (round-009 FR-001; round 057 ADR 0027): the
+	// estimated size of the assembled conversation — the resumed turns (via the
+	// shared projection, including tool steps — TD-1) plus the current prompt —
+	// rendered with its increment over the previous estimate and WITHOUT a budget
+	// (the budget is shown only on the measured post-turn line). Diagnostic only,
+	// on stderr.
 	// Round 052 (closes #115 R-2; ADR 0021): the registry is built with the
 	// `[Tool Output]` sink injected at construction (`prog.ToolOutput`) — the
 	// round-034 `BindToolOutput` rebind no longer exists.
@@ -832,11 +845,6 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	return Success
 }
 
-// emitPayloadStatus writes one payload status line to the diagnostic stream
-// (stderr) using the runtime's injected clock seam (round-009 FR-001/FR-006).
-// `estimated` selects the pre-flight `~` form; the measured form omits it. The
-// line carries no `tellme: ` prefix (FR-014) and names the effective mode and the
-// provider's configured MODEL (TD-2).
 // effectiveBudget returns the budget the payload status line renders: the
 // run-static EffectiveBudget when set (the resolve() path), else MaxHistoryTokens
 // (directly-constructed resolutions in unit tests).

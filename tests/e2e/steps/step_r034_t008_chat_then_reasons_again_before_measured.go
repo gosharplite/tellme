@@ -34,7 +34,7 @@ func thenReasonsAgainBeforeMeasured(ctx context.Context) error {
 	}
 	measured := -1
 	for i, l := range lines {
-		if strings.Contains(l, "Payload: ") && !strings.Contains(l, "Payload: ~") {
+		if strings.Contains(l, "Payload: ") && !isEstimatePayloadLine(l) {
 			measured = i
 			break
 		}

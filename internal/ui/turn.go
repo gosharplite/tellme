@@ -11,7 +11,7 @@ import (
 // input-capture acknowledgement, a blank line, an 80-column horizontal rule, and
 // a `╭─⠿ Turn <N> - <mode>` header — all on the diagnostic stream, in plain text
 // (round-017 Decision 3: no ANSI this round). The pre-flight payload line
-// (FormatPayloadStatus) is emitted inside the frame, unchanged.
+// (FormatPayloadEstimate) is emitted inside the frame.
 
 // turnRuleWidth is the reference's fixed horizontal-rule width (80 `─`).
 const turnRuleWidth = 80

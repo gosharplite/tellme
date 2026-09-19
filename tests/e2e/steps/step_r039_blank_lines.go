@@ -85,7 +85,7 @@ func thenTrailingReasonSummaryFollowsBlank(ctx context.Context) error {
 func measuredPayloadIndexes(lines []string) []int {
 	var idx []int
 	for i, l := range lines {
-		if strings.Contains(l, "Payload: ") && !strings.Contains(l, "Payload: ~") {
+		if strings.Contains(l, "Payload: ") && !isEstimatePayloadLine(l) {
 			idx = append(idx, i)
 		}
 	}
@@ -112,7 +112,7 @@ func thenTurnClosingStatusFollowsBlank(ctx context.Context) error {
 // round-017 frame gap already puts exactly ONE blank between the pre-flight
 // estimate and the measured payload, so the assertion is TARGETED — the line
 // immediately before the measured `Payload:` line must be that single frame-gap
-// blank whose own predecessor is the pre-flight (`Payload: ~…`) line. A global
+// blank whose own predecessor is the pre-flight estimate line (`Payload: +<delta> ~<n> …`; round 057). A global
 // `\n\n\n` absence would go silent if the frame gap were ever retuned; this form
 // fails visibly in both directions (it asserts the separation is exactly the frame
 // gap, not an added blank). This step is valid only on a TOOL-LESS turn.
@@ -124,7 +124,7 @@ func thenTurnClosingStatusNoBlank(ctx context.Context) error {
 		return fmt.Errorf("standard error carried no measured payload status line; stderr=%q", sc.stderr)
 	}
 	for _, i := range idx {
-		if i >= 2 && lines[i-1] == "" && strings.Contains(lines[i-2], "Payload: ~") {
+		if i >= 2 && lines[i-1] == "" && isEstimatePayloadLine(lines[i-2]) {
 			continue // exactly the round-017 frame gap — the correct, unchanged shape
 		}
 		return fmt.Errorf("a tool-less turn's closing status was not preceded by exactly the frame gap (an extra blank?); stderr=%q", sc.stderr)

@@ -69,9 +69,9 @@ type ToolOutputCoordinator struct {
 // the writer's clock seam, the turn spinner (nil when gated off), and the
 // resolved idle gap. The spinner is wrapped as the yield policy's owner
 // (ui.YieldController) so every block clear/resume/admit routes through it.
-func NewToolOutputCoordinator(stream io.Writer, now func() time.Time, sp *Spinner, idleGap time.Duration) *ToolOutputCoordinator {
+func NewToolOutputCoordinator(stream io.Writer, now func() time.Time, sp *Spinner, idleGap time.Duration, colour bool) *ToolOutputCoordinator {
 	return &ToolOutputCoordinator{
-		w:         &ToolOutputWriter{W: stream, Now: now},
+		w:         &ToolOutputWriter{W: stream, Now: now, Colour: colour},
 		yc:        NewYieldController(sp),
 		idleGap:   idleGap,
 		newTicker: defaultToolOutputTicker,

@@ -8,7 +8,9 @@ Feature: Reporting the payload status
 
   Rule: A prompt run reports the estimated payload size before it is sent
 
-    Example: The operator sees the estimated payload and the budget
+    # Round 057 (ADR 0027): the estimated line shows the increment over the
+    # previous estimate and drops the constant budget.
+    Example: The operator sees the estimated payload and its growth
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint answers with "all good"
@@ -18,8 +20,26 @@ Feature: Reporting the payload status
       When the operator starts tellme with the prompt "Summarise where we are."
       Then tellme reports the estimated payload status for the turn
       And the estimated payload status is reported before the answer
-      And the payload status measures against a budget of 1000000 tokens
+      And the estimated payload line does not show the allowance
       And the payload status names the active mode and model
+      And tellme exits successfully
+
+  Rule: The pre-flight payload line shows how much the payload grew
+
+    # Round 057 (ADR 0027): the increment is over the previous ESTIMATE emitted
+    # in the same run (in-memory, session-scoped). A fresh run's first estimate has
+    # no predecessor, so it shows a zero increase; a later request in the same run
+    # shows a positive increase.
+
+    Example: A tool-using turn shows the growth on its second request
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "notes.txt" whose text is "all good"
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "all good"
+      When the operator starts tellme with the prompt "read the notes"
+      Then the first estimated payload line shows an increase of zero
+      And a later estimated payload line shows a positive increase
+      And the estimated payload line does not show the allowance
       And tellme exits successfully
 
   Rule: A prompt run reports the provider's measured payload size after the turn
@@ -59,7 +79,7 @@ Feature: Reporting the payload status
     Example: A run with no configured budget measures against one million
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And a configured provider "test-model" whose endpoint answers with "all good"
+      And a configured provider "test-model" whose endpoint answers with "all good" and reports its usage
       When the operator starts tellme with the prompt "What is two plus two?"
       Then the payload status measures against a budget of 1000000 tokens
 
@@ -68,7 +88,7 @@ Feature: Reporting the payload status
     Example: The environment overrides the budget
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And a configured provider "test-model" whose endpoint answers with "all good"
+      And a configured provider "test-model" whose endpoint answers with "all good" and reports its usage
       And the payload budget is "2000000"
       When the operator starts tellme with the prompt "What is two plus two?"
       Then the payload status measures against a budget of 2000000 tokens

@@ -146,9 +146,11 @@ func turnFrameNumbers(stderr string) []int {
 // readyLineCount counts the `╰─⠿ Ready` tail lines (T014).
 func readyLineCount(stderr string) int { return len(indexOfLines(stderr, readyMarker)) }
 
-// estimatedPayloadLineCount counts the pre-flight `Payload: ~` lines (T017).
+// estimatedPayloadLineCount counts the pre-flight payload lines (T017). Round
+// 057 (ADR 0027): the estimate line is `Payload: +<delta> ~<tokens>`, so the
+// marker is the signed delta followed by the `~` estimate marker.
 func estimatedPayloadLineCount(stderr string) int {
-	return len(indexOfLines(stderr, "Payload: ~"))
+	return len(indexOfLines(stderr, "Payload: +")) + len(indexOfLines(stderr, "Payload: -"))
 }
 
 // modelRequestCount returns the number of model requests the scenario's fake
