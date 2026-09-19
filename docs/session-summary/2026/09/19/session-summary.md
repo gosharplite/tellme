@@ -543,3 +543,57 @@ A later session on the same calendar day: a one-element follow-up to round 057 �
 ### Issue tracker (closeout Step 8)
 
 **No changes** — round 058 was an **operator request** (no anchor issue) and nothing else moved. **[#91](https://github.com/gosharplite/tellme/issues/91)** · **[#13](https://github.com/gosharplite/tellme/issues/13)** — LEFT OPEN (still accurate). No closes, no revisions.
+
+---
+
+## 15. Session 33 (2026-09-19, cont.) — round 059 `059-darwin-metrics-and-1hz-cadence`: real macOS CPU/MEM + a 1 Hz resource-sample cadence → full pipeline → **review (B-059-1 blocker) → folds → fold-verification (FOLDS VERIFIED 5/5) → record fold-back (CERTIFIED MERGE-READY)** → **human-merged (PR #125)** → closeout (Steps 1–8)
+
+A later session on the same calendar day: bootstrapped/continued on `dev`, opened round **059** from an **operator request** (two spinner defects vs `tell-me-go` parity), ran the full AIxBDD pipeline, took **PR [#125](https://github.com/gosharplite/tellme/pull/125)** through an architectural review (**REQUEST CHANGES — B-059-1 blocker** + F-059-1…F-059-4 + recorded items), a fold, a fold-verification (**FOLDS VERIFIED 5/5** + one required record fold-back), and a record fold-back, saw the **human merge** (merge commit), and ran `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | operator request — **no anchor issue**: (1) on **macOS** the tool-phase `[CPU: x% | MEM: y%]` read `0.0%` for both figures; (2) the figures refreshed **5×/s** (should be **1×/s**) — both divergences from `tell-me-go` |
+| Clarify (one at a time) | **Q1 → 1** CPU = machine-wide, reference-style per-build split · **Q2 → 1** `sysctl` via `golang.org/x/sys/unix` (new direct dep) · **Q3 → 1** throttle the **sample + digits only** (braille stays 200 ms) · **Q4 → 1** macOS MEM = reference-exact per platform · **Q5 → 1** the 1 Hz throttle applies on **every** platform |
+| Pipeline | specify ✅ · clarify ✅ (Q1–Q5 → 1) · spec-by-example ✅ · technical-research ✅ (**ADR 0029** + `techstack.md`) · system-analysis ✅ (1 CLI end; api/data **NOOP**) · dsl-refine ✅ · tasks ✅ (T001–T015) · implement ✅ |
+| Review chain (PR #125) | review `5739817939` (**REQUEST CHANGES — B-059-1** + F-059-1…F-059-4 + TD-059-1/TD-059-2 + R-059-1…3) → fold **`e41d864`** → fold-verification `5739854807` (**FOLDS VERIFIED 5/5** + TF-059-1) → record fold-back **`968a437`** (+ TD-059-3, R-059-4/R-059-5) → **CERTIFIED MERGE-READY** |
+| Merge | PR [#125](https://github.com/gosharplite/tellme/pull/125) merged **`10e0fa9`** (**merge commit**); remote + local branch deleted |
+| Propagation | `dev → main` — **DONE (no-ff, `67b3c0b`)**; **`round-059`** annotated tag at `67b3c0b` |
+| `go install` | `go install ./cmd/tellme` refreshed from the `dev` head `10e0fa9`; `--version` → `dev` |
+| Closeout | `gofmt`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` green (**248 scenarios · 1836 steps**) · diff-level secret scan clean · `STATUS.md` split (round-058 detail + its env note + the round-056 branch row → `2026-09-19.md`) · **nothing to close** (operator request) |
+
+### Work done
+
+1. **Diagnosis (referencing `tell-me-go`)** — found two independent darwin defects: the CPU leg was a hardcoded stub (`return 0, …`) with no non-zero fallback, and the MEM leg mis-decoded the **NUL-trimmed** `syscall.Sysctl` value (measured: `hw.memsize` 16 GiB → 7 bytes → first-4-bytes `0` ⇒ `0.0%`; `vm.page_free_count` 3 bytes ⇒ error). Plus the shared-spinner 5 Hz sampling (a `metrics.Sample()` on every 200 ms frame). The reference works on ubuntu/mac via a `darwin && cgo` Mach sampler + a `darwin && !cgo` fallback, `golang.org/x/sys/unix`, and a `metrics_shouldSample` 1 s throttle.
+2. **Round 059** — `/axb-specify` → per-question clarify (Q1–Q5 → 1) → acceptance → `/axb-technical-research` (**ADR 0029** + `techstack.md`) → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement`.
+3. **The change** — `telemetry`: `darwin && cgo` (Mach `host_statistics64` CPU + `HOST_VM_INFO64` MEM) / `darwin && !cgo` (process CPU + `sysctl` MEM × 0.6) + build-tag-free math; `internal/ui/spinner.go`: `ResourceSampleInterval` (1 s) + the `sampleResources` throttle (braille stays 200 ms).
+4. **The fold** — **B-059-1**: the first cgo-less CPU source (`runtime/metrics` `/cpu/classes/total:cpu-seconds`) is the *available* CPU budget and read `0` on the darwin cgo-less host → folded to **`unix.Getrusage`**; the four contradicted claim surfaces corrected. **F-059-1**: two **seeded-delta** CPU pins (both mutation-killed). **F-059-2**: `tasks.md` markers/ledger + `research.md` Final. **F-059-3**: the owning *Turn progress spinner* row carries the 1 Hz refresh. **F-059-4**: acceptance Examples rebuilt from **existing** sentences (Rule 2 = a documented narrowing); **R-059-c** recorded. **TF-059-1**: the ADR index row corrected.
+5. **Merge + branch cleanup** — confirmed `origin/059-…` gone (`git fetch --prune`), `dev` at the merge commit `10e0fa9`, the branch tip an ancestor of `dev` → `git branch -d` (safe): *"Deleted branch 059-darwin-metrics-and-1hz-cadence (was 968a437)"*.
+6. **Closeout Steps 1–8** (below).
+
+### Steps 1–8
+
+- **Step 1 — working tree**: `dev` clean; no frozen `specs/plans/**` touched; round branch deleted.
+- **Step 2 — gates**: `gofmt` clean · `go vet ./...` clean · `make verify` **OK** (arch gate 0; lint 0; govulncheck clean; cross-compile 4/4 incl. the darwin cgo-less leg) · `go test -count=1 ./...` green (**248 scenarios · 1836 steps**) · diff-level secret scan clean.
+- **Step 3 — `STATUS.md`**: round 059 **DELIVERED / FROZEN**; Rule-12 split (the **round-058 detail + its env note + the round-056 branch-model row** → `docs/archives/status/2026-09-19.md`); branch model (the PR #125 → `dev` merge was a **merge commit** `10e0fa9`; the `dev → main` propagation is the no-ff merge `67b3c0b`), roadmap (a 059 row), open items (RF-059-x), env notes (`round-059` tag at `67b3c0b`); no liveness contradiction. 108 lines; one delivered-round section.
+- **Step 4 — day summary**: **appended** this §15 (the §1–§14 record preserved).
+- **Step 5 — reconciliation**: `STATUS.md` ↔ §1–§15 agree (round 059 delivered; `dev` active; #91/#13 open; RF-059-x; next round `060-*`).
+- **Step 6 — commit**: `docs(059): day close — round 059 delivered + propagated; STATUS split + 09/19 summary §15`.
+- **Step 7 — propagation + handoff**: `dev → main` **DONE (no-ff, `67b3c0b`)**; `round-059` tagged at `67b3c0b`; `go install ./cmd/tellme` refreshed from `10e0fa9`; next-session start point = `dev`, round `060-*` off `dev`.
+- **Step 8 — issue tracker**: nothing to close/revise (operator request, no anchor issue); [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) left OPEN (accurate).
+
+### Residuals (non-blocking, recorded)
+
+- **RF-059-x** in ADR 0029 §Forward: the Mach tick-counter wrap; the cgo-less **process**-CPU narrowing; the spinner-local sample cache (R-059-1); `x/sys` now direct; the Windows exclusion; **TD-059-1** (nothing compiles the `darwin && cgo` leg off darwin — a darwin release build MUST be `CGO_ENABLED=1`); **TD-059-2** (the darwin-only Mach acceptance); **R-059-3** (the host-dependent E2E `Then`).
+- **R-059-c** — the PM follow-up recorded at the review F-059-4 (the acceptance cadence rule is a documented narrowing).
+- **TD-056-1/TD-056-2/TD-056-3 + TD-059-3** — internal review-recorded residuals (the fold ledger / doc provenance), no action.
+
+### Next steps
+
+1. Open round **`060-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- **R-059-c** (recorded; PM-owned).
