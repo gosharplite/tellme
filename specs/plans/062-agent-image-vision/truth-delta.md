@@ -62,3 +62,10 @@
 | MODIFY | `specs/truth/features/cli/chat/accounting-for-the-tool-use.feature` (the `--version`-class comment) + `internal/ui/toolusage.go` doc | "the live registry" → the recordable union. | review **TF-062-1** |
 | ADD | `docs/decisions/0032-agent-image-vision.md` §Forward | RF-062-12 (the E2E union duplicate → a shared enumerator) · RF-062-13 (the report is capability-blind by design) + the fold-verification record. | review **R-062-1/R-062-3** |
 | ADD | `internal/cli/tool_usage_union_test.go` | `unionToolNames` unit pin (first-seen order, de-dup, nil registry). | review **R-062-2** |
+
+## Certification nit (PR [#129](https://github.com/gosharplite/tellme/pull/129), certification `5255246963`)
+
+| Action | Truth Spec | Change Summary | Reason |
+| --- | --- | --- | --- |
+| MODIFY | `specs/truth/techstack.md` (*Tool-usage accounting*) + `specs/truth/features/cli/chat/dsl.md` (the `the operator reviews how the tools have been used` row) | the two residual "reads only `os.UserHomeDir()` + the live registry" phrases → the **recordable set** (the union); the row gains the capability-blindness half-sentence. | review **N-062-1** |
+| MODIFY | `tests/e2e/steps/step_t014_chat_then_review_all_zero.go` (a diagnostic string) + `docs/decisions/0032-agent-image-vision.md` RF-062-13's parenthetical | wording aligned to the recordable union / the §Forward home. | review **N-062-1** |

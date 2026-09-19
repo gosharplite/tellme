@@ -55,7 +55,7 @@ This inverts the reference's assumption: `tell-me-go` decides "can this model se
 - **RF-062-10** — the **media-channel refactor**: return media from `Execute` (widening the tool contract via a `domain/tools` media type) instead of the per-call context collector (D7a); and the `ToolSetSpec` seam replacing the bare `vision bool` (F-062-4). Both are next-round candidates.
 - **RF-062-11** — the `(family, VISION)` mismatch is **static** and knowable at resolution time, so a resolution-time refusal could fail before a turn spends a round; D2 deliberately chose the provider-side refusal (recorded here as a note, not a defect).
 - **RF-062-12** *(R-062-1)* — the E2E `recordableToolNames()` is a **hand-kept duplicate** of production's `unionToolNames(...)`; a third capability would need the test side edited too. A shared enumerator (exported from the composition root, or derived from the two DI registries) would close it.
-- **RF-062-13** *(R-062-3)* — the `--tool-usage` report is **capability-blind by design** (it shows `read_image` for an operator with no vision provider) — the consequence of the union authority, recorded in the truth row.
+- **RF-062-13** *(R-062-3)* — the `--tool-usage` report is **capability-blind by design** (it shows `read_image` for an operator with no vision provider) — the consequence of the union authority, recorded here (§Forward) and noted in the *Tool-usage accounting* truth row.
 
 ## Consequences
 

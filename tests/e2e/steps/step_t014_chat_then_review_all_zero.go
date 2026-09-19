@@ -22,7 +22,7 @@ func thenReviewEveryToolZero(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	names := recordableToolNames()
 	if len(names) == 0 {
-		return fmt.Errorf("the live registry enumerates no tools")
+		return fmt.Errorf("the recordable set enumerates no tools")
 	}
 	for _, n := range names {
 		counts, found := parseReportLine(sc.stdout, n)

@@ -313,7 +313,7 @@ module's feature must match exactly one row.
 
 | DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
 | --- | --- | --- | --- | --- |
-| `the operator reviews how the tools have been used` | 無 | 不支援 | `旗標`: `--tool-usage` (the offline report; **`--version`-class** — needs no `-c`, no `TELL_ME_HOME`, no workspace, no positional prompt, no stdin read; **not TTY-gated**; **not affected by `-r`**). | `怎麼做`: run `tellme --tool-usage` under the current environment **without requiring `TELL_ME_HOME`** (the report reads only `os.UserHomeDir()` + the live registry). `權威狀態落地`: the process has run to completion; the plain-text roll-up was printed to stdout. `回寫`: captured exit code, stdout, stderr, and the fake's recorded requests. |
+| `the operator reviews how the tools have been used` | 無 | 不支援 | `旗標`: `--tool-usage` (the offline report; **`--version`-class** — needs no `-c`, no `TELL_ME_HOME`, no workspace, no positional prompt, no stdin read; **not TTY-gated**; **not affected by `-r`**). | `怎麼做`: run `tellme --tool-usage` under the current environment **without requiring `TELL_ME_HOME`** (the report reads only `os.UserHomeDir()` + the recordable set (the union of the base and capability-gated registries)). `權威狀態落地`: the process has run to completion; the plain-text roll-up was printed to stdout. `回寫`: captured exit code, stdout, stderr, and the fake's recorded requests. |
 
 ## Then (round 026)
 
