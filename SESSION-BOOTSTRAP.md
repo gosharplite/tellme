@@ -17,7 +17,7 @@
 
 | Step | Action | Description |
 |:---|:---|:---|
-| **1** | Read [`README.md`](README.md) | Repo overview — vision, BDD methodology, core roles, and CLI workflow roadmap |
+| **1** | Read [`README.md`](README.md), then tellme's **three domain models** | Repo overview — vision, BDD methodology, core roles, and CLI workflow roadmap; then, **right after the README**, read tellme's own domain model: [`docs/domain-model/tellme.modelith.md`](docs/domain-model/tellme.modelith.md) (the shipped product) · [`docs/domain-model/quality.modelith.md`](docs/domain-model/quality.modelith.md) (the quality process) · [`docs/domain-model/environment-management.modelith.md`](docs/domain-model/environment-management.modelith.md) (the environment manager). They are **descriptive docs, not truth** — on conflict, `specs/truth/**` wins. Modelith sources: the sibling `*.modelith.yaml`; regenerate with `make modelith-render` |
 | **2** | Read [`~/tmp/github/gosharplite/tell-me-go/README.md`](~/tmp/github/gosharplite/tell-me-go/README.md) and execute `AI session bootstrap` | Target capability & architecture reference. Execute all 8 bootstrap items defined in `tell-me-go` (see breakdown below) |
 | **3** | Read [`~/tmp/github/gosharplite/aixbdd-tmg/domain-model`](~/tmp/github/gosharplite/aixbdd-tmg/domain-model) | Read `aixbdd.modelith.md` (and `.yaml`): canonical entities (`PlanPackage`, `Spec`, `TruthDelta`, `TruthArtifact`, `DSL`, `Task`), invariants, and scenarios |
 | **4** | Read [`~/tmp/github/gosharplite/aixbdd-tmg/README.md`](~/tmp/github/gosharplite/aixbdd-tmg/README.md) | Operational BDD engine: PM/RD separation, skills execution pipeline, and CLI-streamlined adaptations |
@@ -39,6 +39,19 @@ Immediately return to the step table at the top and execute **Step 1 → Step 2 
 ---
 
 ## 🗺️ Reference Repositories & Execution Mapping
+
+### 0. tellme's own domain model (Step 1 Details)
+
+Right after `README.md`, read **tellme's own** domain model (round 060; **ADR 0030**) — the shipped system, its quality process, and its environment manager:
+
+| File | Focus & Key Insights |
+|---|---|
+| [`docs/domain-model/tellme.modelith.md`](docs/domain-model/tellme.modelith.md) | **Product** model — entities (`Session`, `Turn`, `Provider`, `Tool`, `ToolCall`, `Context`, `History`, `Skill`, `MCP` server/tool, `Config`, `Persona`, `Chrome`, `PromptInput`, …), their invariants, and execution scenarios |
+| [`docs/domain-model/quality.modelith.md`](docs/domain-model/quality.modelith.md) | **Quality process** model — the `QualityPipeline` gates (`make verify`), the E2E contract, the topology audit, ADR governance, and the triage loop. Records tellme's **no-`NonFixCatalog`** divergence |
+| [`docs/domain-model/environment-management.modelith.md`](docs/domain-model/environment-management.modelith.md) | **Environment management** model — environments/groups/personas/provisioning/hot-swap; models the **external** Niffler manager (`tellme.sh`) |
+
+- **Descriptive docs, not truth**: on any conflict with [`specs/truth/**`](specs/truth), the **truth wins** and the model is corrected (ADR 0030 §D4).
+- **Source vs. rendered**: edit the `*.modelith.yaml`; the `*.modelith.md` is **generated** — never hand-edit. Regenerate with `make modelith-render`; `make modelith-check` (a `make verify` member) fails on drift.
 
 ### 1. `tell-me-go` AI Session Bootstrap (Step 2 Details)
 
@@ -114,3 +127,4 @@ Read the per-day session summaries for the **last 5 days** to inherit recent ses
 7. **In-Group Protocol**: Respect peer agent boundaries and messaging rules defined in `tmg-chat-ingroup` (clear `TELL_ME_MODE`, sequential dispatch, and never message self).
 8. **Session Status Discipline**: Read `STATUS.md` at bootstrap (Step 7) and keep it current — update it at every pipeline phase gate and whenever a decision is locked, so the next session inherits accurate state.
 9. **Session History Continuity**: Read the **session summaries of the last 5 days** at bootstrap (Step 8) — `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` — to inherit recent context, decisions, artifact progress, and open items before tasking; reconcile them with `STATUS.md` and skip missing days.
+10. **Domain Model is Descriptive Docs**: tellme's domain model (`docs/domain-model/**`, Step 1) is **subordinate** to truth — on any conflict, `specs/truth/**` wins and the model is corrected. Edit the `*.modelith.yaml` source only; the `*.modelith.md` is generated (`make modelith-render`), and `make modelith-check` (a `make verify` member) fails on drift (**ADR 0030**).

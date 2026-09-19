@@ -597,3 +597,128 @@ A later session on the same calendar day: bootstrapped/continued on `dev`, opene
 ### PM follow-ups
 
 - **R-059-c** (recorded; PM-owned).
+
+---
+
+## 16. Session 34 (2026-09-19, cont.) — round 060 `060-domain-model-and-drift-gate`: tellme's own domain model + a modelith drift gate → full pipeline → **PR #126 open for human review**
+
+A later session on the same calendar day: bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8), answered the operator's question (*"I want tellme to have domain model — does this need an aixbdd round?"* → **yes**, it changes truth + adds a gate + reopens ADR 0011 D10), opened round **060**, ran the full AIxBDD pipeline, and opened **PR [#126](https://github.com/gosharplite/tellme/pull/126)**. **No product code; `go.mod`/`go.sum` unchanged.**
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | operator request (no anchor issue): give tellme its own **domain model** under `docs/domain-model/` (the folder was **empty**; `git log -- docs/domain-model` empty ⇒ it had never had one) + a **modelith drift gate** |
+| Grounding | **ADR 0011 D10** records tellme's "no modelith toolchain" divergence ⇒ the round **amends** it (new **ADR 0030**); the modelith fork binary + the `domain-model-*` skills are available; `modelith` is **not** a `go.mod` dep |
+| Clarify (one at a time; round 1 closed) | **Q1 → 3** (all three models) · **Q2 → 1** (adopt the fork + `make modelith-lint\|render\|check`) · **Q3 → 1** (zero-tolerance `verify` member; absent binary hard-fails). Q4/Q5 converged as assumptions A6/A7 |
+| Pipeline | specify ✅ · clarify ✅ · spec-by-example **NOOP** · technical-research ✅ (**ADR 0030** + `techstack.md`) · system-analysis ✅ (0 interfaces; api/data/dsl-refine **NOOP**) · tasks ✅ (T001–T008) · implement ✅ |
+| Deliverable | `docs/domain-model/{tellme,quality,environment-management}.modelith.{yaml,md}` + `README.md`; `Makefile` `modelith-lint`/`modelith-render`/`modelith-check` (+ `verify` member); **ADR 0030** + index; `specs/truth/techstack.md` (Domain model row + `verify` member + the D10-line correction) |
+| Verification | `modelith lint` **0/0** ×3 · `modelith-check` all up-to-date · **drift witness (a)** red→reverted · **absent-binary witness (b)** red→restored · `make verify` **OK** · `go test -count=1 ./...` **green** · `gofmt` clean · `go.mod`/`go.sum` unchanged |
+| Delivery | branch `060-domain-model-and-drift-gate` (off `dev`); **PR [#126](https://github.com/gosharplite/tellme/pull/126) open — a human merges** (no Copilot review) |
+
+### Work done
+
+1. **Bootstrap** — Steps 1–8; grounded the answer in the repo (empty folder; ADR 0011 D10; no `modelith-*` target; the fork binary present).
+2. **Round opened** — `/axb-specify` created `specs/plans/060-domain-model-and-drift-gate/` on a new branch off `dev`; `/axb-clarify` (Q1–Q3, one at a time) locked the scope/toolchain/gate; Q4/Q5 → assumptions.
+3. **Pipeline** — `/axb-spec-by-example` **NOOP** → `/axb-technical-research` (`research.md` D1–D12 + **ADR 0030** + `techstack.md` MODIFY) → `/axb-system-analysis` (`plan.md`; 0 interfaces; api/data/dsl-refine NOOP) → `/axb-tasks` (T001–T008) → `/axb-implement`.
+4. **Implementation** — three models authored 3-pass to **0/0** lint; `Makefile` targets added and `modelith-check` wired into `verify`; two falsifiability witnesses reproduced then reverted; full `make verify` + `go test` green.
+5. **PR** — pushed the branch, opened PR #126 (base `dev`). **Stops at PR open** (a human merges).
+
+### Next steps
+
+1. Human reviews + merges PR [#126](https://github.com/gosharplite/tellme/pull/126) → then `SESSION-CLOSEOUT.md` (Steps 1–8): propagate `dev → main`, tag `round-060`, `go install`, STATUS split.
+2. Re-read `SESSION-BOOTSTRAP.md` next session.
+
+### PM follow-ups
+
+- None new (docs/tooling round; no user-facing journey — `/axb-spec-by-example` NOOP, as in rounds 042/043/055).
+
+### 16 (cont.) — PR #126 review folded (B-060-1 + TD-060-1…4 + nits)
+
+Review `5254902427` (**REQUEST CHANGES** — 1 architectural blocker + 4 folds + 3 nits) folded at **`2f59f91`**:
+
+- **B-060-1 (blocker)** — the documented (and gate-printed) `go install github.com/gosharplite/modelith/cmd/modelith@feat/self-domain-model` **does not resolve**. I **reproduced both falsifications** myself (query form rejected; pseudo-version form fails on the declared upstream path) and **executed the fix**: a clone + pinned build (`git clone … && git checkout b4153541cee8 && go install ./cmd/modelith`) built a working tool (`modelith version v0.0.0-20260815121344-b4153541cee8`). Single-sourced in `docs/domain-model/README.md`; `$(MODELITH_INSTALL)` + the gate's failure message quote it; ADR 0030 D2 + the truth row cite it (5 surfaces re-aligned).
+- **TD-060-1** — immutable pin (commit `b4153541cee8`) named in the gate's message; branch-tracking is a documented upgrade. **TD-060-2** — `MODELITH_MODELS := $(wildcard …)` + a non-empty assertion (default-deny). **TD-060-3** — `SESSION-BOOTSTRAP.md` now owned by **FR-011** (+ `plan.md` tree + truth-delta rows). **TD-060-4** — ADR 0011's `Status` + index row carry a forward pointer to 0030. **Nits** — `skill-unique-name` restated to the shipped mechanism; README provenance reframed; the pre-existing `staticcheck` truth row corrected.
+- **Re-verified**: `modelith lint` 0/0 ×3 · `modelith-check` up to date · witness (b) ⇒ fails naming the **clone route** · TD-060-2 witness (a 4th model auto-covered) ⇒ reverted green · `make verify` OK · `go test -count=1 ./...` green.
+
+Next: the review chain continues — fold-verification → human merge into `dev` → closeout Steps 1–8.
+
+### 16 (cont.) — fold-verification folded (TF-060-1) → `0d63674`
+
+Fold-verification comment `5740054490`: **FOLDS VERIFIED 5/5** (B-060-1 + TD-060-1…4 + 3 nits — every fold checked *as behaviour*; the blocker's fix executed end-to-end, and the pinned rebuild **reproduces the committed renders**), with **one required fold-back**: **TF-060-1**.
+
+**TF-060-1** (the round-059 TF-059-1 / round-057 TF-057-1 class — the correction reached the 5 *outward* surfaces but left the *in-package* ones): folded at **`0d63674`** —
+- `spec.md` Edge Cases + **FR-004** (live requirement) → the **clone + pinned-build** route (install route, not `go install @path`) + the immutable commit pin;
+- `plan.md` Fork pin → immutable commit `b4153541cee8`; Gate wiring → `$(wildcard …)` + a non-empty assertion;
+- `tasks.md` locked-decisions MUST block → the install route;
+- historical records (`spec.md` Q3 line, `tasks.md` pre-fold witness, `research.md` D5) **not rewritten** — a *"superseded by the fold `2f59f91`"* forward pointer added.
+- Residuals recorded: **R-060-1** (ADR copy static vs Makefile-derived — defensible), **R-060-2** (`$(wildcard)` directory order), **R-060-3** (witness executions in the ledger).
+
+Re-verified at `0d63674`: `make verify` **OK** · `go test -count=1 ./...` green · `gofmt` clean · `go.mod`/`go.sum` unchanged. Next: reviewer re-verification → human merge into `dev` → closeout Steps 1–8.
+
+### 16 (cont.) — re-verification folded (TF-060-2) → `50e1ed7` ⇒ CERTIFIED MERGE-READY
+
+Re-verification comment `5740073150`: **FOLDS VERIFIED 4/4 + FR-004** → **CERTIFIED MERGE-READY** on one one-line residue (**TF-060-2**) the re-verifier found *and owned* (their TF-060-1 sweep grepped the literal `go install github.com/…`, so an **elided** `go install …@feat/self-domain-model` in the **T005 task row** slipped past both the sweep and the fold).
+
+**TF-060-2** folded at **`50e1ed7`**:
+- `tasks.md` **T005 row** → the **clone + pinned-build** route (immutable commit `b4153541cee8`; single-sourced in `docs/domain-model/README.md`).
+- `tasks.md` **TOOLCHAIN locked decision** + the remaining **live** fork refs (`research.md` D1, `plan.md` Q2 row, `spec.md` grounding, `truth-delta.md`) → the branch ref **qualified** with the immutable tip commit `b4153541cee8`, so the elided form cannot recur.
+
+The falsified string now survives **only** where quoted *as the falsified form* (the fold ledgers, `research.md` D5, the historical witness at `tasks.md:96` with its forward pointer).
+
+Re-verified at `50e1ed7`: `make verify` **OK** · `go test -count=1 ./...` green · `gofmt` clean · `go.mod`/`go.sum` unchanged. **No further review pass needed** (doc-only). Next: **human merge into `dev`** → closeout Steps 1–8 (propagate `dev → main` no-ff, `main^{tree} == dev^{tree}`, tag `round-060`, `go install`, `STATUS.md` Rule-12 split, issue-tracker pass — #91/#13 stay open).
+
+### 16 (cont.) — final certification ⇒ review loop CLOSED (CERTIFIED MERGE-READY)
+
+Certification comment `5740091537`: **TF-060-2 FOLDS VERIFIED — CERTIFIED MERGE-READY. No further folds; the review loop is CLOSED.** The reviewer's final sweep confirms **no command-shaped falsified form survives as a live instruction** (every remaining occurrence is negative documentation / a quoted-as-falsified historical record / a review-ledger record). Gates at the tip `8b0014f`: `gofmt` clean · `make verify` **OK** · `go test -count=1 ./...` green · `go.mod`/`go.sum` unchanged · **0 product files** touched vs `dev`.
+
+**Review chain (closed):** review `5254902427` (REQUEST CHANGES — B-060-1 + TD-060-1…4 + nits) → fold `2f59f91` → fold-verification `5740054490` (5/5 + TF-060-1) → fold-back `0d63674` → re-verification `5740073150` (4/4 + FR-004 + TF-060-2) → fold-back `50e1ed7` → **certification `5740091537`**.
+
+**Awaiting the human merge** into `dev` (only a human merges; no Copilot review), then `SESSION-CLOSEOUT.md` Steps 1–8 (propagate `dev → main` no-ff, `main^{tree} == dev^{tree}`, tag `round-060`, `go install ./cmd/tellme`, `STATUS.md` Rule-12 split of the round-059 detail, issue-tracker pass — #91/#13 stay open). Round-060 forward items (RF-060-1…5 + R-060-1…3) recorded in `STATUS.md` open items.
+
+---
+
+## 17. Session 34 (2026-09-19, cont.) — round 060 `060-domain-model-and-drift-gate` **MERGED** (PR #126 → `dev` `801b905`) + closeout (Steps 1–8)
+
+Continuation after the architectural reviewer's **final certification** (`5740091537`, CERTIFIED MERGE-READY, review loop CLOSED): the operator **merged PR [#126](https://github.com/gosharplite/tellme/pull/126)** and deleted the remote branch; the local branch was deleted after an ancestor check (the remote was verified gone first); then `SESSION-CLOSEOUT.md` Steps 1–8 ran on `dev`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#126](https://github.com/gosharplite/tellme/pull/126) merged into `dev` **`801b905`** (**fast-forward** — no merge commit; `801b905` was the round head); remote branch deleted by the human; **local branch deleted** after verifying the tip is an ancestor of `origin/dev` |
+| Gates (Step 2) | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** (incl. the new `modelith-check`) · `go test -count=1 ./...` **green** (24 pkgs incl. the godog E2E) · `modelith lint` 0/0 ×3 · diff-level secret scan clean |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from the `dev` head; `--version` → `dev` |
+| Propagation (Step 7) | `dev → main` — **DONE (no-ff)**; tag **`round-060`** (annotated) on the propagation merge (ADR 0026) |
+| Closeout | `STATUS.md` → round 060 **DELIVERED / FROZEN** + Rule-12 split (round-059 detail + its env note + the round-057 branch-model row → `docs/archives/status/2026-09-19.md`) · this §17 · **nothing to close** (operator request) |
+
+### Work done
+
+1. **Branch cleanup** — `git fetch --prune` showed `[deleted] origin/060-domain-model-and-drift-gate`; `git ls-remote --heads origin 060-…` empty (remote gone); the round tip `801b905` verified an **ancestor of `origin/dev`** ⇒ `git branch -d 060-domain-model-and-drift-gate` (safe) → *"Deleted branch … (was 801b905)"*. `gh pr view 126` → `state: MERGED`, `mergeCommit 801b905`.
+2. **Closeout Steps 1–8** (below).
+
+### Steps 1–8
+
+- **Step 1 — working tree**: `dev` clean (`## dev...origin/dev`, 0 porcelain lines); no frozen `specs/plans/**` touched; no stray files.
+- **Step 2 — gates**: as the at-a-glance row (all green). `make verify` now includes `modelith-check` (ADR 0030).
+- **Step 3 — `STATUS.md`**: header → 2026-09-19 (session 34) · active branch → `dev` · round 060 **DELIVERED / FROZEN** (PR #126 → `801b905`, fast-forward; certified fold head `50e1ed7`) · **Rule-12 split** → `docs/archives/status/2026-09-19.md` (the round-059 detail + its env note + the round-057 branch-model row, verbatim) · delivered-rounds index + branch model + roadmap + open items (RF-060/R-060) + env notes refreshed; no liveness contradiction.
+- **Step 4 — day summary**: **appended** this §17 (the in-flight §16 record preserved).
+- **Step 5 — reconciliation**: `STATUS.md` ↔ §1–§17 agree (round 060 delivered; `dev` active; #91/#13 open; the RF-060/R-060 forwards; next round `061-*`).
+- **Step 6 — commit**: `docs(060): day close — round 060 delivered + propagated; STATUS split + 09/19 summary §17`.
+- **Step 7 — propagation + handoff**: `dev → main` **DONE (no-ff)**; `main^{tree} == dev^{tree}` verified; tag **`round-060`** on the propagation merge; `go install ./cmd/tellme`; next-session start point = `dev`, round **`061-*`** off `dev`.
+- **Step 8 — issue tracker**: nothing to close/revise (operator request, no anchor issue); [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) left OPEN (accurate).
+
+### Residuals (non-blocking, recorded)
+
+- **RF-060-1…5** + **R-060-1…3** in **ADR 0030 §Forward** / `STATUS.md`.
+- Carried: the 5 pre-existing Gherkin/DSL topology-audit errors (not a `make verify` member); PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`.
+- **ER-060-1 (new, dev-tooling)** — `make verify` now requires the **modelith** dev tool; install via the clone + pinned-build route in `docs/domain-model/README.md` (ADR 0030 §D2/D3).
+
+### Next steps
+
+1. Open round **`061-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella — context management; [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`; **Step 1 now reads the three domain models**).
+
+### PM follow-ups
+
+- None new (docs/tooling round; no user-facing journey).
