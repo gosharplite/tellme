@@ -390,3 +390,84 @@ A later session on the same calendar day: bootstrapped/continued on `dev`, answe
 - **PR open** — a human merges into `dev`, then propagate `dev → main` + `SESSION-CLOSEOUT.md`.
 - **RF-057-x** (ADR 0027 §Forward): the delta is plain · only values are capped · `--color=always` excluded · the `[Tool Output]` content lines stay plain.
 - Carried: the same 5 pre-existing Gherkin/DSL topology-audit errors (round-054/earlier; not a `make verify` member).
+
+---
+
+## 13. Session 31 (2026-09-19, cont.) — round 057 `057-tool-chrome-colour-and-payload-delta`: three operator chrome requests → clarify (Q1–Q3) → full pipeline → **review → folds → fold-verification → re-verification (CERTIFIED MERGE-READY)** → **human-merged (PR #123)** → closeout (Steps 1–8)
+
+A later session on the same calendar day: answered two grounding questions (the reference's palette; the `[Tool Action]` character limit), took three operator requests (then a `-t` parity remark), opened round **057**, ran the whole AIxBDD pipeline, took **PR [#123](https://github.com/gosharplite/tellme/pull/123)** through a **review → fold → fold-verification → fold-back → re-verification** chain to **CERTIFIED MERGE-READY**, saw the **human merge** (merge commit `1ac41f7`), deleted the branch (after the human deleted the remote), ran `go install` (twice — the operator's instruction + the closeout refresh), and ran `SESSION-CLOSEOUT.md` (Steps 1–8).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | **operator chrome requests** (no anchor issue): grey `[Tool Output]` frame + yellow `[Tool Action]`; `argValueCap` **189 → 500**; a signed pre-flight payload increment (`+100 ~203148`, `/budget` dropped) |
+| Clarify (one at a time; 3/3) | **Q1 → 2** (only the estimated pre-flight line changes; the measured keeps `<tokens>/<budget>`) · **Q2 → 1** (baseline = the last estimate **in-process, in memory**; no persistence) · **Q3 → 1** (`turns.log`/`-t` content-equal but **plain**). Boundary forms exposed as **operator-vetoable assumptions**: **A7** `+0`, **A8** the true signed value, **A9** the delta is plain |
+| Pipeline | specify ✅ · clarify ✅ · spec-by-example ✅ (3 journeys) · technical-research ✅ (**ADR 0027** + `techstack.md` ×3) · system-analysis ✅ (1 CLI end; api/data **NOOP**) · dsl-refine ✅ · tasks ✅ (T001–T018 + the fold ledger) · implement ✅ |
+| Deliverable | `internal/ui/{colour.go, toolcall.go, toolrenderer.go, tooloutput.go, coordinator.go, status.go, render_ports.go}` · `internal/domain/render/ports.go` (`Lines.PayloadEstimate`/`PayloadMeasured`; `ProgressSpec`) · `internal/cli/{call_renderer.go, cli.go}` (+ `call_renderer_payload_delta_test.go`) · `cmd/tellme/deps.go` · `tests/e2e/steps/**` · CLI truth (`chat/colouring-the-session-chrome`, `chat/reporting-the-payload-status`, `chat/watching-the-tool-loop`, `chat/dsl.md`, `history/dsl.md`) · **ADR 0027** + index · `specs/truth/techstack.md` ×3 rows |
+| Verification | `gofmt` clean · `go vet ./...` clean · `make verify` **OK** · `go test -count=1 ./...` green (**247 scenarios · 1829 steps**, 0 undefined) · **four** falsifiability witnesses reproduced + reverted · topology audit back to the **same 5 pre-existing errors** (round 057 adds none; 357 module rows / 1805 steps) · `go.mod`/`go.sum` unchanged |
+| Review chain (PR #123) | review `5254577583` (**APPROVE WITH REQUIRED FOLDS** — no blocker; F-057-1…2 + TD-057-1…2 + R-057-1…2) → fold **`97c1c34`** → fold-verification `5739389235` (**FOLDS VERIFIED 6/6** + one required truth fold-back) → **TF-057-1/TF-057-2** fold-back **`26423af`** (+ sweep `6883e62`, record-only `e41687f`) → re-verification `5739416665` — **FOLDS VERIFIED · CERTIFIED MERGE-READY** |
+| Merge | PR [#123](https://github.com/gosharplite/tellme/pull/123) merged into `dev` **`1ac41f7`** (**merge commit** — the round branch shared only `63a54bc` with `dev`); remote branch deleted by the human, local branch deleted after an ancestor check |
+| `go install` | `go install ./cmd/tellme` → `$(go env GOPATH)/bin/tellme` refreshed from `1ac41f7`; `--version` → `dev`; `vcs.revision=1ac41f7…`, `vcs.modified=false` |
+| Propagation | `dev → main` — **DONE (no-ff)** at this closeout |
+| Closeout | `STATUS.md` split (Rule 12: the round-056 detail + its env note + the round-054 branch-model row → [`docs/archives/status/2026-09-19.md`](../../../archives/status/2026-09-19.md)) · §13 appended · **nothing to close** (operator request) |
+
+### Work done
+
+1. **Grounding Q&A** — read `tell-me-go/internal/ui/colors.go` (the palette: gray/red/green/yellow/cyan/blue/magenta + reset), mapped each colour to its element, and found **tellme has only `colorGreen`** today (round 054); traced `[Tool Output]`/`[Tool Action]`; read tellme's `FormatToolAction`/`argValueCap = 189`.
+2. **Requests captured + round opened** — `/axb-specify` created `specs/plans/057-tool-chrome-colour-and-payload-delta/` on a new branch `057-tool-chrome-colour-and-payload-delta` off `dev`; `/axb-clarify` (3 questions, one at a time) locked Q1/Q2/Q3; boundary forms exposed as assumptions A7/A8/A9.
+3. **Pipeline** — `/axb-spec-by-example` (3 journeys) → `/axb-technical-research` (**ADR 0027** + `techstack.md` ×3 rows) → `/axb-system-analysis` (1 CLI end; api/data NOOP) → `/axb-dsl-refine` (the colour/increment/cap Rules + `dsl.md`) → `/axb-tasks` (T001–T018) → `/axb-implement`.
+4. **Implementation** — the grey/yellow accents (one `wrap` over `green`); the grey threaded through `render.ProgressSpec`; `argValueCap = 500`; `FormatPayloadEstimate` + `Lines.PayloadEstimate`; the in-memory per-process delta on `callRenderer`; the E2E helpers/stepdefs; the truth features + `dsl.md` rows. RED→GREEN per the task list.
+5. **Review + folds** — review `5254577583` (APPROVE WITH REQUIRED FOLDS, no blocker) → fold `97c1c34`: **F-057-1** (the shrink Rule's carrier — recorded as a deliberate narrowing + a new CLI-tier `TestOnCallBeginEmitsNegativeIncrement`), **F-057-2** (the `turns.log` content-parity carrier: a new `Then` + stepdef + `dsl.md` row + the round-053 assertion tightened), **TD-057-1** (`PayloadStatus(…, estimated)` → `PayloadMeasured`, the retired branch dropped), **TD-057-2** (`render.ProgressSpec` named fields), **R-057-1** (unexported helper), **R-057-2** (two ADR §Forward records).
+6. **Fold-verification + fold-back** — `5739389235` (FOLDS VERIFIED 6/6) required **TF-057-1**: the **owning** `techstack.md` *Payload status line* row still asserted the retired `~<n>/<budget>` pre-flight shape (contradicting the updated Turn-chrome row — a `truth-current` break) + its missing `truth-delta.md` `DeltaEntry`; folded with **TF-057-2** (three stale retired-shape prose sites, incl. the orphaned `emitPayloadStatus` doc) at **`26423af`**, plus the sweep `6883e62` (a fourth site) and the record-only `e41687f` (a fifth comment + the `STATUS.md` review-fold record). Re-verification `5739416665` — **CERTIFIED MERGE-READY**.
+7. **Merge + binary + closeout** — the operator merged PR #123 (`1ac41f7`) and deleted the remote branch; the local branch was deleted after verifying the head is an ancestor of `origin/dev`; `go install ./cmd/tellme`; `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 057)
+
+| # | Decision |
+| --- | --- |
+| Q1 → 2 | Only the **estimated** pre-flight payload line changes (`Payload: +<delta> ~<n> tokens`, no `/budget`); the **measured** line keeps `<tokens>/<budget>`. |
+| Q2 → 1 | The increment's baseline is the last estimate emitted **in-process**, held **in memory** (no persistence ⇒ `/axb-data-plan` NOOP; `+0` with no predecessor). |
+| Q3 → 1 | `turns.log`/`-t` stays **content-equal but plain** — it follows the new estimated-line shape + the 500-rune cap, carries no colour, and keeps its current line set. |
+| A7/A8/A9 | Operator-vetoable boundary assumptions: no predecessor ⇒ `+0`; a shrunken payload ⇒ the true signed value; the delta is **plain** (no new colour). |
+| S-1/S-2 | Grey = the `[Tool Output]` header + **both** separators (whole line); yellow = the whole `[Tool Action]` line; the streamed **content** lines stay plain. |
+| S-5 | The colour obeys the round-054 gate (terminal `stderr` + `-r` off) and never enters `stdout` or `turns.log`. |
+| ADR | **ADR 0027** (extends ADR 0023; continues ADR 0005's cap lineage — the reference caps at 189 **bytes**, tellme now at 500 **runes**). |
+| Fold call | F-057-1 took the **sanctioned record path** (the shrink is un-constructible end-to-end: per-process baseline + an in-turn request only grows) — carried by two unit pins + the ADR §Forward, with the condition to remove the narrowing recorded. |
+
+### Commits (branch `057-tool-chrome-colour-and-payload-delta`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `6e2eba9` | `docs(057)`: plan package + spec |
+| `4262370` | fold clarify Q1 → 2 |
+| `0e40426` | fold clarify Q2 → 1 (session-scoped in-memory baseline) |
+| `46f44ec` | close clarify (Q3 → 1; A7/A8/A9 exposed) + STATUS in-flight |
+| `8bac714` | acceptance Gherkin (3 journeys) |
+| `24dcb57` | `feat(057)`: grey `[Tool Output]` frame + yellow `[Tool Action]`, 500-rune cap, signed pre-flight payload increment (ADR 0027) |
+| `0362b06` | STATUS + day log §12 (in flight; PR open) |
+| `00575f3` | fold PR #123 review — F-057-1…2 + TD-057-1…2 + R-057-1…2 |
+| `97c1c34` | STATUS — record the PR #123 review folds |
+| `26423af` | fold PR #123 fold-verification (TF-057-1/TF-057-2) |
+| `6883e62` | sweep (the round-034 step doc) |
+| `e41687f` | record-only (stale pre-flight comment + the STATUS review-fold record) |
+| `1ac41f7` | PR [#123](https://github.com/gosharplite/tellme/pull/123) merge into `dev` (by `gosharplite`) |
+| *(this closeout, on `dev`)* | `docs(057)`: day close — round 057 delivered + propagated; STATUS split (round-056 detail + env note + round-054 branch row → `2026-09-19.md`) |
+
+### Open items (non-blocking)
+
+- **RF-057-x** in **ADR 0027 §Forward** (the delta is plain · only values capped · no `--color=always` · the content lines stay plain · the per-process baseline · the usage-gated budget visibility · the shrink narrowing).
+- Carried: the **same 5 pre-existing** Gherkin/DSL topology-audit errors (round-054/earlier; not a `make verify` member); PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`.
+
+### Next steps
+
+1. Open round **`058-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella — context management; [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+### Issue tracker (closeout Step 8)
+
+**No changes** — round 057 was an **operator request** (no anchor issue) and nothing else moved. **[#91](https://github.com/gosharplite/tellme/issues/91)** · **[#13](https://github.com/gosharplite/tellme/issues/13)** — LEFT OPEN (still accurate). No closes, no revisions.
