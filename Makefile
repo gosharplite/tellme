@@ -54,7 +54,7 @@ STATICCHECK := $(shell command -v staticcheck 2>/dev/null)
 GOLANGCI := $(shell command -v golangci-lint 2>/dev/null)
 GOVULNCHECK := $(shell command -v govulncheck 2>/dev/null)
 
-.PHONY: help build fmt vet staticcheck tidy lint vulncheck test verify verify-no-test-sleep verify-no-network verify-cross-compile verify-mcp-sdk-confinement verify-architecture verify-architecture-update
+.PHONY: help build fmt vet staticcheck tidy lint vulncheck test test-fast verify verify-no-test-sleep verify-no-network verify-cross-compile verify-mcp-sdk-confinement verify-architecture verify-architecture-update
 
 help:
 	@echo "tellme development tasks:"
@@ -66,6 +66,7 @@ help:
 	@echo "  make vulncheck            - run govulncheck ./... (resolved from PATH)"
 	@echo "  make tidy                 - go mod tidy"
 	@echo "  make test                 - go test ./..."
+	@echo "  make test-fast            - run a SUBSET of the E2E contract (godog.paths; NOT the gate; ADR 0024)"
 	@echo "  make verify-no-test-sleep - forbid time.Sleep for synchronization in *_test.go (ADR-036 parity)"
 	@echo "  make verify-no-network    - build-graph capability guard: no net/net/http in ./cmd/tellme closure"
 	@echo "  make verify-cross-compile - build + vet the module for every supported POSIX target (linux/darwin, amd64/arm64)"
@@ -120,6 +121,61 @@ endif
 
 test: verify-mcp-sdk-confinement
 	go test ./...
+
+# test-fast — a SUBSET of the executable contract for a fast inner loop.
+#
+# THIS IS NOT THE GATE. The gate is `make test` (== `go test ./...`, run as
+# `go test -count=1 ./...` at a phase gate), which always executes EVERY Example
+# under specs/truth/features/cli (240 Examples, round 055 / ADR 0024 D2, FR-002):
+# a subset SELECTS for convenience and never EXCLUDES from the gate.
+#
+# The never-the-gate invariant is enforced in the HARNESS (tests/e2e/suite_test.go
+# `guardSelection`), which resolves the selection to the set of `.feature` files
+# it contains and refuses one that resolves back to the whole contract — so BOTH
+# entry points (`make test-fast` and a hand-typed `go test -args -godog.paths`)
+# obey it (round-055 review B-055-1); the selected run is banner-marked there.
+# This recipe only assembles the selection and fails loud on an empty list or a
+# missing module.
+#
+# Selector: godog.paths only (godog v0.16.0 has no name filter, and tags would
+# edit specs/truth/features/** — a truth-owner change; see ADR 0024 RF-055-1).
+# Caveats (ADR 0024 D3, review R-055-x): only `paths` is registered — the other
+# `godog.*` flags are undefined (the concurrency seam is TELL_ME_E2E_CONCURRENCY,
+# not `-godog.concurrency`); and `-args` is application-wide, so this is a
+# tests/e2e-only invocation.
+#
+# Default selection: the non-chat modules (43 of 240 Examples — `chat` alone is
+# 197, so a chat-only subset would not be fast). Override with E2E_FAST_MODULES.
+#
+# Round 055 (ADR 0024 D3).
+E2E_FAST_MODULES ?= configuration history workspace usage diagnostics
+# E2E_FEATURES_ROOT is repo-relative (used for the module existence check);
+# E2E_FEATURES_REL is what godog resolves, relative to tests/e2e (its CWD).
+E2E_FEATURES_ROOT := specs/truth/features/cli
+E2E_FEATURES_REL := ../../specs/truth/features/cli
+
+test-fast:
+	@root="$(E2E_FEATURES_ROOT)"; \
+	rel="$(E2E_FEATURES_REL)"; \
+	if [ -z "$$(echo $(E2E_FAST_MODULES))" ]; then \
+		echo "❌ test-fast: no modules selected (E2E_FAST_MODULES is empty)."; exit 1; \
+	fi; \
+	rootp="$$(cd "$$root" && pwd -P)"; \
+	paths=""; \
+	for m in $(E2E_FAST_MODULES); do \
+		if [ ! -d "$$root/$$m" ]; then echo "❌ test-fast: no such module '$$m' under $$root"; exit 1; fi; \
+		if [ "$$(cd "$$root/$$m" && pwd -P)" = "$$rootp" ]; then \
+			echo "❌ test-fast refuses to run: module '$$m' resolves to the whole contract ($$root)."; \
+			echo "   That is the gate — run: make test"; exit 1; \
+		fi; \
+		case ",$$paths," in *,$$rel/$$m,*) ;; *) paths="$$paths$${paths:+,}$$rel/$$m" ;; esac; \
+	done; \
+	echo "════════════════════════════════════════════════════════════════"; \
+	echo "  SUBSET — NOT THE GATE"; \
+	echo "  selected: $$paths"; \
+	echo "  the gate: make test   (all Examples under $$root)"; \
+	echo "════════════════════════════════════════════════════════════════"; \
+	go test -count=1 ./tests/e2e/ -args -godog.paths="$$paths"
 
 # Determinism gate (ADR-036 parity): no time.Sleep for synchronization in tests.
 verify-no-test-sleep:
