@@ -21,13 +21,13 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| TBD | — | (expected NOOP — no HTTP/API surface) | — |
+| NOOP (checked) | `specs/truth/` (**no `contracts/**`**) | Single CLI end; no OpenAPI/HTTP surface exists or changed. | `spec.md` A3 (`contract-authoritative` holds vacuously) |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| TBD | `specs/truth/data/**` | (expected NOOP or MODIFY — in-memory message-part model) | — |
+| NOOP (checked) | `specs/truth/data/data-model.dbml` | No persisted shape changes: a `read_image` step persists its **text** result only; the image is in-memory/in-flight (never written). The in-memory conversation is outside the dbml's modelled scope (persisted logs only). | `spec.md` FR-001, `research.md` D7, ADR 0032 RF-062-6 (`data-model-covers-all-state` holds — no persisted state changes) |
 
 ## /axb-dsl-refine
 
