@@ -1,5 +1,10 @@
 Feature: Using tools from a remote MCP server
 
+  # Round 056 (ADR 0025; folds #121): an MCP tool call states its reason (tellme's own field) and the
+  # server receives ONLY its own arguments; the server's advertised definition is relayed verbatim
+  # (positioned as `MCP_PAYLOAD`'s subschema). The call JSON is `{reason, MCP_PAYLOAD}`; an
+  # envelope-less call is refused (see `requiring-a-reason-to-call-a-tool.feature`).
+
   # Interface truth (CLI end, `chat` module) — round 032: on a prompt-bearing turn, tellme discovers the
   # tools of each configured, enabled **remote (Streamable HTTP)** MCP server and offers them to the
   # model alongside its native tools under a deterministic namespaced name; a prompt may then call one,
@@ -25,7 +30,7 @@ Feature: Using tools from a remote MCP server
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
-      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" and then answers with "The gadget costs $42."
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" with the reason "check the gadget price" and then answers with "The gadget costs $42."
       When the operator starts tellme with the prompt "What does the gadget cost?"
       Then tellme called the tool "lookup_price" on the MCP server "shop"
       And tellme prints the provider's answer "The gadget costs $42."
@@ -61,7 +66,7 @@ Feature: Using tools from a remote MCP server
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a remote MCP server "shop" that requires the token "s3cr3t" and offers a tool "lookup_price" answering "$42"
-      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" and then answers with "The gadget costs $42."
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" with the reason "check the gadget price" and then answers with "The gadget costs $42."
       When the operator starts tellme with the prompt "What does the gadget cost?"
       Then the MCP server "shop" received the token "s3cr3t"
       And tellme exits successfully
@@ -73,7 +78,7 @@ Feature: Using tools from a remote MCP server
       And the runtime home is "ait-tmg"
       And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
       And a remote MCP server "hf" that never answers
-      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" and then answers with "The gadget costs $42."
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" with the reason "check the gadget price" and then answers with "The gadget costs $42."
       When the operator starts tellme with the prompt "What does the gadget cost?"
       Then tellme called the tool "lookup_price" on the MCP server "shop"
       And tellme reported on stderr that the MCP server "hf" could not be reached
@@ -114,7 +119,7 @@ Feature: Using tools from a remote MCP server
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a remote MCP server "shop" whose tool "lookup_price" reports a tool error
-      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" and then answers with "I could not check the price."
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" with the reason "check the gadget price" and then answers with "I could not check the price."
       When the operator starts tellme with the prompt "What does the gadget cost?"
       Then the run continued past the failed MCP tool call
       And tellme prints the provider's answer "I could not check the price."
@@ -124,7 +129,7 @@ Feature: Using tools from a remote MCP server
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a remote MCP server "shop" that fails the tool call
-      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" and then answers with "I could not check the price."
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" with the reason "check the gadget price" and then answers with "I could not check the price."
       When the operator starts tellme with the prompt "What does the gadget cost?"
       Then the run continued past the failed MCP tool call
       And tellme prints the provider's answer "I could not check the price."
@@ -137,8 +142,33 @@ Feature: Using tools from a remote MCP server
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
-      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" and then answers with "The gadget costs $42."
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" with the reason "check the gadget price" and then answers with "The gadget costs $42."
       When the operator starts tellme with the prompt "What does the gadget cost?"
       Then the request offered the tool "lookup_price" from the MCP server "shop" alongside the agent tools
       And tellme called the tool "lookup_price" on the MCP server "shop"
+      And tellme exits successfully
+
+  Rule: An MCP tool call states its reason, and the server gets only its own arguments
+
+    # Round 056 (ADR 0025): the call is `{reason, MCP_PAYLOAD}`; tellme renders the reason as
+    # `[Tool Reason]` and forwards ONLY the `MCP_PAYLOAD` object to the server. The server's declared
+    # input schema is relayed verbatim as `MCP_PAYLOAD`'s subschema (never mutated).
+
+    Example: The reason is shown and the server receives only its own arguments
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" with the reason "check the gadget price" and then answers with "The gadget costs $42."
+      When the operator starts tellme with the prompt "What does the gadget cost?"
+      Then the run reported the reason "check the gadget price" for the tool call "lookup_price"
+      And the MCP server "shop" received only the arguments its tool expects
+      And tellme exits successfully
+
+    Example: The server's tool definition is offered unchanged
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
+      And a configured provider "test-model" whose endpoint reports the offered tools and then answers with "done"
+      When the operator starts tellme with the prompt "Which tools can you use?"
+      Then the request offered the tool "lookup_price" from the MCP server "shop" with a reason and the server's declared schema
       And tellme exits successfully

@@ -153,14 +153,6 @@ Feature: Watching the tool loop work
       Then each tool call's report begins after a blank line
       And tellme exits successfully
 
-    Example: A call that states no reason still starts a fresh block
-      Given the operator has a runnable tellme installation
-      And the runtime home is "ait-tmg"
-      And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
-      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then answers with "done"
-      When the operator starts tellme with the prompt "Read notes.txt."
-      Then the action of the call without a reason begins after a blank line
-      And tellme exits successfully
 
     Example: The round's grouped reasons follow a blank line
       Given the operator has a runnable tellme installation
