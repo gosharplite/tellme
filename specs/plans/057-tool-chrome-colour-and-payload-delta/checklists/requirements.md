@@ -31,10 +31,10 @@
 
 ## 缺口與澄清策略
 
-- [x] 只有高影響缺口才升級到 `/axb-clarify`（Q1 哪條 payload line 帶 delta；Q2「前一個 payload」的定義與儲存；Q3 budget 移除／無前值／負 delta）
+- [x] 只有高影響缺口才升級到 `/axb-clarify`（Q1 哪條 payload line 帶 delta；Q2「前一個 payload」的定義與儲存；Q3 `-t` 與 terminal 的 parity 程度）
 - [x] 本輪 clarify 題數控制在 1 至 3 題（3 題，一次問一題）
-- [x] 低風險未定細節已用 `NEEDS CLARIFICATION` 或假設揭露（A1「兩條水平線」= 開／閉分隔線；A3 內容行維持 plain；A2 顏色碼與 whole-line wrap）
-- [x] 仍保留的 `NEEDS CLARIFICATION` 已標示是否阻塞後續規劃 — **Q1/Q2/Q3 為 OPEN，且阻塞後續規劃**（payload 行形狀屬正式驗收標準）
+- [x] 低風險未定細節已用 `NEEDS CLARIFICATION` 或假設揭露（A1「兩條水平線」= 開／閉分隔線；A2 顏色碼與 whole-line wrap；A3 內容行維持 plain；**A7 無前值 ⇒ `+0`；A8 縮小 ⇒ 帶號負 delta；A9 delta 不上色**）
+- [x] 仍保留的 `NEEDS CLARIFICATION` 已標示是否阻塞後續規劃 — **Q1 → 2、Q2 → 1、Q3 → 1 皆已 LOCKED；無殘留 `NEEDS CLARIFICATION`（A7/A8/A9 為 operator 可覆寫的低風險假設）**
 
 ## 可驗證性與成功標準
 
@@ -52,7 +52,7 @@
 
 ## Ready 判定
 
-- [ ] 已可進入後續規劃
-- [x] 仍需先補高影響需求缺口
+- [x] 已可進入後續規劃
+- [ ] 仍需先補高影響需求缺口
 
-**備註**: Q1/Q2/Q3 尚待 operator 拍板（一次一題），收斂後即可進入 `/axb-spec-by-example` 與 `/axb-technical-research`。
+**備註**: Q1 → 2、Q2 → 1、Q3 → 1 皆已 LOCKED；三項請求（chrome 顏色、`argValueCap` 500、payload delta）之範圍、驗收情境與成功標準均已收斂；A7/A8/A9 為 operator 可覆寫的低風險假設。可進入 `/axb-spec-by-example` 與 `/axb-technical-research`。

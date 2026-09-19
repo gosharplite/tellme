@@ -1,7 +1,7 @@
 # tellme — Status
 
 **Last updated**: 2026-09-19 (session 30 — round **056** `056-mcp-tool-call-reason` **DELIVERED / FROZEN** — an MCP tool call now carries a **tellme-owned `reason`** and the rule **no reason, no go** is **universal and enforced**; the remote server’s definition and the system prompt are **untouched** (the ask is declaration-carried); **ADR 0025**; PR [#122](https://github.com/gosharplite/tellme/pull/122) human-merged into `dev` `db31d8b` (**fast-forward**); folds [#121](https://github.com/gosharplite/tellme/issues/121)). Prior: session 29 — round 055 (detail relocated to the archive below). **Session mode**: `butler`.
-**Active branch**: `dev` (round 056 delivered/frozen; the next round `057-*` opens off `dev`)
+**Active branch**: `057-tool-chrome-colour-and-payload-delta` (round **057** in flight — plan package + clarify CLOSED; `dev` is the integration line)
 **Daily log**: [`docs/session-summary/2026/09/19/session-summary.md`](docs/session-summary/2026/09/19/session-summary.md)
 
 ## Last delivered round — 056 `056-mcp-tool-call-reason` (DELIVERED / FROZEN — PR [#122](https://github.com/gosharplite/tellme/pull/122) merged into `dev` `db31d8b`, **fast-forward**)
