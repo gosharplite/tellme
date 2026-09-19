@@ -49,3 +49,4 @@ Typo- and editorial-only fixes do not need an ADR.
 | [0023](0023-list-default-and-chrome-colour.md) | `-l` takes an optional count (bare `-l` = 1) + green chrome accents on a terminal (four elements; supersedes round-017 D3 for them) | Accepted |
 | [0024](0024-e2e-suite-throughput.md) | E2E suite throughput: parallel scenarios by default (`Concurrency=4` + the `TELL_ME_E2E_CONCURRENCY` seam) + a `test-fast` subset that is never the gate | Accepted |
 | [0025](0025-mcp-tool-call-reason.md) | A tellme-owned `reason` for MCP tool calls (the `{reason, MCP_PAYLOAD}` envelope; the server's schema relayed verbatim) + a universal, single-owned *no reason, no go* gate (folds [#121](https://github.com/gosharplite/tellme/issues/121)) | Accepted |
+| [0026](0026-round-close-tags.md) | Round-close tags: an annotated `round-NNN` on the `dev → main` propagation merge (closeout Step 7, operator-approved; immutable; **not** a version — `--version` stays `dev`) | Accepted |
