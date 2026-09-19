@@ -832,3 +832,52 @@ A later session on the same calendar day: opened round **062** from an **operato
 ### Session 36 (cont.) — PR #129 fold verification → TF-062-1 folded
 
 The fold verification ([`5255235795`](https://github.com/gosharplite/tellme/pull/129#pullrequestreview-5255235795)) returned **FOLDS VERIFIED 5/5** with **certification withheld** pending one truth fold-back: **TF-062-1** — the `--tool-usage` owning **interface** row (`chat/dsl.md`, `the review shows every tool with no uses`) still stated the **retired** four-tool set and no longer described the stepdef (now the **recordable union** of eight). Folded (truth-only): the row restated as the recordable union; the adjacent `accounting-for-the-tool-use.feature` comment + the `ui.FormatToolUsage` doc aligned; a `truth-delta.md` row. Residuals: **R-062-1/R-062-3** recorded (ADR 0032 §Forward **RF-062-12/RF-062-13**); **R-062-2** closed by a `unionToolNames` unit pin. Re-verified: `gofmt`/`vet` clean · `go test -count=1 ./...` green · `make verify` **OK** · E2E green · topology audit 5 pre-existing, none new.
+
+---
+
+## 20. Session 36 (cont.) — round 062 `062-agent-image-vision` **DELIVERED** (PR #129 merged → `dev` `cff2515`) → branch cleaned up → closeout (Steps 1–8) + `go install`
+
+The delivery + end-of-day closeout for round 062: the operator merged **PR [#129](https://github.com/gosharplite/tellme/pull/129)** (fast-forward into `dev`), deleted the remote branch, and I deleted the local branch after an ancestor check; then ran `SESSION-CLOSEOUT.md` Steps 1–8 and refreshed the installed binary.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#129](https://github.com/gosharplite/tellme/pull/129) **human-merged** into `dev` (`cff2515`, **fast-forward** — no merge commit; the round head is the `dev` tip) |
+| Branch cleanup | remote branch deleted by the operator; local `062-agent-image-vision` deleted after `git merge-base --is-ancestor 062-agent-image-vision origin/dev` → **YES** (`git branch -d`, was `cff2515`) |
+| Closeout Step 1 | tree clean on `dev` (in sync with `origin/dev`); no frozen `specs/plans/**` touched |
+| Closeout Step 2 | `gofmt` clean · `go vet ./...` clean · `go test -count=1 ./...` **green** (24 pkgs incl. E2E) · `make verify` **OK** |
+| Closeout Step 3 | `STATUS.md` → round 062 **DELIVERED / FROZEN**; **Rule-12 split** (the round-061 detail + its env note → [`docs/archives/status/2026-09-19.md`](../../../archives/status/2026-09-19.md); the duplicated full round-060 env note dropped — already archived); header/branch-model/roadmap/open-items(build 062 forward items + R-062-c)/env-note updated; 062 added to the delivered-rounds index + fold ledger |
+| Closeout Step 4 | this §20 appended (the §1–§19 record preserved) |
+| Closeout Step 5 | `STATUS.md` ↔ this log reconciled |
+| Closeout Step 6 | committed + pushed on `dev` |
+| Closeout Step 7 | **propagated `dev → main`** (no-ff) + tagged **`round-062`** (ADR 0026; operator-approved by the closeout instruction) + `go install ./cmd/tellme` |
+| Closeout Step 8 | issue tracker: **nothing to close/revise** (operator request, no anchor issue); [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) remain OPEN (accurate) |
+
+### Round 062 — what landed
+
+- **Deliverable**: tellme's **first non-text capability** — an agent **`read_image`** tool (content-sniffed JPEG/PNG/GIF/WebP; 32 MiB inline ceiling; loud oversize/not-a-picture refusals) + an explicit per-provider **`VISION`** capability key (default off; declared, never inferred) + an inline base64 `image_url` block on the **OpenAI-compatible** wire (media-first `user` message after the tool result); the Gemini family refuses media loudly. **ADR 0032**.
+- **Artifacts**: `specs/plans/062-agent-image-vision/**` · **ADR 0032** (+ index) · `specs/truth/techstack.md` ×4 rows · `chat/reading-a-local-image.feature` (new) + `offering-the-agent-tools.feature` + `chat/dsl.md` (13 rows + the union/scope notes) · `docs/domain-model/tellme.modelith.{yaml,md}` (Provider.vision · Tool.gate · the `ImageContent` entity · a *Reading a local image* scenario) · code: `internal/domain/llm/media.go`, `llm.Message.Media`, `config.Provider.Vision`, `internal/infrastructure/tools/image.go`, the openai content-array serializer, the gemini loud refusal, the loop's `user`-message placement, `cmd/tellme` vision-gated assemblage.
+- **Review chain (4 passes, CLOSED)**: review `5255211125` (APPROVE WITH REQUIRED FOLDS) → fold `744e10d` → verification `5255235795` (FOLDS VERIFIED 5/5) → fold `0916560` (TF-062-1) → certification `5255246963` (CERTIFIED MERGE-READY) → nit fold `f2a67d3` (N-062-1) → nit verification `5255255480` → scope-note fold `dadf808` (RF-062-14) → final diagnostic `cff2515`.
+- **Verification**: E2E **259 scenarios / 1918 steps**; `make verify` OK (arch 0 / empty baseline · modelith-check ×3 · lint 0 · govulncheck clean · cross-compile 4/4); topology audit **5 pre-existing, none new**; `go.mod`/`go.sum` unchanged.
+
+### Commits (on `dev`)
+
+| Commit | Note |
+| --- | --- |
+| `cff2515` | PR [#129](https://github.com/gosharplite/tellme/pull/129) merge into `dev` (fast-forward; by the operator) |
+| *(this closeout, on `dev`)* | `docs(062)`: day close — round 062 delivered + propagated; STATUS split + 09/19 summary §20 |
+
+### Open items (non-blocking)
+
+- **Round-062 forward items RF-062-1…RF-062-14** (all in **ADR 0032 §Forward**; esp. **RF-062-10** the media-channel/`ToolSetSpec` refactor, **RF-062-12** the shared enumerator) + **PM follow-up R-062-c**.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the 5 pre-existing topology-audit errors.
+
+### Next steps
+
+1. Open round **`063-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- **R-062-c** (recorded in `STATUS.md`): the acceptance journey's 4th Rule carries a comment rather than Examples (the R-056-c/R-059-c class; the package was still *active*).
