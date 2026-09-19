@@ -742,7 +742,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// Round 052 (closes #115 R-2; ADR 0021): the registry is built with the
 	// `[Tool Output]` sink injected at construction (`prog.ToolOutput`) — the
 	// round-034 `BindToolOutput` rebind no longer exists.
-	reg := dp.NewToolRegistry(prog.ToolOutput, res.Provider.Vision)
+	reg := dp.NewToolRegistry(prog.ToolOutput, res.Provider.Vision, res.Provider.Type)
 	// Round 033 (FR-009): bind the `list_skills` catalog source on the
 	// prompt-bearing turn path ONLY — the runtime home is resolved here. The load
 	// stays lazy (inside the tool's Execute), so no registration reads docs/skills
@@ -990,14 +990,16 @@ func dispatchReporting(f *flags, homeDir string, env runtimeEnv, newHistoryStore
 // diagnostic stream (the report path is offline, so stderr is free), so an
 // unreadable log is distinguishable from "no tool ever used"; the all-zero report
 // still prints and the command succeeds.
-func renderToolUsage(env runtimeEnv, newToolRegistry func(domaintools.OutputSink, bool) domaintools.Registry, newToolUsageStore func(func() (string, error)) history.ToolUsageStore, userHome func() (string, error), lines render.Lines) int {
+func renderToolUsage(env runtimeEnv, newToolRegistry func(domaintools.OutputSink, bool, string) domaintools.Registry, newToolUsageStore func(func() (string, error)) history.ToolUsageStore, userHome func() (string, error), lines render.Lines) int {
 	// The offline report never executes a tool; it lists every tool that can be
 	// RECORDED — the UNION of the base set and the capability-gated set (round
 	// 062; PR #129 fold F-062-1) — so a capability-gated tool (`read_image`) is
 	// shown (with zero) rather than invisible while its records accumulate. One
 	// authority for "a tool that can be recorded": the same two registries the
-	// prompt path builds.
-	names := unionToolNames(newToolRegistry(nil, false), newToolRegistry(nil, true))
+	// prompt path builds. The provider TYPE argument (round 063) is unused here
+	// (the report is capability-blind by design — ADR 0032 RF-062-13), so it is
+	// passed empty for both variants.
+	names := unionToolNames(newToolRegistry(nil, false, ""), newToolRegistry(nil, true, ""))
 	counts, err := newToolUsageStore(userHome).Aggregate()
 	if err != nil {
 		_, _ = fmt.Fprintf(env.stderr, "[tool-usage] could not read the usage log: %v\n", err)

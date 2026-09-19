@@ -48,6 +48,38 @@ func TestImageMIME(t *testing.T) {
 	}
 }
 
+// TestImageCeilingForFamily pins the single-owned family-aware ceiling (round
+// 063; ADR 0033 D4): the Gemini/Vertex family is stricter than the
+// OpenAI-compatible family, and any other/empty label defaults to the latter.
+func TestImageCeilingForFamily(t *testing.T) {
+	if got := ImageCeilingForFamily("gemini"); got != geminiImageCeiling {
+		t.Errorf("gemini ceiling = %d, want %d", got, geminiImageCeiling)
+	}
+	if got := ImageCeilingForFamily("openai"); got != openAIImageCeiling {
+		t.Errorf("openai ceiling = %d, want %d", got, openAIImageCeiling)
+	}
+	if got := ImageCeilingForFamily(""); got != openAIImageCeiling {
+		t.Errorf("empty-family ceiling = %d, want the OpenAI-compatible default", got)
+	}
+	if geminiImageCeiling >= openAIImageCeiling {
+		t.Errorf("the Gemini ceiling must be stricter than the OpenAI-compatible one (%d vs %d)", geminiImageCeiling, openAIImageCeiling)
+	}
+}
+
+// TestNewReadImageToolDefaultsCeiling pins the defensive default (PR #130 review
+// nit): a non-positive ceiling falls back to the OpenAI-compatible ceiling, so
+// the parameterless default set's `0` cannot make every image refuse.
+func TestNewReadImageToolDefaultsCeiling(t *testing.T) {
+	tl := NewReadImageTool(0)
+	ri, ok := tl.(readImage)
+	if !ok {
+		t.Fatalf("NewReadImageTool returned %T, want readImage", tl)
+	}
+	if ri.maxBytes != openAIImageCeiling {
+		t.Errorf("maxBytes = %d, want the OpenAI-compatible default %d", ri.maxBytes, openAIImageCeiling)
+	}
+}
+
 // TestReadImageAttachesMedia pins the happy path: the image is attached to the
 // call's collector with the content-sniffed MIME and its exact bytes.
 func TestReadImageAttachesMedia(t *testing.T) {
@@ -59,7 +91,7 @@ func TestReadImageAttachesMedia(t *testing.T) {
 	var media []llm.MediaPart
 	ctx := llm.WithMediaCollector(context.Background(), &media)
 	args, _ := json.Marshal(map[string]string{"filepath": p, "reason": "look"})
-	res, err := NewReadImageTool().Execute(ctx, string(args), domaintools.ByteBudget(1<<20))
+	res, err := NewReadImageTool(openAIImageCeiling).Execute(ctx, string(args), domaintools.ByteBudget(1<<20))
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -85,7 +117,7 @@ func TestReadImageRefusesNotAPicture(t *testing.T) {
 	var media []llm.MediaPart
 	ctx := llm.WithMediaCollector(context.Background(), &media)
 	args, _ := json.Marshal(map[string]string{"filepath": p, "reason": "look"})
-	res, err := NewReadImageTool().Execute(ctx, string(args), domaintools.ByteBudget(1<<20))
+	res, err := NewReadImageTool(openAIImageCeiling).Execute(ctx, string(args), domaintools.ByteBudget(1<<20))
 	if err != nil {
 		t.Fatalf("Execute should return a recoverable result, got error %v", err)
 	}
@@ -97,16 +129,18 @@ func TestReadImageRefusesNotAPicture(t *testing.T) {
 	}
 }
 
-// TestReadImageRefusesOversize pins the ceiling boundary: exactly at the limit
-// is accepted, one byte over is the loud refusal with nothing attached.
+// TestReadImageRefusesOversize pins the ceiling boundary against the tool's
+// RESOLVED ceiling (round 063): exactly at the limit is accepted, one byte over
+// is the loud refusal naming that limit, with nothing attached.
 func TestReadImageRefusesOversize(t *testing.T) {
 	dir := t.TempDir()
+	limit := geminiImageCeiling // the stricter family ceiling, to prove it is honoured
 	atLimit := filepath.Join(dir, "at.png")
-	if err := writeSparse(atLimit, pngHeader, imageMaxBytes); err != nil {
+	if err := writeSparse(atLimit, pngHeader, limit); err != nil {
 		t.Fatal(err)
 	}
 	over := filepath.Join(dir, "over.png")
-	if err := writeSparse(over, pngHeader, imageMaxBytes+1); err != nil {
+	if err := writeSparse(over, pngHeader, limit+1); err != nil {
 		t.Fatal(err)
 	}
 
@@ -114,7 +148,7 @@ func TestReadImageRefusesOversize(t *testing.T) {
 	ctx := llm.WithMediaCollector(context.Background(), &media)
 
 	atArgs, _ := json.Marshal(map[string]string{"filepath": atLimit, "reason": "look"})
-	if _, err := NewReadImageTool().Execute(ctx, string(atArgs), domaintools.ByteBudget(1)); err != nil {
+	if _, err := NewReadImageTool(limit).Execute(ctx, string(atArgs), domaintools.ByteBudget(1)); err != nil {
 		t.Fatalf("at-limit Execute: %v", err)
 	}
 	if len(media) != 1 {
@@ -123,12 +157,15 @@ func TestReadImageRefusesOversize(t *testing.T) {
 
 	media = nil
 	overArgs, _ := json.Marshal(map[string]string{"filepath": over, "reason": "look"})
-	res, err := NewReadImageTool().Execute(ctx, string(overArgs), domaintools.ByteBudget(1))
+	res, err := NewReadImageTool(limit).Execute(ctx, string(overArgs), domaintools.ByteBudget(1))
 	if err != nil {
 		t.Fatalf("oversize Execute should be a recoverable result, got %v", err)
 	}
 	if !strings.Contains(res, "too large") {
 		t.Errorf("result = %q, want the too-large refusal", res)
+	}
+	if !strings.Contains(res, "14 MiB") {
+		t.Errorf("result = %q, want it to name the resolved (Gemini) limit", res)
 	}
 	if len(media) != 0 {
 		t.Errorf("media attached for an oversize image")

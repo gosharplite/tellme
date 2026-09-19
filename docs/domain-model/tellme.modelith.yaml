@@ -151,6 +151,9 @@ entities:
           Whether this provider accepts image input (YAML `VISION`, default
           false; round 062 / ADR 0032). Declared, never inferred from the model
           name or the family; when false the `read_image` `Tool` is not offered.
+          Round 063 / ADR 0033: the single `VISION` key is honoured by **both**
+          families — the OpenAI-compatible `image_url` block and the
+          Gemini/Vertex `inlineData` blob.
     relationships:
       - entity: Pricing
         cardinality: "n:1"
@@ -314,11 +317,11 @@ entities:
       An image a `Tool` (`read_image`) attached to a turn (round 062 / ADR 0032):
       the media kind and the file's bytes. Its kind is resolved from the file's
       **content** (magic bytes: JPEG/PNG/GIF/WebP), never the name; it is
-      serialized inline (a base64 `image_url` block) on the OpenAI-compatible
-      wire, riding a `user` message after the tool result. The Gemini family has
-      no image path — a media-bearing message there is a loud failure, never a
-      silent drop. The image is in-flight only: it is never persisted with the
-      `Turn` (the history step stores the tool's text result).
+      serialized inline on **both** families — a base64 `image_url` block on the
+      OpenAI-compatible wire, or a base64 `inlineData` blob on the Gemini/Vertex
+      wire (round 063 / ADR 0033) — riding a `user` message after the tool
+      result. The image is in-flight only: it is never persisted with the `Turn`
+      (the history step stores the tool's text result).
     attributes:
       - name: mimeType
         type: string
@@ -335,9 +338,9 @@ entities:
       - id: image-kind-sniffed-from-content
         statement: "An `ImageContent`'s kind is resolved from the file's content (magic bytes), never the file name nor a declared MIME."
       - id: image-inline-limit
-        statement: "An image larger than the 32 MiB inline ceiling is a loud refusal — never truncated and never partially sent."
+        statement: "An image larger than the selected provider's family-aware inline ceiling is a loud refusal — never truncated and never partially sent; the OpenAI-compatible family allows 32 MiB, the Gemini/Vertex family 14 MiB (round 063)."
       - id: image-never-silently-dropped
-        statement: "A media-bearing message on a family without an image path is a loud failure; an image is never silently lost."
+        statement: "An image is carried on either family or the turn fails loudly; it is never silently lost."
 
   MCPServer:
     definition: >
@@ -630,14 +633,18 @@ scenarios:
       With a `Provider` that declares `vision`, the model calls `read_image`.
       The tool resolves the file's kind from its content, attaches the image, and
       the loop folds it back on a `user` message after the tool result — so the
-      model can see the picture. A provider without `vision` is not offered the
-      tool; an oversize or non-picture file is a loud refusal.
+      model can see the picture. The image is carried on the selected family's
+      wire: an inline base64 `image_url` block on the OpenAI-compatible family,
+      or an inline base64 `inlineData` blob on the Gemini/Vertex family (round
+      063 / ADR 0033). A provider without `vision` is not offered the tool; an
+      oversize (past the family-aware ceiling) or non-picture file is a loud
+      refusal.
     actors: [Orchestrator, Tool, ToolCall, ImageContent, Provider]
     steps:
       - "`Provider` returns a call to `read_image` carrying a `reason`."
-      - "The tool reads the file and resolves its kind from the content (magic bytes)."
+      - "The tool reads the file and resolves its kind from the content (magic bytes), and enforces the selected provider's family-aware inline ceiling."
       - "The loop attaches the `ImageContent` and folds it onto a `user` message after the tool result."
-      - "The `Provider` sees the image; the turn completes."
+      - "The adapter serializes the image on the family's wire (`image_url` / `inlineData`); the `Provider` sees it and the turn completes."
     invariants_touched: [tool-offered-only-when-capable, image-kind-sniffed-from-content, image-inline-limit, image-never-silently-dropped]
 
   - name: Listing and using skills

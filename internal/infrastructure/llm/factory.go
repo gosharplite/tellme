@@ -27,6 +27,23 @@ var geminiFamilies = map[string]bool{
 	"google": true,
 }
 
+// Family returns the transport family for a provider TYPE label — "openai" for a
+// supported OpenAI-compatible label, "gemini" for a Vertex/Gemini label, and ""
+// for an unsupported one. It reads the SAME tables NewGateway dispatches on, so
+// the label→family classification has one owner (round 063: the composition root
+// uses it to resolve the family-aware image ceiling; internal/cli never
+// classifies a label itself).
+func Family(typeLabel string) string {
+	f := strings.ToLower(strings.TrimSpace(typeLabel))
+	switch {
+	case supportedFamilies[f]:
+		return "openai"
+	case geminiFamilies[f]:
+		return "gemini"
+	}
+	return ""
+}
+
 // NewGateway returns the concrete domainllm.Gateway for the resolved provider's
 // family. `openai`/`deepseek`/`kimi` use the OpenAI-compatible adapter;
 // `gemini`/`google` use the Vertex/Gemini adapter (round 013); any other family

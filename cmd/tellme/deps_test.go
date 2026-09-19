@@ -9,7 +9,10 @@ import (
 
 	"github.com/gosharplite/tellme/internal/app/deps"
 	"github.com/gosharplite/tellme/internal/cli"
+	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
+	infrallm "github.com/gosharplite/tellme/internal/infrastructure/llm"
 	"github.com/gosharplite/tellme/internal/infrastructure/llm/gemini"
+	infratools "github.com/gosharplite/tellme/internal/infrastructure/tools"
 )
 
 // Round 044 (relocated from internal/cli by ADR 0013): the assembler gate and the
@@ -17,7 +20,7 @@ import (
 // agentTools(). No stream assertions (cli.Run hard-binds os.Stdin/Stdout/Stderr).
 
 func TestNewToolRegistryOffersAgentTools(t *testing.T) {
-	reg := newToolRegistry(nil, false)
+	reg := newToolRegistry(nil, false, "")
 	got := map[string]bool{}
 	for _, tl := range reg.Tools() {
 		got[tl.Name()] = true
@@ -108,7 +111,7 @@ func TestAgentToolSchemasAreWellFormed(t *testing.T) {
 		assembler[tl.Name()] = true
 	}
 	fromRegistry := map[string]bool{}
-	for _, tl := range newToolRegistry(nil, false).Tools() {
+	for _, tl := range newToolRegistry(nil, false, "").Tools() {
 		fromRegistry[tl.Name()] = true
 	}
 	if len(assembler) != len(fromRegistry) {
@@ -219,5 +222,32 @@ func TestAgentToolDeclarationsSurviveTheGeminiProjection(t *testing.T) {
 		if !reflect.DeepEqual(before, after) {
 			t.Errorf("tool %q: the Gemini projection changed a native declaration\ngot  %s\nfrom %s", tl.Name(), projected, raw)
 		}
+	}
+}
+
+// TestCompositionResolvesTheFamilyAwareImageCeiling pins round-063 (ADR 0033 D4)
+// at the composition root: the provider family (single-owned by infrallm.Family)
+// resolves to a STRICTER Gemini ceiling than the OpenAI-compatible one, and the
+// vision variant of the registry offers `read_image` while the base variant does
+// not (the capability gate is unchanged — Q1 → A).
+func TestCompositionResolvesTheFamilyAwareImageCeiling(t *testing.T) {
+	geminiCeiling := infratools.ImageCeilingForFamily(infrallm.Family("gemini"))
+	openAICeiling := infratools.ImageCeilingForFamily(infrallm.Family("deepseek"))
+	if geminiCeiling >= openAICeiling {
+		t.Fatalf("the Gemini image ceiling (%d) must be stricter than the OpenAI-compatible one (%d)", geminiCeiling, openAICeiling)
+	}
+	has := func(reg domaintools.Registry, name string) bool {
+		for _, tl := range reg.Tools() {
+			if tl.Name() == name {
+				return true
+			}
+		}
+		return false
+	}
+	if !has(newToolRegistry(nil, true, "gemini"), "read_image") {
+		t.Error("a vision-enabled provider must be offered read_image")
+	}
+	if has(newToolRegistry(nil, false, "gemini"), "read_image") {
+		t.Error("a provider without vision must NOT be offered read_image")
 	}
 }

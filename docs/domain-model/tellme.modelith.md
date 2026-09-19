@@ -132,7 +132,7 @@ The persisted record of a session's completed `Turn`s — an append-only JSON-Li
 
 ### `ImageContent`
 
-An image a `Tool` (`read_image`) attached to a turn (round 062 / ADR 0032): the media kind and the file's bytes. Its kind is resolved from the file's **content** (magic bytes: JPEG/PNG/GIF/WebP), never the name; it is serialized inline (a base64 `image_url` block) on the OpenAI-compatible wire, riding a `user` message after the tool result. The Gemini family has no image path — a media-bearing message there is a loud failure, never a silent drop. The image is in-flight only: it is never persisted with the `Turn` (the history step stores the tool's text result).
+An image a `Tool` (`read_image`) attached to a turn (round 062 / ADR 0032): the media kind and the file's bytes. Its kind is resolved from the file's **content** (magic bytes: JPEG/PNG/GIF/WebP), never the name; it is serialized inline on **both** families — a base64 `image_url` block on the OpenAI-compatible wire, or a base64 `inlineData` blob on the Gemini/Vertex wire (round 063 / ADR 0033) — riding a `user` message after the tool result. The image is in-flight only: it is never persisted with the `Turn` (the history step stores the tool's text result).
 
 **Relationships**
 
@@ -148,8 +148,8 @@ An image a `Tool` (`read_image`) attached to a turn (round 062 / ADR 0032): the 
 **Invariants**
 
 - **image-kind-sniffed-from-content** — An `ImageContent`'s kind is resolved from the file's content (magic bytes), never the file name nor a declared MIME.
-- **image-inline-limit** — An image larger than the 32 MiB inline ceiling is a loud refusal — never truncated and never partially sent.
-- **image-never-silently-dropped** — A media-bearing message on a family without an image path is a loud failure; an image is never silently lost.
+- **image-inline-limit** — An image larger than the selected provider's family-aware inline ceiling is a loud refusal — never truncated and never partially sent; the OpenAI-compatible family allows 32 MiB, the Gemini/Vertex family 14 MiB (round 063).
+- **image-never-silently-dropped** — An image is carried on either family or the turn fails loudly; it is never silently lost.
 
 ### `MCPServer`
 
@@ -248,7 +248,7 @@ An LLM backend reachable via one ProviderFamily. It carries a model id, a base U
 | `label` | string | The free-form provider label (e.g. `deepseek`, `kimi`). |
 | `family` | ProviderFamily | _Derived:_ Resolved from the label. |
 | `model` | string | The model identifier sent on the wire. |
-| `vision` | boolean | Whether this provider accepts image input (YAML `VISION`, default false; round 062 / ADR 0032). Declared, never inferred from the model name or the family; when false the `read_image` `Tool` is not offered. |
+| `vision` | boolean | Whether this provider accepts image input (YAML `VISION`, default false; round 062 / ADR 0032). Declared, never inferred from the model name or the family; when false the `read_image` `Tool` is not offered. Round 063 / ADR 0033: the single `VISION` key is honoured by **both** families — the OpenAI-compatible `image_url` block and the Gemini/Vertex `inlineData` blob. |
 
 **Invariants**
 
@@ -550,23 +550,23 @@ A remote server annotates an argument with a vendor extension. tellme's family-a
 
 ### Reading a local image
 
-With a `Provider` that declares `vision`, the model calls `read_image`. The tool resolves the file's kind from its content, attaches the image, and the loop folds it back on a `user` message after the tool result — so the model can see the picture. A provider without `vision` is not offered the tool; an oversize or non-picture file is a loud refusal.
+With a `Provider` that declares `vision`, the model calls `read_image`. The tool resolves the file's kind from its content, attaches the image, and the loop folds it back on a `user` message after the tool result — so the model can see the picture. The image is carried on the selected family's wire: an inline base64 `image_url` block on the OpenAI-compatible family, or an inline base64 `inlineData` blob on the Gemini/Vertex family (round 063 / ADR 0033). A provider without `vision` is not offered the tool; an oversize (past the family-aware ceiling) or non-picture file is a loud refusal.
 
 **Actors:** Orchestrator, Tool, ToolCall, ImageContent, Provider
 
 **Steps**
 
 1. `Provider` returns a call to `read_image` carrying a `reason`.
-2. The tool reads the file and resolves its kind from the content (magic bytes).
+2. The tool reads the file and resolves its kind from the content (magic bytes), and enforces the selected provider's family-aware inline ceiling.
 3. The loop attaches the `ImageContent` and folds it onto a `user` message after the tool result.
-4. The `Provider` sees the image; the turn completes.
+4. The adapter serializes the image on the family's wire (`image_url` / `inlineData`); the `Provider` sees it and the turn completes.
 
 **Invariants touched**
 
 - **tool-offered-only-when-capable** — `read_image` (its `gate` is `vision`) is offered to the model only when the selected `Provider` declares `vision`; the offered set is a function of the selected provider's capability.
 - **image-kind-sniffed-from-content** — An `ImageContent`'s kind is resolved from the file's content (magic bytes), never the file name nor a declared MIME.
-- **image-inline-limit** — An image larger than the 32 MiB inline ceiling is a loud refusal — never truncated and never partially sent.
-- **image-never-silently-dropped** — A media-bearing message on a family without an image path is a loud failure; an image is never silently lost.
+- **image-inline-limit** — An image larger than the selected provider's family-aware inline ceiling is a loud refusal — never truncated and never partially sent; the OpenAI-compatible family allows 32 MiB, the Gemini/Vertex family 14 MiB (round 063).
+- **image-never-silently-dropped** — An image is carried on either family or the turn fails loudly; it is never silently lost.
 
 ### Listing and using skills
 

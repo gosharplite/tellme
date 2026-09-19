@@ -144,7 +144,7 @@ func recordableToolNames() []string {
 		infratools.NewWriteTools(),
 		[]domaintools.Tool{infratools.NewCommandTool(nil)},
 		[]domaintools.Tool{infratools.NewSkillsTool(nil)},
-		[]domaintools.Tool{infratools.NewReadImageTool()})
+		[]domaintools.Tool{infratools.NewReadImageTool(0)})
 }
 
 // flattenToolNames flattens the given tool groups into their wire names, in order.
