@@ -90,3 +90,8 @@
 ### Witness (reproduced RED, then reverted)
 
 - **K** — returning `kept[0]` without the member-kind check turns `TestProjectSchema_ValueKindsAreEnforced` RED (`type:[5]` → `type:5`).
+
+## Certification
+
+- **T033** — final verification `5740450136` at **`d6b2786`**: **CERTIFIED MERGE-READY · review loop CLOSED** (gates green; witness K re-reproduced by the reviewer — it reds *both* the value-kind pin and the round-trip pin, proving the round-trip assertion non-vacuous; an independent cross-check of 260 (key, wrong-kind value) combinations showed 0 disagreements). Review trail: **B-061-1 · F-061-1…3 · R-1…R-5 · V-061-1 · W-061-1**, each an instance of *"a third-party dialect reaching a closed proto"*, all closed and pinned.
+- **Post-merge (operator)**: verify with the GitHub MCP server enabled + `TYPE: gemini` (the one leg not carriable hermetically — S-4/CQ-4), close [#127](https://github.com/gosharplite/tellme/issues/127), then run `SESSION-CLOSEOUT.md` (including the `dev → main` propagation and the `round-061` tag on the operator's approval).
