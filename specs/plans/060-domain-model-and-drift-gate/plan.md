@@ -93,7 +93,7 @@ root `specs/truth`; truth-delta `specs/plans/060-domain-model-and-drift-gate/tru
 | # | Decision | Carrier |
 | --- | --- | --- |
 | **Q1 → 3** | Author **three** models: product · quality · environment-management | `docs/domain-model/*.modelith.*`; FR-001/FR-003 |
-| **Q2 → 1** | Adopt the **modelith fork** (`@feat/self-domain-model`) + `make modelith-lint\|render\|check`; `modelith` is a **dev-tool binary**, not a `go.mod` dep | `Makefile`; `docs/domain-model/README.md`; FR-004/FR-006 |
+| **Q2 → 1** | Adopt the **modelith fork** (`feat/self-domain-model`, pinned at commit `b4153541cee8`) + `make modelith-lint\|render\|check`; `modelith` is a **dev-tool binary**, not a `go.mod` dep | `Makefile`; `docs/domain-model/README.md`; FR-004/FR-006 |
 | **Q3 → 1** | `modelith-check` is a **zero-tolerance `verify` member**; an **absent binary hard-fails** naming the install command | `Makefile`; FR-004; SC-005 |
 | **Q4 (A6)** | The models are **descriptive docs, not truth** — on conflict, `specs/truth/**` wins | the model `description`s; FR-008 |
 | **Q5 (A7)** | Refresh **alongside a round's truth changes**; the drift gate is the safety net; no scheduled pass | FR-008/FR-010; `docs/domain-model/README.md` |

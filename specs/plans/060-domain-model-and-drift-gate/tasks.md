@@ -19,7 +19,7 @@
 > 來自 `research.md` D1–D12、`spec.md`（FR-001–010 / SC-001–005）與 **ADR 0030**。
 
 - **[SCOPE / Q1, D1/D2]** 產出**三份**模型於 `docs/domain-model/`：**product**（`tellme.modelith.*`）· **quality**（`quality.modelith.*`）· **environment-management**（`environment-management.modelith.*`，描述**外部** Niffler `tellme.sh`，記錄為 divergence）。
-- **[TOOLCHAIN / Q2, D1]** YAML 為唯一真相源；`.md` 由 modelith **產生**（never hand-edit）。modelith = `gosharplite/modelith` fork `@feat/self-domain-model`，**dev-tool 二進位**（`$GOPATH/bin`），**不入 `go.mod`**。
+- **[TOOLCHAIN / Q2, D1]** YAML 為唯一真相源；`.md` 由 modelith **產生**（never hand-edit）。modelith = `gosharplite/modelith` fork（`feat/self-domain-model` 分支，**pinned 於其 tip commit `b4153541cee8`**），**dev-tool 二進位**（克隆 + pinned build 安裝；見 `docs/domain-model/README.md`），**不入 `go.mod`**。
 - **[GATE / Q3, D5]** `Makefile` 新增 `modelith-lint`／`modelith-render`／`modelith-check`；`modelith-check` 為 `verify` 的 **zero-tolerance** 成員：**drift ⇒ fail**；**binary 缺席 ⇒ fail**（具名 **安裝路徑**：clone + pinned build，見 `docs/domain-model/README.md`；非 `go install @path`）。**無** `go run …@branch` fallback（hermetic）。
 - **[BOUNDARY / Q4, D8]** 模型為**描述性 docs，非 truth**；與 `specs/truth/**` 衝突時 **truth 勝**。drift gate 只保 **model-internal**（YAML ↔ `.md`）一致；reference 的 `modelith-drift`／`modelith-layers` **不採用**。
 - **[LIFECYCLE / Q5, D9]** 隨 truth 變更刷新；無排程 pass；模型無 `delivered` freeze。
@@ -69,7 +69,7 @@
   - Read: `research.md` D2；`spec.md` FR-003(c)；reference `environment-management.modelith.*`（作形狀參考，非抄）；`$TELL_ME_HOME` 佈局
   - 做: 3-pass；lint 0/0；render。
 
-- [X] T005 `docs/domain-model/README.md`（作者慣例 + 釘住 `go install …@feat/self-domain-model` + 觀測版本 + `make modelith-*` 用法 + 「descriptive docs, not truth」）
+- [X] T005 `docs/domain-model/README.md`（作者慣例 + 釘住 **clone + pinned-build 安裝路徑**（immutable commit `b4153541cee8`；單一來源）+ 觀測版本 + `make modelith-*` 用法 + 「descriptive docs, not truth」）
   - Read: `research.md` D2/D6/D8；reference `docs/domain-model/README.md`（形狀參考）
 
 - [X] T006 全量驗證 + 見證（`modelith lint` 三檔 0/0 · `modelith render --check` 三檔 up-to-date · `make verify` 綠 · drift 見證：改 YAML 不 re-render ⇒ `modelith-check` 紅 → revert · absent-binary 見證：以 path-shim 令 `command -v modelith` 空 ⇒ `modelith-check` 紅並具名安裝指令 → revert）
@@ -134,3 +134,16 @@
 **Residuals (recorded, non-blocking)**: **R-060-1** the ADR 0030 copy of the route is static while the Makefile's derives from `$(MODELITH_PIN)` (defensible — an ADR is self-contained) · **R-060-2** `$(wildcard)` returns directory order (harmless) · **R-060-3** witness executions live in this ledger (TD-6 convention).
 
 **Re-verified after TF-060-1**: `make verify` **OK** · `go test -count=1 ./...` **green** · `gofmt` clean · `go.mod`/`go.sum` unchanged. Fold-back head: *see the PR comment*.
+
+### Re-verification fold-back (PR #126 comment `5740073150`; **TF-060-2**)
+
+**FOLDS VERIFIED 4/4 + FR-004 — then CERTIFIED MERGE-READY** on a one-line residue the re-verifier found (and owned): the **T005 task row** (line 72) still named the falsified form **elided** (`go install …@feat/self-domain-model`), so a literal-grep sweep missed it. Folded:
+
+| # | Surface | Fold |
+| --- | --- | --- |
+| **TF-060-2** | `tasks.md` **T005 row** | → the **clone + pinned-build** route (immutable commit `b4153541cee8`; single-sourced in `docs/domain-model/README.md`). |
+| — | `tasks.md` **TOOLCHAIN locked decision** | the `@feat/self-domain-model` branch ref qualified with the **immutable tip commit `b4153541cee8`** (prevents the same elided form recurring). |
+
+The falsified string now survives **only** where quoted *as the falsified form* (the fold ledger above, `research.md` D5, and the historical witness at line 96 with its forward pointer).
+
+**Re-verified after TF-060-2**: `make verify` **OK** · `go test -count=1 ./...` **green** · `gofmt` clean · `go.mod`/`go.sum` unchanged.
