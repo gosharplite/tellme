@@ -13,15 +13,27 @@ import (
 	domainsuggestions "github.com/gosharplite/tellme/internal/domain/suggestions"
 )
 
-// maxSuggestions is the fixed suggestion cap (round-015 research Decision 2).
+// maxSuggestions is the surface cap: the prompt never shows more than this many
+// suggestions (round-015 research Decision 2).
 const maxSuggestions = 10
+
+// promptPoolDepth is how many newest distinct recent prompts the history source
+// is asked for — the candidate pool the engine matches against. Round 064
+// (ADR 0034): deepened from 10 to the reference's newest-50 pool, so a match
+// older than the newest 10 is offered again; the surfaced list stays capped at
+// maxSuggestions. These two constants are deliberately DISTINCT (the depth and
+// the cap were conflated before this round).
+const promptPoolDepth = 50
 
 // dirBatch bounds a single directory read batch, so a query never triggers an
 // unbounded scan (round-015 PR #38 review directive ③).
 const dirBatch = 100
 
-// PromptSource yields recent operator prompts, newest-first (the shared global
-// log seeded first, then the active session's prompts).
+// PromptSource yields recent operator prompts, newest-first. The production
+// source is the user-global shared prompt log (`~/.tellme/global_prompts.jsonl`,
+// round 028); there is no separate session source (round 064 / ADR 0034 corrects
+// the earlier "seeded first, then the active session's prompts" note — the shared
+// log is the only prompt source).
 type PromptSource interface {
 	RecentPrompts(ctx context.Context, n int) []string
 }
@@ -89,12 +101,14 @@ func (a *accumulator) add(text string) {
 
 func (a *accumulator) full() bool { return len(a.out) >= a.limit }
 
-// addPrompts adds the recent prompts matching the query (all, when empty).
+// addPrompts adds the recent prompts matching the query (all, when empty). The
+// source is asked for promptPoolDepth (the deepened candidate pool, round 064);
+// the accumulator still caps the surfaced list at maxSuggestions.
 func (s *Service) addPrompts(ctx context.Context, query string, acc *accumulator) {
 	if s.prompts == nil {
 		return
 	}
-	for _, p := range s.prompts.RecentPrompts(ctx, maxSuggestions) {
+	for _, p := range s.prompts.RecentPrompts(ctx, promptPoolDepth) {
 		if ctx.Err() != nil || acc.full() {
 			return
 		}

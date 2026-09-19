@@ -644,7 +644,7 @@ With `-i` on a terminal, the session's `PromptInput` collects a prompt with live
 **Steps**
 
 1. `PromptInput` engages the TUI prompt (a terminal stdin).
-2. The suggestion engine seeds from the `PromptLog`, the session, the workspace, and the tool registry.
+2. The suggestion engine seeds from the `PromptLog`, the workspace, and the tool registry (the `PromptLog` — the user-global shared log — is the only prompt source; there is no separate session source).
 3. The entered prompt is appended to the shared `PromptLog`.
 
 **Invariants touched**
