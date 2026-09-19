@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-20
 
-**Status**: Draft — produced by `/axb-specify` from **anchor issue [#132](https://github.com/gosharplite/tellme/issues/132)** (a defect found by the round-063 closeout **live check**, 2026-09-20). No `specs/truth/**` file is written by this skill. Clarify: **not escalated** (see *Clarify strategy* — the goal and the fix are unambiguous; the remaining choices are technical, deferred to `/axb-technical-research` per the round-063 placement precedent).
+**Status**: **Implemented — PR [#133](https://github.com/gosharplite/tellme/pull/133) open for human review/merge** (branch `065-gemini-parallel-tool-calls`; folds applied at the architect review). Produced by `/axb-specify` from **anchor issue [#132](https://github.com/gosharplite/tellme/issues/132)** (a defect found by the round-063 closeout **live check**, 2026-09-20). No `specs/truth/**` file is written by this skill. Clarify: **not escalated** (see *Clarify strategy* — the goal and the fix are unambiguous; the remaining choices are technical, deferred to `/axb-technical-research` per the round-063 placement precedent).
 
 **Input (operator, 2026-09-20, this session)**:
 
@@ -53,7 +53,7 @@ Exit **6**. The **identical** 400 reproduces with **2 × `read_image`**; a **sin
 **Non-negotiable invariants (proposed, not open):**
 
 - **I-1 — The OpenAI-compatible wire is byte-preserved.** Its request serialization is correct today (one `role:"tool"` message per `tool_call_id`); the fix MUST NOT change it. Its existing tests stay green and unchanged.
-- **I-2 — The single-call path is byte-preserved on Gemini.** A round with exactly **one** tool call (with or without media) serializes exactly as today (the round-063 D2 shape stands).
+- **I-2 — The single-call path is shape-identical on Gemini (fold N-065-1).** A round with exactly **one** tool call (with or without media) serializes to the **same** `contents` structure as today (same turns, roles, order, and blob bytes). The carrier is a structural pin (`contents` length + roles + names + blob bytes); only the media-free case additionally has a literal byte pin (I-3).
 - **I-3 — The media-free text path is byte-preserved** on both families.
 - **I-4 — No silent media loss** (ADR 0032 D8 / ADR 0033): every image the model attached is carried on the wire or the turn fails loudly; never dropped.
 - **I-5 — No security layer, POSIX-only, hermetic.** No new dependency; every gate offline (ADR 0012).

@@ -171,21 +171,36 @@ func requestBody(prompt string, prior []llm.Message, toolDefs []llm.ToolDef, max
 // standalone `user` turns AFTER the batched function-response turn (so the
 // #1441 inlineData/functionResponse ordering hazard still cannot arise). The
 // batching is invisible for N == 1 and for media-free rounds, so those paths are
-// byte-identical to before (I-2/I-3); the OpenAI-compatible family is untouched.
+// shape-identical to before (I-2/I-3); the OpenAI-compatible family is untouched.
+//
+// A round boundary is a `model` turn, a plain-text message, or the prompt. A
+// tool result is recognised by its `ToolCallID` (every producer sets one: the
+// live path's `tool` message and the replay path's synthesised
+// `call_step_<n>`); a `tool` message without an id is not expected and would be
+// a producer bug, so it is not silently special-cased here.
 func buildContents(prompt string, prior []llm.Message) []map[string]any {
 	contents := make([]map[string]any, 0, len(prior)+1)
 	pending := make([]string, 0) // names of tool calls awaiting their result (FIFO)
 	// The current round's buffered results + media (flushed at a round boundary).
 	results := make([]map[string]any, 0) // one functionResponse PART per tool result
 	mediaTurns := make([][]map[string]any, 0)
+	roundCalls := 0 // the driving model turn's functionCall count (the round's N)
 
 	// flush emits the buffered round: the batched function-response turn (when
 	// any results were buffered) followed by the round's standalone media turns.
+	// It also drops any UNPAIRED names a short round left in the FIFO (a round
+	// yielding M < N results) so a later round's part names cannot be mispaired;
+	// the batched turn then carries M parts (the doc-recorded shape — a provider
+	// that rejects it surfaces the same 400, never a silent name mispair).
 	flush := func() {
 		if len(results) > 0 {
 			contents = append(contents, map[string]any{"role": "user", "parts": results})
 			results = make([]map[string]any, 0)
 		}
+		if short := roundCalls - len(pending); short > 0 && short <= len(pending) {
+			pending = pending[short:]
+		}
+		roundCalls = 0
 		for _, parts := range mediaTurns {
 			contents = append(contents, map[string]any{"role": "user", "parts": parts})
 		}
@@ -196,6 +211,7 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 		switch {
 		case len(m.ToolCalls) > 0:
 			flush() // a new model turn starts a new round
+			roundCalls = len(m.ToolCalls)
 			parts := make([]map[string]any, 0, len(m.ToolCalls))
 			for _, tc := range m.ToolCalls {
 				pending = append(pending, tc.Name)
@@ -212,7 +228,7 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 				parts = append(parts, part)
 			}
 			contents = append(contents, map[string]any{"role": "model", "parts": parts})
-		case m.ToolCallID != "" || m.Role == "tool":
+		case m.ToolCallID != "":
 			// A tool result — buffered into the current round, not emitted yet.
 			name := ""
 			if len(pending) > 0 {

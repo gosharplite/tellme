@@ -189,18 +189,19 @@ func TestRequestBody_MultiCallRound_NoMedia_BatchesResults(t *testing.T) {
 	}
 }
 
-// TestRequestBody_ThreeCallRound_BatchesResults pins the N == 3 boundary: three
-// parallel tool calls serialize to one batched `user` turn with three parts.
+// TestRequestBody_ThreeCallRound_BatchesResults pins the N == 3 boundary with the
+// same claim as the N == 2 pin: one batched `user` turn with three
+// `functionResponse` parts, correct role, names in call order.
 func TestRequestBody_ThreeCallRound_BatchesResults(t *testing.T) {
 	prior := []llm.Message{
 		{Role: "assistant", ToolCalls: []llm.ToolCall{
 			{ID: "call_1", Name: "read_files", Arguments: `{"filepaths":["a.txt"]}`},
-			{ID: "call_2", Name: "read_files", Arguments: `{"filepaths":["b.txt"]}`},
-			{ID: "call_3", Name: "read_files", Arguments: `{"filepaths":["c.txt"]}`},
+			{ID: "call_2", Name: "list_files", Arguments: `{"path":"."}`},
+			{ID: "call_3", Name: "get_tree", Arguments: `{"path":"."}`},
 		}},
 		{Role: "tool", Content: "note a", ToolCallID: "call_1"},
-		{Role: "tool", Content: "note b", ToolCallID: "call_2"},
-		{Role: "tool", Content: "note c", ToolCallID: "call_3"},
+		{Role: "tool", Content: "listing", ToolCallID: "call_2"},
+		{Role: "tool", Content: "tree", ToolCallID: "call_3"},
 	}
 	body, err := requestBody("", prior, nil, 0, 0, "", "")
 	if err != nil {
@@ -218,8 +219,73 @@ func TestRequestBody_ThreeCallRound_BatchesResults(t *testing.T) {
 	if len(decoded.Contents) != 2 {
 		t.Fatalf("contents len = %d, want 2 (model + one batched user turn): %s", len(decoded.Contents), body)
 	}
-	if len(decoded.Contents[1].Parts) != 3 {
-		t.Fatalf("batched turn parts = %d, want 3: %+v", len(decoded.Contents[1].Parts), decoded.Contents[1].Parts)
+	if decoded.Contents[0].Role != "model" {
+		t.Errorf("turn 0 role = %q, want model", decoded.Contents[0].Role)
+	}
+	batch := decoded.Contents[1]
+	if batch.Role != "user" || len(batch.Parts) != 3 {
+		t.Fatalf("batched turn = role %q with %d parts, want user with 3 functionResponse parts: %+v", batch.Role, len(batch.Parts), batch.Parts)
+	}
+	for i, want := range []struct{ name, content string }{
+		{"read_files", "note a"}, {"list_files", "listing"}, {"get_tree", "tree"},
+	} {
+		fr, _ := batch.Parts[i]["functionResponse"].(map[string]any)
+		if fr == nil {
+			t.Fatalf("part %d is not a functionResponse: %+v", i, batch.Parts[i])
+		}
+		if fr["name"] != want.name {
+			t.Errorf("part %d functionResponse name = %v, want %q (call order)", i, fr["name"], want.name)
+		}
+		resp, _ := fr["response"].(map[string]any)
+		if resp["content"] != want.content {
+			t.Errorf("part %d functionResponse content = %v, want %q", i, resp["content"], want.content)
+		}
+	}
+}
+
+// TestRequestBody_ShortRound_DropsUnpairedNames pins the TD-065-2 fold: a round
+// that yields FEWER results than its model turn's calls (M < N) emits the M
+// results it has in one batched turn (the documented shape — a provider that
+// rejects it surfaces the same 400, never a silent name mispair), and the leftover
+// FIFO names are dropped so a LATER round's parts are named correctly.
+func TestRequestBody_ShortRound_DropsUnpairedNames(t *testing.T) {
+	prior := []llm.Message{
+		{Role: "assistant", ToolCalls: []llm.ToolCall{
+			{ID: "call_1", Name: "read_files", Arguments: `{}`},
+			{ID: "call_2", Name: "list_files", Arguments: `{}`},
+		}},
+		// Only ONE result is folded back for the two calls (a short round).
+		{Role: "tool", Content: "only a", ToolCallID: "call_1"},
+		// A second round with its own single call + result must pair correctly.
+		{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_3", Name: "get_tree", Arguments: `{}`}}},
+		{Role: "tool", Content: "tree", ToolCallID: "call_3"},
+	}
+	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	if err != nil {
+		t.Fatalf("requestBody: %v", err)
+	}
+	var decoded struct {
+		Contents []struct {
+			Role  string           `json:"role"`
+			Parts []map[string]any `json:"parts"`
+		} `json:"contents"`
+	}
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	// model round 1 · batched(1 part) · model round 2 · batched(1 part)
+	if len(decoded.Contents) != 4 {
+		t.Fatalf("contents len = %d, want 4: %s", len(decoded.Contents), body)
+	}
+	// Round 1's batched turn carries the single result it has.
+	fr0, _ := decoded.Contents[1].Parts[0]["functionResponse"].(map[string]any)
+	if len(decoded.Contents[1].Parts) != 1 || fr0["name"] != "read_files" {
+		t.Fatalf("short round batch = %+v, want ONE functionResponse named read_files", decoded.Contents[1].Parts)
+	}
+	// Round 2's part must be named for ITS call (get_tree), not the dropped one.
+	fr1, _ := decoded.Contents[3].Parts[0]["functionResponse"].(map[string]any)
+	if fr1["name"] != "get_tree" {
+		t.Errorf("round 2 functionResponse name = %v, want %q (no mispair from the short round)", fr1["name"], "get_tree")
 	}
 }
 
