@@ -102,7 +102,7 @@ help:
 	@echo "  make check-full           - check + test-race (pre-push; ADR 0042)"
 	@echo "  make verify-no-test-sleep - forbid time.Sleep for synchronization in *_test.go (ADR-036 parity)"
 	@echo "  make verify-no-network    - build-graph capability guard: no net/net/http in ./cmd/tellme closure"
-	@echo "  make verify-fmt           - gofmt -l: fail if any Go file is not gofmt-clean (ADR 0042)"
+	@echo "  make verify-fmt           - gofmt -l + goimports -l: fail on unformatted/ungrouped Go files (ADR 0042)"
 	@echo "  make verify-adr-index     - every docs/decisions/ ADR is indexed once (ADR 0042)"
 	@echo "  make verify-cross-compile - build + vet the module for every supported POSIX target (linux/darwin, amd64/arm64)"
 	@echo "  make verify-mcp-sdk-confinement - verify the MCP Go SDK is imported only under internal/infrastructure/mcp/"
