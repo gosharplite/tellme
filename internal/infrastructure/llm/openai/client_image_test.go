@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/gosharplite/tellme/internal/domain/llm"
+	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
 // TestMessageContentPinsTheWireShape pins round-062 (ADR 0032): a message with
@@ -22,8 +23,8 @@ func TestMessageContentPinsTheWireShape(t *testing.T) {
 		t.Errorf("media-less content = %#v, want the plain string \"hi\"", got)
 	}
 
-	img := llm.MediaPart{MIMEType: "image/png", Data: []byte{0x89, 'P', 'N', 'G'}}
-	got, ok := messageContent(llm.Message{Role: "user", Media: []llm.MediaPart{img}}).([]any)
+	img := domaintools.MediaPart{MIMEType: "image/png", Data: []byte{0x89, 'P', 'N', 'G'}}
+	got, ok := messageContent(llm.Message{Role: "user", Media: []domaintools.MediaPart{img}}).([]any)
 	if !ok {
 		t.Fatalf("media-bearing content is not an array: %#v", got)
 	}
@@ -42,7 +43,7 @@ func TestMessageContentPinsTheWireShape(t *testing.T) {
 
 	// A message with BOTH text and media leads with the text part (media-first
 	// ordering for the image blocks that follow).
-	both := messageContent(llm.Message{Role: "user", Content: "look", Media: []llm.MediaPart{img}}).([]any)
+	both := messageContent(llm.Message{Role: "user", Content: "look", Media: []domaintools.MediaPart{img}}).([]any)
 	if len(both) != 2 || both[0].(map[string]any)["type"] != "text" {
 		t.Errorf("text+media parts = %#v, want a leading text part", both)
 	}
@@ -84,12 +85,12 @@ func TestCompleteCarriesImageOnTheWire(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	img := llm.MediaPart{MIMEType: "image/jpeg", Data: []byte{0xFF, 0xD8, 0xFF, 0x01}}
+	img := domaintools.MediaPart{MIMEType: "image/jpeg", Data: []byte{0xFF, 0xD8, 0xFF, 0x01}}
 	c := New(Config{ProviderName: "prov", BaseURL: srv.URL, Model: "m"})
 	prior := []llm.Message{
 		{Role: "user", Content: "what is this?"},
 		{Role: "tool", Content: "Successfully read image from shot.jpg", ToolCallID: "call_1"},
-		{Role: "user", Media: []llm.MediaPart{img}},
+		{Role: "user", Media: []domaintools.MediaPart{img}},
 	}
 	if _, err := c.Complete(context.Background(), llm.Request{Messages: prior}); err != nil {
 		t.Fatalf("Complete: %v", err)
