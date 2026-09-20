@@ -1134,3 +1134,13 @@ A later session on the same calendar day: after a *"what is next?"* query (boots
 1. Human reviews + merges the PR (**no Copilot review**; only a human merges).
 2. On merge: propagate `dev → main` (no-ff), tag `round-071`, refresh the installed binary; close nothing extra (#147 stays open — it is an inventory, not this round's DoD).
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `071-search-files-tool`).
+
+### §32 addendum — round-071 review-fold loop CLOSED (the `architect` peer; 5 passes) → ready for human merge
+
+Operator: *"Communicate with sub-agent 'architect'. Initialize architect with `SESSION-BOOTSTRAP.md`, don't use `--new` on architect after initialization. Ask architect to review this PR and post comment… loop until PR is ready for human to merge."*
+
+- **Dispatch (per `tmg-chat-ingroup`)**: staged prompts in `/tmp` with the remote-party marker; `env -u TELL_ME_MODE TELL_ME_HOME=$WS tellme -r -c $WS/configs/architect.yaml` (inherited provider `deepseek-flash`); `--new` **only** on the initialization turn (Steps 1–8), then continuations. Archived session at 27.6 % payload.
+- **Loop** (PR [#148](https://github.com/gosharplite/tellme/pull/148)): `REVIEW-A1` (**APPROVE WITH REQUIRED FOLDS** — TD-071-1 required + 3 recommended + 4 nits) → `FOLD-A1` (`85cac23`) → `FOLD-VERIFICATION-A1` (**FOLDS VERIFIED WITH RESIDUALS**; RES-1…6) → `FOLD-A1-RESIDUALS` (`65e7df8`) → `FOLD-VERIFICATION-A1-RESIDUALS` (caught **RES-2 had not actually applied** — a silent no-op edit; RES-5a) → `FOLD-A1-RESIDUALS-2` (`9932185`) → `FOLD-VERIFICATION-A1-FINAL` (**FOLDS VERIFIED WITH RESIDUALS**, one optional RES-2b) → RES-2b folded (`802acc0`) → `FOLD-VERIFICATION-LOOP-CLOSED`.
+- **Folded**: TD-071-1 (**bound the no-match return** — a real round-024 violation, witness 5127 B > 100 B budget), TD-071-2 (FR-018 pin), TD-071-3 (**the interface feature now carries determinism** — a DFS≠sorted fixture + a generic path-order Then; the E2E REDs without the sort), TD-071-4 (divergence ledger corrected to three deliberate + three recorded), + 4 nits + 7 residuals.
+- **Final state** on `802acc0`: gates green (`go test -count=1 ./...` · `make verify` OK · E2E 275/275) · `go.mod`/`go.sum` unchanged · **loop CLOSED, cleared for human merge**.
+- **Lesson recorded**: a scripted replacement that does not match its target is a **silent no-op** — the reviewer caught a fold wrongly reported as applied; *verify the tree, not the claim*.
