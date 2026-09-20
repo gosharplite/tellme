@@ -63,6 +63,9 @@ func (l Lines) ToolReason(t time.Time, reason string) string {
 	return formatToolReasonColour(t, reason, l.colour)
 }
 
+// UnpairedCalls renders the round-068 unpaired-call diagnostic (ADR 0038).
+func (Lines) UnpairedCalls(t time.Time, ids []string) string { return FormatUnpairedCalls(t, ids) }
+
 // ToolUsage renders the offline per-tool roll-up.
 func (Lines) ToolUsage(rows []history.ToolUsageRow) string { return FormatToolUsage(rows) }
 

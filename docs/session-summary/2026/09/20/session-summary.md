@@ -414,3 +414,69 @@ After the round-067 closeout, the operator directed *"Do (a) now"* — run the *
 
 1. Open round **`068-*`** off `dev` via `/axb-specify` (candidates: RF-067-1 the unpaired-call diagnostic · the `ToolSetSpec` seam RF-062-10/RF-063-6 · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13)).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 14. Session 49 (2026-09-20, cont.) — round 068 `068-unpaired-call-diagnostic`: opened → pipeline → implementation → PR [#138](https://github.com/gosharplite/tellme/pull/138) → architect review-fold loop (2 passes, CLOSED)
+
+The operator directed *"Open 068-*, the goal is to resolve RF-067-1."* Created branch **`068-unpaired-call-diagnostic`** off `dev` `e864d9a`, ran the pipeline, and took **PR [#138](https://github.com/gosharplite/tellme/pull/138)** through the `architect` peer to **CLEARED FOR HUMAN MERGE**. Clarify ran **one question at a time** (operator instruction) and both answers were folded in.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | resolve **ADR 0037 §Forward RF-067-1** — surface a Gemini/Vertex round's **unpaired** tool calls (`M < N`) as a user-visible `stderr` diagnostic (the round-067 account had no live consumer) |
+| Clarify (one at a time) | **Q1 → A** — a `[Tool …]`-class line on `stderr`, terminal-safe, **never routed to `turns.log`** (the `[Tool Output]`-block precedent, ADR 0022 D5) · **Q2 → A** — **informational** (the turn proceeds; the wire unchanged) |
+| Pipeline | specify ✅ · clarify ✅ (Q1/Q2 → A) · spec-by-example **NOOP (narrowing)** · technical-research ✅ (**ADR 0038**) · system-analysis ✅ · dsl-refine **NOOP (narrowing)** · tasks ✅ (T001–T014) · implement ✅ |
+| The change | `internal/domain/llm/unpaired.go` **NEW** (`UnpairedToolCalls` — the family-neutral single owner) · `internal/cli/unpaired_gateway.go` **NEW** (gateway decorator) · `ui.FormatUnpairedCalls` + `render.Lines.UnpairedCalls` · the gemini adapter `UnpairedCallIDs` **delegates** (round-067 dead code removed) · `runTurn` wiring |
+| Honest premise | the shipped loop appends one `tool` result per call ⇒ **`M == N` always** ⇒ the diagnostic **fires on no shipped path** (defensive; a live producer arrives with out-of-order/concurrent dispatch, [#36](https://github.com/gosharplite/tellme/issues/36) item 3) |
+| Architect loop | the `architect` peer (init once with `SESSION-BOOTSTRAP.md`) — review `5746878141` (**REQUEST CHANGES** — **B-068-1** blocker) → fold `9a8986b` → fold verification `5746912907` (**FOLDS VERIFIED WITH RESIDUALS — CLEARED FOR HUMAN MERGE**) → fold `55fab02` → record `5746923075` |
+
+### Folds applied (PR #138)
+
+- **B-068-1 [BLOCKER]** — the `[Tool Warning]` id value was interpolated **raw**; now `capRunes(sanitizeControl(oneLine(join)), unpairedIDsCap=200)` (the single-owned `[Tool …]` policy; the ids are provider-sourced since round 067); `sanitize.go` names `[Tool Warning]`; hostile + cap pins added; ADR 0038 D3 amended (colour ≠ control class).
+- **TD-068-1** — the *"cannot drift by construction"* over-claim narrowed + carried by the property tie pin `TestUnpairedCallIDs_AgreesWithEmittedBody` (+ the media cases); the media-as-boundary mutant now reds it.
+- **TD-068-2** — the stale techstack round-067 clause retargeted to `llm.UnpairedToolCalls` (+ a *superseded by ADR 0038* pointer); the gemini doc comment corrected.
+- **N-068-1** — `[Tool Warning]` added to the `Chrome` domain entity (+ re-render; `modelith-check` green).
+- **N-068-2** — the per-`Complete` re-reporting documented; the spec edge case finalised (one aggregated line).
+- **Residuals** — R-068-F2/F4 folded; R-068-F1/F3 recorded as **RF-068-6/RF-068-7**.
+
+### Verification
+
+`gofmt`/`go vet`/`go build` clean · `go test -count=1 ./...` **green** (24 pkgs incl. the godog E2E) · `make verify` **OK** · topology audit **5 pre-existing, none new** · `go.mod`/`go.sum` unchanged. Witnesses (reproduced then reverted): suppress the emit; suppress the account; media-as-boundary; drop `sanitizeControl`/`capRunes`.
+
+---
+
+## 15. Session 50 (2026-09-20, cont.) — round 068: **human-merged (PR [#138](https://github.com/gosharplite/tellme/pull/138) → `dev` `d7f4ed7`, merge commit)** → branch cleanup → closeout (Steps 1–8)
+
+The operator confirmed the merge + remote-branch deletion and directed *"check if remote branch is gone, then delete local branch."* The remote branch was gone (`git fetch --prune` deleted it); `dev` was fast-forwarded to the merge (`d7f4ed7`); the round tip (`2210b4d`) was an ancestor of `dev`, so the local branch was **deleted** (`git branch -d`). `SESSION-CLOSEOUT.md` Steps 1–8 ran on `dev`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#138](https://github.com/gosharplite/tellme/pull/138) **human-merged** into `dev` (`d7f4ed7`, **merge commit**) |
+| Branch | remote deleted by the human; **local deleted** after an ancestor check |
+| Gates | `gofmt`/`go vet`/`go build` clean · `go test -count=1 ./...` green · `make verify` **OK** |
+| Propagation | `dev → main` — **DONE (no-ff)**; tagged **`round-068`** |
+| Closeout | `STATUS.md` **Rule-12 split** (the round-067 detail + its branch-model row + its env note → `docs/archives/status/2026-09-20.md`); round 068 → the **Last delivered round**; the **missing round-067 index/roadmap/fold-ledger rows** were also added (a round-067 closeout replace no-op) · §14 + §15 appended · **no anchor issue to close** (RF-067-1 is an ADR forward item) |
+
+### Steps 1–8
+
+- **Step 1** working tree clean on `dev`; no frozen `specs/plans/**` touched.
+- **Step 2** gates green.
+- **Step 3** round 068 **DELIVERED / FROZEN**; Rule-12 split; branch model (the PR #138 → `dev` merge was a **merge commit**; the `dev → main` propagation is a **no-ff** merge); roadmap + index + fold-ledger + env rows; open items **RF-068-1…7**; no liveness contradiction.
+- **Step 4** §14 + §15 appended.
+- **Step 5** `STATUS.md` ↔ §14/§15 agree.
+- **Step 6** commit + push on `dev`.
+- **Step 7** `dev → main` **DONE (no-ff)**; tag **`round-068`**; `go install` refreshed.
+- **Step 8** issue tracker: **no close** (round 068 had no anchor issue; it resolves ADR 0037 §Forward **RF-067-1**). [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) remain OPEN (accurate).
+
+### Residuals (non-blocking)
+
+- **RF-068-1…7** in **ADR 0038 §Forward** (no live producer / no E2E carrier — the honest one; the line is plain; the loud-failure variant not taken; the eager walk; the Turn-chrome row; the round-closing order rule; the fold unobservable).
+
+### Next steps
+
+1. Open round **`069-*`** off `dev` via `/axb-specify` (candidates: the `ToolSetSpec` seam RF-062-10/RF-063-6 · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) · RF-068-1/6).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
