@@ -20,8 +20,9 @@
 
 - **The design-intent bar (`README.md`)**: a dedicated tool earns its place only if it beats bash on a real axis. `search_files` clears **context-boundedness** (an unbounded `grep -rn` can blow the window), **determinism / testable contract** (a tool's output is *executable truth*; a shell one-liner's is not), and it is the **missing half of the reader trio** (`list_files` / `read_files` / `get_tree` can find and read a file but have no way to locate content).
 - **Not copied — the reference's security gate.** `tell-me-go`'s `search_files` runs behind a `SafePath` `PathValidator` (`sp.IsPathSafe`). tellme has **no security layer** (settled exclusion) — the tool reads **whatever path it is given**, like its sibling readers.
-- **Not copied — the reference's ignore policy.** `tell-me-go` skips directories matched by its `defaultWorkspacePolicy` (`.git`, `node_modules`, `vendor`, `bin`, `obj`, `output`, `dist`, `testdata`, `configs`, `secrets`, plus any hidden dir) — that policy serves a **secret-scanning** concern. tellme has no `WorkspacePolicy`; this tool's own scope is a **clarify** decision (**Q2**).
+- **Not copied — the reference's ignore policy.** `tell-me-go` skips directories matched by its `defaultWorkspacePolicy` (`.git`, `node_modules`, `vendor`, `bin`, `obj`, `output`, `dist`, `testdata`, `configs`, `secrets`, plus any hidden dir) — that policy serves a **secret-scanning** concern. tellme has no `WorkspacePolicy`; this tool's own scope is **Q2**.
 - **Not copied — the reference's non-determinism.** Its result order is worker/channel order (a ≤8 worker pool). A tool whose output is executable truth must be **deterministic** (**I-4**; a recorded tellme divergence).
+- **Recorded further differences (review A1 / TD-071-4).** The reference **appends `" (truncated)"`** when it cuts a line at 500 (tellme cuts **silently** — `RF-071-3`), **skips any file > 1 MiB** (tellme scans any size; the byte budget bounds the *result*), and probes binaries at **1024 B** vs tellme's **8000 B**. The divergence ledger is **five** deliberate/recorded differences, not three.
 
 ---
 
@@ -37,7 +38,7 @@
 | `internal/infrastructure/tools/filesystem.go` `readMaxPerCall` | the ≤50 files/call **degenerate cap** (round 021/024) — the reader family's precedent for a hard cap **alongside** the byte budget. |
 | `README.md` · `specs/truth/techstack.md` | the *deliberately small tool surface* (the reader trio + write pair + `execute_command` + `list_skills` + the vision-gated `read_image`) — tellme's agent surface is these **eight** today. |
 
-**Reference behaviour** (measured in the local `tell-me-go` tree — `internal/tools/workspace/registration.go:112`, `search.go`, `internal/pkg/concurrentsearch/concurrentsearch.go`): args `{path=".", query, is_regex=false, reason}`; a recursive walk over `path`; per match `path:line: <line trimmed>`; the line is trimmed and cut at **500** chars; a hard **100**-match cap appends `\n... (truncated)`; no match → `N matches found …` (a **result**, not an error); **skips binary** files and files **> 1 MB**; a **10 MB** max line token.
+**Reference behaviour** (measured in the local `tell-me-go` tree — `internal/tools/workspace/registration.go:112`, `search.go`, `internal/pkg/concurrentsearch/concurrentsearch.go`): args `{path=".", query, is_regex=false, reason}`; a recursive walk over `path`; per match `path:line: <line trimmed>`; the line is trimmed and cut at **500** chars; a hard **100**-match cap appends `\n... (truncated)`; no match → `N matches found …` (a **result**, not an error); **skips binary** files and files **> 1 MB** (tellme does **not** skip by size — the byte budget bounds the result); a **10 MB** max line token.
 
 ---
 
@@ -52,7 +53,7 @@
 | **S-5** | **No `SafePath` / consent** — the tool reads the path it is given (the settled no-security-layer exclusion). | locked |
 | **S-6** | **Search mode** — literal substring by default with an `is_regex: true` RE2 opt-in. | **locked (Q1 → A)** |
 | **S-7** | **Scope / ignore policy** — skip binary files + a 10 MB max-line token; **no** directory ignore list; unreadable skipped best-effort. | **locked (Q2 → A)** |
-| **S-8** | **Bound & shape** — the byte budget (primary) + a hard 100-match cap + a 500-char per-line trim; `path:line: <trimmed line>`, sorted path-then-line. | **locked (Q3 → A)** |
+| **S-8** | **Bound & shape** — the byte budget (primary, **every** return path incl. no-match) + a hard 100-match cap (first 100 by path of the first 1000 walk-order candidates) + a 500-**byte** per-line trim; `path:line: <trimmed line>`, sorted path-then-line. | **locked (Q3 → A)** |
 
 **Non-negotiable invariants (proposed, not open):**
 
@@ -73,7 +74,7 @@
 
 - **Q1 → A — search mode**: a **literal** substring by default, with an **`is_regex: true`** opt-in for an RE2 pattern.
 - **Q2 → A — scope / ignore**: skip **binary** files + a **10 MB max-line token**, **no** directory ignore list, unreadable paths skipped best-effort; the caller scopes with `path`.
-- **Q3 → A — bound & shape**: the round-024 **byte budget is the primary bound**, plus a hard degenerate **100-match cap** and a **500-char per-line trim**; format `path:line: <trimmed line>`, sorted **path asc, then line asc**; the truncation marker is the shared `TruncationMarker`.
+- **Q3 → A — bound & shape**: the round-024 **byte budget is the primary bound**, plus a hard degenerate **100-match cap** and a **500-byte per-line trim**; format `path:line: <trimmed line>`, sorted **path asc, then line asc**; the truncation marker is the shared `TruncationMarker`.
 
 **No `NEEDS CLARIFICATION` remains.** (`/axb-clarify` was delegated by `/axb-specify`; the operator's standing *"keep going unless you need to ask"* instruction applied to Q3 after Q1/Q2 were answered — Q3's **recommended** option A was therefore locked.)
 

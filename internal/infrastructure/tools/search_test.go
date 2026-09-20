@@ -2,11 +2,13 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Round 071 (ADR 0043): search_files — the bounded, deterministic in-file content
@@ -185,10 +187,64 @@ func TestSearchFilesDeterministicOrderAcrossDirsAndFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Index(got, "a.go:1") < 0 || strings.Index(got, "a/x.txt:1") < 0 {
+	if !strings.Contains(got, "a.go:1") || !strings.Contains(got, "a/x.txt:1") {
 		t.Fatalf("search_files missing a match; got %q", got)
 	}
 	if strings.Index(got, "a.go:1") > strings.Index(got, "a/x.txt:1") {
 		t.Errorf("search_files is not sorted path-ascending (a.go must precede a/x.txt); got %q", got)
+	}
+}
+
+// TestSearchFilesNoMatchRespectsBudget pins TD-071-1 (review A1): the no-match
+// early return is bounded at the source too — a caller-controlled long query
+// cannot exceed the byte budget.
+func TestSearchFilesNoMatchRespectsBudget(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("nothing\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	longQuery := strings.Repeat("q", 5000)
+	args, _ := json.Marshal(map[string]any{"path": dir, "query": longQuery, "reason": "r"})
+	got, err := searchFiles{}.Execute(context.Background(), string(args), 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) > 100 {
+		t.Errorf("the no-match result is %d bytes, exceeding the 100 budget (TD-071-1)", len(got))
+	}
+	if !strings.HasSuffix(strings.TrimRight(got, "\n"), "... (truncated)") {
+		t.Errorf("the bounded no-match result must carry the truncation marker; got %q", got)
+	}
+}
+
+// TestSearchFilesTimeoutResultIsNilError pins TD-071-2 (review A1): an expired
+// deadline yields the nil-error timeout result (FR-018), mirroring the
+// command_test.go precedent.
+func TestSearchFilesTimeoutResultIsNilError(t *testing.T) {
+	ctx, cancel := context.WithDeadline(context.Background(), time.Unix(0, 0))
+	defer cancel()
+	got, err := searchFiles{}.Execute(ctx, `{"query":"x","reason":"r"}`, testBudget)
+	if err != nil {
+		t.Fatalf("an expired deadline must be a nil-error timeout result, got error %v", err)
+	}
+	if !strings.Contains(got, "stopped at the time limit") {
+		t.Errorf("the timeout result = %q; want the time-limit marker", got)
+	}
+}
+
+// TestSearchFilesFileArgument pins the file-argument branch (ADR 0044 D4): a
+// `path` naming a file is searched directly, without a directory walk.
+func TestSearchFilesFileArgument(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "a.txt")
+	if err := os.WriteFile(p, []byte("alpha\nneedle here\nomega\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := searchFiles{}.Execute(context.Background(), `{"path":"`+p+`","query":"needle","reason":"r"}`, testBudget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, "a.txt:2: needle here") {
+		t.Errorf("a file argument must be searched directly; got %q", got)
 	}
 }

@@ -12,17 +12,22 @@ Feature: Searching file contents
 
   Rule: A query is found across the files under a directory
 
-    Example: A query that appears in several files returns the matching lines
+    # The fixture is chosen so that a depth-first walk order DIFFERS from the
+    # required path order: the sub-folder "a" is visited before the file "a.go",
+    # yet "a.go" sorts before "a/x.txt" ('.' < '/'). So this Example REDs unless
+    # the tool sorts deterministically (TD-071-3).
+    Example: A query that appears in several files returns the matching lines in path order
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
-      And the working directory contains a file "notes.txt" whose text is "hello world"
-      And the working directory contains a sub-folder "src"
-      And the working directory contains a file "src/app.go" whose text is "hello from go"
+      And the working directory contains a file "a.go" whose text is "hello from go"
+      And the working directory contains a sub-folder "a"
+      And the working directory contains a file "a/x.txt" whose text is "hello from txt"
       And a configured provider "test-model" whose endpoint searches the working directory for "hello" and then answers with "done"
       When the operator starts tellme with the prompt "Where is 'hello' used?"
       Then tellme searched the working directory using its search_files tool
-      And the search result lists a match in "notes.txt"
-      And the search result lists a match in "src/app.go"
+      And the search result lists a match in "a.go"
+      And the search result lists a match in "a/x.txt"
+      And the search result lists the matches in path order
       And tellme exits successfully
 
   Rule: A search that finds nothing is a result, not an error

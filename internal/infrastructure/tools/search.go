@@ -44,7 +44,7 @@ const (
 	// a pathological tree cannot exhaust memory while the ordering stays
 	// deterministic (far beyond the reported cap).
 	searchScanCap = 1000
-	// searchLineCap trims each reported match line (in bytes, rune-boundary safe).
+	// searchLineCap trims each reported match line at 500 BYTES (rune-boundary safe).
 	searchLineCap = 500
 	// searchMaxLineBytes is the scanner's max token size (10 MB, reference
 	// parity); a line longer than this ends the scan of that file best-effort.
@@ -115,7 +115,7 @@ func (searchFiles) Execute(ctx context.Context, arguments string, budget domaint
 		return "", fmt.Errorf("search_files: %w", err)
 	}
 	if len(matches) == 0 {
-		return fmt.Sprintf("0 matches found for %q in %q\n", args.Query, path), nil
+		return truncateToBudget(fmt.Sprintf("0 matches found for %q in %q\n", args.Query, path), int(budget)), nil
 	}
 	return truncateToBudget(formatMatches(matches), int(budget)), nil
 }
@@ -217,8 +217,8 @@ func scanFile(ctx context.Context, path string, match func(string) bool, c *coll
 	defer func() { _ = f.Close() }()
 
 	head := make([]byte, searchBinProbe)
-	n, err := f.Read(head)
-	if err != nil && err != io.EOF {
+	n, err := io.ReadFull(f, head)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 		return nil
 	}
 	if isBinary(head[:n]) {
