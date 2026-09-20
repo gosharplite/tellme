@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-21
 
-**Status**: Draft (specified — clarify **pending**; see §Clarify strategy)
+**Status**: Draft (specified + clarify CLOSED — Q1 → A · Q2 → A; see §Clarify strategy)
 
 **Anchor**: **operator request** — no anchor issue.
 
@@ -46,8 +46,8 @@
 | --- | --- | --- |
 | **S-1** | tellme gains a **`-v`** shorthand for the existing `--version`; `-v` behaves exactly as `--version` (stdout `tellme {version}`, exit 0, offline, no chrome). | locked (operator) |
 | **S-2** | tellme gains a **`-h`** flag that prints the flag-usage block and exits **0** (a *successful*, offline, prompt-less action). | locked (operator) |
-| **S-3** | Does `-h` also carry the **long form `--help`**? (The reference has `-h/--help`; a short-only help flag would be an unusual, arguably untidy surface.) | **clarify Q1** |
-| **S-4** | Which **stream** does help write to, and which **exit code** — `stdout` + **0** (GNU/cobra/reference convention) or `stderr` + a dedicated code? | **clarify Q2** |
+| **S-3** | `-h` ships **with** the long form **`--help`** (`-h, --help`), matching the reference. | locked (clarify Q1 → A) |
+| **S-4** | Help writes to **`stdout`** and exits **0** (the GNU/cobra/reference convention; a *successful* action, like `--version`). | locked (clarify Q2 → A) |
 | **S-5** | **What** does the help block contain — the current pflag flag list only, or a richer block (usage line + flags, as the reference prints a `Usage:`/`Flags:` section)? | **research decision** (D-x) |
 | **S-6** | The **dispatch precedence** (where `-h` sits relative to `--version`/`-d`/`-l`/…) and the exact renderer are technical. | **research decision** (D-x) |
 
@@ -63,10 +63,10 @@
 
 ## Clarify strategy
 
-**Escalate (1–3 questions, one at a time).** Two choices materially change the visible surface and the acceptance:
+**Escalated (2 questions, one at a time) — CLOSED. Operator answers (2026-09-21):**
 
-- **Q1 → S-3** — does `-h` ship with the long form **`--help`** (recommended; the reference has both), or is it `-h`-only?
-- **Q2 → S-4** — help to **`stdout` + exit 0** (the conventional/reference contract), or to `stderr` + a dedicated help code?
+- **Q1 → A** — `-h` ships **with the long form `--help`** (`-h, --help`), matching the reference. *(S-3 locked.)*
+- **Q2 → A** — help writes to **`stdout`** and exits **0** (a successful action, like `--version`). *(S-4 locked.)*
 
 **Vetoable assumptions (disclosed, not asked):**
 
@@ -74,7 +74,7 @@
 - **A2** — "simple" = the help block is the **flag list** (no subcommand/exit-code essay), matching the reference's `Flags:` section without cobra's `Available Commands`.
 - **A3** — help is a **prompt-less successful action** (it does not read stdin, does not contact a provider), like `--version`.
 
-**No `NEEDS CLARIFICATION` beyond Q1–Q2**; the residual technical choices (S-5/S-6) defer to `/axb-technical-research`.
+**No `NEEDS CLARIFICATION` remains**; the residual technical choices (S-5/S-6) defer to `/axb-technical-research`.
 
 ---
 
@@ -88,11 +88,11 @@ When the operator runs `tellme -h`, tellme prints its flag usage and exits succe
 
 **Acceptance (proposed)**:
 
-1. **Given** a runnable tellme installation, **When** the operator runs `tellme -h`, **Then** tellme prints the flag-usage block and exits successfully (code 0), with no `tellme: ` error phrase and no provider request.
+1. **Given** a runnable tellme installation, **When** the operator runs `tellme -h`, **Then** tellme prints the flag-usage block on `stdout` and exits successfully (code 0), with no `tellme: ` error phrase, no provider request, and an empty `stderr`.
 
 **Functional requirements (FR)**:
 
-- **FR-001**: tellme MUST accept `-h` and, on its presence, print the flag-usage block and exit `0`.
+- **FR-001**: tellme MUST accept `-h`/`--help` and, on either's presence, print the flag-usage block to **`stdout`** and exit `0`.
 - **FR-002**: The help output MUST list every flag the process accepts, each with its short form (where one exists).
 - **FR-003**: `-h` MUST be an offline, prompt-less, successful action (no provider request, no turn chrome, no spinner).
 
@@ -142,7 +142,7 @@ The new flags must not weaken the usage-error contract.
 ### Edge cases
 
 - When `-h` is combined with a prompt or `-c`, help MUST still take precedence and exit 0 (a help request is terminal, like `--version`).
-- When both `-h` and `-v` are given, the precedence MUST be deterministic (research decides).
+- When both `-h`/`--help` and `-v`/`--version` are given, the precedence MUST be deterministic (research decides; `--help` conventionally wins).
 - When help is piped (non-terminal stdout), the output MUST be the plain block (no terminal detection needed).
 
 ## Requirements
@@ -152,6 +152,7 @@ The new flags must not weaken the usage-error contract.
 #### Functional requirements
 
 - **FR-007**: The dispatch precedence MUST place the help flag with the other terminal, prompt-less actions (`--version`/`-d`) — it must never fall through to a prompt turn.
+- **FR-008**: Help MUST write to `stdout` only (nothing on `stderr`) and exit `0`.
 
 ### Key entities
 

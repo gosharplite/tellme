@@ -31,7 +31,7 @@
 - [x] FR 使用 MUST 等可驗證語言
 - [x] 成功標準可量測（SC-001 E2E 載體；SC-002 既有 usage-error/`--version` 場景保留不變）
 - [x] 邊界與不變量明列（I-1 usage-error 不回歸、I-2 offline/prompt-less、I-3 片語詞彙不變、I-4 `--version` 不變）
-- [ ] **無 `NEEDS CLARIFICATION`** — 待 `/axb-clarify` 收斂 **Q1（`-h` 是否附 `--help` 長形式）** 與 **Q2（help 走 stdout+0 或 stderr+專用碼）**
+- [x] **無 `NEEDS CLARIFICATION`** — clarify CLOSED：**Q1 → A**（`-h` 附 `--help` 長形式）／**Q2 → A**（help 走 `stdout` + exit 0）
 
 ## 範圍與邊界
 
@@ -45,7 +45,7 @@
 
 ## Ready 判定
 
-- [ ] 已可進入後續規劃
-- [x] 仍需先補高影響需求缺口（Q1–Q2）
+- [x] 已可進入後續規劃
+- [ ] 仍需先補高影響需求缺口
 
-**備註**: spec 骨架與既有系統對照已完成；待 clarify 收斂後進入 `/axb-spec-by-example` 與 `/axb-technical-research`。
+**備註**: clarify 已收斂（Q1/Q2）。下一步 `/axb-spec-by-example` + `/axb-technical-research`。
