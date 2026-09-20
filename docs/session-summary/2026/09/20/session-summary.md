@@ -553,3 +553,115 @@ The operator: *"Tool call in tellme will be sequential, no concurrency. Clear?"*
 
 1. Open the **next round** off `dev` from a **value / live-issue** candidate (`ToolSetSpec` seam RF-062-10/RF-063-6 · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13)) — **not** from the open-items index.
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 18. Session 52 (2026-09-20, cont.) — round **069** `069-toolset-spec-capability-seam` **OPENED** (anchor issue [#140](https://github.com/gosharplite/tellme/issues/140) + `/axb-specify`)
+
+The operator: *"Create a detail new issue for this [the `ToolSetSpec` seam]. Open round 069, the goal is to close this new issue."* Done.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Anchor issue | **[#140](https://github.com/gosharplite/tellme/issues/140)** created (detailed, grounded on `dev` @ `5971822`): replace the registry-construction **positional scalars** (`sink domaintools.OutputSink, vision bool, providerType string`) with one named **`ToolSetSpec`**; carries **F-062-4** + **RF-062-10** + **RF-063-6** (*overdue*). **DoD = close it.** |
+| Branch | `069-toolset-spec-capability-seam` (off `dev` `5971822`) |
+| `/axb-specify` | ✅ done — `specs/plans/069-toolset-spec-capability-seam/` (`spec.md` · `checklists/requirements.md` · `truth-delta.md` skeleton). No `specs/truth/**` (SOP). |
+| Shape | **pure internal-shape refactor** — **no config-file change, no UX change**, behaviour byte-identical; acceptance is structural (existing pins green, no assertion changed). |
+| Scope guard | **RF-062-10 bundles two items** (the seam **+** the media-channel refactor). This round lands the **seam only**; the media-channel refactor stays a recorded forward item. |
+| Clarify | **NOT escalated (0 questions)** — the goal is unambiguous; the residual choices (type placement, raw `providerType` vs resolved ceiling) are technical → `/axb-technical-research`. |
+| Round-number note | `069` was previously assigned to the **retracted** `069-concurrent-tool-dispatch` (never landed; branch deleted; [#139](https://github.com/gosharplite/tellme/issues/139) closed `not_planned`). Per the naming rule (existing max `068` + 1) the number is **correct and reused** for this round. |
+| STATUS | round 069 in flight + active branch + branch-model row + roadmap row recorded (reconciling the earlier retraction narrative). |
+
+### Decisions locked (round 069, this phase)
+
+| # | Decision |
+| --- | --- |
+| — | Round 069 opens from anchor **[#140](https://github.com/gosharplite/tellme/issues/140)**; **DoD = closing it**. |
+| — | A **named `ToolSetSpec`** replaces the positional scalars; a new capability MUST land as a **field** (FR-004). |
+| — | **No config-schema change, no UX change** (I-1/I-2); behaviour byte-identical (I-3). |
+| — | **Seam only** — the media-channel refactor (RF-062-10's other half) is **out** (I-4). |
+| — | Clarify **not escalated**; `/axb-spec-by-example` + `/axb-dsl-refine` expected **NOOP** (the 042/043/047/049 structural-round precedent). |
+
+### Next steps
+
+1. `/axb-technical-research` (deck the named spec; a new structural ADR + `techstack.md` MODIFY; annotate RF-062-10/RF-063-6) → `/axb-system-analysis` → `/axb-dsl-refine` (NOOP) → `/axb-tasks` → `/axb-implement` → PR (human merges) → closeout (tag `round-069`, **close [#140](https://github.com/gosharplite/tellme/issues/140)**).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `069-toolset-spec-capability-seam`).
+
+---
+
+## 19. Session 52 (2026-09-20, cont.) — round 069 `069-toolset-spec-capability-seam`: full pipeline → PR [#141](https://github.com/gosharplite/tellme/pull/141) **OPEN**
+
+Continued round 069 (the operator: *"Keep going unless you need to ask me question. Provide PR link for review."*). Ran the pipeline end-to-end on the round branch and opened the PR. **No Copilot review; only a human merges.**
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | the **`ToolSetSpec` capability seam** — replace the registry-construction positional scalars (`sink, vision bool, providerType`) with one named `deps.ToolSetSpec` (anchor [#140](https://github.com/gosharplite/tellme/issues/140)) |
+| Pipeline | specify ✅ · clarify **not escalated (0)** · spec-by-example **NOOP** · technical-research ✅ (**ADR 0039** + `techstack.md` MODIFY ×2) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine **NOOP** · tasks ✅ (T001–T007) · implement ✅ |
+| The change | `deps.ToolSetSpec{Sink,Vision,ProviderType}`; `NewToolRegistry`/`newToolRegistry`/`assembleAgentTools` take it (the family ceiling resolved lazily in the vision branch — **no positional scalar remains**); `renderToolUsage` takes the **named** signature and builds its two union variants as named fields; test call sites/doubles updated (**no assertion changed**) |
+| Truth | **ADR 0039** (+ index) — delivers **ADR 0032 RF-062-10** (the seam half) + **ADR 0033 RF-063-6**; `techstack.md` *Composition root* + *Image filesystem tool* MODIFY |
+| Scope guard | RF-062-10's **media-channel half** stays a forward item (RF-069-1) |
+| Verification | `gofmt`/`vet`/`build` clean · `go test -count=1 ./...` **green** (incl. godog E2E) · `make verify` **OK** · topology audit **5 pre-existing, none new** · `go.mod`/`go.sum` unchanged · witnesses (a) un-gate vision ⇒ offered-set pins + E2E red; (b) wrong ceiling ⇒ the `reading-a-local-image` E2E reds (reproduced then reverted) |
+| Delivery | branch `069-toolset-spec-capability-seam`; **PR [#141](https://github.com/gosharplite/tellme/pull/141) OPEN** — awaiting the human review/merge |
+
+### Honest notes
+
+- **Witness (b) corrected**: I first wrote that a wrong ceiling is caught by a **unit** pin; it is **not** — the ceiling **wiring** is carried only by the E2E journey (the unit pins cover `ImageCeilingForFamily`'s owner table, not its consumption). Corrected in `tasks.md`; recorded as **RF-069-5** (a pre-existing gap surfaced by the round, not introduced by it).
+- **Layer-safety drove D2**: the ceiling resolution could not move to the caller — `internal/cli → internal/infrastructure` is a RULE-B violation the repo holds at a 0-violation baseline. The spec therefore carries the raw provider label; the composition-root builder resolves.
+
+### Next steps
+
+1. Human reviews + merges **PR [#141](https://github.com/gosharplite/tellme/pull/141)** → closeout (`SESSION-CLOSEOUT.md`): tag `round-069`, propagate `dev → main`, **close [#140](https://github.com/gosharplite/tellme/issues/140)**.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `069-toolset-spec-capability-seam` until merged, then `dev`).
+
+---
+
+## 20. Session 53 (2026-09-20, cont.) — round 069 `069-toolset-spec-capability-seam`: architect review-fold loop → **human-merged (PR [#141](https://github.com/gosharplite/tellme/pull/141) → `dev` `cd14519`, fast-forward)** → branch cleanup → closeout (Steps 1–8)
+
+The operator: *"Communicate with sub-agent 'architect'. Initialize architect with SESSION-BOOTSTRAP.md, don't use --new after initialization. Ask architect to review this PR and post comment. You will read and resolve PR comments. Post your fold comments on the PR. Do the review-fold loop until PR is ready for human to merge."* — then, after the merge: *"Execute SESSION-CLOSEOUT.md."*
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Peer dispatch (the `architect`) | initialized once via `SESSION-BOOTSTRAP.md` (no `--new` after), then continued — `tmg-chat-ingroup` staging in `/tmp`, `env -u TELL_ME_MODE`, `-c configs/architect.yaml`, same model (`deepseek-flash`) |
+| Review | `APPROVE WITH REQUIRED FOLDS` — no `[ARCHITECTURAL BLOCKER]`; behaviour-identity **could not be falsified**. Findings: **F1** `[TECHNICAL DEBT]` source ADRs unannotated; **F2** `[REFACTOR]` the family-aware ceiling *consumption* unwitnessed (RF-069-5 overstated); **F3** `[NIT]` — [comment](https://github.com/gosharplite/tellme/pull/141#issuecomment-5747209339) |
+| Fold (`e46bb31`) | **F1** ADR 0032/0033 `Status` + §Forward annotated (RF-062-10 split: seam half delivered / media half → RF-069-1; RF-063-6 delivered) + index rows; **F2** extracted `resolveImageCeiling(spec)` + pinned `TestResolveImageCeilingPinsTheFamilyAwareConsumption` (**closes RF-069-5**); **F3** research.md aligned — [comment](https://github.com/gosharplite/tellme/pull/141#issuecomment-5747219440) |
+| Fold verification | `FOLDS VERIFIED WITH RESIDUALS — CLEARED FOR HUMAN MERGE` (independently reproduced the F2 witness — the *old* test passed the mutant, so the new pin is genuinely new coverage). **RES-1** stale STATUS open-items; **RES-2** the one-line injection not family-pinned (accepted) — [comment](https://github.com/gosharplite/tellme/pull/141#issuecomment-5747229431) |
+| Residual clearance (`cd14519`) | **RES-1** cleared (STATUS open-items now record the delivery) — [comment](https://github.com/gosharplite/tellme/pull/141#issuecomment-5747231664) |
+| Merge | PR [#141](https://github.com/gosharplite/tellme/pull/141) **human-merged** into `dev` (`cd14519`, **fast-forward**); remote branch deleted by the human; **local branch deleted** after an ancestor check |
+| Closeout | gates green · **Rule-12 split** (round-068 detail + branch row + env note → [`2026-09-20.md`](docs/archives/status/2026-09-20.md)) · the **older forward-item batches (≤067) compacted to ADR pointers** · propagation `dev → main` (**no-ff**) + tag **`round-069`** · `go install` · **#140 closed** |
+
+### Work done
+
+1. **Peer setup + review** — read `tmg-chat-ingroup`; discovered the roster (self `butler`; peers `architect`/`coder`/`griller`/`pm`/`rd`); staged the init+review prompt (remote-party marker) and initialized the `architect` session once with `SESSION-BOOTSTRAP.md`; retrieved the review; read the PR comment.
+2. **Fold** — read the review, folded all three findings (`e46bb31`), posted the fold comment, sent the fold to the architect (continuation, no `--new`), retrieved the fold verification.
+3. **Residual + merge + closeout** — folded RES-1 (`cd14519`); the operator merged PR #141; checked the remote branch was gone, deleted the local branch; ran `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 069)
+
+| # | Decision |
+| --- | --- |
+| — | The seam is a **named `deps.ToolSetSpec`** in the composition-root contract; a new capability is a **field** (D5). |
+| — | The ceiling resolution **stays in the composition root** (D2) — `internal/cli` must not name infrastructure (the RULE-B 0-baseline). |
+| — | **F2** closed **RF-069-5** by pinning the family-aware ceiling *consumption* (`resolveImageCeiling`). |
+| — | The **media-channel refactor** (RF-062-10's other half) stays a forward item (**RF-069-1**). |
+| — | ADR 0039 **delivers** ADR 0032 RF-062-10 (seam half) + ADR 0033 RF-063-6; the source ADRs are annotated (F1). |
+
+### Closeout Steps 1–8
+
+- **Step 1** — working tree clean on `dev` (`## dev...origin/dev`); this round's `/tmp` staging cleaned; no frozen package touched.
+- **Step 2** — `gofmt -l .` clean · `go vet ./...` clean · `go test -count=1 ./...` **green** (incl. the godog E2E) · `make verify` **OK** (layer gate 0 · modelith-check ×3 · lint 0 · govulncheck clean) · topology audit **5 pre-existing, none new** · diff-level secret scan clean · `go.mod`/`go.sum` unchanged.
+- **Step 3** — `STATUS.md` rewritten to the **lean live state** (104 lines): round 069 → the single **Last delivered round** section; **Rule-12 split** (round-068 detail + branch row + env note relocated verbatim to [`2026-09-20.md`](docs/archives/status/2026-09-20.md)); the **older forward-item batches (≤067) compacted to `ADR §Forward` pointers** (curation rule); branch model / delivered-rounds index / roadmap / env notes refreshed; no liveness contradiction.
+- **Step 4** — this §20.
+- **Step 5** — `STATUS.md` ↔ this summary agree (round 069 delivered; `dev` active; #140 closed; next round off `dev`).
+- **Step 6** — commit + push on `dev`.
+- **Step 7** — `dev → main` **DONE (no-ff)**, tagged **`round-069`**; `go install ./cmd/tellme` refreshed.
+- **Step 8** — **#140 CLOSED (completed)** with a delivery comment naming PR [#141](https://github.com/gosharplite/tellme/pull/141) / `cd14519`; [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) left OPEN (accurate).
+
+### Next steps
+
+1. Open the next round off `dev` from a **value / live-issue** candidate ([#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) · the media-channel refactor RF-069-1) — **not** from the open-items index.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).

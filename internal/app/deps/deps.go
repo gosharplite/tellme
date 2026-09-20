@@ -19,6 +19,28 @@ import (
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
+// ToolSetSpec is the named capability value the agent tool-registry build
+// consumes (round 069; ADR 0039). It replaces the former positional scalars
+// `(sink domaintools.OutputSink, vision bool, providerType string)` — the seam
+// recorded twice (ADR 0032 F-062-4 / RF-062-10; ADR 0033 RF-063-6). Its
+// invariant: a NEW capability is a NEW FIELD here, never a fourth positional
+// argument (D5). It carries the RAW inputs; the composition root
+// (cmd/tellme) resolves ProviderType into the family-aware inline image ceiling
+// (the resolution must stay out of internal/cli, which may not name
+// infrastructure — the RULE-B 0-violation baseline; ADR 0039 D2).
+type ToolSetSpec struct {
+	// Sink is the `[Tool Output]` sink injected into the command tool at
+	// construction (ADR 0021); nil on the offline `--tool-usage` path.
+	Sink domaintools.OutputSink
+	// Vision is the selected provider's declared capability gate (config
+	// Provider.Vision): when true, the `read_image` tool is offered (ADR 0032).
+	Vision bool
+	// ProviderType is the provider's TYPE label; the composition root resolves it
+	// to the family-aware inline image ceiling the `read_image` tool enforces
+	// (ADR 0033 D4).
+	ProviderType string
+}
+
 // Discovery is the result of one MCP discovery pass (round 051 / ADR 0020; F-7):
 // the discovered tools, the warn+skip messages, and a closer for the opened
 // clients — a NAMED type so the close is a visible field, not a bare trailing
@@ -58,16 +80,18 @@ type Dependencies struct {
 	NewPromptTracker func(home string, userHome func() (string, error)) history.PromptTracker
 
 	// NewToolRegistry builds the seven-tool agent registry (the agent loop's tool
-	// set), with the `[Tool Output]` sink injected into the command tool at
-	// CONSTRUCTION (round 052, closing #115 R-2; ADR 0021) — the caller passes the
-	// live sink on the prompt path and nil on the offline `--tool-usage` path.
-	// The `vision` flag (round 062) gates `read_image`; round 063 adds the
-	// provider's TYPE label so the composition root resolves the family-aware
-	// inline image ceiling the tool enforces (ADR 0033 D4).
+	// set) from ONE named capability value — the caller passes the live
+	// `[Tool Output]` sink on the prompt path and nil on the offline
+	// `--tool-usage` path (round 052, closing #115 R-2; ADR 0021). Round 069
+	// (ADR 0039) replaces the former positional scalars
+	// (`sink domaintools.OutputSink, vision bool, providerType string`) with
+	// `ToolSetSpec`, so a NEW capability is a field, never a fourth positional
+	// argument (the seam recorded twice: ADR 0032 F-062-4 / RF-062-10 and
+	// ADR 0033 RF-063-6).
 	// NewTUIRegistry builds the three-reader registry the `-i` suggestion source
 	// consumes — a DISTINCT, narrower set (round-044 fix-1; reusing the agent
 	// registry would change the suggested tool names).
-	NewToolRegistry func(sink domaintools.OutputSink, vision bool, providerType string) domaintools.Registry
+	NewToolRegistry func(spec ToolSetSpec) domaintools.Registry
 	NewTUIRegistry  func() domaintools.Registry
 
 	// BindSkillsCatalog rebinds the list_skills catalog source over the given

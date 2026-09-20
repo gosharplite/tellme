@@ -20,7 +20,7 @@ import (
 // agentTools(). No stream assertions (cli.Run hard-binds os.Stdin/Stdout/Stderr).
 
 func TestNewToolRegistryOffersAgentTools(t *testing.T) {
-	reg := newToolRegistry(nil, false, "")
+	reg := newToolRegistry(deps.ToolSetSpec{})
 	got := map[string]bool{}
 	for _, tl := range reg.Tools() {
 		got[tl.Name()] = true
@@ -111,7 +111,7 @@ func TestAgentToolSchemasAreWellFormed(t *testing.T) {
 		assembler[tl.Name()] = true
 	}
 	fromRegistry := map[string]bool{}
-	for _, tl := range newToolRegistry(nil, false, "").Tools() {
+	for _, tl := range newToolRegistry(deps.ToolSetSpec{}).Tools() {
 		fromRegistry[tl.Name()] = true
 	}
 	if len(assembler) != len(fromRegistry) {
@@ -244,10 +244,40 @@ func TestCompositionResolvesTheFamilyAwareImageCeiling(t *testing.T) {
 		}
 		return false
 	}
-	if !has(newToolRegistry(nil, true, "gemini"), "read_image") {
+	if !has(newToolRegistry(deps.ToolSetSpec{Vision: true, ProviderType: "gemini"}), "read_image") {
 		t.Error("a vision-enabled provider must be offered read_image")
 	}
-	if has(newToolRegistry(nil, false, "gemini"), "read_image") {
+	if has(newToolRegistry(deps.ToolSetSpec{ProviderType: "gemini"}), "read_image") {
 		t.Error("a provider without vision must NOT be offered read_image")
+	}
+}
+
+// TestResolveImageCeilingPinsTheFamilyAwareConsumption pins the CEILING
+// CONSUMPTION seam (round 069 / ADR 0039; PR #141 fold F2, closing RF-069-5):
+// `resolveImageCeiling` is the one place the agent registry path turns a
+// provider label into the family-aware inline value the `read_image` tool
+// enforces, so a regression that dropped or collapsed the family resolution
+// (e.g. always the OpenAI-compatible ceiling) reds HERE even though the
+// `reading-a-local-image` E2E cannot distinguish the two families (its oversize
+// fixture exceeds BOTH ceilings). The owner tables stay pinned by
+// TestCompositionResolvesTheFamilyAwareImageCeiling; this pins their wiring.
+func TestResolveImageCeilingPinsTheFamilyAwareConsumption(t *testing.T) {
+	cases := []struct {
+		providerType string
+		want         int
+	}{
+		{"gemini", 14 << 20},   // Gemini/Vertex — the stricter derived ceiling
+		{"google", 14 << 20},   // the gemini family's other label
+		{"deepseek", 32 << 20}, // OpenAI-compatible family
+		{"", 32 << 20},         // an unclassified label defaults to the OpenAI-compatible ceiling
+	}
+	for _, c := range cases {
+		got := resolveImageCeiling(deps.ToolSetSpec{Vision: true, ProviderType: c.providerType})
+		if got != c.want {
+			t.Errorf("resolveImageCeiling(%q) = %d, want %d", c.providerType, got, c.want)
+		}
+	}
+	if resolveImageCeiling(deps.ToolSetSpec{ProviderType: "gemini"}) == resolveImageCeiling(deps.ToolSetSpec{ProviderType: "deepseek"}) {
+		t.Error("the family-aware resolution must differ across families (Gemini stricter than OpenAI-compatible)")
 	}
 }

@@ -91,37 +91,46 @@ func buildDeps() deps.Dependencies {
 // the `list_skills` catalog source is unbound here and bound on the prompt path
 // only (round 044). `read_image` is NOT part of this default set, so its ceiling
 // input is unused (0).
-func agentTools() []domaintools.Tool { return assembleAgentTools(nil, false, 0) }
+func agentTools() []domaintools.Tool { return assembleAgentTools(deps.ToolSetSpec{}) }
 
-// assembleAgentTools builds the agent tool set with the `[Tool Output]` sink
-// injected into the command tool at CONSTRUCTION (round 052, closing #115 R-2;
-// ADR 0021). agentTools() passes a nil sink (the round-031 gate and the offline
+// assembleAgentTools builds the agent tool set from ONE named capability value
+// (round 069; ADR 0039), with the `[Tool Output]` sink injected into the command
+// tool at CONSTRUCTION (round 052, closing #115 R-2; ADR 0021). agentTools()
+// passes the zero spec (a nil sink — the round-031 gate and the offline
 // `--tool-usage` path never execute a tool); the prompt path passes the live
-// `prog.ToolOutput` sink. The `vision` flag (round 062) appends the `read_image`
+// `prog.ToolOutput` sink. The `vision` gate (round 062) appends the `read_image`
 // tool only when the selected provider declares the capability, so the offered
-// set tells the model the truth; `imageCeiling` (round 063; ADR 0033 D4) is that
-// provider's resolved family inline ceiling, enforced by the tool as a loud
-// refusal before the wire.
-func assembleAgentTools(sink domaintools.OutputSink, vision bool, imageCeiling int) []domaintools.Tool {
+// set tells the model the truth; the family-aware inline ceiling the tool
+// enforces (round 063; ADR 0033 D4) is resolved HERE (lazily, in the vision
+// branch) from the spec's provider label via the single-owned `infrallm.Family`
+// classifier — the resolution stays out of internal/cli (ADR 0039 D2).
+func assembleAgentTools(spec deps.ToolSetSpec) []domaintools.Tool {
 	tools := infratools.NewFilesystemTools()
 	tools = append(tools, infratools.NewWriteTools()...)
-	tools = append(tools, infratools.NewCommandTool(sink))
+	tools = append(tools, infratools.NewCommandTool(spec.Sink))
 	tools = append(tools, infratools.NewSkillsTool(nil))
-	if vision {
-		tools = append(tools, infratools.NewReadImageTool(imageCeiling))
+	if spec.Vision {
+		tools = append(tools, infratools.NewReadImageTool(resolveImageCeiling(spec)))
 	}
 	return tools
 }
 
-// newToolRegistry builds the agent registry (the agent loop's set), with the
-// `[Tool Output]` sink injected at construction (round 052; ADR 0021) and the
-// `read_image` tool gated by the provider's declared vision capability (round
-// 062; ADR 0032). Round 063 (ADR 0033 D4): the composition root resolves the
-// provider's family (single-owned by infrallm.Family) into the family-aware
-// inline ceiling the tool enforces.
-func newToolRegistry(sink domaintools.OutputSink, vision bool, providerType string) domaintools.Registry {
-	ceiling := infratools.ImageCeilingForFamily(infrallm.Family(providerType))
-	return domaintools.NewRegistry(assembleAgentTools(sink, vision, ceiling)...)
+// resolveImageCeiling maps a ToolSetSpec's provider label to the family-aware
+// inline image ceiling the `read_image` tool enforces (round 063; ADR 0033 D4).
+// It is a NAMED seam (round 069 / ADR 0039) so the family→ceiling CONSUMPTION is
+// pinnable on its own (PR #141 fold F2): the classifier (`infrallm.Family`) and
+// the ceiling table (`infratools.ImageCeilingForFamily`) are both single-owned,
+// and this helper is their one composition point in the agent registry path.
+func resolveImageCeiling(spec deps.ToolSetSpec) int {
+	return infratools.ImageCeilingForFamily(infrallm.Family(spec.ProviderType))
+}
+
+// newToolRegistry builds the agent registry (the agent loop's set) from ONE
+// named capability value (round 069; ADR 0039) — the former positional scalars
+// `(sink, vision, providerType)` are gone, so a new capability is a ToolSetSpec
+// FIELD, never a fourth positional argument.
+func newToolRegistry(spec deps.ToolSetSpec) domaintools.Registry {
+	return domaintools.NewRegistry(assembleAgentTools(spec)...)
 }
 
 // newTUIRegistry builds the three-reader registry the `-i` suggestion source

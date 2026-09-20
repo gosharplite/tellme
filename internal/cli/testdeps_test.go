@@ -117,7 +117,7 @@ func defaultTestDeps(mods ...func(*deps.Dependencies)) deps.Dependencies {
 		NewPromptTracker: func(string, func() (string, error)) history.PromptTracker {
 			return noopPromptTracker{}
 		},
-		NewToolRegistry:    func(domaintools.OutputSink, bool, string) domaintools.Registry { return domaintools.NewRegistry() },
+		NewToolRegistry:    func(deps.ToolSetSpec) domaintools.Registry { return domaintools.NewRegistry() },
 		NewTUIRegistry:     func() domaintools.Registry { return domaintools.NewRegistry() },
 		BindSkillsCatalog:  func(domaintools.Registry, string) {},
 		NewMetricsProvider: func() metrics.SystemMetricsProvider { return nil },
