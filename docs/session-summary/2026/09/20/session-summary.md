@@ -478,5 +478,33 @@ The operator confirmed the merge + remote-branch deletion and directed *"check i
 
 ### Next steps
 
-1. Open round **`069-*`** off `dev` via `/axb-specify` (candidates: the `ToolSetSpec` seam RF-062-10/RF-063-6 · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) · RF-068-1/6).
+1. Open round **`069-*`** off `dev` via `/axb-specify` (candidates: the `ToolSetSpec` seam RF-062-10/RF-063-6 · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13)). *(RF-068-1/RF-068-6 are **trigger-gated** on [#36](https://github.com/gosharplite/tellme/issues/36) item 3 — not candidates; see §16.)*
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 16. Session 51 (2026-09-20, cont.) — retired the recurring **`RF-068-1`** bootstrap-noise class: an **open-items curation rule** + trigger-gated annotations (docs-only; no round, no product code)
+
+The operator flagged the waste directly: *"Every fresh new session you waste our time talking about RF-068-1. Do you think this justifies the waste of token/money/time?"* The honest answer is **no** — and the repo had already named this exact failure mode in **session 46** (retiring `RF-063-10`): *"a low-value, non-blocking item must be retired on the surfaces a session actually reads, or it becomes a permanent muse."* `RF-068-1` was walking the same path. This session fixed the **cause** (the recurrence), not the item — docs-only, on `dev`, no `specs/plans/**` touched, **no product code**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Root cause | `STATUS.md`'s **Open items (non-blocking)** section — a surface **Step 7 reads every bootstrap** — enumerated every recent round's forward items **verbatim**, with `RF-068-1` at the **top** (newest round) and a highlighted "exit condition". To a fresh agent that renders as **open tasking**, not a **disclosure** → it gets proposed as a `069` theme and re-litigated. |
+| Fix (1) | **`STATUS.md`** — a **Curation rule** block at the head of the open-items section: *an index of disclosures, not a work queue; never re-raise a forward item absent its trigger.* The **round-068 row** rewritten to lead with **⚠ trigger-gated (RF-068-1 · RF-068-6)** + its **trigger** (out-of-order/concurrent dispatch, [#36](https://github.com/gosharplite/tellme/issues/36) item 3). A new **⛔ Trigger-gated forward items — one gate, four items** row groups the #36-gated set (`RF-068-1` · `RF-067-4` · `RF-066-4` · `RF-066-6`) as **not standalone work**. |
+| Fix (2) | **`ADR 0038 §Forward`** — a **⚠ Trigger-gated — not open work** preamble + `RF-068-1`/`RF-068-6` tagged **TRIGGER-GATED**. **`ADR 0037`** `RF-067-4` and **`ADR 0036`** `RF-066-4`/`RF-066-6` tagged likewise (the same single trigger). |
+| Fix (3) | **`SESSION-BOOTSTRAP.md`** — **Agent Rule 11** (*Open Items Are Disclosures, Not a Work Queue*; pick a theme from the roadmap / a live issue, never from the index). **`SESSION-CLOSEOUT.md`** — **Closeout Rule 17** + **Step 3 detail item 10** (how to *curate*: pointer + explicit trigger, trigger-gated marking, compact rows once a round is 2+ old). The fix lives on the **read** surfaces, per the session-46 lesson. |
+| Fix (4) | **`docs/session-summary/2026/09/20/session-summary.md`** — §15's *next-steps* candidate list dropped `RF-068-1/6` (with a pointer to §16). |
+| Bounded scope | Docs-only. **No** `specs/plans/**`, **no** product code, **no** `specs/truth/**` semantics changed (`techstack.md`/features untouched). `SESSION-BOOTSTRAP.md` is the round-060 **FR-011**-owned artifact (its prior change recorded in that package's `truth-delta.md`); this edit is a follow-up maintenance change on the same governing surface, recorded here + in the commit. |
+| Verification | `gofmt`/`go vet`/`go build` clean; `go test -count=1 ./...` green; `make verify` **OK** (`modelith-check` up to date — no model edit); diff-level secret scan clean; internal links spot-checked. |
+| Propagation | `dev → main` (**no-ff**) with the operator's approval (the session-46 docs-only precedent — `3637ec2`/`3d3a6dd`). |
+
+### Why (the durable lesson, recorded where a session reads it)
+
+An item that is **trigger-gated** (blocked on some future capability) has **no action** until the trigger fires. Listing it among open items on a **bootstrap-read** surface converts a *disclosure* into apparent *tasking* — and a fresh agent, having no memory of why it was deferred, will dutifully re-open it. **The recurrence, not the item, was the bug.** The remedy is structural: state the trigger, mark it, and stop rendering it as work. This is now enforced by **Closeout Rule 17** (curation) + **Bootstrap Agent Rule 11** (read-side discipline), so it cannot silently return.
+
+### Next steps
+
+1. Open round **`069-*`** off `dev` via `/axb-specify` — real candidates: the `ToolSetSpec` seam (RF-062-10/RF-063-6) · [#91](https://github.com/gosharplite/tellme/issues/91) (self-development umbrella) · [#13](https://github.com/gosharplite/tellme/issues/13) (coverage tooling). **Not** RF-068-1/6 (trigger-gated on [#36](https://github.com/gosharplite/tellme/issues/36) item 3).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
