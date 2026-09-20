@@ -2,7 +2,7 @@
 
 # tellme — Quality Process
 
-Models how tellme maintains its own quality: the ordered `QualityPipeline` of gates run by `make verify` (plus the E2E suite and the Gherkin/DSL topology audit), the ADR governance that records durable decisions, and the triage loop that homes a deferred item on a live issue or an ADR's Forward section. tellme's process is deliberately lighter than the reference's: it has **no** committed `NonFixCatalog`; it adopted a domain-model toolchain (a drift gate) in round 060 (**ADR 0030**) but **not** the reference's advisory code↔model gates.
+Models how tellme maintains its own quality: the ordered `QualityPipeline` of gates run by `make verify` (plus the E2E suite and the Gherkin/DSL topology audit), the ADR governance that records durable decisions, and the triage loop that homes a deferred item on a live issue or an ADR's Forward section. tellme's process is deliberately lighter than the reference's: it has **no** committed `NonFixCatalog`; it adopted a domain-model toolchain (a drift gate) in round 060 (**ADR 0030**) but **not** the reference's advisory code↔model gates; and it has **no coverage tooling** — the reference's `CoverageReport` has no tellme analogue (coverage tooling declined 2026-09-20, superseding the former R8a forwarding note), because the E2E contract executes the built binary as a subprocess (so E2E-verified paths read 0 % in a profile) and the AIxBDD gates (acceptance-coverage, dsl-exact-one-match, the E2E contract, the falsifiability witnesses, the layer/drift gates) are the stronger instruments.
 
 ## Glossary
 

@@ -9,7 +9,13 @@ description: >
   that homes a deferred item on a live issue or an ADR's Forward section. tellme's
   process is deliberately lighter than the reference's: it has **no** committed
   `NonFixCatalog`; it adopted a domain-model toolchain (a drift gate) in round 060
-  (**ADR 0030**) but **not** the reference's advisory code↔model gates.
+  (**ADR 0030**) but **not** the reference's advisory code↔model gates; and it has
+  **no coverage tooling** — the reference's `CoverageReport` has no tellme
+  analogue (coverage tooling declined 2026-09-20, superseding the former R8a
+  forwarding note), because the E2E contract executes the built binary as a
+  subprocess (so E2E-verified paths read 0 % in a profile) and the AIxBDD gates
+  (acceptance-coverage, dsl-exact-one-match, the E2E contract, the falsifiability
+  witnesses, the layer/drift gates) are the stronger instruments.
 
 glossary:
   QualityPipeline: >

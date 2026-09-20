@@ -2,7 +2,7 @@
 
 # tellme — Multi-Provider Reasoning Agent (POSIX CLI)
 
-A disciplined, POSIX/bash-only re-creation of tell-me-go. A CLI that turns a prompt into a multi-round reasoning turn: it assembles a provider payload (persona + matched skills + recent history + the prompt), drives a bounded think→act→observe loop against a multi-provider `Provider` (the two families tellme drives — OpenAI-compatible and Gemini), executes agent `Tool`s, streams a diagnostic `Chrome`, and persists the session. Three operator-declared directions shape it: **no security layer**, **no Windows**, and **bash-first** — hence a deliberately small tool surface.
+A disciplined, POSIX/bash-only re-creation of tell-me-go. A CLI that turns a prompt into a multi-round reasoning turn: it assembles a provider payload (persona + recent history + the prompt), drives a bounded think→act→observe loop against a multi-provider `Provider` (the two families tellme drives — OpenAI-compatible and Gemini), executes agent `Tool`s, streams a diagnostic `Chrome`, and persists the session. Three operator-declared directions shape it: **no security layer**, **no Windows**, and **bash-first** — hence a deliberately small tool surface. Skills reach the model on demand (no automatic injection).
 
 ## Glossary
 
@@ -100,12 +100,11 @@ The YAML configuration loaded at startup (the `-c` path, else the default). It c
 
 ### `Context`
 
-The provider payload assembled before each `Turn`: the `Persona` system prompt, any matched `Skill` content, the recent `History`, and the current prompt. Its size is reported by the `Chrome` as an estimate before the call and a measurement after it, against the effective budget.
+The provider payload assembled before each `Turn`: the `Persona` system prompt, the recent `History`, and the current prompt. Its size is reported by the `Chrome` as an estimate before the call and a measurement after it, against the effective budget. (No `Skill` content enters the `Context` — skills are on-demand only.)
 
 **Relationships**
 
 - `Persona` — n:1 — referenced
-- `Skill` — n:n — referenced
 - `History` — n:1 — referenced
 
 **Invariants**
@@ -132,7 +131,7 @@ The persisted record of a session's completed `Turn`s — an append-only JSON-Li
 
 ### `ImageContent`
 
-An image a `Tool` (`read_image`) attached to a turn (round 062 / ADR 0032): the media kind and the file's bytes. Its kind is resolved from the file's **content** (magic bytes: JPEG/PNG/GIF/WebP), never the name; it is serialized inline on **both** families — a base64 `image_url` block on the OpenAI-compatible wire, or a base64 `inlineData` blob on the Gemini/Vertex wire (round 063 / ADR 0033) — riding a `user` message after the tool result. The image is in-flight only: it is never persisted with the `Turn` (the history step stores the tool's text result).
+A piece of non-text media (an image) a `Tool` (`read_image`) returns **in-band** from its execution — the shipped type is `tools.MediaPart` (round 070 / ADR 0040). A media-producing tool implements the optional MediaTool capability, so a `read_image` call runs via ExecuteMedia, returning the text result **and** the media; the loop folds the media onto a `user` message after the tool result. The former per-call `context` collector (WithMediaCollector/AttachMedia, ADR 0032 D7a) is **retired** — the tool no longer reaches into the conversation model to name its own result type. Its kind is resolved from the file's **content** (magic bytes: JPEG/PNG/GIF/WebP), never the name; it is serialized inline on **both** families — a base64 `image_url` block on the OpenAI-compatible wire, or a base64 `inlineData` blob on the Gemini/Vertex wire (round 063 / ADR 0033) — riding a `user` message after the tool result. The media is in-flight only: it is never persisted with the `Turn` (the history step stores the tool's text result).
 
 **Relationships**
 
@@ -280,11 +279,7 @@ One conversation under a per-mode workspace. It owns the `History`, the `TurnLog
 
 ### `Skill`
 
-A guidance block (a SKILL.md file) under the `$TELL_ME_HOME/docs/skills/` catalog. It is listed by the `list_skills` tool and its content is injected into the `Context` when the prompt matches it. Skills are authored as the BDD workflow's executable SOPs.
-
-**Relationships**
-
-- `Context` — n:n — referenced — A matched skill's content is injected into the context.
+A guidance block (a SKILL.md file) under the `$TELL_ME_HOME/docs/skills/` catalog. The surface is **on-demand only** (round 033 Q1) — a recorded divergence from the reference: tellme performs **no** automatic relevance-based injection into the `Context`. The model discovers the catalog with the `list_skills` tool (name + description + location, path-sorted) and reads a chosen skill's file with the existing `read_files` tool. Skills are authored as the BDD workflow's executable SOPs.
 
 **Attributes**
 
@@ -292,14 +287,16 @@ A guidance block (a SKILL.md file) under the `$TELL_ME_HOME/docs/skills/` catalo
 | --- | --- | --- |
 | `name` | string | The unique skill identifier (frontmatter `name`). |
 | `description` | string | Human-readable summary (frontmatter `description`). |
+| `location` | string | The on-disk path the agent opens with `read_files`. |
 
 **Invariants**
 
 - **skill-unique-name** — A `Skill`'s name is unique across the catalog; the loader resolves a duplicate by keeping the first discovered and dropping the later one silently (no error).
+- **skill-on-demand-only** — A `Skill` reaches the model only on demand (`list_skills` + `read_files`); tellme performs no automatic relevance-based injection into the `Context`.
 
 ### `Tool`
 
-A capability the model may invoke, advertised with a JSON argument schema. The surface is deliberately small: the reader trio (`list_files`, `read_files`, `get_tree`), the write pair (`write_file`, `replace_text`), `execute_command` (`bash -c`), and `list_skills`. When the selected `Provider` declares `vision`, one more tool is offered — `read_image`, which reads a local image and attaches it as `ImageContent`. Every tool is bounded by the resource contract (`max_output_tokens` / `timeout` — default + param + ceiling) and requires a `reason`. There is no consent gate and no path boundary.
+A capability the model may invoke, advertised with a JSON argument schema. The surface is deliberately small: the reader trio (`list_files`, `read_files`, `get_tree`), the write pair (`write_file`, `replace_text`), `execute_command` (`bash -c`), and `list_skills`. When the selected `Provider` declares `vision`, one more tool is offered — `read_image`, which reads a local image and returns it **in-band** as an `ImageContent` (the shipped `tools.MediaPart` type; round 070 / ADR 0040) through the optional MediaTool capability. Every tool is bounded by the resource contract (`max_output_tokens` / `timeout` — default + param + ceiling) and requires a `reason`. There is no consent gate and no path boundary.
 
 **Attributes**
 
@@ -415,7 +412,6 @@ erDiagram
     Config ||--o{ Pricing : ""
     Config ||--o{ MCPServer : ""
     Context }o..|| Persona : ""
-    Context }o..o{ Skill : ""
     Context }o..|| History : ""
     History ||--o{ Turn : ""
     ImageContent }o..|| ToolCall : ""
@@ -550,7 +546,7 @@ A remote server annotates an argument with a vendor extension. tellme's family-a
 
 ### Reading a local image
 
-With a `Provider` that declares `vision`, the model calls `read_image`. The tool resolves the file's kind from its content, attaches the image, and the loop folds it back on a `user` message after the tool result — so the model can see the picture. The image is carried on the selected family's wire: an inline base64 `image_url` block on the OpenAI-compatible family, or an inline base64 `inlineData` blob on the Gemini/Vertex family (round 063 / ADR 0033). A provider without `vision` is not offered the tool; an oversize (past the family-aware ceiling) or non-picture file is a loud refusal.
+With a `Provider` that declares `vision`, the model calls `read_image`. The tool resolves the file's kind from its content and returns the media **in-band** from its execution (the MediaTool/ExecuteMedia capability; round 070 / ADR 0040); the loop folds it back on a `user` message after the tool result — so the model can see the picture. The media is carried on the selected family's wire: an inline base64 `image_url` block on the OpenAI-compatible family, or an inline base64 `inlineData` blob on the Gemini/Vertex family (round 063 / ADR 0033). A provider without `vision` is not offered the tool; an oversize (past the family-aware ceiling) or non-picture file is a loud refusal.
 
 **Actors:** Orchestrator, Tool, ToolCall, ImageContent, Provider
 
@@ -558,7 +554,7 @@ With a `Provider` that declares `vision`, the model calls `read_image`. The tool
 
 1. `Provider` returns a call to `read_image` carrying a `reason`.
 2. The tool reads the file and resolves its kind from the content (magic bytes), and enforces the selected provider's family-aware inline ceiling.
-3. The loop attaches the `ImageContent` and folds it onto a `user` message after the tool result.
+3. The tool returns the `ImageContent` **in-band** (via ExecuteMedia); the loop folds it onto a `user` message after the tool result.
 4. The adapter serializes the image on the family's wire (`image_url` / `inlineData`); the `Provider` sees it and the turn completes.
 
 **Invariants touched**
@@ -570,19 +566,19 @@ With a `Provider` that declares `vision`, the model calls `read_image`. The tool
 
 ### Listing and using skills
 
-A prompt matches a `Skill`; its guidance is injected into the `Context`. The model can also enumerate the catalog with the `list_skills` tool.
+The model needs the project's SOP. It enumerates the catalog with the `list_skills` tool, then opens a chosen skill with `read_files`. tellme performs no automatic injection — a `Skill` reaches the model on demand only.
 
-**Actors:** Skill, Context, Orchestrator, Tool
+**Actors:** Skill, Tool, Orchestrator
 
 **Steps**
 
-1. The user's prompt matches a `Skill`'s keywords.
-2. `Orchestrator` injects the matched `Skill`'s content into the `Context`.
-3. The `list_skills` `Tool` lists the catalog on request.
+1. The model calls the `list_skills` `Tool`, which returns each `Skill`'s name, description, and location (path-sorted).
+2. The model reads the chosen `Skill`'s file with `read_files`.
 
 **Invariants touched**
 
 - **skill-unique-name** — A `Skill`'s name is unique across the catalog; the loader resolves a duplicate by keeping the first discovered and dropping the later one silently (no error).
+- **skill-on-demand-only** — A `Skill` reaches the model only on demand (`list_skills` + `read_files`); tellme performs no automatic relevance-based injection into the `Context`.
 
 ### The budget tracks the model
 
