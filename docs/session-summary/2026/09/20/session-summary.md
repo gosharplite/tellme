@@ -705,3 +705,36 @@ The operator: *"Create a detail new issue for this [the media-channel refactor].
 
 1. `/axb-technical-research` (the shape decision + a new ADR + `techstack.md` MODIFY; annotate RF-062-10/RF-069-1) → `/axb-system-analysis` → `/axb-dsl-refine` (NOOP) → `/axb-tasks` → `/axb-implement` → PR (human merges) → closeout (tag `round-070`, **close [#142](https://github.com/gosharplite/tellme/issues/142)**).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `070-media-channel-in-band`).
+
+---
+
+## 22. Session 54 (2026-09-20, cont.) — round 070 `070-media-channel-in-band`: full pipeline → PR [#143](https://github.com/gosharplite/tellme/pull/143) **OPEN**
+
+Continued round 070 (the operator: *"yes"* — keep going through the pipeline to the PR). Ran the pipeline end-to-end and opened the PR. **No Copilot review; only a human merges.**
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | the **media channel in-band** — a media-producing tool returns its media from `ExecuteMedia` (the optional `tools.MediaTool` capability); the loop type-asserts and folds it; the per-call `context` collector (ADR 0032 **D7a**) is **deleted** and `infrastructure/tools` no longer imports `domain/llm` (anchor [#142](https://github.com/gosharplite/tellme/issues/142)) |
+| Pipeline | specify ✅ · clarify **not escalated (0)** · spec-by-example **NOOP** · technical-research ✅ (**ADR 0040** + `techstack.md` MODIFY) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine **NOOP** · tasks ✅ (T001–T010) · implement ✅ |
+| The change | `+ tools.MediaPart` (moved from `domain/llm`) · `+ tools.MediaTool` (the capability) · `Message.Media []tools.MediaPart` · **deleted** `domain/llm/media.go` · `read_image.ExecuteMedia` (in-band) + a delegating `Execute`, **dropping the llm import** · the loop asserts `tools.MediaTool` · adapters serialize `[]tools.MediaPart` |
+| Shape | **a segregated capability interface** (NOT a `Tool` widening); the **rejected** shape is recorded **settled** in ADR 0040 (anti-muse; no-halving I-6) |
+| Truth | **ADR 0040** completes **ADR 0032 RF-062-10** (annotates `Status` + `D7a` superseded + `RF-062-10` fully delivered) and delivers **ADR 0039 RF-069-1**; `techstack.md` *Image filesystem tool* MODIFY. **The RF-062-10 lineage ends here.** |
+| Verification | `gofmt`/`vet`/`build` clean · `go test -count=1 ./...` **green** · `make verify` **OK** · topology audit **5 pre-existing, none new** · `go.mod`/`go.sum` unchanged · witnesses: structural (collector absent; `infra/tools` free of `domain/llm`) + falsifiability (disabling the in-band fold reds the image E2E — 0 image blocks recorded) |
+| Delivery | branch `070-media-channel-in-band` → **PR [#143](https://github.com/gosharplite/tellme/pull/143) OPEN** (awaiting the human review/merge) |
+
+### Decisions locked (round 070)
+
+| # | Decision |
+| --- | --- |
+| **D1** | `tools.MediaPart` is the single media owner (relocated from `domain/llm`); `llm.Message.Media` = `[]tools.MediaPart` (legal intra-domain edge; acyclic). |
+| **D2** | Shape = a **segregated capability interface** `tools.MediaTool` (+ `ExecuteMedia`), NOT a `Tool` widening. |
+| **D3** | The loop type-asserts and folds the returned media (media-first `user` message) — byte-identical. |
+| **D4/D5** | `read_image` implements the capability; the collector is deleted; serialization unchanged. |
+| — | The **rejected shape (a)** is a **settled rejection** (ADR 0040) — not a forward item. |
+
+### Next steps
+
+1. Human reviews + merges **PR [#143](https://github.com/gosharplite/tellme/pull/143)** → closeout (`SESSION-CLOSEOUT.md`): tag `round-070`, propagate `dev → main`, **close [#142](https://github.com/gosharplite/tellme/issues/142)**.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `070-media-channel-in-band` until merged, then `dev`).
