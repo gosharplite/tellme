@@ -232,7 +232,7 @@ func TestSearchFilesTimeoutResultIsNilError(t *testing.T) {
 	}
 }
 
-// TestSearchFilesFileArgument pins the file-argument branch (ADR 0044 D4): a
+// TestSearchFilesFileArgument pins the file-argument branch (ADR 0043 D4): a
 // `path` naming a file is searched directly, without a directory walk.
 func TestSearchFilesFileArgument(t *testing.T) {
 	dir := t.TempDir()

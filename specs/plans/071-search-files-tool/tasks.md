@@ -7,7 +7,7 @@ Legend: `[ ]` pending · `[X]` done. Phases per `/axb-tasks`: Setup → Foundati
 ## Phase 1 — Setup
 
 - [X] **T001** Add `internal/infrastructure/tools/search.go`: the `searchFiles` adapter — `Name`/`Description`/`Contract`/`Parameters` (through the shared `resourceSchema`) — plus `NewSearchTool()`.
-- [X] **T002** Add the constants (`searchMaxMatches=100`, `searchScanCap=1000`, `searchLineCap=500`, `searchMaxLineBytes=10MB`, `searchBinProbe=8000`) and the three recorded divergences in the file header.
+- [X] **T002** Add the constants (`searchMaxMatches=100`, `searchScanCap=1000`, `searchLineCap=500`, `searchMaxLineBytes=10MB`, `searchBinProbe=8000`) and the recorded divergences (three deliberate + three further) in the file header.
 
 ## Phase 2 — Foundational
 

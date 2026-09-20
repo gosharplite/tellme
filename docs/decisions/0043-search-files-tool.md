@@ -9,7 +9,7 @@
 
 `tellme`'s agent surface is deliberately small (`README.md` *Design Intent & Direction*): a tool earns its place only if it **beats bash on a real axis** — context-boundedness, a deterministic/testable contract, or reliability. The reader family (`list_files`, `read_files`, `get_tree`) can **find and read** a file but has **no way to locate content**; today that means an unbounded `grep -rn`, which can flood the model's context window and whose output is not a testable contract. Issue [#147](https://github.com/gosharplite/tellme/issues/147) records `search_files` as the **one Filesystem candidate** — "the missing half of the reader trio".
 
-The reference (`tell-me-go/internal/tools/workspace/search.go` + `internal/pkg/concurrentsearch/`) provides `search_files(path, query, is_regex)`; but it differs from tellme in ways tellme must **not** copy (three deliberate divergences) or must **record** (the review-A1 fold, TD-071-4 — the reference also appends a marker when it cuts a line and skips files larger than 1 MiB, and its binary probe is 1024 B vs tellme's 8000):
+The reference (`tell-me-go/internal/tools/workspace/search.go` + `internal/pkg/concurrentsearch/`) provides `search_files(path, query, is_regex)`; but it differs from tellme in **three deliberate divergences** (1–3 below) plus **three further recorded differences** (4–6; the review-A1 fold, TD-071-4):
 
 1. a **`SafePath` `PathValidator` gate** (tellme has **no** security layer — a settled exclusion) — *deliberate divergence*;
 2. a **`defaultWorkspacePolicy` directory ignore list** (a *secret-scanning* concern tellme does not own) — *deliberate divergence*;

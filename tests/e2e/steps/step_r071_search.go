@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/cucumber/godog"
@@ -147,9 +148,12 @@ func thenSearchInvalidPattern(ctx context.Context) error {
 	return nil
 }
 
-// thenSearchPathOrder (必查 權威狀態): the result is sorted path-ascending — the
-// line for "a.go" precedes the line for "a/x.txt" ('.' < '/'), which the raw
-// depth-first walk order does NOT produce (the folder "a" is visited first).
+// thenSearchPathOrder (必查 權威狀態): the search result is sorted
+// path-ascending. The assertion is GENERIC — it parses every `path:line: text`
+// match line and requires the paths to be non-decreasing in file-path order (then
+// line) — so the fixture can change without coupling the step to a file name. A
+// fixture whose depth-first walk order differs from the sorted order (e.g.
+// "a.go" vs "a/x.txt", where '.' < '/') makes the raw walk order fail this.
 // This is the interface-truth carrier for the round-071 determinism invariant.
 func thenSearchPathOrder(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
@@ -158,13 +162,37 @@ func thenSearchPathOrder(ctx context.Context) error {
 		return fmt.Errorf("no fake provider recorded a request")
 	}
 	res := lastToolResult(f)
-	i := strings.Index(res, "a.go:")
-	j := strings.Index(res, "a/x.txt:")
-	if i < 0 || j < 0 {
-		return fmt.Errorf("the search result is missing a match; result=%q", res)
+	var prevPath string
+	var prevLine int
+	seen := 0
+	for _, raw := range strings.Split(res, "\n") {
+		line := strings.TrimRight(raw, "\r")
+		// A match line is `<path>:<line>: <text>`; skip the truncation marker and
+		// any non-matching line.
+		colon := strings.Index(line, ":")
+		if colon < 0 {
+			continue
+		}
+		lineNoStr := line[colon+1:]
+		sep := strings.Index(lineNoStr, ":")
+		if sep < 0 {
+			continue
+		}
+		lineNo, err := strconv.Atoi(lineNoStr[:sep])
+		if err != nil {
+			continue
+		}
+		path := line[:colon]
+		if seen > 0 {
+			if path < prevPath || (path == prevPath && lineNo < prevLine) {
+				return fmt.Errorf("the search result is not in path order (%q:%d follows %q:%d); result=%q", path, lineNo, prevPath, prevLine, res)
+			}
+		}
+		prevPath, prevLine = path, lineNo
+		seen++
 	}
-	if i > j {
-		return fmt.Errorf("the search result is not in path order (a.go must precede a/x.txt); result=%q", res)
+	if seen < 2 {
+		return fmt.Errorf("the search result carries fewer than two matches to order; result=%q", res)
 	}
 	return nil
 }

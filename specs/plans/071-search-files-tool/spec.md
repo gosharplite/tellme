@@ -22,7 +22,7 @@
 - **Not copied — the reference's security gate.** `tell-me-go`'s `search_files` runs behind a `SafePath` `PathValidator` (`sp.IsPathSafe`). tellme has **no security layer** (settled exclusion) — the tool reads **whatever path it is given**, like its sibling readers.
 - **Not copied — the reference's ignore policy.** `tell-me-go` skips directories matched by its `defaultWorkspacePolicy` (`.git`, `node_modules`, `vendor`, `bin`, `obj`, `output`, `dist`, `testdata`, `configs`, `secrets`, plus any hidden dir) — that policy serves a **secret-scanning** concern. tellme has no `WorkspacePolicy`; this tool's own scope is **Q2**.
 - **Not copied — the reference's non-determinism.** Its result order is worker/channel order (a ≤8 worker pool). A tool whose output is executable truth must be **deterministic** (**I-4**; a recorded tellme divergence).
-- **Recorded further differences (review A1 / TD-071-4).** The reference **appends `" (truncated)"`** when it cuts a line at 500 (tellme cuts **silently** — `RF-071-3`), **skips any file > 1 MiB** (tellme scans any size; the byte budget bounds the *result*), and probes binaries at **1024 B** vs tellme's **8000 B**. The divergence ledger is **five** deliberate/recorded differences, not three.
+- **Recorded further differences (review A1 / TD-071-4).** The reference **appends `" (truncated)"`** when it cuts a line at 500 (tellme cuts **silently** — `RF-071-3`), **skips any file > 1 MiB** (tellme scans any size; the byte budget bounds the *result*), and probes binaries at **1024 B** vs tellme's **8000 B**. The divergence ledger records **three deliberate divergences + three further differences (six total)**, not three.
 
 ---
 
