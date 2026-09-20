@@ -587,3 +587,31 @@ The operator: *"Create a detail new issue for this [the `ToolSetSpec` seam]. Ope
 
 1. `/axb-technical-research` (deck the named spec; a new structural ADR + `techstack.md` MODIFY; annotate RF-062-10/RF-063-6) → `/axb-system-analysis` → `/axb-dsl-refine` (NOOP) → `/axb-tasks` → `/axb-implement` → PR (human merges) → closeout (tag `round-069`, **close [#140](https://github.com/gosharplite/tellme/issues/140)**).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `069-toolset-spec-capability-seam`).
+
+---
+
+## 19. Session 52 (2026-09-20, cont.) — round 069 `069-toolset-spec-capability-seam`: full pipeline → PR [#141](https://github.com/gosharplite/tellme/pull/141) **OPEN**
+
+Continued round 069 (the operator: *"Keep going unless you need to ask me question. Provide PR link for review."*). Ran the pipeline end-to-end on the round branch and opened the PR. **No Copilot review; only a human merges.**
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | the **`ToolSetSpec` capability seam** — replace the registry-construction positional scalars (`sink, vision bool, providerType`) with one named `deps.ToolSetSpec` (anchor [#140](https://github.com/gosharplite/tellme/issues/140)) |
+| Pipeline | specify ✅ · clarify **not escalated (0)** · spec-by-example **NOOP** · technical-research ✅ (**ADR 0039** + `techstack.md` MODIFY ×2) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine **NOOP** · tasks ✅ (T001–T007) · implement ✅ |
+| The change | `deps.ToolSetSpec{Sink,Vision,ProviderType}`; `NewToolRegistry`/`newToolRegistry`/`assembleAgentTools` take it (the family ceiling resolved lazily in the vision branch — **no positional scalar remains**); `renderToolUsage` takes the **named** signature and builds its two union variants as named fields; test call sites/doubles updated (**no assertion changed**) |
+| Truth | **ADR 0039** (+ index) — delivers **ADR 0032 RF-062-10** (the seam half) + **ADR 0033 RF-063-6**; `techstack.md` *Composition root* + *Image filesystem tool* MODIFY |
+| Scope guard | RF-062-10's **media-channel half** stays a forward item (RF-069-1) |
+| Verification | `gofmt`/`vet`/`build` clean · `go test -count=1 ./...` **green** (incl. godog E2E) · `make verify` **OK** · topology audit **5 pre-existing, none new** · `go.mod`/`go.sum` unchanged · witnesses (a) un-gate vision ⇒ offered-set pins + E2E red; (b) wrong ceiling ⇒ the `reading-a-local-image` E2E reds (reproduced then reverted) |
+| Delivery | branch `069-toolset-spec-capability-seam`; **PR [#141](https://github.com/gosharplite/tellme/pull/141) OPEN** — awaiting the human review/merge |
+
+### Honest notes
+
+- **Witness (b) corrected**: I first wrote that a wrong ceiling is caught by a **unit** pin; it is **not** — the ceiling **wiring** is carried only by the E2E journey (the unit pins cover `ImageCeilingForFamily`'s owner table, not its consumption). Corrected in `tasks.md`; recorded as **RF-069-5** (a pre-existing gap surfaced by the round, not introduced by it).
+- **Layer-safety drove D2**: the ceiling resolution could not move to the caller — `internal/cli → internal/infrastructure` is a RULE-B violation the repo holds at a 0-violation baseline. The spec therefore carries the raw provider label; the composition-root builder resolves.
+
+### Next steps
+
+1. Human reviews + merges **PR [#141](https://github.com/gosharplite/tellme/pull/141)** → closeout (`SESSION-CLOSEOUT.md`): tag `round-069`, propagate `dev → main`, **close [#140](https://github.com/gosharplite/tellme/issues/140)**.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `069-toolset-spec-capability-seam` until merged, then `dev`).
