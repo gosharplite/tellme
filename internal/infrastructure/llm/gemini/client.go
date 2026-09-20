@@ -209,8 +209,9 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 // nothing.
 func UnpairedCallIDs(prior []llm.Message) []string {
 	// Round 068 (ADR 0038): the round-boundary account has ONE owner, the
-	// family-neutral llm.UnpairedToolCalls; the adapter delegates so its M < N
-	// drop and the CLI's diagnostic cannot drift.
+	// family-neutral llm.UnpairedToolCalls; the adapter delegates to it (the
+	// property pin TestUnpairedCallIDs_AgreesWithEmittedBody ties the account to
+	// the emitted body, since the adapter no longer shares the account's walk).
 	return llm.UnpairedToolCalls(prior)
 }
 

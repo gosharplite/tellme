@@ -65,3 +65,10 @@ RF-068-1 no live producer / E2E carrier · RF-068-2 the line is plain · RF-068-
 - **TD-068-2 [TECHNICAL DEBT → folded]** — stale truth/source: the techstack row's round-067 clause retargeted to `llm.UnpairedToolCalls` + a *"superseded by ADR 0038"* pointer; the gemini `UnpairedCallIDs` doc comment corrected (RF-067-1 is delivered; the live consumer is the CLI decorator).
 - **N-068-1 [NIT → folded]** — the `[Tool Warning]` line added to the `Chrome` domain entity (`tellme.modelith.yaml` + re-render; `modelith-check` green) — the disposition is now closed.
 - **N-068-2 [NIT → folded]** — ADR 0038 D2 documents the per-`Complete` re-reporting (a seen-set is RF-068-4); the spec edge case is finalised (one aggregated, call-order line).
+
+### Fold-verification residuals (2026-09-20, reviewer comment `5746912907` — FOLDS VERIFIED WITH RESIDUALS, CLEARED FOR HUMAN MERGE)
+
+- **R-068-F1 [recorded → RF-068-6]** — the adapter's round-closing ORDER rule (`textTurn`'s `flush`) has no wire carrier; a discriminating pin needs a stray result (whose `extraResults` emission breaks the tie pin's count invariant) ⇒ deferred to a dedicated wire-order pin.
+- **R-068-F2 [folded]** — `RF-068-5` no longer claims the *Turn chrome (operator)* row names the line (only the `Chrome` entity does).
+- **R-068-F3 [recorded → RF-068-7]** — `oneLine`'s fold is unobservable in the hostile pin (sanitize strips CR/LF); the fold is carried by the sibling pins.
+- **R-068-F4 [folded]** — the inline comment inside `UnpairedCallIDs` corrected (the tie pin, not the shared build pass, guards agreement).
