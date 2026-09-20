@@ -861,3 +861,38 @@ Answering "is any quality gate coverage-like and should be removed?" → **no ga
 
 1. Open the next round off `dev` from the **operator-value / live-issue** candidate — **[#91](https://github.com/gosharplite/tellme/issues/91)**.
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 26. Session 56 (2026-09-20, cont.) — made the domain model **load-bearing** + an **advisory** `make modelith-drift` guard (ADR 0041); a docs/quality pass, no round, no product code
+
+The highest-value follow-up from the quality briefing: the model **rotted silently** across rounds 069–070 (it described a `Skill → Context` auto-injection that does not exist, and an "attached" media channel superseded by the in-band return), because `modelith-check` guards only **YAML↔MD** generation — nothing guarded **model↔code**. The answer: a decision that the model is **load-bearing** + one **precise, advisory** guard, and an honest record of what a guard *cannot* catch.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Decision (**ADR 0041**) | The model is **load-bearing** (*descriptive docs, subordinate to truth*, but **maintained**): a round that changes **modelled behaviour** updates `docs/domain-model/**` **in the same PR**. **D3**: the reference's **name-diff** advisory gates stay **unadopted** — a direct port was **measured** at **~45/57 exported `internal/domain` types (~79 %) false positives** plus 12 false "stale entity" hits, i.e. the retired "noisy advisory surface becomes a muse" class. **D4**: *semantic* rot has **no** mechanical carrier — the same-PR rule + review is the guard. |
+| The guard | `scripts/modelith-drift.sh` + a `Makefile` `modelith-drift` target: **advisory** (never fails; **not** a `make verify` member). Per modeled **entity/enum/glossary** term, it checks whether **any code anchor** (its name, a backticked identifier in its definition, or an enum value) still appears in production Go. Measured: **0 findings** on the tree; catches a synthetic stale entry. |
+| Surfaces | `docs/domain-model/README.md` (→ *Drift guard* + *Lifecycle* — the authority, incl. the measured anti-muse rationale) · `Makefile` (target + help + `.PHONY` + `MODELITH_CODE_MODEL`) · `SESSION-BOOTSTRAP.md` **Agent Rule 10** · `SESSION-CLOSEOUT.md` **Rule 18** + Step-3 item 11 · `specs/truth/techstack.md` (Domain-model row) · `docs/domain-model/quality.modelith.yaml` (+ render) · **ADR 0041** + index row (ADR 0030's `Status` + RF-060-3 **qualified**) |
+| Not done | no `specs/plans/**`; no product code; `make verify` **unchanged** (no new member); no new dependency (bash + grep/awk/sed, POSIX-only) |
+| Verified | `make modelith-lint` **0/0** · `modelith-render` + `modelith-check` green · `make modelith-drift` ✓ (28 checked) · `gofmt -l .` clean · `go vet ./...` clean · `make verify` OK |
+
+### Decisions locked
+
+| # | Decision |
+| --- | --- |
+| — | The domain model is **load-bearing**: a round that changes modelled behaviour updates `docs/domain-model/**` in the same PR (**ADR 0041**). |
+| — | An **advisory** `make modelith-drift` ships (never fails; not a `verify` member); the reference's **name-diff** advisory gates stay unadopted (measured ~79 % FP). |
+| — | *Semantic* model rot is guarded by the **process rule**, not a gate (recorded honestly). |
+
+### Commits
+
+| Commit | Note |
+| --- | --- |
+| *(this pass, on `dev`)* | `docs(model): make the domain model load-bearing + an advisory modelith-drift guard (ADR 0041)` |
+
+### Next steps
+
+1. Open the next round off `dev` from the **operator-value / live-issue** candidate — **[#91](https://github.com/gosharplite/tellme/issues/91)**; its truth owner will now keep the model in step (ADR 0041).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).

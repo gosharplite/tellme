@@ -91,7 +91,7 @@ One check backed by a Makefile target — e.g. `verify-architecture` (the layer-
 
 ### `QualityPipeline`
 
-The ordered gates a change must pass. `make verify` aggregates `verify-no-test-sleep` + `verify-no-network` + `vet` + `verify-cross-compile` + `verify-mcp-sdk-confinement` + `verify-architecture` + `modelith-check` + `lint` + `vulncheck`; the E2E contract runs under `make test`. The pipeline stops at the first failing gate.
+The ordered gates a change must pass. `make verify` aggregates `verify-no-test-sleep` + `verify-no-network` + `vet` + `verify-cross-compile` + `verify-mcp-sdk-confinement` + `verify-architecture` + `modelith-check` + `lint` + `vulncheck`; the E2E contract runs under `make test`. An **advisory** `make modelith-drift` (ADR 0041) is available on demand — *not* a member: it surfaces a modeled entity whose concept left the code (the model is load-bearing; the round-time rule is the primary guard). The pipeline stops at the first failing gate.
 
 **Relationships**
 

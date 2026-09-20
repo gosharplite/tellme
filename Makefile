@@ -79,8 +79,12 @@ MODELITH_INSTALL := git clone https://github.com/gosharplite/modelith && cd mode
 # list: every docs/domain-model/*.modelith.yaml is covered, and an empty set is an
 # explicit failure (never a vacuous green).
 MODELITH_MODELS := $(wildcard docs/domain-model/*.modelith.yaml)
+# The CODE model (the one with Go-type correspondence) — the only model the
+# advisory drift check operates on; the quality/environment models are not
+# code-backed (reference: MODELITH_CODE_MODEL).
+MODELITH_CODE_MODEL := docs/domain-model/tellme.modelith.yaml
 
-.PHONY: help build fmt vet tidy lint vulncheck test test-fast verify verify-no-test-sleep verify-no-network verify-cross-compile verify-mcp-sdk-confinement verify-architecture verify-architecture-update modelith-lint modelith-render modelith-check
+.PHONY: help build fmt vet tidy lint vulncheck test test-fast verify verify-no-test-sleep verify-no-network verify-cross-compile verify-mcp-sdk-confinement verify-architecture verify-architecture-update modelith-lint modelith-render modelith-check modelith-drift
 
 help:
 	@echo "tellme development tasks:"
@@ -101,6 +105,7 @@ help:
 	@echo "  make modelith-lint        - validate docs/domain-model/*.modelith.yaml (modelith; ADR 0030)"
 	@echo "  make modelith-render      - regenerate docs/domain-model/*.modelith.md from the YAML (never hand-edit)"
 	@echo "  make modelith-check       - drift gate: fail if a committed *.modelith.md is stale (or modelith is absent)"
+	@echo "  make modelith-drift       - ADVISORY (not a verify member): a modeled entity with no code anchor"
 	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + vet + verify-cross-compile + verify-mcp-sdk-confinement + verify-architecture + modelith-check + lint + vulncheck"
 
 # NOTE: `VERSION ?= dev` is the local/release default ONLY.
@@ -300,6 +305,15 @@ else
 	@for m in $(MODELITH_MODELS); do echo "  modelith-check $$m"; $(MODELITH) render --check $$m || exit 1; done
 	@echo "  ✓ committed *.modelith.md matches the YAML source (no drift)"
 endif
+
+# modelith-drift — ADVISORY, never fails, NOT a `verify` member. Surfaces a
+# modeled entity whose concept has vanished from the code (a stale model entry).
+# The domain model is load-bearing: a round that changes MODELLED behaviour
+# updates docs/domain-model/** in the same PR — this target is the advisory aid
+# (see docs/domain-model/README.md -> Drift guard; ADR 0041). Scope: the CODE
+# model only. POSIX-only (grep/awk/sed).
+modelith-drift:
+	@scripts/modelith-drift.sh $(MODELITH_CODE_MODEL)
 
 # `vet` runs before `verify-cross-compile` for fail-fast on host-local errors;
 # `verify-cross-compile` then re-covers the host target as part of the matrix.

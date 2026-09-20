@@ -58,12 +58,60 @@ this same route; the ADR/truth prose cites this section rather than restating it
 make modelith-lint     # validate every *.modelith.yaml (0 errors / 0 warnings)
 make modelith-render   # regenerate every *.modelith.md from its YAML
 make modelith-check    # drift gate: fail if a committed .md is stale
+make modelith-drift    # ADVISORY (never fails): a modeled entity with no code anchor
 ```
 
 `make modelith-check` is a **zero-tolerance** member of `make verify`: **drift
 fails**, and an **absent `modelith` binary fails** (naming the install route) —
 it never silently skips. A host running `make verify` therefore needs the modelith
 dev tool installed (ADR 0030 §D3).
+
+`make modelith-drift` is different: **advisory**, **not** a `make verify` member,
+**never failing** (see *Drift guard* below).
+
+## Drift guard (advisory)
+
+The model is **load-bearing**: it is *descriptive docs, subordinate to truth*, but
+it is **maintained** — a round that changes **modelled behaviour** updates
+`docs/domain-model/**` **in the same PR** (ADR 0041). Two guards keep it honest:
+
+| Guard | Kind | What it catches |
+| --- | --- | --- |
+| `make modelith-check` | **gate** (`make verify` member, zero-tolerance) | the rendered `.md` is **stale** vs its `.yaml` source (YAML↔MD generation drift) |
+| `make modelith-drift` | **advisory** (never fails, not a `verify` member) | a **modeled entity whose concept has vanished from the code** (a stale model entry — the round-time rule above is the primary guard; this is its aid) |
+
+`make modelith-drift` (script `scripts/modelith-drift.sh`) checks, for every
+modeled **entity**, **enum**, and **glossary** term, whether **any** of its *code
+anchors* — its own name, a backticked identifier in its definition, or one of its
+enum values — still appears in the production Go sources (comments included;
+test files excluded). Zero anchors ⇒ a warning. It is deliberately **lenient**
+(one live anchor clears the entry) and **code-model-only**
+(`tellme.modelith.yaml`); the quality and environment models are not code-backed.
+A term that models a **deliberate absence** (e.g. `NoSecurityLayer`) is
+hand-excepted in the script.
+
+**Why there is no name-diff check (the anti-muse record).** The reference ships
+advisory `modelith-drift` / `modelith-layers` gates that flag **new** exported Go
+identifiers with no model entry. A direct port was **measured** on this repo and
+rejected: comparing the model's names against the exported types under
+`internal/domain/**` produced **~45 of 57 types flagged (~79 % false positives)** —
+ports (`Store`, `Sink`, `Reader`, `Source`, `Prompter`, `Loop`, `Lines`, …) and
+value types (`Request`, `Response`, `Result`, `Step`, `Entry`, …) vastly outnumber
+*modeled concepts*, and the reverse direction flagged **12 legitimate entities**
+(named differently in code, logical enums, behavioural roles). Shipping it would
+recreate the **retired** "noisy advisory surface becomes a permanent muse" failure
+(the `RF-063-10` / `RF-068-1` class the curation rule exists to prevent). The
+forward check above is **precise** (zero findings on the current tree, and it
+catches a synthetic stale entry); a name-diff check would need a hand-curated
+entity↔symbol manifest, which is a **separate, unwarranted** decision today.
+
+**What neither guard catches (be honest):** *semantic* model rot — the model
+describing behaviour the code does not have (e.g. skills modelled as auto-injected
+vs the shipped on-demand surface; media modelled as an attached collector vs the
+shipped in-band return). That class has **no mechanical carrier**; it is caught by
+the **round-time rule** (the truth owner that touches a modelled area updates the
+model), backed by review. Keeping the model load-bearing is a **process**
+commitment, not a gate.
 
 ## Authoring conventions
 
@@ -84,6 +132,10 @@ dev tool installed (ADR 0030 §D3).
 
 The model is refreshed **alongside a round's truth changes** (the truth owner that
 edits `specs/truth/techstack.md` or the CLI features updates the corresponding
-model section in the same PR); the drift gate is the safety net. There is **no**
-scheduled refresh pass, and the model is **not** a plan package (no `delivered`
-freeze) — it always represents the *current* system (ADR 0030 §D6).
+model section in the same PR); the `modelith-check` gate is the YAML↔MD safety
+net and `make modelith-drift` is the advisory staleness aid. **A round that
+changes modelled behaviour MUST touch `docs/domain-model/**`** (or record, in its
+plan package, why the change is not modelled) — the model is load-bearing
+(ADR 0041). There is **no** scheduled refresh pass, and the model is **not** a plan
+package (no `delivered` freeze) — it always represents the *current* system
+(ADR 0030 §D6).
