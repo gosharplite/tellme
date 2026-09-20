@@ -84,7 +84,7 @@ MODELITH_MODELS := $(wildcard docs/domain-model/*.modelith.yaml)
 # code-backed (reference: MODELITH_CODE_MODEL).
 MODELITH_CODE_MODEL := docs/domain-model/tellme.modelith.yaml
 
-.PHONY: help build fmt vet tidy lint vulncheck test test-fast verify verify-no-test-sleep verify-no-network verify-cross-compile verify-mcp-sdk-confinement verify-architecture verify-architecture-update modelith-lint modelith-render modelith-check modelith-drift
+.PHONY: help build fmt vet tidy lint vulncheck test test-race test-fast verify verify-no-test-sleep verify-no-network verify-fmt verify-adr-index verify-cross-compile verify-mcp-sdk-confinement verify-architecture verify-architecture-update modelith-lint modelith-render modelith-check modelith-drift
 
 help:
 	@echo "tellme development tasks:"
@@ -95,9 +95,12 @@ help:
 	@echo "  make vulncheck            - run govulncheck ./... (resolved from PATH)"
 	@echo "  make tidy                 - go mod tidy"
 	@echo "  make test                 - go test ./..."
+	@echo "  make test-race            - race detector, package-by-package (NOT a verify member; ADR 0042)"
 	@echo "  make test-fast            - run a SUBSET of the E2E contract (godog.paths; NOT the gate; ADR 0024)"
 	@echo "  make verify-no-test-sleep - forbid time.Sleep for synchronization in *_test.go (ADR-036 parity)"
 	@echo "  make verify-no-network    - build-graph capability guard: no net/net/http in ./cmd/tellme closure"
+	@echo "  make verify-fmt           - gofmt -l: fail if any Go file is not gofmt-clean (ADR 0042)"
+	@echo "  make verify-adr-index     - every docs/decisions/ ADR is indexed once (ADR 0042)"
 	@echo "  make verify-cross-compile - build + vet the module for every supported POSIX target (linux/darwin, amd64/arm64)"
 	@echo "  make verify-mcp-sdk-confinement - verify the MCP Go SDK is imported only under internal/infrastructure/mcp/"
 	@echo "  make verify-architecture  - layer-discipline gate: import-direction over the pinned layer ranking (ADR 0011)"
@@ -106,7 +109,7 @@ help:
 	@echo "  make modelith-render      - regenerate docs/domain-model/*.modelith.md from the YAML (never hand-edit)"
 	@echo "  make modelith-check       - drift gate: fail if a committed *.modelith.md is stale (or modelith is absent)"
 	@echo "  make modelith-drift       - ADVISORY (not a verify member): a modeled entity with no code anchor"
-	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + vet + verify-cross-compile + verify-mcp-sdk-confinement + verify-architecture + modelith-check + lint + vulncheck"
+	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + verify-fmt + verify-adr-index + vet + verify-cross-compile + verify-mcp-sdk-confinement + verify-architecture + modelith-check + lint + vulncheck"
 
 # NOTE: `VERSION ?= dev` is the local/release default ONLY.
 # The E2E harness must build explicitly with the sentinel
@@ -146,6 +149,24 @@ endif
 
 test: verify-mcp-sdk-confinement
 	go test ./...
+
+# test-race — the race detector, package-by-package (AI-SAFE: a per-package loop,
+# not one `go test -race ./...`, so a single slow/contended package cannot time
+# the whole run out). NOT a `make verify` member (race is expensive); run it on
+# demand — a pre-push / closeout check. Scope defaults to the whole module; override
+# with RACE_PKGS. The race detector catches data races in tellme's own process —
+# the UI coordinator (mutexed writer + spinner admit goroutine), the telemetry
+# sampler — which the subprocess-based E2E contract cannot instrument. Run it on
+# demand (a pre-push / closeout check; ADR 0042 RF-042-1 defers a `check-full`
+# aggregate).
+RACE_PKGS ?= ./...
+test-race:
+	@echo "test-race: race detector over $(RACE_PKGS) (package-by-package) ..."
+	@for pkg in $$(go list $(RACE_PKGS)); do \
+		echo "  race $$pkg"; \
+		go test -race -count=1 -timeout 300s $$pkg || exit 1; \
+	done
+	@echo "  ✓ no data races detected"
 
 # test-fast — a SUBSET of the executable contract for a fast inner loop.
 #
@@ -255,6 +276,34 @@ verify-mcp-sdk-confinement:
 	fi
 	@echo "  ✓ MCP Go SDK imports confined to internal/infrastructure/mcp/"
 
+# Format gate (ADR 0042): `make fmt` MUTATES; this CHECKS. A `gofmt -l` that is
+# non-empty fails — so formatting drift is caught in the pipeline, not only at
+# closeout. Fast, hermetic, no dependency (the toolchain's own gofmt).
+verify-fmt:
+	@echo "verify-fmt: gofmt -l (no unformatted Go files) ..."
+	@out=$$(gofmt -l . 2>/dev/null); \
+	if [ -n "$$out" ]; then \
+		echo ""; echo "❌ gofmt would reformat:"; echo "$$out"; echo ""; \
+		echo "Fix: run 'make fmt'."; exit 1; \
+	fi
+	@echo "  ✓ all Go files gofmt-clean"
+
+# ADR-index gate (ADR 0042): every ADR file on disk is listed in
+# docs/decisions/README.md and no ADR number is claimed twice. The index is
+# hand-maintained; this makes its consistency mechanical (fast, hermetic).
+verify-adr-index:
+	@echo "verify-adr-index: every ADR is indexed and numbered once ..."
+	@fail=0; \
+	for f in docs/decisions/[0-9]*.md; do \
+		[ -e "$$f" ] || continue; \
+		b=$$(basename "$$f"); \
+		grep -qF "$$b" docs/decisions/README.md || { echo "  ❌ $$b missing from docs/decisions/README.md"; fail=1; }; \
+	done; \
+	dupes=$$(grep -h '^# ADR [0-9]' docs/decisions/[0-9]*.md 2>/dev/null | sed -E 's/^# ADR ([0-9]+).*/\1/' | sort -n | uniq -d); \
+	if [ -n "$$dupes" ]; then echo "  ❌ duplicate ADR number(s): $$dupes"; fail=1; fi; \
+	if [ "$$fail" -ne 0 ]; then echo "  → fix docs/decisions/README.md (add the row / renumber)"; exit 1; fi
+	@echo "  ✓ ADR index consistent (all files indexed, numbers unique)"
+
 # Layer-discipline gate (round 042, ADR 0011): an import-direction check over the
 # pinned layer ranking (domain -> config/home -> app -> infrastructure -> agent ->
 # ui -> cli; cmd/tests/tools exempt), evaluated as the union over CROSS_TARGETS so
@@ -317,5 +366,6 @@ modelith-drift:
 
 # `vet` runs before `verify-cross-compile` for fail-fast on host-local errors;
 # `verify-cross-compile` then re-covers the host target as part of the matrix.
-verify: verify-no-test-sleep verify-no-network vet verify-cross-compile verify-mcp-sdk-confinement verify-architecture modelith-check lint vulncheck
+# verify-fmt / verify-adr-index are the ADR-0042 additions (format + ADR-index).
+verify: verify-no-test-sleep verify-no-network verify-fmt verify-adr-index vet verify-cross-compile verify-mcp-sdk-confinement verify-architecture modelith-check lint vulncheck
 	@echo "verify: OK"

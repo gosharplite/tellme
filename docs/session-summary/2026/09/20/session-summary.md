@@ -896,3 +896,53 @@ The highest-value follow-up from the quality briefing: the model **rotted silent
 
 1. Open the next round off `dev` from the **operator-value / live-issue** candidate — **[#91](https://github.com/gosharplite/tellme/issues/91)**; its truth owner will now keep the model in step (ADR 0041).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 27. Session 56 (2026-09-20, cont.) — three quality gates: `verify-fmt` + `verify-adr-index` (`make verify` members) + a standalone `make test-race` (ADR 0042)
+
+The A1–A3 items from the quality list. All precise, all green on day one, all small; **no round, no product code**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| **1 `test-race`** | New **standalone** target (package-by-package `-race`; `RACE_PKGS` override, default `./...`). **Not** a `verify` member (expense: the package-by-package loop measured **~72 s** — a single `go test -race ./...` is ~28.6 s, and `./internal/...` ~11.6 s; the per-package loop is the AI-safe form). Closes the only real quality gap: there was **no race detector anywhere, and no CI**, over a repo with a mutexed UI coordinator, a telemetry sampler, and a parallel E2E suite. |
+| **2 `verify-adr-index`** | New **`make verify`** member: every `docs/decisions/[0-9]*.md` is listed once in `docs/decisions/README.md`; no duplicate numbers. Green now (41 files = 41 rows). |
+| **3 `verify-fmt`** | New **`make verify`** member: `gofmt -l` non-empty ⇒ fail ("run `make fmt`"). The *check* counterpart of the *mutating* `fmt`. |
+| Scope | items **1,2,3 only** (the operator's exact ask — the optional `make check` aggregate was **not** added). |
+| Verified | `make verify` **OK in 13.9 s** (two new fast members) · `make test-race` ✓ no races · `make verify-fmt`/`verify-adr-index` ✓ · `modelith-lint` 0/0 + `modelith-check` green · `gofmt`/`go vet` clean |
+
+### Surfaces
+
+- `Makefile` — `test-race`, `verify-fmt`, `verify-adr-index` targets; the `verify` aggregate (+2 members); `.PHONY`; `make help`.
+- **ADR 0042** (+ index row) — records the three gates, the *why*, and the **kept rejections** (fold `vet`? no — it's the toolchain-native minimal gate; coverage/#144 declined; topology-audit errors are a carried check with an external script).
+- `specs/truth/techstack.md` — the Formatting row (now names `verify-fmt`) + the Task runner row (aggregate list + ADR-0042 note).
+- `docs/domain-model/quality.modelith.yaml` (+ render) — the `QualityPipeline` aggregate list + the `QualityGate` examples.
+- `SESSION-CLOSEOUT.md` Step 2 — the current gate set (`make verify` + `go test -count=1 ./...` + `make test-race`); `STATUS.md` env note + header; this §27.
+
+### Validation folds (resumed)
+
+- **`verify-adr-index` duplicate check was vacuous** — the in-flight dupe grep matched `^# ADR-`, but tellme's titles are `# ADR NNNN —` (space). Fixed to `^# ADR [0-9]` + number extraction; the duplicate-number **witness** now reproduces (a synthetic `# ADR 0041` copy fails the gate).
+- **Dangling `make check-full` reference** in the `test-race` comment — no such target ships (RF-042-1 defers it); reworded to "on demand (a pre-push / closeout check)".
+- **Witnesses (reproduced then reverted):** (a) an unindexed ADR (`9999-temp-witness.md`) ⇒ `verify-adr-index` fails; (b) a duplicate number ⇒ fails; (c) an unformatted `.go` ⇒ `verify-fmt` fails. All green after revert; no witness residue.
+- **End-to-end:** `make verify` **OK** (with the two new members) · `make test` green (~25 s) · `make test-race` **✓ no races** (~72 s) · `modelith-lint` 0/0 · `modelith-check` green · `make modelith-drift` ✓ (28 checked) · `gofmt -l .` clean.
+
+### Decisions locked (round-free quality pass)
+
+| # | Decision |
+| --- | --- |
+| — | `verify-fmt` + `verify-adr-index` **join `make verify`** (fast, hermetic, zero false positives) — **ADR 0042**. |
+| — | `test-race` is a **standalone** pre-push target, **not** a `verify` member (expense). |
+| — | The audit's other candidates (`vet` fold, coverage, topology errors) remain **rejected** (ADR 0042 D4). |
+
+### Commits
+
+| Commit | Note |
+| --- | --- |
+| *(this pass, on `dev`)* | `chore(make): add verify-fmt + verify-adr-index gates and a test-race target (ADR 0042)` |
+
+### Next steps
+
+1. Open the next round off `dev` from the **operator-value / live-issue** candidate — **[#91](https://github.com/gosharplite/tellme/issues/91)**.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
