@@ -90,3 +90,17 @@ func TestCapRunes_RuneBoundary(t *testing.T) {
 		t.Errorf("capRunes rune-boundary cut = %q", got)
 	}
 }
+
+// TestFormatUnpairedCalls pins round 068 (ADR 0038): the unpaired-call diagnostic
+// line shape — a plain `[Tool Warning]` line naming the ids (Q1 → A: a stderr
+// `[Tool …]`-class line, no colour).
+func TestFormatUnpairedCalls(t *testing.T) {
+	got := FormatUnpairedCalls(time.Date(2026, 9, 20, 7, 8, 9, 0, time.UTC), []string{"call_2", "call_3"})
+	want := "[07:08:09] [Tool Warning] 2 tool call(s) left unanswered: call_2, call_3"
+	if got != want {
+		t.Fatalf("FormatUnpairedCalls = %q, want %q", got, want)
+	}
+	if strings.Contains(got, "\x1b[") {
+		t.Fatalf("the diagnostic must be plain (no colour): %q", got)
+	}
+}

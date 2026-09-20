@@ -1,6 +1,6 @@
 # ADR 0037 — Gemini/Vertex tool-call id provenance (provider-issued `functionCall.id` preference) + unpaired-call accounting
 
-- **Status:** Accepted
+- **Status:** Accepted (**§Forward RF-067-1 delivered by [ADR 0038](0038-unpaired-call-diagnostic.md) — round 068**)
 - **Date:** 2026-09-20
 - **Deciders:** tellme owner
 - **Related:** [ADR 0036](0036-toolcall-id-pairing.md) (id-link + id-keyed pairing — this ADR **delivers its §Forward RF-066-2 + RF-066-7** and **retires RF-066-8**), [ADR 0035](0035-gemini-parallel-tool-call-batching.md) (the batched round shape), round 066 (`specs/plans/066-toolcall-id-pairing`), round 067 (`specs/plans/067-toolcall-id-followups` — this ADR's round), issue [#136](https://github.com/gosharplite/tellme/issues/136), issue [#36](https://github.com/gosharplite/tellme/issues/36) item 3 (concurrent tool-call matching), `tell-me-go` (the parity precedent: `fromSDKFunctionCall` reads `f.ID` first, else a deterministic fallback)
@@ -80,7 +80,7 @@ Round 066 (ADR 0036) id-linked a Gemini/Vertex round's `functionCall`/`functionR
 
 ## §Forward (deferred, non-blocking)
 
-- **RF-067-1** — the unpaired-call observability is a **returned-value accessor** with **no live consumer**; the boundary drop stays silent at runtime. Surfacing it as a user-visible `[Tool …]`/`stderr` diagnostic is deferred (no adapter logging seam; a scope addition requiring operator confirmation).
+- **RF-067-1** — the unpaired-call observability is a **returned-value accessor** with **no live consumer**; the boundary drop stays silent at runtime. Surfacing it as a user-visible `[Tool …]`/`stderr` diagnostic is deferred (no adapter logging seam; a scope addition requiring operator confirmation). **DELIVERED by [ADR 0038](0038-unpaired-call-diagnostic.md) (round 068)** — a plain `stderr` `[Tool Warning]` diagnostic (informational; not in `turns.log`), surfaced by a CLI gateway decorator over the now single-owned `llm.UnpairedToolCalls`.
 - **RF-067-2** — the provider-id preference is **live-unverified** hermetically; a branch-built live Vertex check is a closeout item (record `go version -m`; RF-066-10). **CLOSED 2026-09-20 (session 48)** — performed live and PASSED (the `## Verification` *Live* bullet: a dev-built binary, a real Vertex tool turn, `exit 0`, zero `400`s, `go version -m` provenance recorded).
 - **RF-067-3** — an E2E carrier for the wire `id` (RF-066-9) stays open; the pins are fixture-based.
 - **RF-067-4** — concurrent tool **execution** ([#36](https://github.com/gosharplite/tellme/issues/36) item 3) is still not added.

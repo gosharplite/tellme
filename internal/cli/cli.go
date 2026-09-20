@@ -681,6 +681,11 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	if err != nil {
 		return emitProviderError(env.stderr, err)
 	}
+	// Round 068 (ADR 0038; resolves ADR 0037 RF-067-1): wrap the gateway so a
+	// Gemini/Vertex round that leaves a tool call unanswered (M < N) is reported as
+	// a `[Tool …]` diagnostic on stderr BEFORE the request is sent — informational,
+	// never routed to turns.log (Q1/Q2 → A). The shipped M == N path is inert.
+	gw = withUnpairedDiagnostic(gw, unpairedEmitter(env, dp.NewLines(chromeColour(opts, env))))
 	prior, err := store.Load()
 	if err != nil {
 		return emitHistoryError(env.stderr, err)

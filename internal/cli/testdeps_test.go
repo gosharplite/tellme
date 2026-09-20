@@ -229,6 +229,10 @@ func (fakeLines) ToolReason(_ time.Time, reason string) string {
 	return fmt.Sprintf("<reason %s>", reason)
 }
 
+func (fakeLines) UnpairedCalls(_ time.Time, ids []string) string {
+	return "<unpaired:" + strings.Join(ids, ",") + ">"
+}
+
 func (fakeLines) ToolUsage(rows []history.ToolUsageRow) string {
 	names := make([]string, 0, len(rows))
 	for _, r := range rows {

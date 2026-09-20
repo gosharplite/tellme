@@ -230,3 +230,19 @@ func capRunes(s string, max int) string {
 	}
 	return string(rs[:max-1]) + "…"
 }
+
+// FormatUnpairedCalls renders the round-068 unpaired-call diagnostic (ADR 0038;
+// surfaces ADR 0037 §Forward RF-067-1): a `[Tool …]`-class line naming the tool
+// calls a Gemini/Vertex round left UNANSWERED (M < N). Shape:
+//
+//	[HH:MM:SS] [Tool Warning] <n> tool call(s) left unanswered: <id, id, …>
+//
+// It is PLAIN (no colour) — a warning is not a chrome accent, and keeping it
+// colour-free makes the terminal gate trivially safe (ADR 0023). It is written to
+// `stderr` only and is NEVER routed to `turns.log` (Q1 → A; the `[Tool Output]`
+// block precedent, ADR 0022 D5). The caller emits it only when ids is non-empty,
+// so the shipped `M == N` path prints nothing (I-7).
+func FormatUnpairedCalls(t time.Time, ids []string) string {
+	return fmt.Sprintf("[%s] [Tool Warning] %d tool call(s) left unanswered: %s",
+		formatClock(t), len(ids), strings.Join(ids, ", "))
+}

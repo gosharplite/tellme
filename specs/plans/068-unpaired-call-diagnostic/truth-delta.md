@@ -11,26 +11,27 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| *(pending)* | `specs/truth/techstack.md` — *Vertex/Gemini adapter* (and/or *Agent tool loop*) | *expected MODIFY*: the `M < N` boundary drop is surfaced as a user-visible diagnostic (not only an in-code account). | `spec.md` US1 (FR-001…FR-007) |
-| *(pending)* | `docs/decisions/0038-*.md` (or an ADR-0037 forward-annotation) | *expected ADD*: the diagnostic decision + the detection seam. | `spec.md` A4/S-6 |
+| MODIFY | `specs/truth/techstack.md` — *Vertex/Gemini adapter* | the `M < N` unpaired-call account is surfaced as a plain `stderr` `[Tool Warning]` diagnostic via the family-neutral `llm.UnpairedToolCalls` (adapter delegates) + a CLI gateway decorator; informational; not in `turns.log`; defensive (no live producer today). | `spec.md` US1 (FR-001…FR-007); `research.md` D1/D2/D3 |
+| ADD | `docs/decisions/0038-unpaired-call-diagnostic.md` (+ index; an annotation on ADR 0037 §Forward RF-067-1) | the diagnostic + the seam. **Delivers ADR 0037 RF-067-1.** | `spec.md` A4; `research.md` D7 |
+| NOOP (checked) | the OpenAI-compatible rows | untouched (the account is always empty there; I-1). | `spec.md` I-1/S-5 |
 
 ## /axb-api-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| *(pending)* | `specs/truth/` (**no `contracts/**`**) | Single CLI end; no OpenAPI/HTTP surface. | `spec.md` A4 |
+| NOOP (checked) | `specs/truth/` (**no `contracts/**`**) | Single CLI end; no OpenAPI/HTTP surface. | `spec.md` A4 |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| *(pending)* | `specs/truth/data/data-model.dbml` | No persisted shape change (the diagnostic is transient; `turns.log` is a rendered-text file, not a modelled record). | `spec.md` A4 |
+| NOOP (checked) | `specs/truth/data/data-model.dbml` | No persisted shape change (the diagnostic is transient; `turns.log` is a rendered-text file, not a modelled record). | `spec.md` A4 |
 
 ## /axb-dsl-refine
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| *(pending)* | `specs/truth/features/cli/**` + `dsl.md` | *expected MODIFY*: a small interface Rule/Example for the unpaired-call diagnostic (`M < N` ⇒ a `stderr` diagnostic; `M == N` ⇒ none). | `spec.md` A5 (user-visible → not NOOP) |
+| NOOP (recorded narrowing) | `specs/truth/features/cli/**` + `dsl.md` | **NOOP** — the diagnostic has **no hermetic producer** (`agentloop.go` appends one result per call ⇒ `M == N` always), so no godog Example can drive it; an Example-less Rule is forbidden (RF-063-10 retired). Carriers are the domain/ui/cli pins (the round-059 narrowing class). | `spec.md` A5; `plan.md` §3 |
 
 **Domain model** (`docs/domain-model/tellme.modelith.{yaml,md}`, ADR 0030 — descriptive): *expected MODIFY/NOOP* — decided when the diagnostic's domain concept (if any) is fixed; `make modelith-check` must stay green.
 

@@ -193,8 +193,7 @@ func requestBody(prompt string, prior []llm.Message, toolDefs []llm.ToolDef, max
 // results in CALL order, so the wire shape is unchanged (the added `id` key is
 // the sole difference).
 func buildContents(prompt string, prior []llm.Message) []map[string]any {
-	contents, _ := buildRound(prompt, prior)
-	return contents
+	return buildRound(prompt, prior)
 }
 
 // UnpairedCallIDs returns, in call order across the whole prior, the ids of the
@@ -207,23 +206,24 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 // diagnostic is the recorded forward item RF-067-1; the adapter owns no logging
 // seam). A round whose calls are all paired contributes nothing.
 func UnpairedCallIDs(prior []llm.Message) []string {
-	_, unpaired := buildRound("", prior)
-	return unpaired
+	// Round 068 (ADR 0038): the round-boundary account has ONE owner, the
+	// family-neutral llm.UnpairedToolCalls; the adapter delegates so its M < N
+	// drop and the CLI's diagnostic cannot drift.
+	return llm.UnpairedToolCalls(prior)
 }
 
 // buildRound is the single builder: it walks the prior once and returns the
-// Vertex `contents` (with the prompt appended when non-empty) AND the ids of the
-// calls left unpaired at a round boundary. buildContents delegates to it, so the
-// emitted body and the unpaired account come from one pass and cannot disagree by
-// construction.
-func buildRound(prompt string, prior []llm.Message) ([]map[string]any, []string) {
+// Vertex `contents` (with the prompt appended when non-empty). The unpaired-call
+// account is single-owned by the family-neutral llm.UnpairedToolCalls (round 068;
+// ADR 0038) — the adapter's UnpairedCallIDs delegates there.
+func buildRound(prompt string, prior []llm.Message) []map[string]any {
 	b := newRoundBuilder()
 	b.consume(prior)
 	b.flush()
 	if prompt != "" {
 		b.contents = append(b.contents, map[string]any{"role": "user", "parts": []map[string]any{{"text": prompt}}})
 	}
-	return b.contents, b.dropped
+	return b.contents
 }
 
 // newRoundBuilder builds an empty round builder.
@@ -273,21 +273,6 @@ type roundBuilder struct {
 	resultParts  map[int]map[string]any // one functionResponse PART per matched call index
 	extraResults []map[string]any       // results with no call to bind (kept, name "")
 	mediaTurns   [][]map[string]any     // this round's standalone media turns
-	dropped      []string               // ids of calls left unpaired at a round boundary (round 067; RF-066-7)
-}
-
-// unpaired returns, in call order, the ids of the current round's calls that
-// have received no result — the M < N boundary drop's account (round 067;
-// ADR 0037; RF-066-7). Computed at the one place the drop happens (flush), so the
-// accounting cannot drift between call sites.
-func (b *roundBuilder) unpaired() []string {
-	var ids []string
-	for i := range b.pending {
-		if !b.pending[i].used {
-			ids = append(ids, b.pending[i].id)
-		}
-	}
-	return ids
 }
 
 // flush emits the buffered round: the batched function-response turn (when any
@@ -309,7 +294,6 @@ func (b *roundBuilder) flush() {
 		parts = append(parts, b.extraResults...)
 		b.contents = append(b.contents, map[string]any{"role": "user", "parts": parts})
 	}
-	b.dropped = append(b.dropped, b.unpaired()...) // round 067: account the boundary drop (RF-066-7)
 	b.resultParts = map[int]map[string]any{}
 	b.extraResults = nil
 	b.pending = nil
