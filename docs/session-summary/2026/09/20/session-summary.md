@@ -1144,3 +1144,62 @@ Operator: *"Communicate with sub-agent 'architect'. Initialize architect with `S
 - **Folded**: TD-071-1 (**bound the no-match return** — a real round-024 violation, witness 5127 B > 100 B budget), TD-071-2 (FR-018 pin), TD-071-3 (**the interface feature now carries determinism** — a DFS≠sorted fixture + a generic path-order Then; the E2E REDs without the sort), TD-071-4 (divergence ledger corrected to three deliberate + three recorded), + 4 nits + 7 residuals.
 - **Final state** on `802acc0`: gates green (`go test -count=1 ./...` · `make verify` OK · E2E 275/275) · `go.mod`/`go.sum` unchanged · **loop CLOSED, cleared for human merge**.
 - **Lesson recorded**: a scripted replacement that does not match its target is a **silent no-op** — the reviewer caught a fold wrongly reported as applied; *verify the tree, not the claim*.
+
+---
+
+## 33. Session 57 closeout (2026-09-20) — round 071 `071-search-files-tool` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 071 was human-merged (PR [#148](https://github.com/gosharplite/tellme/pull/148) → `dev` `b87ba4c`, **fast-forward**), the remote branch was already gone, the operator confirmed the merge, and the local branch was deleted (`git branch -d`). Then the closeout ran.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Step 1 — working tree | clean; on `dev`; `dev == origin/dev == b87ba4c`; no delivered `specs/plans/**` touched (frozen history intact) |
+| Step 2 — gates | `gofmt -l .` clean · `go vet ./...` clean · `go test -count=1 ./...` **green** (E2E **275/275**) · `make verify` **OK** (layer 0 · modelith-check ×3 · verify-fmt · verify-adr-index · lint 0 · govulncheck clean) · topology audit **the same 5 pre-existing errors, none new** (50 features · 394 module rows · 2022 steps) · `go.mod`/`go.sum` unchanged |
+| Step 3 — `STATUS.md` | header + round-in-flight (`none`) + active branch (`dev`) refreshed; **split (Rule 12)**: the **round-070** delivered-round detail + its branch-model row + its env note relocated **verbatim** into [`docs/archives/status/2026-09-20.md`](../../../../archives/status/2026-09-20.md); the **round-071** delivered-round section added; the delivered-rounds index gains 071; the branch model + propagation history + roadmap + open-items (round-069/068 compacted to ADR pointers; round-071 forward items added) + env notes updated |
+| Step 4 — daily summary | this file, §33 |
+| Step 5 — reconcile | `STATUS.md` ↔ this summary agree: pipeline position (none in flight), decisions, open items, branch heads |
+| Step 6 — commit | working `dev` committed + pushed |
+| Step 7 — propagate + hand off | `dev → main` (**no-ff**), tagged **`round-071`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| Step 8 — issue tracker | reconciled — **#147 remains the only open issue** (a candidate inventory, not a DoD); nothing closed/revised |
+
+### Decisions locked (round 071)
+
+| # | Decision |
+| --- | --- |
+| **Q1 → A** | `search_files` mode: **literal by default**, `is_regex: true` opts into an RE2 pattern. |
+| **Q2 → A** | Skip **binary** files + a **10 MB** line token; **no** directory ignore list; unreadable paths best-effort; caller scopes with `path`. |
+| **Q3 → A** | The round-024 **byte budget on every return path** + a hard **100-match cap** + a **500-byte** line trim; `path:line: <trimmed line>`, sorted path-then-line. |
+| **D1–D7** (research) | A ninth tool; an own sibling adapter; **three deliberate divergences** from the reference (no `SafePath` · no `WorkspacePolicy` · deterministic) + **three further recorded differences**; **ADR 0043**. |
+
+### Commits (branch `071-search-files-tool`, then merged fast-forward to `dev` `b87ba4c`)
+
+| Commit | Note |
+| --- | --- |
+| `c01b3df` | `docs(071)`: open round 071 (specify; clarify escalated) |
+| `1ac1b33` | `docs(071)`: fold clarify Q1–Q3 + acceptance + research + plan + tasks |
+| `18f319d` | `feat(071)`: `search_files` tool (ADR 0043) + truth + E2E |
+| `84e341a` | `docs(071)`: STATUS + summary §32 (PR open) |
+| `85cac23` | `fix(071)`: fold A1 — TD-071-1 (bound the no-match path) + TD-071-2/3/4 + nits |
+| `65e7df8` | `fix(071)`: fold A1 residuals (RES-1…6) |
+| `9932185` | `fix(071)`: RES-2 + RES-5a (the silent no-op fold corrected) |
+| `802acc0` | `docs(071)`: RES-2b |
+| `b87ba4c` | `docs(071)`: STATUS + summary §32 addendum — review-fold loop CLOSED (merged fast-forward to `dev`) |
+
+### Open items (non-blocking)
+
+- **RF-071-1…5** in **ADR 0043 §Forward** (find_file excluded · the Go/AST cluster separate · the silent line cut · fixed 10 MB/1000 constants · the duplicated binary probe).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the 5 pre-existing topology-audit DSL errors.
+- **Issue tracker**: **[#147](https://github.com/gosharplite/tellme/issues/147)** is the **only open issue** — a candidate inventory; round 071 delivered *one* candidate (`search_files`) but #147 is **not** a DoD and stays open.
+
+### Next steps
+
+1. Open round **`072-*`** off `dev` via `/axb-specify` — from **operator value** or a **live issue** ([#147](https://github.com/gosharplite/tellme/issues/147)'s remaining candidates, e.g. the Go/AST suite).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; no PM-owned gaps).
+
+*(Round 071 is fully closed out: PR #148 human-merged into `dev` (`b87ba4c`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-071`**; the installed binary refreshed.)*
