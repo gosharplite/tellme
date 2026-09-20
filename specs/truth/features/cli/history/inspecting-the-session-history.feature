@@ -116,9 +116,9 @@ Feature: Inspecting the session history
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the session history already holds the exchanges:
-        | prompt            | answer |
-        | My name is Alice. | Noted. |
-        | What is my name?  | Alice  |
+        | prompt            | answer     |
+        | My name is Alice. | **Noted**  |
+        | What is my name?  | Alice      |
       When the operator asks tellme to list the last 2 messages
       Then tellme heads each listed message with its role
       And the listed model answer is presented as formatted prose

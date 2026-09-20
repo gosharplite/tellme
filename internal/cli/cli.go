@@ -22,7 +22,6 @@ import (
 	"github.com/gosharplite/tellme/internal/config"
 	agentport "github.com/gosharplite/tellme/internal/domain/agent"
 	"github.com/gosharplite/tellme/internal/domain/history"
-	"github.com/gosharplite/tellme/internal/domain/llm"
 	"github.com/gosharplite/tellme/internal/domain/render"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 	domaintui "github.com/gosharplite/tellme/internal/domain/tui"
@@ -154,6 +153,12 @@ type runtimeEnv struct {
 	// Nil disables the turn spinner — the gate is the stderr stream, so there is
 	// no fallback to the shared (stdin) probe.
 	stderrTTY func(any) bool
+	// stdoutTTY is the standard-output (stdout) terminal probe (round 073;
+	// ADR 0045). It is tellme's first stdout probe and is used ONLY by the `-l`
+	// listing's header-accent gate — the prompt path wires no stdout chrome, so
+	// round-006 / PR #16 Obs 1 stays OPEN. Nil reports "not a terminal" (the
+	// safe, byte-plain default).
+	stdoutTTY func(any) bool
 	renderer  render.Answer
 	// clock is the injected time seam for the payload status line (round 009);
 	// nil falls back to time.Now.
@@ -296,6 +301,7 @@ func Run(args []string, version string, opts Options) int {
 		stderr:    os.Stderr,
 		isTTY:     terminalDetector(),
 		stderrTTY: stderrTerminalDetector(),
+		stdoutTTY: stdoutTerminalDetector(),
 		renderer:  opts.Deps.NewAnswer(),
 		clock:     time.Now,
 	})
@@ -326,6 +332,31 @@ func (e runtimeEnv) stderrIsTerminal() bool {
 		return false
 	}
 	return e.stderrTTY(e.stderr)
+}
+
+// stdoutTerminalDetector returns the process's standard-output (stdout) terminal
+// probe. The diagnostic environment seam TELL_ME_FORCE_STDOUT_TTY forces the
+// stdout probe to report a terminal so the round-073 listing's header accents are
+// E2E-drivable without a pty (mirroring the TELL_ME_FORCE_STDERR_TTY seam). It is
+// tellme's first stdout probe; it is wired for the `-l` listing colour ONLY, so
+// round-006 / PR #16 Obs 1 (stdout *chrome* on a prompt turn) stays OPEN.
+func stdoutTerminalDetector() func(any) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("TELL_ME_FORCE_STDOUT_TTY"))) {
+	case "1", "true", "yes":
+		return func(any) bool { return true }
+	default:
+		return defaultIsTerminal
+	}
+}
+
+// stdoutIsTerminal reports whether standard output is a terminal via the
+// dedicated stdout probe (round 073). With no probe set it reports false (the
+// safe, byte-plain default) — never falling back to the shared (stdin) probe.
+func (e runtimeEnv) stdoutIsTerminal() bool {
+	if e.stdoutTTY == nil {
+		return false
+	}
+	return e.stdoutTTY(e.stdout)
 }
 
 // terminalDetector returns the process's terminal probe. When the diagnostic
@@ -363,7 +394,7 @@ func run(args []string, version string, scoped Options, env runtimeEnv) int {
 
 	// The offline reporting commands run in precedence order — -d → -l → -t →
 	// --tool-usage — before any prompt or stdin access.
-	if code, handled := dispatchReporting(f, homeDir, env, dp.NewHistoryStore, dp.NewTurnsLogStore, func() int {
+	if code, handled := dispatchReporting(f, homeDir, env, dp.NewHistoryStore, dp.NewTurnsLogStore, dp.NewListing, func() int {
 		return renderToolUsage(env, dp.NewToolRegistry, dp.NewToolUsageStore, dp.UserHomeDir, dp.NewLines(false))
 	}); handled {
 		return code
@@ -451,7 +482,7 @@ func parseFlags(args []string, stderr io.Writer) (f *flags, flagArgs []string, o
 	fs.StringVarP(&o.configPath, "config", "c", "", "Path to the YAML configuration file.")
 	fs.BoolVarP(&o.diagnostic, "diagnostics", "d", false, "Report configuration and home resolution, then exit.")
 	fs.BoolVar(&o.version, "version", false, "Print the build version and exit.")
-	fs.BoolVarP(&o.raw, "raw", "r", false, "Print the answer as raw text (no Markdown rendering).")
+	fs.BoolVarP(&o.raw, "raw", "r", false, "Print the answer (and the -l history listing) as raw text, without Markdown rendering.")
 	fs.BoolVar(&o.newSession, "new", false, "Start a fresh session, archiving the current session history.")
 	fs.IntVarP(&o.list, "list", "l", 0, "List the last N messages of the session history and exit. Defaults to 1 when the value is omitted.")
 	// Round 054 (ADR 0023): bare `-l`/`--list` defaults to 1 (reference parity).
@@ -960,7 +991,7 @@ func toolOutputIdleGap(lines render.Lines) time.Duration {
 // the exit code and whether a reporting command handled the run. (`--version` is
 // handled by the caller, ahead of the reporting batch.) Extracted from `run` so
 // its cyclomatic complexity stays under the cyclop gate (round 026).
-func dispatchReporting(f *flags, homeDir string, env runtimeEnv, newHistoryStore func(workspace string) history.Store, newTurnsLogStore func(workspace string) history.TurnsLogStore, toolUsageReport func() int) (int, bool) {
+func dispatchReporting(f *flags, homeDir string, env runtimeEnv, newHistoryStore func(workspace string) history.Store, newTurnsLogStore func(workspace string) history.TurnsLogStore, newListing func() render.Listing, toolUsageReport func() int) (int, bool) {
 	// -d is the reporting path: it always produces a report, and it takes
 	// precedence over a prompt or piped input (round-004 Decision 7).
 	if f.diagnostic {
@@ -972,7 +1003,7 @@ func dispatchReporting(f *flags, homeDir string, env runtimeEnv, newHistoryStore
 		if f.list <= 0 {
 			return emitUsageError(env.stderr), true
 		}
-		return renderHistoryList(homeDir, f.list, f.configPath, env, newHistoryStore), true
+		return renderHistoryList(homeDir, f.list, f.configPath, f.raw, env, newHistoryStore, newListing), true
 	}
 	// -t prints the resolved session's turn log and exits, strictly offline
 	// (round 053; ADR 0022). Ordered after -l (which keeps its round-007
@@ -1045,7 +1076,7 @@ func unionToolNames(regs ...domaintools.Registry) []string {
 // workspace (no configuration/provider requirement), so listing works even when
 // the configuration is absent. Round 053 (ADR 0022): the session is selected by
 // the `-c` configuration's MODE (when the env override is unset).
-func renderHistoryList(homeDir string, n int, configPath string, env runtimeEnv, newHistoryStore func(workspace string) history.Store) int {
+func renderHistoryList(homeDir string, n int, configPath string, raw bool, env runtimeEnv, newHistoryStore func(workspace string) history.Store, newListing func() render.Listing) int {
 	res, rerr := resolveWorkspace(homeDir, configPath)
 	if rerr != nil {
 		return emitBootError(env.stderr, res, rerr)
@@ -1054,14 +1085,51 @@ func renderHistoryList(homeDir string, n int, configPath string, env runtimeEnv,
 	if err != nil {
 		return emitHistoryError(env.stderr, err)
 	}
-	msgs := toMessages(entries)
+	// Round 073 (ADR 0045): the listing is presented by the injected render.Listing
+	// port (the bytes stay single-owned in internal/ui). The count/selection
+	// semantics are unchanged (the last N MESSAGES). The header accent is gated on
+	// the STDOUT probe (not the stderr one) and `-r`; the width is best-effort.
+	newListing().Render(env.stdout, listingMessages(entries, n), render.ListingSpec{
+		Colour: env.stdoutIsTerminal(),
+		Raw:    raw,
+		Width:  listingWidth(res.Path),
+		Warn:   env.stderr,
+	})
+	return Success
+}
+
+// listingMessages projects the persisted exchanges into the listing's message
+// sequence (round 073): the operator prompt then the model answer per exchange,
+// truncated to the last n messages. It is the successor of the former toMessages
+// — the widened tool activity is never projected (FR-017 / clarify Q2 -> A).
+func listingMessages(entries []history.Entry, n int) []render.ListingMessage {
+	msgs := make([]render.ListingMessage, 0, len(entries)*2)
+	for _, e := range entries {
+		msgs = append(msgs,
+			render.ListingMessage{Role: render.ListingOperator, Body: e.Prompt},
+			render.ListingMessage{Role: render.ListingModel, Body: e.Answer})
+	}
 	if len(msgs) > n {
 		msgs = msgs[len(msgs)-n:]
 	}
-	for _, m := range msgs {
-		_, _ = fmt.Fprintf(env.stdout, "%s: %s\n", m.Role, m.Content)
+	return msgs
+}
+
+// listingWidth resolves the rendered width for the listing (round 073), reusing
+// the round-006 resolution (config WRAP_WIDTH + the TELL_ME_WRAP_WIDTH override).
+// It is BEST-EFFORT: the listing is a read-only reporter, so an unreadable or
+// invalid configuration degrades to 0 (the renderer's built-in default) rather
+// than failing the listing (a new failure mode the round refuses).
+func listingWidth(configPath string) int {
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		return 0
 	}
-	return Success
+	width, werr := cfg.EffectiveWrapWidth(os.Getenv("TELL_ME_WRAP_WIDTH"))
+	if werr != nil {
+		return 0
+	}
+	return width
 }
 
 // renderTurnsLog prints the resolved session's turn log to stdout and exits —
@@ -1163,17 +1231,6 @@ func historyMode(homeDir, configPath string) (string, error) {
 		return "butler", nil
 	}
 	return cfg.EffectiveMode(""), nil
-}
-
-// toMessages flattens persisted entries into the ordered conversation messages
-// (user prompt, assistant answer, …).
-func toMessages(entries []history.Entry) []llm.Message {
-	msgs := make([]llm.Message, 0, len(entries)*2)
-	for _, e := range entries {
-		msgs = append(msgs, llm.Message{Role: "user", Content: e.Prompt})
-		msgs = append(msgs, llm.Message{Role: "assistant", Content: e.Answer})
-	}
-	return msgs
 }
 
 // writeAnswer writes the provider's answer to the environment's stdout

@@ -130,12 +130,13 @@ On a terminal `stdout`, the header line is accented blue (`[USER]`) / magenta (`
 **Acceptance (proposed)**:
 
 1. **Given** `stdout` is a terminal, **When** the operator lists, **Then** the `[USER]` header line is wrapped in the blue SGR pair and the `[MODEL]` header line in the magenta pair.
-2. **Given** `stdout` is a pipe, **When** the operator lists, **Then** the captured output carries no `\033` bytes, and the headers still read `[USER]` / `[MODEL]`.
+2. **Given** `stdout` is a pipe, **When** the operator lists, **Then** the captured output carries neither the blue nor the magenta header accent, and the headers still read `[USER]` / `[MODEL]`.
+3. **Given** the operator lists with `-r`, **When** the listing completes, **Then** the captured output carries no `\033` byte at all (no accent, no render).
 
 **Functional requirements (FR)**:
 
 - **FR-004**: The listing MUST emit blue (`\033[1;34m`) around the operator header and magenta (`\033[1;35m`) around the model header, **only** when `stdout` is a terminal **and** `-r` is off.
-- **FR-005**: The listing MUST emit no escape sequence when `stdout` is not a terminal **or** under `-r` (byte-identical to the plain form).
+- **FR-005**: The listing MUST emit **no header accent** when `stdout` is not a terminal, and **no escape byte at all** under `-r` (the model body's *style* output — the glamour render, exactly as the answer path emits it into a pipe — is not a header accent and is not gated; the `-r` path emits neither accent nor render).
 - **FR-006**: Under `-r`/`--raw`, the model body MUST be printed **verbatim** (no Markdown rendering), matching the answer path's raw contract (Q1 → A).
 
 **Non-functional requirements (NFR)**:
@@ -197,7 +198,7 @@ On a terminal `stdout`, the header line is accented blue (`[USER]`) / magenta (`
 ### Measurable outcomes
 
 - **SC-001**: 100 % of the `-l` E2E scenarios assert the new per-message shape (header + rendered body + blank separator), with `stdout` byte-exact on the piped path.
-- **SC-002**: A terminal-`stdout` run shows the blue/magenta header accents; a piped run contains **zero** `\033` bytes.
+- **SC-002**: A terminal-`stdout` run shows the blue/magenta header accents; a piped run shows neither accent; a `-r` run shows **zero** `\033` bytes.
 - **SC-003**: The existing `-l` selection/`-c`/`offline`/`no provider request` assertions all still hold.
 - **SC-004**: `make verify` + `go test -count=1 ./...` are green; no `go.mod` change; the topology audit adds no new error.
 
@@ -205,6 +206,6 @@ On a terminal `stdout`, the header line is accented blue (`[USER]`) / magenta (`
 
 - **A1** — Terminal, not composable (no `-l N "prompt"` chat pairing; no `-b` pairing).
 - **A2** — An empty session keeps printing nothing (the reference's `No history found.` not adopted).
-- **A3** — The header text is always printed; colour is a terminal-only accent.
+- **A3** — The header text is always printed; the **header accent** is a terminal-only (and `-r`-off) addition; the model body's glamour style output is not gated (the answer-path precedent).
 - **A4** — Tool activity stays out of the listing unless **Q2** says otherwise.
 - **A5** — The persisted `history.jsonl` format and the `-l N` count semantics are unchanged (presentation-only round).

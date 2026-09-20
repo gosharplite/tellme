@@ -55,6 +55,48 @@ type Answer interface {
 	WarnDegraded(w io.Writer)
 }
 
+// ListingRole is the presented role of a listed history message (round 073;
+// ADR 0045). It is a DOMAIN enum — the adapter owns the header text
+// (`[USER]` / `[MODEL]`) — so the CLI never hands the stored/derived wire role
+// (`user`/`assistant`) to a presentation seam.
+type ListingRole int
+
+const (
+	// ListingOperator is the operator's own prompt.
+	ListingOperator ListingRole = iota
+	// ListingModel is the model's answer.
+	ListingModel
+)
+
+// ListingMessage is one listed history message: its presented role and its
+// (unrendered) body text.
+type ListingMessage struct {
+	Role ListingRole
+	Body string
+}
+
+// ListingSpec carries the listing's presentation inputs. Colour is the
+// stdout-terminal gate (`the diagnostic stream is a terminal and -r is off` —
+// here the STDOUT probe, round 073); Raw is the `-r`/`--raw` flag (the model
+// body is printed verbatim and no colour is emitted); Width is the resolved
+// rendered width (0 = the renderer's built-in default); Warn, when non-nil,
+// receives the one-time markdown-degradation warning.
+type ListingSpec struct {
+	Colour bool
+	Raw    bool
+	Width  int
+	Warn   io.Writer
+}
+
+// Listing renders the offline session history listing (`-l`/`--list`; round
+// 073; ADR 0045): for each message a role header line (`[USER]` / `[MODEL]`),
+// the body (the MODEL body rendered as Markdown unless Raw; the operator body
+// verbatim), and one blank line after every message. Colour, when enabled,
+// accents the header lines only.
+type Listing interface {
+	Render(w io.Writer, msgs []ListingMessage, spec ListingSpec)
+}
+
 // Indicator is the turn progress indicator (the spinner) as the CLI drives it.
 // It is the loop's waiting-phase observer (agentport.LoopObserver) plus a Stop
 // that clears it for the rest of the run.

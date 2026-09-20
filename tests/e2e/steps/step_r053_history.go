@@ -92,14 +92,18 @@ func whenNewOfConfig(ctx context.Context, config string) error {
 	return nil
 }
 
-// thenListsAssistantMessage (必查 呈現結果): the last line on stdout is
-// `assistant: {answer}` — the named configuration's session, not any other's.
+// thenListsAssistantMessage (必查 呈現結果): the listing's LAST message is a
+// `[MODEL]` header followed by a body carrying {answer} (round 073: the retired
+// exact `assistant: {answer}` line is replaced by the header + body).
 func thenListsAssistantMessage(ctx context.Context, answer string) error {
 	sc := scenarioFrom(ctx)
-	want := "assistant: " + answer
-	lines := strings.Split(strings.TrimRight(sc.stdout, "\n"), "\n")
-	if len(lines) == 0 || lines[len(lines)-1] != want {
-		return fmt.Errorf("the last listed line must be %q; stdout=%q", want, sc.stdout)
+	blocks := listingBlocks(sc.stdout)
+	if len(blocks) == 0 {
+		return fmt.Errorf("the listing showed no message; stdout=%q", sc.stdout)
+	}
+	last := blocks[len(blocks)-1]
+	if last.role != "[MODEL]" || !strings.Contains(last.body, answer) {
+		return fmt.Errorf("the last listed message must be [MODEL] carrying %q; got %+v (stdout=%q)", answer, last, sc.stdout)
 	}
 	return nil
 }

@@ -52,7 +52,10 @@ question at a time):
    `[MODEL]` `\033[1;35m` (magenta) — the reference's codes, added to
    `internal/ui/colour.go` and applied through the shared, empty-safe `wrap` —
    **only when `stdout` is a terminal and `-r` is off**. A redirected/piped
-   `stdout` is byte-plain. Colour never reaches `stderr` and never enters
+   `stdout` therefore carries no *header accent* — but, exactly like the answer
+   path (whose rendering is gated by `-r` **alone**, round 006), a rendered
+   model body still carries glamour's own style output; only the `-r` path is
+   escape-free end to end. No accent ever reaches `stderr` and none enters
    `turns.log`. The gate uses a **dedicated `stdout` terminal probe**
    (`stdoutTerminalDetector()` + the `TELL_ME_FORCE_STDOUT_TTY` diagnostic seam,
    mirroring the stderr seam) — tellme's first stdout probe, scoped to the

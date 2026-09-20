@@ -132,6 +132,7 @@ func defaultTestDeps(mods ...func(*deps.Dependencies)) deps.Dependencies {
 		NewLines:     func(bool) render.Lines { return fakeLines{} },
 		NewToolLines: func(bool) agentport.ToolLineRenderer { return noopToolLines{} },
 		NewAnswer:    func() render.Answer { return &stubRenderer{} },
+		NewListing:   func() render.Listing { return &fakeListing{} },
 		NewProgress: func(spec render.ProgressSpec) render.TurnProgress {
 			return render.TurnProgress{ToolOutput: fakeSink{}}
 		},
@@ -276,3 +277,26 @@ func (f *fakeTurnsLogStore) Archive() error { return nil }
 type nopWriteCloser struct{ io.Writer }
 
 func (nopWriteCloser) Close() error { return nil }
+
+// fakeListing is an in-package double for the domain render.Listing port
+// (round 073). It records the messages + spec it was handed and writes the
+// canonical plain per-message shape, so a CLI-tier test can assert both the
+// projection (roles/bodies/truncation) and the spec (the stdout gate, raw, width).
+type fakeListing struct {
+	got  []render.ListingMessage
+	spec render.ListingSpec
+}
+
+func (f *fakeListing) Render(w io.Writer, msgs []render.ListingMessage, spec render.ListingSpec) {
+	f.got = msgs
+	f.spec = spec
+	for _, m := range msgs {
+		role := "[USER]"
+		if m.Role == render.ListingModel {
+			role = "[MODEL]"
+		}
+		_, _ = fmt.Fprintln(w, role)
+		_, _ = fmt.Fprintln(w, m.Body)
+		_, _ = fmt.Fprintln(w)
+	}
+}

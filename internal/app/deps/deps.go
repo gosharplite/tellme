@@ -126,6 +126,11 @@ type Dependencies struct {
 	NewToolLines func(colour bool) agentport.ToolLineRenderer
 	// NewAnswer builds the markdown answer renderer (round 006).
 	NewAnswer func() render.Answer
+	// NewListing builds the offline history-listing renderer (`-l`; round 073;
+	// ADR 0045). Like NewAnswer, the bytes stay single-owned in internal/ui,
+	// bound as a domain render.Listing port so internal/cli names no internal/ui
+	// type.
+	NewListing func() render.Listing
 	// NewProgress builds a turn's coupled progress indicator + `[Tool Output]`
 	// sink (round 051). It keeps the spinner/coordinator wiring out of internal/cli.
 	NewProgress render.ProgressFactory

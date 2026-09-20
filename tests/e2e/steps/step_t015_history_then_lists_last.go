@@ -16,28 +16,35 @@ func init() {
 }
 
 // thenListsLastMessages (必查 呈現結果): stdout lists the last {count} messages of
-// the arranged history, in order, each line as `role: content` (RF-2).
+// the arranged history, in order, each as a role header line ([USER] / [MODEL])
+// followed by its body (round 073; ADR 0045), with one blank line between
+// consecutive messages.
 func thenListsLastMessages(ctx context.Context, count int) error {
 	sc := scenarioFrom(ctx)
-	var want []string
+	wantRole := make([]string, 0, 2*len(sc.arrangedExchanges))
+	wantBody := make([]string, 0, 2*len(sc.arrangedExchanges))
 	for _, x := range sc.arrangedExchanges {
-		want = append(want, "user: "+x.prompt, "assistant: "+x.answer)
+		wantRole = append(wantRole, "[USER]", "[MODEL]")
+		wantBody = append(wantBody, x.prompt, strings.ReplaceAll(x.answer, "**", ""))
 	}
-	if len(want) > count {
-		want = want[len(want)-count:]
+	if len(wantRole) > count {
+		wantRole = wantRole[len(wantRole)-count:]
+		wantBody = wantBody[len(wantBody)-count:]
 	}
-	out := strings.TrimRight(sc.stdout, "\n")
-	var got []string
-	if out != "" {
-		got = strings.Split(out, "\n")
+	blocks := listingBlocks(sc.stdout)
+	if len(blocks) != len(wantRole) {
+		return fmt.Errorf("listed %d messages, want %d; stdout=%q", len(blocks), len(wantRole), sc.stdout)
 	}
-	if len(got) != len(want) {
-		return fmt.Errorf("listed %d lines, want %d; stdout=%q", len(got), len(want), sc.stdout)
-	}
-	for i := range want {
-		if got[i] != want[i] {
-			return fmt.Errorf("listed line %d = %q, want %q", i, got[i], want[i])
+	for i := range wantRole {
+		if blocks[i].role != wantRole[i] {
+			return fmt.Errorf("message %d header = %q, want %q; stdout=%q", i, blocks[i].role, wantRole[i], sc.stdout)
 		}
+		if !strings.Contains(blocks[i].body, wantBody[i]) {
+			return fmt.Errorf("message %d body = %q, want it to carry %q; stdout=%q", i, blocks[i].body, wantBody[i], sc.stdout)
+		}
+	}
+	if err := thenMessagesSeparatedByBlankLine(ctx); err != nil {
+		return err
 	}
 	return nil
 }
