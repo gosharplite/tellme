@@ -37,7 +37,7 @@
 
 ## Truth / decisions
 
-- **ADR 0043** (`docs/decisions/0043-search-files-tool.md` + index) — the tool, the design-intent justification, the three divergences, and the Q1–Q3 locked choices.
+- **ADR 0043** (`docs/decisions/0043-search-files-tool.md` + index) — the tool, the design-intent justification, the three deliberate divergences + three further recorded differences, and the Q1–Q3 locked choices.
 - `specs/truth/techstack.md` — MODIFY the reader/schema/tool-usage rows; ADD a *file-content search tool* row.
 - `specs/truth/features/cli/chat/searching-file-contents.feature` (ADD) + `chat/dsl.md` (rows).
 - No `contracts/**`, no `data/**` (single CLI end; no persisted record).
