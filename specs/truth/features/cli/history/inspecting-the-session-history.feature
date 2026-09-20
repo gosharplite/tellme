@@ -2,6 +2,13 @@ Feature: Inspecting the session history
 
   # Interface truth (CLI end, `history` module) — `-l N` lists the most recent messages without a
   # provider request. Acceptance journeys: features/acceptance/inspecting-the-session-history.feature.
+  #
+  # Round 073 (ADR 0045): the listed message is now PRESENTED as a **role header line** (`[USER]` /
+  # `[MODEL]`) plus a body — the **model** body rendered as Markdown by the shared glamour renderer,
+  # the **operator** body verbatim (a recorded divergence from the reference, which renders both) —
+  # with one blank line after every message. The header is accented blue/magenta only when `stdout`
+  # is a terminal and `-r` is off; under `-r` the model body is verbatim and no accent is emitted.
+  # The count/selection semantics are unchanged; the tool activity stays omitted.
 
   Rule: The operator can list the most recent messages
 
@@ -102,5 +109,81 @@ Feature: Inspecting the session history
       Then tellme lists the assistant message "from gamma"
       And tellme exits successfully
 
+  # Round 073 (ADR 0045): the listing's per-message presentation.
+  Rule: A listed message is introduced by the role that produced it
 
+    Example: A listed exchange names the operator and the model
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      # Round-073 fold F-1: the marker-bearing answer must be in the LISTED
+      # exchange (the last one), so the rendering claim is falsifiable at the
+      # acceptance level (the `-l 2` window is the last 2 messages = exchange 2).
+      And the session history already holds the exchanges:
+        | prompt            | answer    |
+        | My name is Alice. | Noted.    |
+        | What is my name?  | **Alice** |
+      When the operator asks tellme to list the last 2 messages
+      Then tellme heads each listed message with its role
+      And the listed model answer is presented as formatted prose
+      And tellme exits successfully
 
+  Rule: The listed operator prompt is shown exactly as it was written
+
+    Example: A listed prompt is echoed verbatim, never reformatted
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds the exchanges:
+        | prompt             | answer |
+        | What is **Alice**? | Noted. |
+      When the operator asks tellme to list the last 2 messages
+      Then the listed operator prompt is shown verbatim
+      And the listing carries no accents
+      And tellme exits successfully
+
+  Rule: The listed model answer is shown as its raw source under raw output
+
+    Example: The raw listing shows the answer's source
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds the exchanges:
+        | prompt | answer                   |
+        | hi     | Hello **Alice**, welcome |
+      When the operator asks tellme to list the last 2 messages as raw output
+      Then the listed model answer is shown as its raw source
+      And the listing carries no accents
+      And tellme exits successfully
+
+  Rule: The listed messages are separated so the listing reads as a conversation
+
+    Example: A blank line separates the messages
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds the exchanges:
+        | prompt | answer |
+        | hi     | Noted. |
+      When the operator asks tellme to list the last 2 messages
+      Then the listed messages are separated by a blank line
+      And tellme exits successfully
+
+  Rule: The role lines are accented only when the listing goes to a terminal
+
+    Example: A terminal listing accents the role lines
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the output is shown at a terminal
+      And the session history already holds the exchanges:
+        | prompt | answer |
+        | hi     | Noted. |
+      When the operator asks tellme to list the last 2 messages
+      Then the listing accents the operator role in blue and the model role in magenta
+      And tellme exits successfully
+
+    Example: A redirected listing carries no accents
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds the exchanges:
+        | prompt | answer |
+        | hi     | Noted. |
+      When the operator asks tellme to list the last 2 messages
+      Then the listing carries no accents
+      And tellme exits successfully

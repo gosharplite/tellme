@@ -29,6 +29,14 @@ const (
 	// (ADR 0027): the whole `[Tool Action]` line is wrapped yellow on a
 	// colour-enabled terminal.
 	colorYellow = "\033[0;33m"
+	// colorBlue is the reference's bright-blue SGR (tell-me-go colors.go). Round
+	// 073 (ADR 0045): the `[USER]` header line of the `-l` listing, on a terminal
+	// stdout.
+	colorBlue = "\033[1;34m"
+	// colorMagenta is the reference's bright-magenta SGR (tell-me-go colors.go).
+	// Round 073 (ADR 0045): the `[MODEL]` header line of the `-l` listing, on a
+	// terminal stdout.
+	colorMagenta = "\033[1;35m"
 	// colorReset clears the SGR state, returning the terminal to default.
 	colorReset = "\033[0m"
 )
@@ -45,6 +53,14 @@ func grey(s string, enabled bool) string { return wrap(s, colorGray, enabled) }
 
 // yellow wraps s in the reference's yellow SGR pair when enabled (round 057).
 func yellow(s string, enabled bool) string { return wrap(s, colorYellow, enabled) }
+
+// blue wraps s in the reference's bright-blue SGR pair when enabled (round 073;
+// the same whole-value, empty-safe, plain-when-disabled rule as green).
+func blue(s string, enabled bool) string { return wrap(s, colorBlue, enabled) }
+
+// magenta wraps s in the reference's bright-magenta SGR pair when enabled
+// (round 073).
+func magenta(s string, enabled bool) string { return wrap(s, colorMagenta, enabled) }
 
 // wrap applies one SGR pair around s when enabled. An empty string is never
 // wrapped (no stray escape for an empty slot) and a disabled call returns s
