@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-&gt; **Status**: **`/axb-technical-research` + `/axb-dsl-refine` RUN (2026-09-21)** — `research.md` D1–D9 + **ADR 0045** + `techstack.md` MODIFY ×4 + `docs/domain-model` MODIFY. Clarify resolved at specify time (Q1 → A · Q2 → A · Q3 → B). `/axb-api-plan` + `/axb-data-plan` to record `NOOP`.
+> **Status**: **`/axb-technical-research` + `/axb-dsl-refine` RUN (2026-09-21)** — `research.md` D1–D9 + **ADR 0045** + `techstack.md` MODIFY ×4 + `docs/domain-model` MODIFY. Clarify resolved at specify time (Q1 → A · Q2 → A · Q3 → B). `/axb-api-plan` + `/axb-data-plan` record `NOOP` (the owner rows below).
 
 ## /axb-technical-research
 
