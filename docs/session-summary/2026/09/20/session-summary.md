@@ -1051,4 +1051,37 @@ A later session on the same calendar day. Continued the `tell-me-go` agent-tool 
 - **One open issue:** [#147](https://github.com/gosharplite/tellme/issues/147) *(present + candidates)*. **[#146](https://github.com/gosharplite/tellme/issues/146)** (exclusions) and **[#145](https://github.com/gosharplite/tellme/issues/145)** (self-development tracker) are **CLOSED `completed`** (2026-09-20) — the goal is achieved and the exclusions are settled. tellme's agent surface is unchanged at **8**.
 - **Propagation:** none required (docs/issue-tracker only); `dev` is the active branch, no round in flight.
 
+---
+
+## 31. Session 56 (2026-09-20, cont.) — `SESSION-CLOSEOUT.md` (Steps 1–8): the issue-tracker reconciliation closed out (docs-only)
+
+Executed the end-of-session closeout after the issue-tracker reconciliation.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean (`## dev...origin/dev`); no stray/`/tmp` files; **no frozen `specs/plans/**` touched**. |
+| **2 — gates** | **docs-only** (no code): diff-level secret scan **clean**; internal links resolve; daily-log target present; **`make verify` OK** (hermetic aggregate, incl. `verify-fmt`, `verify-adr-index`, `modelith-check` ×3, `lint` 0, `govulncheck` clean). |
+| **3 — `STATUS.md`** | header + branch-model `main` row + propagation history updated for the docs propagation (`37a261c`); **no Rule-12 split** (110 lines; one delivered-round section). |
+| **4 — day summary** | **appended** this §31 (`date` → 2026-09-20; the §1–§30 record preserved). |
+| **5 — reconciliation** | `STATUS.md` ↔ summary agree — no round in flight; `dev` active; `dev @ 3322059` (+ this closeout commit), `main @ 37a261c` (no-ff, identical trees); #147 the only open issue. |
+| **6 — commit** | `docs: session closeout — issue-tracker reconciliation (docs-only); STATUS + 09/20 summary §31`. |
+| **7 — propagation + handoff** | `dev → main` **DONE (no-ff)** for the reconciliation docs (`37a261c`); the closeout docs follow in the same no-ff propagation; **no `round-NNN` tag** (docs-only, not a round — ADR 0026); installed binary refreshed (`go install ./cmd/tellme`, `--version` → `dev`). **Next-session start point:** active branch `dev`, **no round in flight**; open the next round off `dev` via `/axb-specify` from operator value — candidates in [#147](https://github.com/gosharplite/tellme/issues/147) (notably `search_files` + the Go/AST suite). |
+| **8 — issue tracker** | Reconciled: **[#147](https://github.com/gosharplite/tellme/issues/147)** OPEN (the only open issue) · **[#146](https://github.com/gosharplite/tellme/issues/146)** CLOSED `completed` · **[#145](https://github.com/gosharplite/tellme/issues/145)** CLOSED `completed` · **[#91](https://github.com/gosharplite/tellme/issues/91)** CLOSED `not_planned` (superseded). No closes/revises needed this step (they landed during the session). |
+
+### Commits (this closeout, on `dev`)
+
+| Commit | Note |
+| --- | --- |
+| `d19ce77` | `docs:` reconcile issue tracker — #91→#145, add #146 |
+| `367f42f` | `docs:` #146 → checkbox inventory (count fix) |
+| `9ac37b5` | `docs:` split #146/#147 |
+| `3322059` | `docs:` close #145 + #146; #147 the only open issue |
+| *(this closeout)* | `docs:` session closeout — STATUS + §31 |
+| *(propagation)* | `dev → main` no-ff |
+
+### PM follow-ups
+
+- **None open** (all session-56 work was docs/issue-tracker; no user-facing journey).
+
+
 
