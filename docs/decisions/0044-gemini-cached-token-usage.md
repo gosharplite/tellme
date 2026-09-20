@@ -40,7 +40,7 @@ The reference (`tell-me-go/internal/infrastructure/llm/gemini/metrics.go:17-28`)
 
 ## Verification
 
-- **Unit**: a `generateContent` response with `usageMetadata.promptTokenCount/cachedContentTokenCount/candidatesTokenCount/thoughtsTokenCount` decodes into `Usage{CachedTokens, ThinkingTokens, …}`; `CandidatesTokenCount` and `ThoughtsTokenCount` are preserved **verbatim** (disjoint); an omitted/absent field stays 0 and produces no negative miss.
+- **Unit**: a `generateContent` response with `usageMetadata.promptTokenCount/cachedContentTokenCount/candidatesTokenCount/thoughtsTokenCount` decodes into `Usage{CachedTokens, ThinkingTokens, …}`; `CandidatesTokenCount` and `ThoughtsTokenCount` are preserved **verbatim** (disjoint); an omitted/absent field stays 0; a provider reporting `cached > prompt` is capped at the prompt (`TestParseResponse_CachedNeverExceedsPrompt`), so no path produces a negative miss.
 - **E2E**: the fake Vertex provider scripts `usageMetadata`; the run's metrics line shows the cached figure (not `H: 0`) — the assertion. The Example is now **priced** and asserts that the cost/`Ready` status is emitted (the numeric cost values remain a *derived* consequence of the unchanged, separately-pinned `ComputeCost`/`HitRate` arithmetic, not independently E2E-asserted — review B1 / **TD-072-2**).
 - **Falsifiability**: reverting the field mapping REDs the unit pin **and** the E2E Example.
 - `make verify` green (layer gate 0 · `modelith-check` · `verify-fmt` · `verify-adr-index` · lint 0 · govulncheck); `go.mod`/`go.sum` unchanged; the OpenAI-compatible wire byte-identical.
