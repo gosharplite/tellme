@@ -5,8 +5,8 @@
 **Status file**: [`STATUS.md`](../../../../../STATUS.md) *(back-link — the single live-state source)*
 **Workspace**: `…/beta-niffler/ait-tellme` (`$TELL_ME_HOME`); linux/amd64 host (Go 1.26.6).
 **Session mode**: `butler`.
-**Branch**: `073-list-role-headers-and-rendered-body` (off `dev`) → **PR [#151](https://github.com/gosharplite/tellme/pull/151)** → **human-merged** into `dev` (`d90a79e`); propagation `dev → main` **DONE (no-ff)**, tagged **`round-073`**.
-**Status at end of day**: round **073** `073-list-role-headers-and-rendered-body` **DELIVERED / FROZEN** — the offline `-l`/`--list` history listing now presents each message as a **role header line** (`[USER]`/`[MODEL]`) + a body (the **model** body glamour-rendered, the **operator** body verbatim) + **one blank line** after every message, with the header accented blue/magenta only on a terminal `stdout` with `-r` off; **ADR 0045**; operator request (no anchor issue).
+**Branches**: §1 — `073-list-role-headers-and-rendered-body` → **PR [#151](https://github.com/gosharplite/tellme/pull/151)** → merged into `dev` (`d90a79e`), propagated, tagged **`round-073`**. §2 — `074-cli-help-and-version-shorthands` → **PR [#152](https://github.com/gosharplite/tellme/pull/152)** → merged into `dev` (`fd204f4`), propagated, tagged **`round-074`**.
+**Status at end of day**: round **074** `074-cli-help-and-version-shorthands` **DELIVERED / FROZEN** (the day's latest) — tellme gains a **`-h`/`--help`** flag (prints the flag list to **`stdout`**, exit **0**; offline, prompt-less, precedence before `--version`) and a **`-v`** shorthand for `--version`; **ADR 0046**; operator request (no anchor issue). *(§1 = round 073, also delivered this day.)*
 
 ---
 
@@ -93,3 +93,84 @@ Drop the separator ⇒ the unit pin + the E2E `Listing the last two messages` RE
 - **The fold-verified claim must be *listing*-bound, not *arrangement*-bound** (F-1): an E2E Then that only checks "a marker-bearing answer was *arranged*" is vacuous when the `-l N` window truncates it out. Bind the assertion to the **rendered output** (a listed marker answer), and derive the expected length from the **request** (`-l N`), not the observed output (TD-5).
 - **Consistency across colour axes** (F-2/F-3): when a new gate uses a different axis (here stdout, not stderr), any earlier "no X wired" claim must be *reconciled*, not merely appended to; and an ADR's Consequences must match its own Decisions.
 - **The `architect` peer's tool inventory** — it exposed `execute_command`, `read_files`, `list_files`, `get_tree`, `search_files`, `write_file`, `list_skills`; one continuation failed on a hallucinated `exec_command` (exit 7). Re-staging the prompt with an explicit tool list + `execute_command` recovered it in one turn.
+
+---
+
+## 2. Session 60, cont. — round 074 `074-cli-help-and-version-shorthands`: operator request → full pipeline → `architect` review-fold loop (2 passes, CLOSED) → **human-merged (PR #152 → `dev` `fd204f4`, merge commit)** → branch cleanup → closeout (Steps 1–8)
+
+The operator continued the same calendar day: after confirming round 073's merge and deleting the local branch, the operator asked *"Does tell-me-go have `-h` flag?"* (answer: yes, cobra adds `-h, --help` and `-v, --version`; tellme had neither shorthand) and then *"Please add simple `-h` and `-v` flags for tellme."* A new branch **`074-cli-help-and-version-shorthands`** was created **off `dev`**, the round ran the full AIxBDD pipeline, and **PR [#152](https://github.com/gosharplite/tellme/pull/152)** was taken through the `architect` peer's **review → fold → fold-verification** loop to **CLEARED FOR HUMAN MERGE**, then human-merged (a merge commit); the branch was deleted (local + remote) and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | **operator request** (no anchor issue): tellme gains a **`-h`/`--help`** flag and a **`-v`** version shorthand, matching the reference's flag surface |
+| Clarify (one at a time) | **Q1 → A** `-h` ships **with** the long form **`--help`** (reference parity) · **Q2 → A** help writes to **`stdout`** and exits **0** (a successful action, like `--version`) |
+| Pipeline | specify ✅ · clarify ✅ (Q1/Q2) · spec-by-example ✅ · technical-research ✅ (**ADR 0046** + `techstack.md` ×3) · system-analysis ✅ (1 CLI end; api/data NOOP; domain model **not modelled**) · dsl-refine ✅ (root cross-module When row; +2 Thens; +2 Rules; a `-v` Example) · tasks ✅ (T001–T010) · implement ✅ |
+| Before → after | `-h`/`--help` was pflag's **implicit** path (flag block on **stderr** + the phrase, **exit 2**); now an explicit `-h, --help` prints `Usage of tellme:` + `fs.FlagUsages()` on **stdout**, stderr empty, **exit 0**. `-v` was an unknown flag (exit 2); now `tellme {version}`, exit 0 (same path as `--version`). The unrecognized-flag refusal is unchanged (phrase on stderr, exit 2); a parse error pre-empts help (`-h -z` still refuses) |
+| The change | `internal/cli/cli.go` — `parseFlags` registers `-h/--help` explicitly (superseding pflag's implicit path) and upgrades `--version` to `-v/--version`; the flag list is captured at parse time; `run` prints it to `stdout` and returns `Success`, checked **before** `--version`. Local to `internal/cli`; no new port; no new dependency |
+| Review chain (PR #152, the `architect` peer) | `review` (**APPROVE WITH REQUIRED FOLDS** — no `[ARCHITECTURAL BLOCKER]`; **F-1** the precedence-owner truth row stale · **F-2** the durable record mis-described the error path; plus TD-3/4/5, N-1…N-3, RF-1/RF-2) → fold `1185292` → `FOLD-VERIFICATION` (**FOLDS VERIFIED — CLEARED FOR HUMAN MERGE**; the F-2 witness re-run on the folded head) → residual homing `75e794e` |
+| Merge | PR [#152](https://github.com/gosharplite/tellme/pull/152) **human-merged** into `dev` (`fd204f4`, **merge commit**); remote branch deleted by the human, then the **local branch deleted** after an ancestor check |
+| Closeout | `make check` **OK** · `make test-race` green · `make verify` **OK** · topology audit **5 pre-existing, none new** (51 features · 405 module rows · 2093 steps) · diff secret scan clean · `STATUS.md` split (round-073 detail + env note → `docs/archives/status/2026-09-21.md`) · propagation `dev → main` (**no-ff**) + tag **`round-074`** · `go install` · **no anchor issue to close** |
+
+### Decisions locked (round 074)
+
+| # | Decision |
+| --- | --- |
+| **Q1 → A** | `-h` ships **with** the long form **`--help`** (`-h, --help`), matching the reference. |
+| **Q2 → A** | Help writes to **`stdout`** and exits **0** (a successful, offline, prompt-less action, like `--version`). |
+| **D1** (research) | Define both flags **explicitly**, superseding pflag's implicit `-h` special case (which wrote to the `SetOutput` writer = stderr and returned `ErrHelp` → exit 2). |
+| **D2** | The help block is pflag's own **flag list** (`"Usage of tellme:\n"` + `fs.FlagUsages()`) — one source, lists every flag, cannot drift. |
+| **D3** | Precedence: **`--help` → `--version` → `-d` → `-l` → `-t` → `--tool-usage`**; a **parse error pre-empts help** (`-h -z` refuses, exit 2). |
+| **D4** | Help emits **no** `tellme: …` phrase; the unrecognized-flag path (phrase on stderr, exit 2) is unchanged. |
+| **D5** | Scope: local to `internal/cli`; **no port** (the bytes are pflag's rendering of a flag set that lives there). |
+| **D7** | `-v` is purely additive — `--version` output is byte-identical. |
+| **Domain model** | **Not modelled** — the round changes a CLI flag surface, not a modelled entity/invariant; recorded in `plan.md` §5 (ADR 0041's escape hatch). |
+
+### Commits (branch `074-cli-help-and-version-shorthands`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `706e27c` | `docs(074)`: plan package + spec |
+| `8643ff7` | `docs(074)`: fold clarify Q1 → A, Q2 → A |
+| `65eee7c` | `feat(074)`: `-h`/`--help` + `-v` (acceptance + research + ADR 0046 + truth + implementation) |
+| `5a310b0` | `docs(074)`: STATUS — round 074 in flight (PR #152 open) |
+| `1185292` | `fix(074)`: fold the architect review (F-1/F-2 + TD-3/4/5, N-1…N-3, RF-2) |
+| `75e794e` | `docs(074)`: home the fold-verification residuals (RF-074-6/RF-074-7) in ADR 0046 §Forward |
+| `fd204f4` | PR [#152](https://github.com/gosharplite/tellme/pull/152) merge into `dev` (by the operator) |
+| *(this closeout, on `dev`)* | `docs(074)`: day close — round 074 delivered + propagated; STATUS split + 09/21 summary §2 |
+
+### Artifacts / truth
+
+- Plan package: `spec.md` (US1–US3 · FR-001…FR-008 · NFR-001/NFR-002 · I-1…I-5 · A1–A4 · SC-001…SC-003) · `checklists/requirements.md` · `features/acceptance/asking-for-help-and-version.feature` · `research.md` (D1–D7) · `plan.md` · `tasks.md` (T001–T010 + the review fold ledger) · `truth-delta.md`.
+- Truth: `specs/truth/techstack.md` MODIFY ×3 (*CLI flag parsing* · *Prompt input* — the precedence owner · *Version injection*) · `specs/truth/features/cli/dsl.md` (the cross-module `runs tellme with "{flag}"` row promoted from `diagnostics`) · `usage/dsl.md` (+2 Thens) · **NEW** `usage/requesting-help.feature` (+2 Rules) · `diagnostics/version-and-setup-diagnostic.feature` (+ a `-v` Example) · `contracts/**` + `data/**` NOOP · `docs/domain-model/**` **unchanged** (not modelled).
+- Code: `internal/cli/cli.go` · `internal/cli/help_version_test.go` · `tests/e2e/steps/step_r074_help.go`.
+- **ADR 0046** (`docs/decisions/0046-cli-help-and-version-shorthands.md` + index).
+
+### Falsifiability witnesses (reproduced then reverted)
+
+Drop the explicit `-h` flag (pflag's implicit path) ⇒ the E2E `The operator asks for help with "-h"` reddens at `tellme prints its flag list` **and** the unit pins · drop the `-v` shorthand ⇒ `… with the short flag` reddens at `tellme prints the build version` **and** the unit pins. The **`architect` independently re-ran the F-2 witness** on the folded head (`-h` → stdout/empty stderr/0; `-z` → phrase/2; `-v`/`--version` byte-identical; `-h -v` → help).
+
+## 3. Open items (non-blocking)
+
+- **Round-074 forward items** — **RF-074-1** a richer help block (reference `Usage:`/`Flags:` prose; not adopted) · **RF-074-2** the reference's `help`/`completion` subcommands (not adopted; tellme stays subcommand-free) · **RF-074-3** no full-text golden pin for the help block · **RF-074-4** no `-V`/`--Version`/`-?` aliases · **RF-074-5** `helpText` cached on the parse result · **RF-074-6** the *Session lifecycle flags* scoped subset chain (not a contradiction) · **RF-074-7** the `-v`/`--version` Examples carry no `no network access` Then. All in **ADR 0046 §Forward**.
+- **Round-073 forward items** — RF-073-1…10 in ADR 0045 §Forward.
+- **PM follow-ups** — **none open.**
+- Carried: PR #16 **Obs 1** stdout TTY probe **OPEN**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items; the **5 pre-existing** Gherkin/DSL topology-audit errors.
+
+## 4. Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value** (there is **no live issue**).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+*(Round 074 is fully closed out: PR #152 human-merged into `dev` (`fd204f4`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-074`** with operator approval; the installed binary refreshed from the `dev` head.)*
+
+## 5. PM follow-ups
+
+- None new (spec/acceptance complete; the `architect`'s F-1/F-2 were truth/record folds, not PM-owned gaps).
+
+## 6. Process notes (durable)
+
+- **A new terminal action must update its owning truth row, not just its own** (F-1): the round added `--help` to the precedence but left the *Prompt input* row (the precedence owner) stale — one truth file asserted two chains. When a round changes a shared contract, grep the truth for the old shape and MODIFY each owner row; record every one in `truth-delta.md`.
+- **Describe the pre-round mechanism exactly** (F-2): the ADR called pflag's implicit-help text "the same text today's error path prints" — the error path prints only the phrase. Name the mechanism (implicit help on the `SetOutput` writer) so a future reader cannot re-route help through the error path.
+- **`-h`/`-v` are the reference's cobra conventions**; tellme reproduces the *observable contract* (help → stdout/0) without cobra — a flag, not a subcommand.
