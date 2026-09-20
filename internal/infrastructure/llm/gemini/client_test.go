@@ -266,3 +266,71 @@ func asProviderError(err error, target **llm.ProviderError) bool {
 	}
 	return false
 }
+
+// TestParseResponse_DecodesCachedAndThinkingTokens pins round 072 (ADR 0044;
+// closes #149): the Gemini/Vertex usageMetadata's `cachedContentTokenCount` and
+// `thoughtsTokenCount` map into Usage.CachedTokens / Usage.ThinkingTokens, and the
+// family rule is DISJOINT — CandidatesTokenCount is preserved verbatim (no
+// subtraction of thoughts), unlike the OpenAI-compatible adapter.
+func TestParseResponse_DecodesCachedAndThinkingTokens(t *testing.T) {
+	raw := []byte(`{"candidates":[{"content":{"role":"model","parts":[{"text":"ok"}]}}],"usageMetadata":{"promptTokenCount":390564,"cachedContentTokenCount":389538,"candidatesTokenCount":100,"thoughtsTokenCount":4096,"totalTokenCount":394760}}`)
+	resp, err := parseResponse(raw)
+	if err != nil {
+		t.Fatalf("parseResponse: %v", err)
+	}
+	u := resp.Usage
+	if !u.Reported {
+		t.Fatal("usage must be reported")
+	}
+	if u.CachedTokens != 389538 {
+		t.Errorf("CachedTokens = %d, want 389538 (cachedContentTokenCount)", u.CachedTokens)
+	}
+	if u.PromptTokens != 390564 {
+		t.Errorf("PromptTokens = %d, want 390564", u.PromptTokens)
+	}
+	if u.ThinkingTokens != 4096 {
+		t.Errorf("ThinkingTokens = %d, want 4096 (thoughtsTokenCount)", u.ThinkingTokens)
+	}
+	// DISJOINT: Gemini's candidatesTokenCount excludes thoughts, so it is verbatim.
+	if u.CompletionTokens != 100 {
+		t.Errorf("CompletionTokens = %d, want 100 (verbatim; Gemini is disjoint, no subtraction)", u.CompletionTokens)
+	}
+	// The cached count materially changes the miss (the whole point).
+	if miss := u.PromptTokens - u.CachedTokens; miss != 1026 {
+		t.Errorf("miss = %d, want 1026 (prompt - cached); a 0 cache would miss the whole prompt", miss)
+	}
+}
+
+// TestParseResponse_AbsentCachedFieldsStayZero pins the degenerate path: a
+// usageMetadata that omits the cached/thinking fields leaves them 0 (a legal cold
+// cache), never negative.
+func TestParseResponse_AbsentCachedFieldsStayZero(t *testing.T) {
+	raw := []byte(`{"candidates":[{"content":{"role":"model","parts":[{"text":"ok"}]}}],"usageMetadata":{"promptTokenCount":11,"candidatesTokenCount":2,"totalTokenCount":13}}`)
+	resp, err := parseResponse(raw)
+	if err != nil {
+		t.Fatalf("parseResponse: %v", err)
+	}
+	if resp.Usage.CachedTokens != 0 || resp.Usage.ThinkingTokens != 0 {
+		t.Errorf("absent fields must stay 0, got cached=%d thinking=%d", resp.Usage.CachedTokens, resp.Usage.ThinkingTokens)
+	}
+	if resp.Usage.PromptTokens != 11 || resp.Usage.TotalTokens != 13 {
+		t.Errorf("usage = %+v", resp.Usage)
+	}
+}
+
+// TestParseResponse_CachedNeverExceedsPrompt pins the TD-072-1 fold: a provider
+// reporting cached > prompt is CAPPED at the prompt, so the miss (prompt − cached)
+// can never go negative and the hit-rate can never exceed 100%.
+func TestParseResponse_CachedNeverExceedsPrompt(t *testing.T) {
+	raw := []byte(`{"candidates":[{"content":{"role":"model","parts":[{"text":"ok"}]}}],"usageMetadata":{"promptTokenCount":10,"cachedContentTokenCount":999,"candidatesTokenCount":1,"thoughtsTokenCount":0,"totalTokenCount":11}}`)
+	resp, err := parseResponse(raw)
+	if err != nil {
+		t.Fatalf("parseResponse: %v", err)
+	}
+	if resp.Usage.CachedTokens != 10 {
+		t.Errorf("CachedTokens = %d, want 10 (capped at promptTokenCount)", resp.Usage.CachedTokens)
+	}
+	if miss := resp.Usage.PromptTokens - resp.Usage.CachedTokens; miss != 0 {
+		t.Errorf("miss = %d, want 0 (never negative)", miss)
+	}
+}

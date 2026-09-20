@@ -1215,3 +1215,55 @@ Following round 071 delivery, the operator evaluated candidate tools on [#147](h
 3. **`read_external_docs`** — evaluated and **struck out as an exclusion** on [#147](https://github.com/gosharplite/tellme/issues/147): naive static scraping (`http.Get`) fails on modern SPA/Cloudflare documentation; collapses all whitespace with `strings.Fields`, destroying code blocks, YAML indentation, and table formatting; arbitrary 10 KB truncation cut; arbitrary network requests break offline testing. Superior alternatives exist via bash (`curl -sL https://r.jina.ai/<url>` for high-fidelity Markdown) or dedicated fetch MCP servers. The entire **Network / web** group is now excluded.
 4. **Inventory reconciled**: **58 non-excluded = 9 present + 49 candidates**; **45 excluded** (42 in [#146](https://github.com/gosharplite/tellme/issues/146) + 3 struck out on [#147](https://github.com/gosharplite/tellme/issues/147)).
 5. Docs only — no code, no round in flight.
+
+---
+
+## 35. Session 58 (2026-09-20, cont.) — round 072 `072-gemini-cached-token-usage` **OPENED → full pipeline → PR #150 open, review-fold loop CLOSED**
+
+The operator reported the Gemini `H: 0` / "too expensive" symptom; investigation (referencing `tell-me-go`) found the adapter dropped `cachedContentTokenCount`. A detailed bug issue was filed (**[#149](https://github.com/gosharplite/tellme/issues/149)**), **round 072** was opened to close it, and the full AIxBDD pipeline ran to a green PR.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`072-gemini-cached-token-usage`** (off `dev` `5b1bfa1`) |
+| Anchor | **[#149](https://github.com/gosharplite/tellme/issues/149)** (bug) — the round's DoD |
+| Theme | the Gemini/Vertex adapter decodes `cachedContentTokenCount` → `Usage.CachedTokens` and `thoughtsTokenCount` → `Usage.ThinkingTokens` (family-disjoint; **capped at the prompt**) |
+| Clarify | **not escalated (0 questions)** — the defect/fix are unambiguous; the one residual (`thoughtsTokenCount` disjointness) is technical → research |
+| Pipeline | specify ✅ · spec-by-example ✅ · technical-research ✅ (**ADR 0044**) · system-analysis ✅ · dsl-refine ✅ · tasks ✅ · implement ✅ |
+| Review chain (PR [#150](https://github.com/gosharplite/tellme/pull/150), the `architect` peer) | `REVIEW-B1` (**APPROVE WITH REQUIRED FOLDS** — TD-072-1 required + TD-072-2/3 + 3 nits) → fold `8be6ad6` → `FOLD-VERIFICATION-B1` (**FOLDS VERIFIED WITH RESIDUALS**) → residuals `0ea433c` → `FOLD-VERIFICATION-B1-FINAL` (**FOLDS VERIFIED — CLEARED FOR HUMAN MERGE**) → editorial `c8a671f` → loop-closed |
+
+### Decisions locked (round 072)
+
+| # | Decision |
+| --- | --- |
+| **D1/D2** | decode `cachedContentTokenCount` / `thoughtsTokenCount` into `Usage` (floored at 0). |
+| **D3** | disjointness is **family-specific**: Gemini does **not** subtract thoughts (its `candidatesTokenCount` excludes them), unlike the OpenAI-compatible adapter. |
+| **D4** | the cached count is **capped at the prompt** (TD-072-1) so the miss is never negative / the hit-rate never exceeds 100 %. |
+| **D5–D7** | the cost formula is unchanged; the change is family-local; **ADR 0044** records it. |
+
+### Commits (branch `072-gemini-cached-token-usage`)
+
+| Commit | Note |
+| --- | --- |
+| `d884f38` | `docs(072)`: open round 072 (specify) |
+| `abbad9c` | `docs(072)`: acceptance + research + ADR 0044 + plan + tasks |
+| `3a2aaed` | `fix(072)`: decode Gemini cached/thinking tokens |
+| `8be6ad6` | `fix(072)`: fold review B1 (TD-072-1 cap + TD-072-2/3 + nits) |
+| `0ea433c` | `docs(072)`: fold B1 residuals (RES-B1/B2/B3) |
+| `c8a671f` | `docs(072)`: name the cached-cap pin in ADR §Verification |
+
+### Open items (non-blocking)
+
+- **RF-072-1…3** in **ADR 0044 §Forward** (thinking levels; a cache-ratio display; a per-family usage-decode capability).
+- **Live check pending** (non-gating): a real Vertex turn should now show a non-zero `H` and a lower input cost.
+- **Follow-up offered (not filed)**: three pre-existing ADR `Related` link breaks (0039 ×2, 0040 ×1 → a missing `0021-tool-output-ctor-injection.md`).
+
+### Next steps
+
+1. Human reviews + merges PR [#150](https://github.com/gosharplite/tellme/pull/150) (**no Copilot review**; only a human merges) → then closeout (propagate `dev → main`, tag `round-072`, refresh the binary; **close [#149]**).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `072-gemini-cached-token-usage`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; no PM-owned gaps).
