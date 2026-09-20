@@ -110,10 +110,19 @@ func assembleAgentTools(spec deps.ToolSetSpec) []domaintools.Tool {
 	tools = append(tools, infratools.NewCommandTool(spec.Sink))
 	tools = append(tools, infratools.NewSkillsTool(nil))
 	if spec.Vision {
-		ceiling := infratools.ImageCeilingForFamily(infrallm.Family(spec.ProviderType))
-		tools = append(tools, infratools.NewReadImageTool(ceiling))
+		tools = append(tools, infratools.NewReadImageTool(resolveImageCeiling(spec)))
 	}
 	return tools
+}
+
+// resolveImageCeiling maps a ToolSetSpec's provider label to the family-aware
+// inline image ceiling the `read_image` tool enforces (round 063; ADR 0033 D4).
+// It is a NAMED seam (round 069 / ADR 0039) so the family→ceiling CONSUMPTION is
+// pinnable on its own (PR #141 fold F2): the classifier (`infrallm.Family`) and
+// the ceiling table (`infratools.ImageCeilingForFamily`) are both single-owned,
+// and this helper is their one composition point in the agent registry path.
+func resolveImageCeiling(spec deps.ToolSetSpec) int {
+	return infratools.ImageCeilingForFamily(infrallm.Family(spec.ProviderType))
 }
 
 // newToolRegistry builds the agent registry (the agent loop's set) from ONE

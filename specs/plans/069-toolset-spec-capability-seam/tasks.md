@@ -65,3 +65,18 @@ go test -count=1 ./...          ok (all packages incl. tests/e2e)
 make verify                     verify: OK
 git diff --stat go.mod go.sum   (unchanged)
 ```
+
+---
+
+## Phase 5 — PR #141 review folds (the `architect` peer)
+
+**Review:** [PR #141 comment](https://github.com/gosharplite/tellme/pull/141#issuecomment-5747209339) — `APPROVE WITH REQUIRED FOLDS`, no `[ARCHITECTURAL BLOCKER]`; behaviour-identity **could not be falsified**.
+
+- [x] **T008** [FOLD F1 — `[TECHNICAL DEBT]`, required] **Annotate the source ADRs**: `ADR 0033` `Status` + `RF-063-6` → **DELIVERED by ADR 0039 (round 069)**; `ADR 0032` `Status` + `RF-062-10` → **seam half DELIVERED (media-channel half stays open, RF-069-1)**; the index rows for 0032/0033. *(The per-round annotation convention; prevents the "permanent muse" recurrence.)*
+- [x] **T009** [FOLD F2 — `[REFACTOR]`, required] **Witness the family-aware ceiling consumption**: extract `resolveImageCeiling(spec)` (a named seam in `cmd/tellme`) and pin it (`TestResolveImageCeilingPinsTheFamilyAwareConsumption`) — the E2E's oversize fixture exceeds **both** ceilings, so it cannot distinguish them; correct the `RF-069-5` wording and **close** it.
+- [x] **T010** [FOLD F3 — `[NIT]`] Align `research.md`'s falsifiability line to `tasks.md` (no "image-ceiling pin" existed).
+
+### Fold witness (reproduced then reverted)
+
+- **(F2)** collapse the family resolution — `resolveImageCeiling` → `ImageCeilingForFamily("")`: the new pin **reds** (`gemini = 33554432, want 14680064`; the families-equal check reds). Reverted.
+- **Gates re-run at the fold head** — `gofmt`/`vet`/`build` clean · `go test -count=1 ./...` **green** · `make verify` **OK** · topology audit 5 pre-existing, none new.

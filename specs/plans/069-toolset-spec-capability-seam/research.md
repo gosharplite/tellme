@@ -107,4 +107,4 @@ Record the seam as a durable structural decision; annotate **RF-062-10** (the se
 - **Structural** — no positional capability scalar remains (`NewToolRegistry` / `newToolRegistry` / `assembleAgentTools` / `renderToolUsage`); grep-verifiable (SC-001).
 - **Behaviour-identity** — the full unit suite + the godog E2E stay green with **no assertion changed** (SC-002).
 - **Gates** — `make verify` green (the layer gate stays 0; `modelith-check` unchanged); `go.mod`/`go.sum` unchanged (SC-003).
-- **Falsifiability** — dropping `spec.Vision` from the gate reds the existing offered-set pins; a wrong ceiling reds the image-ceiling pin.
+- **Falsifiability** — dropping `spec.Vision` from the gate reds the existing offered-set pins; a wrong **generic** ceiling reds the E2E `reading-a-local-image` journey. *(Correction, PR #141 fold F3: the family-aware ceiling's **consumption** is carried by the `resolveImageCeiling` table pin added at fold F2 — the E2E's oversize fixture exceeds **both** family ceilings, so it cannot distinguish them. See `tasks.md` and ADR 0039 RF-069-5.)*
