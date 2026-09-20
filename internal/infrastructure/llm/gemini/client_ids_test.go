@@ -454,3 +454,66 @@ func TestUnpairedCallIDs_DuplicateProviderIDIsDeterministic(t *testing.T) {
 		}
 	}
 }
+
+// TestUnpairedCallIDs_AgreesWithEmittedBody pins TD-068-1: the family-neutral
+// account (llm.UnpairedToolCalls, which UnpairedCallIDs delegates to) must AGREE
+// with the wire — the calls minus the reported-unpaired calls equal the number of
+// functionResponse parts the emitted body actually carries, and every reported id
+// is absent from the body. This ties the mirror walk to the adapter so the
+// round-068 diagnostic cannot silently drift from the wire.
+func TestUnpairedCallIDs_AgreesWithEmittedBody(t *testing.T) {
+	calls := func(ids ...string) llm.Message {
+		tcs := make([]llm.ToolCall, 0, len(ids))
+		for _, id := range ids {
+			tcs = append(tcs, llm.ToolCall{ID: id, Name: "t", Arguments: `{}`})
+		}
+		return llm.Message{Role: "assistant", ToolCalls: tcs}
+	}
+	data := []byte{0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A}
+	fixtures := map[string][]llm.Message{
+		"all-paired":       {calls("a", "b"), {Role: "tool", Content: "x", ToolCallID: "a"}, {Role: "tool", Content: "y", ToolCallID: "b"}},
+		"short":            {calls("a", "b"), {Role: "tool", Content: "x", ToolCallID: "a"}},
+		"zero":             {calls("a", "b"), calls("c")},
+		"trailing-multi":   {calls("r1a", "r1b"), {Role: "tool", Content: "x", ToolCallID: "r1a"}, calls("r2a")},
+		"media-between":    {calls("a", "b"), {Role: "tool", Content: "x", ToolCallID: "a"}, {Role: "user", Media: []llm.MediaPart{{MIMEType: "image/png", Data: data}}}},
+		"media-before-res": {calls("a", "b"), {Role: "user", Media: []llm.MediaPart{{MIMEType: "image/png", Data: data}}}, {Role: "tool", Content: "x", ToolCallID: "a"}},
+		"tool-role-media":  {{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "a", Name: "t", Arguments: `{}`}}}, {Role: "tool", Content: "m", Media: []llm.MediaPart{{MIMEType: "image/png", Data: data}}}},
+		"media-after":      {calls("a"), {Role: "tool", Content: "x", ToolCallID: "a"}, {Role: "user", Media: []llm.MediaPart{{MIMEType: "image/png", Data: data}}}},
+		"idless":           {calls("a"), {Role: "tool", Content: "x"}},
+		"duplicate":        {calls("dup", "dup"), {Role: "tool", Content: "1", ToolCallID: "dup"}, {Role: "tool", Content: "2", ToolCallID: "dup"}},
+		"out-of-order":     {calls("a", "b"), {Role: "tool", Content: "y", ToolCallID: "b"}, {Role: "tool", Content: "x", ToolCallID: "a"}},
+	}
+	for name, prior := range fixtures {
+		t.Run(name, func(t *testing.T) {
+			total := 0
+			for _, m := range prior {
+				total += len(m.ToolCalls)
+			}
+			unpaired := UnpairedCallIDs(prior)
+			body, err := requestBody("", prior, nil, 0, 0, "", "")
+			if err != nil {
+				t.Fatalf("requestBody: %v", err)
+			}
+			parts := 0
+			present := map[string]bool{}
+			for _, turn := range decodeContents(t, body) {
+				for _, p := range turn.Parts {
+					if fr, ok := p["functionResponse"].(map[string]any); ok {
+						parts++
+						if id, ok := fr["id"].(string); ok {
+							present[id] = true
+						}
+					}
+				}
+			}
+			if total-len(unpaired) != parts {
+				t.Fatalf("total(%d) - unpaired(%d) = %d, but the body carries %d functionResponse parts", total, len(unpaired), total-len(unpaired), parts)
+			}
+			for _, id := range unpaired {
+				if present[id] {
+					t.Fatalf("reported-unpaired id %q is present in the body", id)
+				}
+			}
+		})
+	}
+}

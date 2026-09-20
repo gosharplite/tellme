@@ -106,7 +106,7 @@ As the **operator** running `tellme` against a **Gemini/Vertex** provider, when 
 
 - **`M == N`** (shipped happy path) — no diagnostic (I-7).
 - **`M = 0`** (no results for a round) — all N call ids unpaired → the diagnostic names them (call order).
-- **Multiple rounds with unpaired calls** — the diagnostic reports in call order, per round / aggregated (finalise at research).
+- **Multiple rounds with unpaired calls** — the diagnostic reports **one aggregated, call-order** line (the account accumulates across the conversation's rounds; finalised — ADR 0038 D3/N-068-2).
 - **Media-bearing round** — the diagnostic does not alter the batched/media wire (I-2/I-3).
 - **Non-terminal `stderr` / `-r`** — the diagnostic is **plain** (no colour; terminal-gated, ADR 0023) but **still emitted** (a diagnostic is not decoration). It is **never** written to `turns.log` (Q1 → A).
 - **OpenAI-compatible provider** — unchanged, no diagnostic (I-1/S-5).

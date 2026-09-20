@@ -198,13 +198,15 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 
 // UnpairedCallIDs returns, in call order across the whole prior, the ids of the
 // Gemini/Vertex tool calls that received no result by their round boundary — the
-// M < N boundary drop made ACCOUNTABLE (round 067; ADR 0037; RF-066-7). The
-// adapter still drops such calls from the wire (the batched turn carries only the
-// M results the round produced), so at runtime the drop remains exactly as silent
-// as before round 067; this accessor is the single-owned, TEST-FACING accounting
-// seam — it has NO live consumer today (surfacing it as a user-visible `[Tool …]`
-// diagnostic is the recorded forward item RF-067-1; the adapter owns no logging
-// seam). A round whose calls are all paired contributes nothing.
+// M < N boundary drop made ACCOUNTABLE (round 067; ADR 0037). Round 068 (ADR
+// 0038) makes the account single-owned and family-neutral: this accessor
+// DELEGATES to llm.UnpairedToolCalls, and the account's live consumer is the CLI
+// diagnostic decorator (internal/cli/unpaired_gateway.go) over that single owner,
+// which renders a `[Tool Warning]` line for a short round (delivering ADR 0037
+// §Forward RF-067-1). This wrapper is retained as the adapter-facing seam (its
+// pins carry the delegation); the emitted batched turn still carries only the M
+// results the round produced. A round whose calls are all paired contributes
+// nothing.
 func UnpairedCallIDs(prior []llm.Message) []string {
 	// Round 068 (ADR 0038): the round-boundary account has ONE owner, the
 	// family-neutral llm.UnpairedToolCalls; the adapter delegates so its M < N

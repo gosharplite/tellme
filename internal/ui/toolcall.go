@@ -42,6 +42,13 @@ const resultValueCap = 200
 // joins its sibling sanitize+cap family (cap set {500, 200, 200}).
 const reasonValueCap = 200
 
+// unpairedIDsCap is the maximum total rendered rune length of the round-068
+// unpaired-call diagnostic's id list (B-068-1). The ids are externally sourced
+// (round 067 prefers the provider-issued `functionCall.id`), so they get the SAME
+// single-owned policy as their siblings: fold + sanitize + rune cap (one U+2026
+// inside the cap).
+const unpairedIDsCap = 200
+
 // FormatToolEngine renders the per-executed-round step marker (FR-001):
 // `[HH:MM:SS] [Tool Engine] Step <step>/<total>`.
 func FormatToolEngine(t time.Time, step, total int) string {
@@ -243,6 +250,13 @@ func capRunes(s string, max int) string {
 // block precedent, ADR 0022 D5). The caller emits it only when ids is non-empty,
 // so the shipped `M == N` path prints nothing (I-7).
 func FormatUnpairedCalls(t time.Time, ids []string) string {
+	// B-068-1: the ids are externally sourced (a provider-issued `functionCall.id`
+	// can carry terminal control data), so the value goes through the SAME
+	// single-owned policy as every other `[Tool …]` value: fold (`\n`/`\r` → space)
+	// → sanitize (control class removed) → rune cap. The line is therefore folded,
+	// control-free and capped — NOT merely "plain" (colour and the control class
+	// are distinct; ADR 0008).
+	value := capRunes(sanitizeControl(oneLine(strings.Join(ids, ", "))), unpairedIDsCap)
 	return fmt.Sprintf("[%s] [Tool Warning] %d tool call(s) left unanswered: %s",
-		formatClock(t), len(ids), strings.Join(ids, ", "))
+		formatClock(t), len(ids), value)
 }

@@ -55,7 +55,7 @@ The recorded fate of one executed `ToolCall`.
 
 ### `Chrome`
 
-The diagnostic surface on `stderr`: the turn rule and header, the payload status lines (`estimated` + `measured`), the `[Tool Reason]` / `[Tool Action]` / `[Tool Result]` lines, the live `[Tool Output]` block, the turn spinner, and the Ready summary. Colour accents are **terminal-gated** (a terminal `stderr` with `-r` off) and never enter `stdout` or the `TurnLog`; the `[Tool …]` values are control-free and bounded; the answer (`stdout`) is separately rendered Markdown.
+The diagnostic surface on `stderr`: the turn rule and header, the payload status lines (`estimated` + `measured`), the `[Tool Reason]` / `[Tool Action]` / `[Tool Result]` / `[Tool Warning]` lines, the live `[Tool Output]` block, the turn spinner, and the Ready summary. Colour accents are **terminal-gated** (a terminal `stderr` with `-r` off) and never enter `stdout` or the `TurnLog`; the `[Tool …]` values are control-free and bounded; the answer (`stdout`) is separately rendered Markdown.
 
 **Relationships**
 

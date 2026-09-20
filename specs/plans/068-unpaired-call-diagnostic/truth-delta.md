@@ -36,3 +36,5 @@
 **Domain model** (`docs/domain-model/tellme.modelith.{yaml,md}`, ADR 0030 — descriptive): *expected MODIFY/NOOP* — decided when the diagnostic's domain concept (if any) is fixed; `make modelith-check` must stay green.
 
 **Topology audit** (`axb-gherkin-and-dsl` over `specs/truth/features/cli`): must keep the **same 5 pre-existing errors**, **none new**; every new/changed step must match exactly one `DSLRow`.
+
+**Review folds (2026-09-20, comment `5746878141` — REQUEST CHANGES):** **B-068-1** (the `[Tool Warning]` id value is folded/control-free/capped, `unpairedIDsCap = 200`), **TD-068-1** (the tie pin `TestUnpairedCallIDs_AgreesWithEmittedBody` + the media cases; the over-claim narrowed), **TD-068-2** (the techstack row's round-067 clause retargeted to `llm.UnpairedToolCalls` + a *superseded by ADR 0038* pointer; the gemini doc comment corrected), **N-068-1** (`[Tool Warning]` added to the `Chrome` domain entity + re-render), **N-068-2** (the re-reporting documented; the spec edge case finalised).
