@@ -1022,3 +1022,33 @@ A later session on the same calendar day. Bootstrapped (`SESSION-BOOTSTRAP.md` S
 1. Open the next round off `dev` from **operator value** — **not** from the `#146` inventory or the `ADR §Forward` disclosures (curation rule).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
+---
+
+## 30. Session 56 (2026-09-20, cont.) — `tell-me-go` tool inventory: exclusions settled, then **split #146 → #146 (excluded) + #147 (present + candidates)** (docs/issue-tracker only; no round, no product code)
+
+A later session on the same calendar day. Continued the `tell-me-go` agent-tool inventory (#146), deciding candidate-by-candidate which reference tools tellme will not port, and then splitting the inventory.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| **#146 revised** | Every tool rendered as a **checkbox**; the full reference set re-verified (**8 present · 95 absent · ~103 reference**; a `toolscanner`-style re-enumeration of every `ToolDeclaration` across all production files — 0 missing, 0 extra). |
+| **Exclusions settled** | Struck out (do-not-port): **Media (3)** · **`load_toolkit`** (no lazy toolkit architecture) · **Security/authorization (10)** · **State/history/session (5)** · **System/process (2)** · **Git (7)** · **Skills.sh (3)** · **Dev toolchain (6)** · **5 of 6 filesystem extras**. |
+| **Retained candidate** | **`search_files`** — the lone filesystem candidate (bounded, own-contract in-file search). |
+| **Split** | **[#147](https://github.com/gosharplite/tellme/issues/147)** created — *"tell-me-go agent tools not excluded from tellme — present + candidates"* — holding **all non-struck-out tools** (**8 present + 53 candidates**: `search_files` 1 · Go/AST 24 · network/web 2 · enterprise 26). **#146** retitled *"…excluded from tellme — exclusion inventory"* and reduced to the **42 excluded** tools (with rationale). |
+| Record | `STATUS.md` roadmap + issue-tracker rows updated for the three open issues (#145/#146/#147); this §30. Docs/issue-tracker only. |
+
+### Decisions locked
+
+| # | Decision |
+| --- | --- |
+| — | **Excluded (do not port):** media (3) · `load_toolkit` (no lazy toolkit architecture) · security/authorization (10) · state/history/session (5) · system/process (2) · git (7) · skills.sh (3) · dev toolchain (6) · filesystem extras: `find_file`/`append_text`/`delete_path`/`create_directory`/`undo_file_change`. |
+| — | **Retained candidate:** `search_files`. |
+| — | **Still undecided (candidates):** Go/AST (24) · network/web (2) · enterprise integrations (26) — homed in [#147](https://github.com/gosharplite/tellme/issues/147). (The Go/AST suite is the strongest — the one category the shell cannot match.) |
+
+### Open items
+
+- **Three open issues:** [#145](https://github.com/gosharplite/tellme/issues/145) · [#146](https://github.com/gosharplite/tellme/issues/146) · [#147](https://github.com/gosharplite/tellme/issues/147). tellme's agent surface is unchanged at **8**.
+- **Propagation:** none required (docs/issue-tracker only); `dev` is the active branch, no round in flight.
+
+
