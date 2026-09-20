@@ -553,3 +553,37 @@ The operator: *"Tool call in tellme will be sequential, no concurrency. Clear?"*
 
 1. Open the **next round** off `dev` from a **value / live-issue** candidate (`ToolSetSpec` seam RF-062-10/RF-063-6 · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13)) — **not** from the open-items index.
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 18. Session 52 (2026-09-20, cont.) — round **069** `069-toolset-spec-capability-seam` **OPENED** (anchor issue [#140](https://github.com/gosharplite/tellme/issues/140) + `/axb-specify`)
+
+The operator: *"Create a detail new issue for this [the `ToolSetSpec` seam]. Open round 069, the goal is to close this new issue."* Done.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Anchor issue | **[#140](https://github.com/gosharplite/tellme/issues/140)** created (detailed, grounded on `dev` @ `5971822`): replace the registry-construction **positional scalars** (`sink domaintools.OutputSink, vision bool, providerType string`) with one named **`ToolSetSpec`**; carries **F-062-4** + **RF-062-10** + **RF-063-6** (*overdue*). **DoD = close it.** |
+| Branch | `069-toolset-spec-capability-seam` (off `dev` `5971822`) |
+| `/axb-specify` | ✅ done — `specs/plans/069-toolset-spec-capability-seam/` (`spec.md` · `checklists/requirements.md` · `truth-delta.md` skeleton). No `specs/truth/**` (SOP). |
+| Shape | **pure internal-shape refactor** — **no config-file change, no UX change**, behaviour byte-identical; acceptance is structural (existing pins green, no assertion changed). |
+| Scope guard | **RF-062-10 bundles two items** (the seam **+** the media-channel refactor). This round lands the **seam only**; the media-channel refactor stays a recorded forward item. |
+| Clarify | **NOT escalated (0 questions)** — the goal is unambiguous; the residual choices (type placement, raw `providerType` vs resolved ceiling) are technical → `/axb-technical-research`. |
+| Round-number note | `069` was previously assigned to the **retracted** `069-concurrent-tool-dispatch` (never landed; branch deleted; [#139](https://github.com/gosharplite/tellme/issues/139) closed `not_planned`). Per the naming rule (existing max `068` + 1) the number is **correct and reused** for this round. |
+| STATUS | round 069 in flight + active branch + branch-model row + roadmap row recorded (reconciling the earlier retraction narrative). |
+
+### Decisions locked (round 069, this phase)
+
+| # | Decision |
+| --- | --- |
+| — | Round 069 opens from anchor **[#140](https://github.com/gosharplite/tellme/issues/140)**; **DoD = closing it**. |
+| — | A **named `ToolSetSpec`** replaces the positional scalars; a new capability MUST land as a **field** (FR-004). |
+| — | **No config-schema change, no UX change** (I-1/I-2); behaviour byte-identical (I-3). |
+| — | **Seam only** — the media-channel refactor (RF-062-10's other half) is **out** (I-4). |
+| — | Clarify **not escalated**; `/axb-spec-by-example` + `/axb-dsl-refine` expected **NOOP** (the 042/043/047/049 structural-round precedent). |
+
+### Next steps
+
+1. `/axb-technical-research` (deck the named spec; a new structural ADR + `techstack.md` MODIFY; annotate RF-062-10/RF-063-6) → `/axb-system-analysis` → `/axb-dsl-refine` (NOOP) → `/axb-tasks` → `/axb-implement` → PR (human merges) → closeout (tag `round-069`, **close [#140](https://github.com/gosharplite/tellme/issues/140)**).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `069-toolset-spec-capability-seam`).
