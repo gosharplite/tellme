@@ -14,7 +14,7 @@
 | ADD | `specs/truth/techstack.md` — *In-file content search tool (`search_files`)* | a ninth agent tool: a bounded, deterministic in-file content search (literal default + `is_regex`; `path:line: text` sorted path-then-line; the byte budget + a 100-match cap + a 500-byte trim; binary skipped; no directory ignore list; no `SafePath`); three deliberate divergences + three further recorded differences from the reference | `spec.md` US1/US2/US3, FR-001…FR-009; `research.md` D1–D7 |
 | MODIFY | `specs/truth/techstack.md` — *Agent tool schemas* | the shared `resourceSchema`-backed enumeration gains `search_files` (the ninth tool) | `spec.md` FR-005/I-7 |
 | MODIFY | `specs/truth/techstack.md` — *Tool-usage accounting* | the recordable union (`--tool-usage`) gains `search_files` | `spec.md` FR-006/I-6 |
-| ADD | `docs/decisions/0043-search-files-tool.md` (+ index row) | the tool, the design-intent justification, the three divergences, and the Q1–Q3 locked choices | `spec.md` SC-004; `research.md` D7 |
+| ADD | `docs/decisions/0043-search-files-tool.md` (+ index row) | the tool, the design-intent justification, the three deliberate divergences + three further recorded differences, and the Q1–Q3 locked choices | `spec.md` SC-004; `research.md` D7 |
 | MODIFY | `docs/domain-model/tellme.modelith.{yaml,md}` — `Tool` entity | the surface now names the reader family incl. `search_files` (nine tools with the vision-gated `read_image`); rendered via `make modelith-render` | ADR 0041 (the model is load-bearing); `modelith-check` green |
 | NOOP (checked) | every other techstack row | no config key, no wire change, no new dependency | `spec.md` I-3/I-8 |
 

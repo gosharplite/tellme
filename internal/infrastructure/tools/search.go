@@ -20,8 +20,10 @@ import (
 // the ninth agent tool and clears tellme's design-intent bar (a dedicated tool
 // beats bash on a real axis): context-boundness (an unbounded `grep -rn` can blow
 // the window) and determinism (a fixed result order — a tool's output is
-// executable truth). Three recorded divergences from the reference
-// (`tell-me-go/internal/tools/workspace/search.go`):
+// executable truth). Against the reference
+// (`tell-me-go/internal/tools/workspace/search.go`,
+// `internal/pkg/concurrentsearch/`), the ledger records THREE DELIBERATE
+// DIVERGENCES:
 //
 //   - NO `SafePath`/consent gate — the settled no-security-layer direction; the
 //     tool reads whatever path it is given, like its sibling readers.
@@ -30,11 +32,17 @@ import (
 //   - DETERMINISTIC order — the reference's result order is worker-dependent;
 //     tellme sorts matches by path, then line.
 //
+// PLUS THREE FURTHER RECORDED DIFFERENCES (review A1 / TD-071-4): the reference
+// appends `" (truncated)"` when it cuts a line at 500 (tellme cuts SILENTLY —
+// the line is capped at 500 BYTES), skips any file > 1 MiB (tellme does not; the
+// budget bounds the result), and probes binaries at 1024 B (tellme probes 8000 B).
+//
 // Bounds (round-071 clarify Q1–Q3): a literal query by default with an `is_regex`
 // opt-in (Q1); skip binary files + a max-line token of 10 MB, no directory ignore
 // list, unreadable paths skipped best-effort (Q2); the round-024 byte budget is
-// the primary bound, with a hard degenerate match cap of 100 and a per-line trim
-// of 500 chars, matches sorted path-then-line (Q3).
+// the primary bound on EVERY return path, with a hard degenerate match cap of 100
+// (the first 100 by path of the first 1000 walk-order candidates) and a per-line
+// trim of 500 BYTES, matches sorted path-then-line (Q3).
 
 const (
 	// searchMaxMatches is the hard degenerate cap on reported matches (the
