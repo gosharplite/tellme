@@ -76,6 +76,7 @@ func buildDeps() deps.Dependencies {
 		NewLines:     func(colour bool) render.Lines { return ui.NewLines(colour) },
 		NewToolLines: func(colour bool) agentport.ToolLineRenderer { return ui.ToolLines(colour) },
 		NewAnswer:    func() render.Answer { return ui.NewAnswer() },
+		NewListing:   func() render.Listing { return ui.NewListing() },
 		NewProgress: func(spec render.ProgressSpec) render.TurnProgress {
 			return ui.NewTurnProgress(spec, infratelemetry.NewSystemMetricsProvider())
 		},
