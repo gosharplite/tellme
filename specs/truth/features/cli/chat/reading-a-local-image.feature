@@ -162,13 +162,13 @@ Feature: Reading a local image with the agent
       And the request carried no image
       And tellme exits successfully
 
-  Rule: The protection is part of every delivery
-
-    # Documented narrowing (the round-059 second-Rule precedent): whether a real
-    # provider would accept an image cannot be asked through the built binary
-    # alone. The carriers are the Examples above (which observe the bytes the
-    # fake provider recorded) plus the hermetic unit pin over the request body,
-    # designed to fail if the image serialization is removed (ADR 0032
-    # Verification). No `# [need clarification]` gap remains: the clarify round
-    # closed all five decisions (family scope · capability key · tool surface ·
-    # offered surface · size ceiling).
+  # Delivery-protection note — NOT a Rule (it carries no Examples; the round-063
+  # review TD-063-4 "meta-Rule"). RETIRED 2026-09-20 as RF-063-10: the convention
+  # is now that every Rule carries ≥1 Example. Documented narrowing (the round-059
+  # second-Rule precedent): whether a real provider would accept an image cannot be
+  # asked through the built binary alone. The carriers are the Examples above
+  # (which observe the bytes the fake provider recorded) plus the hermetic unit pin
+  # over the request body, designed to fail if the image serialization is removed
+  # (ADR 0032 Verification). No `# [need clarification]` gap remains: the clarify
+  # round closed all five decisions (family scope · capability key · tool surface ·
+  # offered surface · size ceiling).

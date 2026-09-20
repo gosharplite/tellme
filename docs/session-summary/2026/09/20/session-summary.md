@@ -290,4 +290,98 @@ A later session on the same calendar day, continuing round 066: the operator dir
 
 *(Round 066 is fully closed out: PR #135 human-merged into `dev` (`e4410e4`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-066`**; the installed binary refreshed; [#134](https://github.com/gosharplite/tellme/issues/134) closed.)*
 
+---
 
+## 10. Session 46 (2026-09-20, cont.) — RETIRED the recurring "comment-only meta-Rule" PM follow-up (RF-063-10)
+
+The operator flagged the meta-problem directly: **RF-063-10 was re-surfaced at every fresh session** — it lived on a bootstrap-read surface (`STATUS.md`'s *PM follow-ups* line), so each new session inherited it as an open item and re-litigated it. **The recurrence was the bug, not the item.** Closed durably (docs/truth only; no product code):
+
+- **`specs/truth/features/cli/chat/reading-a-local-image.feature`** — the comment-only `Rule: The protection is part of every delivery` (no Examples) demoted to a plain `#` note (the only **editable** occurrence; no steps, no DSL row, no E2E/audit impact).
+- **ADR 0033 §Forward RF-063-10** — annotated **RETIRED** with the recorded convention: *every `Rule` carries ≥1 Example; no comment-only meta-Rules*; the frozen occurrences (plan packages 061/062/063) stay immutable by `plan-package-frozen`; the class stopped recurring (064 fixed it in-round; 065 + 066 authored none).
+- **`STATUS.md`** — the *PM follow-ups* line is now **"none open"** (with an explicit **do not re-open / re-raise**); the round-063 forward-items line marks RF-063-10 **RETIRED**.
+
+**Verification:** topology audit **identical** (49 features · 16 root + 384 module rows · 1989 steps · the same 5 pre-existing errors) · `go test -count=1 ./tests/e2e/` **green** (19.7 s). Commit on `dev`; no `specs/plans/**` touched.
+
+**Lesson (recorded):** a low-value, PM-owned, non-blocking item must be **retired on the surfaces a session actually reads** or it becomes a permanent muse. A "PM follow-up" that no one intends to action is not a plan — it is noise.
+
+
+---
+
+## 11. Session 47 (2026-09-20, cont.) — round 067 `067-toolcall-id-followups`: opened (specify) → full pipeline → implementation → **PR [#137](https://github.com/gosharplite/tellme/pull/137) open** → architect review-fold loop (3 passes, CLOSED)
+
+A later session on the same calendar day, on the operator's tasking *"Open round 067, the goal is to close https://github.com/gosharplite/tellme/issues/136"*: created the branch **`067-toolcall-id-followups`** off `dev` `30f54a1`, ran the full AIxBDD pipeline, and took **PR [#137](https://github.com/gosharplite/tellme/pull/137)** through the `architect` peer's **review → fold → fold-verification → residual-fold verification** loop to **CLEARED FOR HUMAN MERGE**. The operator then directed: initialise `architect` with `SESSION-BOOTSTRAP.md` once, **no `--new`** afterwards; the loop ran via continuations.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | anchor [#136](https://github.com/gosharplite/tellme/issues/136) — a **hardening/parity** round, the continuation of round 066: **RF-066-7** (surface a Gemini round's **unpaired** calls → **retires RF-066-8**) + **RF-066-2** (prefer the **provider-issued** `functionCall.id`, Gemini-local by construction) |
+| Clarify | **not escalated (0 questions)** — the goal (close #136) + both changes are unambiguous; residual choices (S-3 observability form · S-4 fallback spelling · S-5 cross-family scope) deferred to `/axb-technical-research` |
+| Pipeline | specify ✅ · spec-by-example **NOOP** · technical-research ✅ (**ADR 0037** + `techstack.md` ×1 row) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine **NOOP** · tasks ✅ (T001–T010) · implement ✅ |
+| The change | `internal/infrastructure/llm/gemini/client.go` — `parseResponse` prefers the provider `functionCall.id` (else the deterministic `call_<n>`); `roundBuilder.unpaired()` + a `dropped` field recorded in `flush()`, surfaced as the package-level `UnpairedCallIDs(prior)` accessor (the `M < N` boundary drop is **accountable in code**, silent at runtime); `consume()` factor + a single `buildRound` pass |
+| Architect loop | the `architect` peer (init once with `SESSION-BOOTSTRAP.md`; continuations) — review `5746659904` (**APPROVE WITH REQUIRED FOLDS**, 0 blockers; F-067-1/2 required + F-067-3…7 recorded) → fold `537f777` → fold verification `5746694092` (**FOLDS VERIFIED WITH RESIDUALS**: R-067-F1 truth-row claim drift · R-067-F2 the duplicate-id pin's witness power) → fold `c673ae3` → **residual-fold verification `5746707026` — `RESIDUAL FOLDS VERIFIED — CLEARED FOR HUMAN MERGE`** |
+| Commits | `6baf0a6` (specify) · `8c4fa39` (research + ADR 0037 + plan + tasks + implementation) · `b7db897` (PR open) · `537f777` (F-067-1…7) · `c673ae3` (R-067-F1/F2) · `82b4c64` (STATUS record) |
+
+### Decisions locked (round 067)
+
+| # | Decision |
+| --- | --- |
+| **S-1/S-2** | Surface a round's **unpaired** calls (single-owned accessor) + prefer the **provider-issued** `functionCall.id` — the two round goals (#136). |
+| **S-3** | Observability = a **returned-value accessor** (`UnpairedCallIDs`), **not** a `stderr` diagnostic; scoped by the review's F-067-2 to *accountable in code; silent at runtime* (a user-visible diagnostic is the operator-gated forward item RF-067-1). |
+| **S-4** | Keep the deterministic `call_<n>` fallback (reference's `gemini-call-<index>-<name>` not adopted); a blank provider id is treated as absent. |
+| **S-5** | **Gemini-local by construction** — the OpenAI-compatible wire is untouched (the load-bearing invariant, corrected at F-067-6: the id is **never persisted/replayed**, `history.Step` carries no id). |
+| **D8** | **ADR 0037** extends **ADR 0036** (delivers its RF-066-2 + RF-066-7, retires RF-066-8; closes #136). |
+
+### Folds applied (PR #137)
+
+**F-067-1** re-attributed the RF-066-8 retirement to the **cross-round** account (`TestUnpairedCallIDs_MultiRound`) on all five surfaces + recorded the mutant-kill witness as T009(d) · **F-067-2** scoped the claim (option b) · **F-067-3** one builder `buildRound` · **F-067-4** `callID` trims · **F-067-5** the `M=0` middle-round pin · **F-067-6** ADR D3's locality reason corrected · **F-067-7** the duplicate-id pin. **R-067-F1** aligned the truth row · **R-067-F2** the duplicate-id pin now asserts binding by **content** (kills a last-match mutant, witness reproduced).
+
+### Verification (fold head `c673ae3`)
+
+- `gofmt`/`go vet`/`go build` clean · `go test -count=1 ./...` **green** (24 pkgs incl. the godog E2E) · `make verify` **OK** (arch 0 · modelith-check ×3 · lint 0 · govulncheck clean · cross-compile 4/4) · topology audit **5 pre-existing, none new** · `go.mod`/`go.sum` unchanged.
+
+### Next steps
+
+1. Human merges PR [#137](https://github.com/gosharplite/tellme/pull/137) → closeout (propagate `dev → main`, tag `round-067`, close #136).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `067-toolcall-id-followups` until merged, then `dev`).
+
+---
+
+## 12. Session 48 (2026-09-20, cont.) — round 067 `067-toolcall-id-followups`: **human-merged (PR [#137](https://github.com/gosharplite/tellme/pull/137) → `dev` `82b4c64`, fast-forward)** → branch cleanup → closeout (Steps 1–8)
+
+The operator confirmed the merge and the remote-branch deletion, and directed: *"check if remote branch is gone, then delete local branch."* The remote branch was gone (`git fetch --prune` deleted `origin/067-toolcall-id-followups`); the local branch tip (`82b4c64`) was an ancestor of `dev`, so the local branch was **deleted** (`git branch -d` → *"Deleted branch 067-toolcall-id-followups (was 82b4c64)"*). `SESSION-CLOSEOUT.md` Steps 1–8 then ran on `dev`.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Merge | PR [#137](https://github.com/gosharplite/tellme/pull/137) **human-merged** into `dev` (`82b4c64`, **fast-forward**; the merge commit equals the round head) |
+| Branch | remote deleted by the human; **local deleted** after an ancestor check |
+| Gates (Step 2) | `gofmt`/`go vet`/`go build` clean · `go test -count=1 ./...` **green** · `make verify` **OK** · diff-level secret scan clean |
+| Propagation (Step 7) | `dev → main` — **DONE (no-ff)**; tagged **`round-067`** |
+| Closeout | `STATUS.md` **Rule-12 split** (the round-066 detail + its branch-model row + its env note → `docs/archives/status/2026-09-20.md`) · round 067 → the **Last delivered round** · delivered-rounds index + roadmap + branch-model + fold-ledger rows added · §11 + §12 appended · **#136 CLOSED** |
+
+### Steps 1–8
+
+- **Step 1 — working tree**: `dev` clean (`## dev...origin/dev`); no frozen `specs/plans/**` touched; staging files under `/tmp` removed.
+- **Step 2 — gates**: all green (as the at-a-glance row).
+- **Step 3 — `STATUS.md`**: round 067 **DELIVERED / FROZEN** (PR #137 → `dev` `82b4c64`, ff; certified fold head `c673ae3`); Rule-12 split (round-066 detail + its branch row + its env note → `2026-09-20.md`); branch model (the PR #137 → `dev` merge was a **fast-forward**; the `dev → main` propagation is a **no-ff** merge), roadmap (a 067 row), open items (RF-067-1…7), env notes; no liveness contradiction.
+- **Step 4 — day summary**: **appended** §11 + §12 (the §1–§10 record preserved).
+- **Step 5 — reconciliation**: `STATUS.md` ↔ §11/§12 agree (round 067 delivered; `dev` active; #136 closed; RF-067-x; next round `068-*`).
+- **Step 6 — commit**: `docs(067): day close — round 067 delivered + propagated; STATUS split + 09/20 summary`.
+- **Step 7 — propagation + handoff**: `dev → main` **DONE (no-ff)**; tag **`round-067`**; next-session start point = `dev`, round **`068-*`** off `dev`.
+- **Step 8 — issue tracker**: **[#136](https://github.com/gosharplite/tellme/issues/136) CLOSED (completed)** with a delivery comment naming PR [#137](https://github.com/gosharplite/tellme/pull/137) / `82b4c64`; [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) left OPEN (accurate).
+
+### Residuals (non-blocking, recorded)
+
+- **RF-067-1…7** in **ADR 0037 §Forward** (the accessor has no live consumer · the provider-id preference is live-unverified hermetically · no E2E asserts the wire `id` · concurrent execution · the reference fallback spelling · the duplicate-id handling · the `history.Step` guarding note).
+- **Live check (non-gating, recorded in ADR 0037)**: a branch-built binary against a real Vertex provider (RF-066-10 convention) — **not run in the hermetic closeout**.
+
+### Next steps
+
+1. Open round **`068-*`** off `dev` via `/axb-specify` (candidates: [#91](https://github.com/gosharplite/tellme/issues/91) self-development umbrella · [#13](https://github.com/gosharplite/tellme/issues/13) coverage tooling · the `ToolSetSpec` seam RF-062-10/RF-063-6 · RF-067-1 the unpaired-call diagnostic · RF-067-2 the provider-id live check).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; no PM-owned gaps).
