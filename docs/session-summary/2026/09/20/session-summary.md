@@ -786,3 +786,171 @@ The operator directed the architect review-fold loop on PR #143 (same protocol a
 
 1. Open the next round off `dev` from a **value / live-issue** candidate ([#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13)) — **not** from the open-items index.
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 24. Session 56 (2026-09-20, cont.) — issue-tracker disposition: coverage tooling **declined** (#13 → #144 → closed `not planned`); the R8a truth note retired (docs-only; no round, no product code)
+
+The operator asked whether the long-open **coverage tooling** candidate ([#13](https://github.com/gosharplite/tellme/issues/13)) was still worth doing. A measured check (a one-off `go test -coverprofile`; nothing written into the tree) plus the AIxBDD-instrument comparison settled it: **decline**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Measured (informational, `dev` @ `da53b74`) | **35.3 % raw / 79.3 % filtered** (exclude `tests/**` + `internal/infrastructure/mcp/mcptest/`); the long 0 % tail is dominated by **E2E-only subprocess** paths (`cmd/tellme/main`, the `-i`/diagnostic/usage-error chrome, the `composite_observer` hooks) — invisible to an in-process profile, **not** untested |
+| Disposition | **[#13](https://github.com/gosharplite/tellme/issues/13) CLOSED** (superseded) → **[#144](https://github.com/gosharplite/tellme/issues/144) created** (refreshed grounding) → **[#144](https://github.com/gosharplite/tellme/issues/144) CLOSED `not planned`** — coverage tooling **declined, not deferred** |
+| Why | the AIxBDD gates (`acceptance-coverage`, `dsl-exact-one-match`, the E2E contract as *the* gate, the **falsifiability witnesses**, the layer/drift gates) are the stronger instruments; a coverage threshold would force artificial unit tests for E2E-verified paths and need a `NonFixCatalog`-style noise absorber the repo **deliberately declined**; the one class a profile uniquely adds — a **reachability orphan** — was already caught by reasoning in round 068 (the unpaired-call diagnostic, `RF-068-1`, retired) |
+| Truth touch | `specs/truth/techstack.md` line 166 — the **R8a** note reworded: the dangling "must be added to future coverage tooling's exclusion list" → **DECLINED (2026-09-20)**, pointing at [#144](https://github.com/gosharplite/tellme/issues/144) and keeping the factual `mcptest` observation. A **note-level** correction of a *Not Introduced Yet* forwarding bullet — **no contract, invariant, or behaviour change** |
+| Other docs | `STATUS.md` — header bumped; the roadmap `future slices` row and the issue-tracker line refreshed (#13/#144 closed; **#91** the only open issue); this §24 |
+| Not done | no `specs/plans/**`, no product code, no new ADR, no `make verify` change; `make test` remains the executable contract |
+
+### Decisions locked
+
+| # | Decision |
+| --- | --- |
+| — | **Coverage tooling is declined** — no `test-coverage` target, no `go build -cover`/`GOCOVERDIR` E2E integration, no `make verify` member. ([#144](https://github.com/gosharplite/tellme/issues/144) closed `not planned`.) |
+| — | The **R8a** `mcptest` coverage-exclusion note is **retired** on the truth surface (recorded as declined, not left dangling). |
+| — | The **only** open issue is **[#91](https://github.com/gosharplite/tellme/issues/91)** (the self-development umbrella). |
+
+### Commits
+
+| Commit | Note |
+| --- | --- |
+| *(this pass, on `dev`)* | `docs: decline coverage tooling — close #13/#144, retire the R8a techstack note, refresh STATUS` |
+
+### Verification
+
+Docs-only: `gofmt`/`go vet`/`go test` unaffected (no Go changed); `make modelith-check` unaffected (no domain-model edit); diff-level secret scan clean. The measured coverage run wrote only to `/tmp` (the repo tree stayed clean).
+
+### Next steps
+
+1. Open the next round off `dev` from the **operator-value / live-issue** candidate — **[#91](https://github.com/gosharplite/tellme/issues/91)** (self-development; lock its three decisions first).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 25. Session 56 (2026-09-20, cont.) — retired the redundant `make staticcheck` target (config/truth change; no product code)
+
+Answering "is any quality gate coverage-like and should be removed?" → **no gate is a removal candidate** (`cyclop` max-complexity 15 and `verify-architecture` are the closest analogues but both load-bearing), with **one genuine redundancy** found and removed: the **standalone `make staticcheck` target** duplicated the `staticcheck` linter that `golangci-lint`'s `standard` set already enables (confirmed enabled: `cyclop, errcheck, govet, ineffassign, staticcheck, unused`).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Change | `Makefile` — the `staticcheck` target, its `.PHONY` entry, its `make help` line, the unused `STATICCHECK := $(shell command -v staticcheck …)` probe, and the adjacent tool-list comment. **No `verify` member removed** (`staticcheck` was never in the `verify` aggregate). |
+| Truth | `specs/truth/techstack.md` — the *Static analysis* row retargeted to **`staticcheck` (a linter inside `golangci-lint`)**, recording the retirement; a **note-level** row edit (no behaviour change). |
+| Policy comment | `.golangci.yml` header — "`staticcheck` and `go vet` remain independent Makefile gates" → `go vet` stays an independent gate; `staticcheck` runs **inside** the aggregator (the target was retired as redundant). |
+| Docs | `STATUS.md` host/toolchain note (drop the standalone `staticcheck` binary from the required set); this §25. |
+| Not touched | **frozen history** — `specs/plans/**` (many mention `staticcheck`) and **ADR 0012** (its D5 lists the target) stay immutable. `docs/domain-model/quality.modelith.yaml`'s `GateKind.lint` (`vet`, `staticcheck`, `lint`) stays **accurate** (the linter still runs), so no model re-render. |
+| Verified | `make vet` clean · `make lint` **0 issues** (staticcheck still runs inside it) · `make staticcheck` → **"No rule to make target"** (as intended) · `gofmt -l .` clean · `make modelith-check` green · `make help` no longer lists it |
+
+### Decisions locked
+
+| # | Decision |
+| --- | --- |
+| — | The **standalone `make staticcheck` target is retired as redundant**; `staticcheck` (the `unused` + SA/S classes) continues to run **inside the `lint` aggregator**. The standalone `staticcheck` binary is no longer required. |
+| — | **No quality *gate* is removed** — the coverage-like gates (`cyclop`, `verify-architecture`) are kept; the audit found no coverage-style gate worth dropping. |
+
+### Commits
+
+| Commit | Note |
+| --- | --- |
+| *(this pass, on `dev`)* | `chore(make): retire the redundant staticcheck target (runs inside the lint aggregator)` |
+
+### Next steps
+
+1. Open the next round off `dev` from the **operator-value / live-issue** candidate — **[#91](https://github.com/gosharplite/tellme/issues/91)**.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 26. Session 56 (2026-09-20, cont.) — made the domain model **load-bearing** + an **advisory** `make modelith-drift` guard (ADR 0041); a docs/quality pass, no round, no product code
+
+The highest-value follow-up from the quality briefing: the model **rotted silently** across rounds 069–070 (it described a `Skill → Context` auto-injection that does not exist, and an "attached" media channel superseded by the in-band return), because `modelith-check` guards only **YAML↔MD** generation — nothing guarded **model↔code**. The answer: a decision that the model is **load-bearing** + one **precise, advisory** guard, and an honest record of what a guard *cannot* catch.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Decision (**ADR 0041**) | The model is **load-bearing** (*descriptive docs, subordinate to truth*, but **maintained**): a round that changes **modelled behaviour** updates `docs/domain-model/**` **in the same PR**. **D3**: the reference's **name-diff** advisory gates stay **unadopted** — a direct port was **measured** at **~45/57 exported `internal/domain` types (~79 %) false positives** plus 12 false "stale entity" hits, i.e. the retired "noisy advisory surface becomes a muse" class. **D4**: *semantic* rot has **no** mechanical carrier — the same-PR rule + review is the guard. |
+| The guard | `scripts/modelith-drift.sh` + a `Makefile` `modelith-drift` target: **advisory** (never fails; **not** a `make verify` member). Per modeled **entity/enum/glossary** term, it checks whether **any code anchor** (its name, a backticked identifier in its definition, or an enum value) still appears in production Go. Measured: **0 findings** on the tree; catches a synthetic stale entry. |
+| Surfaces | `docs/domain-model/README.md` (→ *Drift guard* + *Lifecycle* — the authority, incl. the measured anti-muse rationale) · `Makefile` (target + help + `.PHONY` + `MODELITH_CODE_MODEL`) · `SESSION-BOOTSTRAP.md` **Agent Rule 10** · `SESSION-CLOSEOUT.md` **Rule 18** + Step-3 item 11 · `specs/truth/techstack.md` (Domain-model row) · `docs/domain-model/quality.modelith.yaml` (+ render) · **ADR 0041** + index row (ADR 0030's `Status` + RF-060-3 **qualified**) |
+| Not done | no `specs/plans/**`; no product code; `make verify` **unchanged** (no new member); no new dependency (bash + grep/awk/sed, POSIX-only) |
+| Verified | `make modelith-lint` **0/0** · `modelith-render` + `modelith-check` green · `make modelith-drift` ✓ (28 checked) · `gofmt -l .` clean · `go vet ./...` clean · `make verify` OK |
+
+### Decisions locked
+
+| # | Decision |
+| --- | --- |
+| — | The domain model is **load-bearing**: a round that changes modelled behaviour updates `docs/domain-model/**` in the same PR (**ADR 0041**). |
+| — | An **advisory** `make modelith-drift` ships (never fails; not a `verify` member); the reference's **name-diff** advisory gates stay unadopted (measured ~79 % FP). |
+| — | *Semantic* model rot is guarded by the **process rule**, not a gate (recorded honestly). |
+
+### Commits
+
+| Commit | Note |
+| --- | --- |
+| *(this pass, on `dev`)* | `docs(model): make the domain model load-bearing + an advisory modelith-drift guard (ADR 0041)` |
+
+### Next steps
+
+1. Open the next round off `dev` from the **operator-value / live-issue** candidate — **[#91](https://github.com/gosharplite/tellme/issues/91)**; its truth owner will now keep the model in step (ADR 0041).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 27. Session 56 (2026-09-20, cont.) — three quality gates: `verify-fmt` + `verify-adr-index` (`make verify` members) + a standalone `make test-race` (ADR 0042)
+
+The A1–A3 items from the quality list. All precise, all green on day one, all small; **no round, no product code**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| **1 `test-race`** | New **standalone** target (package-by-package `-race`; `RACE_PKGS` override, default `./...`). **Not** a `verify` member (expense: the package-by-package loop measured **~72 s** — a single `go test -race ./...` is ~28.6 s, and `./internal/...` ~11.6 s; the per-package loop is the AI-safe form). Closes the only real quality gap: there was **no race detector anywhere, and no CI**, over a repo with a mutexed UI coordinator, a telemetry sampler, and a parallel E2E suite. |
+| **2 `verify-adr-index`** | New **`make verify`** member: every `docs/decisions/[0-9]*.md` is listed once in `docs/decisions/README.md`; no duplicate numbers. Green now (41 files = 41 rows). |
+| **3 `verify-fmt`** | New **`make verify`** member: `gofmt -l` non-empty ⇒ fail ("run `make fmt`"). The *check* counterpart of the *mutating* `fmt`. |
+| Scope | items **1,2,3 only** (the operator's exact ask — the optional `make check` aggregate was **not** added). |
+| Verified | `make verify` **OK in 13.9 s** (two new fast members) · `make test-race` ✓ no races · `make verify-fmt`/`verify-adr-index` ✓ · `modelith-lint` 0/0 + `modelith-check` green · `gofmt`/`go vet` clean |
+
+### Surfaces
+
+- `Makefile` — `test-race`, `verify-fmt`, `verify-adr-index` targets; the `verify` aggregate (+2 members); `.PHONY`; `make help`.
+- **ADR 0042** (+ index row) — records the three gates, the *why*, and the **kept rejections** (fold `vet`? no — it's the toolchain-native minimal gate; coverage/#144 declined; topology-audit errors are a carried check with an external script).
+- `specs/truth/techstack.md` — the Formatting row (now names `verify-fmt`) + the Task runner row (aggregate list + ADR-0042 note).
+- `docs/domain-model/quality.modelith.yaml` (+ render) — the `QualityPipeline` aggregate list + the `QualityGate` examples.
+- `SESSION-CLOSEOUT.md` Step 2 — the current gate set (`make verify` + `go test -count=1 ./...` + `make test-race`); `STATUS.md` env note + header; this §27.
+
+### Validation folds (resumed)
+
+- **`verify-adr-index` duplicate check was vacuous** — the in-flight dupe grep matched `^# ADR-`, but tellme's titles are `# ADR NNNN —` (space). Fixed to `^# ADR [0-9]` + number extraction; the duplicate-number **witness** now reproduces (a synthetic `# ADR 0041` copy fails the gate).
+- **Dangling `make check-full` reference** in the `test-race` comment — no such target ships (RF-042-1 defers it); reworded to "on demand (a pre-push / closeout check)".
+- **Witnesses (reproduced then reverted):** (a) an unindexed ADR (`9999-temp-witness.md`) ⇒ `verify-adr-index` fails; (b) a duplicate number ⇒ fails; (c) an unformatted `.go` ⇒ `verify-fmt` fails. All green after revert; no witness residue.
+- **End-to-end:** `make verify` **OK** (with the two new members) · `make test` green (~25 s) · `make test-race` **✓ no races** (~72 s) · `modelith-lint` 0/0 · `modelith-check` green · `make modelith-drift` ✓ (28 checked) · `gofmt -l .` clean.
+
+### Decisions locked (round-free quality pass)
+
+| # | Decision |
+| --- | --- |
+| — | `verify-fmt` + `verify-adr-index` **join `make verify`** (fast, hermetic, zero false positives) — **ADR 0042**. |
+| — | `verify-fmt` checks **`gofmt` + `goimports`** (import grouping; `goimports` a PATH prereq); **`gofumpt` rejected** (no reference parity) — **ADR 0042 D6**, resolves **RF-042-2**. |
+| — | **`make check`** (= `verify` + `test`) is the whole local gate; **`make check-full`** adds `test-race` — **ADR 0042 D5**, resolves **RF-042-1**. |
+| — | `test-race` is a **standalone** pre-push target, **not** a `verify` member (expense). |
+| — | The audit's other candidates (`vet` fold, coverage, topology errors) remain **rejected** (ADR 0042 D4). |
+
+### Resume folds (R2 + R3)
+
+- **R2 — `make check` / `make check-full`** added (thin `$(MAKE)` sequencers: `verify`+`test`, and +`test-race`) — resolves **RF-042-1**. `make check` measured **~37 s** on `dev`.
+- **R3 — `goimports` adopted** into `verify-fmt` (gofmt + import grouping; resolves **RF-042-2**); **one file was not goimports-clean** (`tests/e2e/steps/step_t012_root_given_well_formed_config.go` — a missing stdlib/external blank line) and was fixed; `gofumpt` rejected (no reference parity).
+- Surfaces updated: `Makefile` (targets + `.PHONY` + `help`), **ADR 0042** (D5/D6 + RF-042-1/2 resolved), truth *Task runner* + *Formatting* rows, the quality model (+ render), `SESSION-CLOSEOUT` Step 2 (now points at `make check`), `STATUS.md`, this §27.
+
+### Commits (round-free quality pass)
+
+| Commit | Note |
+| --- | --- |
+| *(this pass, on `dev`)* | `chore(make): add check/check-full + goimports (ADR 0042 D5/D6; resolves RF-042-1/2)` |
+
+### Next steps
+
+1. Open the next round off `dev` from the **operator-value / live-issue** candidate — **[#91](https://github.com/gosharplite/tellme/issues/91)**.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).

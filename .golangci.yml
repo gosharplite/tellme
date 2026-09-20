@@ -4,8 +4,10 @@
 # unchecked-error residual), and adds cyclop as a mechanical cyclomatic-complexity
 # guard (max-complexity 15) against complexity creep in later slices (multi-turn
 # loops, streaming, agentic tool dispatch). The surface stays minimal: only gates
-# the team has ratified. `staticcheck` and `go vet` remain independent Makefile
-# gates.
+# the team has ratified. `go vet` remains an independent Makefile gate
+# (`make vet`); `staticcheck` runs **here** as an enabled linter (part of the
+# `standard` set) — the former standalone `make staticcheck` target was retired
+# (2026-09-20) as redundant with this aggregator.
 version: "2"
 
 linters:

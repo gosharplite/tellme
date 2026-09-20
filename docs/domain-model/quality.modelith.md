@@ -2,7 +2,7 @@
 
 # tellme — Quality Process
 
-Models how tellme maintains its own quality: the ordered `QualityPipeline` of gates run by `make verify` (plus the E2E suite and the Gherkin/DSL topology audit), the ADR governance that records durable decisions, and the triage loop that homes a deferred item on a live issue or an ADR's Forward section. tellme's process is deliberately lighter than the reference's: it has **no** committed `NonFixCatalog`; it adopted a domain-model toolchain (a drift gate) in round 060 (**ADR 0030**) but **not** the reference's advisory code↔model gates.
+Models how tellme maintains its own quality: the ordered `QualityPipeline` of gates run by `make verify` (plus the E2E suite and the Gherkin/DSL topology audit), the ADR governance that records durable decisions, and the triage loop that homes a deferred item on a live issue or an ADR's Forward section. tellme's process is deliberately lighter than the reference's: it has **no** committed `NonFixCatalog`; it adopted a domain-model toolchain (a drift gate) in round 060 (**ADR 0030**) but **not** the reference's advisory code↔model gates; and it has **no coverage tooling** — the reference's `CoverageReport` has no tellme analogue (coverage tooling declined 2026-09-20, superseding the former R8a forwarding note), because the E2E contract executes the built binary as a subprocess (so E2E-verified paths read 0 % in a profile) and the AIxBDD gates (acceptance-coverage, dsl-exact-one-match, the E2E contract, the falsifiability witnesses, the layer/drift gates) are the stronger instruments.
 
 ## Glossary
 
@@ -74,7 +74,7 @@ The executable acceptance contract: godog scenarios over `specs/truth/features/*
 
 ### `QualityGate`
 
-One check backed by a Makefile target — e.g. `verify-architecture` (the layer-discipline gate) or `modelith-check` (the domain-model drift gate). Each gate has a GateKind and a GatePolicy. Gates that shell a tool binary resolve it from PATH / GOPATH bin.
+One check backed by a Makefile target — e.g. `verify-architecture` (the layer-discipline gate), `modelith-check` (the domain-model drift gate), or `verify-fmt` / `verify-adr-index` (the ADR-0042 additions). Each gate has a GateKind and a GatePolicy. Gates that shell a tool binary resolve it from PATH / GOPATH bin.
 
 **Attributes**
 
@@ -91,7 +91,7 @@ One check backed by a Makefile target — e.g. `verify-architecture` (the layer-
 
 ### `QualityPipeline`
 
-The ordered gates a change must pass. `make verify` aggregates `verify-no-test-sleep` + `verify-no-network` + `vet` + `verify-cross-compile` + `verify-mcp-sdk-confinement` + `verify-architecture` + `modelith-check` + `lint` + `vulncheck`; the E2E contract runs under `make test`. The pipeline stops at the first failing gate.
+The ordered gates a change must pass. `make verify` aggregates `verify-no-test-sleep` + `verify-no-network` + `verify-fmt` + `verify-adr-index` + `vet` + `verify-cross-compile` + `verify-mcp-sdk-confinement` + `verify-architecture` + `modelith-check` + `lint` + `vulncheck`; the E2E contract runs under `make test`. `make check` (= `verify` + `test`) is the whole local gate and `make check-full` (= `check` + `test-race`) the pre-push form; a standalone `make test-race` (the race detector, package-by-package) is available (**ADR 0042**; **not** a `verify` member — expense). An **advisory** `make modelith-drift` (ADR 0041) is available on demand — *not* a member: it surfaces a modeled entity whose concept left the code (the model is load-bearing; the round-time rule is the primary guard). The pipeline stops at the first failing gate.
 
 **Relationships**
 

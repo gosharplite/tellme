@@ -1,6 +1,6 @@
 # ADR 0030 — tellme domain model + the modelith toolchain (amends ADR 0011 D10)
 
-- **Status:** Accepted
+- **Status:** Accepted. *(Its D5 / RF-060-3 — "the reference's advisory code↔model gates are not adopted" — is qualified by [0041](0041-domain-model-drift-guard.md): tellme now ships its **own**, narrower **advisory** `modelith-drift` (a stale-entry check; **not** the reference's name-diff gates, which remain unadopted on measurement).)*
 - **Date:** 2026-09-19
 - **Deciders:** tellme owner
 - **Related:** operator request (no anchor issue) · round 060 (`specs/plans/060-domain-model-and-drift-gate` — this ADR's round) ·
@@ -55,6 +55,6 @@ git clone https://github.com/gosharplite/modelith && cd modelith && git checkout
 
 - **RF-060-1** — tool-version drift: the pin is now the immutable commit `b4153541cee8` (D2); a deliberate fork upgrade is an explicit, documented step, and a fork move makes `verify` red on re-install (a visible red, not silent rot).
 - **RF-060-2** — the environment model is a model *about* an external system, not this repo's runtime.
-- **RF-060-3** — the reference's advisory code↔model gates (`modelith-drift`, `modelith-layers`) are not adopted.
+- **RF-060-3** — the reference's advisory code↔model gates (`modelith-drift`, `modelith-layers`) are not adopted. *(Qualified by [ADR 0041](0041-domain-model-drift-guard.md): tellme ships its **own** advisory `modelith-drift` — a stale-entry check, not the reference's name-diff gates, which a measurement rejected as ~79 % false-positive.)*
 - **RF-060-4** — the quality model documents tellme's reality (divergences recorded, not smoothed).
 - **RF-060-5** — `make verify` now requires the modelith dev tool (D3); install it via the clone+pinned-build route (D2).
