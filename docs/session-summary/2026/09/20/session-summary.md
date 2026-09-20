@@ -385,3 +385,32 @@ The operator confirmed the merge and the remote-branch deletion, and directed: *
 ### PM follow-ups
 
 - None new (spec/acceptance complete; no PM-owned gaps).
+
+---
+
+## 13. Session 48 (2026-09-20, cont.) — RF-067-2 live check **PERFORMED AND PASSED** (standalone): a real Vertex tool turn completes with the provider-id preference in place
+
+After the round-067 closeout, the operator directed *"Do (a) now"* — run the **RF-067-2** live check standalone (ADR 0037 §Forward: the provider-id preference was **live-unverified** hermetically). Performed via the `coder` peer on the `dev` provider (`gemini-3.8-flash`, Vertex), using a **dev-built binary** (the provider-id code is already merged), and recorded durably in **ADR 0037**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | witness **RF-067-2** — the Gemini/Vertex adapter's **provider-issued `functionCall.id` preference** (round 067) on a **real** endpoint |
+| Instrument | `/tmp/tellme-067-live/tellme` — `go build ./cmd/tellme` from the `dev` head: `go version -m` → `… v0.0.0-20260920013325-cdd0717ae069`, `vcs.revision=cdd0717…`, `vcs.modified=false` (round-067 code) |
+| Method | `tmg-chat-ingroup`: staged a remote-party-marked `coder` prompt → `env -u TELL_ME_MODE TELL_ME_HOME=$WS TELL_ME_SELECTED_PROVIDER=dev /tmp/tellme-067-live/tellme --new -r -c $WS/configs/coder.yaml < …` → retrieve via `-l 1` |
+| The turn | the model called `read_files([/tmp/tellme-067-live/note.txt])` (the `[Tool Engine] Step 1/1000` marker present) and the **follow-up turn completed** |
+| Result | **PASS** — **`exit 0`**, provider status **`no 400`**, self-reported **`ANOMALY: None`**; the note content was read back verbatim (the wire carrying the provider-preferred call/result `id` is accepted live) |
+| Recorded | **ADR 0037** — `## Verification` *Live* bullet carries the outcome + provenance; §Forward **RF-067-2 → CLOSED**; `STATUS.md` open-items line updated |
+
+### Notes
+
+- **Instrument choice (honest):** RF-066-10's *build the branch binary* rule targets a **mid-round** check (when the GOPATH install still holds the previous build). Here the provider-id code was **already merged to `dev`**, so the **dev-built** binary is the correct instrument; its `go version -m` provenance is recorded.
+- The `dev` provider override was used only because the operator explicitly asked for the **live Vertex check** (the `tmg-chat-ingroup` §5 rule); the check is otherwise a standard peer dispatch.
+- **No** product code, truth, or `specs/plans/**` file changed — the round-067 package stays frozen; the outcome is homed on the **durable** surfaces (ADR 0037 + `STATUS.md`), mirroring the round-063/065 live-check precedent.
+- **RF-067-1 remains open** (operator-gated: a user-visible diagnostic).
+
+### Next steps
+
+1. Open round **`068-*`** off `dev` via `/axb-specify` (candidates: RF-067-1 the unpaired-call diagnostic · the `ToolSetSpec` seam RF-062-10/RF-063-6 · [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13)).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
