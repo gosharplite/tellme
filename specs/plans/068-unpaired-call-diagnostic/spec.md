@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-20
 
-**Status**: Draft (specified — **2 clarify questions open**)
+**Status**: Draft (specified + **clarify RESOLVED — Q1 → A · Q2 → A**)
 
 **Input (operator, 2026-09-20, this session)**:
 
@@ -40,9 +40,9 @@ The **shipped agent loop appends exactly one `tool` result per requested call** 
 | # | Decision | Status |
 | --- | --- | --- |
 | **S-1** | **When a Gemini/Vertex round yields `M < N` results, the unpaired calls' ids are surfaced as a user-visible diagnostic** (never only a silent/in-code account). This is the change that resolves **RF-067-1**. | **locked (round goal)** |
-| **S-2** | **The diagnostic is informational, not a failure** — the turn proceeds and the emitted body is unchanged (the unpaired calls still contribute no part, ADR 0035/0036). It is NOT a terminal provider error. *(Confirm — Q2.)* | proposed (Q2) |
-| **S-3** | **The surface is a `[Tool …]`-class line on `stderr`, gated like the rest of the chrome** (terminal-gated colour per ADR 0023; `stderr`-only; `stdout` untouched). *(Confirm the exact surface — Q1.)* | proposed (Q1) |
-| **S-4** | **Whether the diagnostic is ALSO routed to the per-session `turns.log`** is an explicit choice (the `[Tool Output]` block is NOT routed, ADR 0022 D5; the `[Tool Reason]` tail IS). *(Confirm — Q1.)* | proposed (Q1) |
+| **S-2** | **The diagnostic is informational, not a failure** — the turn proceeds and the emitted body is unchanged (the unpaired calls still contribute no part, ADR 0035/0036). It is NOT a terminal provider error. **(Q2 → A, locked.)** | **locked (Q2 → A)** |
+| **S-3** | **The surface is a `[Tool …]`-class line on `stderr`, terminal-gated colour (ADR 0023), `stdout` untouched.** **(Q1 → A, locked.)** | **locked (Q1 → A)** |
+| **S-4** | **The diagnostic is NOT routed to the per-session `turns.log`** — `-t` output is unchanged (the `[Tool Output]`-block precedent, ADR 0022 D5). **(Q1 → A, locked.)** | **locked (Q1 → A)** |
 | **S-5** | **Scope is family-local: the Gemini/Vertex family only.** The OpenAI-compatible family has no round-boundary drop (it emits one `tool` message per `tool_call_id`), so it is untouched (`I-1`). | proposed |
 | **S-6** | **The detection seam is a technical choice for `/axb-technical-research`** — e.g. an injected diagnostic sink on the Gemini adapter (the `tools.OutputSink`/ADR-0021 construction-time-injection precedent) vs a loop-side detection via the `LoopObserver` port vs a returned value the caller renders. Bounded by: the adapter owns no logging seam today, the port contracts stay frozen where possible, and the wiring is CLI-owned. | proposed (research) |
 
@@ -60,15 +60,12 @@ The **shipped agent loop appends exactly one `tool` result per requested call** 
 
 ## Clarify strategy
 
-**Escalated — 2 questions (Q1 surface/routing · Q2 loudness).** RF-067-1 was *operator-gated* precisely because it adds a **user-visible surface**: per the clarify-escalation rule, the surface, its routing, and its loudness **change the formal acceptance criteria**, so they are asked rather than assumed. Both remaining items (the detection seam, formatting) are **technical** and defer to `/axb-technical-research` (S-6). The two open items are marked `[NEEDS CLARIFICATION]` below; **the round blocks on them** before `/axb-spec-by-example`.
+**Escalated — 2 questions, BOTH RESOLVED (Q1 → A · Q2 → A).** RF-067-1 was *operator-gated* precisely because it adds a **user-visible surface**: per the clarify-escalation rule, the surface, its routing, and its loudness **change the formal acceptance criteria**, so they were asked rather than assumed. Interview format: **one question at a time**.
 
-- **Q1 — SURFACE & ROUTING.** Where does the diagnostic appear?
-  - **A (recommended):** a `[Tool …]`-class line on **`stderr`**, terminal-gated colour, **not** routed to `turns.log` (the `[Tool Output]`-block precedent, ADR 0022 D5).
-  - **B:** a `[Tool …]`-class line on `stderr` **and** routed to `turns.log` (the `[Tool Reason]`-tail precedent).
-  - **C:** a `stderr` line only, with a distinct prefix (e.g. `[Warning]`) rather than the `[Tool …]` family.
-- **Q2 — LOUDNESS.** Informational vs failure?
-  - **A (recommended):** **informational** — the turn proceeds; the body is unchanged (a warning note).
-  - **B:** a **loud failure** — the turn aborts with the frozen provider-error class (a much stronger contract; a behaviour change).
+- **Q1 → A — SURFACE & ROUTING.** The diagnostic is a **`[Tool …]`-class line on `stderr`**, terminal-gated colour (ADR 0023), **never routed to `turns.log`** (the `[Tool Output]`-block precedent, ADR 0022 D5). `stdout` is untouched. *(A distinct `[Warning]` prefix (option C) and the `turns.log` routing (option B) were not taken.)*
+- **Q2 → A — LOUDNESS.** **Informational** — the turn proceeds and the emitted body is unchanged; the diagnostic is a warning, **not** a terminal provider-error failure. *(Option B, a loud failure with the frozen provider-error class, was not taken; it stays a recorded forward item.)*
+
+The remaining item (the **detection seam** and exact rendering) is **technical** and defers to `/axb-technical-research` (S-6). **No `NEEDS CLARIFICATION` remains** (both locks are folded in).
 
 ---
 
@@ -82,7 +79,7 @@ As the **operator** running `tellme` against a **Gemini/Vertex** provider, when 
 
 **Independent verification**: drive a Gemini round whose `prior` carries `M < N` (a fixture), assert the diagnostic appears on `stderr` (per Q1's surface), and assert the emitted request body is otherwise unchanged (I-2); a normal `M == N` round emits **no** new line (I-7).
 
-**Acceptance Scenarios** *(finalise after Q1/Q2)*:
+**Acceptance Scenarios** *(Q1 → A · Q2 → A)*:
 
 1. **Given** a Gemini/Vertex round with **N** calls and **M < N** results, **When** the turn builds its request, **Then** a diagnostic naming the unpaired call(s) appears on **`stderr`** (surface per Q1) and the request body is unchanged (I-2).
 2. **Given** a round whose every call is paired (**M == N**) — the shipped happy path — **When** the turn runs, **Then** **no** new diagnostic is emitted (I-7).
@@ -95,8 +92,8 @@ As the **operator** running `tellme` against a **Gemini/Vertex** provider, when 
 - **FR-003**: The diagnostic MUST be **informational** — the turn proceeds and the request body is unchanged (I-2) *(Q2 → A)*.
 - **FR-004**: When `M == N` (the shipped path), the system MUST emit **no** new diagnostic (I-7).
 - **FR-005**: The diagnostic MUST be **deterministic** (call order) so a witness can assert it.
-- **FR-006**: [NEEDS CLARIFICATION: Q1 — is the diagnostic routed to `turns.log` as well as `stderr`, and is it a `[Tool …]`-class line or a distinct `[Warning]` prefix?]
-- **FR-007**: [NEEDS CLARIFICATION: Q2 — is the diagnostic informational (recommended) or a loud failure?]
+- **FR-006**: The diagnostic MUST be a **`[Tool …]`-class line on `stderr`** and MUST **NOT** be routed to the per-session `turns.log` (`-t` output unchanged) — **Q1 → A**.
+- **FR-007**: The diagnostic MUST be **informational** — the turn proceeds and the emitted request body is unchanged; it MUST NOT abort the turn — **Q2 → A**.
 
 **Non-Functional Requirements**:
 
@@ -111,7 +108,7 @@ As the **operator** running `tellme` against a **Gemini/Vertex** provider, when 
 - **`M = 0`** (no results for a round) — all N call ids unpaired → the diagnostic names them (call order).
 - **Multiple rounds with unpaired calls** — the diagnostic reports in call order, per round / aggregated (finalise at research).
 - **Media-bearing round** — the diagnostic does not alter the batched/media wire (I-2/I-3).
-- **Non-terminal `stderr` / `-r`** — the diagnostic is **plain** (no colour); still emitted (a diagnostic is not decoration).
+- **Non-terminal `stderr` / `-r`** — the diagnostic is **plain** (no colour; terminal-gated, ADR 0023) but **still emitted** (a diagnostic is not decoration). It is **never** written to `turns.log` (Q1 → A).
 - **OpenAI-compatible provider** — unchanged, no diagnostic (I-1/S-5).
 
 ## Key Entities
@@ -143,5 +140,5 @@ As the **operator** running `tellme` against a **Gemini/Vertex** provider, when 
 - **Concurrent tool execution** ([#36](https://github.com/gosharplite/tellme/issues/36) item 3) — the real producer of an out-of-order result set; not added here.
 - **RF-067-3** (an E2E carrier for the wire `id`) · **RF-067-5** (the reference fallback spelling) · **RF-067-6** (duplicate-id handling) · **RF-067-7** (the `history.Step` guarding note) — other ADR-0037 forward items.
 - **The `ToolSetSpec` seam** (RF-062-10 / RF-063-6) — a separate structural round (recorded).
-- **A loud failure** variant (Q2 → B) if not chosen.
+- **A loud failure** variant (Q2 → B) — not taken; recorded as a forward item.
 - **Windows** (locked exclusion) · **a security/consent layer** (locked exclusion).

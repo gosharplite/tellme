@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: skeleton initialized by `/axb-specify` (2026-09-20). **Clarify ESCALATED — 2 questions open (Q1 surface/routing · Q2 loudness)**, and the round **blocks on them** (RF-067-1 is an operator-gated user-visible surface addition). Residual technical choice (the detection seam) defers to `/axb-technical-research`.
+> **Status**: skeleton initialized by `/axb-specify` (2026-09-20). **Clarify ESCALATED — 2 questions, BOTH RESOLVED (Q1 → A: a `[Tool …]`-class `stderr` line, terminal-gated, **not** routed to `turns.log`; Q2 → A: **informational**, the turn proceeds).** No `NEEDS CLARIFICATION` remains. The residual technical choice (the detection seam + exact rendering) defers to `/axb-technical-research` (S-6).
 
 ## /axb-technical-research
 

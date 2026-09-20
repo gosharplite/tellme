@@ -31,10 +31,10 @@
 
 ## 缺口與澄清策略
 
-- [ ] 只有高影響缺口才升級到 `/axb-clarify` — **本輪升級 2 題（Q1 surface/routing · Q2 loudness）**：RF-067-1 本身即 operator-gated，因其新增 **user-visible surface**，會改變正式驗收標準
+- [x] 只有高影響缺口才升級到 `/axb-clarify` — **本輪升級 2 題（Q1 surface/routing · Q2 loudness），皆已拍板（Q1 → A · Q2 → A，一次一題）**：RF-067-1 本身即 operator-gated，因其新增 **user-visible surface**，會改變正式驗收標準
 - [x] 本輪 clarify 題數控制在 1 至 3 題
 - [x] 低風險未定細節已用假設揭露（A1–A6；S-2/S-3/S-4 標為 proposed／clarify；S-6 標為 research）
-- [ ] 仍保留的 `NEEDS CLARIFICATION` 已標示是否阻塞後續規劃 — **FR-006（Q1）/ FR-007（Q2）仍開放，且阻塞 `/axb-spec-by-example`**
+- [x] 仍保留的 `NEEDS CLARIFICATION` 已標示是否阻塞後續規劃 — **無殘留缺口（Q1/Q2 已回寫 FR-006/FR-007 + 驗收情境）**
 
 ## 可驗證性與成功標準
 
@@ -52,7 +52,7 @@
 
 ## Ready 判定
 
-- [ ] 已可進入後續規劃
-- [x] 仍需先補高影響需求缺口 — **阻塞於 Q1（surface/routing）+ Q2（loudness）之 operator 拍板**
+- [x] 已可進入後續規劃
+- [ ] 仍需先補高影響需求缺口
 
-**備註**: RF-067-1 之 operator gate 已由 operator 覆蓋（*"the goal is to resolve RF-067-1"*）；但**診斷的表面與 loudness** 仍屬正式驗收標準層級，需 Q1/Q2 拍板後方可進入 `/axb-spec-by-example`。偵測 seam（S-6）交 `/axb-technical-research`。
+**備註**: RF-067-1 之 operator gate 已由 operator 覆蓋（*"the goal is to resolve RF-067-1"*）；**Q1 → A（`[Tool …]` stderr line，terminal-gated，不進 `turns.log`）· Q2 → A（informational）** 已拍板並回寫。**無殘留 `NEEDS CLARIFICATION`**，可進入 `/axb-spec-by-example`；偵測 seam（S-6）交 `/axb-technical-research`。
