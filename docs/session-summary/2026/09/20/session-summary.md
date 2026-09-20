@@ -1377,3 +1377,52 @@ A later session on the same calendar day. Bootstrapped (`SESSION-BOOTSTRAP.md` S
 - None (spec/acceptance untouched; no PM-owned gaps).
 
 *(Session 59 is closed out: docs/issue-tracker only — propagation `dev → main` **no-ff, no tag**; `make verify` OK; installed binary refreshed; no open issues.)*
+
+---
+
+## 38. Session 59 (2026-09-20, cont.) — round-072 live check **PERFORMED AND PASSED**: a real Vertex turn reports a non-zero `H` (27,661 cached tokens) and a lower cost
+
+A later session on the same calendar day. Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 072 delivered/frozen; active branch `dev`; no round in flight, no live issue — the one non-gating item on the live surfaces was the **round-072 live check**). The operator asked *"Do the round-072 live check."* — ran it **through the `coder` peer on the Vertex `dev` provider**, and recorded the outcome on the durable surfaces (ADR 0044 + `STATUS.md`). **Docs-only — no product code, no `specs/plans/**`** (the round-072 package stays frozen).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | witness **ADR 0044 / round 072** on a **real** Vertex endpoint: a Gemini turn must report a **non-zero `H`** and bill a reused prefix at the HIT rate (the hermetic check only proved it against the fake provider) |
+| Instrument | the **`dev`-built** installed binary — `go version -m` → `vcs.revision=c76ec06`, `vcs.modified=false` (the round-072 code is merged; RF-066-10's *branch* binary is for mid-round checks) |
+| Method | `tmg-chat-ingroup`: staged a remote-party-marked `coder` prompt in `/tmp/tellme-072-live/` (`write_file`, not heredocs) → `env -u TELL_ME_MODE TELL_ME_HOME=$WS TELL_ME_SELECTED_PROVIDER=dev tellme --new -r -c $WS/configs/coder.yaml < stage_a.txt` → retrieve via `-l 1` → a **continuation** call (no `--new`) with the same large prefix → `-t` for the turns log |
+| Provider | `dev` = `gemini-3.8-flash`, **Vertex** project `websc-dev-433809` (the operator's request targets the **Gemini** family specifically — `tmg-chat-ingroup` §5's explicit-instruction override) |
+| The turn | the session shares a **~31.7k-token prefix** across two calls (a 400-line FILLER block; Vertex implicit caching needs a large repeated prefix) |
+| Result | **PASS** — turn 2 of the two-call session reported `[dev] M: 4160 H: 27661 C: 10 Th: 5131` → **$0.024473325**; a **non-zero `H`** (27,661 cached tokens; **43.5 %** session hit ratio), the 27,661 reused prompt tokens billed at the HIT rate (0.075) instead of MISS (0.75) |
+| Counterfactual | pre-fix (cached ignored ⇒ the whole 31,821-token prompt at MISS) = **$0.043144500** ⇒ the witnessed turn is **~43 % lower** |
+| Corroboration | `tokens.log` records `cached_tokens` 0 then **27661**; `tokens.summary.json` = `{miss:35855, hit:27661, out:5378, cost:0.049133325}`; exit 0 on both calls |
+| Recorded | **ADR 0044** — `## Verification` gains a ***Live*** bullet (the ADR-0032/0033/0035/0037/0038 in-place precedent); **`STATUS.md`** — the round-072 env note's *pending, non-gating* line flipped to **PERFORMED AND PASSED** |
+
+### The witnessed numbers (verbatim)
+
+```
+# turn 1 (--new): the cache is cold
+[19:00:06] [dev] M: 31695 H: 0 C: 3 Th: 234
+╰─⠿ Ready ($0.0247 $0.0247 $0.0247 - M: 31695 H: 0 O: 237 - 0.0%)
+
+# turn 2 (continuation, same ~31.7k prefix): the prefix is cached
+[19:00:48] [dev] M: 4160 H: 27661 C: 10 Th: 5131
+╰─⠿ Ready ($0.0245 $0.0245 $0.0491 - M: 35855 H: 27661 O: 5378 - 43.5%)
+```
+
+`tokens.log`:
+```
+{"provider":"dev","model":"gemini-3.8-flash","cached_tokens":0,"prompt_tokens":31695,"response_tokens":3,"total_tokens":31932,"thinking_tokens":234,"cost":0.02466}
+{"provider":"dev","model":"gemini-3.8-flash","cached_tokens":27661,"prompt_tokens":31821,"response_tokens":10,"total_tokens":36962,"thinking_tokens":5131,"cost":0.024473325}
+```
+
+### Notes
+
+- The `dev` provider override was used only because the operator's request names the Gemini/Vertex family (the `tmg-chat-ingroup` §5 rule); the check is otherwise a standard peer dispatch.
+- This closes the **one** open round-072 item; **no** open round-072 forward items remain (RF-072-1…3 in ADR 0044 §Forward are untouched by the check).
+- The outcome is homed on **durable** surfaces (**ADR 0044** + **`STATUS.md`**), mirroring the round-063/065/067 live-check precedent. Evidence (transient, `/tmp/tellme-072-live/`): `a.{out,err}`, `b.{out,err}`, `turns.log`.
+
+### Next steps
+
+1. No round is in flight and there is **no live issue** — the next theme must come from **operator value**.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
