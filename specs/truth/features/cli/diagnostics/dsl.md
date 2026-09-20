@@ -4,6 +4,10 @@ Module-specific rows for the `diagnostics` module. Cross-module rows live in
 [`../dsl.md`](../dsl.md). Merged with the interface root, every step in this module's feature must
 match exactly one row.
 
+> **Round 074:** the `the operator runs tellme with "{flag}"` row (used for `--version` and now `-v`)
+> lives at the **interface root** ([`../dsl.md`](../dsl.md)) — it is shared with the `usage` module
+> (`-h`/`--help`), so it is a cross-module row.
+
 > `tellme performs no network access` (now a **cross-module** row in [`../dsl.md`](../dsl.md)) is a
 > host-harness assertion: the offline paths leave a recording sink untouched (zero connections) and
 > complete identically under blocked egress. Round 004 **retired** the whole-binary capability guard
@@ -28,7 +32,6 @@ match exactly one row.
 
 | DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
 | --- | --- | --- | --- | --- |
-| `the operator runs tellme with "--version"` | 無 | 不支援 | `旗標`: the run is invoked with `--version`. | `怎麼做`: run `tellme --version`. `權威狀態落地`: the process has run to completion. `回寫`: captured exit code, stdout, stderr. |
 | `the operator runs tellme's diagnostic` | 無 | 不支援 | `旗標`: the run is invoked with `-d` (the reporting path; `--json` has been removed). | `怎麼做`: run `tellme -d` under the current environment. `權威狀態落地`: the diagnostic report is produced regardless of the resolution outcome. `回寫`: captured exit code, stdout, stderr. |
 
 ## Then
