@@ -113,3 +113,11 @@ question at a time):
 - **RF-073-8** — `ListingSpec.Warn` is a spec field, whereas the sibling
   `render.Answer` exposes `WarnDegraded(w io.Writer)` as a method (review N-2); the
   two shapes could be unified.
+- **RF-073-9** — `historyMode` is now a thin wrapper with no production caller
+  (`resolveWorkspace` calls `offlineConfigAndMode` directly, fold RF-8); it survives
+  as the offline-mode seam the unit test exercises. A candidate to retire/inline at
+  closeout (fold-verification RES-FV-1).
+- **RF-073-10** — the degraded-listing path has no dedicated pin (the branch is
+  effectively unreachable absent a glamour failure — the round-006 answer-path
+  treatment). A deterministic degrade pin is a candidate if the renderer seam is
+  ever made injectable (fold-verification RES-FV-2).
