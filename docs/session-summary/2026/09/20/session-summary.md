@@ -738,3 +738,51 @@ Continued round 070 (the operator: *"yes"* — keep going through the pipeline t
 
 1. Human reviews + merges **PR [#143](https://github.com/gosharplite/tellme/pull/143)** → closeout (`SESSION-CLOSEOUT.md`): tag `round-070`, propagate `dev → main`, **close [#142](https://github.com/gosharplite/tellme/issues/142)**.
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `070-media-channel-in-band` until merged, then `dev`).
+
+---
+
+## 23. Session 55 (2026-09-20, cont.) — round 070 `070-media-channel-in-band`: architect review-fold loop (APPROVE) → **human-merged (PR [#143](https://github.com/gosharplite/tellme/pull/143) → `dev` `da53b74`, merge commit)** → branch cleanup → closeout (Steps 1–8)
+
+The operator directed the architect review-fold loop on PR #143 (same protocol as round 069), then *"Execute SESSION-CLOSEOUT.md."*
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Peer dispatch (the `architect`) | continued the existing session (no `--new`); `SESSION-BOOTSTRAP.md` re-run against the round-070 tree by the peer; `tmg-chat-ingroup` staging in `/tmp`, `env -u TELL_ME_MODE`, same model (`deepseek-flash`) |
+| Review | **`APPROVE`** — no blockers, no technical debt, no required folds; behaviour-identity **could not be falsified**; all 4 findings `[NIT]` (**N1** index rows · **N2** ADR 0033 present-tense collector · **N3** no loop-tier pin · **N4** figure ~40→32) — [comment](https://github.com/gosharplite/tellme/pull/143#issuecomment-5747403859) |
+| Fold (`8aa6174`) | **N1/N2/N4 folded** (docs-only); **N3 accepted, not actioned** (the E2E carries the branch — the architect's own steer) — [comment](https://github.com/gosharplite/tellme/pull/143#issuecomment-5747414255) |
+| Fold verification | `FOLDS VERIFIED WITH RESIDUALS — CLEARED FOR HUMAN MERGE`; the architect independently re-measured the fold (3 files, +4/−4, docs-only) and **closed N3 as adequately covered with no forward item** — [comment](https://github.com/gosharplite/tellme/pull/143#issuecomment-5747421702) |
+| Merge | PR [#143](https://github.com/gosharplite/tellme/pull/143) **human-merged** into `dev` (`da53b74`, **merge commit** — parents `d6d606f` + `8aa6174`); remote branch deleted by the human; **local branch deleted** after the ancestor check (after `dev` was fast-forwarded to the merge) |
+| Closeout | gates green · **Rule-12 split** (round-069 detail + branch row + env note → [`2026-09-20.md`](docs/archives/status/2026-09-20.md)) · **RES-1 folded** (RF-069-1 → DELIVERED) · propagation `dev → main` (**no-ff**) + tag **`round-070`** · `go install` · **#142 closed** |
+
+### Work done
+
+1. **Peer review** — staged the review prompt (remote-party marker), continued the `architect` session (no `--new`), retrieved **APPROVE**, read the PR comment.
+2. **Fold + verify** — folded N1/N2/N4 (`8aa6174`; N3 accepted), posted the fold comment, sent the fold verification (continuation, no `--new`), retrieved `FOLDS VERIFIED WITH RESIDUALS`, posted the loop-closed record.
+3. **Merge + cleanup + closeout** — the operator merged PR #143; checked the remote branch was gone, fast-forwarded `dev`, deleted the local branch; ran `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 070)
+
+| # | Decision |
+| --- | --- |
+| — | The media effect is **in-band** (`tools.MediaPart` + the optional `tools.MediaTool` capability / `ExecuteMedia`); the `context` collector is **deleted**; the `Tool` port is **unchanged**. |
+| — | **Completes ADR 0032 RF-062-10** (media half) and **delivers ADR 0039 RF-069-1**; ADR 0032 `D7a` marked **SUPERSEDED**. |
+| — | The **rejected shape (a)** is a **settled rejection** (ADR 0040) — not a forward item (anti-muse; no-halving I-6). |
+| — | **N3** (loop-tier pin) closed as adequately covered by the E2E; **no forward item**. |
+
+### Closeout Steps 1–8
+
+- **Step 1** — working tree clean on `dev`; this round's `/tmp` staging cleaned; no frozen package touched (`069-…` unmodified).
+- **Step 2** — `gofmt -l .` clean · `go vet ./...` clean · `go test -count=1 ./...` **green** (incl. the godog E2E) · `make verify` **OK** · topology audit **5 pre-existing, none new** · secret scan clean · `go.mod`/`go.sum` unchanged.
+- **Step 3** — `STATUS.md` rewritten (106 lines): round 070 → the single **Last delivered round** section; **Rule-12 split** (round-069 detail + branch row + env note relocated verbatim to [`2026-09-20.md`](docs/archives/status/2026-09-20.md)); **RES-1 folded** (RF-069-1 → DELIVERED); older forward batches compacted to ADR pointers; branch model / index / roadmap / env notes refreshed; no liveness contradiction.
+- **Step 4** — this §23.
+- **Step 5** — `STATUS.md` ↔ §23 agree (round 070 delivered; `dev` active; #142 closed; next round off `dev`).
+- **Step 6** — commit + push on `dev`.
+- **Step 7** — `dev → main` **DONE (no-ff)**, tagged **`round-070`**; `go install ./cmd/tellme` refreshed.
+- **Step 8** — **#142 CLOSED (completed)** with a delivery comment naming PR [#143](https://github.com/gosharplite/tellme/pull/143) / `da53b74`; [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) left OPEN (accurate).
+
+### Next steps
+
+1. Open the next round off `dev` from a **value / live-issue** candidate ([#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13)) — **not** from the open-items index.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
