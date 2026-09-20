@@ -373,7 +373,7 @@ The per-session plain-text file `output/<mode>/turns.log`: the subset of the ren
 
 ### `UsageRecord`
 
-One record per provider call in the per-mode `tokens.log`: the token breakdown and the cost. The Ready summary sums them into the session token totals and cost.
+One record per provider call in the per-mode `tokens.log`: the token breakdown and the cost. The Ready summary sums them into the session token totals and cost. The cached (hit) and reasoning (thinking) counts are **provider-reported** and **family-decoded** from the response's usage block (round 072 / ADR 0044): the Gemini/Vertex family reads `cachedContentTokenCount`/`thoughtsTokenCount` (disjoint from its candidates count), the OpenAI-compatible family reads `prompt_tokens_details.cached_tokens`/`completion_tokens_details.reasoning_tokens` (its completion count is the exclusive `completion − reasoning`).
 
 **Relationships**
 

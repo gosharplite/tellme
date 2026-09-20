@@ -186,3 +186,25 @@ Feature: Presenting the post-turn status
       Then the run reports the post-turn status once per model request
       And the last post-turn status trails the answer
       And tellme exits successfully
+
+  Rule: A Gemini/Vertex turn reports its real cached and reasoning tokens
+
+    # Round 072 (ADR 0044; closes #149): the Gemini adapter decodes
+    # `cachedContentTokenCount` and `thoughtsTokenCount` from `usageMetadata`. Before
+    # the fix the cached count was dropped, so M was the WHOLE prompt and the cost
+    # was billed at the miss rate (~10x). The Vertex family is DISJOINT — the wire
+    # `candidatesTokenCount` excludes the reasoning count — so C is reported verbatim
+    # (no subtraction, unlike the OpenAI-compatible family).
+
+    Example: A Vertex turn that reused most of its input and reasoned
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured Gemini provider "test-model" whose endpoint answers with "all good" and reports the token usage:
+        | prompt | cached | completion | thinking |
+        | 390564 | 389538 | 100        | 4096     |
+      And the configuration prices the active model with hit "0.075", miss "0.75", and completion "3.75" per million tokens
+      When the operator starts tellme with the prompt "hi"
+      Then the run reports the token metrics of the request that just completed
+      And the reported metrics line shows 1026 missed, 389538 cached, 100 completed, and 4096 reasoning tokens
+      And the run reports the cost of the request, the turn, and the session
+      And tellme exits successfully

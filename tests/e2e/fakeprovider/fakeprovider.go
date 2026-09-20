@@ -421,10 +421,18 @@ func vertexMultiToolCallBody(tools []ToolRequest, finishReason string) string {
 }
 
 // vertexAnswerBody builds a Vertex `:generateContent` answer response (round-013).
+// Round 072 (ADR 0044): a `detailed` usage block also emits
+// `cachedContentTokenCount` and `thoughtsTokenCount`; the Vertex family is
+// DISJOINT, so `candidatesTokenCount` is the plain completion (no `+thinking`).
 func vertexAnswerBody(text string, u *usageCounts, finishReason string) string {
 	usageJSON := ""
 	if u != nil {
-		usageJSON = fmt.Sprintf(`,"usageMetadata":{"promptTokenCount":%d,"candidatesTokenCount":%d,"totalTokenCount":%d}`, u.prompt, u.completion, u.total)
+		if u.detailed {
+			usageJSON = fmt.Sprintf(`,"usageMetadata":{"promptTokenCount":%d,"candidatesTokenCount":%d,"totalTokenCount":%d,"cachedContentTokenCount":%d,"thoughtsTokenCount":%d}`,
+				u.prompt, u.completion, u.total, u.cached, u.thinking)
+		} else {
+			usageJSON = fmt.Sprintf(`,"usageMetadata":{"promptTokenCount":%d,"candidatesTokenCount":%d,"totalTokenCount":%d}`, u.prompt, u.completion, u.total)
+		}
 	}
 	return `{"candidates":[{"content":{"role":"model","parts":[{"text":` + jsonString(text) + `}]}` + vertexFinishReason(finishReason) + `}]` + usageJSON + `}`
 }
