@@ -7,7 +7,7 @@ import "strings"
 // removed from a `[Tool …]` diagnostic line. It is applied by EVERY `[Tool …]`
 // formatter that renders model-authored or externally-sourced text — the
 // `[Tool Output]` content lines (`tooloutput.go`), and the `[Tool Reason]` /
-// `[Tool Result]` / `[Tool Action]` lines (`toolcall.go`) — so the class is
+// `[Tool Result]` / `[Tool Action]` / `[Tool Warning]` lines (`toolcall.go`) — so the class is
 // defined once and cannot drift between siblings. It is a pure presentation-seam
 // rule: the tool **result** fed to the model and the call's raw/stored arguments
 // are separate consumers and keep their raw bytes.

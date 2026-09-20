@@ -36,6 +36,9 @@ type Lines interface {
 	Metrics(t time.Time, provider string, u metrics.UsageCounts) string
 	Ready(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64) string
 	ToolReason(t time.Time, reason string) string
+	// UnpairedCalls renders the round-068 unpaired-call diagnostic (ADR 0038):
+	// a `[Tool …]`-class line naming the tool calls a round left unanswered.
+	UnpairedCalls(t time.Time, ids []string) string
 	ToolUsage(rows []history.ToolUsageRow) string
 	// DefaultToolOutputIdleGap is the `[Tool Output]` block's idle-gap default
 	// (ADR 0009 D3).

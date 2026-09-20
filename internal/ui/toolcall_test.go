@@ -90,3 +90,38 @@ func TestCapRunes_RuneBoundary(t *testing.T) {
 		t.Errorf("capRunes rune-boundary cut = %q", got)
 	}
 }
+
+// TestFormatUnpairedCalls pins round 068 (ADR 0038): the unpaired-call diagnostic
+// line shape — a plain `[Tool Warning]` line naming the ids (Q1 → A: a stderr
+// `[Tool …]`-class line, no colour).
+func TestFormatUnpairedCalls(t *testing.T) {
+	got := FormatUnpairedCalls(time.Date(2026, 9, 20, 7, 8, 9, 0, time.UTC), []string{"call_2", "call_3"})
+	want := "[07:08:09] [Tool Warning] 2 tool call(s) left unanswered: call_2, call_3"
+	if got != want {
+		t.Fatalf("FormatUnpairedCalls = %q, want %q", got, want)
+	}
+	if strings.Contains(got, "\x1b[") {
+		t.Fatalf("the diagnostic must be plain (no colour): %q", got)
+	}
+}
+
+// TestFormatUnpairedCalls_HostileAndCapped pins B-068-1: the ids are externally
+// sourced, so the value is folded, control-free, and rune-capped (the same
+// single-owned policy as every other `[Tool …]` value) — not merely "plain".
+func TestFormatUnpairedCalls_HostileAndCapped(t *testing.T) {
+	hostile := []string{"call_A\x1b[2Jcall_B", "id\rwith-cr", "\x07bell"}
+	got := FormatUnpairedCalls(time.Unix(0, 0), hostile)
+	for _, bad := range []string{"\x1b", "\x07", "\r", "\n"} {
+		if strings.Contains(got, bad) {
+			t.Fatalf("control data survived into the diagnostic: %q", got)
+		}
+	}
+	long := strings.Repeat("x", 400)
+	capped := FormatUnpairedCalls(time.Unix(0, 0), []string{long})
+	if len([]rune(capped)) > len([]rune("[00:00:00] [Tool Warning] 1 tool call(s) left unanswered: "))+unpairedIDsCap {
+		t.Fatalf("the id value was not capped: %d runes", len([]rune(capped)))
+	}
+	if !strings.Contains(capped, "\u2026") {
+		t.Fatalf("a capped value must carry one U+2026 inside the cap: %q", capped)
+	}
+}
