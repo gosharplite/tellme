@@ -1318,3 +1318,62 @@ Round 072 was human-merged (PR [#150](https://github.com/gosharplite/tellme/pull
 - None new (spec/acceptance complete; no PM-owned gaps).
 
 *(Round 072 is fully closed out: PR #150 human-merged into `dev` (`6c3e5fe`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-072`**; the installed binary refreshed; [#149](https://github.com/gosharplite/tellme/issues/149) closed.)*
+
+---
+
+## 37. Session 59 (2026-09-20, cont.) — tool-inventory curation: the Enterprise/network group + all 24 Go/AST candidates struck; **#147 CLOSED** — the `tell-me-go` tool surface is **settled** (9 present + 94 excluded, 0 candidates; no open issues)
+
+A later session on the same calendar day. Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 072 delivered/frozen; active branch `dev`; no round in flight). The operator asked a series of reachability questions — *"Is `jira_get_issue` necessary? Can you see <Jira board>?"*, then Confluence, then Azure DevOps, then the **Go/AST (24)** set — and, on each, directed **"strike out"**. This is **tracker + `STATUS.md` curation only**: no product code, no `specs/plans/**`, no round.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Grounding | proved each group is **reachable from this shell** with the env's own credentials — Jira/Confluence via `$ATLASSIAN_*` (`/rest/api/3/myself`, board 35 `Overview-WebSC`, Confluence page `21823491` "SA規格文件" + v2 pages listing), **Azure DevOps** via `$AZURE_PAT_ALL` (org `02007-common` = `K8S`/`SC_BuildTest`; org `02005-WebSC` = `Front-end` + 7 pipelines), and **`gopls`** (v0.21.1 — CLI `symbols`/`references`/`definition`/`implementation`/`rename`/`hover` **and** a real LSP `serve` session driven over stdio **and** its built-in **MCP server** `gopls mcp` → `go_search`/`go_file_context`/`go_package_api`/`go_symbol_references`) vs `gocyclo` (installed; already gated by tellme's `cyclop` ≤15 lint rule) |
+| Actions on [#147](https://github.com/gosharplite/tellme/issues/147) | struck, in order: `jira_get_issue` + `jira_search_issues` · `confluence_search`/`_read`/`_write` · the **Azure DevOps 20** (`ado_*`) · **10 gopls-replaceable** Go/AST tools · **8 shell/toolchain-reachable** Go/AST tools · **6 bespoke** Go/AST tools — then **closed #147 `completed`** |
+| Rationale (uniform) | a native tool must beat shell/`curl`, an installed tool (`gopls`, `gocyclo`, `staticcheck`, `go list`, `git`), an existing tellme gate (`make verify-architecture`, `cyclop`), or **MCP** (round 032) — and network I/O fails the deterministic/executable-truth bar; identical to the `http_request`/`read_external_docs`/`send_teams_message` precedents |
+| #147 disclosure | the section note records the **softness** of the split (`go_doc`, `get_file_skeleton` overlap `gopls`; the 6 bespoke are composites/flourishes) so the decisions are auditable |
+| Closeout | `make verify` **OK** · diff = `STATUS.md` only (docs-only) · secret scan clean · `STATUS.md` refreshed (header, roadmap row → `tool surface settled`, tracker line → **#147 CLOSED**) · propagation `dev → main` **no-ff, no tag** · `go install` refreshed · **no open issues** |
+
+### What landed in [#147](https://github.com/gosharplite/tellme/issues/147)
+
+- **Excluded (46 added this session, 43rd–88th):** the Jira pair · the Confluence trio · the **Azure DevOps 20** · **10 gopls-replaceable** (`list_symbols`, `get_definitions`, `find_definitions`, `find_usages`, `search_usages_globally`, `list_implementations`, `get_file_skeleton`, `get_type_info`, `rename_symbol`, `go_doc`) · **8 shell/toolchain-reachable** (`get_package_graph`, `get_file_diff`, `dead_code_graph`, `get_complexity_metrics`, `get_coverage`, `get_detailed_coverage`, `verify_architecture`, `list_todos`) · **6 bespoke** (`move_definition`, `get_semantic_diff`, `get_code_health`, `analyze_sequence_flow`, `generate_mermaid_diagram`, `get_project_summary`).
+- **Final totals:** **9 present + 0 candidates** (`9` non-excluded); **94 excluded** (42 [#146](https://github.com/gosharplite/tellme/issues/146) baseline + 52 struck here); the whole **95**-tool inventory is dispositioned.
+- **Closed** `completed` with a reconciliation comment: *"9 present + 94 excluded … 0 candidates remain."*
+
+### Decisions locked
+
+| # | Decision |
+| --- | --- |
+| — | **No native SaaS/network tools** — Enterprise/network is shell/`curl` or MCP; excluded wholesale (incl. the operator's *"strike out all 6"* for the Go/AST residual). |
+| — | **The agent tool surface stays the small nine** — the reference's remaining 94 tools are all exclusions; the design-intent bar (context-bounded · deterministic-contract · reliability) was applied per tool, not per group. |
+| — | **#147 closed** — the inventory is a decisions record, not a work list; the tracker now has **0 open issues**. |
+
+### Commits (all on `dev` — docs-only)
+
+| Commit | Note |
+| --- | --- |
+| `5d376d8` | `docs(status)`: Jira pair excluded (9 + 47) |
+| `7b69d2c` | `docs(status)`: Confluence trio excluded (9 + 44) |
+| `5de7ff1` | `docs(status)`: Azure DevOps 20 excluded (9 + 24) |
+| `e620345` | `docs(status)`: 10 gopls-replaceable Go/AST excluded (9 + 14) |
+| `6e7c6b3` | `docs(status)`: 8 shell/toolchain-reachable Go/AST excluded (9 + 6) |
+| `3d12284` | `docs(status)`: 6 bespoke Go/AST excluded (0 candidates) |
+| `381b6f5` | `docs(status)`: **#147 CLOSED**; tool surface settled |
+| *(this closeout)* | `docs(status)`: day close — session-59 tracker curation; header + propagation note + 09/20 summary §37 |
+
+### Open items (non-blocking)
+
+- **None new.** No candidate tools remain; the carried items are unchanged (PR #16 Obs 1; round-006 Obs 3; sequential tools / no pruning / no `flock`; the 5 pre-existing topology-audit DSL errors; round-072 live check pending, non-gating).
+- **Issue tracker:** **0 open issues** — [#147](https://github.com/gosharplite/tellme/issues/147) closed (completed); [#146](https://github.com/gosharplite/tellme/issues/146) / [#145](https://github.com/gosharplite/tellme/issues/145) / [#144](https://github.com/gosharplite/tellme/issues/144) / [#13](https://github.com/gosharplite/tellme/issues/13) / [#91](https://github.com/gosharplite/tellme/issues/91) / [#149](https://github.com/gosharplite/tellme/issues/149) all closed.
+
+### Next steps
+
+1. No round is in flight and there is **no live issue** — the next theme must come from **operator value** (the tool-inventory well is dry).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None (spec/acceptance untouched; no PM-owned gaps).
+
+*(Session 59 is closed out: docs/issue-tracker only — propagation `dev → main` **no-ff, no tag**; `make verify` OK; installed binary refreshed; no open issues.)*
