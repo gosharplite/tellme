@@ -256,7 +256,7 @@ An LLM backend reachable via one ProviderFamily. It carries a model id, a base U
 
 ### `Session`
 
-One conversation under a per-mode workspace. It owns the `History`, the `TurnLog`, and the `UsageRecord` stream, all under the `TellMeHome` (`$TELL_ME_HOME`) subtree `output/<mode>/`; `--new` archives them and starts fresh. The offline readers (`-l`, `-t`, `--tool-usage`, prompt-less `--new`) resolve the mode as `TELL_ME_MODE` → the `-c` config's MODE → the default config's MODE → `butler`, and stay offline (a mode-only config parse).
+One conversation under a per-mode workspace. It owns the `History`, the `TurnLog`, and the `UsageRecord` stream, all under the `TellMeHome` (`$TELL_ME_HOME`) subtree `output/<mode>/`; `--new` archives them and starts fresh. The offline readers (`-l`, `-t`, `--tool-usage`, prompt-less `--new`) resolve the mode as `TELL_ME_MODE` → the `-c` config's MODE → the default config's MODE → `butler`, and stay offline. `-l` additionally resolves the rendered width (`WRAP_WIDTH`/`TELL_ME_WRAP_WIDTH`) **best-effort** — a width that cannot be resolved degrades to the renderer default rather than failing the listing (round 073).
 
 **Relationships**
 
