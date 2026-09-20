@@ -106,6 +106,7 @@ func agentTools() []domaintools.Tool { return assembleAgentTools(deps.ToolSetSpe
 // classifier — the resolution stays out of internal/cli (ADR 0039 D2).
 func assembleAgentTools(spec deps.ToolSetSpec) []domaintools.Tool {
 	tools := infratools.NewFilesystemTools()
+	tools = append(tools, infratools.NewSearchTool()...)
 	tools = append(tools, infratools.NewWriteTools()...)
 	tools = append(tools, infratools.NewCommandTool(spec.Sink))
 	tools = append(tools, infratools.NewSkillsTool(nil))

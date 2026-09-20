@@ -29,13 +29,14 @@ func TestNewToolRegistryOffersAgentTools(t *testing.T) {
 		"list_files":      true,
 		"read_files":      true,
 		"get_tree":        true,
+		"search_files":    true,
 		"write_file":      true,
 		"replace_text":    true,
 		"execute_command": true,
 		"list_skills":     true,
 	}
 	if len(got) != len(want) {
-		t.Fatalf("registry tools = %v; want exactly the seven agent tools", got)
+		t.Fatalf("registry tools = %v; want exactly the eight agent tools", got)
 	}
 	for name := range want {
 		if !got[name] {
@@ -50,7 +51,7 @@ func TestNewToolRegistryOffersAgentTools(t *testing.T) {
 }
 
 // TestNewTUIRegistryIsTheReaderTriplet pins round-044 fix-1: the `-i` suggestion
-// source consumes the three-reader registry, NOT the seven-tool agent registry.
+// source consumes the three-reader registry, NOT the eight-tool agent registry.
 func TestNewTUIRegistryIsTheReaderTriplet(t *testing.T) {
 	got := newTUIRegistry()
 	if len(got.Tools()) != 3 {

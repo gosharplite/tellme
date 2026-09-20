@@ -38,7 +38,7 @@ The capability gate on a `Tool`'s availability (round 062; ADR 0032). A `vision`
 
 | Value | Definition |
 | --- | --- |
-| `none` | Always offered (the readers, the write pair, `execute_command`, `list_skills`). |
+| `none` | Always offered (the readers — incl. `search_files` — the write pair, `execute_command`, `list_skills`). |
 | `vision` | Offered only when the selected `Provider` declares `vision`. |
 
 ### `ToolOutcome`
@@ -296,7 +296,7 @@ A guidance block (a SKILL.md file) under the `$TELL_ME_HOME/docs/skills/` catalo
 
 ### `Tool`
 
-A capability the model may invoke, advertised with a JSON argument schema. The surface is deliberately small: the reader trio (`list_files`, `read_files`, `get_tree`), the write pair (`write_file`, `replace_text`), `execute_command` (`bash -c`), and `list_skills`. When the selected `Provider` declares `vision`, one more tool is offered — `read_image`, which reads a local image and returns it **in-band** as an `ImageContent` (the shipped `tools.MediaPart` type; round 070 / ADR 0040) through the optional MediaTool capability. Every tool is bounded by the resource contract (`max_output_tokens` / `timeout` — default + param + ceiling) and requires a `reason`. There is no consent gate and no path boundary.
+A capability the model may invoke, advertised with a JSON argument schema. The surface is deliberately small: the reader family (`list_files`, `read_files`, `get_tree`, and the in-file content search `search_files` — round 071 / ADR 0043), the write pair (`write_file`, `replace_text`), `execute_command` (`bash -c`), and `list_skills`. When the selected `Provider` declares `vision`, one more tool is offered — `read_image`, which reads a local image and returns it **in-band** as an `ImageContent` (the shipped `tools.MediaPart` type; round 070 / ADR 0040) through the optional MediaTool capability. Every tool is bounded by the resource contract (`max_output_tokens` / `timeout` — default + param + ceiling) and requires a `reason`. There is no consent gate and no path boundary.
 
 **Attributes**
 
@@ -304,7 +304,7 @@ A capability the model may invoke, advertised with a JSON argument schema. The s
 | --- | --- | --- |
 | `name` | string | The unique wire tool name. |
 | `requiresReason` | boolean | Always true — every tool call must carry a reason. |
-| `gate` | ToolGate | The capability gate (round 062 / ADR 0032): `vision` for `read_image` (offered only when the selected `Provider` declares `vision`), `none` otherwise — the readers, the write pair, `execute_command`, and `list_skills` are always offered. |
+| `gate` | ToolGate | The capability gate (round 062 / ADR 0032): `vision` for `read_image` (offered only when the selected `Provider` declares `vision`), `none` otherwise — the readers (`list_files`, `read_files`, `get_tree`, `search_files`), the write pair, `execute_command`, and `list_skills` are always offered. |
 
 **Invariants**
 

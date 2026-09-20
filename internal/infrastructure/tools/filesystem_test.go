@@ -248,6 +248,7 @@ func TestToolSchemasRequireReason(t *testing.T) {
 		{"list_files", listFiles{}.Parameters()},
 		{"read_files", readFiles{}.Parameters()},
 		{"get_tree", getTree{}.Parameters()},
+		{"search_files", searchFiles{}.Parameters()},
 		{"write_file", writeFile{}.Parameters()},
 		{"replace_text", replaceText{}.Parameters()},
 	}
@@ -279,7 +280,7 @@ func TestToolNamesWireValid(t *testing.T) {
 	for _, tool := range []interface {
 		Name() string
 		Parameters() json.RawMessage
-	}{listFiles{}, readFiles{}, getTree{}} {
+	}{listFiles{}, readFiles{}, getTree{}, searchFiles{}} {
 		name := tool.Name()
 		if !wireNameOK(name) {
 			t.Errorf("tool name %q is not wire-valid", name)

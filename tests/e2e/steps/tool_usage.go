@@ -130,6 +130,7 @@ func parseReportLine(stdout, tool string) (reportToolCounts, bool) {
 // capability-gated read_image is NOT here; see recordableToolNames).
 func registeredToolNames() []string {
 	return flattenToolNames(infratools.NewFilesystemTools(),
+		infratools.NewSearchTool(),
 		infratools.NewWriteTools(),
 		[]domaintools.Tool{infratools.NewCommandTool(nil)},
 		[]domaintools.Tool{infratools.NewSkillsTool(nil)})
@@ -141,6 +142,7 @@ func registeredToolNames() []string {
 // the all-zero guard reads the same authority.
 func recordableToolNames() []string {
 	return flattenToolNames(infratools.NewFilesystemTools(),
+		infratools.NewSearchTool(),
 		infratools.NewWriteTools(),
 		[]domaintools.Tool{infratools.NewCommandTool(nil)},
 		[]domaintools.Tool{infratools.NewSkillsTool(nil)},

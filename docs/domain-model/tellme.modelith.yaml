@@ -74,7 +74,7 @@ enums:
       `vision`; `none` is offered to every provider.
     values:
       - name: none
-        definition: Always offered (the readers, the write pair, `execute_command`, `list_skills`).
+        definition: Always offered (the readers — incl. `search_files` — the write pair, `execute_command`, `list_skills`).
       - name: vision
         definition: Offered only when the selected `Provider` declares `vision`.
   PayloadStatusKind:
@@ -282,8 +282,9 @@ entities:
   Tool:
     definition: >
       A capability the model may invoke, advertised with a JSON argument schema.
-      The surface is deliberately small: the reader trio (`list_files`,
-      `read_files`, `get_tree`), the write pair (`write_file`, `replace_text`),
+      The surface is deliberately small: the reader family (`list_files`,
+      `read_files`, `get_tree`, and the in-file content search `search_files` —
+      round 071 / ADR 0043), the write pair (`write_file`, `replace_text`),
       `execute_command` (`bash -c`), and `list_skills`. When the selected
       `Provider` declares `vision`, one more tool is offered — `read_image`,
       which reads a local image and returns it **in-band** as an `ImageContent`
@@ -304,8 +305,9 @@ entities:
         description: >
           The capability gate (round 062 / ADR 0032): `vision` for `read_image`
           (offered only when the selected `Provider` declares `vision`), `none`
-          otherwise — the readers, the write pair, `execute_command`, and
-          `list_skills` are always offered.
+          otherwise — the readers (`list_files`, `read_files`, `get_tree`,
+          `search_files`), the write pair, `execute_command`, and `list_skills`
+          are always offered.
     invariants:
       - id: tool-name-unique
         statement: "Each `Tool` has a unique name."
