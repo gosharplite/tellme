@@ -1,6 +1,6 @@
 # ADR 0039 — The `ToolSetSpec` capability seam
 
-- **Status:** Accepted
+- **Status:** Accepted (**§Forward RF-069-1 delivered by [ADR 0040](0040-media-channel-in-band.md) — round 070**)
 - **Date:** 2026-09-20
 - **Deciders:** tellme owner
 - **Related:** [ADR 0032](0032-agent-image-vision.md) (agent image vision — this ADR **delivers its review fold F-062-4 / §Forward RF-062-10**, the seam half), [ADR 0033](0033-gemini-image-vision.md) (Gemini image vision — this ADR **delivers its §Forward RF-063-6**), [ADR 0013](0013-composition-root-injection.md) (the composition root + `deps.Dependencies`), [ADR 0019](0019-agentloop-port.md) (`LoopSpec` — the same "name the construction inputs" pattern), [ADR 0021](0021-tool-output-ctor-injection.md) (the ctor-injected `[Tool Output]` sink this path carries), round 062 (`specs/plans/062-agent-image-vision`), round 063 (`specs/plans/063-gemini-image-vision`), round 069 (`specs/plans/069-toolset-spec-capability-seam` — this ADR's round), issue [#140](https://github.com/gosharplite/tellme/issues/140)
@@ -76,7 +76,7 @@ Two costs followed: (1) the producer (`cmd/tellme`) and the offline caller (`int
 
 > **⚠ Not open work.** A `§Forward` entry is a decision *deferred to a trigger* or a recorded divergence — **not** tasking. Do not re-raise absent its trigger.
 
-- **RF-069-1** — the **media-channel refactor** (RF-062-10's other half): return media from `Execute` (a `domain/tools` media type) instead of the per-call `context` collector (ADR 0032 D7a). Its own round; larger blast radius.
+- **RF-069-1** — the **media-channel refactor** (RF-062-10's other half): return media from `Execute` (a `domain/tools` media type) instead of the per-call `context` collector (ADR 0032 D7a). **DELIVERED by [ADR 0040](0040-media-channel-in-band.md) (round 070)** — the media is in-band via the optional `tools.MediaTool` capability (`ExecuteMedia`); the collector is removed and `internal/infrastructure/tools` no longer imports `internal/domain/llm`.
 - **RF-069-2** — `ToolSetSpec.ProviderType` is the raw label; a typed family value may be preferred if a second consumer appears. One consumer today.
 - **RF-069-3** — the spec is a value type (no shared instance to mutate).
 - **RF-069-4** — the ceiling is resolved inside the vision branch; hoist it if a non-vision consumer appears.

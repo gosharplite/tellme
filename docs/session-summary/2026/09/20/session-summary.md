@@ -665,3 +665,124 @@ The operator: *"Communicate with sub-agent 'architect'. Initialize architect wit
 
 1. Open the next round off `dev` from a **value / live-issue** candidate ([#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) · the media-channel refactor RF-069-1) — **not** from the open-items index.
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 21. Session 54 (2026-09-20, cont.) — round **070** `070-media-channel-in-band` **OPENED** (anchor issue [#142](https://github.com/gosharplite/tellme/issues/142) + `/axb-specify`)
+
+The operator: *"Create a detail new issue for this [the media-channel refactor]. Open round 070, the goal is to close the new issue."* — preceded by *"Before you start, tell me if round 070 will create another never ending story."*
+
+### The honest answer to the operator's question (recorded)
+
+**It need not be — and this round is designed to *end* the RF-062-10 lineage, not extend it.** The material facts:
+
+- **RF-062-10 was a bundle of two** (the `ToolSetSpec` seam **+** the media channel). The seam landed in round 069; the media half is **RF-069-1**. Round 070 closes the bundle — **RF-062-10 has no remaining half**.
+- **The failure mode to avoid** is structural refactors spawning **design-variant muses** ("the shape we did not take") left as live candidates — exactly how RF-062-10 became a multi-round thread. The round therefore **commits** (issue/spec `I-6`, S-4): the **not-taken shape is a *settled rejection*** in the new ADR, **not** a forward item; the media channel lands **in one round** (a discovered split is a **STOP-and-re-decide**, not a "part 2").
+- **Residual risk, stated honestly:** the round touches the **`Tool` port** (a widely-referenced truth contract), so the blast radius is real; if the shape is chosen badly or the change is halved, it *could* spawn follow-ups. That is precisely what the no-halving + settled-rejection rules exist to prevent.
+- *(Corrected a sloppy prior statement: this is a **contract/type-honesty** limit, **not** a Go `string` limit — image bytes *can* ride a string, but every textual consumer of the result would corrupt them, and the conversation model needs a typed media part.)*
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Anchor issue | **[#142](https://github.com/gosharplite/tellme/issues/142)** created (grounded on `dev` @ `d6d606f`): make the media effect **in-band**; retire the per-call `context` collector; **completes RF-062-10 / retires RF-069-1**. **DoD = close it.** |
+| Branch | `070-media-channel-in-band` (off `dev` `d6d606f`) |
+| `/axb-specify` | ✅ — `specs/plans/070-media-channel-in-band/` (`spec.md` · `checklists/requirements.md` · `truth-delta.md`). No `specs/truth/**` (SOP). |
+| Shape (deferred) | **(a) widen the `Tool` port** vs **(b) a second, optional interface** → `/axb-technical-research`; the **rejected** shape recorded as a **settled rejection** (S-4). |
+| Invariants | I-1 behaviour byte-identical · I-2 no config/UX change · I-3 the reason gate / resource contract / timeout unchanged · I-4 layer gate 0 · I-5 stdlib-only · **I-6 no halving**. |
+| Clarify | **not escalated (0 questions)** — the goal is unambiguous; the shape is technical (escalate only if research finds the shape changes the formal acceptance). |
+
+### Decisions locked (round 070, this phase)
+
+| # | Decision |
+| --- | --- |
+| — | Round 070 opens from anchor **[#142](https://github.com/gosharplite/tellme/issues/142)**; **DoD = closing it** + retiring RF-069-1 + completing RF-062-10. |
+| — | The media effect becomes **in-band** (a `domain/tools` media value returned from `Execute`, translated by the loop); the **collector is deleted**. |
+| — | The **rejected shape is a settled rejection**, not a forward item (anti-muse). |
+| — | **No halving** (I-6) — a discovered split is a STOP-and-re-decide. |
+
+### Next steps
+
+1. `/axb-technical-research` (the shape decision + a new ADR + `techstack.md` MODIFY; annotate RF-062-10/RF-069-1) → `/axb-system-analysis` → `/axb-dsl-refine` (NOOP) → `/axb-tasks` → `/axb-implement` → PR (human merges) → closeout (tag `round-070`, **close [#142](https://github.com/gosharplite/tellme/issues/142)**).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `070-media-channel-in-band`).
+
+---
+
+## 22. Session 54 (2026-09-20, cont.) — round 070 `070-media-channel-in-band`: full pipeline → PR [#143](https://github.com/gosharplite/tellme/pull/143) **OPEN**
+
+Continued round 070 (the operator: *"yes"* — keep going through the pipeline to the PR). Ran the pipeline end-to-end and opened the PR. **No Copilot review; only a human merges.**
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | the **media channel in-band** — a media-producing tool returns its media from `ExecuteMedia` (the optional `tools.MediaTool` capability); the loop type-asserts and folds it; the per-call `context` collector (ADR 0032 **D7a**) is **deleted** and `infrastructure/tools` no longer imports `domain/llm` (anchor [#142](https://github.com/gosharplite/tellme/issues/142)) |
+| Pipeline | specify ✅ · clarify **not escalated (0)** · spec-by-example **NOOP** · technical-research ✅ (**ADR 0040** + `techstack.md` MODIFY) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine **NOOP** · tasks ✅ (T001–T010) · implement ✅ |
+| The change | `+ tools.MediaPart` (moved from `domain/llm`) · `+ tools.MediaTool` (the capability) · `Message.Media []tools.MediaPart` · **deleted** `domain/llm/media.go` · `read_image.ExecuteMedia` (in-band) + a delegating `Execute`, **dropping the llm import** · the loop asserts `tools.MediaTool` · adapters serialize `[]tools.MediaPart` |
+| Shape | **a segregated capability interface** (NOT a `Tool` widening); the **rejected** shape is recorded **settled** in ADR 0040 (anti-muse; no-halving I-6) |
+| Truth | **ADR 0040** completes **ADR 0032 RF-062-10** (annotates `Status` + `D7a` superseded + `RF-062-10` fully delivered) and delivers **ADR 0039 RF-069-1**; `techstack.md` *Image filesystem tool* MODIFY. **The RF-062-10 lineage ends here.** |
+| Verification | `gofmt`/`vet`/`build` clean · `go test -count=1 ./...` **green** · `make verify` **OK** · topology audit **5 pre-existing, none new** · `go.mod`/`go.sum` unchanged · witnesses: structural (collector absent; `infra/tools` free of `domain/llm`) + falsifiability (disabling the in-band fold reds the image E2E — 0 image blocks recorded) |
+| Delivery | branch `070-media-channel-in-band` → **PR [#143](https://github.com/gosharplite/tellme/pull/143) OPEN** (awaiting the human review/merge) |
+
+### Decisions locked (round 070)
+
+| # | Decision |
+| --- | --- |
+| **D1** | `tools.MediaPart` is the single media owner (relocated from `domain/llm`); `llm.Message.Media` = `[]tools.MediaPart` (legal intra-domain edge; acyclic). |
+| **D2** | Shape = a **segregated capability interface** `tools.MediaTool` (+ `ExecuteMedia`), NOT a `Tool` widening. |
+| **D3** | The loop type-asserts and folds the returned media (media-first `user` message) — byte-identical. |
+| **D4/D5** | `read_image` implements the capability; the collector is deleted; serialization unchanged. |
+| — | The **rejected shape (a)** is a **settled rejection** (ADR 0040) — not a forward item. |
+
+### Next steps
+
+1. Human reviews + merges **PR [#143](https://github.com/gosharplite/tellme/pull/143)** → closeout (`SESSION-CLOSEOUT.md`): tag `round-070`, propagate `dev → main`, **close [#142](https://github.com/gosharplite/tellme/issues/142)**.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `070-media-channel-in-band` until merged, then `dev`).
+
+---
+
+## 23. Session 55 (2026-09-20, cont.) — round 070 `070-media-channel-in-band`: architect review-fold loop (APPROVE) → **human-merged (PR [#143](https://github.com/gosharplite/tellme/pull/143) → `dev` `da53b74`, merge commit)** → branch cleanup → closeout (Steps 1–8)
+
+The operator directed the architect review-fold loop on PR #143 (same protocol as round 069), then *"Execute SESSION-CLOSEOUT.md."*
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Peer dispatch (the `architect`) | continued the existing session (no `--new`); `SESSION-BOOTSTRAP.md` re-run against the round-070 tree by the peer; `tmg-chat-ingroup` staging in `/tmp`, `env -u TELL_ME_MODE`, same model (`deepseek-flash`) |
+| Review | **`APPROVE`** — no blockers, no technical debt, no required folds; behaviour-identity **could not be falsified**; all 4 findings `[NIT]` (**N1** index rows · **N2** ADR 0033 present-tense collector · **N3** no loop-tier pin · **N4** figure ~40→32) — [comment](https://github.com/gosharplite/tellme/pull/143#issuecomment-5747403859) |
+| Fold (`8aa6174`) | **N1/N2/N4 folded** (docs-only); **N3 accepted, not actioned** (the E2E carries the branch — the architect's own steer) — [comment](https://github.com/gosharplite/tellme/pull/143#issuecomment-5747414255) |
+| Fold verification | `FOLDS VERIFIED WITH RESIDUALS — CLEARED FOR HUMAN MERGE`; the architect independently re-measured the fold (3 files, +4/−4, docs-only) and **closed N3 as adequately covered with no forward item** — [comment](https://github.com/gosharplite/tellme/pull/143#issuecomment-5747421702) |
+| Merge | PR [#143](https://github.com/gosharplite/tellme/pull/143) **human-merged** into `dev` (`da53b74`, **merge commit** — parents `d6d606f` + `8aa6174`); remote branch deleted by the human; **local branch deleted** after the ancestor check (after `dev` was fast-forwarded to the merge) |
+| Closeout | gates green · **Rule-12 split** (round-069 detail + branch row + env note → [`2026-09-20.md`](docs/archives/status/2026-09-20.md)) · **RES-1 folded** (RF-069-1 → DELIVERED) · propagation `dev → main` (**no-ff**) + tag **`round-070`** · `go install` · **#142 closed** |
+
+### Work done
+
+1. **Peer review** — staged the review prompt (remote-party marker), continued the `architect` session (no `--new`), retrieved **APPROVE**, read the PR comment.
+2. **Fold + verify** — folded N1/N2/N4 (`8aa6174`; N3 accepted), posted the fold comment, sent the fold verification (continuation, no `--new`), retrieved `FOLDS VERIFIED WITH RESIDUALS`, posted the loop-closed record.
+3. **Merge + cleanup + closeout** — the operator merged PR #143; checked the remote branch was gone, fast-forwarded `dev`, deleted the local branch; ran `SESSION-CLOSEOUT.md` Steps 1–8.
+
+### Decisions locked (round 070)
+
+| # | Decision |
+| --- | --- |
+| — | The media effect is **in-band** (`tools.MediaPart` + the optional `tools.MediaTool` capability / `ExecuteMedia`); the `context` collector is **deleted**; the `Tool` port is **unchanged**. |
+| — | **Completes ADR 0032 RF-062-10** (media half) and **delivers ADR 0039 RF-069-1**; ADR 0032 `D7a` marked **SUPERSEDED**. |
+| — | The **rejected shape (a)** is a **settled rejection** (ADR 0040) — not a forward item (anti-muse; no-halving I-6). |
+| — | **N3** (loop-tier pin) closed as adequately covered by the E2E; **no forward item**. |
+
+### Closeout Steps 1–8
+
+- **Step 1** — working tree clean on `dev`; this round's `/tmp` staging cleaned; no frozen package touched (`069-…` unmodified).
+- **Step 2** — `gofmt -l .` clean · `go vet ./...` clean · `go test -count=1 ./...` **green** (incl. the godog E2E) · `make verify` **OK** · topology audit **5 pre-existing, none new** · secret scan clean · `go.mod`/`go.sum` unchanged.
+- **Step 3** — `STATUS.md` rewritten (106 lines): round 070 → the single **Last delivered round** section; **Rule-12 split** (round-069 detail + branch row + env note relocated verbatim to [`2026-09-20.md`](docs/archives/status/2026-09-20.md)); **RES-1 folded** (RF-069-1 → DELIVERED); older forward batches compacted to ADR pointers; branch model / index / roadmap / env notes refreshed; no liveness contradiction.
+- **Step 4** — this §23.
+- **Step 5** — `STATUS.md` ↔ §23 agree (round 070 delivered; `dev` active; #142 closed; next round off `dev`).
+- **Step 6** — commit + push on `dev`.
+- **Step 7** — `dev → main` **DONE (no-ff)**, tagged **`round-070`**; `go install ./cmd/tellme` refreshed.
+- **Step 8** — **#142 CLOSED (completed)** with a delivery comment naming PR [#143](https://github.com/gosharplite/tellme/pull/143) / `da53b74`; [#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) left OPEN (accurate).
+
+### Next steps
+
+1. Open the next round off `dev` from a **value / live-issue** candidate ([#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13)) — **not** from the open-items index.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).

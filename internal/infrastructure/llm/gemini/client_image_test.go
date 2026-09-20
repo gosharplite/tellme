@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/gosharplite/tellme/internal/domain/llm"
+	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
 // TestRequestBody_MediaBecomesInlineData pins round-063 (ADR 0033 D2/D3): a
@@ -20,7 +21,7 @@ func TestRequestBody_MediaBecomesInlineData(t *testing.T) {
 	prior := []llm.Message{
 		{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_1", Name: "read_image", Arguments: `{"filepath":"shot.png"}`}}},
 		{Role: "tool", Content: "Successfully read image", ToolCallID: "call_1"},
-		{Role: "user", Media: []llm.MediaPart{{MIMEType: "image/png", Data: data}}},
+		{Role: "user", Media: []domaintools.MediaPart{{MIMEType: "image/png", Data: data}}},
 	}
 	body, err := requestBody("", prior, nil, 0, 0, "", "")
 	if err != nil {
@@ -87,9 +88,9 @@ func TestRequestBody_MultiCallRound_BatchesFunctionResponses(t *testing.T) {
 			{ID: "call_2", Name: "read_image", Arguments: `{"filepath":"b.jpg"}`},
 		}},
 		{Role: "tool", Content: "a ok", ToolCallID: "call_1"},
-		{Role: "user", Media: []llm.MediaPart{{MIMEType: "image/png", Data: dataA}}},
+		{Role: "user", Media: []domaintools.MediaPart{{MIMEType: "image/png", Data: dataA}}},
 		{Role: "tool", Content: "b ok", ToolCallID: "call_2"},
-		{Role: "user", Media: []llm.MediaPart{{MIMEType: "image/jpeg", Data: dataB}}},
+		{Role: "user", Media: []domaintools.MediaPart{{MIMEType: "image/jpeg", Data: dataB}}},
 	}
 	body, err := requestBody("", prior, nil, 0, 0, "", "")
 	if err != nil {

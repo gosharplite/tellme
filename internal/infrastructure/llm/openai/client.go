@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gosharplite/tellme/internal/domain/llm"
+	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
 // defaultTimeout bounds a provider request so a stalled endpoint cannot hang the
@@ -201,7 +202,7 @@ func messageContent(m llm.Message) any {
 }
 
 // dataURI renders an inline base64 data URI for one media part.
-func dataURI(mp llm.MediaPart) string {
+func dataURI(mp domaintools.MediaPart) string {
 	return "data:" + mp.MIMEType + ";base64," + base64.StdEncoding.EncodeToString(mp.Data)
 }
 

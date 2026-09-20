@@ -1,6 +1,10 @@
 package llm
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/gosharplite/tellme/internal/domain/tools"
+)
 
 // TestEstimateTokensDeterministic pins the deterministic, offline estimator
 // (round-009 research Decision 1): the same conversation always yields the same
@@ -72,8 +76,8 @@ func TestEstimatePayloadCountsWireInputs(t *testing.T) {
 // as the image grows.
 func TestEstimateTokensCountsMedia(t *testing.T) {
 	base := []Message{{Role: "user", Content: "what is this?"}}
-	small := []Message{{Role: "user", Content: "what is this?", Media: []MediaPart{{MIMEType: "image/png", Data: make([]byte, 3000)}}}}
-	large := []Message{{Role: "user", Content: "what is this?", Media: []MediaPart{{MIMEType: "image/png", Data: make([]byte, 300000)}}}}
+	small := []Message{{Role: "user", Content: "what is this?", Media: []tools.MediaPart{{MIMEType: "image/png", Data: make([]byte, 3000)}}}}
+	large := []Message{{Role: "user", Content: "what is this?", Media: []tools.MediaPart{{MIMEType: "image/png", Data: make([]byte, 300000)}}}}
 
 	b, s, l := EstimateTokens(base), EstimateTokens(small), EstimateTokens(large)
 	if s <= b {

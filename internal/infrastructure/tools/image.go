@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/gosharplite/tellme/internal/domain/llm"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
@@ -83,58 +82,68 @@ func (readImage) Parameters() json.RawMessage {
 	return resourceSchema(`"filepath":{"type":"string","description":"The path to the image file to read."}`, `"filepath","reason"`, readerDefaultTimeout)
 }
 
-// Execute reads the named file, resolves its kind from the file's CONTENT
+// Execute is the plain Tool contract — read_image must satisfy it to be
+// registered. It delegates to ExecuteMedia and discards the media; the agent loop
+// consumes the media through the tools.MediaTool capability instead (round 070;
+// ADR 0040).
+func (t readImage) Execute(ctx context.Context, arguments string, budget domaintools.ByteBudget) (string, error) {
+	text, _, err := t.ExecuteMedia(ctx, arguments, budget)
+	return text, err
+}
+
+// ExecuteMedia reads the named file, resolves its kind from the file's CONTENT
 // (magic bytes — never the extension), checks the tool's resolved inline ceiling,
-// and attaches the image to the current tool call's collector (llm.AttachMedia)
-// so the loop folds it back onto a `user` message (ADR 0032 D5/D6/D7). A file
-// that is too large, or not a supported picture, returns a LOUD recoverable
-// result (nil error) naming the problem; the image never reaches the request.
-func (t readImage) Execute(ctx context.Context, arguments string, _ domaintools.ByteBudget) (string, error) {
+// and returns the image IN-BAND as a tools.MediaPart (round 070; ADR 0040), so the
+// loop folds it onto a `user` message (ADR 0032 D5/D6) with no ambient context
+// channel. A file that is too large, or not a supported picture, returns a LOUD
+// recoverable result (nil error, no media) naming the problem; the image never
+// reaches the request.
+func (t readImage) ExecuteMedia(ctx context.Context, arguments string, _ domaintools.ByteBudget) (string, []domaintools.MediaPart, error) {
 	if timedOut(ctx) {
-		return timeoutMarker, nil
+		return timeoutMarker, nil, nil
 	}
 	var args struct {
 		FilePath string `json:"filepath"`
 	}
 	if err := json.Unmarshal([]byte(arguments), &args); err != nil {
-		return "", fmt.Errorf("read_image: invalid arguments: %w", err)
+		return "", nil, fmt.Errorf("read_image: invalid arguments: %w", err)
 	}
 	if args.FilePath == "" {
-		return "", fmt.Errorf("read_image: filepath argument is required")
+		return "", nil, fmt.Errorf("read_image: filepath argument is required")
 	}
 	f, err := os.Open(args.FilePath)
 	if err != nil {
-		return "", fmt.Errorf("read_image: failed to read file: %w", err)
+		return "", nil, fmt.Errorf("read_image: failed to read file: %w", err)
 	}
 	defer func() { _ = f.Close() }()
 	info, err := f.Stat()
 	if err != nil {
-		return "", fmt.Errorf("read_image: failed to read file: %w", err)
+		return "", nil, fmt.Errorf("read_image: failed to read file: %w", err)
 	}
 	if info.IsDir() {
-		return "ERROR: the path is a directory; read_image expects an image file.", nil
+		return "ERROR: the path is a directory; read_image expects an image file.", nil, nil
 	}
 	if info.Size() > int64(t.maxBytes) {
-		return t.tooLargeResult(), nil
+		return t.tooLargeResult(), nil, nil
 	}
 	// Read the whole file (bounded one byte past the ceiling so a racing growth
 	// cannot exceed it silently).
 	data, err := io.ReadAll(io.LimitReader(f, int64(t.maxBytes)+1))
 	if err != nil {
-		return "", fmt.Errorf("read_image: failed to read file: %w", err)
+		return "", nil, fmt.Errorf("read_image: failed to read file: %w", err)
 	}
 	if len(data) > t.maxBytes {
-		return t.tooLargeResult(), nil
+		return t.tooLargeResult(), nil, nil
 	}
 	mime, ok := imageMIME(data)
 	if !ok {
-		return notAPictureResult, nil
+		return notAPictureResult, nil, nil
 	}
 	if timedOut(ctx) {
-		return timeoutMarker, nil
+		return timeoutMarker, nil, nil
 	}
-	llm.AttachMedia(ctx, llm.MediaPart{MIMEType: mime, Data: data})
-	return fmt.Sprintf("Successfully read image from %s (%s, %d bytes)", args.FilePath, mime, len(data)), nil
+	media := []domaintools.MediaPart{{MIMEType: mime, Data: data}}
+	return fmt.Sprintf("Successfully read image from %s (%s, %d bytes)", args.FilePath, mime, len(data)), media, nil
 }
 
 // tooLargeResult is the LOUD oversize refusal, naming the resolved limit (the
