@@ -193,29 +193,37 @@ func requestBody(prompt string, prior []llm.Message, toolDefs []llm.ToolDef, max
 // results in CALL order, so the wire shape is unchanged (the added `id` key is
 // the sole difference).
 func buildContents(prompt string, prior []llm.Message) []map[string]any {
+	contents, _ := buildRound(prompt, prior)
+	return contents
+}
+
+// UnpairedCallIDs returns, in call order across the whole prior, the ids of the
+// Gemini/Vertex tool calls that received no result by their round boundary — the
+// M < N boundary drop made ACCOUNTABLE (round 067; ADR 0037; RF-066-7). The
+// adapter still drops such calls from the wire (the batched turn carries only the
+// M results the round produced), so at runtime the drop remains exactly as silent
+// as before round 067; this accessor is the single-owned, TEST-FACING accounting
+// seam — it has NO live consumer today (surfacing it as a user-visible `[Tool …]`
+// diagnostic is the recorded forward item RF-067-1; the adapter owns no logging
+// seam). A round whose calls are all paired contributes nothing.
+func UnpairedCallIDs(prior []llm.Message) []string {
+	_, unpaired := buildRound("", prior)
+	return unpaired
+}
+
+// buildRound is the single builder: it walks the prior once and returns the
+// Vertex `contents` (with the prompt appended when non-empty) AND the ids of the
+// calls left unpaired at a round boundary. buildContents delegates to it, so the
+// emitted body and the unpaired account come from one pass and cannot disagree by
+// construction.
+func buildRound(prompt string, prior []llm.Message) ([]map[string]any, []string) {
 	b := newRoundBuilder()
 	b.consume(prior)
 	b.flush()
 	if prompt != "" {
 		b.contents = append(b.contents, map[string]any{"role": "user", "parts": []map[string]any{{"text": prompt}}})
 	}
-	return b.contents
-}
-
-// UnpairedCallIDs returns, in call order across the whole prior, the ids of the
-// Gemini/Vertex tool calls that received no result by their round boundary — the
-// M < N boundary drop made observable (round 067; ADR 0037; RF-066-7). The
-// adapter still drops such calls from the wire (the batched turn carries only the
-// M results the round produced), but the accounting is single-owned here, so the
-// drop is never silent in code that inspects the round. A round whose calls are
-// all paired contributes nothing. Exported as a documented seam for a future
-// diagnostic/consumer (surfacing it as a user-visible `[Tool …]` note is a
-// recorded forward item — the adapter owns no logging seam).
-func UnpairedCallIDs(prior []llm.Message) []string {
-	b := newRoundBuilder()
-	b.consume(prior)
-	b.flush()
-	return b.dropped
+	return b.contents, b.dropped
 }
 
 // newRoundBuilder builds an empty round builder.
@@ -225,7 +233,7 @@ func newRoundBuilder() *roundBuilder {
 
 // consume walks the prior conversation, buffering each round's calls/results and
 // flushing a round at its boundary (a `model` turn, a plain-text turn, or the
-// prompt). Shared by buildContents and UnpairedCallIDs so their walk cannot drift.
+// prompt). Shared by the single builder buildRound so the walk cannot drift.
 func (b *roundBuilder) consume(prior []llm.Message) {
 	for _, m := range prior {
 		switch {
@@ -498,15 +506,18 @@ func geminiFunctionCallTruncationError(tool string) error {
 }
 
 // callID resolves a function call's wire id (round 067; ADR 0037; RF-066-2): the
-// provider's own `functionCall.id` when it is present and non-empty (reference
-// parity — `fromSDKFunctionCall` reads `f.ID` first), else the deterministic
-// positional `call_<n>` fallback (unchanged from pre-067). A blank/whitespace
-// provider id is treated as ABSENT (never an empty `id` on the wire — ADR 0036
-// D2/D4). The fallback spelling stays `call_<n>`; the reference's
-// `gemini-call-<index>-<name>` is deliberately NOT adopted.
+// provider's own `functionCall.id` when it is present (after trimming surrounding
+// whitespace) and non-empty — reference parity (`fromSDKFunctionCall` reads
+// `f.ID` first) — else the deterministic positional `call_<n>` fallback
+// (unchanged from pre-067). A blank/whitespace-only provider id is treated as
+// ABSENT (never an empty `id` on the wire — ADR 0036 D2/D4); a present one is
+// returned TRIMMED, so the two whitespace cases share one normalisation (F-067-4)
+// and the echoed id never carries stray padding. The fallback spelling stays
+// `call_<n>`; the reference's `gemini-call-<index>-<name>` is deliberately NOT
+// adopted.
 func callID(callIdx int, providerID string) string {
-	if strings.TrimSpace(providerID) != "" {
-		return providerID
+	if id := strings.TrimSpace(providerID); id != "" {
+		return id
 	}
 	return fmt.Sprintf("call_%d", callIdx)
 }

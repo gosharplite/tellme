@@ -42,7 +42,7 @@
 
 | # | Decision | Status |
 | --- | --- | --- |
-| **S-1** | **When a Gemini round yields `M < N` results, the adapter makes the unpaired calls' ids observable** (never a silent drop). This is the change that lands #136 item A (**RF-066-7**). | **locked (round goal / #136)** |
+| **S-1** | **When a Gemini round yields `M < N` results, the adapter makes the unpaired calls' ids accountable in code** through a single-owned accessor (never an unaccounted discard; silent at runtime). This is the change that lands #136 item A (**RF-066-7**). | **locked (round goal / #136)** |
 | **S-2** | **The provider's own `functionCall.id` is preferred** when the Vertex response carries a non-empty one; otherwise the existing deterministic id is kept. This is #136 item B (**RF-066-2**). | **locked (round goal / #136)** |
 | **S-3** | **The observability form of S-1 is a technical choice** — a single-owned **accessor** returning the unpaired call ids (e.g. `roundBuilder.unpaired() []string`) exposed as a **returned value**, a **diagnostic** (a `[Tool …]`-class `stderr` note / an `slog`-style warning), or **both** — settled by `/axb-technical-research`. The **loop/ports MUST stay untouched** unless research shows an accessor cannot be owned inside the adapter. | proposed (research) |
 | **S-4** | **The fallback id spelling is a technical choice** — keep tellme's `call_<n>` or adopt the reference's `gemini-call-<index>-<name>` — but **whichever is chosen, the id MUST be deterministic for a given turn** (replay stability, ADR 0036 D3 / round-014 fidelity). | proposed (research) |
@@ -71,27 +71,27 @@
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - a Gemini round's unpaired calls are surfaced, not silently dropped (Priority: P1)
+### User Story 1 - a Gemini round's unpaired calls are accounted in code, not silently discarded (Priority: P1)
 
-As the **operator** running `tellme` against a **Gemini/Vertex** provider, when a round's model turn requests **N** calls but the round yields **M < N** results, I want the **unpaired calls' ids to be observable** (an accessor / a diagnostic), so that the boundary drop is **accounted** and never a silent loss — retiring the round-066 `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual (RF-066-8).
+As the **operator** running `tellme` against a **Gemini/Vertex** provider, when a round's model turn requests **N** calls but the round yields **M < N** results, I want the **unpaired calls' ids accountable** through a single-owned accessor (a code seam), so that the boundary drop is **accounted** rather than an unaccounted discard — retiring the round-066 `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual (RF-066-8). *(The drop stays silent in the runtime output; surfacing it to the operator is the forward item RF-067-1.)*
 
 **Why this priority**: it is the concrete capability #136 adds (item A) and it turns a recorded gap into an owned, testable property; it is independent of the provider-id question (US2) and can ship alone.
 
-**Independent verification**: build the request body for a round that yields `M < N` results and assert the produced `M` parts are named correctly **and** the unpaired calls' ids are observable through the round's single-owned accessor (or the chosen diagnostic surface); a witness that suppresses the accessor reds the check.
+**Independent verification**: build the request body for a round that yields `M < N` results and assert the produced `M` parts are named correctly **and** the unpaired calls' ids are accountable through the round's single-owned accessor; a witness that suppresses the accounting reds the check.
 
 **Acceptance Scenarios**:
 
-1. **Given** a Gemini round with **N** calls and **M < N** results, **When** the body is built, **Then** the batched `user` turn carries the **`M`** parts the round produced (I-2) **and** the `N − M` unpaired calls' ids are **observable** (never a silent drop).
+1. **Given** a Gemini round with **N** calls and **M < N** results, **When** the body is built, **Then** the batched `user` turn carries the **`M`** parts the round produced (I-2) **and** the `N − M` unpaired calls' ids are **accountable** through the accessor (never an unaccounted discard).
 2. **Given** a round whose every call is paired (**M = N**), **When** the body is built, **Then** no unpaired call is reported (the accessor yields none) — the accounting does not invent a gap.
 3. **Given** the **media-free text** round / the single-call round, **When** the body is built, **Then** the emitted body is unchanged apart from the round-066 id axis already in place (I-2/I-3).
 
 **Functional Requirements**:
 
-- **FR-001**: When a round yields `M < N` results, the adapter MUST make the **unpaired call ids observable** — it MUST NOT drop them silently.
-- **FR-002**: The observability MUST have a **single owner** (one accessor or one diagnostic site on the round), so the accounting cannot drift between call sites.
+- **FR-001**: When a round yields `M < N` results, the adapter MUST make the **unpaired calls' ids accountable in code** through a **single-owned accessor** — the drop MUST NOT be an unaccounted discard. (The account is a code seam; the drop stays silent in the runtime output — surfacing it as a user-visible diagnostic is a forward item, RF-067-1.)
+- **FR-002**: The accounting MUST have a **single owner** (one accessor on the round, computed at the one drop site), so it cannot drift between call sites.
 - **FR-003**: The emitted batched turn MUST still carry the **`M` parts the round produced** (I-2); the round boundary still prevents a later round's part from mispairing.
-- **FR-004**: The surfaced unpaired ids MUST be **deterministic** (a stable order — call order) so a witness can assert them.
-- **FR-005**: The **replay** path MUST keep its id-primary pairing (I-5); surfacing unpaired calls MUST NOT change the pair-by-id behaviour.
+- **FR-004**: The accounted unpaired ids MUST be **deterministic** (a stable order — call order) so a witness can assert them.
+- **FR-005**: The **replay** path MUST keep its id-primary pairing (I-5); the accounting MUST NOT change the pair-by-id behaviour.
 
 **Non-Functional Requirements**:
 
@@ -128,8 +128,8 @@ As the **operator**, I want the Gemini/Vertex adapter to use the **provider-issu
 ## Edge Cases
 
 - **`M = N`** (every call paired) — no unpaired call reported (US1 Scenario 2).
-- **`M < N`** — the produced `M` parts emitted; the `N − M` unpaired ids observable (US1 Scenario 1).
-- **`M = 0`** (no results for the round) — the batched turn is omitted (no parts), and **all N** call ids are unpaired/observable.
+- **`M < N`** — the produced `M` parts emitted; the `N − M` unpaired ids accounted (US1 Scenario 1).
+- **`M = 0`** (no results for the round) — the batched turn is omitted (no parts), and **all N** call ids are accounted unpaired.
 - **Provider id absent** — deterministic fallback (S-4).
 - **Provider id empty string** — treated as absent; no empty `id` key (FR-008).
 - **Two calls with the same provider id** (a degenerate provider response) — the pairing is order-independent by identity; the behaviour MUST be deterministic and **not** a silent mispair (recorded if it needs an explicit rule — S-4/S-5).
@@ -143,19 +143,19 @@ As the **operator**, I want the Gemini/Vertex adapter to use the **provider-issu
 
 - **A model round** — one assistant turn carrying N `functionCall` parts plus the results/media it produces; the unit whose pairing and accounting this round refines.
 - **A call id** — the identity linking a `functionCall` part to its `functionResponse` part; its **provenance** is this round's US2 subject.
-- **An unpaired call** — a call of a round that received no result by the round boundary; its id is the observable this round adds (US1).
+- **An unpaired call** — a call of a round that received no result by the round boundary; its id is the account this round adds (US1).
 - **The Gemini request `contents`** — the serialized wire body; its construction is the round's subject (an unchanged shape; an id whose value may now come from the provider).
 - **A `functionResponse` part** — one tool result, bound to its call by id (fallback: FIFO name) — unchanged.
 
 ## Success Criteria
 
-- **SC-001**: For a round that yields `M < N` results, the produced `M` parts are emitted and the `N − M` unpaired call ids are **observable** through the round's single owner (US1). *(Unit pin over the built request body + the accessor/diagnostic.)*
+- **SC-001**: For a round that yields `M < N` results, the produced `M` parts are emitted and the `N − M` unpaired call ids are **accountable** through the round's single owner (US1). *(Unit pin over the accessor; the emitted body pin.)*
 - **SC-002**: A provider response carrying `functionCall.id` produces parts carrying **that** id; a response without one produces the **deterministic fallback** (US2). *(Unit pins.)*
 - **SC-003**: The **media-free text** path and the **OpenAI-compatible** wire stay **byte-identical** under the default S-5 (i); the **tool-bearing Gemini** shape is unchanged apart from the id values (I-1/I-2/I-3). *(Regression pins.)*
 - **SC-004**: The round-066 pins (`TestRequestBody_ToolPartsCarryIDs`, `…_OutOfOrderResultsPairByIdentity`, `…_EmptyToolCallIDOmitsID`, `…_UnmatchedToolCallIDFallsBackToFIFO`, `…_ReplayedStepIDsPairByIdentity`) and the round-065 batch pins stay green (I-2/I-5/I-8). *(Regression pins.)*
 - **SC-005**: A red-capable carrier proves the change: suppressing the unpaired-id accessor reds SC-001; removing the provider-id preference reds the preference leg of SC-002; a non-deterministic fallback reds the stability leg of SC-002.
 - **SC-006**: `make verify` + `go test -count=1 ./...` green (incl. the E2E contract); the topology/DSL audit adds **no** new findings; no new dependency; `go.mod`/`go.sum` unchanged.
-- **SC-007**: The `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual is **retired** — replaced by (or explicitly closed against) a pin that **kills** the partial-drop mutant (RF-066-8).
+- **SC-007**: The `TestRequestBody_ShortRound_DropsUnpairedNames` `N=2 M=1` residual is **retired** — the **cross-round** account pin (`TestUnpairedCallIDs_MultiRound`) **kills** the partial-drop mutant that the short-round pin cannot (inherent `M == N/2` arithmetic equivalence; RF-066-8; witnessed as `tasks.md` T009(d)).
 
 ## Assumptions
 

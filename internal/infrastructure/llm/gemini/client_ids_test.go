@@ -294,10 +294,12 @@ func TestParseResponse_FallsBackToDeterministicID(t *testing.T) {
 }
 
 // TestUnpairedCallIDs_ShortRound_ReportsUnpairedCall pins round 067 (ADR 0037;
-// closes #136) FR-001/FR-004 (US1 Scenario 1 / SC-001 / SC-007): a round that
-// yields M < N results makes the UNPAIRED calls' ids observable, in call order —
-// the boundary drop is never silent. This exact-identity account retires the
-// round-066 `N=2 M=1` residual (RF-066-8): a partial-drop mutant changes the set.
+// closes #136) FR-001/FR-004 (US1 Scenario 1 / SC-001): a round that yields
+// M < N results makes the UNPAIRED calls' ids accountable, in call order. (The
+// round-066 `N=2 M=1` residual RF-066-8 is retired not by THIS short-round pin —
+// at N=2, M=1 the pre-fold conditional partial drop is arithmetically equivalent
+// and leaves this pin green — but by the CROSS-ROUND account in
+// TestUnpairedCallIDs_MultiRound; see F-067-1.)
 func TestUnpairedCallIDs_ShortRound_ReportsUnpairedCall(t *testing.T) {
 	prior := []llm.Message{
 		{Role: "assistant", ToolCalls: []llm.ToolCall{
@@ -356,5 +358,88 @@ func TestUnpairedCallIDs_MultiRound(t *testing.T) {
 	want := []string{"call_r1b", "call_r2a"}
 	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
 		t.Fatalf("UnpairedCallIDs = %v, want %v (call order across rounds)", got, want)
+	}
+}
+
+// TestUnpairedCallIDs_MiddleRoundZeroResults pins spec Edge Case M = 0 (F-067-5):
+// a round that yields ZERO results emits no batched turn and leaves ALL its call
+// ids unpaired — including a MIDDLE round (results-less round followed by a
+// further model round), whose ids are still accounted at that round's boundary.
+func TestUnpairedCallIDs_MiddleRoundZeroResults(t *testing.T) {
+	prior := []llm.Message{
+		{Role: "assistant", ToolCalls: []llm.ToolCall{
+			{ID: "call_r1a", Name: "read_files", Arguments: `{}`},
+			{ID: "call_r1b", Name: "list_files", Arguments: `{}`},
+		}},
+		// M = 0 for round 1: no results. The next model turn flushes it.
+		{Role: "assistant", ToolCalls: []llm.ToolCall{
+			{ID: "call_r2a", Name: "get_tree", Arguments: `{}`},
+		}},
+		{Role: "tool", Content: "tree", ToolCallID: "call_r2a"},
+	}
+	got := UnpairedCallIDs(prior)
+	want := []string{"call_r1a", "call_r1b"}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("UnpairedCallIDs = %v, want %v (all of the middle round's calls)", got, want)
+	}
+	// The M = 0 round emits no batched turn; only round 2 contributes a part.
+	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	if err != nil {
+		t.Fatalf("requestBody: %v", err)
+	}
+	turns := decodeContents(t, body)
+	userTurns := 0
+	for _, tn := range turns {
+		if tn.Role == "user" {
+			userTurns++
+		}
+	}
+	if userTurns != 1 {
+		t.Fatalf("emitted user turns = %d, want 1 (the M=0 round emits no batched turn): %+v", userTurns, turns)
+	}
+}
+
+// TestParseResponse_TrimsProviderID pins F-067-4: a provider id with surrounding
+// whitespace is echoed TRIMMED (one normalisation shared with the blank-as-absent
+// case), so the wire never carries stray padding.
+func TestParseResponse_TrimsProviderID(t *testing.T) {
+	raw := []byte(`{"candidates":[{"content":{"parts":[{"functionCall":{"id":"  vertex-abc  ","name":"read_files","args":{}}}]}}]}`)
+	resp, err := parseResponse(raw)
+	if err != nil {
+		t.Fatalf("parseResponse: %v", err)
+	}
+	if len(resp.ToolCalls) != 1 || resp.ToolCalls[0].ID != "vertex-abc" {
+		t.Fatalf("provider id must be trimmed: got %+v, want id vertex-abc", resp.ToolCalls)
+	}
+}
+
+// TestUnpairedCallIDs_DuplicateProviderIDIsDeterministic pins the spec Edge Case
+// (F-067-7): a degenerate response carrying the SAME provider id on two calls
+// still binds each result deterministically to the first UNUSED identity match,
+// in call order — never a silent mispair. Recorded in ADR 0037 §Forward RF-067-6.
+func TestUnpairedCallIDs_DuplicateProviderIDIsDeterministic(t *testing.T) {
+	prior := []llm.Message{
+		{Role: "assistant", ToolCalls: []llm.ToolCall{
+			{ID: "dup", Name: "read_files", Arguments: `{}`},
+			{ID: "dup", Name: "list_files", Arguments: `{}`},
+		}},
+		{Role: "tool", Content: "first", ToolCallID: "dup"},
+		{Role: "tool", Content: "second", ToolCallID: "dup"},
+	}
+	if got := UnpairedCallIDs(prior); len(got) != 0 {
+		t.Fatalf("both duplicate-id calls must pair (first-unused match): got unpaired %v", got)
+	}
+	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	if err != nil {
+		t.Fatalf("requestBody: %v", err)
+	}
+	turns := decodeContents(t, body)
+	batch := turns[len(turns)-1]
+	wantNames := []string{"read_files", "list_files"}
+	for i, want := range wantNames {
+		fr, _ := batch.Parts[i]["functionResponse"].(map[string]any)
+		if fr == nil || fr["name"] != want {
+			t.Fatalf("part %d name = %v, want %q (deterministic first-unused pairing)", i, fr["name"], want)
+		}
 	}
 }
