@@ -1203,3 +1203,14 @@ Round 071 was human-merged (PR [#148](https://github.com/gosharplite/tellme/pull
 - None new (spec/acceptance complete; no PM-owned gaps).
 
 *(Round 071 is fully closed out: PR #148 human-merged into `dev` (`b87ba4c`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-071`**; the installed binary refreshed.)*
+
+---
+
+## 34. Session 57 (2026-09-20, cont.) — candidate inventory [#147] triage: `send_teams_message` and `http_request` excluded
+
+Following round 071 delivery, the operator evaluated candidate tools on [#147](https://github.com/gosharplite/tellme/issues/147):
+
+1. **`send_teams_message`** — evaluated and **struck out as an exclusion** on [#147](https://github.com/gosharplite/tellme/issues/147): a single-vendor `curl`/webhook shim (one `POST` of an AdaptiveCard with the reason as a TextBlock) that fails tellme's design-intent bar (no context bound · no testable/executable-truth contract · `curl` equally reliable) and drags in the reference's `RequiresConsent`/`security.Manager` dependency tellme deliberately removed. Belongs as an **MCP server** / shell wrapper, not in-tree vendor code.
+2. **`http_request`** — evaluated and **struck out as an exclusion** on [#147](https://github.com/gosharplite/tellme/issues/147): shell-reachable via `curl` under `execute_command`; `execute_command` already bounds child output at the source (the round-024 resource contract), so `http_request`'s 5 MiB cap adds no protection; no security/consent layer to gate it; network I/O is non-deterministic (fails the executable-truth testable-contract bar). `read_external_docs` is retained as the lone candidate in the Network/web group (transforms HTML → text, stripping scripts/styles).
+3. **Inventory reconciled**: **59 non-excluded = 9 present + 50 candidates**; **44 excluded** (42 in [#146](https://github.com/gosharplite/tellme/issues/146) + 2 struck out on [#147](https://github.com/gosharplite/tellme/issues/147)).
+4. Docs only — no code, no round in flight.
