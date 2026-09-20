@@ -1085,3 +1085,52 @@ Executed the end-of-session closeout after the issue-tracker reconciliation.
 
 
 
+
+---
+
+## 32. Session 57 (2026-09-20, cont.) — round 071 `071-search-files-tool` **OPENED → full pipeline → PR open** (anchor [#147](https://github.com/gosharplite/tellme/issues/147); ADR 0043)
+
+A later session on the same calendar day: after a *"what is next?"* query (bootstrap Steps 1–8 re-run), the operator asked **why `search_files` is worth porting** from `tell-me-go`; answering surfaced the design-intent case (context-boundedness + determinism + the missing half of the reader trio), and the operator said **"yes"** to opening the round, then **"keep going unless you need to ask me question"**. The full AIxBDD pipeline was run to a green PR.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`071-search-files-tool`** (off `dev` `417dacd`) |
+| Anchor | [#147](https://github.com/gosharplite/tellme/issues/147) — `search_files` is the one Filesystem candidate |
+| Theme | **ADD** a ninth agent tool — a **bounded, deterministic** in-file content search (the missing half of the reader trio) |
+| Clarify (one at a time) | **Q1 → A** literal default + `is_regex` opt-in · **Q2 → A** skip binary + 10 MB line token, **no** directory ignore list · **Q3 → A** byte budget + 100-match cap + 500-char line trim, sorted path-then-line *(operator: "keep going" ⇒ Q3's recommendation locked)* |
+| Pipeline | specify ✅ · clarify ✅ (Q1–Q3) · spec-by-example ✅ · technical-research ✅ (**ADR 0043**) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine ✅ · tasks ✅ (T001–T016) · implement ✅ |
+| The change | `internal/infrastructure/tools/search.go` (**NEW**) — `searchFiles` + `NewSearchTool()`; offered in `cmd/tellme` `assembleAgentTools`; joined to `registeredToolNames()`/`recordableToolNames()` |
+| Truth | ADD `chat/searching-file-contents.feature` (4 Rules) + `chat/dsl.md` rows; MODIFY `techstack.md` (new row + schemas + tool-usage) + `offering-the-agent-tools.feature` (**eight** base tools); domain-model `Tool` entity (nine tools) re-rendered |
+| Gates | `gofmt`/`go vet` clean · `go test -count=1 ./...` **green** (E2E **275/275**) · `make verify` **OK** (layer 0 · modelith-check ×3 · lint 0 · govulncheck clean) · `go.mod`/`go.sum` unchanged |
+| Witnesses (reproduced then reverted) | drop the sort ⇒ determinism pin RED (`a/x.txt` before `a.go`) · drop the 100-cap ⇒ capped pin RED (150 matches) · treat literal as regex ⇒ literal pin RED |
+
+### Decisions locked (round 071)
+
+| # | Decision |
+| --- | --- |
+| **Q1 → A** | literal substring by default; `is_regex: true` opts into an RE2 pattern |
+| **Q2 → A** | skip binary files + a 10 MB max-line token; **no** directory ignore list; unreadable skipped best-effort; caller scopes with `path` |
+| **Q3 → A** | the byte budget (primary) + a hard 100-match cap + a 500-char per-line trim; `path:line: <trimmed line>`, sorted path-then-line |
+| **D1–D7** (research) | the ninth tool; an own sibling adapter; three recorded divergences from the reference (no `SafePath` · no `WorkspacePolicy` · deterministic order); new ADR |
+| **D6** | ADR **0043** records the tool + justification + the Q1–Q3 choices |
+
+### Commits (branch `071-search-files-tool`)
+
+| Commit | Note |
+| --- | --- |
+| `c01b3df` | `docs(071)`: open round 071 (specify; clarify escalated) |
+| `1ac1b33` | `docs(071)`: fold clarify Q1–Q3 + acceptance + research + plan + tasks |
+| `18f319d` | `feat(071)`: `search_files` tool (ADR 0043) + truth rows + E2E |
+
+### Open items (non-blocking)
+
+- **RF-071-1…4** in **ADR 0043 §Forward** (`find_file` excluded; Go/AST cluster separate; no per-line truncation marker; fixed 10 MB/1000 constants).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the 5 pre-existing topology-audit DSL errors.
+
+### Next steps
+
+1. Human reviews + merges the PR (**no Copilot review**; only a human merges).
+2. On merge: propagate `dev → main` (no-ff), tag `round-071`, refresh the installed binary; close nothing extra (#147 stays open — it is an inventory, not this round's DoD).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `071-search-files-tool`).
