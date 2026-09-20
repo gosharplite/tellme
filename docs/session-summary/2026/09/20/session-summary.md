@@ -786,3 +786,43 @@ The operator directed the architect review-fold loop on PR #143 (same protocol a
 
 1. Open the next round off `dev` from a **value / live-issue** candidate ([#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13)) — **not** from the open-items index.
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 24. Session 56 (2026-09-20, cont.) — issue-tracker disposition: coverage tooling **declined** (#13 → #144 → closed `not planned`); the R8a truth note retired (docs-only; no round, no product code)
+
+The operator asked whether the long-open **coverage tooling** candidate ([#13](https://github.com/gosharplite/tellme/issues/13)) was still worth doing. A measured check (a one-off `go test -coverprofile`; nothing written into the tree) plus the AIxBDD-instrument comparison settled it: **decline**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Measured (informational, `dev` @ `da53b74`) | **35.3 % raw / 79.3 % filtered** (exclude `tests/**` + `internal/infrastructure/mcp/mcptest/`); the long 0 % tail is dominated by **E2E-only subprocess** paths (`cmd/tellme/main`, the `-i`/diagnostic/usage-error chrome, the `composite_observer` hooks) — invisible to an in-process profile, **not** untested |
+| Disposition | **[#13](https://github.com/gosharplite/tellme/issues/13) CLOSED** (superseded) → **[#144](https://github.com/gosharplite/tellme/issues/144) created** (refreshed grounding) → **[#144](https://github.com/gosharplite/tellme/issues/144) CLOSED `not planned`** — coverage tooling **declined, not deferred** |
+| Why | the AIxBDD gates (`acceptance-coverage`, `dsl-exact-one-match`, the E2E contract as *the* gate, the **falsifiability witnesses**, the layer/drift gates) are the stronger instruments; a coverage threshold would force artificial unit tests for E2E-verified paths and need a `NonFixCatalog`-style noise absorber the repo **deliberately declined**; the one class a profile uniquely adds — a **reachability orphan** — was already caught by reasoning in round 068 (the unpaired-call diagnostic, `RF-068-1`, retired) |
+| Truth touch | `specs/truth/techstack.md` line 166 — the **R8a** note reworded: the dangling "must be added to future coverage tooling's exclusion list" → **DECLINED (2026-09-20)**, pointing at [#144](https://github.com/gosharplite/tellme/issues/144) and keeping the factual `mcptest` observation. A **note-level** correction of a *Not Introduced Yet* forwarding bullet — **no contract, invariant, or behaviour change** |
+| Other docs | `STATUS.md` — header bumped; the roadmap `future slices` row and the issue-tracker line refreshed (#13/#144 closed; **#91** the only open issue); this §24 |
+| Not done | no `specs/plans/**`, no product code, no new ADR, no `make verify` change; `make test` remains the executable contract |
+
+### Decisions locked
+
+| # | Decision |
+| --- | --- |
+| — | **Coverage tooling is declined** — no `test-coverage` target, no `go build -cover`/`GOCOVERDIR` E2E integration, no `make verify` member. ([#144](https://github.com/gosharplite/tellme/issues/144) closed `not planned`.) |
+| — | The **R8a** `mcptest` coverage-exclusion note is **retired** on the truth surface (recorded as declined, not left dangling). |
+| — | The **only** open issue is **[#91](https://github.com/gosharplite/tellme/issues/91)** (the self-development umbrella). |
+
+### Commits
+
+| Commit | Note |
+| --- | --- |
+| *(this pass, on `dev`)* | `docs: decline coverage tooling — close #13/#144, retire the R8a techstack note, refresh STATUS` |
+
+### Verification
+
+Docs-only: `gofmt`/`go vet`/`go test` unaffected (no Go changed); `make modelith-check` unaffected (no domain-model edit); diff-level secret scan clean. The measured coverage run wrote only to `/tmp` (the repo tree stayed clean).
+
+### Next steps
+
+1. Open the next round off `dev` from the **operator-value / live-issue** candidate — **[#91](https://github.com/gosharplite/tellme/issues/91)** (self-development; lock its three decisions first).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
