@@ -826,3 +826,38 @@ Docs-only: `gofmt`/`go vet`/`go test` unaffected (no Go changed); `make modelith
 
 1. Open the next round off `dev` from the **operator-value / live-issue** candidate — **[#91](https://github.com/gosharplite/tellme/issues/91)** (self-development; lock its three decisions first).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 25. Session 56 (2026-09-20, cont.) — retired the redundant `make staticcheck` target (config/truth change; no product code)
+
+Answering "is any quality gate coverage-like and should be removed?" → **no gate is a removal candidate** (`cyclop` max-complexity 15 and `verify-architecture` are the closest analogues but both load-bearing), with **one genuine redundancy** found and removed: the **standalone `make staticcheck` target** duplicated the `staticcheck` linter that `golangci-lint`'s `standard` set already enables (confirmed enabled: `cyclop, errcheck, govet, ineffassign, staticcheck, unused`).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Change | `Makefile` — the `staticcheck` target, its `.PHONY` entry, its `make help` line, the unused `STATICCHECK := $(shell command -v staticcheck …)` probe, and the adjacent tool-list comment. **No `verify` member removed** (`staticcheck` was never in the `verify` aggregate). |
+| Truth | `specs/truth/techstack.md` — the *Static analysis* row retargeted to **`staticcheck` (a linter inside `golangci-lint`)**, recording the retirement; a **note-level** row edit (no behaviour change). |
+| Policy comment | `.golangci.yml` header — "`staticcheck` and `go vet` remain independent Makefile gates" → `go vet` stays an independent gate; `staticcheck` runs **inside** the aggregator (the target was retired as redundant). |
+| Docs | `STATUS.md` host/toolchain note (drop the standalone `staticcheck` binary from the required set); this §25. |
+| Not touched | **frozen history** — `specs/plans/**` (many mention `staticcheck`) and **ADR 0012** (its D5 lists the target) stay immutable. `docs/domain-model/quality.modelith.yaml`'s `GateKind.lint` (`vet`, `staticcheck`, `lint`) stays **accurate** (the linter still runs), so no model re-render. |
+| Verified | `make vet` clean · `make lint` **0 issues** (staticcheck still runs inside it) · `make staticcheck` → **"No rule to make target"** (as intended) · `gofmt -l .` clean · `make modelith-check` green · `make help` no longer lists it |
+
+### Decisions locked
+
+| # | Decision |
+| --- | --- |
+| — | The **standalone `make staticcheck` target is retired as redundant**; `staticcheck` (the `unused` + SA/S classes) continues to run **inside the `lint` aggregator**. The standalone `staticcheck` binary is no longer required. |
+| — | **No quality *gate* is removed** — the coverage-like gates (`cyclop`, `verify-architecture`) are kept; the audit found no coverage-style gate worth dropping. |
+
+### Commits
+
+| Commit | Note |
+| --- | --- |
+| *(this pass, on `dev`)* | `chore(make): retire the redundant staticcheck target (runs inside the lint aggregator)` |
+
+### Next steps
+
+1. Open the next round off `dev` from the **operator-value / live-issue** candidate — **[#91](https://github.com/gosharplite/tellme/issues/91)**.
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
