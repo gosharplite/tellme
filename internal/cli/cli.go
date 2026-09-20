@@ -1092,7 +1092,7 @@ func renderHistoryList(homeDir string, n int, configPath string, raw bool, env r
 	newListing().Render(env.stdout, listingMessages(entries, n), render.ListingSpec{
 		Colour: env.stdoutIsTerminal(),
 		Raw:    raw,
-		Width:  listingWidth(res.Path),
+		Width:  res.WrapWidth, // resolved once in resolveWorkspace (fold RF-8)
 		Warn:   env.stderr,
 	})
 	return Success
@@ -1113,23 +1113,6 @@ func listingMessages(entries []history.Entry, n int) []render.ListingMessage {
 		msgs = msgs[len(msgs)-n:]
 	}
 	return msgs
-}
-
-// listingWidth resolves the rendered width for the listing (round 073), reusing
-// the round-006 resolution (config WRAP_WIDTH + the TELL_ME_WRAP_WIDTH override).
-// It is BEST-EFFORT: the listing is a read-only reporter, so an unreadable or
-// invalid configuration degrades to 0 (the renderer's built-in default) rather
-// than failing the listing (a new failure mode the round refuses).
-func listingWidth(configPath string) int {
-	cfg, err := config.Load(configPath)
-	if err != nil {
-		return 0
-	}
-	width, werr := cfg.EffectiveWrapWidth(os.Getenv("TELL_ME_WRAP_WIDTH"))
-	if werr != nil {
-		return 0
-	}
-	return width
 }
 
 // renderTurnsLog prints the resolved session's turn log to stdout and exits —
@@ -1190,7 +1173,9 @@ func resolveWorkspace(homeDir, configPath string) (resolution, *resolveError) {
 	if homeDir == "" {
 		return res, &resolveError{Reason: reasonHomeUnset}
 	}
-	mode, err := historyMode(homeDir, configPath)
+	// ONE configuration parse (round 073 fold RF-8): the mode (round 053) and the
+	// rendered width (round 073) both come from the same load.
+	cfg, mode, err := offlineConfigAndMode(homeDir, configPath)
 	if err != nil {
 		reason := reasonConfigInvalid
 		if errors.Is(err, os.ErrNotExist) {
@@ -1203,6 +1188,9 @@ func resolveWorkspace(homeDir, configPath string) (resolution, *resolveError) {
 	if err != nil {
 		return res, &resolveError{Reason: reasonHomeUnusable, Err: err}
 	}
+	// Round 073: the offline listing's rendered width, resolved best-effort from
+	// the same configuration (an unreadable/invalid width degrades to 0).
+	res.WrapWidth = offlineWidth(cfg)
 	return res, nil
 }
 
@@ -1216,21 +1204,58 @@ func resolveWorkspace(homeDir, configPath string) (resolution, *resolveError) {
 // error (Q2 → (A)); an absent default configuration still degrades to "butler"
 // (round-007 tolerance).
 func historyMode(homeDir, configPath string) (string, error) {
-	if m := os.Getenv("TELL_ME_MODE"); m != "" {
-		return m, nil
-	}
+	_, mode, err := offlineConfigAndMode(homeDir, configPath)
+	return mode, err
+}
+
+// offlineConfigAndMode loads the configuration ONCE for the offline session
+// commands and derives the effective session MODE (round 053 / ADR 0022): the
+// `TELL_ME_MODE` override when set; else the `-c` configuration's MODE (or the
+// default configuration's MODE when no `-c` was given); else "butler". It also
+// returns the parsed configuration so the offline listing resolves its rendered
+// width (round 073) WITHOUT a second parse (review fold RF-8).
+//
+// An explicit `-c` that cannot be read/parsed is a hard error (Q2 → (A)) UNLESS
+// the env override names the mode — then the file is used for the width only,
+// best-effort. An absent default configuration still degrades to "butler"
+// (round-007 tolerance).
+func offlineConfigAndMode(homeDir, configPath string) (*config.Config, string, error) {
+	envMode := os.Getenv("TELL_ME_MODE")
 	explicit := configPath != ""
+	path := configPath
 	if !explicit {
-		configPath = defaultConfigPath(homeDir)
+		path = defaultConfigPath(homeDir)
 	}
-	cfg, err := config.Load(configPath)
+	cfg, err := config.Load(path)
 	if err != nil {
-		if explicit {
-			return "", err
+		if explicit && envMode == "" {
+			return nil, "", err
 		}
-		return "butler", nil
+		if envMode != "" {
+			return nil, envMode, nil
+		}
+		return nil, "butler", nil
 	}
-	return cfg.EffectiveMode(""), nil
+	if envMode != "" {
+		return cfg, envMode, nil
+	}
+	return cfg, cfg.EffectiveMode(""), nil
+}
+
+// offlineWidth resolves the rendered width for the offline listing (round 073),
+// reusing the round-006 resolution (config WRAP_WIDTH + the TELL_ME_WRAP_WIDTH
+// override). It is BEST-EFFORT: the listing is a read-only reporter, so an
+// unreadable/invalid width degrades to 0 (the renderer's built-in default)
+// rather than failing the listing (a new failure mode the round refuses).
+func offlineWidth(cfg *config.Config) int {
+	if cfg == nil {
+		return 0
+	}
+	width, err := cfg.EffectiveWrapWidth(os.Getenv("TELL_ME_WRAP_WIDTH"))
+	if err != nil {
+		return 0
+	}
+	return width
 }
 
 // writeAnswer writes the provider's answer to the environment's stdout

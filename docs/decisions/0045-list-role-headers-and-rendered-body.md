@@ -80,8 +80,10 @@ question at a time):
 
 ## Consequences
 
-- The listing reads like a conversation on a terminal and stays machine-plain
-  when redirected; the in-group relay recipe keeps working byte-plain under `-r`.
+- The listing reads like a conversation on a terminal and stays
+  **header-accent-free** when redirected (the model body's glamour style output is
+  not gated — see Decision 3); **only `-r` is byte-plain end to end**, so the
+  in-group relay recipe keeps working byte-plain under `-r`.
 - The operator-messages-only contract (round 007) is preserved; a future
   tool-activity parity request would supersede it (RF-073-4).
 - tellme now has a **stdout** terminal probe; it is scoped to the listing colour,
@@ -106,4 +108,8 @@ question at a time):
 - **RF-073-6** — the best-effort width resolution on the `-l` path (a broken
   `WRAP_WIDTH` silently uses the renderer default).
 - **RF-073-7** — the header is emitted on every message including the last; a
-  trailing-blank-line policy change is a one-line adapter edit.
+  trailing-blank-line policy change is a one-line adapter edit (the trailing blank
+  line is now pinned by the `-r` raw-source Then + the `-l 1` default Example).
+- **RF-073-8** — `ListingSpec.Warn` is a spec field, whereas the sibling
+  `render.Answer` exposes `WarnDegraded(w io.Writer)` as a method (review N-2); the
+  two shapes could be unified.

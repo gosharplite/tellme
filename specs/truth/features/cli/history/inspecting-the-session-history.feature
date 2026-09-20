@@ -115,10 +115,13 @@ Feature: Inspecting the session history
     Example: A listed exchange names the operator and the model
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
+      # Round-073 fold F-1: the marker-bearing answer must be in the LISTED
+      # exchange (the last one), so the rendering claim is falsifiable at the
+      # acceptance level (the `-l 2` window is the last 2 messages = exchange 2).
       And the session history already holds the exchanges:
-        | prompt            | answer     |
-        | My name is Alice. | **Noted**  |
-        | What is my name?  | Alice      |
+        | prompt            | answer    |
+        | My name is Alice. | Noted.    |
+        | What is my name?  | **Alice** |
       When the operator asks tellme to list the last 2 messages
       Then tellme heads each listed message with its role
       And the listed model answer is presented as formatted prose

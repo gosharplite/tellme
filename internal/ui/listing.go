@@ -55,12 +55,12 @@ func (l listing) body(m render.ListingMessage, spec render.ListingSpec) string {
 	text := m.Body
 	if m.Role == render.ListingModel && !spec.Raw {
 		rendered, degraded := l.r.Render(text, spec.Width)
-		if degraded {
-			rendered = text
-			if spec.Warn != nil {
-				l.r.WarnDegraded(spec.Warn)
-			}
+		if degraded && spec.Warn != nil {
+			l.r.WarnDegraded(spec.Warn)
 		}
+		// On degrade, Render returns the SANITIZED raw text (round-006 D5; the
+		// answer path consumes that same value) — keep it, never the unsanitized
+		// original.
 		text = strings.Trim(rendered, "\n")
 	}
 	return strings.TrimRight(text, "\n")

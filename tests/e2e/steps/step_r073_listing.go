@@ -109,12 +109,41 @@ func expectedListingRoles(sc *scenarioContext, count int) []string {
 	return roles
 }
 
+// arrangedListCount reads the `-l N` count from the arranged arguments (1 when
+// the count is omitted — the round-054 default). It lets a Then derive the
+// EXPECTED listing length from the request, not from the observed output, so a
+// dropped message reddens (round-073 fold TD-5).
+func arrangedListCount(sc *scenarioContext) int {
+	for i, a := range sc.args {
+		if a == "-l" || a == "--list" {
+			if i+1 < len(sc.args) {
+				if n, err := strconv.Atoi(sc.args[i+1]); err == nil {
+					return n
+				}
+			}
+			return 1
+		}
+		if v, ok := strings.CutPrefix(a, "-l="); ok {
+			if n, err := strconv.Atoi(v); err == nil {
+				return n
+			}
+		}
+		if v, ok := strings.CutPrefix(a, "--list="); ok {
+			if n, err := strconv.Atoi(v); err == nil {
+				return n
+			}
+		}
+	}
+	return 1
+}
+
 // thenHeadsEachMessageWithItsRole (必查 呈現結果): every listed message carries its
-// role header, in order.
+// role header, in order. The expected length comes from the `-l N` REQUEST (fold
+// TD-5), so a dropped message fails.
 func thenHeadsEachMessageWithItsRole(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	blocks := listingBlocks(sc.stdout)
-	want := expectedListingRoles(sc, len(blocks))
+	want := expectedListingRoles(sc, arrangedListCount(sc))
 	if len(blocks) != len(want) {
 		return fmt.Errorf("the listing showed %d messages, want %d; stdout=%q", len(blocks), len(want), sc.stdout)
 	}
@@ -150,20 +179,28 @@ func thenModelAnswerRendered(ctx context.Context) error {
 	if !markerAnswerArranged {
 		return fmt.Errorf("the scenario arranged no marker-bearing answer to witness rendering")
 	}
-	matched := false
+	// No listed model body may carry raw Markdown (the render must have run) …
 	for _, b := range models {
 		if strings.Contains(b.body, "**") {
 			return fmt.Errorf("the model body still carries its raw Markdown (%q); stdout=%q", b.body, sc.stdout)
 		}
-		for _, x := range sc.arrangedExchanges {
-			plain := strings.ReplaceAll(x.answer, "**", "")
+	}
+	// … and at least one LISTED body must be the rendered form of a marker-bearing
+	// arranged answer (fold F-1: it's not enough that some answer was arranged).
+	matched := false
+	for _, x := range sc.arrangedExchanges {
+		if !strings.Contains(x.answer, "**") {
+			continue
+		}
+		plain := strings.ReplaceAll(x.answer, "**", "")
+		for _, b := range models {
 			if plain != "" && strings.Contains(b.body, plain) {
 				matched = true
 			}
 		}
 	}
 	if !matched {
-		return fmt.Errorf("no listed model body carries an arranged answer's words; stdout=%q", sc.stdout)
+		return fmt.Errorf("no listed model body shows a RENDERED marker-bearing answer; stdout=%q", sc.stdout)
 	}
 	return nil
 }
@@ -208,6 +245,11 @@ func thenModelAnswerRawSource(ctx context.Context) error {
 	answer := sc.arrangedExchanges[len(sc.arrangedExchanges)-1].answer
 	if !strings.Contains(sc.stdout, answer) {
 		return fmt.Errorf("the raw model body must be the answer %q verbatim; stdout=%q", answer, sc.stdout)
+	}
+	// Round-073 fold N-1: one blank line closes every message, so the listing
+	// ends with a blank line (the reference's Fprintln-after-every-block shape).
+	if !strings.HasSuffix(sc.stdout, "\n\n") {
+		return fmt.Errorf("the listing must end with a blank line (a trailing \"\\n\\n\"); stdout=%q", sc.stdout)
 	}
 	return nil
 }

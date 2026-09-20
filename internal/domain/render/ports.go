@@ -76,8 +76,9 @@ type ListingMessage struct {
 }
 
 // ListingSpec carries the listing's presentation inputs. Colour is the
-// stdout-terminal gate (`the diagnostic stream is a terminal and -r is off` —
-// here the STDOUT probe, round 073); Raw is the `-r`/`--raw` flag (the model
+// stdout-terminal gate (the STDOUT stream is a terminal — a distinct axis from
+// the stderr-chrome gate — and `-r` is off; round 073); Raw is the `-r`/`--raw`
+// flag (the model
 // body is printed verbatim and no colour is emitted); Width is the resolved
 // rendered width (0 = the renderer's built-in default); Warn, when non-nil,
 // receives the one-time markdown-degradation warning.

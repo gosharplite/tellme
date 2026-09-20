@@ -37,6 +37,21 @@ Legend: `[ ]` pending · `[X]` done.
 
 - [X] **T018** `make verify` OK (layer 0 · modelith-check ×3 · lint 0 · govulncheck clean) · `go test -count=1 ./...` green · `go.mod`/`go.sum` unchanged · topology audit **the same 5 pre-existing errors, none new** (50 features · 16 root + 404 module rows · 2071 steps) · `turns.log` untouched by the listing (no chrome, no colour).
 
+## Review fold ledger (PR [#151](https://github.com/gosharplite/tellme/pull/151) — the `architect` peer)
+
+- **F-1 (required)** — the rendered-model-body E2E carrier could not falsify its claim (`-l 2` truncated the only marker-bearing exchange out of the window). Fold: the marker answer moved into the **listed** exchange and `thenModelAnswerRendered` now binds the claim to a **listed** rendered marker answer. Witness re-run: disabling the render reddens `A listed exchange names the operator and the model` (previously vacuous).
+- **F-2 (required)** — the techstack *Terminal detection* row asserted both "no stdout probe wired" and "a stdout probe is wired". Fold: the stale clause now reads "no stdout probe was wired **before round 073** … round 073 wires one for the listing colour only, so Obs 1 stays OPEN".
+- **F-3 (required)** — the ADR Consequences over-claimed "stays machine-plain when redirected". Fold: "stays **header-accent-free** when redirected (the model body's glamour style output is not gated — Decision 3); **only `-r` is byte-plain end to end**".
+- **TD-4** — the degraded fallback dropped the renderer's sanitized bytes (`rendered = text`). Fold: the adapter now keeps the returned value (the answer path's behaviour).
+- **TD-5** — `thenHeadsEachMessageWithItsRole` derived the expected length from the observed output. Fold: `arrangedListCount` derives it from the `-l N` request, so a dropped message reddens.
+- **TD-6** — the spec's I-1 said "reads no config beyond the mode". Fold: aligned with D7 (mode + the best-effort width, offline).
+- **TD-7** — `STATUS.md` open-items lacked the RF-073 pointer. Fold: added.
+- **RF-8** — the config was parsed twice on the `-l` path. Fold: `offlineConfigAndMode` returns the parsed config once; `resolveWorkspace` sets `res.WrapWidth`; `listingWidth` deleted.
+- **RF-9** — the port doc reused the stderr-chrome phrase for the stdout gate. Fold: reworded.
+- **N-1** — the trailing blank line was only indirectly pinned. Fold: the `-r` raw-source Then now asserts the `\n\n` suffix (+ the DSL row records it).
+- **N-2** — the `Warn` field vs the `WarnDegraded` method shape. Recorded as **RF-073-8** (non-blocking).
+- **N-3** — the `Chrome` `chrome-colour-terminal-gated` invariant read as globally contradicted. Fold: scoped to the **turn chrome** (the `-l` listing's header accent is named as a separate stdout-gated surface).
+
 ## Notes
 
 - **Accent-gate scope (research D3 + the renderer-style nuance).** The gated accent is the **header** SGR pair only. The rendered model body carries glamour's own style output into a pipe — exactly as the answer path does (round 006: rendering is gated by `-r` alone) — so the "no accents" rows assert *no `\033[1;34m`/`\033[1;35m`*, and the `-r` row asserts *no `\033` at all*. Recorded in `research.md` D6/D9 + the truth rows.

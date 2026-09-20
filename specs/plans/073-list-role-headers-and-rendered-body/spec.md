@@ -64,7 +64,7 @@
 
 **Non-negotiable invariants (proposed, not open):**
 
-- **I-1 — Strictly offline & terminal** — the listing makes **no provider request**, reads no config beyond the mode, and still exits after listing; its precedence (`-d` → `-l` → `-t` → `--tool-usage`) and its prompt-ignoring behaviour are unchanged.
+- **I-1 — Strictly offline & terminal** — the listing makes **no provider request** and still exits after listing; it reads the configuration offline (the mode, round 053, and the rendered width **best-effort**, research D7), never for a provider/network purpose. Its precedence (`-d` → `-l` → `-t` → `--tool-usage`) and its prompt-ignoring behaviour are unchanged.
 - **I-2 — The persisted format is frozen** — `history.jsonl` / `history.archive.jsonl` are untouched; the `[MODEL]` naming and the rendering are **presentation-only** (no migration, no write).
 - **I-3 — Colour is `stdout`-gated and never leaks** — an escape sequence appears only when `stdout` is a terminal; a redirected `stdout` is byte-identical to the plain form; colour never reaches `stderr` and never enters `turns.log`.
 - **I-4 — No new dependency; stdlib + the existing glamour; POSIX-only; hermetic.**

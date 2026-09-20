@@ -70,7 +70,7 @@ The diagnostic surface on `stderr`: the turn rule and header, the payload status
 
 **Invariants**
 
-- **chrome-colour-terminal-gated** — Colour appears only on a terminal `stderr` with `-r` off — never in `stdout` or `turns.log`.
+- **chrome-colour-terminal-gated** — The turn chrome's colour appears only on a terminal `stderr` with `-r` off — never in `turns.log`. (The offline `-l` listing's role-header accent is a separate surface, gated on a terminal `stdout` with `-r` off — round 073.)
 - **chrome-tool-values-control-free** — Every `[Tool …]` value is folded, control-free, and rune-capped.
 - **chrome-spinner-sample-cadence** — The spinner's braille frame stays on its fast cadence while its resource figures refresh at most once per second.
 
