@@ -30,7 +30,7 @@ This is a long-term journey. Rather than rushing code implementation, `tellme` w
 - **Determinism / testable contract** — in BDD a tool's output is *executable truth*; a fixed result shape is testable where a shell one-liner's is not.
 - **Reliability** — exact-content writes and exact-block replacements are easy for a schema'd tool and error-prone in shell (`sed`/quoting).
 
-The surface is therefore kept intentionally minimal: `execute_command` as the universal primitive, plus only the tools that clearly clear that bar (the reader trio, `write_file`, `replace_text`). Tools that merely duplicate a trivial shell command are omitted rather than carried for parity.
+The surface is therefore kept intentionally minimal: `execute_command` as the universal primitive, plus only the tools that clearly clear that bar — the reader family (`list_files`/`read_files`/`get_tree`), the bounded in-file content search `search_files` (round 071; ADR 0043), `write_file`, and `replace_text`. Tools that merely duplicate a trivial shell command are omitted rather than carried for parity.
 
 *This direction is consistent with the project's settled decisions (round 008 Clarify Q3 and round 021 D4 record "no security/consent layer" as a settled exclusion; rounds 012/015 declare POSIX-only). Direction changes are recorded here and in [`STATUS.md`](STATUS.md).*
 
