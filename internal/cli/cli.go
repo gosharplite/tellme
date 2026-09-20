@@ -42,8 +42,13 @@ const (
 // flags are the parsed CLI flags (renamed from `options` in round 044 / G2 to
 // avoid the options / turnOptions / Options tri-collision).
 type flags struct {
-	configPath  string
-	diagnostic  bool
+	configPath string
+	diagnostic bool
+	// help is the round-074 `-h`/`--help` flag; helpText is the rendered flag
+	// list (captured at parse time so run can print it to stdout and exit 0
+	// without rebuilding the FlagSet).
+	help        bool
+	helpText    string
 	version     bool
 	raw         bool
 	newSession  bool
@@ -385,6 +390,12 @@ func run(args []string, version string, scoped Options, env runtimeEnv) int {
 	if !ok {
 		return emitUsageError(env.stderr)
 	}
+	// Round 074 (ADR 0046): help is a successful, offline, prompt-less action and
+	// precedes every other terminal action; `-v` shares the version path below.
+	if f.help {
+		_, _ = fmt.Fprint(env.stdout, f.helpText)
+		return Success
+	}
 	if f.version {
 		_, _ = fmt.Fprintf(env.stdout, "tellme %s\n", version)
 		return Success
@@ -481,7 +492,13 @@ func parseFlags(args []string, stderr io.Writer) (f *flags, flagArgs []string, o
 	o := &flags{}
 	fs.StringVarP(&o.configPath, "config", "c", "", "Path to the YAML configuration file.")
 	fs.BoolVarP(&o.diagnostic, "diagnostics", "d", false, "Report configuration and home resolution, then exit.")
-	fs.BoolVar(&o.version, "version", false, "Print the build version and exit.")
+	// Round 074 (ADR 0046): `-h`/`--help` is an EXPLICIT flag, so pflag's
+	// implicit help path (which writes to the SetOutput writer = stderr and
+	// returns ErrHelp, i.e. the caller's usage error → exit 2) is superseded;
+	// tellme prints the flag list to stdout and exits 0. `-v` is the shorthand
+	// for `--version`.
+	fs.BoolVarP(&o.help, "help", "h", false, "Print this help (the flag list) and exit.")
+	fs.BoolVarP(&o.version, "version", "v", false, "Print the build version and exit.")
 	fs.BoolVarP(&o.raw, "raw", "r", false, "Print the answer (and the -l history listing) as raw text, without Markdown rendering.")
 	fs.BoolVar(&o.newSession, "new", false, "Start a fresh session, archiving the current session history.")
 	fs.IntVarP(&o.list, "list", "l", 0, "List the last N messages of the session history and exit. Defaults to 1 when the value is omitted.")
@@ -494,6 +511,11 @@ func parseFlags(args []string, stderr io.Writer) (f *flags, flagArgs []string, o
 		return nil, nil, false
 	}
 	o.listSet = fs.Changed("list")
+	if o.help {
+		// The flag list is pflag's own rendering (the same text the usage-error
+		// path prints to stderr), captured here so run prints it to stdout.
+		o.helpText = "Usage of tellme:\n" + fs.FlagUsages()
+	}
 	return o, fs.Args(), true
 }
 

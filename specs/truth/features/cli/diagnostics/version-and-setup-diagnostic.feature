@@ -5,9 +5,18 @@ Feature: Checking the build version and diagnosing setup
 
   Rule: tellme reports its build version
 
-    Example: The operator asks which build is running
+    Example: The operator asks which build is running with the long flag
       And the diagnostics are shown at a terminal
       When the operator runs tellme with "--version"
+      Then tellme prints the build version
+      And the run shows no turn chrome
+      And the run reports no post-turn status
+      And the run shows no progress spinner
+      And tellme exits successfully
+
+    # Round 074 (ADR 0046): `-v` is the shorthand for `--version`.
+    Example: The operator asks which build is running with the short flag
+      When the operator runs tellme with "-v"
       Then tellme prints the build version
       And the run shows no turn chrome
       And the run reports no post-turn status

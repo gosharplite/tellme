@@ -32,6 +32,7 @@ Reading a feature merges this root with the feature's own module `dsl.md`; every
 | --- | --- | --- | --- | --- |
 | `the operator starts tellme` | 無 | 不支援 | `設定來源`: no `-c` and **no prompt** — the boot path seeks the default `$TELL_ME_HOME/configs/<effective mode>.yaml`. | `怎麼做`: run the built `tellme` binary with no `-c` and no positional prompt, under the current environment (`TELL_ME_HOME` / `TELL_ME_MODE` / `TELL_ME_SELECTED_PROVIDER`). `權威狀態落地`: the process has run to completion. `回寫`: captured exit code, stdout, stderr, and filesystem changes. |
 | `the operator starts tellme pointing at the configuration "{config_path}"` | `config_path`: string; the configuration path relative to the runtime home. | 不支援 | `旗標`: the run is invoked with `-c` pointing at `$TELL_ME_HOME/{config_path}`. | `怎麼做`: run `tellme -c $TELL_ME_HOME/{config_path}`. `權威狀態落地`: the process has run to completion. `回寫`: captured exit code, stdout, stderr, and filesystem changes. |
+| `the operator runs tellme with "{flag}"` | `flag`: string; a command-line flag with no other arguments (a terminal, prompt-less action such as `--version`, `-v`, `-h`, or `--help`). | 不支援 | `旗標`: the run is invoked with `{flag}` alone. | `怎麼做`: run `tellme {flag}` (no `-c`, no positional prompt). `權威狀態落地`: the process has run to completion. `回寫`: captured exit code, stdout, stderr. (Round 074: promoted to the interface root — shared by the `diagnostics` module (`--version`/`-v`) and the `usage` module (`-h`/`--help`).) |
 
 ## Then
 
