@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-21
 
-**Status**: Draft (specified — clarify pending; see §Clarify strategy)
+**Status**: Draft (specified + clarify CLOSED — Q1 → A · Q2 → A · Q3 → B; see §Clarify strategy)
 
 **Anchor**: **operator request** — no anchor issue.
 
@@ -57,9 +57,9 @@
 | **S-2** | A message's **body** is rendered as **Markdown by glamour** (the existing renderer), not printed as raw Markdown source. | locked (operator) |
 | **S-3** | The header **colour** is blue (`colorBlue = "\033[1;34m"`, operator) / magenta (`colorMagenta = "\033[1;35m"`, model), emitted **only when `stdout` is a terminal**; redirected/piped `stdout` stays byte-plain. | locked (operator) |
 | **S-4** | One **blank line** separates consecutive messages. | locked (operator) |
-| **S-5** | **Which roles** does the listing show — tellme's existing operator-messages-only (prompt + answer), or the reference's tool activity too (`[Tool Call]` / `[Tool Response]`)? | **clarify Q2** |
-| **S-6** | Does the listing honour **`-r`/`--raw`** (reference parity: raw ⇒ body verbatim, no Markdown, no colour), or is the listing always rendered? | **clarify Q1** |
-| **S-7** | Is the **operator prompt** body Markdown-rendered as well, or only the model answer? | **clarify Q3** |
+| **S-5** | **Scope** — the listing stays **operator-messages-only** (the `[USER]` prompt + the `[MODEL]` answer per exchange); **no** `[Tool Call]` / `[Tool Response]` lines (the reference's tool activity is **not** adopted). | locked (clarify Q2 → A) |
+| **S-6** | The listing **honours `-r`/`--raw`** (reference parity): under `-r` the model body is printed **verbatim** (no Markdown) and **no** colour is emitted; otherwise the model body is rendered and the headers are coloured on a terminal. | locked (clarify Q1 → A) |
+| **S-7** | **Only the model answer's body is Markdown-rendered**; the operator prompt's body is printed **verbatim** (the `[USER]` header is still emitted; a recorded divergence from the reference, which renders both). | locked (clarify Q3 → B) |
 | **S-8** | The exact renderer construction / the `WRAP_WIDTH` application / the `stdout`-terminal probe seam are **technical** choices. | **research decision** (D-x) |
 
 **Non-negotiable invariants (proposed, not open):**
@@ -74,20 +74,20 @@
 
 ## Clarify strategy
 
-**Escalate (1–3 questions, one at a time).** Three high-impact gaps would change user-story splitting, acceptance, or the visible surface, so they go to `/axb-clarify` before the spec is treated as settled:
+**Escalated (3 questions, one at a time) — CLOSED. Operator answers (2026-09-21):**
 
-- **Q1 → S-6** — does `-l` honour `-r/--raw`? *(It changes the acceptance for every scenario and the agent-to-agent relay recipe `env -u TELL_ME_MODE … -l 1 -r -c "<target>.yaml"`; the reference's `-l` is `-r`-aware.)*
-- **Q2 → S-5** — does the listing surface tool activity (`[Tool Call]` / `[Tool Response]`) as the reference does, or keep tellme's operator-messages-only listing? *(It changes **what** is listed — a round-007 truth explicitly asserts the tool activity is omitted.)*
-- **Q3 → S-7** — is the operator prompt's body rendered too, or only the model answer's? *(It changes the per-message contract.)*
+- **Q1 → A** — **`-l` honours `-r`/`--raw`** (reference parity): `-l -r` ⇒ the model body printed verbatim, no Markdown, no colour; bare `-l` ⇒ rendered + colour-on-TTY. *(S-6 locked.)*
+- **Q2 → A** — **operator-messages-only**: the listing shows the `[USER]` prompt + the `[MODEL]` answer per exchange; **no** `[Tool Call]` / `[Tool Response]` lines. *(S-5 locked; the round-007 "tool activity omitted" contract is preserved.)*
+- **Q3 → B** — **only the model answer is rendered**: the `[MODEL]` body is glamour-rendered; the `[USER]` prompt body is printed **verbatim**. *(S-7 locked; a recorded divergence from the reference, which renders both.)*
 
 **Vetoable assumptions (disclosed, not asked — low impact, the operator asked only about the output format):**
 
 - **A1 — Terminal, not composable.** The listing keeps tellme's terminal/offline shape (a prompt beside `-l` is ignored; no `-b` pairing). The reference's Phase 1/Phase 3 composition is **not** adopted this round; if the operator wants it, it is a separate request.
 - **A2 — Empty stays silent.** An empty/absent session keeps printing **nothing** and exiting 0 (tellme's round-007 truth), i.e. the reference's `No history found.` sentence is **not** adopted. *(Vetoable: say the word and it is folded in.)*
 - **A3 — The header is the carrier, colour is additive.** `[USER]` / `[MODEL]` is printed **always**; colour is a terminal-only accent. So a redirected listing still reads `[USER]` / `[MODEL]`.
-- **A4 — No tool lines by default** *(pending Q2)* — if Q2 keeps the operator-only listing, the widened tool activity stays out, as today.
+- **A4 — Tool lines are out** *(locked by Q2 → A)* — the widened tool activity stays out, as today.
 
-**No `NEEDS CLARIFICATION` beyond Q1–Q3**; the residual technical choices (S-8) defer to `/axb-technical-research`.
+**No `NEEDS CLARIFICATION` remains**; the residual technical choices (S-8) defer to `/axb-technical-research`.
 
 ---
 
@@ -103,13 +103,14 @@ When the operator lists the session, each message appears as a `[USER]` / `[MODE
 
 **Acceptance (proposed)**:
 
-1. **Given** a session whose history holds an exchange whose answer carries Markdown emphasis, **When** the operator lists the last 2 messages, **Then** the listing shows `[USER]` before the prompt and `[MODEL]` before the answer, and the answer carries the **rendered** form (the literal `**` markers are absent).
-2. **Given** the same session, **When** the operator lists, **Then** a blank line separates the prompt from the answer's header and the answer's body from the end.
+1. **Given** a session whose history holds an exchange whose answer carries Markdown emphasis, **When** the operator lists the last 2 messages, **Then** the listing shows `[USER]` head + the prompt **verbatim**, then `[MODEL]` head + the answer in its **rendered** form (the literal `**` markers are absent).
+2. **Given** the same session, **When** the operator lists, **Then** a blank line separates the prompt body from the `[MODEL]` header and the answer's body from the end.
+3. **Given** the same session, **When** the operator lists with `-r`, **Then** the `[MODEL]` body is printed **verbatim** (the literal `**` markers are present) and no colour is emitted (Q1 → A).
 
 **Functional requirements (FR)**:
 
 - **FR-001**: A listed operator message MUST be headed by a `[USER]` line; a listed model message MUST be headed by a `[MODEL]` line (uppercase, bracketed).
-- **FR-002**: A listed message's body MUST be rendered as Markdown (the existing glamour renderer), not emitted as raw Markdown source.
+- **FR-002**: A listed **model** message's body MUST be rendered as Markdown (the existing glamour renderer), not emitted as raw Markdown source; a listed **operator** message's body MUST be printed **verbatim** (Q3 → B).
 - **FR-003**: Consecutive messages MUST be separated by exactly one blank line.
 
 **Non-functional requirements (NFR)**:
@@ -133,8 +134,9 @@ On a terminal `stdout`, the header line is accented blue (`[USER]`) / magenta (`
 
 **Functional requirements (FR)**:
 
-- **FR-004**: The listing MUST emit blue (`\033[1;34m`) around the operator header and magenta (`\033[1;35m`) around the model header, **only** when `stdout` is a terminal.
-- **FR-005**: The listing MUST emit no escape sequence when `stdout` is not a terminal (byte-identical to the plain form).
+- **FR-004**: The listing MUST emit blue (`\033[1;34m`) around the operator header and magenta (`\033[1;35m`) around the model header, **only** when `stdout` is a terminal **and** `-r` is off.
+- **FR-005**: The listing MUST emit no escape sequence when `stdout` is not a terminal **or** under `-r` (byte-identical to the plain form).
+- **FR-006**: Under `-r`/`--raw`, the model body MUST be printed **verbatim** (no Markdown rendering), matching the answer path's raw contract (Q1 → A).
 
 **Non-functional requirements (NFR)**:
 
@@ -157,8 +159,8 @@ On a terminal `stdout`, the header line is accented blue (`[USER]`) / magenta (`
 
 **Functional requirements (FR)**:
 
-- **FR-006**: `-l N` MUST keep selecting the last `N` messages (2 per exchange) of the `-c`-selected session, with no provider request.
-- **FR-007**: A missing/empty session MUST keep its current behaviour (see **A2**).
+- **FR-007**: `-l N` MUST keep selecting the last `N` messages (2 per exchange) of the `-c`-selected session, with no provider request.
+- **FR-008**: A missing/empty session MUST keep its current behaviour (see **A2**).
 
 **Non-functional requirements (NFR)**:
 
@@ -180,7 +182,7 @@ On a terminal `stdout`, the header line is accented blue (`[USER]`) / magenta (`
 
 #### Functional requirements
 
-- **FR-008**: The listing MUST reuse the one Markdown renderer + the one `WRAP_WIDTH` resolution the answer path uses (no second rendering policy).
+- **FR-009**: The listing MUST reuse the one Markdown renderer + the one `WRAP_WIDTH` resolution the answer path uses (no second rendering policy).
 
 #### Non-functional requirements
 

@@ -31,7 +31,7 @@
 - [x] FR 使用 MUST 等可驗證語言
 - [x] 成功標準可量測（SC-002 施加「pipe 下 0 個 `\033`」的機械判準；SC-003 既有的 offline/selection 斷言保留）
 - [x] 邊界與不變量已明列（I-1 offline/terminal、I-2 檔案格式凍結、I-3 顏色只走 stdout、I-5 計數語意不變）
-- [ ] **無 `NEEDS CLARIFICATION`** — 待 `/axb-clarify` 收斂 **Q1（`-r` 是否生效）／Q2（是否列出工具活動）／Q3（prompt 內文是否也渲染）** 後才可勾選
+- [x] **無 `NEEDS CLARIFICATION`** — clarify CLOSED：**Q1 → A**（`-l` 尊重 `-r`）／**Q2 → A**（只列 operator 訊息，無工具活動）／**Q3 → B**（只渲染 model 內文，prompt 內文 verbatim）
 
 ## 範圍與邊界
 
@@ -46,7 +46,7 @@
 
 ## Ready 判定
 
-- [ ] 已可進入後續規劃
-- [x] 仍需先補高影響需求缺口（Q1–Q3）
+- [x] 已可進入後續規劃
+- [ ] 仍需先補高影響需求缺口
 
-**備註**: spec 骨架與既有系統對照已完成；待 clarify 收斂後即可進入 `/axb-spec-by-example` 與 `/axb-technical-research`。
+**備註**: clarify 已收斂（Q1/Q2/Q3）。`/axb-spec-by-example` **不適用**（純呈現面變更，無新使用者可見 journey？見下）；下一步 `/axb-technical-research`。
