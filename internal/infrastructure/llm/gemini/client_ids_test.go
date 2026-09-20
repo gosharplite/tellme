@@ -414,9 +414,12 @@ func TestParseResponse_TrimsProviderID(t *testing.T) {
 }
 
 // TestUnpairedCallIDs_DuplicateProviderIDIsDeterministic pins the spec Edge Case
-// (F-067-7): a degenerate response carrying the SAME provider id on two calls
-// still binds each result deterministically to the first UNUSED identity match,
-// in call order — never a silent mispair. Recorded in ADR 0037 §Forward RF-067-6.
+// (F-067-7 / R-067-F2): a degenerate response carrying the SAME provider id on two
+// calls still binds each result deterministically to the first UNUSED identity
+// match, in call order — never a silent mispair. The binding is asserted by
+// CONTENT (which result's content lands on which call's part), so a mutant that
+// binds the LAST unused match is killed (names alone would not reveal it).
+// Recorded in ADR 0037 §Forward RF-067-6.
 func TestUnpairedCallIDs_DuplicateProviderIDIsDeterministic(t *testing.T) {
 	prior := []llm.Message{
 		{Role: "assistant", ToolCalls: []llm.ToolCall{
@@ -435,11 +438,19 @@ func TestUnpairedCallIDs_DuplicateProviderIDIsDeterministic(t *testing.T) {
 	}
 	turns := decodeContents(t, body)
 	batch := turns[len(turns)-1]
-	wantNames := []string{"read_files", "list_files"}
-	for i, want := range wantNames {
+	want := []struct{ name, content string }{
+		{"read_files", "first"},
+		{"list_files", "second"},
+	}
+	for i, w := range want {
 		fr, _ := batch.Parts[i]["functionResponse"].(map[string]any)
-		if fr == nil || fr["name"] != want {
-			t.Fatalf("part %d name = %v, want %q (deterministic first-unused pairing)", i, fr["name"], want)
+		if fr == nil {
+			t.Fatalf("part %d is not a functionResponse: %+v", i, batch.Parts[i])
+		}
+		resp, _ := fr["response"].(map[string]any)
+		if fr["name"] != w.name || resp["content"] != w.content {
+			t.Fatalf("part %d = {name:%v content:%v}, want {name:%q content:%q} (deterministic first-unused pairing; a last-match mutant swaps the content)",
+				i, fr["name"], resp["content"], w.name, w.content)
 		}
 	}
 }

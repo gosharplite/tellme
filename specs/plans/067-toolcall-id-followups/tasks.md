@@ -67,3 +67,8 @@ RF-067-1 the observability is a returned-value accessor (no `stderr` diagnostic)
 - **F-067-6 [NIT → folded]** — ADR 0037 D3's locality reason corrected to the load-bearing invariant (**the id is never persisted/replayed**); a guarding note on `history.Step` recorded as RF-067-7.
 - **F-067-7 [NIT → folded]** — the degenerate duplicate-provider-id determinism pinned by `TestUnpairedCallIDs_DuplicateProviderIDIsDeterministic` + recorded as RF-067-6.
 - **Held / no action** — I-1/I-2/I-3/I-4/I-5/I-8 (the architect verified the change family-local and the shapes preserved); governance hygiene confirmed.
+
+### Fold-verification residuals (2026-09-20, reviewer comment `5746694092` — FOLDS VERIFIED WITH RESIDUALS, CLEARED FOR HUMAN MERGE)
+
+- **R-067-F1 [TECHNICAL DEBT → folded]** — the `specs/truth/techstack.md` *Vertex/Gemini adapter* row still carried the retracted "one session drives exactly one family" reason; aligned to the corrected invariant (**the id is never persisted or replayed**; `history.Step` carries no id) + the RF-067-7 pointer, so the reason lives once in its corrected form.
+- **R-067-F2 [NIT → folded]** — `TestUnpairedCallIDs_DuplicateProviderIDIsDeterministic` now asserts the binding by **content** (which result lands on which call's part), so a "last unused identity match" mutant is killed (names alone did not reveal it); witness reproduced then reverted (`part 0 = {name:read_files content:second}` under the mutant).
