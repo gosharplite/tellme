@@ -55,7 +55,7 @@
 
 - **I-1 — Byte-identity** — the request body, the emitted turn, and the OpenAI-compatible wire are unchanged; only the Gemini **usage decode** changes.
 - **I-2 — The cost formula is untouched** — `ComputeCost`/`miss = prompt − cached` are reused as-is; correctness comes from populating `CachedTokens`, not from a new formula.
-- **I-3 — Degenerate responses are safe** — a missing/partial `usageMetadata` yields zeros (the existing `Reported` gate), never a panic or a negative miss.
+- **I-3 — Degenerate responses are safe** — a missing/partial `usageMetadata` yields zeros (the existing `Reported` gate), never a panic; and `cached` is capped at `prompt`, so the miss is never negative.
 - **I-4 — No new dependency; stdlib-only; POSIX-only; hermetic.**
 - **I-5 — The four surfaces agree** — the metrics line, the `Ready` summary totals, the persisted `tokens.log` (`UsageRecord`), and the session accumulator all derive from the one `llm.Usage` value.
 
@@ -106,7 +106,7 @@ The metrics line, the `Ready` summary totals, and the persisted `tokens.log` rec
 
 - **FR-001** — The Gemini adapter MUST decode `cachedContentTokenCount` into `llm.Usage.CachedTokens`.
 - **FR-002** — The Gemini adapter MUST decode `thoughtsTokenCount` into `llm.Usage.ThinkingTokens`, per the pinned disjointness rule (S-4).
-- **FR-003** — A response with no `usageMetadata`, or with any field absent/zero, MUST leave the corresponding counts at 0 and MUST NOT produce a negative miss (I-3).
+- **FR-003** — A response with no `usageMetadata`, or with any field absent/zero, MUST leave the corresponding counts at 0; the cached count is **capped at the prompt count**, so the miss (`prompt − cached`) MUST NEVER be negative (I-3; review B1 / TD-072-1).
 - **FR-004** — The cost formula and the `miss = prompt − cached` derivation MUST be reused unchanged (I-2).
 - **FR-005** — The request body, the emitted turn, and the OpenAI-compatible wire MUST be unchanged (I-1).
 - **FR-006** — The change MUST be confined to the Gemini family (+ tests, the truth row, and a new ADR).
@@ -117,7 +117,7 @@ The metrics line, the `Ready` summary totals, and the persisted `tokens.log` rec
 - **SC-001** — The `H: 0`-always symptom is gone: the Gemini usage mapping is **unit-pinned** (the adapter decodes `cachedContentTokenCount`/`thoughtsTokenCount`) and witnessed **E2E** (the fake Vertex provider scripts `usageMetadata`, and the run's metrics line shows the cached count).
 - **SC-002** — The reference parity holds: the new mapping matches `tell-me-go`'s `metrics.go` (modulo the S-4 rule the round pins and records).
 - **SC-003** — `make verify` green; `go.mod`/`go.sum` unchanged; the OpenAI-compatible wire byte-identical.
-- **SC-004** — The over-charge is demonstrably closed: a documented witness shows the corrected cost is the HIT-weighted figure (not the MISS-rate figure).
+- **SC-004** — The over-charge is demonstrably closed: the metrics line's `H` is now populated (E2E-asserted) and the corrected cost is the HIT-weighted figure — a **derived** consequence of the unchanged `ComputeCost` (the E2E Example runs unpriced, so the numeric cost itself is not E2E-asserted; review B1 / TD-072-2).
 
 ## Edge cases (proposed)
 

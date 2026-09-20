@@ -202,7 +202,9 @@ Feature: Presenting the post-turn status
       And a configured Gemini provider "test-model" whose endpoint answers with "all good" and reports the token usage:
         | prompt | cached | completion | thinking |
         | 390564 | 389538 | 100        | 4096     |
+      And the configuration prices the active model with hit "0.075", miss "0.75", and completion "3.75" per million tokens
       When the operator starts tellme with the prompt "hi"
       Then the run reports the token metrics of the request that just completed
       And the reported metrics line shows 1026 missed, 389538 cached, 100 completed, and 4096 reasoning tokens
+      And the run reports the cost of the request, the turn, and the session
       And tellme exits successfully

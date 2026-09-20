@@ -317,3 +317,20 @@ func TestParseResponse_AbsentCachedFieldsStayZero(t *testing.T) {
 		t.Errorf("usage = %+v", resp.Usage)
 	}
 }
+
+// TestParseResponse_CachedNeverExceedsPrompt pins the TP-072-1 fold: a provider
+// reporting cached > prompt is CAPPED at the prompt, so the miss (prompt − cached)
+// can never go negative and the hit-rate can never exceed 100%.
+func TestParseResponse_CachedNeverExceedsPrompt(t *testing.T) {
+	raw := []byte(`{"candidates":[{"content":{"role":"model","parts":[{"text":"ok"}]}}],"usageMetadata":{"promptTokenCount":10,"cachedContentTokenCount":999,"candidatesTokenCount":1,"thoughtsTokenCount":0,"totalTokenCount":11}}`)
+	resp, err := parseResponse(raw)
+	if err != nil {
+		t.Fatalf("parseResponse: %v", err)
+	}
+	if resp.Usage.CachedTokens != 10 {
+		t.Errorf("CachedTokens = %d, want 10 (capped at promptTokenCount)", resp.Usage.CachedTokens)
+	}
+	if miss := resp.Usage.PromptTokens - resp.Usage.CachedTokens; miss != 0 {
+		t.Errorf("miss = %d, want 0 (never negative)", miss)
+	}
+}

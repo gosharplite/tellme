@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-20
 - **Deciders:** tellme owner
-- **Related:** [ADR 0005](0005-loop-presentation-port.md) (loop presentation port — the metrics line is a presentation surface fed by `llm.Usage`), round 018 (`specs/plans/018-*` — the usage/cost accounting + the OpenAI family's exclusive-completion rule), round 013 (`specs/plans/013-*` — the Vertex/Gemini adapter), round 072 (`specs/plans/072-gemini-cached-token-usage` — this ADR's round), issue [#149](https://github.com/gosharplite/tellme/issues/149)
+- **Related:** [ADR 0015](0015-loop-presentation-port.md) (loop presentation port — the metrics line is a presentation surface fed by `llm.Usage`), round 018 (`specs/plans/018-*` — the usage/cost accounting + the OpenAI family's exclusive-completion rule), round 013 (`specs/plans/013-*` — the Vertex/Gemini adapter), round 072 (`specs/plans/072-gemini-cached-token-usage` — this ADR's round), issue [#149](https://github.com/gosharplite/tellme/issues/149)
 
 ## Context
 
@@ -19,9 +19,9 @@ The reference (`tell-me-go/internal/infrastructure/llm/gemini/metrics.go:17-28`)
 
 **D2 — It decodes `thoughtsTokenCount` into `llm.Usage.ThinkingTokens`.** Both are zero-suppressed by the existing presentation path when `0`.
 
-**D3 — Disjointness is DISJOINT (no subtraction) for the Gemini family, and this is deliberately family-specific.** Gemini's `candidatesTokenCount` **excludes** `thoughtsTokenCount` (the provider identity is `totalTokenCount = promptTokenCount + candidatesTokenCount + thoughtsTokenCount`), so `C` and `Th` are the provider's raw figures and are additive (`O = C + Th`). This is the **opposite** of the OpenAI-compatible family, where the wire `completion_tokens` **includes** `reasoning_tokens`, so that adapter stores `max(0, completion − reasoning)` (round-018 FR-002). The two rules must **not** be unified: unifying them would either double-count Gemini thinking tokens or drop OpenAI-visible output.
+**D3 — Disjointness is DISJOINT (no subtraction) for the Gemini family, and this is deliberately family-specific.** Gemini's `candidatesTokenCount` **excludes** `thoughtsTokenCount` (the provider's documented identity — a *reading*, not a measured round invariant; the wire `totalTokenCount` has no downstream consumer), so `C` and `Th` are the provider's raw figures and are additive (`O = C + Th`). This is the **opposite** of the OpenAI-compatible family, where the wire `completion_tokens` **includes** `reasoning_tokens`, so that adapter stores `max(0, completion − reasoning)` (round-018 FR-002). The two rules must **not** be unified: unifying them would either double-count Gemini thinking tokens or drop OpenAI-visible output.
 
-**D4 — Every decoded count is floored at 0, and a missing field stays 0.** Mirrors the OpenAI adapter's `max(0, …)` precedent so a malformed/absent field cannot yield a negative miss.
+**D4 — Every decoded count is floored at 0, and the cached count is additionally CAPPED at the prompt count.** Mirrors the OpenAI adapter's `max(0, …)` precedent; the cap (review B1 / **TD-072-1**) guarantees the miss (`prompt − cached`) can never go negative and the hit-rate can never exceed 100 %, even if a provider reports `cachedContentTokenCount > promptTokenCount`.
 
 **D5 — The cost formula is unchanged.** `ComputeCost` and `miss = prompt − cached` are reused; the fix restores the correct **input** to a correct formula.
 
@@ -31,6 +31,8 @@ The reference (`tell-me-go/internal/infrastructure/llm/gemini/metrics.go:17-28`)
 
 ## Consequences
 
+- The fix can **raise** the reported cost on a thinking turn: `Th` (newly decoded) is billed at the `COMP` rate. That is correct — Vertex bills thoughts as output, and it matches the reference — but the round is not uniformly "cheaper": it moves cost from the `MISS` input rate onto the true `HIT` input rate **and** the thought output rate (review NIT-072-2).
+
 - A Gemini/Vertex turn now reports real `H`/`Th` figures; a reused prefix is billed at the HIT rate and the miss shrinks to the genuinely-new input.
 - The `tokens.log` records and the session `H`/`M` totals become correct for the Gemini family.
 - The family split in the disjointness rule becomes an explicit, documented invariant rather than an accident of “no code”: a future adapter must declare which side it is on.
@@ -39,7 +41,7 @@ The reference (`tell-me-go/internal/infrastructure/llm/gemini/metrics.go:17-28`)
 ## Verification
 
 - **Unit**: a `generateContent` response with `usageMetadata.promptTokenCount/cachedContentTokenCount/candidatesTokenCount/thoughtsTokenCount` decodes into `Usage{CachedTokens, ThinkingTokens, …}`; `CandidatesTokenCount` and `ThoughtsTokenCount` are preserved **verbatim** (disjoint); an omitted/absent field stays 0 and produces no negative miss.
-- **E2E**: the fake Vertex provider scripts `usageMetadata`; the run's metrics line shows the cached figure (not `H: 0`) and the `Ready` totals agree.
+- **E2E**: the fake Vertex provider scripts `usageMetadata`; the run's metrics line shows the cached figure (not `H: 0`) — the assertion. The Example is now **priced** and asserts that the cost/`Ready` status is emitted (the numeric cost values remain a *derived* consequence of the unchanged, separately-pinned `ComputeCost`/`HitRate` arithmetic, not independently E2E-asserted — review B1 / **TD-072-2**).
 - **Falsifiability**: reverting the field mapping REDs the unit pin **and** the E2E Example.
 - `make verify` green (layer gate 0 · `modelith-check` · `verify-fmt` · `verify-adr-index` · lint 0 · govulncheck); `go.mod`/`go.sum` unchanged; the OpenAI-compatible wire byte-identical.
 

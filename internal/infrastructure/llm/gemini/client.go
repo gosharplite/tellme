@@ -582,11 +582,20 @@ func parseResponse(raw []byte) (llm.Response, error) {
 		// DISJOINTNESS is family-specific: Gemini's `candidatesTokenCount` EXCLUDES
 		// `thoughtsTokenCount` (total = prompt + candidates + thoughts), so — unlike
 		// the OpenAI-compatible adapter, whose `completion_tokens` INCLUDES reasoning
-		// — there is NO subtraction here. Every count is floored at 0 defensively.
+		// — there is NO subtraction here. Every count is floored at 0, and the
+		// cached count is additionally CAPPED at the prompt count so the miss
+		// (`prompt − cached`) can never go negative (review B1 / TD-072-1: a
+		// provider reporting cached > prompt must not produce a negative miss or a
+		// nonsense hit-rate).
+		promptTokens := max(0, um.PromptTokenCount)
+		cachedTokens := max(0, um.CachedContentTokenCount)
+		if cachedTokens > promptTokens {
+			cachedTokens = promptTokens
+		}
 		resp.Usage = llm.Usage{
 			Reported:         true,
-			PromptTokens:     max(0, um.PromptTokenCount),
-			CachedTokens:     max(0, um.CachedContentTokenCount),
+			PromptTokens:     promptTokens,
+			CachedTokens:     cachedTokens,
 			CompletionTokens: max(0, um.CandidatesTokenCount),
 			ThinkingTokens:   max(0, um.ThoughtsTokenCount),
 			TotalTokens:      max(0, um.TotalTokenCount),
