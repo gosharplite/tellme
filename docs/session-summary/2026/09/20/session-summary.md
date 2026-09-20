@@ -1048,7 +1048,7 @@ A later session on the same calendar day. Continued the `tell-me-go` agent-tool 
 
 ### Open items
 
-- **Three open issues:** [#145](https://github.com/gosharplite/tellme/issues/145) · [#146](https://github.com/gosharplite/tellme/issues/146) · [#147](https://github.com/gosharplite/tellme/issues/147). tellme's agent surface is unchanged at **8**.
+- **One open issue:** [#147](https://github.com/gosharplite/tellme/issues/147) *(present + candidates)*. **[#146](https://github.com/gosharplite/tellme/issues/146)** (exclusions) and **[#145](https://github.com/gosharplite/tellme/issues/145)** (self-development tracker) are **CLOSED `completed`** (2026-09-20) — the goal is achieved and the exclusions are settled. tellme's agent surface is unchanged at **8**.
 - **Propagation:** none required (docs/issue-tracker only); `dev` is the active branch, no round in flight.
 
 
