@@ -7,6 +7,8 @@ package llm
 import (
 	"context"
 	"encoding/json"
+
+	"github.com/gosharplite/tellme/internal/domain/tools"
 )
 
 // ToolDef is a tool definition offered to the model on a request (round-008
@@ -47,7 +49,7 @@ type ToolCall struct {
 type Message struct {
 	Role       string
 	Content    string
-	Media      []MediaPart
+	Media      []tools.MediaPart
 	ToolCalls  []ToolCall
 	ToolCallID string
 }

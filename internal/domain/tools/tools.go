@@ -65,6 +65,23 @@ type Tool interface {
 	Execute(ctx context.Context, arguments string, budget ByteBudget) (string, error)
 }
 
+// MediaTool is the OPTIONAL capability contract for a tool whose result also
+// carries media (round 070; ADR 0040). The agent loop type-asserts it: a tool
+// that satisfies it is executed via ExecuteMedia, which returns the text result
+// AND the media it produced IN-BAND (no ambient context channel); every other
+// tool keeps the plain Tool contract untouched. It is a SEGREGATED CAPABILITY
+// interface (the history.Seeder / LoopObserver precedent), NOT a widening of
+// Tool — media is the exception today (`read_image` is the sole producer). The
+// rejected alternative (widening Execute for every tool) is recorded settled in
+// ADR 0040.
+type MediaTool interface {
+	Tool
+	// ExecuteMedia runs like Execute and additionally returns the media the call
+	// produced. A failure is returned as an error (as in Execute); an empty media
+	// slice means the call produced no media.
+	ExecuteMedia(ctx context.Context, arguments string, budget ByteBudget) (text string, media []MediaPart, err error)
+}
+
 // Registry resolves a tool by its wire name and lists the registered tools.
 type Registry interface {
 	Lookup(name string) (Tool, bool)

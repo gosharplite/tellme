@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/gosharplite/tellme/internal/domain/llm"
+	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
 // decodeContents is a tiny helper shared by the round-066 id pins.
@@ -179,7 +180,7 @@ func TestRequestBody_ToolRoleMediaStillCarriesMedia(t *testing.T) {
 	data := []byte{0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A}
 	prior := []llm.Message{
 		{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_1", Name: "read_image", Arguments: `{"filepath":"a.png"}`}}},
-		{Role: "tool", Content: "attached", Media: []llm.MediaPart{{MIMEType: "image/png", Data: data}}},
+		{Role: "tool", Content: "attached", Media: []domaintools.MediaPart{{MIMEType: "image/png", Data: data}}},
 	}
 	body, err := requestBody("", prior, nil, 0, 0, "", "")
 	if err != nil {
@@ -475,10 +476,10 @@ func TestUnpairedCallIDs_AgreesWithEmittedBody(t *testing.T) {
 		"short":            {calls("a", "b"), {Role: "tool", Content: "x", ToolCallID: "a"}},
 		"zero":             {calls("a", "b"), calls("c")},
 		"trailing-multi":   {calls("r1a", "r1b"), {Role: "tool", Content: "x", ToolCallID: "r1a"}, calls("r2a")},
-		"media-between":    {calls("a", "b"), {Role: "tool", Content: "x", ToolCallID: "a"}, {Role: "user", Media: []llm.MediaPart{{MIMEType: "image/png", Data: data}}}},
-		"media-before-res": {calls("a", "b"), {Role: "user", Media: []llm.MediaPart{{MIMEType: "image/png", Data: data}}}, {Role: "tool", Content: "x", ToolCallID: "a"}},
-		"tool-role-media":  {{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "a", Name: "t", Arguments: `{}`}}}, {Role: "tool", Content: "m", Media: []llm.MediaPart{{MIMEType: "image/png", Data: data}}}},
-		"media-after":      {calls("a"), {Role: "tool", Content: "x", ToolCallID: "a"}, {Role: "user", Media: []llm.MediaPart{{MIMEType: "image/png", Data: data}}}},
+		"media-between":    {calls("a", "b"), {Role: "tool", Content: "x", ToolCallID: "a"}, {Role: "user", Media: []domaintools.MediaPart{{MIMEType: "image/png", Data: data}}}},
+		"media-before-res": {calls("a", "b"), {Role: "user", Media: []domaintools.MediaPart{{MIMEType: "image/png", Data: data}}}, {Role: "tool", Content: "x", ToolCallID: "a"}},
+		"tool-role-media":  {{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "a", Name: "t", Arguments: `{}`}}}, {Role: "tool", Content: "m", Media: []domaintools.MediaPart{{MIMEType: "image/png", Data: data}}}},
+		"media-after":      {calls("a"), {Role: "tool", Content: "x", ToolCallID: "a"}, {Role: "user", Media: []domaintools.MediaPart{{MIMEType: "image/png", Data: data}}}},
 		"idless":           {calls("a"), {Role: "tool", Content: "x"}},
 		"duplicate":        {calls("dup", "dup"), {Role: "tool", Content: "1", ToolCallID: "dup"}, {Role: "tool", Content: "2", ToolCallID: "dup"}},
 		"out-of-order":     {calls("a", "b"), {Role: "tool", Content: "y", ToolCallID: "b"}, {Role: "tool", Content: "x", ToolCallID: "a"}},

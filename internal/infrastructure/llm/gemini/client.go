@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/gosharplite/tellme/internal/domain/llm"
+	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
 const (
@@ -392,7 +393,7 @@ func (b *roundBuilder) textTurn(m llm.Message) {
 // `mimeType`) — consistent with the adapter's other emitted keys — and the data
 // is base64 StdEncoding (the Vertex REST proto-JSON form). The MIME kind is
 // resolved upstream by the shared `read_image` sniff, so no second sniffer exists.
-func inlineDataParts(text string, media []llm.MediaPart) []map[string]any {
+func inlineDataParts(text string, media []domaintools.MediaPart) []map[string]any {
 	parts := make([]map[string]any, 0, len(media)+1)
 	if text != "" {
 		parts = append(parts, map[string]any{"text": text})

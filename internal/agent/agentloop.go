@@ -146,14 +146,19 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 				continue
 			}
 			tctx, cancel := context.WithTimeout(ctx, a.callTimeout(tool, tc.Arguments))
-			// Round 062 (ADR 0032 D7): install a FRESH per-call media collector so
-			// a tool (read_image) can attach an image; the loop folds it back as a
-			// `user` message after this call's tool result (DeepSeek accepts images
-			// in user messages only; media-first).
-			var media []llm.MediaPart
-			tctx = llm.WithMediaCollector(tctx, &media)
+			// Round 070 (ADR 0040): a media-producing tool returns its media
+			// IN-BAND through the optional tools.MediaTool capability (no ambient
+			// context collector — the round-062 D7a mechanism is retired). Every
+			// other tool keeps the plain Tool contract.
 			byteBudget := a.callByteBudget(tc.Arguments)
-			result, terr := tool.Execute(tctx, tc.Arguments, tools.ByteBudget(byteBudget))
+			var media []tools.MediaPart
+			var result string
+			var terr error
+			if mt, ok := tool.(tools.MediaTool); ok {
+				result, media, terr = mt.ExecuteMedia(tctx, tc.Arguments, tools.ByteBudget(byteBudget))
+			} else {
+				result, terr = tool.Execute(tctx, tc.Arguments, tools.ByteBudget(byteBudget))
+			}
 			// Read the per-call deadline signal BEFORE cancel() (round 026): it is
 			// the structural `timeout` signal, independent of the tool result text.
 			toolTimedOut := errors.Is(tctx.Err(), context.DeadlineExceeded)

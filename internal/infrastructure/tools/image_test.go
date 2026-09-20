@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gosharplite/tellme/internal/domain/llm"
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
@@ -80,20 +79,24 @@ func TestNewReadImageToolDefaultsCeiling(t *testing.T) {
 	}
 }
 
-// TestReadImageAttachesMedia pins the happy path: the image is attached to the
-// call's collector with the content-sniffed MIME and its exact bytes.
-func TestReadImageAttachesMedia(t *testing.T) {
+// TestReadImageReturnsMedia pins the happy path: the image is returned IN-BAND
+// (round 070; ADR 0040) with the content-sniffed MIME and its exact bytes — no
+// ambient context collector.
+func TestReadImageReturnsMedia(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "mystery.bin") // name says .bin; content says PNG
 	if err := os.WriteFile(p, pngHeader, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	var media []llm.MediaPart
-	ctx := llm.WithMediaCollector(context.Background(), &media)
+	tl := NewReadImageTool(openAIImageCeiling)
+	mt, ok := tl.(domaintools.MediaTool)
+	if !ok {
+		t.Fatalf("read_image must satisfy the tools.MediaTool capability (got %T)", tl)
+	}
 	args, _ := json.Marshal(map[string]string{"filepath": p, "reason": "look"})
-	res, err := NewReadImageTool(openAIImageCeiling).Execute(ctx, string(args), domaintools.ByteBudget(1<<20))
+	res, media, err := mt.ExecuteMedia(context.Background(), string(args), domaintools.ByteBudget(1<<20))
 	if err != nil {
-		t.Fatalf("Execute: %v", err)
+		t.Fatalf("ExecuteMedia: %v", err)
 	}
 	if !strings.Contains(res, "image/png") {
 		t.Errorf("result = %q, want it to name the sniffed type", res)
@@ -102,36 +105,54 @@ func TestReadImageAttachesMedia(t *testing.T) {
 		t.Fatalf("media = %+v, want one image/png", media)
 	}
 	if string(media[0].Data) != string(pngHeader) {
-		t.Errorf("attached bytes differ from the file's")
+		t.Errorf("returned bytes differ from the file's")
+	}
+}
+
+// TestReadImageExecuteDelegatesTextOnly pins that the plain Tool contract
+// (Execute) still works for a media tool — it returns the text result and no
+// media (round 070; ADR 0040).
+func TestReadImageExecuteDelegatesTextOnly(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "pic.png")
+	if err := os.WriteFile(p, pngHeader, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	args, _ := json.Marshal(map[string]string{"filepath": p, "reason": "look"})
+	res, err := NewReadImageTool(openAIImageCeiling).Execute(context.Background(), string(args), domaintools.ByteBudget(1<<20))
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if !strings.Contains(res, "image/png") {
+		t.Errorf("Execute result = %q, want it to name the sniffed type", res)
 	}
 }
 
 // TestReadImageRefusesNotAPicture pins the loud refusal for a non-picture: a
-// recoverable result (nil error), and NOTHING is attached.
+// recoverable result (nil error), and NO media.
 func TestReadImageRefusesNotAPicture(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "notes.png") // name says .png; content is text
 	if err := os.WriteFile(p, []byte("just text"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	var media []llm.MediaPart
-	ctx := llm.WithMediaCollector(context.Background(), &media)
+	mt := NewReadImageTool(openAIImageCeiling).(domaintools.MediaTool)
 	args, _ := json.Marshal(map[string]string{"filepath": p, "reason": "look"})
-	res, err := NewReadImageTool(openAIImageCeiling).Execute(ctx, string(args), domaintools.ByteBudget(1<<20))
+	res, media, err := mt.ExecuteMedia(context.Background(), string(args), domaintools.ByteBudget(1<<20))
 	if err != nil {
-		t.Fatalf("Execute should return a recoverable result, got error %v", err)
+		t.Fatalf("ExecuteMedia should return a recoverable result, got error %v", err)
 	}
 	if !strings.HasPrefix(res, "ERROR:") || !strings.Contains(res, "not a supported picture") {
 		t.Errorf("result = %q, want the not-a-picture refusal", res)
 	}
 	if len(media) != 0 {
-		t.Errorf("media attached for a non-picture: %+v", media)
+		t.Errorf("media returned for a non-picture: %+v", media)
 	}
 }
 
 // TestReadImageRefusesOversize pins the ceiling boundary against the tool's
 // RESOLVED ceiling (round 063): exactly at the limit is accepted, one byte over
-// is the loud refusal naming that limit, with nothing attached.
+// is the loud refusal naming that limit, with no media.
 func TestReadImageRefusesOversize(t *testing.T) {
 	dir := t.TempDir()
 	limit := geminiImageCeiling // the stricter family ceiling, to prove it is honoured
@@ -143,23 +164,19 @@ func TestReadImageRefusesOversize(t *testing.T) {
 	if err := writeSparse(over, pngHeader, limit+1); err != nil {
 		t.Fatal(err)
 	}
-
-	var media []llm.MediaPart
-	ctx := llm.WithMediaCollector(context.Background(), &media)
+	mt := NewReadImageTool(limit).(domaintools.MediaTool)
 
 	atArgs, _ := json.Marshal(map[string]string{"filepath": atLimit, "reason": "look"})
-	if _, err := NewReadImageTool(limit).Execute(ctx, string(atArgs), domaintools.ByteBudget(1)); err != nil {
-		t.Fatalf("at-limit Execute: %v", err)
-	}
-	if len(media) != 1 {
+	if _, media, err := mt.ExecuteMedia(context.Background(), string(atArgs), domaintools.ByteBudget(1)); err != nil {
+		t.Fatalf("at-limit ExecuteMedia: %v", err)
+	} else if len(media) != 1 {
 		t.Errorf("at-limit media = %d, want 1 (the ceiling is inclusive)", len(media))
 	}
 
-	media = nil
 	overArgs, _ := json.Marshal(map[string]string{"filepath": over, "reason": "look"})
-	res, err := NewReadImageTool(limit).Execute(ctx, string(overArgs), domaintools.ByteBudget(1))
+	res, media, err := mt.ExecuteMedia(context.Background(), string(overArgs), domaintools.ByteBudget(1))
 	if err != nil {
-		t.Fatalf("oversize Execute should be a recoverable result, got %v", err)
+		t.Fatalf("oversize ExecuteMedia should be a recoverable result, got %v", err)
 	}
 	if !strings.Contains(res, "too large") {
 		t.Errorf("result = %q, want the too-large refusal", res)
@@ -168,7 +185,7 @@ func TestReadImageRefusesOversize(t *testing.T) {
 		t.Errorf("result = %q, want it to name the resolved (Gemini) limit", res)
 	}
 	if len(media) != 0 {
-		t.Errorf("media attached for an oversize image")
+		t.Errorf("media returned for an oversize image")
 	}
 }
 

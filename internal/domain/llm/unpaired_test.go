@@ -1,6 +1,10 @@
 package llm
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/gosharplite/tellme/internal/domain/tools"
+)
 
 // TestUnpairedToolCalls pins round 068 (ADR 0038; surfaces ADR 0037 RF-067-1):
 // the family-neutral single owner of the round-boundary account. The
@@ -26,9 +30,9 @@ func TestUnpairedToolCalls(t *testing.T) {
 		{"id-less-fifo", []Message{calls("a"), {Role: "tool", Content: "x"}}, nil},
 		{"duplicate-id", []Message{calls("dup", "dup"), {Role: "tool", Content: "1", ToolCallID: "dup"}, {Role: "tool", Content: "2", ToolCallID: "dup"}}, nil},
 		{"terminal-text-closes-round", []Message{calls("a"), {Role: "user", Content: "hi"}}, []string{"a"}},
-		{"media-not-a-boundary", []Message{calls("a", "b"), {Role: "user", Media: []MediaPart{{MIMEType: "image/png"}}}, {Role: "tool", Content: "x", ToolCallID: "a"}}, []string{"b"}},
-		{"media-after-round", []Message{calls("a"), {Role: "tool", Content: "x", ToolCallID: "a"}, {Role: "user", Media: []MediaPart{{MIMEType: "image/png"}}}}, nil},
-		{"tool-role-media-not-a-result", []Message{calls("a"), {Role: "tool", Content: "m", Media: []MediaPart{{MIMEType: "image/png"}}}}, []string{"a"}},
+		{"media-not-a-boundary", []Message{calls("a", "b"), {Role: "user", Media: []tools.MediaPart{{MIMEType: "image/png"}}}, {Role: "tool", Content: "x", ToolCallID: "a"}}, []string{"b"}},
+		{"media-after-round", []Message{calls("a"), {Role: "tool", Content: "x", ToolCallID: "a"}, {Role: "user", Media: []tools.MediaPart{{MIMEType: "image/png"}}}}, nil},
+		{"tool-role-media-not-a-result", []Message{calls("a"), {Role: "tool", Content: "m", Media: []tools.MediaPart{{MIMEType: "image/png"}}}}, []string{"a"}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
