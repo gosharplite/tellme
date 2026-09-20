@@ -23,17 +23,23 @@ A quality audit (2026-09-20) found three cheap, precise gaps, each verified gree
 
 **D4 — the audit's other candidates stay rejected.** `vet`'s duplication (it is the toolchain-native minimal gate; `staticcheck` was redundant, `vet` is only *wasteful* — kept, ADR 0042 records the distinction); coverage / reachability-orphan tooling (**declined**, #144 — E2E-subprocess paths read 0 %); the 5 pre-existing topology-audit DSL errors (the audit script is external — `aixbdd-tmg` — and the check is *carried*, not gated).
 
+**D5 — `make check` / `make check-full` ship (resolves RF-042-1).** `make verify` is the **static/convention** aggregate and does **not** run the E2E contract; `make test` (`go test ./...`) is cache-eligible. Neither alone is "the whole gate". So `check` sequences **`verify` + `test`** (the full local gate), and `check-full` adds **`test-race`** (the pre-push form). Both are thin sequencers over existing targets via `$(MAKE)` — **no new checks, no new dependency**. (The reference ships the same two names; tellme's scope differs — no `test-coverage`/`dead-code`, per D4/#144.)
+
+**D6 — `verify-fmt` checks both `gofmt` and `goimports` (resolves RF-042-2).** `goimports` is adopted: it is gofmt **plus import grouping** (stdlib / external groups) — the grouping the repo already uses everywhere (exactly one file deviated; fixed in this change). It resolves from `PATH` (a documented prereq, like `golangci-lint`/`modelith`); an absent tool fails with the install command. **`gofumpt` is rejected** — a stricter style with no reference parity (the reference resolves `goimports` for editors but gates only `gofmt`; tellme gates both because the grouping is part of its own consistent style).
+
 ## Consequences
 
-- `make verify` grows by **two fast members** (`verify-fmt`, `verify-adr-index`) — measured **13.9 s** end-to-end, still a hermetic pre-check.
-- **No new dependency.** `verify-fmt` uses the toolchain's `gofmt`; `verify-adr-index` is `grep`/`sed`; `test-race` uses the toolchain's `-race`.
-- A formatting or index regression now fails the pipeline rather than surviving to closeout.
-- **`make verify` still does NOT run the E2E contract** (that is `make test`); the race target is the pre-push addition. The check-vs-verify distinction is unchanged.
+- `make verify` grows by **two fast members** (`verify-fmt`, `verify-adr-index`) — still a hermetic pre-check. `verify-fmt` now also needs `goimports` on `PATH` (D6).
+- **`make check`** (= `verify` + `test`) is the **whole** local gate; **`make check-full`** adds the race detector. `make verify` alone remains the fast static aggregate.
+- **No new Go dependency.** `verify-fmt` uses the toolchain's `gofmt` + the `goimports` dev tool; `verify-adr-index` is `grep`/`sed`; `test-race` uses the toolchain's `-race`.
+- A formatting, import-grouping, or ADR-index regression now fails the pipeline rather than surviving to closeout.
+- **`make verify` still does NOT run the E2E contract** (that is `make test`); `make check` is the convenience that runs both.
 
 ## §Forward
 
-- **RF-042-1** — no `make check` / `make check-full` aggregate ships yet (`verify` + `test` + `test-race`); deferred (purely additive, but a naming/scope decision of its own).
-- **RF-042-2** — `verify-fmt` covers `gofmt` only, not `goimports`/`gofumpt`; a formatter-set decision is deferred (`golangci-lint fmt` v2 is the vehicle if wanted).
+- **RF-042-1** — ~~no `make check` / `make check-full` aggregate~~ **RESOLVED (D5)**: both ship.
+- **RF-042-2** — ~~`verify-fmt` covers `gofmt` only~~ **RESOLVED (D6)**: `goimports` adopted (import grouping); `gofumpt` rejected (no reference parity, stricter style).
+- **RF-042-3** — `test-race` is not wired into any automated runner (no CI); it relies on the closeout/pre-push discipline (`make check-full`).
 - **RF-042-3** — `test-race` is not wired into any automated runner (no CI); it relies on the closeout/pre-push discipline.
 
 ## References

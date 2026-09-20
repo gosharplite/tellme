@@ -51,6 +51,7 @@ unexport GOOS GOARCH GOARM GOARM64 GOAMD64 GO386 GOMIPS GOMIPS64 GOPPC64 GORISCV
 # -----------------------------------------------------------------------------
 
 GOLANGCI := $(shell command -v golangci-lint 2>/dev/null)
+GOIMPORTS := $(shell command -v goimports 2>/dev/null)
 GOVULNCHECK := $(shell command -v govulncheck 2>/dev/null)
 
 # ---- Domain model (modelith; ADR 0030; round 060) ----------------------------
@@ -84,7 +85,7 @@ MODELITH_MODELS := $(wildcard docs/domain-model/*.modelith.yaml)
 # code-backed (reference: MODELITH_CODE_MODEL).
 MODELITH_CODE_MODEL := docs/domain-model/tellme.modelith.yaml
 
-.PHONY: help build fmt vet tidy lint vulncheck test test-race test-fast verify verify-no-test-sleep verify-no-network verify-fmt verify-adr-index verify-cross-compile verify-mcp-sdk-confinement verify-architecture verify-architecture-update modelith-lint modelith-render modelith-check modelith-drift
+.PHONY: help build fmt vet tidy lint vulncheck test test-race test-fast check check-full verify verify-no-test-sleep verify-no-network verify-fmt verify-adr-index verify-cross-compile verify-mcp-sdk-confinement verify-architecture verify-architecture-update modelith-lint modelith-render modelith-check modelith-drift
 
 help:
 	@echo "tellme development tasks:"
@@ -97,6 +98,8 @@ help:
 	@echo "  make test                 - go test ./..."
 	@echo "  make test-race            - race detector, package-by-package (NOT a verify member; ADR 0042)"
 	@echo "  make test-fast            - run a SUBSET of the E2E contract (godog.paths; NOT the gate; ADR 0024)"
+	@echo "  make check                - verify + test (the whole gate; ADR 0042)"
+	@echo "  make check-full           - check + test-race (pre-push; ADR 0042)"
 	@echo "  make verify-no-test-sleep - forbid time.Sleep for synchronization in *_test.go (ADR-036 parity)"
 	@echo "  make verify-no-network    - build-graph capability guard: no net/net/http in ./cmd/tellme closure"
 	@echo "  make verify-fmt           - gofmt -l: fail if any Go file is not gofmt-clean (ADR 0042)"
@@ -167,6 +170,19 @@ test-race:
 		go test -race -count=1 -timeout 300s $$pkg || exit 1; \
 	done
 	@echo "  ✓ no data races detected"
+
+# check / check-full — the convenience aggregates (ADR 0042; resolves RF-042-1).
+# `make verify` is the static/convention aggregate and does NOT run the E2E
+# contract; `make test` uses the Go cache. `check` runs BOTH so "green" is the
+# whole gate, and `check-full` adds the (expensive) race detector. Both are thin
+# sequencers over existing targets — no new checks, no new dependency.
+check:
+	@$(MAKE) verify
+	@$(MAKE) test
+
+check-full:
+	@$(MAKE) check
+	@$(MAKE) test-race
 
 # test-fast — a SUBSET of the executable contract for a fast inner loop.
 #
@@ -276,17 +292,31 @@ verify-mcp-sdk-confinement:
 	fi
 	@echo "  ✓ MCP Go SDK imports confined to internal/infrastructure/mcp/"
 
-# Format gate (ADR 0042): `make fmt` MUTATES; this CHECKS. A `gofmt -l` that is
-# non-empty fails — so formatting drift is caught in the pipeline, not only at
-# closeout. Fast, hermetic, no dependency (the toolchain's own gofmt).
+# Format gate (ADR 0042): `make fmt` MUTATES; this CHECKS. Two layers: `gofmt -l`
+# (the toolchain's own formatter, always) and `goimports -l` (gofmt + import
+# grouping — stdlib / external groups; resolved from PATH, a documented prereq
+# like golangci-lint/modelith). Either being non-empty fails — so formatting AND
+# import-ordering drift are caught in the pipeline, not only at closeout. Fast,
+# hermetic once the tools resolve. gofumpt is deliberately NOT adopted (a stricter
+# style with no reference parity — ADR 0042 RF-042-2).
 verify-fmt:
-	@echo "verify-fmt: gofmt -l (no unformatted Go files) ..."
+	@echo "verify-fmt: gofmt -l + goimports -l (no unformatted / ungrouped Go files) ..."
 	@out=$$(gofmt -l . 2>/dev/null); \
 	if [ -n "$$out" ]; then \
 		echo ""; echo "❌ gofmt would reformat:"; echo "$$out"; echo ""; \
 		echo "Fix: run 'make fmt'."; exit 1; \
 	fi
-	@echo "  ✓ all Go files gofmt-clean"
+ifeq ($(GOIMPORTS),)
+	@echo "verify-fmt: goimports not found; install: go install golang.org/x/tools/cmd/goimports@latest" >&2
+	@exit 1
+else
+	@out=$$($(GOIMPORTS) -l . 2>/dev/null); \
+	if [ -n "$$out" ]; then \
+		echo ""; echo "❌ goimports would reformat (import grouping):"; echo "$$out"; echo ""; \
+		echo "Fix: run 'goimports -w .'."; exit 1; \
+	fi
+endif
+	@echo "  ✓ all Go files gofmt- and goimports-clean"
 
 # ADR-index gate (ADR 0042): every ADR file on disk is listed in
 # docs/decisions/README.md and no ADR number is claimed twice. The index is

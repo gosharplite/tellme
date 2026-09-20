@@ -933,14 +933,22 @@ The A1–A3 items from the quality list. All precise, all green on day one, all 
 | # | Decision |
 | --- | --- |
 | — | `verify-fmt` + `verify-adr-index` **join `make verify`** (fast, hermetic, zero false positives) — **ADR 0042**. |
+| — | `verify-fmt` checks **`gofmt` + `goimports`** (import grouping; `goimports` a PATH prereq); **`gofumpt` rejected** (no reference parity) — **ADR 0042 D6**, resolves **RF-042-2**. |
+| — | **`make check`** (= `verify` + `test`) is the whole local gate; **`make check-full`** adds `test-race` — **ADR 0042 D5**, resolves **RF-042-1**. |
 | — | `test-race` is a **standalone** pre-push target, **not** a `verify` member (expense). |
 | — | The audit's other candidates (`vet` fold, coverage, topology errors) remain **rejected** (ADR 0042 D4). |
 
-### Commits
+### Resume folds (R2 + R3)
+
+- **R2 — `make check` / `make check-full`** added (thin `$(MAKE)` sequencers: `verify`+`test`, and +`test-race`) — resolves **RF-042-1**. `make check` measured **~37 s** on `dev`.
+- **R3 — `goimports` adopted** into `verify-fmt` (gofmt + import grouping; resolves **RF-042-2**); **one file was not goimports-clean** (`tests/e2e/steps/step_t012_root_given_well_formed_config.go` — a missing stdlib/external blank line) and was fixed; `gofumpt` rejected (no reference parity).
+- Surfaces updated: `Makefile` (targets + `.PHONY` + `help`), **ADR 0042** (D5/D6 + RF-042-1/2 resolved), truth *Task runner* + *Formatting* rows, the quality model (+ render), `SESSION-CLOSEOUT` Step 2 (now points at `make check`), `STATUS.md`, this §27.
+
+### Commits (round-free quality pass)
 
 | Commit | Note |
 | --- | --- |
-| *(this pass, on `dev`)* | `chore(make): add verify-fmt + verify-adr-index gates and a test-race target (ADR 0042)` |
+| *(this pass, on `dev`)* | `chore(make): add check/check-full + goimports (ADR 0042 D5/D6; resolves RF-042-1/2)` |
 
 ### Next steps
 
