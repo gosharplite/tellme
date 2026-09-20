@@ -530,9 +530,11 @@ func parseResponse(raw []byte) (llm.Response, error) {
 			FinishReason string `json:"finishReason"`
 		} `json:"candidates"`
 		UsageMetadata *struct {
-			PromptTokenCount     int `json:"promptTokenCount"`
-			CandidatesTokenCount int `json:"candidatesTokenCount"`
-			TotalTokenCount      int `json:"totalTokenCount"`
+			PromptTokenCount        int `json:"promptTokenCount"`
+			CandidatesTokenCount    int `json:"candidatesTokenCount"`
+			TotalTokenCount         int `json:"totalTokenCount"`
+			CachedContentTokenCount int `json:"cachedContentTokenCount"`
+			ThoughtsTokenCount      int `json:"thoughtsTokenCount"`
 		} `json:"usageMetadata"`
 	}
 	if err := json.Unmarshal(raw, &decoded); err != nil {
@@ -572,11 +574,22 @@ func parseResponse(raw []byte) (llm.Response, error) {
 	}
 	resp.Text = sb.String()
 	if decoded.UsageMetadata != nil {
+		um := decoded.UsageMetadata
+		// Round 072 (ADR 0044; closes #149): decode the CACHED and THINKING counts.
+		// Gemini reports the reused-conversation portion under
+		// `cachedContentTokenCount`; omitting it made `CachedTokens` 0, so the miss
+		// (`prompt − cached`) billed the whole prompt at the MISS rate (~10×). The
+		// DISJOINTNESS is family-specific: Gemini's `candidatesTokenCount` EXCLUDES
+		// `thoughtsTokenCount` (total = prompt + candidates + thoughts), so — unlike
+		// the OpenAI-compatible adapter, whose `completion_tokens` INCLUDES reasoning
+		// — there is NO subtraction here. Every count is floored at 0 defensively.
 		resp.Usage = llm.Usage{
 			Reported:         true,
-			PromptTokens:     decoded.UsageMetadata.PromptTokenCount,
-			CompletionTokens: decoded.UsageMetadata.CandidatesTokenCount,
-			TotalTokens:      decoded.UsageMetadata.TotalTokenCount,
+			PromptTokens:     max(0, um.PromptTokenCount),
+			CachedTokens:     max(0, um.CachedContentTokenCount),
+			CompletionTokens: max(0, um.CandidatesTokenCount),
+			ThinkingTokens:   max(0, um.ThoughtsTokenCount),
+			TotalTokens:      max(0, um.TotalTokenCount),
 		}
 	}
 	if strings.TrimSpace(resp.Text) == "" && len(resp.ToolCalls) == 0 {
