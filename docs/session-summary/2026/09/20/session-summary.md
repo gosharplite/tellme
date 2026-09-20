@@ -665,3 +665,43 @@ The operator: *"Communicate with sub-agent 'architect'. Initialize architect wit
 
 1. Open the next round off `dev` from a **value / live-issue** candidate ([#91](https://github.com/gosharplite/tellme/issues/91) · [#13](https://github.com/gosharplite/tellme/issues/13) · the media-channel refactor RF-069-1) — **not** from the open-items index.
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 21. Session 54 (2026-09-20, cont.) — round **070** `070-media-channel-in-band` **OPENED** (anchor issue [#142](https://github.com/gosharplite/tellme/issues/142) + `/axb-specify`)
+
+The operator: *"Create a detail new issue for this [the media-channel refactor]. Open round 070, the goal is to close the new issue."* — preceded by *"Before you start, tell me if round 070 will create another never ending story."*
+
+### The honest answer to the operator's question (recorded)
+
+**It need not be — and this round is designed to *end* the RF-062-10 lineage, not extend it.** The material facts:
+
+- **RF-062-10 was a bundle of two** (the `ToolSetSpec` seam **+** the media channel). The seam landed in round 069; the media half is **RF-069-1**. Round 070 closes the bundle — **RF-062-10 has no remaining half**.
+- **The failure mode to avoid** is structural refactors spawning **design-variant muses** ("the shape we did not take") left as live candidates — exactly how RF-062-10 became a multi-round thread. The round therefore **commits** (issue/spec `I-6`, S-4): the **not-taken shape is a *settled rejection*** in the new ADR, **not** a forward item; the media channel lands **in one round** (a discovered split is a **STOP-and-re-decide**, not a "part 2").
+- **Residual risk, stated honestly:** the round touches the **`Tool` port** (a widely-referenced truth contract), so the blast radius is real; if the shape is chosen badly or the change is halved, it *could* spawn follow-ups. That is precisely what the no-halving + settled-rejection rules exist to prevent.
+- *(Corrected a sloppy prior statement: this is a **contract/type-honesty** limit, **not** a Go `string` limit — image bytes *can* ride a string, but every textual consumer of the result would corrupt them, and the conversation model needs a typed media part.)*
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Anchor issue | **[#142](https://github.com/gosharplite/tellme/issues/142)** created (grounded on `dev` @ `d6d606f`): make the media effect **in-band**; retire the per-call `context` collector; **completes RF-062-10 / retires RF-069-1**. **DoD = close it.** |
+| Branch | `070-media-channel-in-band` (off `dev` `d6d606f`) |
+| `/axb-specify` | ✅ — `specs/plans/070-media-channel-in-band/` (`spec.md` · `checklists/requirements.md` · `truth-delta.md`). No `specs/truth/**` (SOP). |
+| Shape (deferred) | **(a) widen the `Tool` port** vs **(b) a second, optional interface** → `/axb-technical-research`; the **rejected** shape recorded as a **settled rejection** (S-4). |
+| Invariants | I-1 behaviour byte-identical · I-2 no config/UX change · I-3 the reason gate / resource contract / timeout unchanged · I-4 layer gate 0 · I-5 stdlib-only · **I-6 no halving**. |
+| Clarify | **not escalated (0 questions)** — the goal is unambiguous; the shape is technical (escalate only if research finds the shape changes the formal acceptance). |
+
+### Decisions locked (round 070, this phase)
+
+| # | Decision |
+| --- | --- |
+| — | Round 070 opens from anchor **[#142](https://github.com/gosharplite/tellme/issues/142)**; **DoD = closing it** + retiring RF-069-1 + completing RF-062-10. |
+| — | The media effect becomes **in-band** (a `domain/tools` media value returned from `Execute`, translated by the loop); the **collector is deleted**. |
+| — | The **rejected shape is a settled rejection**, not a forward item (anti-muse). |
+| — | **No halving** (I-6) — a discovered split is a STOP-and-re-decide. |
+
+### Next steps
+
+1. `/axb-technical-research` (the shape decision + a new ADR + `techstack.md` MODIFY; annotate RF-062-10/RF-069-1) → `/axb-system-analysis` → `/axb-dsl-refine` (NOOP) → `/axb-tasks` → `/axb-implement` → PR (human merges) → closeout (tag `round-070`, **close [#142](https://github.com/gosharplite/tellme/issues/142)**).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `070-media-channel-in-band`).
