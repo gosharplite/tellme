@@ -982,3 +982,43 @@ The A1–A3 items from the quality list. All precise, all green on day one, all 
 ### PM follow-ups
 
 - **None open** (all session-56 work was docs/tooling; no user-facing journey).
+
+---
+
+## 29. Session 56 (2026-09-20, cont.) — issue-tracker reconciliation: the self-development umbrella re-grounded (**#91 → #145**, closed `not_planned`) + a `tell-me-go` **tool gap inventory** (**#146**); two stale #145 cells corrected; skills locked AS-IS (docs/issue-tracker only; no round, no product code)
+
+A later session on the same calendar day. Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 070 delivered/frozen; active branch `dev`, tree clean), then answered the operator's grounding questions and reconciled the issue tracker.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| **#91 re-check** | Confirmed #91 (the `tell-me-go → tellme` driver-switch umbrella, written at round 041) was **partly stale**: the *analysis* held (context management ❌, sub-agents ❌, skills on-demand, MCP remote-only) but the **whole capability table**, the **round-track table** ("042 = context management"), the **references line** ("round 041 … next round 042"), and the **agent tool count ("seven")** were out of date — it is **eight** (`read_image` added, rounds 062/063); its "related open issues" (#69/#13) were both **CLOSED**. |
+| **#145 created** | [**#145**](https://github.com/gosharplite/tellme/issues/145) — the umbrella **re-grounded** to `dev` @ `8b91ed8` (round 070): corrected tool surface, refreshed round-track/references, closed-issue references fixed, the Option-B exercise folded in, rounds 042–070 summarised. |
+| **#91 closed** | **[#91](https://github.com/gosharplite/tellme/issues/91) CLOSED `not_planned`** (superseded by #145), with a linking comment. |
+| **#145 corrected (operator)** | **(a) Context management settled OUT** — *there will be no context management in tellme anytime soon*; the "last hard gap" framing **withdrawn**; it moved to **Non-goals**. **(b) Sub-agents ✅ reachable now** — `tellme` messages peer personas via the **`tmg-chat-ingroup` protocol** driven with `execute_command` (invoke the `tellme` binary as the peer; `env -u TELL_ME_MODE`; staged `/tmp` prompt; retrieve `-l 1`); no **built-in** spawn construct, but the capability works (exercised PASS). |
+| **Skills locked (operator)** | **Skills stay AS-IS**: the round-033 **on-demand** `list_skills` surface is accepted; **no automatic relevance-based injection** (the recorded divergence stands — no truth change needed). |
+| **#145 re-scoped (operator)** | *"I already use tellme to develop tellme repo for the past 20 rounds. The title is out-of-date."* → **RETITLED / re-scoped**: the goal is **ACHIEVED** — `tellme` **is** the dev driver (~20 rounds); `tell-me-go` is the **capability/architecture reference only**. #145 is now a **residual / Phase-2 tracker**, all four decisions resolved. |
+| **#146 created (operator)** | [**#146**](https://github.com/gosharplite/tellme/issues/146) — a **`tell-me-go` agent-tool gap inventory** (derived from the reference tree @ `8ca180f4`, `internal/tools/**` ToolDeclaration registrations): the **~86** reference tools absent from `tellme`, grouped (Git 7 · Go/AST 23 · dev toolchain 7 · filesystem extras 6 · state/history 4 · security 2 · skills.sh 3 · media 3 · network 2 · enterprise 26 · meta 1), vs the **8 shared**; flags which are **deliberate exclusions**. |
+| Status/record | `STATUS.md` header + roadmap + carried-forward pointer + **issue-tracker line** reconciled; this §29. Docs/issue-tracker only — **no round, no product code, no `specs/truth/**` change**. |
+
+### Decisions locked
+
+| # | Decision |
+| --- | --- |
+| — | **Self-development goal ACHIEVED** — `tellme` drives `tellme`; `tell-me-go` is the **reference only** (#145 re-scoped; #91 retired). |
+| — | **Context management** (summarise/prune/pin) — **settled OUT** (not planned). |
+| — | **Skills** — on-demand **AS-IS**; no automatic injection (recorded divergence kept). |
+| — | **Sub-agent messaging** — **reachable now** via `tmg-chat-ingroup` + `execute_command` (no first-class construct). |
+
+### Open items
+
+- **[#145](https://github.com/gosharplite/tellme/issues/145)** and **[#146](https://github.com/gosharplite/tellme/issues/146)** are the **only two open issues**.
+- **#145's only open decision:** whether to **close it `completed`** (the milestone is met) or keep it as the residual tracker. *(Operator to decide.)*
+- **Propagation:** none required — no `specs/truth/**`/product change (docs/issue-tracker only). `dev` is the active branch; **no round in flight**.
+
+### Next steps
+
+1. Open the next round off `dev` from **operator value** — **not** from the `#146` inventory or the `ADR §Forward` disclosures (curation rule).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
