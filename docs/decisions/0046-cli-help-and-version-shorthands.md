@@ -50,3 +50,5 @@ Two clarify questions were settled (one at a time):
 - **RF-074-3** — no full-text golden pin for the help block (only "the flag names appear").
 - **RF-074-4** — no `-V` / `--Version` / `-?` aliases.
 - **RF-074-5** — `flags.helpText` caches the rendered flag list on the parse result; the cleaner shape is to hand the `*pflag.FlagSet` (or a render func) back to `run` and render there (review RF-1; non-blocking, single caller).
+- **RF-074-6** — `specs/truth/techstack.md` *Session lifecycle flags* still carries a **scoped subset** chain *"(offline; precedence `-d` → `-l` → `-t` → `--tool-usage`)"*. It describes the **reporting batch**, not the precedence owner (the *Prompt input* row, corrected this round), so it is **not** a contradiction — noted so a future reader does not read it as one (fold-verification R-1).
+- **RF-074-7** — the `-v`/`--version` Examples carry no `tellme performs no network access` Then (neither did `--version` before this round); the offline scope enumeration **does** now name both. A future strengthening could add the Then for symmetry (fold-verification R-2).
