@@ -36,7 +36,7 @@ The reference (`tell-me-go/internal/infrastructure/llm/gemini/metrics.go:17-28`)
 - A Gemini/Vertex turn now reports real `H`/`Th` figures; a reused prefix is billed at the HIT rate and the miss shrinks to the genuinely-new input.
 - The `tokens.log` records and the session `H`/`M` totals become correct for the Gemini family.
 - The family split in the disjointness rule becomes an explicit, documented invariant rather than an accident of “no code”: a future adapter must declare which side it is on.
-- **Recorded divergence from the reference:** none in the mapping — the round matches `tell-me-go` exactly (modulo tellme's zero-floor + the shared formula).
+- **Recorded divergence from the reference:** the field **mapping** matches `tell-me-go` exactly (`metrics.go:19-27`); the two deliberate divergences are (a) tellme **floors** every count at 0 and (b) tellme additionally **caps** the cached count at the prompt count (D4) — the reference assigns `CachedContentTokenCount` verbatim, so a provider reporting `cached > prompt` would give it a negative miss. Both are safety refinements, not behavioural mismatches on a well-formed response.
 
 ## Verification
 

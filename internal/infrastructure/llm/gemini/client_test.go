@@ -318,7 +318,7 @@ func TestParseResponse_AbsentCachedFieldsStayZero(t *testing.T) {
 	}
 }
 
-// TestParseResponse_CachedNeverExceedsPrompt pins the TP-072-1 fold: a provider
+// TestParseResponse_CachedNeverExceedsPrompt pins the TD-072-1 fold: a provider
 // reporting cached > prompt is CAPPED at the prompt, so the miss (prompt − cached)
 // can never go negative and the hit-rate can never exceed 100%.
 func TestParseResponse_CachedNeverExceedsPrompt(t *testing.T) {
