@@ -290,4 +290,17 @@ A later session on the same calendar day, continuing round 066: the operator dir
 
 *(Round 066 is fully closed out: PR #135 human-merged into `dev` (`e4410e4`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-066`**; the installed binary refreshed; [#134](https://github.com/gosharplite/tellme/issues/134) closed.)*
 
+---
+
+## 10. Session 46 (2026-09-20, cont.) — RETIRED the recurring "comment-only meta-Rule" PM follow-up (RF-063-10)
+
+The operator flagged the meta-problem directly: **RF-063-10 was re-surfaced at every fresh session** — it lived on a bootstrap-read surface (`STATUS.md`'s *PM follow-ups* line), so each new session inherited it as an open item and re-litigated it. **The recurrence was the bug, not the item.** Closed durably (docs/truth only; no product code):
+
+- **`specs/truth/features/cli/chat/reading-a-local-image.feature`** — the comment-only `Rule: The protection is part of every delivery` (no Examples) demoted to a plain `#` note (the only **editable** occurrence; no steps, no DSL row, no E2E/audit impact).
+- **ADR 0033 §Forward RF-063-10** — annotated **RETIRED** with the recorded convention: *every `Rule` carries ≥1 Example; no comment-only meta-Rules*; the frozen occurrences (plan packages 061/062/063) stay immutable by `plan-package-frozen`; the class stopped recurring (064 fixed it in-round; 065 + 066 authored none).
+- **`STATUS.md`** — the *PM follow-ups* line is now **"none open"** (with an explicit **do not re-open / re-raise**); the round-063 forward-items line marks RF-063-10 **RETIRED**.
+
+**Verification:** topology audit **identical** (49 features · 16 root + 384 module rows · 1989 steps · the same 5 pre-existing errors) · `go test -count=1 ./tests/e2e/` **green** (19.7 s). Commit on `dev`; no `specs/plans/**` touched.
+
+**Lesson (recorded):** a low-value, PM-owned, non-blocking item must be **retired on the surfaces a session actually reads** or it becomes a permanent muse. A "PM follow-up" that no one intends to action is not a plan — it is noise.
 
