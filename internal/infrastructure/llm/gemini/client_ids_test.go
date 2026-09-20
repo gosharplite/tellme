@@ -2,6 +2,7 @@ package gemini
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/gosharplite/tellme/internal/domain/llm"
@@ -220,5 +221,140 @@ func TestRequestBody_ReplayedStepIDsPairByIdentity(t *testing.T) {
 	}
 	if fc["id"] != "call_step_1" || fr["id"] != "call_step_1" {
 		t.Errorf("replay parts must carry equal ids: functionCall.id=%v functionResponse.id=%v, want call_step_1", fc["id"], fr["id"])
+	}
+}
+
+// TestParseResponse_PrefersProviderFunctionCallID pins round 067 (ADR 0037;
+// closes #136) FR-006 (US2 Scenario 1 / SC-002): when the Vertex response carries
+// a `functionCall.id`, `parseResponse` PREFERS it over the synthetic `call_<n>`,
+// and the preferred id then flows to both the emitted `functionCall` and its
+// `functionResponse` (a single-family session keeps this Gemini-local).
+func TestParseResponse_PrefersProviderFunctionCallID(t *testing.T) {
+	raw := []byte(`{"candidates":[{"content":{"parts":[{"functionCall":{"id":"vertex-abc","name":"read_files","args":{"filepaths":["a.txt"]}}}]}}]}`)
+	resp, err := parseResponse(raw)
+	if err != nil {
+		t.Fatalf("parseResponse: %v", err)
+	}
+	if len(resp.ToolCalls) != 1 || resp.ToolCalls[0].ID != "vertex-abc" {
+		t.Fatalf("parseResponse id preference: got %+v, want a single call with id vertex-abc", resp.ToolCalls)
+	}
+	// The preferred id flows through to the wire (call + its answer).
+	prior := []llm.Message{
+		{Role: "assistant", ToolCalls: resp.ToolCalls},
+		{Role: "tool", Content: "note a", ToolCallID: "vertex-abc"},
+	}
+	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	if err != nil {
+		t.Fatalf("requestBody: %v", err)
+	}
+	turns := decodeContents(t, body)
+	fc, _ := turns[0].Parts[0]["functionCall"].(map[string]any)
+	fr, _ := turns[1].Parts[0]["functionResponse"].(map[string]any)
+	if fc == nil || fr == nil {
+		t.Fatalf("expected a functionCall then a functionResponse: %+v", turns)
+	}
+	if fc["id"] != "vertex-abc" || fr["id"] != "vertex-abc" {
+		t.Errorf("provider id must flow to the wire: functionCall.id=%v functionResponse.id=%v, want vertex-abc", fc["id"], fr["id"])
+	}
+}
+
+// TestParseResponse_FallsBackToDeterministicID pins FR-007/FR-008 (SC-002): a
+// response WITHOUT a provider id — or with a blank/whitespace one — falls back to
+// the deterministic `call_<n>`, identical across builds (never an empty id).
+func TestParseResponse_FallsBackToDeterministicID(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		raw  string
+	}{
+		{"absent", `{"candidates":[{"content":{"parts":[{"functionCall":{"name":"a","args":{}}},{"functionCall":{"name":"b","args":{}}}]}}]}`},
+		{"blank", `{"candidates":[{"content":{"parts":[{"functionCall":{"id":"   ","name":"a","args":{}}}]}}]}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			first, err := parseResponse([]byte(tc.raw))
+			if err != nil {
+				t.Fatalf("parseResponse: %v", err)
+			}
+			for i, tc2 := range first.ToolCalls {
+				if want := fmt.Sprintf("call_%d", i+1); tc2.ID != want {
+					t.Errorf("call %d id = %q, want deterministic %q", i, tc2.ID, want)
+				}
+			}
+			// Deterministic across builds: a second parse yields the same ids.
+			second, err := parseResponse([]byte(tc.raw))
+			if err != nil {
+				t.Fatalf("parseResponse (2): %v", err)
+			}
+			for i := range first.ToolCalls {
+				if first.ToolCalls[i].ID != second.ToolCalls[i].ID {
+					t.Errorf("call %d id not deterministic: %q vs %q", i, first.ToolCalls[i].ID, second.ToolCalls[i].ID)
+				}
+			}
+		})
+	}
+}
+
+// TestUnpairedCallIDs_ShortRound_ReportsUnpairedCall pins round 067 (ADR 0037;
+// closes #136) FR-001/FR-004 (US1 Scenario 1 / SC-001 / SC-007): a round that
+// yields M < N results makes the UNPAIRED calls' ids observable, in call order —
+// the boundary drop is never silent. This exact-identity account retires the
+// round-066 `N=2 M=1` residual (RF-066-8): a partial-drop mutant changes the set.
+func TestUnpairedCallIDs_ShortRound_ReportsUnpairedCall(t *testing.T) {
+	prior := []llm.Message{
+		{Role: "assistant", ToolCalls: []llm.ToolCall{
+			{ID: "call_1", Name: "read_files", Arguments: `{}`},
+			{ID: "call_2", Name: "list_files", Arguments: `{}`},
+		}},
+		{Role: "tool", Content: "note a", ToolCallID: "call_1"}, // only call_1 is answered
+	}
+	got := UnpairedCallIDs(prior)
+	if len(got) != 1 || got[0] != "call_2" {
+		t.Fatalf("UnpairedCallIDs = %v, want [call_2] (the unpaired call's id, call order)", got)
+	}
+	// The emitted batched turn still carries only the M produced parts (I-2).
+	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	if err != nil {
+		t.Fatalf("requestBody: %v", err)
+	}
+	turns := decodeContents(t, body)
+	if len(turns) != 2 || len(turns[1].Parts) != 1 {
+		t.Fatalf("emitted batched turn = %+v, want one user turn with exactly 1 part", turns)
+	}
+}
+
+// TestUnpairedCallIDs_AllPairedIsEmpty pins FR-002 (US1 Scenario 2): a round whose
+// every call is answered reports no unpaired call (the accounting invents no gap).
+func TestUnpairedCallIDs_AllPairedIsEmpty(t *testing.T) {
+	prior := []llm.Message{
+		{Role: "assistant", ToolCalls: []llm.ToolCall{
+			{ID: "call_1", Name: "read_files", Arguments: `{}`},
+			{ID: "call_2", Name: "list_files", Arguments: `{}`},
+		}},
+		{Role: "tool", Content: "a", ToolCallID: "call_1"},
+		{Role: "tool", Content: "b", ToolCallID: "call_2"},
+	}
+	if got := UnpairedCallIDs(prior); len(got) != 0 {
+		t.Fatalf("UnpairedCallIDs = %v, want empty (every call paired)", got)
+	}
+}
+
+// TestUnpairedCallIDs_MultiRound pins FR-004: the account spans rounds, in call
+// order — an unpaired call of an earlier round is not lost when a later round
+// flushes, and each round's unpaired ids appear in call order.
+func TestUnpairedCallIDs_MultiRound(t *testing.T) {
+	prior := []llm.Message{
+		{Role: "assistant", ToolCalls: []llm.ToolCall{
+			{ID: "call_r1a", Name: "read_files", Arguments: `{}`},
+			{ID: "call_r1b", Name: "list_files", Arguments: `{}`},
+		}},
+		{Role: "tool", Content: "r1a", ToolCallID: "call_r1a"}, // call_r1b unpaired
+		{Role: "assistant", ToolCalls: []llm.ToolCall{
+			{ID: "call_r2a", Name: "get_tree", Arguments: `{}`},
+		}},
+		// call_r2a unpaired (the next model turn / prompt flushes round 2).
+	}
+	got := UnpairedCallIDs(prior)
+	want := []string{"call_r1b", "call_r2a"}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("UnpairedCallIDs = %v, want %v (call order across rounds)", got, want)
 	}
 }

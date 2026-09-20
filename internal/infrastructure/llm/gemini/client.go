@@ -193,7 +193,40 @@ func requestBody(prompt string, prior []llm.Message, toolDefs []llm.ToolDef, max
 // results in CALL order, so the wire shape is unchanged (the added `id` key is
 // the sole difference).
 func buildContents(prompt string, prior []llm.Message) []map[string]any {
-	b := &roundBuilder{resultParts: map[int]map[string]any{}}
+	b := newRoundBuilder()
+	b.consume(prior)
+	b.flush()
+	if prompt != "" {
+		b.contents = append(b.contents, map[string]any{"role": "user", "parts": []map[string]any{{"text": prompt}}})
+	}
+	return b.contents
+}
+
+// UnpairedCallIDs returns, in call order across the whole prior, the ids of the
+// Gemini/Vertex tool calls that received no result by their round boundary — the
+// M < N boundary drop made observable (round 067; ADR 0037; RF-066-7). The
+// adapter still drops such calls from the wire (the batched turn carries only the
+// M results the round produced), but the accounting is single-owned here, so the
+// drop is never silent in code that inspects the round. A round whose calls are
+// all paired contributes nothing. Exported as a documented seam for a future
+// diagnostic/consumer (surfacing it as a user-visible `[Tool …]` note is a
+// recorded forward item — the adapter owns no logging seam).
+func UnpairedCallIDs(prior []llm.Message) []string {
+	b := newRoundBuilder()
+	b.consume(prior)
+	b.flush()
+	return b.dropped
+}
+
+// newRoundBuilder builds an empty round builder.
+func newRoundBuilder() *roundBuilder {
+	return &roundBuilder{resultParts: map[int]map[string]any{}}
+}
+
+// consume walks the prior conversation, buffering each round's calls/results and
+// flushing a round at its boundary (a `model` turn, a plain-text turn, or the
+// prompt). Shared by buildContents and UnpairedCallIDs so their walk cannot drift.
+func (b *roundBuilder) consume(prior []llm.Message) {
 	for _, m := range prior {
 		switch {
 		case len(m.ToolCalls) > 0:
@@ -215,11 +248,6 @@ func buildContents(prompt string, prior []llm.Message) []map[string]any {
 			b.textTurn(m)
 		}
 	}
-	b.flush()
-	if prompt != "" {
-		b.contents = append(b.contents, map[string]any{"role": "user", "parts": []map[string]any{{"text": prompt}}})
-	}
-	return b.contents
 }
 
 // callEntry is one function call of the current round awaiting its result.
@@ -237,6 +265,21 @@ type roundBuilder struct {
 	resultParts  map[int]map[string]any // one functionResponse PART per matched call index
 	extraResults []map[string]any       // results with no call to bind (kept, name "")
 	mediaTurns   [][]map[string]any     // this round's standalone media turns
+	dropped      []string               // ids of calls left unpaired at a round boundary (round 067; RF-066-7)
+}
+
+// unpaired returns, in call order, the ids of the current round's calls that
+// have received no result — the M < N boundary drop's account (round 067;
+// ADR 0037; RF-066-7). Computed at the one place the drop happens (flush), so the
+// accounting cannot drift between call sites.
+func (b *roundBuilder) unpaired() []string {
+	var ids []string
+	for i := range b.pending {
+		if !b.pending[i].used {
+			ids = append(ids, b.pending[i].id)
+		}
+	}
+	return ids
 }
 
 // flush emits the buffered round: the batched function-response turn (when any
@@ -258,6 +301,7 @@ func (b *roundBuilder) flush() {
 		parts = append(parts, b.extraResults...)
 		b.contents = append(b.contents, map[string]any{"role": "user", "parts": parts})
 	}
+	b.dropped = append(b.dropped, b.unpaired()...) // round 067: account the boundary drop (RF-066-7)
 	b.resultParts = map[int]map[string]any{}
 	b.extraResults = nil
 	b.pending = nil
@@ -453,6 +497,20 @@ func geminiFunctionCallTruncationError(tool string) error {
 	return fmt.Errorf("response truncated at %s during function call (tool=%q): the tool arguments are incomplete and cannot be safely dispatched; increase MAX_TOKENS or break the call up", geminiFinishReasonMaxTokens, tool)
 }
 
+// callID resolves a function call's wire id (round 067; ADR 0037; RF-066-2): the
+// provider's own `functionCall.id` when it is present and non-empty (reference
+// parity — `fromSDKFunctionCall` reads `f.ID` first), else the deterministic
+// positional `call_<n>` fallback (unchanged from pre-067). A blank/whitespace
+// provider id is treated as ABSENT (never an empty `id` on the wire — ADR 0036
+// D2/D4). The fallback spelling stays `call_<n>`; the reference's
+// `gemini-call-<index>-<name>` is deliberately NOT adopted.
+func callID(callIdx int, providerID string) string {
+	if strings.TrimSpace(providerID) != "" {
+		return providerID
+	}
+	return fmt.Sprintf("call_%d", callIdx)
+}
+
 // parseResponse extracts candidates[0].content.parts (text + functionCall) and
 // usageMetadata (pure helper). A response must carry either answer text or at
 // least one function call; an empty response is an error.
@@ -464,6 +522,7 @@ func parseResponse(raw []byte) (llm.Response, error) {
 					Text             string `json:"text"`
 					ThoughtSignature string `json:"thoughtSignature"`
 					FunctionCall     *struct {
+						ID   string          `json:"id"`
 						Name string          `json:"name"`
 						Args json.RawMessage `json:"args"`
 					} `json:"functionCall"`
@@ -503,7 +562,7 @@ func parseResponse(raw []byte) (llm.Response, error) {
 				args = "{}"
 			}
 			resp.ToolCalls = append(resp.ToolCalls, llm.ToolCall{
-				ID:        fmt.Sprintf("call_%d", callIdx),
+				ID:        callID(callIdx, p.FunctionCall.ID),
 				Name:      p.FunctionCall.Name,
 				Arguments: args,
 				Signature: p.ThoughtSignature,
