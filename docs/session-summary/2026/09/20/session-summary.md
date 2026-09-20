@@ -954,3 +954,31 @@ The A1–A3 items from the quality list. All precise, all green on day one, all 
 
 1. Open the next round off `dev` from the **operator-value / live-issue** candidate — **[#91](https://github.com/gosharplite/tellme/issues/91)**.
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+---
+
+## 28. Session 56 (2026-09-20, cont.) — `SESSION-CLOSEOUT.md`: the quality program closed out (Steps 1–8)
+
+**Status at end of day**: **no round in flight** — round 070 remains the last delivered round; the session-56 **docs/quality program** (coverage decline · model refresh · `staticcheck` retirement · **ADR 0041** model drift guard · **ADR 0042** quality gates) is **delivered on `dev` and propagated to `main`** (no round tag — docs/quality only). Only **[#91](https://github.com/gosharplite/tellme/issues/91)** remains open.
+
+### Steps 1–8
+
+- **Step 1 — working tree**: `dev` clean (`## dev...origin/dev`); no stray/`/tmp` staging; no frozen `specs/plans/**` touched.
+- **Step 2 — gates**: **`make check-full` PASSED** (`make verify` **OK** + `make test` green + `make test-race` **no data races**, ~90 s) · `modelith-lint` **0/0** ×3 · `modelith-check` green · advisory `make modelith-drift` ✓ (28 checked) · `gofmt -l .` **and** `goimports -l .` empty · ADR-index green · STATUS internal links resolve · secret scan clean.
+- **Step 3 — `STATUS.md`**: header → session-56 closeout + propagation recorded; **branch model** (`main`/`dev` rows note the session-56 no-ff propagation `6dfff6c`); **propagation history** line extended; host/toolchain note now lists **`goimports`** (a `verify-fmt` prereq). **No Rule-12 split** — 110 lines, one delivered-round section (well under the ~150 threshold).
+- **Step 4 — day summary**: **appended** this §28 (the §1–§27 record preserved; `date` confirmed 2026-09-20).
+- **Step 5 — reconciliation**: `STATUS.md` ↔ this summary agree — no round in flight; `dev` active; `main` up to date (no-ff, no tag); #91 the only open issue.
+- **Step 6 — commit**: `docs: session closeout — quality program (ADR 0041/0042) delivered + propagated; STATUS + 09/20 summary §28`.
+- **Step 7 — propagation + handoff**: `dev → main` **DONE (no-ff)**; `main^{tree} == dev^{tree}` verified; **no `round-NNN` tag** (docs/quality passes, not a round delivery — ADR 0026); installed binary refreshed (`go install ./cmd/tellme`, `--version` → `dev`). **Next-session start point**: active branch `dev`, **no round in flight**; open the next round off `dev` via `/axb-specify` from the operator-value issue **[#91](https://github.com/gosharplite/tellme/issues/91)** (lock its three decisions first).
+- **Step 8 — issue tracker**: the **only** open issue is **[#91](https://github.com/gosharplite/tellme/issues/91)** (self-development umbrella) — **left OPEN** (accurate). No closes/revises needed ([#13](https://github.com/gosharplite/tellme/issues/13)/[#144](https://github.com/gosharplite/tellme/issues/144) closed earlier this session).
+
+### Commits (this closeout, on `dev`)
+
+| Commit | Note |
+| --- | --- |
+| *(this closeout)* | `docs: session closeout — quality program (ADR 0041/0042) delivered + propagated; STATUS + 09/20 summary §28` |
+| *(propagation)* | `dev → main` no-ff merge |
+
+### PM follow-ups
+
+- **None open** (all session-56 work was docs/tooling; no user-facing journey).
