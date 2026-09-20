@@ -16,7 +16,7 @@
 
 - [x] 已完成所有必填章節
 - [x] 功能主題、範圍與主要流程已表達清楚（新增第九個 tool `search_files`：在目錄子樹內做 **bounded、deterministic** 的檔案內容搜尋 — reader trio 缺的那一半）
-- [ ] 沒有把實作技術、框架或程式細節寫成需求（搜尋模式／ignore policy／bound 機制的 **正式驗收面** 已明確升級為 clarify Q1–Q3；其餘機制留待 `/axb-technical-research`）
+- [x] 沒有把實作技術、框架或程式細節寫成需求（搜尋模式／ignore policy／bound 機制的 **正式驗收面** 已由 clarify Q1–Q3 拍板；其餘機制留待 `/axb-technical-research`）
 - [x] 邊界情況已涵蓋主要高風險情境（0 matches／invalid regex／binary／unreadable／超大檔與超長行／path 為檔案／空 query／timeout）
 - [x] 關鍵實體與成功標準已補齊
 
@@ -31,7 +31,7 @@
 - [x] FR 使用 MUST 等可驗證語言
 - [x] 成功標準可量測（SC-001 assembler／report／schema gate；SC-002 E2E；SC-003 gates；SC-004 bash 對照的 boundedness witness）
 - [x] 邊界與拒絕條件已明列（I-1 reason gate、I-2 resource contract、I-3 no-security-layer、I-4 deterministic、I-8 無 config/UX 變更）
-- [ ] **`NEEDS CLARIFICATION` 未收斂**：Q1 搜尋模式、Q2 scope/ignore、Q3 bound/shape — **阻塞 `/axb-spec-by-example`**（工具 schema 與輸出即驗收契約）
+- [x] **`NEEDS CLARIFICATION` 已收斂**（Q1→A、Q2→A、Q3→A），已回折 `spec.md`；可進入 `/axb-spec-by-example`
 
 ## 範圍與邊界
 
@@ -47,7 +47,7 @@
 
 ## Ready 判定
 
-- [ ] 已可進入後續規劃
-- [x] 仍需先補高影響需求缺口 → `/axb-clarify`（Q1–Q3，一次一題）
+- [x] 已可進入後續規劃（clarify 已收斂）
+- [ ] 仍需先補高影響需求缺口
 
 **備註**: `/axb-clarify` 收斂並回折 spec 後，方可進 `/axb-spec-by-example`（預期 **ADD**：新增一個 CLI journey，非 NOOP — 本輪有使用者可見（模型可見）的新行為）與 `/axb-technical-research`（工具實作決策 + `techstack.md` MODIFY + 新 ADR）。

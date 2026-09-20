@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-20
 
-**Status**: Draft (specified — clarify **ESCALATED**; see §Clarify strategy)
+**Status**: Draft (specified — clarify **folded**, Q1–Q3 locked; see §Clarify strategy)
 
 **Anchor**: issue [#147](https://github.com/gosharplite/tellme/issues/147) — the candidate inventory. `search_files` is the **one** Filesystem candidate ("the missing half of the reader trio"); a candidate round is opened **from operator value**, which the operator gave this session.
 
@@ -50,9 +50,9 @@
 | **S-3** | It is **deterministic** — a fixed, reproducible result order (not the reference's worker order). | locked (I-4) |
 | **S-4** | It carries the **mandatory `reason`** (ADR 0025) and the shared resource schema (round-031 `required ⊆ properties`). | locked (I-1/I-7) |
 | **S-5** | **No `SafePath` / consent** — the tool reads the path it is given (the settled no-security-layer exclusion). | locked |
-| **S-6** | **Search mode** — literal-default with an `is_regex` opt-in (reference parity) · always-regex · an explicit required `mode`. | **clarify Q1** |
-| **S-7** | **Scope / ignore policy** — what the walk skips (binary files · hidden dirs · `.git`/`vendor`/`node_modules`/build output · a per-file size cap). | **clarify Q2** |
-| **S-8** | **Bound & shape** — a hard match cap (reference: 100) + a per-line trim, alongside the byte budget; the exact match-line format. | **clarify Q3** (research may settle the mechanics) |
+| **S-6** | **Search mode** — literal substring by default with an `is_regex: true` RE2 opt-in. | **locked (Q1 → A)** |
+| **S-7** | **Scope / ignore policy** — skip binary files + a 10 MB max-line token; **no** directory ignore list; unreadable skipped best-effort. | **locked (Q2 → A)** |
+| **S-8** | **Bound & shape** — the byte budget (primary) + a hard 100-match cap + a 500-char per-line trim; `path:line: <trimmed line>`, sorted path-then-line. | **locked (Q3 → A)** |
 
 **Non-negotiable invariants (proposed, not open):**
 
@@ -69,13 +69,15 @@
 
 ## Clarify strategy
 
-**ESCALATED (up to 3 questions, asked one at a time).** Three gaps change the tool's **formal acceptance criteria** — its schema and its observable output *are* the acceptance contract — so they are interviewed, never assumed:
+**FOLDED — Q1/Q2/Q3 answered one at a time (this session).** Three gaps changed the tool's **formal acceptance criteria** — its schema and its observable output *are* the acceptance contract — so they were interviewed, never assumed. Locked answers:
 
-- **Q1 — search mode**: literal-default with an `is_regex` opt-in (reference parity) · always-regex · an explicit required `mode`?
-- **Q2 — scope / ignore**: which of **binary files** · **hidden dirs** · **`.git`/`vendor`/`node_modules`/build output** · a **per-file size cap** does the walk skip — and does it follow the sibling readers' "read whatever you are given" stance?
-- **Q3 — bound & shape**: a hard **match cap** (reference: 100) + a **per-line trim**, or the **byte budget alone**; the exact **match-line format**.
+- **Q1 → A — search mode**: a **literal** substring by default, with an **`is_regex: true`** opt-in for an RE2 pattern.
+- **Q2 → A — scope / ignore**: skip **binary** files + a **10 MB max-line token**, **no** directory ignore list, unreadable paths skipped best-effort; the caller scopes with `path`.
+- **Q3 → A — bound & shape**: the round-024 **byte budget is the primary bound**, plus a hard degenerate **100-match cap** and a **500-char per-line trim**; format `path:line: <trimmed line>`, sorted **path asc, then line asc**; the truncation marker is the shared `TruncationMarker`.
 
-**No `NEEDS CLARIFICATION` is silently assumed** — each is answered in `/axb-clarify` (one at a time) and folded back **before** `/axb-spec-by-example`.
+**No `NEEDS CLARIFICATION` remains.** (`/axb-clarify` was delegated by `/axb-specify`; the operator's standing *"keep going unless you need to ask"* instruction applied to Q3 after Q1/Q2 were answered — Q3's **recommended** option A was therefore locked.)
+
+**Technical (not clarify) decisions deferred to `/axb-technical-research`**: the walk/sort mechanics, the scan cap, and the file layout (all in `research.md` D1–D7).
 
 ---
 
