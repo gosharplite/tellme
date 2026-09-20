@@ -24,7 +24,13 @@ func thenPrintsFlagList(ctx context.Context) error {
 	if strings.TrimSpace(sc.stdout) == "" {
 		return fmt.Errorf("the help must print a flag list; stdout is empty (stderr=%q)", sc.stderr)
 	}
-	for _, want := range []string{"-h, --help", "-v, --version", "-c, --config", "-d, --diagnostics", "-l, --list", "-r, --raw"} {
+	// The full accepted flag surface (round-074 fold TD-3): the claim in the
+	// `usage/dsl.md` row and this carrier must not drift.
+	for _, want := range []string{
+		"-h, --help", "-v, --version",
+		"-c, --config", "-d, --diagnostics", "-i, --interactive", "-l, --list",
+		"--new", "-r, --raw", "-t, --turns", "--tool-usage",
+	} {
 		if !strings.Contains(sc.stdout, want) {
 			return fmt.Errorf("the flag list is missing %q; stdout=%q", want, sc.stdout)
 		}

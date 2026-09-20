@@ -12,6 +12,8 @@
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
 | MODIFY | `specs/truth/techstack.md` — *CLI flag parsing* | tellme gains `-h`/`--help` (prints the pflag flag list to `stdout`, exit 0; a successful, offline, prompt-less action, precedence before `--version`) and the `-v` shorthand for `--version` (byte-identical); help emits no `tellme: …` phrase and the unrecognized-flag refusal (phrase on `stderr`, exit 2) is unchanged | `spec.md` US1/US2, FR-001…FR-004; `research.md` D1–D6 |
+| MODIFY | `specs/truth/techstack.md` — *Prompt input* (the **precedence owner**) | the dispatch chain gains `--help` at the head (`--help` → `--version` → `-d` → …), `-h`/`--help` joins the never-read-stdin list, and the row records that a **parse error pre-empts help** (`-h -z` still refuses, exit 2) | review **F-1**; `research.md` D3 |
+| MODIFY | `specs/truth/techstack.md` — *Version injection* | the build version is read by `-v`/`--version` (round 074) | review **N-1** |
 | ADD | `docs/decisions/0046-cli-help-and-version-shorthands.md` (+ index row) | the decision record for the two shorthands (explicit flags; the pflag flag-list block on stdout; precedence; the stream/exit contract) | `spec.md` SC-001…SC-003; `research.md` D1–D7 |
 | NOOP (checked) | `docs/domain-model/**` | the round changes a CLI flag surface, not a modelled entity/invariant (no CLI-flag entity exists); recorded in `plan.md` §5 (ADR 0041's escape hatch) | `plan.md` §5 |
 

@@ -16,6 +16,7 @@ Feature: Checking the build version and diagnosing setup
 
     # Round 074 (ADR 0046): `-v` is the shorthand for `--version`.
     Example: The operator asks which build is running with the short flag
+      And the diagnostics are shown at a terminal
       When the operator runs tellme with "-v"
       Then tellme prints the build version
       And the run shows no turn chrome

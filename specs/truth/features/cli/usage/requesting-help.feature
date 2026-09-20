@@ -10,17 +10,21 @@ Feature: Asking tellme for help
   Rule: The operator can ask for help with the short flag
 
     Example: The operator asks for help with "-h"
+      And the diagnostics are shown at a terminal
       When the operator runs tellme with "-h"
       Then tellme prints its flag list
       And the help is reported as a success
       And the run shows no turn chrome
+      And tellme performs no network access
       And tellme exits successfully
 
   Rule: The operator can ask for help with the long flag
 
     Example: The operator asks for help with "--help"
+      And the diagnostics are shown at a terminal
       When the operator runs tellme with "--help"
       Then tellme prints its flag list
       And the help is reported as a success
       And the run shows no turn chrome
+      And tellme performs no network access
       And tellme exits successfully

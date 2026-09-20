@@ -141,8 +141,9 @@ The new flags must not weaken the usage-error contract.
 
 ### Edge cases
 
-- When `-h` is combined with a prompt or `-c`, help MUST still take precedence and exit 0 (a help request is terminal, like `--version`).
-- When both `-h`/`--help` and `-v`/`--version` are given, the precedence MUST be deterministic (research decides; `--help` conventionally wins).
+- When `-h` is combined with a prompt or `-c`, help MUST still take precedence and exit 0 (a help request is terminal, like `--version`). *(Unit-carried: no pty-free E2E carrier — review N-2.)*
+- When both `-h`/`--help` and `-v`/`--version` are given, the precedence MUST be deterministic (`--help` wins). *(Unit-carried — review N-2.)*
+- When `-h` is combined with an **unrecognized** flag (e.g. `-h -z`), the parser fails first: the run MUST refuse with the pinned phrase and exit 2 (a parse error pre-empts help) — review RF-2.
 - When help is piped (non-terminal stdout), the output MUST be the plain block (no terminal detection needed).
 
 ## Requirements

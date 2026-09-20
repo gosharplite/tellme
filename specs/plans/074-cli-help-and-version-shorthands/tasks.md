@@ -28,3 +28,16 @@ Legend: `[ ]` pending · `[X]` done.
 ## Phase 5 — Delivery
 
 - [X] **T010** `make verify` + `go test -count=1 ./...` green; `go.mod`/`go.sum` unchanged; the topology audit adds no new error.
+
+## Review fold ledger (PR [#152](https://github.com/gosharplite/tellme/pull/152) — the `architect` peer)
+
+- **F-1 (required)** — the truth row owning the **dispatch precedence** (`techstack.md` *Prompt input*) was left stale; the round now MODIFYs it to `--help` → `--version` → `-d` → `-l` → `-t` → `--tool-usage`, adds `-h`/`--help` to the never-read-stdin list, and records that a **parse error pre-empts help**.
+- **F-2 (required)** — the durable record mis-described the error path: ADR 0046 §2 + the `cli.go` comment now say the block is what pflag's **implicit help path** wrote to stderr *before this round* (the unrecognized-flag path prints only the phrase, no block); the §Consequences "minus `Usage:` sections" wording is corrected (the block's first line *is* `Usage of tellme:`).
+- **TD-3** — the flag-list Then now asserts the **full** accepted flag set (claim == carrier); the success Then's row is made self-contained.
+- **TD-4** — `-h`/`--help` added to the `tellme performs no network access` scope enumeration + the two help Examples now carry the no-network Then.
+- **TD-5** — the new Examples gain `And the diagnostics are shown at a terminal`, so the `no progress spinner` negative has teeth.
+- **RF-1** — recorded as **RF-074-5** (`helpText` cached on the parse result).
+- **RF-2** — folded: ADR 0046 §3 + `spec.md` record the parse-error pre-emption, `techstack.md` *Prompt input* states it.
+- **N-1** — the *Version injection* row now reads `-v`/`--version`.
+- **N-2** — `spec.md` marks the `-h`+prompt/`-c` and `-h -v` edge cases as unit-carried.
+- **N-3** — addressed by TD-4 (the help Examples now carry the offline Then).

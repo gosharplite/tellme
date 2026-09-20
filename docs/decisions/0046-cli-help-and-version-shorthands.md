@@ -25,9 +25,9 @@ Two clarify questions were settled (one at a time):
 
 1. **Two explicit flags.** `parseFlags` registers `fs.BoolVarP(&o.help, "help", "h", …, false)` and upgrades `--version` to `fs.BoolVarP(&o.version, "version", "v", …, false)`. Defining `-h` explicitly **supersedes pflag's implicit `-h` special case**, so tellme controls the stream and the exit code (D1).
 
-2. **The help block is pflag's own flag list.** On `-h`/`--help`, tellme writes `"Usage of tellme:\n"` + `fs.FlagUsages()` to **`stdout`** and returns `Success`. This is the same text today's error path prints to `stderr` — one source (`fs.FlagUsages()`), so it lists **every** flag with its short form and cannot drift when a later round adds a flag (D2).
+2. **The help block is pflag's own flag list.** On `-h`/`--help`, tellme writes `"Usage of tellme:\n"` + `fs.FlagUsages()` to **`stdout`** and returns `Success`. This is the text pflag's **implicit help path** wrote to the `SetOutput` writer (`stderr`) *before this round* (`tellme -h` → exit 2) — one source (`fs.FlagUsages()`), so it lists **every** flag with its short form and cannot drift when a later round adds a flag (D2). *(The unrecognized-flag path is a different one: it prints only the class phrase, no block — see §Context.)*
 
-3. **Precedence: `--help` → `--version` → `-d` → `-l` → `-t` → `--tool-usage`.** Help is checked **first** in `run`; then the existing order is unchanged. Both help and version are **offline, prompt-less, terminal** actions — they never fall through to the boot/prompt path, read no stdin, and dial no provider. `tellme -h --version` prints help and exits 0 (help wins) (D3).
+3. **Precedence: `--help` → `--version` → `-d` → `-l` → `-t` → `--tool-usage`.** Help is checked **first** in `run`; then the existing order is unchanged. Both help and version are **offline, prompt-less, terminal** actions — they never fall through to the boot/prompt path, read no stdin, and dial no provider. `tellme -h --version` prints help and exits 0 (help wins) (D3). **One exception, and it is the right one:** a **parse error pre-empts help** — `tellme -h -z` (an unrecognized flag) fails in `parseFlags` *before* `run`, so it refuses with the class phrase on `stderr` and exit **2**, not help. The precedence above applies only among the flags the parser accepts.
 
 4. **Help is a success; the error path is untouched.** Help emits **no** `tellme: …` line (nothing on `stderr`) and exits **0**. The frozen class-phrase vocabulary is unchanged: an **unrecognized** flag still refuses with `tellme: the command-line usage is invalid` on **`stderr`** and exit **2** (the pinned usage code) (D4, I-1/I-3).
 
@@ -39,7 +39,7 @@ Two clarify questions were settled (one at a time):
 
 - `tellme -h` / `tellme --help` are script-friendly: the flag list is the requested artifact on `stdout`, `stderr` is empty, exit 0. `tellme -v` matches `--version`.
 - tellme **stays subcommand-free** — the reference's `help`/`completion` commands are **not** adopted; help is a flag, not a command (RF-074-2).
-- The help block is the **flag list** (reference-shaped, minus cobra's command/`Usage:` sections); the richer reference rendering is **not** adopted ("simple", A2) (RF-074-1).
+- The help block is the **flag list** — tellme has no subcommands, so the reference's `Available Commands`/`completion` sections are absent (its first line *is* `Usage of tellme:`, matching the reference's own `Usage:` line); the richer reference prose rendering is **not** adopted ("simple", A2) (RF-074-1).
 - The help text is derived at run time from `fs.FlagUsages()`; there is **no** dedicated golden test beyond "the flags appear" — a full-text pin would couple the test to pflag's alignment (RF-074-3).
 - No `-V`/`--Version`/`-?` aliases — only the two shorthands the operator named (RF-074-4).
 
@@ -49,3 +49,4 @@ Two clarify questions were settled (one at a time):
 - **RF-074-2** — the reference's `help` / `completion` subcommands; not adopted (tellme stays subcommand-free).
 - **RF-074-3** — no full-text golden pin for the help block (only "the flag names appear").
 - **RF-074-4** — no `-V` / `--Version` / `-?` aliases.
+- **RF-074-5** — `flags.helpText` caches the rendered flag list on the parse result; the cleaner shape is to hand the `*pflag.FlagSet` (or a render func) back to `run` and render there (review RF-1; non-blocking, single caller).

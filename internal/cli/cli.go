@@ -512,8 +512,10 @@ func parseFlags(args []string, stderr io.Writer) (f *flags, flagArgs []string, o
 	}
 	o.listSet = fs.Changed("list")
 	if o.help {
-		// The flag list is pflag's own rendering (the same text the usage-error
-		// path prints to stderr), captured here so run prints it to stdout.
+		// The flag list is pflag's own rendering — the text pflag's IMPLICIT
+		// help path wrote to the SetOutput writer (stderr) before this round —
+		// captured here so run prints it to stdout (the usage-ERROR path prints
+		// only the class phrase, no block).
 		o.helpText = "Usage of tellme:\n" + fs.FlagUsages()
 	}
 	return o, fs.Args(), true
