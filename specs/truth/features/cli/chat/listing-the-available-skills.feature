@@ -57,6 +57,17 @@ Feature: Listing the available skills
       And tellme read the skill "golang-testing" using its read_files tool
       And tellme exits successfully
 
+  Rule: A skill whose frontmatter uses a block scalar is listed by its text
+
+    Example: A description written as a folded block scalar
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the runtime home holds a skill "golang-patterns" whose description is written as a folded block scalar across the lines "Idiomatic Go patterns" and "for robust code"
+      And a configured provider "test-model" whose endpoint asks tellme to list its skills and then answers with "done"
+      When the operator starts tellme with the prompt "What skills do you have?"
+      Then the listing describes the skill "golang-patterns" as "Idiomatic Go patterns for robust code"
+      And tellme exits successfully
+
   Rule: Skill content is not added to the request unless a skill is opened
 
     Example: A prompt answered without opening a skill carries no skill content
