@@ -211,3 +211,20 @@ Feature: Using tools from a remote MCP server
       When the operator starts tellme with the prompt "comment on the issue"
       Then the offered tool "add_issue_comment" from the MCP server "github" carries no server-side mark
       And tellme exits successfully
+
+  Rule: An offered MCP tool's declaration makes its callable name discoverable
+
+    # Round 077 (issue #155 / ADR 0049): the wire name is namespaced
+    # (`mcp_<server>_<tool>`); the offered declaration's DESCRIPTION carries tellme's
+    # call-name note naming that callable name, so a model that only recalls the
+    # bare upstream name (e.g. `get_me`) can read the correct name. The server's own
+    # text is relayed UNCHANGED — the note is added-to, never a rewrite (ADR 0025 D1).
+
+    Example: The offered declaration names the callable wire name
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
+      And a configured provider "test-model" whose endpoint reports the offered tools and then answers with "done"
+      When the operator starts tellme with the prompt "Which tools can you use?"
+      Then the offered tool "lookup_price" from the MCP server "shop" names its callable wire name in the description
+      And tellme exits successfully

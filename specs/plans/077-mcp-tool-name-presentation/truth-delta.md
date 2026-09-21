@@ -5,29 +5,30 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: **`/axb-specify` RUN (2026-09-22)** — the package + `spec.md` + this checklist + the truth-delta skeleton are created; clarify **not escalated (0 questions)**; the round is **research-gated (a NOOP verdict is acceptable)**. Owner rows are pending `/axb-technical-research` (the verify-first decision + a likely ADR + the MCP offered-declaration truth row) and `/axb-dsl-refine` (a fake-MCP-server carrier, iff a change ships).
+> **Status**: **`/axb-technical-research` RUN (2026-09-22)** — the verify-first step (a live `tools/list` against the GitHub MCP server) is done; `research.md` D1–D8 + **ADR 0049** + `techstack.md` **ADD** (a *MCP tool-name presentation* row). Clarify resolved at specify time (**0 questions** — not escalated). `/axb-api-plan` + `/axb-data-plan` record `NOOP`. `/axb-dsl-refine` records the offered-declaration carrier.
 
 ## /axb-technical-research
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| *(pending)* | `specs/truth/techstack.md` — *MCP tool-call reason envelope* row (or a sibling offered-declaration row) | **pending** — record whether the offered MCP declaration makes the callable wire name discoverable (and how), or a verified NOOP | `spec.md` US1/US2, FR-001…FR-006 |
-| *(pending)* | `docs/decisions/00NN-*.md` (+ index) | **pending** — a decision record for the presentation shape (or the recorded NOOP rationale) | `spec.md` SC-003/SC-004 |
+| ADD | `specs/truth/techstack.md` — *MCP tool-name presentation (callable-name discoverability)* | a new row: the offered MCP declaration's **description** positively states the callable wire name (a tellme-authored **prefix** note naming `t.name`; the server's text relayed unchanged), and the empty-description **fallback names the callable name** — description-only, schema unchanged, no prompt change; a recorded divergence *beyond* the reference | `spec.md` US1/US2, FR-001…FR-006; `research.md` D1–D8 |
+| ADD | `docs/decisions/0049-mcp-tool-name-discoverability.md` (+ index row) | the decision record: the verify-first result (45/45 GitHub tools have descriptions → fallback not in play), the call-name note, the fallback fix, the beyond-reference divergence, the declined alternatives | `spec.md` SC-003/SC-004; `research.md` |
 
 ## /axb-api-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| *(pending)* | `specs/truth/` (**no `contracts/**`**) | **expected NOOP** — single CLI end; no OpenAPI/HTTP surface | `plan.md` (to be written) |
+| NOOP (checked) | `specs/truth/` (**no `contracts/**`**) | Single CLI end; no OpenAPI/HTTP surface. | `plan.md` §1 |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| *(pending)* | `specs/truth/data/**` | **expected NOOP** — no persisted-state change (description text only) | `spec.md` 關鍵實體 |
+| NOOP (checked) | `specs/truth/data/**` | No persisted-state change (the offered-description text is computed, never stored). | `spec.md` 關鍵實體; `plan.md` §5 |
 
 ## /axb-dsl-refine
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| *(pending)* | `specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature` (+ `dsl.md`) | **pending** — a Rule/Example observing the offered MCP declaration's name/description on the fake-provider wire (iff a change ships), else NOOP | `spec.md` US1/US2, FR-001…FR-006 |
+| MODIFY | `specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature` | a new Rule/Example: the offered MCP declaration's **description** names the callable wire name (`mcp_<server>_<tool>`), observed on the fake-provider wire | `spec.md` US1/US2, FR-001…FR-006 |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` | +1 Then row reading the offered MCP declaration's description | `spec.md` US1 |

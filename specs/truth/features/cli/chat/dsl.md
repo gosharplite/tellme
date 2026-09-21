@@ -575,3 +575,11 @@ module's feature must match exactly one row.
 | `the listing describes the skill "{name}" as "{description}"` | `name`: string; the skill name. `description`: string; the expected resolved text. | 不支援 | `來源`: the `list_skills` tool result fed back into the conversation. | `必查`: `權威狀態`: the `list_skills` result carries the entry `- {name}: {description} (` — the description resolved to its folded text, NOT the bare indicator `>`. `不該發生`: a block-scalar description must not be listed as `>`. |
 
 > **Round 075 (ADR 0047):** the frontmatter reader resolves YAML **block scalars** (`>` / `|` + chomping) — a skill authored with `description: >` lists by its real (folded) text, not the bare indicator. A **deliberate divergence *beyond* the reference** (`tell-me-go`'s line-based `parseSkill` shares the limitation).
+
+## Then (round 077)
+
+| DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
+| --- | --- | --- | --- | --- |
+| `the offered tool "{tool}" from the MCP server "{server}" names its callable wire name in the description` | `tool`: string; the server's tool name (bare). `server`: string; the MCP server key. | 不支援 | `通道`: the fake provider's recorded request tool definitions. `來源`: round 077 (issue [#155](https://github.com/gosharplite/tellme/issues/155); ADR 0049). | `必查`: `呈現結果`: the offered definition named `mcp_{server}_{tool}` carries that **callable** name in its `description` (tellme's call-name note prefixes it, the server's own text following verbatim). `不該發生`: the description must not present the bare upstream name as the callable name. |
+
+> **Round 077 (issue [#155](https://github.com/gosharplite/tellme/issues/155); ADR 0049):** the offered MCP declaration makes the namespaced wire name `mcp_{server}_{tool}` **positively discoverable** — tellme prefixes a call-name note to the server's own description (relayed unchanged — ADR 0025 D1), and the empty-description fallback names the callable name (never the bare one). A **recorded divergence *beyond* the reference** (`tell-me-go` neither advertises the convention nor synthesizes a fallback).
