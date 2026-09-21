@@ -42,11 +42,11 @@
 | T001 | ✅ baseline green on the round branch |
 | T002 | ✅ pins written (`tool_r077_test.go`), run RED first |
 | T003 | ✅ `callNameNoteFormat` + computed `description` in `NewTool`; GREEN |
-| T004 | ✅ `TestMCPToolName_OfferedSchemaIsUnchanged` (envelope/schema unchanged) |
+| T004 | ✅ `TestMCPToolName_OfferedEnvelopeShapeIsUnchanged` (the envelope's property set is exactly `{reason, MCP_PAYLOAD}`) |
 | T005 | ✅ one constant home; name interpolated is `t.name` |
 | T006–T009 | ✅ witnesses run then reverted — see below |
 | T010 | ✅ E2E carrier: the new Rule + `step_r077_mcp_name.go` + the `dsl.md` Then row |
-| T011 | ✅ `gofmt`/`goimports` clean · `go vet` clean · `go test -count=1 ./...` green (incl. E2E **288 scenarios**) · `make verify` **OK** · `go.mod`/`go.sum` unchanged · topology audit **the same 5 pre-existing errors, none new** (52 features · 410 module rows · 2117 steps) |
+| T011 | ✅ `gofmt`/`goimports` clean · `go vet` clean · `go test -count=1 ./...` green (incl. E2E **289 scenarios**) · `make verify` **OK** · `go.mod`/`go.sum` unchanged · topology audit **the same 5 pre-existing errors, none new** (52 features · 412 module rows · 2124 steps) |
 | T012 | pending (closeout) |
 
 ### Witnesses (reproduced then reverted)

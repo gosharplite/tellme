@@ -63,3 +63,4 @@ Observed live (butler / `deepseek-flash` on `misc`): the model emitted `get_me` 
 - **RF-077-3** — recorded divergence *beyond* the reference (which neither advertises nor falls back).
 - **RF-077-4** — a server whose own description already names the namespaced tool would carry a redundant (harmless) note.
 - **RF-077-5** — the `ToolDefs` projection / other tool kinds are untouched; a future non-MCP tool with a bare-name description is out of scope.
+- **RF-077-6** — the note's **literal wording** is deliberately **un-pinned** (fold-verification R-2): the pinned contract is *the quoted callable wire name appears in the description* (unit + E2E + the `chat/dsl.md` semantics), so a future wording change to `callNameNoteFormat` is **silent** — the authority for the wording is this ADR + the `dsl.md` prose, not a golden string.
