@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -50,14 +51,22 @@ func NewTool(server string, def domaintools.MCPToolDefinition, client domaintool
 	if len(schema) == 0 {
 		schema = freeformSchema()
 	}
-	desc := def.Description
-	if strings.TrimSpace(desc) == "" {
-		desc = "MCP tool " + def.Name + " from server " + server
+	name := NamespacedName(server, def.Name)
+	body := def.Description
+	if strings.TrimSpace(body) == "" {
+		// tellme's synthesized fallback must name the CALLABLE wire name, never
+		// the bare upstream name (round 077 / ADR 0049 D4) — tellme's own text
+		// must not advertise a name the registry does not hold.
+		body = "MCP tool " + name + " from server " + server
 	}
+	// Prepend the tellme-authored call-name note OUTSIDE the server's own text
+	// (relayed unchanged — ADR 0025 D1); the name is the post-truncation wire name
+	// so the note always matches Name() (round 077 / ADR 0049 D2/D5).
+	desc := fmt.Sprintf(callNameNoteFormat, name) + body
 	return &Tool{
 		server:      server,
 		tool:        def.Name,
-		name:        NamespacedName(server, def.Name),
+		name:        name,
 		description: desc,
 		parameters:  schema,
 		client:      client,
@@ -68,7 +77,9 @@ func NewTool(server string, def domaintools.MCPToolDefinition, client domaintool
 // Name is the deterministic namespaced wire name.
 func (t *Tool) Name() string { return t.name }
 
-// Description is the server-advertised description (or a generated fallback).
+// Description is the server-advertised description (or a generated fallback),
+// prefixed with tellme's call-name note naming the callable wire name (round
+// 077 / ADR 0049). The server's own text is relayed unchanged.
 func (t *Tool) Description() string { return t.description }
 
 // MCPPayloadKey is the envelope property carrying the remote server's own
@@ -87,6 +98,15 @@ const ReasonKey = domaintools.ReasonArgKey
 // declaration. It lives only in tellme's declaration; the server's definition is
 // never mutated.
 const reasonDescription = "Why you are calling this tool (required). Put the tool's own arguments in MCP_PAYLOAD."
+
+// callNameNoteFormat is the tellme-authored PREFIX the offered MCP declaration's
+// description carries so the tool's callable wire name is POSITIVELY
+// DISCOVERABLE to the model (round 077 / ADR 0049). It is prepended OUTSIDE the
+// server's own text, which is relayed unchanged (ADR 0025 D1 — the server's
+// definition is never mutated); the interpolated name is the post-truncation
+// wire name (`Tool.name`), so the note always matches Name(). One home for the
+// template. stdlib-only.
+const callNameNoteFormat = "Call this tool as %q. "
 
 // Parameters is the model-visible declaration tellme OFFERS for the MCP tool
 // (round 056 / ADR 0025 D1): tellme's OWN envelope — a required `reason` plus
