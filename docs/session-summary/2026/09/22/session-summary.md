@@ -140,3 +140,49 @@ Bootstrap re-run (Steps 1–8; round 076 delivered/frozen; active branch `dev`).
 ### PM follow-ups
 
 - None new (the acceptance journey is a short presentation Rule; the round carries the falsifiable unit + E2E pins).
+
+---
+
+## 40. Session 63 closeout (2026-09-22) — round 077 `077-mcp-tool-name-presentation` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 077 was human-merged (PR [#157](https://github.com/gosharplite/tellme/pull/157) → `dev` `273b5a9`, **merge commit**); the remote branch was already gone, the operator confirmed, and the local branch was deleted after an ancestor check. Then the closeout ran.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Step 1 — working tree | clean; on `dev`; `dev == origin/dev`; no delivered `specs/plans/**` touched (frozen history intact); staging files removed |
+| Step 2 — gates | `gofmt`/`goimports` clean · `go vet ./...` clean · `go test -count=1 ./...` **green** (24 pkgs; E2E **289 scenarios**) · `make verify` **OK** · `make test-race` **no data races** · topology audit **the same 5 pre-existing errors, none new** (52 features · 412 module rows · 2124 steps) · `go.mod`/`go.sum` unchanged |
+| Step 3 — `STATUS.md` | header + round-in-flight (`none`) + active branch (`dev`) refreshed; **Rule-12 split**: the **round-076** delivered-round detail + its env note relocated **verbatim** into [`docs/archives/status/2026-09-22.md`](../../../../archives/status/2026-09-22.md); the **round-077** delivered-round section added; the delivered-rounds index gains 077; branch model + propagation history + roadmap (077 → Delivered) + open items (round-077 forward items added; round-072 compacted to a pointer) + env notes (round-077 note; topology counts) updated |
+| Step 4 — daily summary | this §40 appended (the §1–§39 record preserved) |
+| Step 5 — reconcile | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, 0 open issues |
+| Step 6 — commit | working `dev` committed + pushed |
+| Step 7 — propagate + hand off | `dev → main` (**no-ff**), tagged **`round-077`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| Step 8 — issue tracker | **[#155](https://github.com/gosharplite/tellme/issues/155)** **CLOSED (completed)**; tracker now **0 open** |
+
+### Commits (branch `077-mcp-tool-name-presentation`, then merged fast-forward-equivalent)
+
+| Commit | Note |
+| --- | --- |
+| `2178efa` | `docs(077)`: plan package + spec |
+| `999f51f` | `feat(077)`: make the callable MCP wire name discoverable (ADR 0049) + unit/E2E pins + truth |
+| `ca5a908` | `docs(077)`: name the round PR (#157) |
+| `24be271` | `fix(077)`: fold the architect review (F-1…F-4 + TD-1 + nits N-1…N-5) |
+| `a37e838` | `fix(077)`: fold fold-verification residuals (R-1 record hygiene; R-2 home RF-077-6) |
+| `6977d5c` | `docs(077)`: review-fold loop CLOSED (cleared for human merge) |
+| `273b5a9` | PR [#157](https://github.com/gosharplite/tellme/pull/157) merge into `dev` (by the operator) |
+| *(this closeout, on `dev`)* | `docs(077)`: day close — round 077 delivered + propagated; STATUS split + 09/22 summary §40 |
+
+### Open items (non-blocking)
+
+- **Round-077 forward items (RF-077-1…6)** in **ADR 0049 §Forward** (the note's token cost · hermetically unprovable efficacy · a divergence *beyond* the reference · a redundant note · non-MCP tool kinds · the deliberately un-pinned literal wording).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the 5 pre-existing topology-audit DSL errors.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value** (the tracker is **0 open**; the tool surface is settled).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (the acceptance journey is a short presentation Rule; the round carries the falsifiable unit + E2E pins).
