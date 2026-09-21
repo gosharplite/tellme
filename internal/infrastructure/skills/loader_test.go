@@ -143,3 +143,153 @@ func TestLoadSkipsMalformedBestEffort(t *testing.T) {
 		t.Fatalf("expected only the valid skill; got %v", skillNames(got))
 	}
 }
+
+// Round 075 (ADR 0047) — the frontmatter reader resolves YAML block-scalar values.
+
+func TestLoadFoldedBlockScalarDescription(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "folded/SKILL.md", "---\nname: folded\ndescription: >\n  Idiomatic Go patterns\n  for robust code\n---\n# folded\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("want 1 skill; got %d (%v)", len(got), skillNames(got))
+	}
+	want := "Idiomatic Go patterns for robust code"
+	if got[0].Description != want {
+		t.Errorf("folded description = %q; want %q (the indicator must be resolved, not read)", got[0].Description, want)
+	}
+}
+
+// TestLoadLiteralFoldedJoining pins the `|` (literal: breaks preserved) and a
+// `>-`-chomped folded block. NOTE (round-075 fold F-2): the mandatory
+// `TrimSpace` in resolveFrontmatterValue normalizes trailing-newline chomping, so
+// `>`/`>-`/`>+` (and `|`/`|-`/`|+`) are indistinguishable for the trimmed scalar
+// — the `>-` case documents acceptance of the chomping spelling, not a
+// trailing-newline distinction (ADR 0047 §Decision 3).
+func TestLoadLiteralFoldedJoining(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "literal/SKILL.md", "---\nname: literal\ndescription: |\n  line one\n  line two\n---\n")
+	writeFixture(t, dir, "strip/SKILL.md", "---\nname: strip\ndescription: >-\n  a\n  b\n---\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	byName := map[string]string{}
+	for _, s := range got {
+		byName[s.Name] = s.Description
+	}
+	if byName["literal"] != "line one\nline two" {
+		t.Errorf("literal description = %q; want %q (breaks preserved)", byName["literal"], "line one\nline two")
+	}
+	if byName["strip"] != "a b" {
+		t.Errorf("chomped folded (`>-`) description = %q; want %q", byName["strip"], "a b")
+	}
+}
+
+// TestLoadMultiParagraphFoldedBlockScalar pins FR-005: a blank line inside a
+// folded block becomes a single newline (a paragraph break).
+func TestLoadMultiParagraphFoldedBlockScalar(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "multi/SKILL.md", "---\nname: multi\ndescription: >\n  P1 line1\n  P1 line2\n\n  P2 line1\n---\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("want 1 skill; got %d", len(got))
+	}
+	want := "P1 line1 P1 line2\nP2 line1"
+	if got[0].Description != want {
+		t.Errorf("multi-paragraph folded description = %q; want %q", got[0].Description, want)
+	}
+}
+
+// TestLoadQuotedScalarsUnchanged pins the no-regression half of ADR 0047
+// §Consequences: quoted inline values resolve to their unquoted text.
+func TestLoadQuotedScalarsUnchanged(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "dq/SKILL.md", "---\nname: dq\ndescription: \"quoted desc\"\n---\n")
+	writeFixture(t, dir, "sq/SKILL.md", "---\nname: sq\ndescription: 'single quoted'\n---\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	byName := map[string]string{}
+	for _, s := range got {
+		byName[s.Name] = s.Description
+	}
+	if byName["dq"] != "quoted desc" {
+		t.Errorf("double-quoted description = %q; want %q", byName["dq"], "quoted desc")
+	}
+	if byName["sq"] != "single quoted" {
+		t.Errorf("single-quoted description = %q; want %q", byName["sq"], "single quoted")
+	}
+}
+
+// TestLoadCRLFBlockScalar pins CRLF normalization applied to a folded block.
+func TestLoadCRLFBlockScalar(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "crlf2/SKILL.md", "---\r\nname: crlf2\r\ndescription: >\r\n  one\r\n  two\r\n---\r\n# b\r\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 || got[0].Description != "one two" {
+		t.Fatalf("CRLF folded description not resolved; got %v", got)
+	}
+}
+
+func TestLoadInlineGreaterThanIsNotABlock(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "inline/SKILL.md", "---\nname: inline\ndescription: a > b\n---\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 || got[0].Description != "a > b" {
+		t.Fatalf("an inline value containing '>' must stay literal; got %v", got)
+	}
+}
+
+func TestLoadBlockScalarWithNoBodyIsSkipped(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "good/SKILL.md", skillBody("good", "a valid skill"))
+	writeFixture(t, dir, "nobody/SKILL.md", "---\nname: nobody\ndescription: >\n---\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 || got[0].Name != "good" {
+		t.Fatalf("an indicator with no body must resolve empty and skip the file; got %v", skillNames(got))
+	}
+}
+
+func TestLoadBlockScalarName(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "x/SKILL.md", "---\nname: >\n  folded name\ndescription: a description\n---\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 || got[0].Name != "folded name" {
+		t.Fatalf("a block-scalar name must be resolved; got %v", got)
+	}
+}
