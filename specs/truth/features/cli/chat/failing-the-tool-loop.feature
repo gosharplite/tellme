@@ -3,6 +3,9 @@ Feature: Bounding and failing the tool loop
   # Interface truth (CLI end, `chat` module) — the loop always ends: a recoverable tool error is fed back
   # (non-terminal), and an unrecoverable loop failure is reported. Acceptance journey:
   # features/acceptance/bounding-and-failing-the-tool-loop.feature.
+  # Round 076 (issue #154): the former Example "A request for a tool that is not available is reported" moved
+  # to `using-an-unknown-tool-name.feature` (an unknown name is a recoverable fold-back, reported only at the
+  # per-turn cap) — its acceptance home now lives with that journey.
 
   Rule: A tool that returns an error is fed back, not fatal
 

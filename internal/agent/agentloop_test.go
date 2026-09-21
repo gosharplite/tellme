@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -109,7 +110,7 @@ func TestRunBoundReached(t *testing.T) {
 
 // TestRunUnknownToolIsFedBackAndContinues: an undeclared tool name is a
 // recoverable slip — the loop folds back a `tool`-role result and continues to a
-// final answer (round 076).
+// final answer (round 076). Folds F-1 (the pairing) + TD-076-1 (the list).
 func TestRunUnknownToolIsFedBackAndContinues(t *testing.T) {
 	gw := &fakeGateway{responses: []llm.Response{
 		{ToolCalls: []llm.ToolCall{{ID: "c1", Name: "time_travel"}}},
@@ -129,29 +130,184 @@ func TestRunUnknownToolIsFedBackAndContinues(t *testing.T) {
 	if len(gw.calls) < 2 {
 		t.Fatalf("expected the recoverable result to be fed back into a second call; calls=%d", len(gw.calls))
 	}
-	found := false
-	for _, m := range gw.calls[1].Messages {
-		if m.Role == "tool" && strings.Contains(m.Content, `no tool named "time_travel"`) {
-			found = true
+	// F-1: the folded-back `tool` message MUST carry the unknown call's id (the
+	// Gemini/Vertex function-call/response pairing — round-065 / #132).
+	var folded *llm.Message
+	for i := range gw.calls[1].Messages {
+		if m := &gw.calls[1].Messages[i]; m.Role == "tool" {
+			folded = m
 		}
 	}
-	if !found {
-		t.Fatalf("the recoverable result must name the unknown tool; messages=%+v", gw.calls[1].Messages)
+	if folded == nil {
+		t.Fatalf("no `tool`-role fold-back was fed back; messages=%+v", gw.calls[1].Messages)
+	}
+	if folded.ToolCallID != "c1" {
+		t.Fatalf("the fold-back MUST pair to the call id; ToolCallID = %q, want %q", folded.ToolCallID, "c1")
+	}
+	// TD-076-1: the message names the unknown tool AND lists the available tools.
+	if !strings.Contains(folded.Content, `no tool named "time_travel"`) {
+		t.Fatalf("the fold-back must name the unknown tool; content=%q", folded.Content)
+	}
+	if !strings.Contains(folded.Content, "available tools:") || !strings.Contains(folded.Content, "read_files") {
+		t.Fatalf("the fold-back must list the available wire names; content=%q", folded.Content)
+	}
+}
+
+// TestRunUnknownToolRecordsNoUsage: an unknown call executes nothing and records
+// NO tool-usage entry (round 076 fold F-1 — the I-2 no-usage half).
+func TestRunUnknownToolRecordsNoUsage(t *testing.T) {
+	sink := &recordingSink{}
+	gw := &fakeGateway{responses: []llm.Response{
+		{ToolCalls: []llm.ToolCall{{ID: "c1", Name: "time_travel"}}},
+		{Text: "done"},
+	}}
+	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "x"}), ToolUsage: sink}
+	if _, err := a.Run(context.Background(), "use the time-travel tool", nil); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if len(sink.tools) != 0 {
+		t.Fatalf("an unknown call must record no usage; recorded %v", sink.tools)
+	}
+}
+
+// TestRunMixedRoundUnknownAndValid: in ONE round carrying an unknown AND a valid
+// call, every call gets a paired result and the valid call still executes
+// (round 076 fold F-1 — the pairing invariant across a mixed round).
+func TestRunMixedRoundUnknownAndValid(t *testing.T) {
+	gw := &fakeGateway{responses: []llm.Response{
+		{ToolCalls: []llm.ToolCall{
+			{ID: "c1", Name: "time_travel"},
+			{ID: "c2", Name: "read_files", Arguments: `{"filepaths":["notes.txt"],"reason":"read it"}`},
+		}},
+		{Text: "done"},
+	}}
+	tool := &countingTool{name: "read_files", result: "content"}
+	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(tool), Lines: fakeRenderer{}}
+	res, err := a.Run(context.Background(), "read the note", nil)
+	if err != nil {
+		t.Fatalf("a mixed round must not fail the run: %v", err)
+	}
+	if tool.executions != 1 {
+		t.Fatalf("the valid call must still execute once; executions=%d", tool.executions)
+	}
+	if len(res.Steps) != 1 || res.Steps[0].Tool != "read_files" {
+		t.Fatalf("only the valid call is a step; steps=%+v", res.Steps)
+	}
+	ids := map[string]bool{}
+	for _, m := range gw.calls[1].Messages {
+		if m.Role == "tool" {
+			ids[m.ToolCallID] = true
+		}
+	}
+	if !ids["c1"] || !ids["c2"] {
+		t.Fatalf("every call must get a paired `tool` result; tool ids=%v", ids)
+	}
+}
+
+// TestRunUnknownToolWithBlankReasonClassifiesAsUnknown: an unknown call that also
+// lacks a renderable reason is classified as UNKNOWN (the lookup precedes the
+// reason gate), single-owned — round 076 fold F-3.
+func TestRunUnknownToolWithBlankReasonClassifiesAsUnknown(t *testing.T) {
+	gw := &fakeGateway{responses: []llm.Response{
+		{ToolCalls: []llm.ToolCall{{ID: "c1", Name: "time_travel", Arguments: `{}`}}},
+		{Text: "done"},
+	}}
+	a := &AgentLoop{
+		Gateway:  gw,
+		Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "x"}),
+		Lines:    fakeRenderer{renders: func(string) bool { return false }},
+	}
+	if _, err := a.Run(context.Background(), "use the time-travel tool", nil); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	for _, m := range gw.calls[1].Messages {
+		if m.Role != "tool" {
+			continue
+		}
+		if strings.Contains(m.Content, "a reason is required") {
+			t.Fatalf("an unknown name must classify as unknown, not reason-less; content=%q", m.Content)
+		}
+		if strings.Contains(m.Content, `no tool named "time_travel"`) {
+			return
+		}
+	}
+	t.Fatalf("no unknown-name fold-back was fed back; messages=%+v", gw.calls[1].Messages)
+}
+
+// TestRunUnknownFoldBackEmitsActionLine: the fold-back mirrors the reason-less
+// refusal's chrome — it emits the call's `[Tool Action]` block before the result
+// (round 076 fold F-5).
+func TestRunUnknownFoldBackEmitsActionLine(t *testing.T) {
+	gw := &fakeGateway{responses: []llm.Response{
+		{ToolCalls: []llm.ToolCall{{ID: "c1", Name: "time_travel"}}},
+		{Text: "done"},
+	}}
+	var buf bytes.Buffer
+	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "x"}), Stderr: &buf, Lines: fakeRenderer{}}
+	if _, err := a.Run(context.Background(), "use the time-travel tool", nil); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if !strings.Contains(buf.String(), "ACTION time_travel") {
+		t.Fatalf("the fold-back must emit the call's action line; stderr=%q", buf.String())
+	}
+	if !strings.Contains(buf.String(), "RESULT time_travel:") {
+		t.Fatalf("the fold-back must emit the result line; stderr=%q", buf.String())
+	}
+}
+
+// TestRunUnknownFoldBackCounterResetsPerRun: the per-turn cap counter is Run-local
+// — a second Run on the same loop starts with a fresh budget (round 076 fold
+// TD-076-2).
+func TestRunUnknownFoldBackCounterResetsPerRun(t *testing.T) {
+	// One unknown call then an answer — well under the cap — repeated twice on the
+	// SAME loop: if the counter leaked across Runs the second Run would still be
+	// fine (1+1 < 3), so drive the loop to exactly the cap once, then a fresh Run.
+	unknownThenAnswer := []llm.Response{
+		{ToolCalls: []llm.ToolCall{{ID: "c1", Name: "time_travel"}}},
+		{ToolCalls: []llm.ToolCall{{ID: "c2", Name: "time_travel"}}},
+		{ToolCalls: []llm.ToolCall{{ID: "c3", Name: "time_travel"}}},
+		{Text: "done"},
+	}
+	gw := &fakeGateway{responses: unknownThenAnswer}
+	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "x"}), MaxLoops: 100}
+	if _, err := a.Run(context.Background(), "use it", nil); err != nil {
+		t.Fatalf("first Run (exactly the cap) must succeed: %v", err)
+	}
+	// A second Run reuses the loop; a leaked counter would immediately abort at the
+	// first unknown call. Reset the gateway cursor and answer script.
+	gw.i = 0
+	gw.calls = nil
+	gw2 := &fakeGateway{responses: []llm.Response{
+		{ToolCalls: []llm.ToolCall{{ID: "d1", Name: "time_travel"}}},
+		{Text: "done"},
+	}}
+	a.Gateway = gw2
+	if _, err := a.Run(context.Background(), "use it", nil); err != nil {
+		t.Fatalf("a second Run must reset the per-turn cap counter: %v", err)
+	}
+}
+
+// TestMaxUnknownToolFoldsValuePinned pins the per-turn cap VALUE (round 076 fold
+// F-2): the recoverable fold-back is bounded at 3. Changing it is a deliberate,
+// reviewed act — this pin forces the reviewer to see the value change.
+func TestMaxUnknownToolFoldsValuePinned(t *testing.T) {
+	if maxUnknownToolFolds != 3 {
+		t.Fatalf("maxUnknownToolFolds = %d, want the pinned value 3 (round 076 / ADR 0048)", maxUnknownToolFolds)
 	}
 }
 
 // TestRunUnknownToolIsBoundedPerTurn: a provider that keeps asking for an unknown
 // tool is stopped at the per-turn cap (round 076) — a bounded fold-back, not an
-// unbounded spin.
+// unbounded spin. The fake is scripted with MORE replies than the cap so raising
+// the constant fails on the cap assertion, not on fake exhaustion (fold TD-076-4).
 func TestRunUnknownToolIsBoundedPerTurn(t *testing.T) {
 	tc := llm.ToolCall{ID: "c", Name: "time_travel"}
-	gw := &fakeGateway{responses: []llm.Response{
-		{ToolCalls: []llm.ToolCall{tc}},
-		{ToolCalls: []llm.ToolCall{tc}},
-		{ToolCalls: []llm.ToolCall{tc}},
-		{ToolCalls: []llm.ToolCall{tc}},
-	}}
-	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "x"}), MaxLoops: 10}
+	replies := make([]llm.Response, 0, 20)
+	for range 20 {
+		replies = append(replies, llm.Response{ToolCalls: []llm.ToolCall{tc}})
+	}
+	gw := &fakeGateway{responses: replies}
+	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "x"}), MaxLoops: 100}
 	_, err := a.Run(context.Background(), "use the time-travel tool", nil)
 	var inc *agentport.ErrIncomplete
 	if !errors.As(err, &inc) {

@@ -159,6 +159,11 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 					return agentport.Result{Steps: steps, Calls: calls}, &agentport.ErrIncomplete{Reason: fmt.Sprintf("tool %q is not available", tc.Name)}
 				}
 				unknownFolds++
+				// Mirror the reason-less refusal's chrome (round 076 fold F-5): emit the
+				// call's `[Tool Action]` block BEFORE the result, so the operator sees the
+				// attempted call (and its round-039 leading blank), not a result with no
+				// action. `logAction` renders the name/args only — safe for an unknown name.
+				a.logAction(tc)
 				result := unknownToolResult(tc.Name, a.Registry.Tools())
 				a.logResult(tc, result)
 				turn = append(turn, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})

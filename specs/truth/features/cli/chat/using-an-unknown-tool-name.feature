@@ -29,5 +29,6 @@ Feature: Recovering from an unknown tool name
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint asks for a tool that is not available
       When the operator starts tellme with the prompt "Use the time-travel tool."
-      Then tellme explains on stderr that "the tool request failed"
+      Then the run reported the unavailable tool "time_travel"
+      And tellme explains on stderr that "the tool request failed"
       And tellme exits with the tool error code

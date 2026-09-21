@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: **`/axb-technical-research` + `/axb-dsl-refine` RUN (2026-09-22)** — `research.md` D1–D8 + **ADR 0048** + `techstack.md` MODIFY ×2. Clarify resolved at specify time (**0 questions** — not escalated). `/axb-api-plan` + `/axb-data-plan` record `NOOP`.
+> **Status**: **`/axb-technical-research` + `/axb-dsl-refine` RUN (2026-09-22)** — `research.md` D1–D8 + **ADR 0048** + `techstack.md` MODIFY ×2. Clarify resolved at specify time (**0 questions** — not escalated). `/axb-api-plan` + `/axb-data-plan` record `NOOP`. **Architect review 1 fold (`APPROVE WITH REQUIRED FOLDS`, F-1…F-6 + TDs):** the falsifiability folds added pins (pairing/no-usage/mixed-round, the cap discriminating Then + value pin, the ordering pin, the action-line chrome) and corrected the false `clampBytes` claim (F-4) + synced the stale `offering-the-agent-tools.feature` Example (F-6) — no truth *semantic* change beyond the D2 wording correction.
 
 ## /axb-technical-research
 
