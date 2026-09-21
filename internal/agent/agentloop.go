@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	agentport "github.com/gosharplite/tellme/internal/domain/agent"
@@ -22,6 +23,17 @@ import (
 // given an explicit timeout (round-008 FR-009). It aliases the shared domain
 // constant (round-032 implementation-review F4).
 const DefaultToolTimeout = tools.DefaultToolTimeout
+
+// maxUnknownToolFolds bounds the recoverable fold-backs for an UNKNOWN tool name
+// within one turn (round 076). An off-list name is a recoverable model slip — the
+// loop folds back a `tool`-role result and continues — but tellme has NO
+// repetition/runaway detection (the reference's guards were deliberately not
+// re-created), and the only other bound is MaxLoops (default 1000, each a PAID
+// provider call). So the recoverable path MUST be bounded: after this many
+// unknown-name fold-backs in one turn the loop stops folding back and returns the
+// incomplete error (the frozen `the tool request failed` phrase + exit 7). The
+// counter is loop-local to Run, so it resets every turn.
+const maxUnknownToolFolds = 3
 
 // AgentLoop drives the bounded think→act→observe cycle for one prompt run.
 type AgentLoop struct {
@@ -85,6 +97,9 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 	turn := []llm.Message{{Role: "user", Content: prompt}}
 	var steps []history.Step
 	var calls []llm.Usage
+	// unknownFolds counts this turn's unknown-name fold-backs (round 076) so the
+	// recoverable path is bounded per turn (see maxUnknownToolFolds).
+	unknownFolds := 0
 
 	for i := 0; ; i++ {
 		req := llm.Request{Tools: a.toolDefs()}
@@ -132,7 +147,27 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 			}
 			tool, ok := a.Registry.Lookup(tc.Name)
 			if !ok {
-				return agentport.Result{Steps: steps, Calls: calls}, &agentport.ErrIncomplete{Reason: fmt.Sprintf("tool %q is not available", tc.Name)}
+				// Round 076: an UNKNOWN tool name is a recoverable model slip — the
+				// loop folds back a `tool`-role result naming the unknown tool (and a
+				// bounded list of the available wire names) and CONTINUES, exactly as
+				// a real tool's call-time error is fed back (never the terminal
+				// request-level failure). The path is BOUNDED per turn: after
+				// maxUnknownToolFolds fold-backs the loop stops folding back and
+				// returns the incomplete error (frozen phrase + exit 7). The
+				// unknown call runs no tool and records no history step.
+				if unknownFolds >= maxUnknownToolFolds {
+					return agentport.Result{Steps: steps, Calls: calls}, &agentport.ErrIncomplete{Reason: fmt.Sprintf("tool %q is not available", tc.Name)}
+				}
+				unknownFolds++
+				// Mirror the reason-less refusal's chrome (round 076 fold F-5): emit the
+				// call's `[Tool Action]` block BEFORE the result, so the operator sees the
+				// attempted call (and its round-039 leading blank), not a result with no
+				// action. `logAction` renders the name/args only — safe for an unknown name.
+				a.logAction(tc)
+				result := unknownToolResult(tc.Name, a.Registry.Tools())
+				a.logResult(tc, result)
+				turn = append(turn, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})
+				continue
 			}
 			a.logAction(tc)
 			// Round 056 (ADR 0025 D3 / folds #121): *no reason, no go*. A call whose
@@ -265,6 +300,22 @@ func (a *AgentLoop) refuseReasonless(tc llm.ToolCall) (string, bool) {
 		return "", false
 	}
 	return reasonRequiredResult, true
+}
+
+// unknownToolResult is the recoverable result the loop folds back for a call to a
+// tool name it does not provide (round 076). It names the unknown tool and a
+// bounded list of the available wire names so the model can self-correct on the
+// next round (a specific message is what breaks a fixation early) instead of the
+// run aborting. Built from the registry's offer order.
+func unknownToolResult(name string, available []tools.Tool) string {
+	names := make([]string, 0, len(available))
+	for _, t := range available {
+		names = append(names, t.Name())
+	}
+	if len(names) == 0 {
+		return fmt.Sprintf("error: no tool named %q; no tools are available", name)
+	}
+	return fmt.Sprintf("error: no tool named %q; available tools: %s", name, strings.Join(names, ", "))
 }
 
 // reasonsOf returns the non-empty top-level `reason` of each requested call, in
