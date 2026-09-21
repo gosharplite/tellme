@@ -65,7 +65,7 @@ Call this tool as "mcp_github_get_me". <server-authored description, verbatim>
 
 ## 4. Truth & domain-model impact
 
-- **Truth**: `specs/truth/techstack.md` — a **MODIFY** on the **MCP tool-call reason envelope** row (its sibling) / a new **MCP tool-name presentation** row: the offered declaration **positively states the callable wire name** in its description (a tellme-authored note, server text untouched), and the fallback names the callable name. **No** schema/shape change.
+- **Truth**: `specs/truth/techstack.md` — an **ADD** of a new **MCP tool-name presentation** row: the offered declaration **positively states the callable wire name** in its description (a tellme-authored note, server text untouched), and the fallback names the callable name. **No** schema/shape change.
 - **ADR**: **0049** records the verify-first result, the note, the fallback fix, the beyond-reference divergence, and the declined alternatives.
 - **Domain model**: **not modelled** — the change is presentation text on an already-modelled `Tool`/`MCPTool`; no entity/invariant changes (ADR 0041 escape hatch; recorded in `plan.md` §5).
 
@@ -90,7 +90,7 @@ Call this tool as "mcp_github_get_me". <server-authored description, verbatim>
 
 | Action | Truth Spec | Summary |
 | --- | --- | --- |
-| MODIFY | `specs/truth/techstack.md` — *MCP tool-call reason envelope* (sibling offered-declaration row) | the offered MCP declaration's **description** now states the callable wire name (tellme note; server text unchanged) and the empty-description fallback names the callable name — description-only, schema unchanged |
+| ADD | `specs/truth/techstack.md` — *MCP tool-name presentation (callable-name discoverability)* (a NEW row; not a MODIFY of the *MCP tool-call reason envelope* row) | the offered MCP declaration's **description** now states the callable wire name (tellme note; server text unchanged) and the empty-description fallback names the callable name — description-only, schema unchanged |
 | ADD | `docs/decisions/0049-mcp-tool-name-discoverability.md` (+ index) | the decision record (verify-first result; note + fallback; divergence; declined alternatives) |
 | NOOP | `specs/truth/` `contracts/**` | single CLI end; no OpenAPI surface |
 | NOOP | `specs/truth/data/**` | no persisted-state change |

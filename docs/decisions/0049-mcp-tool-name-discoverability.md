@@ -8,10 +8,10 @@
 
 ## Context
 
-tellme offers a remote MCP tool to the model under the deterministic **namespaced wire name** `mcp_<server>_<tool>` (`internal/infrastructure/mcp/naming.go`); the offered declaration's **`name`** is that namespaced name (`tool.go:60`). But the text the model *reads* does not corroborate it:
+tellme offers a remote MCP tool to the model under the deterministic **namespaced wire name** `mcp_<server>_<tool>` (`internal/infrastructure/mcp/naming.go`); the offered declaration's **`name`** is that namespaced name. But the text the model *reads* does not corroborate it:
 
-1. **The synthesized fallback names the BARE tool** (`tool.go:53-56`): `"MCP tool " + def.Name + " from server " + server` → `MCP tool get_me from server github` — advertising an **uncallable** name.
-2. **Nothing advertises the `mcp_<server>_<tool>` convention** (ADR 0025 D4: no system-prompt change) — namespacing is an *unadvertised* wire convention; a weak model that recalls the bare upstream name (`get_me`) may emit it.
+1. **The synthesized fallback names the BARE tool** when the server ships no description — `"MCP tool " + def.Name + " from server " + server` → `MCP tool get_me from server github` — advertising an **uncallable** name. *(Pre-change location on `dev` @ `ab8fab7`: `internal/infrastructure/mcp/tool.go:53-56`; post-change the fallback body is built in `NewTool` and cites the callable name.)*
+2. **Nothing advertises the `mcp_<server>_<tool>` convention** (ADR 0025 D4: no system-prompt change) — namespacing is an *unadvertised* wire convention; a weak model that recalls the bare upstream name (`get_me`) may emit it. *(Pre-change `tool.go:60` was the assignment `name: NamespacedName(server, def.Name)`.)*
 
 Observed live (butler / `deepseek-flash` on `misc`): the model emitted `get_me` while the callable name is `mcp_github_get_me`.
 
@@ -40,7 +40,7 @@ Observed live (butler / `deepseek-flash` on `misc`): the model emitted `get_me` 
 
 5. **The note names `t.name`, the post-truncation wire name (D5).** For a name truncated for the 64-byte wire maximum, the note states the *actual* offered name (`Name()`), never the untruncated one — the note can never lie.
 
-6. **Uniform + control-free (D6).** The note is the same fixed ASCII sentence for **every** MCP tool and **every** family, interpolating the (wire-grammar-validated) name only — no credential can leak, no per-server policy is needed.
+6. **Uniform + control-free (D6).** The note is the same fixed ASCII sentence for **every** MCP tool and **every** family, interpolating the name only — no credential can leak, no per-server policy is needed. Two precisions: the interpolated name is assumed already **wire-grammar-validated** by the discovery path (`discovery.go` validates before `NewTool`; the exported `NewTool` itself validates nothing — a precondition, not a formatter invariant); and the note is built with Go's `%q` (**Go**-escaping, not JSON-escaping — safe here precisely because the interpolated value is tellme-derived and the whole declaration is later JSON-marshalled as a plain string value, the round-056 R-056-2 lineage).
 
 7. **Description-only; wire-shape-neutral (D3/I-3).** The note rides the `description` field, which is an **accepted** closed-wire keyword (ADR 0031); the vendor-extension floor and the closed-wire projection never touch the tool-level `description`. The offered **schema** bytes are unchanged.
 
@@ -52,13 +52,13 @@ Observed live (butler / `deepseek-flash` on `misc`): the model emitted `get_me` 
 
 - The model reads the **callable** wire name in the offered declaration, so a bare upstream name is less likely to be chosen; a model that still slips is caught by the round-076 recoverable fold-back (which lists the available wire names).
 - tellme's own text (the fallback) no longer advertises an uncallable name.
-- The offered **schema** is unchanged; the closed-wire projection and the vendor-extension floor are untouched; **zero** wire-shape diff.
-- A small, steady token cost is added to **every** offered MCP declaration (the note); the reference does not pay it (a recorded divergence).
+- The offered **schema** is unchanged (the envelope's shape and its `MCP_PAYLOAD` subschema are untouched): **zero *schema-shape* diff** — the only wire-text delta is the description prefix.
+- A small, steady token cost is added to **every** offered MCP declaration (the note, ≈38 bytes ≈ 10 tokens per declaration per request — ≈450 tokens/request for a 45-tool server, every turn); the reference does not pay it (a recorded divergence).
 - Efficacy on a *weak* model is not hermetically provable (no live model in the gate); the note is a precision improvement, not a guarantee (RF-077-2).
 
 ## Forward
 
-- **RF-077-1** — the note is a small steady token cost per MCP declaration; a future length budget or a localized wording is a wording change, not structural.
+- **RF-077-1** — the note is a small steady token cost per MCP declaration (≈38 bytes ≈ 10 tokens, i.e. ≈450 tokens/request for a 45-tool server, every turn); a future length budget or a localized wording is a wording change, not structural.
 - **RF-077-2** — hermetically unprovable model-efficacy; the note improves precision, it does not guarantee compliance.
 - **RF-077-3** — recorded divergence *beyond* the reference (which neither advertises nor falls back).
 - **RF-077-4** — a server whose own description already names the namespaced tool would carry a redundant (harmless) note.

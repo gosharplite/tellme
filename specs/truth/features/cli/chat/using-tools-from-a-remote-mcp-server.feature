@@ -228,3 +228,12 @@ Feature: Using tools from a remote MCP server
       When the operator starts tellme with the prompt "Which tools can you use?"
       Then the offered tool "lookup_price" from the MCP server "shop" names its callable wire name in the description
       And tellme exits successfully
+
+    Example: A server that ships no description is still offered by its callable name
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" that offers a tool "lookup_price" with no description answering "$42"
+      And a configured provider "test-model" whose endpoint reports the offered tools and then answers with "done"
+      When the operator starts tellme with the prompt "Which tools can you use?"
+      Then the offered tool "lookup_price" from the MCP server "shop" falls back to its callable name, not the bare one
+      And tellme exits successfully

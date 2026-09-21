@@ -51,8 +51,9 @@
 
 ### Witnesses (reproduced then reverted)
 
-- **W1** — neutralize the note ⇒ the **E2E `The offered declaration names the callable wire name`** reddens at the intended Then (`… does not name the callable wire name "mcp_shop_lookup_price"`); the unit build also reddens (`vet` printf check).
-- **W2** — the note names `def.Name` (bare) instead of `t.name` ⇒ `TestMCPToolName_EmptyDescriptionFallbackNamesTheCallableName` + `…_NoteNamesTheTruncatedWireName` redden.
-- **W3** — restore the bare-name fallback ⇒ `TestMCPToolName_EmptyDescriptionFallbackNamesTheCallableName` reddens.
-- **W4** — covered by W2's truncated-name failure: the note must carry the post-truncation wire name (`Name()`).
+- **W1** — neutralize the note (empty `callNameNoteFormat`) ⇒ the **E2E `The offered declaration names the callable wire name`** reddens at the intended Then; the unit build also reddens (`vet` printf check).
+- **W2** — the note names `def.Name` (bare) instead of `t.name` ⇒ reddens **three** unit pins — `…DescriptionIsNotePlusServerTextByteExact`, `…EmptyDescriptionFallbackNamesTheCallableName`, `…NoteNamesTheTruncatedWireName` — **plus** the E2E `The offered declaration names the callable wire name`.
+- **W3** — restore the bare-name fallback ⇒ `…EmptyDescriptionFallbackNamesTheCallableName` reddens **and (post-fold TD-1) the E2E `A server that ships no description is still offered by its callable name` reddens** at the force-bearing Then.
+- **W4** — the note carries the **post-truncation** wire name (`Name()`); covered by W2's truncated-name failure.
+- **Folds (PR #157 architect review)** — **F-1** byte-exact description pin over a whitespace/CRLF fixture (a `TrimSpace` of the server text, or interposed text, now reddens; previously green); **F-2** the envelope property-set pin reddens on a stray `hint` property (round-056's structural pin alone stayed green); **F-3** the fallback provenance is asserted on the fallback SEGMENT (dropping `from server <server>` now reddens); **TD-1** the empty-description carrier (`mcptest.Options{EmptyDescription: true}`) makes US2/FR-004 E2E-reachable (the bare fallback now reddens the E2E).
 

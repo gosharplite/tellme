@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: **`/axb-technical-research` RUN (2026-09-22)** — the verify-first step (a live `tools/list` against the GitHub MCP server) is done; `research.md` D1–D8 + **ADR 0049** + `techstack.md` **ADD** (a *MCP tool-name presentation* row). Clarify resolved at specify time (**0 questions** — not escalated). `/axb-api-plan` + `/axb-data-plan` record `NOOP`. `/axb-dsl-refine` records the offered-declaration carrier.
+> **Status**: **`/axb-technical-research` + `/axb-dsl-refine` RUN (2026-09-22)** — the verify-first step (a live `tools/list` against the GitHub MCP server) is done; `research.md` D1–D8 + **ADR 0049** + `techstack.md` **ADD** (a *MCP tool-name presentation* row). Clarify resolved at specify time (**0 questions** — not escalated). `/axb-api-plan` + `/axb-data-plan` record `NOOP`. **Architect review 1 fold (`APPROVE WITH REQUIRED FOLDS`, F-1…F-4 + TD-1 + nits):** the folds added byte-exact/envelope-set/fallback-segment witnesses (F-1…F-3), added the PM-side acceptance journey `features/acceptance/discovering-the-callable-mcp-tool-name.feature` + reconciled the records (F-4), and made US2/FR-004 E2E-reachable via an `mcptest` empty-description knob (TD-1) — no truth *semantic* change beyond these.
 
 ## /axb-technical-research
 
@@ -30,5 +30,5 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| MODIFY | `specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature` | a new Rule/Example: the offered MCP declaration's **description** names the callable wire name (`mcp_<server>_<tool>`), observed on the fake-provider wire | `spec.md` US1/US2, FR-001…FR-006 |
-| MODIFY | `specs/truth/features/cli/chat/dsl.md` | +1 Then row reading the offered MCP declaration's description | `spec.md` US1 |
+| MODIFY | `specs/truth/features/cli/chat/using-tools-from-a-remote-mcp-server.feature` | a new Rule with **two** Examples: the offered MCP declaration's **description** names the callable wire name (`mcp_<server>_<tool>`) — one for a description-bearing server, one for a server that ships **no** description (the fallback), observed on the fake-provider wire | `spec.md` US1/US2, FR-001…FR-006 |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` | **+2** Then rows — the callable-name note, and the force-bearing empty-description fallback (via `mcptest.Options{EmptyDescription: true}`) | `spec.md` US1/US2 |
