@@ -35,7 +35,7 @@ Feature: Offering the agent tools
 
   Rule: A removed tool is not offered
 
-    Example: A provider that only asks for the summarisation tool is stopped at the per-turn cap
+    Example: A provider that only asks for a tool tellme does not offer is stopped at the per-turn cap
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a configured provider "test-model" whose endpoint asks for a tool that is not available

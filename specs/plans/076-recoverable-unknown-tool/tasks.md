@@ -49,3 +49,14 @@ Legend: `[ ]` pending · `[X]` done.
 | TD-076-3 / N-3 / N-5 | recorded / accepted as-is / closed by F-1 | — |
 
 **Witnesses re-run (reproduced then reverted):** drop `ToolCallID` ⇒ `TestRunUnknownToolIsFedBackAndContinues` red (`ToolCallID = ""`) · `maxUnknownToolFolds = 10` ⇒ `TestMaxUnknownToolFoldsValuePinned` red · `maxUnknownToolFolds = 0` (the old terminal behaviour) ⇒ the three E2E unknown-tool Examples red at `no recoverable result naming the unknown tool "time_travel" was fed back` (the cap witness is now discriminating).
+
+
+## Residual fold ledger — fold-verification 1 (`FOLDS VERIFIED WITH RESIDUALS — CLEARED FOR HUMAN MERGE`)
+
+| # | Residual | Fold |
+| --- | --- | --- |
+| **R1** | TD-076-4 — the cap unit pin still coupled to fake exhaustion for a large N | `repeatingGateway` (repeats its last reply, like the E2E fake) used by `TestRunUnknownToolIsBoundedPerTurn`; robust for any cap value |
+| **R2** | the fold-back pairing was unit-tier only | `thenUnknownToolReported` now asserts the E2E fold-back carries a non-empty `tool_call_id` (the round-065 / #132 pairing at the E2E tier) |
+| **R3** | `offering-the-agent-tools.feature` Example prose named the "summarisation tool" while the fixture scripts `time_travel` | Example title reworded to "a tool tellme does not offer" |
+
+**Witness (reproduced then reverted):** `maxUnknownToolFolds = 25` ⇒ the cap pin **passes** (the repeating gateway removes the fake-exhaustion coupling).

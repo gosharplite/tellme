@@ -296,18 +296,35 @@ func TestMaxUnknownToolFoldsValuePinned(t *testing.T) {
 	}
 }
 
+// repeatingGateway serves its scripted replies, then REPEATS the last one forever
+// (like the E2E fakeprovider), so a bounded-loop pin fails on the loop's own
+// assertion — never on fake exhaustion (round 076 fold-verification residual R1).
+type repeatingGateway struct {
+	responses []llm.Response
+	calls     []llm.Request
+	i         int
+}
+
+func (f *repeatingGateway) Complete(_ context.Context, req llm.Request) (llm.Response, error) {
+	f.calls = append(f.calls, req)
+	if len(f.responses) == 0 {
+		return llm.Response{}, errors.New("no scripted responses")
+	}
+	idx := f.i
+	if idx >= len(f.responses) {
+		idx = len(f.responses) - 1
+	}
+	f.i++
+	return f.responses[idx], nil
+}
+
 // TestRunUnknownToolIsBoundedPerTurn: a provider that keeps asking for an unknown
 // tool is stopped at the per-turn cap (round 076) — a bounded fold-back, not an
-// unbounded spin. The fake is scripted with MORE replies than the cap so raising
-// the constant fails on the cap assertion, not on fake exhaustion (fold TD-076-4).
+// unbounded spin. A repeating gateway (fold-verification R1) makes the pin fail on
+// the cap assertion for ANY cap value, not on fake exhaustion.
 func TestRunUnknownToolIsBoundedPerTurn(t *testing.T) {
-	tc := llm.ToolCall{ID: "c", Name: "time_travel"}
-	replies := make([]llm.Response, 0, 20)
-	for range 20 {
-		replies = append(replies, llm.Response{ToolCalls: []llm.ToolCall{tc}})
-	}
-	gw := &fakeGateway{responses: replies}
-	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "x"}), MaxLoops: 100}
+	gw := &repeatingGateway{responses: []llm.Response{{ToolCalls: []llm.ToolCall{{ID: "c", Name: "time_travel"}}}}}
+	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "x"}), MaxLoops: 10000}
 	_, err := a.Run(context.Background(), "use the time-travel tool", nil)
 	var inc *agentport.ErrIncomplete
 	if !errors.As(err, &inc) {

@@ -52,7 +52,13 @@ func thenUnknownToolReported(ctx context.Context, tool string) error {
 	want := fmt.Sprintf("no tool named %q", tool)
 	for _, msgs := range toolRounds(f) {
 		for _, m := range msgs {
+			// Fold-verification R2: assert the fold-back is PAIRED (its tool_call_id is
+			// carried on the OpenAI-compatible wire), not only that the content names
+			// the unknown tool — the round-065 / #132 pairing invariant at the E2E tier.
 			if m.Role == "tool" && strings.Contains(m.Content, want) {
+				if m.ToolCallID == "" {
+					return fmt.Errorf("the fold-back for %q was not paired (empty tool_call_id)", tool)
+				}
 				return nil
 			}
 		}
