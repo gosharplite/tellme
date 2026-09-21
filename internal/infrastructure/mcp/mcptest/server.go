@@ -34,6 +34,11 @@ type Options struct {
 	Result string
 	// Description is the advertised tool description.
 	Description string
+	// EmptyDescription, when true, advertises the tool with a genuinely EMPTY
+	// description (Description is ignored; the default "a fake MCP tool"
+	// placeholder is suppressed) — the witness for tellme's empty-description
+	// fallback (round 077 / ADR 0049).
+	EmptyDescription bool
 	// Schema is the advertised input schema. Nil selects a freeform object schema
 	// ({"type":"object","properties":{}}). A MALFORMED schema is a JSON object
 	// with `required` entries not present in `properties` (the #64-mirror shape).
@@ -84,7 +89,9 @@ func Start(opts Options) *Server {
 			schema = defaultSchema()
 		}
 		desc := opts.Description
-		if desc == "" {
+		if opts.EmptyDescription {
+			desc = ""
+		} else if desc == "" {
 			desc = "a fake MCP tool"
 		}
 		s.mcp.AddTool(&sdk.Tool{Name: opts.Tool, Description: desc, InputSchema: schema}, s.handleTool)

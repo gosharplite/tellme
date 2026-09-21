@@ -86,3 +86,57 @@ Restore the terminal `return` ⇒ the unit pin **and** the E2E `A one-off unknow
 - **The bug reproduced itself on the reviewer's own session** — the `architect` peer called a hallucinated `exec_command` and the **installed (pre-076)** binary aborted with the exact `tool … is not available` exit-7; re-staging with an explicit tool list recovered it (the session-61 precedent). A live repro on a peer is strong grounding.
 - **A `clampBytes` claim must be checked against the path** (review F-4): the loop's clamp runs only on the *executed*-tool result path, not on a fold-back — an unbounded list was claimed bounded.
 - **Cap constants deserve a literal pin** (review F-2): asserting `N+1` symbolically proves the mechanism, not the value — a literal pin (round-064's precedent) forces a reviewed change.
+
+---
+
+## 39. Session 63 (2026-09-22, cont.) — round 077 `077-mcp-tool-name-presentation` **OPENED**: make the callable MCP wire name discoverable → full pipeline → **PR open** (anchor [#155](https://github.com/gosharplite/tellme/issues/155); **ADR 0049**)
+
+Bootstrap re-run (Steps 1–8; round 076 delivered/frozen; active branch `dev`). The operator directed *"Open a new round, the goal is to close issue 155."* A new branch **`077-mcp-tool-name-presentation`** was created off `dev` `ab8fab7`; the full AIxBDD pipeline ran to a green PR.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`077-mcp-tool-name-presentation`** (off `dev` `ab8fab7`) |
+| Anchor | [#155](https://github.com/gosharplite/tellme/issues/155) — MCP tool presentation does not surface the namespaced wire name; **research-gated, may be NOOP**; **DoD = close it** |
+| Theme | MODIFY (MCP tool presentation): the offered MCP declaration's **description** names the **callable wire name** (`mcp_<server>_<tool>`), and the empty-description fallback names the callable name — description-only, schema unchanged, server text never rewritten |
+| Clarify | **not escalated (0 questions)** — the issue delegated the decision to `/axb-technical-research` |
+| **Verify-first (the issue's decisive step)** | a **live** `initialize` + `tools/list` against `api.githubcopilot.com/mcp/` (2026-09-22): **45** tools, **0** with an empty description; `get_me`'s description names no tool → tellme's **fallback did NOT fire** (it was not the observed cause). **A fix IS warranted** (the presentation gap is real) — the NOOP verdict was **not** taken |
+| Pipeline | specify ✅ · clarify ✅ (0) · **spec-by-example ✅** (`features/acceptance/discovering-the-callable-mcp-tool-name.feature`) · technical-research ✅ (**ADR 0049** + a `techstack.md` ADD row) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine ✅ (a Rule + 2 Then rows) · tasks ✅ (T001–T012) · implement ✅ |
+| The change | `internal/infrastructure/mcp/tool.go` — a named `callNameNoteFormat` constant + a computed `description` in `NewTool`: `Call this tool as "<t.name>". <server text verbatim>`; the empty-description fallback now names the **callable** name (not `def.Name`) |
+| Verification | `gofmt`/`goimports` clean · `go vet` clean · `go test -count=1 ./...` **green** (24 pkgs; E2E **289 scenarios**) · `make verify` **OK** · `go.mod`/`go.sum` unchanged · topology audit **the same 5 pre-existing errors, none new** (52 features · 412 module rows · 2124 steps) |
+| Witnesses (reproduced then reverted) | **W1** neutralize the note ⇒ the E2E `The offered declaration names the callable wire name` reddens at the intended Then (+ a `vet` printf build red); **W2** note the bare name ⇒ the callable-name + truncated-name pins red; **W3** bare fallback ⇒ the fallback pin reds |
+| Delivery | branch `077-mcp-tool-name-presentation` → **PR open** — awaiting a human review/merge (no Copilot review) |
+
+### Decisions locked (round 077 / ADR 0049)
+
+| # | Decision |
+| --- | --- |
+| **D1** | Ship a fix (not NOOP) — the verify-first result shows the gap is real. |
+| **D2** | Every offered MCP tool's **description** is **prefixed** with a tellme-authored call-name note naming the callable wire name (`t.name`). |
+| **D3** | The note is added **outside** the server's own text, which is relayed **unchanged** (ADR 0025 D1); description-only, **schema bytes unchanged**; **no** prompt change (ADR 0025 D4). |
+| **D4** | The **fallback** names the **callable** name, never the bare upstream name (a latent-correctness fix; the reference has no fallback). |
+| **D5** | The note names the **post-truncation** wire name (`Name()`), so it can never lie. |
+| **D6/D8** | Uniform + control-free; a **recorded divergence *beyond* the reference** (which neither advertises nor falls back). |
+
+### Commits (branch `077-mcp-tool-name-presentation`)
+
+| Commit | Note |
+| --- | --- |
+| `2178efa` | `docs(077)`: plan package + spec |
+| `999f51f` | `feat(077)`: make the callable MCP wire name discoverable (ADR 0049) + unit/E2E pins + truth |
+
+### Open items (non-blocking)
+
+- **RF-077-1** the note is a small steady token cost per MCP declaration · **RF-077-2** hermetically unprovable model-efficacy · **RF-077-3** recorded divergence *beyond* the reference · **RF-077-4** a redundant note if the server text already names the tool · **RF-077-5** non-MCP tool kinds out of scope. All in **ADR 0049 §Forward**.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the 5 pre-existing topology-audit DSL errors.
+
+### Next steps
+
+1. Human reviews + merges the PR (**no Copilot review**; only a human merges); then propagate `dev → main` (no-ff), tag `round-077`, refresh the binary; **close [#155](https://github.com/gosharplite/tellme/issues/155)**.
+2. Operator may dispatch the `architect` peer for the review-fold loop (the round-069…076 protocol).
+3. Re-read `SESSION-BOOTSTRAP.md` next session.
+
+### PM follow-ups
+
+- None new (the acceptance journey is a short presentation Rule; the round carries the falsifiable unit + E2E pins).
