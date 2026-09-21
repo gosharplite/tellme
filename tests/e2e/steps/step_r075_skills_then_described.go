@@ -31,8 +31,9 @@ func thenListingDescribesSkill(ctx context.Context, name, description string) er
 		return fmt.Errorf("the listing does not describe the skill %q as %q; result=%q", name, description, result)
 	}
 	// The DSL row's 不該發生 clause (fold N-1): a block-scalar description must not
-	// be listed as the bare indicator.
-	if strings.Contains(result, "- "+name+": >") {
+	// be listed as the bare indicator. Match the exact rendered bare-indicator entry
+	// (`- <name>: > (`) so a description that merely begins with `>` is not caught.
+	if strings.Contains(result, "- "+name+": > (") {
 		return fmt.Errorf("the listing shows the bare block-scalar indicator for the skill %q; result=%q", name, result)
 	}
 	return nil
