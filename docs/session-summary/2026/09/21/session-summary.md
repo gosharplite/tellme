@@ -174,3 +174,81 @@ Drop the explicit `-h` flag (pflag's implicit path) ⇒ the E2E `The operator as
 - **A new terminal action must update its owning truth row, not just its own** (F-1): the round added `--help` to the precedence but left the *Prompt input* row (the precedence owner) stale — one truth file asserted two chains. When a round changes a shared contract, grep the truth for the old shape and MODIFY each owner row; record every one in `truth-delta.md`.
 - **Describe the pre-round mechanism exactly** (F-2): the ADR called pflag's implicit-help text "the same text today's error path prints" — the error path prints only the phrase. Name the mechanism (implicit help on the `SetOutput` writer) so a future reader cannot re-route help through the error path.
 - **`-h`/`-v` are the reference's cobra conventions**; tellme reproduces the *observable contract* (help → stdout/0) without cobra — a flag, not a subcommand.
+
+---
+
+## 3. Session 61 — round 075 `075-skill-frontmatter-block-scalars`: operator request → full pipeline → `architect` review-fold loop (2 passes, CLOSED) → **human-merged (PR #153 → `dev` `250221d`, merge commit)** → branch cleanup → closeout (Steps 1–8)
+
+An operator session (same calendar day): after inspecting the skills loader, the operator asked tellme itself to be fixed so a skill authored with a YAML **folded block scalar** (`description: >`) is listed by its **real** text instead of the bare indicator `>`. A new branch **`075-skill-frontmatter-block-scalars`** was created **off `dev`**, the round ran the full AIxBDD pipeline, and **PR [#153](https://github.com/gosharplite/tellme/pull/153)** was taken through the `architect` peer's **review → fold → fold-verification** loop to **CLEARED FOR HUMAN MERGE**, then human-merged (a merge commit); the branch was deleted (local + remote) and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | **operator request** (no anchor issue): the skills loader resolves a YAML **block scalar** (`>`/`|` + chomping) `name`/`description`, so `list_skills` shows the skill's **real** text, not `>` |
+| Clarify (one at a time) | **not escalated (0 questions)** — the goal/scope are unambiguous; the residual choices are technical (stdlib vs a YAML library; folding/chomping; the E2E authoring seam) → `/axb-technical-research` |
+| Pipeline | specify ✅ · clarify ✅ (0 Q) · spec-by-example ✅ · technical-research ✅ (**ADR 0047** + `techstack.md` §Skills *Skills catalog (load)* MODIFY) · system-analysis ✅ (1 CLI end; api/data NOOP; dsl-refine truth) · dsl-refine ✅ (+1 Rule/Example; +2 DSL rows) · tasks ✅ (T001–T010) · implement ✅ |
+| Before → after | `- golang-patterns: > (/…/SKILL.md)` → `- golang-patterns: Idiomatic Go patterns for robust code (…)`. Inline quoted/unquoted values stay byte-identical; an inline `a > b` stays literal; an indicator with no body ⇒ the file is not a skill (best-effort skip, unchanged). |
+| The change | `internal/infrastructure/skills/loader.go` — `parseFrontmatter` routes `name`/`description` through `resolveFrontmatterValue`; `isBlockIndicator` (`[>|][+-]?`) + `collectBlock` + `stripBlockIndent`/`joinBlockScalar`/`applyChomping` resolve the block; **stdlib-only**, no YAML dependency; the `Skill` type + `list_skills` surface/order/bounds unchanged |
+| Divergence (recorded) | the reference `tell-me-go`'s line-based `parseSkill` **shares the limitation** — a **deliberate divergence *beyond* the reference** (robustness), not parity (**ADR 0047 §Decision 6**) |
+| Review chain (PR #153, the `architect` peer — init once with `SESSION-BOOTSTRAP.md`, continuations) | `review` (**APPROVE WITH REQUIRED FOLDS** — no `[ARCHITECTURAL BLOCKER]`; **F-1** D6 overclaimed the witness set + FR-005 had no carrier · **F-2** chomping is unobservable (`TrimSpace` neutralizes it) · **F-3** an ADR context claim unverifiable · **N-1** the DSL `不該發生` clause had no carrier; RF-075-4…7 proposed) → fold `7fb0fa1` → `FOLD-VERIFICATION` (**FOLDS VERIFIED — CLEARED FOR HUMAN MERGE**; the new pins proven to redden under a reverted reader) → residual homing `8126470` (R-1…R-4) |
+| Merge | PR [#153](https://github.com/gosharplite/tellme/pull/153) **human-merged** into `dev` (`250221d`, **merge commit**); branch deleted (local + remote) |
+| Closeout | `make check` **OK** · `make test-race` green · `make verify` **OK** · topology audit **5 pre-existing, none new** (51 features · 407 module rows · 2100 steps) · diff secret scan clean · `STATUS.md` split (round-074 detail + env note → `docs/archives/status/2026-09-21.md`) · propagation `dev → main` (**no-ff**) + tag **`round-075`** · `go install` · **no anchor issue to close** (0 open) |
+
+### Decisions locked (round 075)
+
+| # | Decision |
+| --- | --- |
+| **D1** | Resolve block scalars in the **existing stdlib reader** (`strings`), not by adopting `gopkg.in/yaml.v3` — the reference's reader is hand-rolled; no new dependency (I-4/NFR-001). |
+| **D2** | The indicator grammar is exact: a value is a block scalar **iff** it is `[>|][+-]?`; anything else (incl. `a > b`) stays inline. |
+| **D3** | Fold (`>`) / literal (`|`) + chomping; the resolved value is `TrimSpace`d — so trailing-newline chomping is **normalized** (`>`≡`>-`≡`>+` for the trimmed scalar). |
+| **D4** | A block with no body ⇒ empty ⇒ the file is **not** a skill (best-effort skip, unchanged). |
+| **D5** | The `Skill` value type + the `list_skills` surface are **unchanged** — a reader-robustness fix, one function. |
+| **D6** | **Recorded divergence *beyond* the reference** (not parity): `tell-me-go`'s line-based `parseSkill` shares the limitation. |
+| **Domain model** | **Not modelled** — parsing, not a modelled entity/invariant; recorded in `plan.md` §5 (ADR 0041's escape hatch). |
+
+### Commits (branch `075-skill-frontmatter-block-scalars`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `a61ec45` | `docs(075)`: plan package + spec |
+| `b2df835` | `feat(075)`: resolve YAML block-scalar skill frontmatter (acceptance + research + ADR 0047 + truth + implementation) |
+| `7fb0fa1` | `fix(075)`: fold the architect review (F-1/F-2/F-3 + N-1; RF-075-4…7 homed) |
+| `8126470` | `docs(075)`: home the fold-verification residuals (R-1…R-4) |
+| `250221d` | PR [#153](https://github.com/gosharplite/tellme/pull/153) merge into `dev` (by the operator) |
+| *(this closeout, on `dev`)* | `docs(075)`: day close — round 075 delivered + propagated; STATUS split + 09/21 summary §3 |
+
+### Artifacts / truth
+
+- Plan package: `spec.md` (US1–US2 · FR-001…FR-006 · NFR-001…NFR-003 · edge cases · SC-001…SC-003) · `checklists/requirements.md` · `features/acceptance/listing-a-block-scalar-skill.feature` · `research.md` (D1–D6) · `plan.md` · `tasks.md` (T001–T010) · `truth-delta.md`.
+- Truth: `specs/truth/techstack.md` §Skills *Skills catalog (load)* MODIFY (block-scalar support + the divergence note) · `specs/truth/features/cli/chat/listing-the-available-skills.feature` (+1 Rule/Example) · `chat/dsl.md` (+2 rows + a round-075 note) · `contracts/**` + `data/**` NOOP · `docs/domain-model/**` **unchanged** (not modelled).
+- Code: `internal/infrastructure/skills/loader.go` · `internal/infrastructure/skills/loader_test.go` (+6 tests) · `tests/e2e/steps/step_r075_skills_given_folded.go` · `tests/e2e/steps/step_r075_skills_then_described.go`.
+- **ADR 0047** (`docs/decisions/0047-skill-frontmatter-block-scalars.md` + index).
+
+### Falsifiability witnesses (reproduced then reverted)
+
+Force `isBlockIndicator` false (a line-based read) ⇒ the E2E `A description written as a folded block scalar` reddens at `the listing describes the skill "golang-patterns" as "Idiomatic Go patterns for robust code"` (result `- golang-patterns: > (…)`) **and** the unit pins redden (`folded description = ">"; want "…"`). The **`architect` independently re-ran** the witness (reverted reader on an out-of-tree copy → the new Example reddens at exactly the intended Then; the other 5 Examples stay green).
+
+## Open items (non-blocking)
+
+- **Round-075 forward items** — **RF-075-1** the block-scalar *subset* (full YAML grammar / indentation indicators not adopted) · **RF-075-2** a block-scalar `name` has no E2E carrier (unit-only) · **RF-075-3** the reference is not fixed (recorded divergence) · **RF-075-4** a non-`name`/`description` key's block body is not consumed (pre-existing/shared with the reference) · **RF-075-5** `description: > # note` resolves literal · **RF-075-6** a more-indented block line leaks indentation · **RF-075-7** an over-then-under-indented line is kept. All in **ADR 0047 §Forward**.
+- **Round-074 forward items** — RF-074-1…7 in ADR 0046 §Forward. **Round-073 forward items** — RF-073-1…10 in ADR 0045 §Forward.
+- **PM follow-ups** — **none open.**
+- Carried: PR #16 **Obs 1** stdout TTY probe **OPEN**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items; the **5 pre-existing** Gherkin/DSL topology-audit errors.
+
+## Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value** (there is **no live issue**).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+*(Round 075 is fully closed out: PR #153 human-merged into `dev` (`250221d`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-075`** with operator approval; the installed binary refreshed from the `dev` head.)*
+
+## PM follow-ups
+
+- None new (spec/acceptance complete; the `architect`'s F-1/F-2/F-3 were record/witness folds, not PM-owned gaps).
+
+## Process notes (durable)
+
+- **A witness that cannot fail is not a witness** (F-2): the mandatory `TrimSpace` normalizes trailing chomping, so the chomping branches are inert for the frontmatter scalar — record the normalisation (a comment + the ADR) rather than assert a chomping difference no input can make.
+- **Correct the record to the pins that exist** (F-1): `research.md` D6 claimed pins (blank-line folding, quoted, CRLF) that did not exist; an unpinned MUST (FR-005) is a vacuous claim — add the pins or downgrade the claim, and never let the record overstate coverage.
+- **A motivating-evidence claim must be verifiable from the tree** (F-3): naming an out-of-repo reflow the reader cannot see invites a round-trip — state what the reader does here instead.
