@@ -559,3 +559,17 @@ module's feature must match exactly one row.
 | `a configured Gemini provider "{provider}" whose endpoint answers with "{answer}" and reports the token usage:` | `provider`: string; the selected provider key. `answer`: string; the final answer text. | `prompt` / `cached` / `completion` / `thinking`: int; the token counts. | `config`: a `gemini`-family config (`TYPE: gemini`, a service-account JSON key whose `token_uri` is the fake's token endpoint) selecting `{provider}`; endpoint = the Vertex-shaped fake. | `怎麼做`: write the gemini config + service-account key; the Vertex-mode fake answers `{answer}` with a DETAILED `usageMetadata` (`promptTokenCount`, `candidatesTokenCount` = the plain completion — the Vertex family is **disjoint** — `totalTokenCount`, `cachedContentTokenCount`, `thoughtsTokenCount`). `權威狀態落地`: the recorded Vertex `usageMetadata` is the authority for `M`/`H`/`C`/`Th`. `回寫`: none. |
 
 > **Round 072 (ADR 0044; closes [#149](https://github.com/gosharplite/tellme/issues/149)):** the Gemini adapter decodes `cachedContentTokenCount` → `Usage.CachedTokens` and `thoughtsTokenCount` → `Usage.ThinkingTokens`; the family is **disjoint** (`candidatesTokenCount` excludes thoughts — no subtraction, unlike the OpenAI-compatible family). The Example reuses the existing `the reported metrics line shows …` Then (family-agnostic).
+
+## Given (round 075)
+
+| DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
+| --- | --- | --- | --- | --- |
+| `the runtime home holds a skill "{name}" whose description is written as a folded block scalar across the lines "{first}" and "{second}"` | `name`: string; the skill's declared name (its folder). `first`, `second`: string; the two folded lines. | 不支援 | `技能目錄`: `$TELL_ME_HOME/docs/skills`. | `怎麼做`: create `$TELL_ME_HOME/docs/skills/{name}/SKILL.md` whose frontmatter declares `name` inline and `description` as a YAML **folded block scalar** (`description: >` followed by two indented lines `{first}` / `{second}`), then a Markdown body. `權威狀態落地`: a skill file whose `description` is a folded block scalar exists under the runtime home's skills directory. `回寫`: the skill file. |
+
+## Then (round 075)
+
+| DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
+| --- | --- | --- | --- | --- |
+| `the listing describes the skill "{name}" as "{description}"` | `name`: string; the skill name. `description`: string; the expected resolved text. | 不支援 | `來源`: the `list_skills` tool result fed back into the conversation. | `必查`: `權威狀態`: the `list_skills` result carries the entry `- {name}: {description} (` — the description resolved to its folded text, NOT the bare indicator `>`. `不該發生`: a block-scalar description must not be listed as `>`. |
+
+> **Round 075 (ADR 0047):** the frontmatter reader resolves YAML **block scalars** (`>` / `|` + chomping) — a skill authored with `description: >` lists by its real (folded) text, not the bare indicator. A **deliberate divergence *beyond* the reference** (`tell-me-go`'s line-based `parseSkill` shares the limitation).

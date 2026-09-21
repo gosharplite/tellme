@@ -143,3 +143,88 @@ func TestLoadSkipsMalformedBestEffort(t *testing.T) {
 		t.Fatalf("expected only the valid skill; got %v", skillNames(got))
 	}
 }
+
+// Round 075 (ADR 0047) — the frontmatter reader resolves YAML block-scalar values.
+
+func TestLoadFoldedBlockScalarDescription(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "folded/SKILL.md", "---\nname: folded\ndescription: >\n  Idiomatic Go patterns\n  for robust code\n---\n# folded\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("want 1 skill; got %d (%v)", len(got), skillNames(got))
+	}
+	want := "Idiomatic Go patterns for robust code"
+	if got[0].Description != want {
+		t.Errorf("folded description = %q; want %q (the indicator must be resolved, not read)", got[0].Description, want)
+	}
+}
+
+func TestLoadLiteralAndChompingBlockScalars(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "literal/SKILL.md", "---\nname: literal\ndescription: |\n  line one\n  line two\n---\n")
+	writeFixture(t, dir, "strip/SKILL.md", "---\nname: strip\ndescription: >-\n  a\n  b\n---\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	byName := map[string]string{}
+	for _, s := range got {
+		byName[s.Name] = s.Description
+	}
+	if byName["literal"] != "line one\nline two" {
+		t.Errorf("literal description = %q; want %q (breaks preserved)", byName["literal"], "line one\nline two")
+	}
+	if byName["strip"] != "a b" {
+		t.Errorf("chomping (`>-`) description = %q; want %q", byName["strip"], "a b")
+	}
+}
+
+func TestLoadInlineGreaterThanIsNotABlock(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "inline/SKILL.md", "---\nname: inline\ndescription: a > b\n---\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 || got[0].Description != "a > b" {
+		t.Fatalf("an inline value containing '>' must stay literal; got %v", got)
+	}
+}
+
+func TestLoadBlockScalarWithNoBodyIsSkipped(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "good/SKILL.md", skillBody("good", "a valid skill"))
+	writeFixture(t, dir, "nobody/SKILL.md", "---\nname: nobody\ndescription: >\n---\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 || got[0].Name != "good" {
+		t.Fatalf("an indicator with no body must resolve empty and skip the file; got %v", skillNames(got))
+	}
+}
+
+func TestLoadBlockScalarName(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "x/SKILL.md", "---\nname: >\n  folded name\ndescription: a description\n---\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 || got[0].Name != "folded name" {
+		t.Fatalf("a block-scalar name must be resolved; got %v", got)
+	}
+}
