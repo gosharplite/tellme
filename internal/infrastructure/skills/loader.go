@@ -194,7 +194,12 @@ func joinBlockScalar(indicator string, content []string) string {
 }
 
 // applyChomping governs a block scalar's trailing newline: `-` strips it, `+`
-// keeps it, and the default (clip) leaves a single trailing newline.
+// keeps it, and the default (clip) leaves a single trailing newline. NOTE
+// (round-075 fold F-2): the caller, resolveFrontmatterValue, `TrimSpace`s the
+// resolved value, which normalises ALL trailing-newline chomping — so for the
+// trimmed scalar `>`, `>-`, `>+` (and `|`, `|-`, `|+`) are indistinguishable.
+// These branches preserve YAML fidelity (and would matter for an untrimmed
+// value); they are intentionally inert for the frontmatter scalar.
 func applyChomping(indicator, out string) string {
 	if len(indicator) == 2 {
 		switch indicator[1] {

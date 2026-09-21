@@ -45,7 +45,7 @@ the value after the colon is the **indicator** `>`, so `description` becomes the
 - **Decision**: the block's content lines are those following the indicator that are **blank or indented** (stopping at the first non-blank, non-indented line — the next key). The block's indentation is the first non-blank content line's leading whitespace, stripped from every line. Then:
   - **folded (`>`)** — consecutive non-empty lines join with a **single space**; a blank line becomes a **newline** (paragraph break);
   - **literal (`|`)** — lines join with a **newline** (breaks preserved);
-  - **chomping** — default **clip** (one trailing newline), `-` **strip** (none), `+` **keep** (all);
+  - **chomping** — the indicator's `-`/`+`/default is accepted syntactically, but the resolved value is `strings.TrimSpace`d, which **normalizes trailing-newline chomping**: for the trimmed scalar, `>`/`>-`/`>+` (and `|`/`|-`/`|+`) are **indistinguishable**. The chomping branches preserve YAML fidelity (and would matter for an untrimmed value); they are **inert** for the frontmatter scalar. *(fold F-2.)*
   and the resolved value is `strings.TrimSpace`d (so a single-line description carries no stray break, while a multi-paragraph block keeps its internal breaks).
 - **Rationale**: matches the semantics a skill author expects; the trim keeps `description` a clean scalar for the one-line listing entry, mirroring the existing trim behaviour (A3).
 - **Alternatives considered**:
@@ -62,10 +62,10 @@ the value after the colon is the **indicator** `>`, so `description` becomes the
 - **Decision**: only the **parsed value** of `description` (and `name`) changes; `internal/domain/skills.Skill`, the `list_skills` tool, its bounds, its rendering, and its path-sorted order are untouched.
 - **Rationale**: the round is a reader-robustness fix, not a surface change; it keeps the blast radius to one function + its tests.
 
-## 決策 6 — Witnesses: unit pins for the grammar/folding/chomping + one E2E journey
+## 決策 6 — Witnesses: unit pins for the grammar/folding + one E2E journey
 
-- **Decision**: unit pins cover folded (`>`), literal (`|`), chomping (`>-`/`|-`), blank-line folding, inline `>`-bearing value (not a block), indicator-with-no-body (skipped), block-scalar `name`, and CRLF/quoted regression. The E2E adds one journey: a skill authored with a folded description is listed by its folded text (the `>` falsifiability witness — dropping the fix reddens it, showing `">"`).
-- **Rationale**: the parsing matrix is a unit-level fact; the listing effect is the acceptance-level carrier.
+- **Decision** (the pins as shipped — corrected at fold **F-1**): unit pins are `TestLoadFoldedBlockScalarDescription` (folded `>`), `TestLoadLiteralFoldedJoining` (literal `|` + a `>-` fold, the latter documenting chomping acceptance), `TestLoadMultiParagraphFoldedBlockScalar` (blank line ⇒ newline — **FR-005**), `TestLoadQuotedScalarsUnchanged` (double/single-quoted regression), `TestLoadCRLFBlockScalar` (CRLF + folded), `TestLoadInlineGreaterThanIsNotABlock` (inline `>` stays literal), `TestLoadBlockScalarWithNoBodyIsSkipped`, and `TestLoadBlockScalarName`. The E2E adds one journey — a skill authored with a folded description is listed by its folded text — whose Then asserts the expected entry **and** (fold **N-1**) that the entry is not the bare indicator; this is the `>` falsifiability witness (dropping the fix reddens it, showing `">"`).
+- **Rationale**: the parsing matrix is a unit-level fact; the listing effect is the acceptance-level carrier. **Chomping** has no independent witness by construction — the mandated `TrimSpace` normalizes trailing-newline chomping (D3, fold **F-2**), so no assertion on it can fail; the chomping branches are fidelity/defensive, not a verified behaviour.
 
 ---
 

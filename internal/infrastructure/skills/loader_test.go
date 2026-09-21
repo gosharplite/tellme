@@ -164,7 +164,13 @@ func TestLoadFoldedBlockScalarDescription(t *testing.T) {
 	}
 }
 
-func TestLoadLiteralAndChompingBlockScalars(t *testing.T) {
+// TestLoadLiteralFoldedJoining pins the `|` (literal: breaks preserved) and a
+// `>-`-chomped folded block. NOTE (round-075 fold F-2): the mandatory
+// `TrimSpace` in resolveFrontmatterValue normalizes trailing-newline chomping, so
+// `>`/`>-`/`>+` (and `|`/`|-`/`|+`) are indistinguishable for the trimmed scalar
+// — the `>-` case documents acceptance of the chomping spelling, not a
+// trailing-newline distinction (ADR 0047 §Decision 3).
+func TestLoadLiteralFoldedJoining(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	writeFixture(t, dir, "literal/SKILL.md", "---\nname: literal\ndescription: |\n  line one\n  line two\n---\n")
@@ -182,7 +188,66 @@ func TestLoadLiteralAndChompingBlockScalars(t *testing.T) {
 		t.Errorf("literal description = %q; want %q (breaks preserved)", byName["literal"], "line one\nline two")
 	}
 	if byName["strip"] != "a b" {
-		t.Errorf("chomping (`>-`) description = %q; want %q", byName["strip"], "a b")
+		t.Errorf("chomped folded (`>-`) description = %q; want %q", byName["strip"], "a b")
+	}
+}
+
+// TestLoadMultiParagraphFoldedBlockScalar pins FR-005: a blank line inside a
+// folded block becomes a single newline (a paragraph break).
+func TestLoadMultiParagraphFoldedBlockScalar(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "multi/SKILL.md", "---\nname: multi\ndescription: >\n  P1 line1\n  P1 line2\n\n  P2 line1\n---\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("want 1 skill; got %d", len(got))
+	}
+	want := "P1 line1 P1 line2\nP2 line1"
+	if got[0].Description != want {
+		t.Errorf("multi-paragraph folded description = %q; want %q", got[0].Description, want)
+	}
+}
+
+// TestLoadQuotedScalarsUnchanged pins the no-regression half of ADR 0047
+// §Consequences: quoted inline values resolve to their unquoted text.
+func TestLoadQuotedScalarsUnchanged(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "dq/SKILL.md", "---\nname: dq\ndescription: \"quoted desc\"\n---\n")
+	writeFixture(t, dir, "sq/SKILL.md", "---\nname: sq\ndescription: 'single quoted'\n---\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	byName := map[string]string{}
+	for _, s := range got {
+		byName[s.Name] = s.Description
+	}
+	if byName["dq"] != "quoted desc" {
+		t.Errorf("double-quoted description = %q; want %q", byName["dq"], "quoted desc")
+	}
+	if byName["sq"] != "single quoted" {
+		t.Errorf("single-quoted description = %q; want %q", byName["sq"], "single quoted")
+	}
+}
+
+// TestLoadCRLFBlockScalar pins CRLF normalization applied to a folded block.
+func TestLoadCRLFBlockScalar(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	writeFixture(t, dir, "crlf2/SKILL.md", "---\r\nname: crlf2\r\ndescription: >\r\n  one\r\n  two\r\n---\r\n# b\r\n")
+
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 1 || got[0].Description != "one two" {
+		t.Fatalf("CRLF folded description not resolved; got %v", got)
 	}
 }
 

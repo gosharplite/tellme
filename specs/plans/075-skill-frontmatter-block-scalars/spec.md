@@ -113,7 +113,7 @@
 
 **功能需求（FR）**:
 
-- **FR-004**: 系統 MUST 依 YAML 語意解析 literal（`|`）與 chomping（`>-`、`|-`、`>+`、`|+` 若適用）變體。
+- **FR-004**: 系統 MUST 依 YAML 語意解析 literal（`|`）與 chomping（`>-`、`|-`、`>+`、`|+` 若適用）變體。*(fold F-2：最終 `TrimSpace` 會正規化結尾換行，故對 frontmatter 純量而言各 chomping 變體等價；解析器接受其拼法，但不宣稱可由測試分辨。)*
 - **FR-005**: 系統 MUST 支援多段落 folded block（block 內的單一空行轉為一個換行）。
 
 ### 邊界情況

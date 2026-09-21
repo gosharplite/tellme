@@ -30,5 +30,10 @@ func thenListingDescribesSkill(ctx context.Context, name, description string) er
 	if !strings.Contains(result, want) {
 		return fmt.Errorf("the listing does not describe the skill %q as %q; result=%q", name, description, result)
 	}
+	// The DSL row's 不該發生 clause (fold N-1): a block-scalar description must not
+	// be listed as the bare indicator.
+	if strings.Contains(result, "- "+name+": >") {
+		return fmt.Errorf("the listing shows the bare block-scalar indicator for the skill %q; result=%q", name, result)
+	}
 	return nil
 }
