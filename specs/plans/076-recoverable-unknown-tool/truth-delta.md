@@ -5,31 +5,32 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: **skeleton (initialized by `/axb-specify`, 2026-09-22)** — owner rows pending. Clarify resolved at specify time (**0 questions** — not escalated; see `spec.md` §Clarify strategy). Expected owners: `/axb-technical-research` (the fold-back rule + the FR-010 phrase/exit-7 **narrowing** + an ADR + `techstack.md` row), `/axb-dsl-refine` (the E2E interface truth under `specs/truth/features/cli/chat/**`); `/axb-api-plan` + `/axb-data-plan` expected `NOOP`.
->
-> **Anchor**: [#154](https://github.com/gosharplite/tellme/issues/154) — the round's DoD.
+> **Status**: **`/axb-technical-research` + `/axb-dsl-refine` RUN (2026-09-22)** — `research.md` D1–D8 + **ADR 0048** + `techstack.md` MODIFY ×2. Clarify resolved at specify time (**0 questions** — not escalated). `/axb-api-plan` + `/axb-data-plan` record `NOOP`.
 
 ## /axb-technical-research
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/techstack.md` — *(TBD row)* | _pending_ — the unknown-tool-name fold-back rule; the FR-010 phrase/exit-7 **narrowing** (bound reached / cap exhausted / no tools registered) | `spec.md` US1/US2, FR-001…FR-006; `research.md` D-x |
-| _pending_ | `docs/decisions/00NN-*.md` (+ index row) | _pending_ — the ADR recording the recoverable-fold-back decision, the per-turn cap, and the narrowed incomplete contract | `spec.md` SC-003; `research.md` D-x |
+| MODIFY | `specs/truth/techstack.md` — *Agent tool loop* | an **unknown tool name** is a **recoverable fold-back** (`tool`-role result `error: no tool named "<name>"; available tools: …`, then `continue`) instead of terminal; **bounded per turn** by `maxUnknownToolFolds = 3`; the unknown-name check stays before the reason gate; round-008 **FR-010 narrowed** (phrase + exit 7 for bound reached / cap exhausted / no tools registered); a tellme-side robustness improvement (reference not asserted) | `spec.md` US1/US2, FR-001…FR-006; `research.md` D1–D8 |
+| MODIFY | `specs/truth/techstack.md` — *Tool-usage accounting* | the parenthetical "an unregistered tool aborts the loop" is corrected: an unregistered tool **records nothing and no longer aborts** (folds back + continues, bounded per turn) | `spec.md` I-2, FR-001 |
+| ADD | `docs/decisions/0048-recoverable-unknown-tool-name.md` (+ index row) | the decision record: the recoverable fold-back, the message, the per-turn cap (and why), the ordering, the narrowed FR-010 contract, the not-modelled call | `spec.md` SC-003; `research.md` D1–D8 |
 
 ## /axb-api-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/contracts/**` | _expected NOOP_ — single CLI end; no OpenAPI/HTTP surface | `plan.md` §1 |
+| NOOP (checked) | `specs/truth/` (**no `contracts/**`**) | Single CLI end; no OpenAPI/HTTP surface. | `plan.md` §1 |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/data/**` | _expected NOOP_ — no persisted-state change (a per-turn counter is runtime-only) | `spec.md` 關鍵實體 |
+| NOOP (checked) | `specs/truth/data/**` | No persisted-state change (the per-turn counter is runtime-only; an unknown call records nothing). | `spec.md` 關鍵實體; `plan.md` §5 |
 
 ## /axb-dsl-refine
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _pending_ | `specs/truth/features/cli/chat/**` + `chat/dsl.md` | _pending_ — an interface journey that drives the loop to request an unknown tool name and asserts the fold-back + continuation, and the per-turn cap termination | `spec.md` US1/US2, FR-001…FR-006 |
+| ADD | `specs/truth/features/cli/chat/using-an-unknown-tool-name.feature` | **NEW** feature: Rule 1 (an unknown name is fed back and the turn continues) + Rule 2 (a provider that keeps asking is stopped at the per-turn cap) | `spec.md` US1/US2, FR-001…FR-006 |
+| MODIFY | `specs/truth/features/cli/chat/failing-the-tool-loop.feature` | the `A request for a tool that is not available is reported` Example is **relocated** to the new feature (an unknown name is now recoverable; the always-unknown fixture becomes the cap case) | `spec.md` US2, FR-004 |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` | +2 rows — the `Given` that scripts an unknown-then-read-then-answer exchange and the `Then` that reads the folded-back unavailable-tool result | `spec.md` US1/US2 |

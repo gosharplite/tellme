@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	agentport "github.com/gosharplite/tellme/internal/domain/agent"
@@ -106,14 +107,60 @@ func TestRunBoundReached(t *testing.T) {
 	}
 }
 
-// TestRunUnknownToolIsTerminal: an undeclared tool fails fast.
-func TestRunUnknownToolIsTerminal(t *testing.T) {
-	gw := &fakeGateway{responses: []llm.Response{{ToolCalls: []llm.ToolCall{{ID: "c", Name: "time_travel"}}}}}
-	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry()}
+// TestRunUnknownToolIsFedBackAndContinues: an undeclared tool name is a
+// recoverable slip — the loop folds back a `tool`-role result and continues to a
+// final answer (round 076).
+func TestRunUnknownToolIsFedBackAndContinues(t *testing.T) {
+	gw := &fakeGateway{responses: []llm.Response{
+		{ToolCalls: []llm.ToolCall{{ID: "c1", Name: "time_travel"}}},
+		{Text: "done"},
+	}}
+	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "x"})}
+	res, err := a.Run(context.Background(), "use the time-travel tool", nil)
+	if err != nil {
+		t.Fatalf("an unknown tool name must not fail the run: %v", err)
+	}
+	if res.Answer != "done" {
+		t.Fatalf("answer = %q, want the loop to continue to a final answer", res.Answer)
+	}
+	if len(res.Steps) != 0 {
+		t.Fatalf("an unknown call is not an executed step; steps=%+v", res.Steps)
+	}
+	if len(gw.calls) < 2 {
+		t.Fatalf("expected the recoverable result to be fed back into a second call; calls=%d", len(gw.calls))
+	}
+	found := false
+	for _, m := range gw.calls[1].Messages {
+		if m.Role == "tool" && strings.Contains(m.Content, `no tool named "time_travel"`) {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("the recoverable result must name the unknown tool; messages=%+v", gw.calls[1].Messages)
+	}
+}
+
+// TestRunUnknownToolIsBoundedPerTurn: a provider that keeps asking for an unknown
+// tool is stopped at the per-turn cap (round 076) — a bounded fold-back, not an
+// unbounded spin.
+func TestRunUnknownToolIsBoundedPerTurn(t *testing.T) {
+	tc := llm.ToolCall{ID: "c", Name: "time_travel"}
+	gw := &fakeGateway{responses: []llm.Response{
+		{ToolCalls: []llm.ToolCall{tc}},
+		{ToolCalls: []llm.ToolCall{tc}},
+		{ToolCalls: []llm.ToolCall{tc}},
+		{ToolCalls: []llm.ToolCall{tc}},
+	}}
+	a := &AgentLoop{Gateway: gw, Registry: tools.NewRegistry(fakeTool{name: "read_files", result: "x"}), MaxLoops: 10}
 	_, err := a.Run(context.Background(), "use the time-travel tool", nil)
 	var inc *agentport.ErrIncomplete
 	if !errors.As(err, &inc) {
-		t.Fatalf("err = %v, want *agentport.ErrIncomplete", err)
+		t.Fatalf("err = %v, want *agentport.ErrIncomplete after the per-turn cap", err)
+	}
+	// The cap allows maxUnknownToolFolds recoverable rounds, then the (N+1)th
+	// request is terminal: the provider was called N+1 times.
+	if len(gw.calls) != maxUnknownToolFolds+1 {
+		t.Fatalf("provider calls = %d, want %d (the per-turn cap)", len(gw.calls), maxUnknownToolFolds+1)
 	}
 }
 

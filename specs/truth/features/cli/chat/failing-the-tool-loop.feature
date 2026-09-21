@@ -28,13 +28,11 @@ Feature: Bounding and failing the tool loop
       And tellme explains on stderr that "the tool request failed"
       And tellme exits with the tool error code
 
-    Example: A request for a tool that is not available is reported
-      Given the operator has a runnable tellme installation
-      And the runtime home is "ait-tmg"
-      And a configured provider "test-model" whose endpoint asks for a tool that is not available
-      When the operator starts tellme with the prompt "Use the time-travel tool."
-      Then tellme explains on stderr that "the tool request failed"
-      And tellme exits with the tool error code
+    # Round 076 (issue #154): the former example "A request for a tool that is not
+    # available is reported" is relocated to `using-an-unknown-tool-name.feature` —
+    # an unknown tool name is now a recoverable fold-back (the run is stopped and
+    # reported only when the per-turn cap is exhausted, which the always-unknown
+    # fixture there drives).
 
   Rule: The loop reports a step marker only for executed rounds
 
