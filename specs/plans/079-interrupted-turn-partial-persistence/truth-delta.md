@@ -33,4 +33,6 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| _(pending)_ | `specs/truth/features/cli/chat/remembering-the-conversation.feature`, `specs/truth/features/cli/chat/dsl.md` | a new **Rule** (the interrupted turn) + Examples; the new Given/Then rows | `spec.md` US1/US2 |
+| MODIFY | `specs/truth/features/cli/chat/remembering-the-conversation.feature` | a new **Rule** *An operator-interrupted turn keeps the tool work it had already done (round 079)* + an Example (a turn interrupted after a tool step is persisted and closed with the synthetic answer, exits 0, one request), and a new **Rule** *A session whose interrupted turn was kept continues from it (round 079)* + an Example (the replayed conversation closes the earlier turn with an assistant message) | `spec.md` US1, FR-001…FR-004, FR-007; `research.md` D1/D8 |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` | **+2** Given rows (the fake runs a command then answers; an arranged interrupted exchange) + **+3** Then rows (the persisted interrupted turn's step count; the synthetic close; the interruption line; the role-alternation close) + the round-079 note | `spec.md` US1/US2; `research.md` D9 |
+| NOOP (checked) | `specs/truth/features/cli/**` (other modules) | No other CLI module's feature/DSL is touched. | `plan.md` §1 |

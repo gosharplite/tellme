@@ -33,6 +33,10 @@ import (
 type fakeLoop struct {
 	result agentport.Result
 	runErr error
+	// errResult, when runErr is set, is returned ALONGSIDE the error — so a
+	// partial-result failure (round 079: an operator interruption returns
+	// `Result{Steps, Calls}` + the cancellation) is exercisable.
+	errResult agentport.Result
 	// writes are lines emitted to spec.Stderr during the first call (loop
 	// diagnostic output — e.g. the `[Tool Engine]` line). No timestamp is baked
 	// in, so the double does not drift against the fixture clock (round-050 fold
@@ -66,7 +70,7 @@ func (f *fakeLoop) Run(_ context.Context, prompt string, prior []history.Entry) 
 			}
 		}
 		if f.runErr != nil {
-			return agentport.Result{}, f.runErr
+			return f.errResult, f.runErr
 		}
 		if f.gotSpec.Observer != nil {
 			// Non-final calls carry a reported usage so their tail (measured

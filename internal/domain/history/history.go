@@ -34,6 +34,17 @@ type Entry struct {
 	Steps []Step `json:"steps,omitempty"`
 }
 
+// InterruptedTurnAnswer is the synthetic closing answer tellme persists for a
+// turn the operator interrupted (SIGINT/SIGTERM) after at least one tool step
+// completed (round 079; ADR 0051). It is a STORED record value: the partial turn
+// is closed with it so the persisted `history.jsonl` line replays as a valid
+// `user … assistant` sequence on both provider families — a partial turn ending
+// on a `tool` result would violate role alternation (Gemini/Vertex rides
+// `functionResponse` under `role:"user"` and rejects two consecutive `user`
+// roles). It is fixed, control-free, single-line, and unmistakably synthetic. A
+// `SIGTERM` interruption shares this wording (the cause is not distinguished).
+const InterruptedTurnAnswer = "[Turn interrupted by operator via Ctrl+C]"
+
 // TotalCalls is the domain reading of the persisted call counts (round 027): the
 // total number of AI-endpoint calls (provider inference rounds) the given
 // completed turns made. Each entry contributes its persisted Calls count; an
