@@ -333,8 +333,9 @@ func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		// Fallback when the ResponseWriter cannot hijack: abort the handler by
-		// panicking (net/http closes the connection). Never observed on httptest.
+		// Defensive fallback (N-078-1): httptest's ResponseWriter is always a
+		// http.Hijacker, so this branch is unreachable in the E2E; it exists so a
+		// future non-hijackable writer still drops (net/http closes on the panic).
 		panic(http.ErrAbortHandler)
 	}
 

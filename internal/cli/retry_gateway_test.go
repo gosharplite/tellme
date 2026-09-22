@@ -43,7 +43,7 @@ func (s *immediateSleep) sleep(_ context.Context, d time.Duration) bool {
 }
 
 func newTestRetry(g llm.Gateway, delays []time.Duration, sl func(context.Context, time.Duration) bool, notify func(int, int, time.Duration, error)) retryingGateway {
-	return retryingGateway{inner: g, delays: delays, sleep: sl, notify: notify}
+	return newRetryingGateway(g, delays, sl, notify)
 }
 
 // TestRetryDelaysLiteral pins the operator-locked schedule literally.
@@ -219,4 +219,66 @@ func TestRetryNotifier_WritesPlainLine(t *testing.T) {
 			t.Fatalf("the retry line must NOT carry the `tellme: ` class prefix (it would break the exactly-one-class-line contract): %q", line)
 		}
 	}
+}
+
+// recordingYield records the yield/restore calls around the retry line (F-3).
+type recordingYield struct{ calls *[]string }
+
+func (r recordingYield) YieldIndicator()   { *r.calls = append(*r.calls, "yield") }
+func (r recordingYield) RestoreIndicator() { *r.calls = append(*r.calls, "restore") }
+
+// yieldOnWrite is a stderr writer that records the write interleaved with the
+// indicator calls, proving the [yield, write, restore] order (F-3).
+type yieldOnWrite struct {
+	calls *[]string
+}
+
+func (w yieldOnWrite) Write(b []byte) (int, error) {
+	*w.calls = append(*w.calls, "write")
+	return len(b), nil
+}
+
+func TestRetryNotifier_YieldsAndRestoresAroundTheLine(t *testing.T) {
+	var calls []string
+	env := runtimeEnv{stderr: yieldOnWrite{calls: &calls}}
+	n := retryNotifier(env, recordingYield{calls: &calls})
+	n(2, 3, time.Second, errors.New("boom"))
+	want := []string{"yield", "write", "restore"}
+	if len(calls) != len(want) {
+		t.Fatalf("calls = %v, want %v", calls, want)
+	}
+	for i := range want {
+		if calls[i] != want[i] {
+			t.Fatalf("calls = %v, want %v", calls, want)
+		}
+	}
+}
+
+func TestRetryingGateway_NoAnnounceWhenCancelledMidCall(t *testing.T) {
+	// The parent ctx is cancelled AFTER the provider call returns a transport
+	// error (a SIGINT mid-request). The retry must NOT be announced (TD-078-1).
+	ctx, cancel := context.WithCancel(context.Background())
+	announced := false
+	notify := func(int, int, time.Duration, error) { announced = true }
+	g := &cancellingGateway{cancel: cancel}
+	rg := newTestRetry(g, []time.Duration{0, 0}, (&immediateSleep{}).sleep, notify)
+	if _, err := rg.Complete(ctx, llm.Request{}); err == nil {
+		t.Fatal("Complete: want the classified failure, not a retry")
+	}
+	if announced {
+		t.Fatal("a retry was announced even though the parent ctx was cancelled")
+	}
+}
+
+// cancellingGateway cancels ctx as a side effect of the first (only) call, so the
+// loop observes a cancelled parent immediately after a transport failure.
+type cancellingGateway struct {
+	cancel context.CancelFunc
+	calls  int
+}
+
+func (g *cancellingGateway) Complete(_ context.Context, _ llm.Request) (llm.Response, error) {
+	g.calls++
+	g.cancel()
+	return llm.Response{}, transportErr()
 }

@@ -47,8 +47,15 @@ func givenProviderRejectsOutright(ctx context.Context, provider string) error {
 // registers it, and writes the default configuration selecting {provider}.
 func arrangeFlakyProvider(ctx context.Context, provider string, dropFirst, errorStatus int) error {
 	sc := scenarioFrom(ctx)
+	// Scope the hermetic retry-delay seam to these scenarios (round-078 fold
+	// TD-2): the E2E asserts the request COUNT, not wall-clock, and no OTHER
+	// scenario is silently retry-enabled.
+	sc.setEnv("TELL_ME_FORCE_RETRY_DELAY_MS", "0")
 	f := sc.newFake()
 	f.Answer("recovered")
+	// Report a usage block so a COMPLETED retried turn writes exactly one usage
+	// record (the F-2 accounting witness).
+	f.ReportUsage(10, 5)
 	if dropFirst > 0 {
 		f.DropFirst(dropFirst)
 	}

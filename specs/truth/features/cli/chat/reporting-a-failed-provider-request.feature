@@ -63,6 +63,9 @@ Feature: Reporting a failed provider request
       When the operator starts tellme with the prompt "Hello"
       Then the turn finishes with the provider's answer
       And tellme sent the request exactly twice
+      And tellme announces on stderr that it is retrying the provider request
+      And the retry re-sent the same request
+      And the turn was recorded as a single provider call
 
     Example: A second drop is still absorbed
       Given the operator has a runnable tellme installation
@@ -78,6 +81,7 @@ Feature: Reporting a failed provider request
       And a configured provider "dead-model" whose endpoint always drops the connection
       When the operator starts tellme with the prompt "Hello"
       Then tellme sent the request exactly three times
+      And the run wrote nothing to standard output
       And tellme explains on stderr that "the provider request failed"
       And tellme exits with the provider error code
 
