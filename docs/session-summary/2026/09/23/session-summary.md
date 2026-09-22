@@ -25,7 +25,7 @@ The session began with a bootstrap (`SESSION-BOOTSTRAP.md` Steps 1–8) and then
 | Net size | **139 lines / 54,840 B → 53 lines / 15,655 B** (−~71 %) |
 | Rules aligned | `SESSION-CLOSEOUT.md` (Step 3 items 6/8/9/10 + Rules 12/14/17; Step 8.3) · `SESSION-BOOTSTRAP.md` (Agent Rule 11; Step-7 detail item 4) |
 | Gates | docs-only: **relative repo links resolve** (4 files) · **no `specs/truth/**` / `docs/decisions/**` change** (truth integrity — closeout records, never authors) · **secret scan** over the diff clean · nothing `secrets`-style staged |
-| Propagation | `dev` pushed (`8b6f284..e44af79`); **`dev → main` pending operator approval** (no round to tag — ADR 0026 tags rounds only) |
+| Propagation | `dev` pushed; **`dev → main` DONE (no-ff)** (operator-approved; docs-only — no round to tag, ADR 0026 tags rounds only) |
 
 ### The change (what moved where)
 
@@ -76,7 +76,7 @@ The session began with a bootstrap (`SESSION-BOOTSTRAP.md` Steps 1–8) and then
 
 ## Next steps
 
-1. **Propagation (operator approval pending)**: `dev → main` (no-ff) for the `e44af79` hygiene commit — *optional*; it is a docs-only change (no round), so ADR 0026 tags nothing. Otherwise it rides the next round's propagation.
+1. ~~Propagation~~ **DONE**: `dev → main` (no-ff) propagated the hygiene commits (operator-approved; docs-only, so ADR 0026 tags nothing).
 2. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker is **0 open**; Bootstrap Agent Rule 11).
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
