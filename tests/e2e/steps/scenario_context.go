@@ -138,11 +138,17 @@ func beforeScenario(ctx context.Context, _ *godog.Scenario) (context.Context, er
 		return ctx, err
 	}
 	sc := &scenarioContext{
-		home:         dir,
-		workDir:      work,
-		userHomeDir:  userHome,
-		homeSet:      true,
-		envOverrides: map[string]string{},
+		home:        dir,
+		workDir:     work,
+		userHomeDir: userHome,
+		homeSet:     true,
+		envOverrides: map[string]string{
+			// Round 078 (ADR 0050): the transport retry's hermetic delay seam is
+			// pinned to 0 ms for EVERY scenario, so a retried provider failure
+			// asserts COUNT/ORDER and never pays the real 1 s + 3 s. A scenario may
+			// still override it explicitly via setEnv.
+			"TELL_ME_FORCE_RETRY_DELAY_MS": "0",
+		},
 		// Unset every environment override the CLI honours by default, so an
 		// ambient shell value cannot leak into a scenario (hermetic E2E — e.g. a
 		// developer shell exporting TELL_ME_WRAP_WIDTH). A scenario that needs one

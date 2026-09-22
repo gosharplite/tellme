@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: **`/axb-specify` RUN (2026-09-22)** — plan package + `spec.md` + checklist; clarify **not escalated (0 questions)** (the theme/schedule are operator-given; the retryability predicate is operator-locked in-session). **`/axb-technical-research` RUN (2026-09-22)** — `research.md` D1–D9 + **ADR 0050** + `techstack.md` **MODIFY ×2 + ADD ×1** (see below). `/axb-api-plan` + `/axb-data-plan` record **NOOP**. `/axb-dsl-refine` **pending**.
+> **Status**: **`/axb-specify` RUN (2026-09-22)** — plan package + `spec.md` + checklist; clarify **not escalated (0 questions)** (the theme/schedule are operator-given; the retryability predicate is operator-locked in-session). **`/axb-technical-research` RUN (2026-09-22)** — `research.md` D1–D9 + **ADR 0050** + `techstack.md` **MODIFY ×2 + ADD ×1** (see below). **`/axb-dsl-refine` RUN (2026-09-22)** — the CLI feature Rule/Examples + `chat/dsl.md` rows (see below). `/axb-api-plan` + `/axb-data-plan` record **NOOP**.
 
 ## /axb-technical-research
 
@@ -32,5 +32,5 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| *(pending)* | `specs/truth/features/cli/chat/reporting-a-failed-provider-request.feature` | MODIFY: a new **Rule** (a transient provider failure is retried before failing) with Examples — retry-then-succeed (exactly 2 calls), retry-exhausted (exactly 3 calls → phrase + exit 6), and a non-retryable failure (exactly 1 call) | `spec.md` US1/US2, FR-001…FR-005 |
-| *(pending)* | `specs/truth/features/cli/chat/dsl.md` | MODIFY: Given rows scripting the fake provider's transient drop / fail-once-then-succeed, Then rows asserting the call count + the frozen phrase + exit 6; **and reconcile the round-030 note** ("tellme adds **no** retry layer — there is none to change") which this round makes false | `spec.md` US1/US2; `research.md` D8 |
+| MODIFY | `specs/truth/features/cli/chat/reporting-a-failed-provider-request.feature` | a new **Rule** — *A transient provider failure is retried before it is reported (round 078)* — with **4** Examples: a momentary drop is absorbed (exactly **2** requests), a second drop is still absorbed (exactly **3**), a provider that never answers is failed after the bounded retries (**3** + phrase + exit 6), and a rejected request is **not** retried (exactly **1** + phrase + exit 6) | `spec.md` US1/US2, FR-001…FR-005 |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` | **+4** Given rows (the fake's transport DROP once/twice/always; an outright **400**) + **+4** Then rows (the turn finishes with the answer; the request count exactly 1/2/3) + the round-078 note; **and reconciled the round-030 note** ("tellme adds **no** retry layer — there is none to change" → a truncation is terminal/never-retried, the retry covers transport/status only) | `spec.md` US1/US2; `research.md` D8 |

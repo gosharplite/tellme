@@ -54,7 +54,12 @@ type Provider struct {
 	paths       []string
 	usage       *usageCounts
 	vertex      bool
-	closeOnce   sync.Once
+	// dropRemaining is the number of upcoming requests to answer by DROPPING the
+	// connection (round 078) — a transport-level failure, not a status. It
+	// decrements per dropped request; 0 serves normally again. A large value
+	// models "always drops".
+	dropRemaining int
+	closeOnce     sync.Once
 }
 
 // usageCounts is a scripted `usage` block the fake reports on its answers
@@ -91,6 +96,15 @@ func (p *Provider) ErrorStatus(code int) { p.mu.Lock(); p.errorStatus = code; p.
 
 // NoAnswer scripts the provider to reply with a body carrying no usable answer.
 func (p *Provider) NoAnswer() { p.mu.Lock(); p.noAnswer = true; p.mu.Unlock() }
+
+// DropFirst scripts the provider to DROP the connection for the next n requests
+// (round 078) — a transport-level failure (the client sees EOF / connection
+// reset, not a status), so the round-078 retry predicate treats it as retryable.
+// Each dropped request is still RECORDED (RequestCount counts the attempt), then
+// the connection is closed without a response. A large n (e.g. 1000) models
+// "always drops". The request is a POST, which Go's transport does NOT
+// auto-retry, so the count stays deterministic.
+func (p *Provider) DropFirst(n int) { p.mu.Lock(); p.dropRemaining = n; p.mu.Unlock() }
 
 // VertexMode switches the fake to the Vertex AI `:generateContent` response shape
 // (round-013 T002). The default remains OpenAI-compatible.
@@ -293,6 +307,10 @@ func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
 	p.auths = append(p.auths, auth)
 	p.paths = append(p.paths, r.URL.Path)
 	status, answer, noAnswer, usage, vertex := p.errorStatus, p.answer, p.noAnswer, p.usage, p.vertex
+	drop := p.dropRemaining > 0
+	if drop {
+		p.dropRemaining--
+	}
 	hasScript := len(p.script) > 0
 	var reply Reply
 	if hasScript {
@@ -304,6 +322,21 @@ func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
 		p.served++
 	}
 	p.mu.Unlock()
+
+	// Round 078: a scripted transport DROP — the recorded request is kept (so the
+	// count reflects the attempt), then the connection is closed with no response,
+	// so the client observes EOF / a reset (a Transport failure).
+	if drop {
+		if hj, ok := w.(http.Hijacker); ok {
+			if conn, _, err := hj.Hijack(); err == nil {
+				_ = conn.Close()
+				return
+			}
+		}
+		// Fallback when the ResponseWriter cannot hijack: abort the handler by
+		// panicking (net/http closes the connection). Never observed on httptest.
+		panic(http.ErrAbortHandler)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	switch {

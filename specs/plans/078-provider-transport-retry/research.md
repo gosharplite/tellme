@@ -97,10 +97,10 @@ The reference ships a **4-layer resilience stack** — and it is exactly what te
 - **RF-078-2** — **no jitter** (the reference jitters). Deliberate: two fixed delays at two retries carry negligible thundering-herd risk for a single-operator CLI.
 - **RF-078-3** — the retry covers the **transport/status** class only; a provider that returns a *successful but unusable* body (empty/garbled) is still terminal (the reference's empty-response retry is a separate, non-existent mechanism).
 - **RF-078-4** — worst-case added latency is bounded by 1 s + 3 s (+ up to 3 × the 300 s client timeout) before the failure surfaces; the timeout itself is unchanged.
-- **RF-078-5** — the retry line's exact interaction with the active spinner (yield/restore) is pinned at the implementation tier; if the wiring proves fiddly, the line's spinner-safety is the recorded residual.
+- **RF-078-5** — **RESOLVED at implementation** (not deferred): the retry line's spinner interaction is now wired (the notifier **yields/restores** the indicator around the line) and pinned by the round-019 *no-residue* E2E carrier. Two carrier contracts also surfaced and were folded (`plan.md` §6): the line must **not** carry the `tellme: ` prefix (the round-017 *exactly one `tellme:` line* carrier), so it is chrome-styled.
 - **RF-078-6** — the MCP path is unchanged (D9).
 - **RF-078-7** — the retry is provider-path only; the offline readers (`-l`, `-t`, `--tool-usage`, `--new`) never build a gateway and are untouched.
-- **RF-078-8** — the retry MUST re-send the **same** request; a byte-identity pin across attempts is desirable (the fake records bodies) — verify at implementation.
+- **RF-078-8** — the retry re-sends the **same** request (the decorator calls `inner.Complete` with the same `llm.Request`); a byte-identity pin across attempts (the fake records bodies) is a small optional add — recorded, not required for delivery.
 
 ---
 

@@ -50,7 +50,7 @@ The operator asked for a **simple, bounded** fix: *wait 1 s → retry → wait 3
 - **RF-078-2** — no jitter (a deliberate divergence from the reference's jittered backoff).
 - **RF-078-3** — the retry covers transport/status only; a successful-but-unusable body (empty/garbled) stays terminal (the reference's empty-response retry is not re-created).
 - **RF-078-4** — added worst-case latency is 1 s + 3 s (+ up to 3 × the unchanged 300 s client timeout).
-- **RF-078-5** — the retry line's exact spinner yield/restore wiring is pinned at the implementation tier (the residual).
+- **RF-078-5** — **resolved at implementation**: the retry line yields/restores the indicator (no spinner residue; pinned by the round-019 carrier) and deliberately carries **no** `tellme: ` class prefix (pinned by the round-017 *exactly-one-`tellme:`-line* carrier).
 - **RF-078-6** — the MCP path is unchanged.
 - **RF-078-7** — the offline reader paths are untouched.
 - **RF-078-8** — a byte-identity pin proving each attempt re-sends the same request (the fake records bodies).
