@@ -27,7 +27,7 @@ func TestDispatchReportingPrecedence(t *testing.T) {
 	t.Run("-l wins over -t", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		f := &flags{list: 1, listSet: true, turns: true}
-		code, handled := dispatchReporting(f, home, runtimeEnv{stdout: &out, stderr: &errOut}, historyStore, turnsStore, func() render.Listing { return &fakeListing{} }, func() int { return Success })
+		code, handled := dispatchReporting(f, home, runtimeEnv{stdout: &out, stderr: &errOut}, false, historyStore, turnsStore, func() render.Listing { return &fakeListing{} }, func() int { return Success })
 		if !handled || code != Success {
 			t.Fatalf("dispatched=%v code=%d, want handled success", handled, code)
 		}
@@ -42,7 +42,7 @@ func TestDispatchReportingPrecedence(t *testing.T) {
 	t.Run("-t alone prints the turn log", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		f := &flags{turns: true}
-		code, handled := dispatchReporting(f, home, runtimeEnv{stdout: &out, stderr: &errOut}, historyStore, turnsStore, func() render.Listing { return &fakeListing{} }, func() int { return Success })
+		code, handled := dispatchReporting(f, home, runtimeEnv{stdout: &out, stderr: &errOut}, false, historyStore, turnsStore, func() render.Listing { return &fakeListing{} }, func() int { return Success })
 		if !handled || code != Success {
 			t.Fatalf("dispatched=%v code=%d, want handled success", handled, code)
 		}
@@ -54,7 +54,7 @@ func TestDispatchReportingPrecedence(t *testing.T) {
 	t.Run("--tool-usage still last", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		f := &flags{turns: true, toolUsage: true}
-		code, handled := dispatchReporting(f, home, runtimeEnv{stdout: &out, stderr: &errOut}, historyStore, turnsStore, func() render.Listing { return &fakeListing{} }, func() int {
+		code, handled := dispatchReporting(f, home, runtimeEnv{stdout: &out, stderr: &errOut}, false, historyStore, turnsStore, func() render.Listing { return &fakeListing{} }, func() int {
 			_, _ = out.WriteString("TOOLUSAGE\n")
 			return Success
 		})

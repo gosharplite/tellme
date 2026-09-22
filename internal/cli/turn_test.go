@@ -43,12 +43,14 @@ func (f *fakeGateway) Complete(_ context.Context, req llm.Request) (llm.Response
 
 // fakeStore is an in-memory history.Store for runTurn tests (round-007 TD-1).
 type fakeStore struct {
-	entries    []history.Entry
-	loadErr    error
-	appendErr  error
-	archiveErr error
-	appended   []history.Entry
-	archived   bool
+	entries     []history.Entry
+	loadErr     error
+	appendErr   error
+	archiveErr  error
+	rollbackErr error
+	appended    []history.Entry
+	archived    bool
+	rolled      []int // the counts passed to Rollback
 }
 
 func (f *fakeStore) Load() ([]history.Entry, error) { return f.entries, f.loadErr }
@@ -57,6 +59,24 @@ func (f *fakeStore) Append(e history.Entry) error {
 	return f.appendErr
 }
 func (f *fakeStore) Archive() error { f.archived = true; return f.archiveErr }
+
+// Rollback is the round-081 store capability: an in-memory clamp emulation for
+// runTurn/rollback unit tests.
+func (f *fakeStore) Rollback(n int) (int, error) {
+	f.rolled = append(f.rolled, n)
+	if f.rollbackErr != nil {
+		return 0, f.rollbackErr
+	}
+	if n <= 0 || len(f.entries) == 0 {
+		return 0, nil
+	}
+	removed := n
+	if removed > len(f.entries) {
+		removed = len(f.entries)
+	}
+	f.entries = f.entries[:len(f.entries)-removed]
+	return removed, nil
+}
 
 // stubRenderer is a render.Answer whose behaviour the caller scripts.
 type stubRenderer struct {

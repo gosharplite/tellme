@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: **`/axb-specify` RUN (2026-09-22)** — plan package + `spec.md` + checklist; clarify **not escalated (0 questions)** (the theme is anchored by issue [#163](https://github.com/gosharplite/tellme/issues/163); the issue's *Open design decisions* are routed to `/axb-technical-research`). Owner rows **pending** the downstream skills.
+> **Status**: **`/axb-specify` RUN (2026-09-22)** — plan package + `spec.md` + checklist; clarify **not escalated (0 questions)** (the theme is anchored by issue [#163](https://github.com/gosharplite/tellme/issues/163); the issue's *Open design decisions* are routed to `/axb-technical-research`). **`/axb-technical-research` RUN** (2026-09-22) — `research.md` D1–D9; **ADR 0053**; the `techstack.md` rows; the `docs/domain-model` `History` rollback action + `Session` offline invariant (re-rendered; `modelith-check` green). **`/axb-dsl-refine` RUN** (2026-09-22) — the new `history` feature + the `history/dsl.md` rows + the root `cli/dsl.md` offline-path scope. **`/axb-system-analysis` + `/axb-tasks` + `/axb-implement` RUN** — `plan.md`, `tasks.md` (all `[X]`), the code, the unit pins, and the E2E green.
 
 ## /axb-technical-research
 
@@ -33,6 +33,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| MODIFY | `specs/truth/features/cli/history/inspecting-the-session-history.feature` (or a new `history/rolling-back-the-session-history.feature`) | new **Rules** + Examples (offline rollback of the last N turns; the default-1 form; the removed turns are the last N; the archive is untouched; the rollback-then-prompt form) | `spec.md` US1/US2, FR-001…FR-007 |
-| MODIFY | `specs/truth/features/cli/history/dsl.md` | new Given/When/Then rows (arrange K exchanges; ask tellme to roll back the last N turns; a rollback confirmation; the removed-turn assertions; the rollback-then-prompt form) + the round-081 note | `spec.md` US1/US2; `research.md` D-x |
+| MODIFY | `specs/truth/features/cli/history/rolling-back-the-session-history.feature` (**NEW**) | new **Rules** + Examples (offline rollback of the last turn / the last N; a tool-using exchange survives while a later plain exchange is undone; rolling back more than the session holds clears it; the archive is untouched; the rollback-then-prompt form; a `0` count and a `-b`×`--new` refusal) | `spec.md` US1/US2, FR-001…FR-007 |
+| MODIFY | `specs/truth/features/cli/history/dsl.md` | **+1** Given row (a plain exchange after a tool-using one) + **+5** When rows (roll back the last turn / the last N / N turns (invalid) / roll back-then-ask / roll back-and-start-fresh) + **+6** Then rows (the exact surviving count; the 1-turn report; the N-turn report; the surviving tool step; the empty archive; the last persisted exchange) + the round-081 note | `spec.md` US1/US2; `research.md` |
+| MODIFY | `specs/truth/features/cli/dsl.md` (interface root) | the `tellme performs no network access` row's **offline-path scope** gains the standalone `-b`/`--back [N]` | `spec.md` FR-003, NFR-004 |
 | NOOP (checked) | `specs/truth/features/cli/**` (other modules) | Only the `history` module's feature/DSL is touched (the `cli` root still resolves the run). | `plan.md` §1 |
