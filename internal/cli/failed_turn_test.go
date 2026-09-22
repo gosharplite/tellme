@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -132,5 +133,37 @@ func TestRunTurn_FailedTurnAppendFailureDoesNotMaskFailure(t *testing.T) {
 	}
 	if strings.Contains(errOut.String(), "kept ") {
 		t.Errorf("stderr = %q, must NOT claim a keep that failed", errOut.String())
+	}
+}
+
+// TestFailTurn_CancelledContextWinsOverAFailure (fold F-080-1) is the DIRECT
+// witness for issue #161 hole #2 and for the interruption-over-failure precedence
+// (F-080-3): a CANCELLED turn context with a NON-cancellation error (exactly the
+// shape the round-078 retry decorator returns on its abort paths — the previous
+// attempt's transport error) must take the INTERRUPTED path (exit 0 + the
+// interruption answer), not the failure path. Deleting the `ctx.Err() != nil`
+// term from the predicate reddens this pin (the round-079 tests exercise only the
+// `errors.Is` term and cannot).
+func TestFailTurn_CancelledContextWinsOverAFailure(t *testing.T) {
+	var out, errOut bytes.Buffer
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancelled — as a SIGINT/SIGTERM (or a retry-wait abort) leaves it
+
+	st := &fakeStore{}
+	err := &llm.ProviderError{Provider: "p", Err: errors.New("connection reset by peer"), Transport: true}
+	result := agentport.Result{Steps: failedSteps(1), Calls: []llm.Usage{{Reported: true}}}
+	code := failTurn(env(&out, &errOut, &stubRenderer{}), st, "explore", err, result, ctx)
+
+	if code != Success {
+		t.Fatalf("code = %d, want %d (success) — a cancelled ctx is an operator interruption, not a failure", code, Success)
+	}
+	if len(st.appended) != 1 {
+		t.Fatalf("appended %d entries, want 1 (the interrupted partial turn)", len(st.appended))
+	}
+	if st.appended[0].Answer != history.InterruptedTurnAnswer {
+		t.Errorf("answer = %q, want the interruption answer %q (never the failure answer)", st.appended[0].Answer, history.InterruptedTurnAnswer)
+	}
+	if !strings.Contains(errOut.String(), "interrupted by operator") {
+		t.Errorf("stderr = %q, want the interruption line", errOut.String())
 	}
 }

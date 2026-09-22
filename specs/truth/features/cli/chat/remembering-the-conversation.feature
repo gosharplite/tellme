@@ -92,7 +92,8 @@ Feature: Remembering the conversation across runs
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then always drops the connection
       When the operator starts tellme with the prompt "Read the notes, then keep going."
       Then tellme stored the failed turn in the session history with 1 tool step
-      And the failed turn was closed with the turn-failure answer
+      And the failed turn was recorded with 1 completed provider call
+      And the failed turn was closed with the answer "[Turn ended early: the provider request failed]"
       And tellme reports on stderr that it kept the completed tool step
       And the run wrote nothing to standard output
       And tellme explains on stderr that "the provider request failed"
@@ -105,6 +106,9 @@ Feature: Remembering the conversation across runs
       And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then rejects the request outright
       When the operator starts tellme with the prompt "Read the notes, then keep going."
       Then tellme stored the failed turn in the session history with 1 tool step
+      And the failed turn was closed with the answer "[Turn ended early: the provider request failed]"
+      And tellme reports on stderr that it kept the completed tool step
+      And the run wrote nothing to standard output
       And tellme explains on stderr that "the provider request failed"
       And tellme exits with the provider error code
 

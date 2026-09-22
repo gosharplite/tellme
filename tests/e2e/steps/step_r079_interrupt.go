@@ -88,31 +88,11 @@ func givenHistoryHoldsInterruptedExchange(ctx context.Context, steps int) error 
 	return f.Close()
 }
 
-// readHistoryEntries reads the active session history lines (round 079 helper).
-func readInterruptedHistoryEntries(sc *scenarioContext) ([]history.Entry, error) {
-	data, err := os.ReadFile(sc.historyFilePath())
-	if err != nil {
-		return nil, fmt.Errorf("read history: %w", err)
-	}
-	var entries []history.Entry
-	for _, line := range strings.Split(strings.TrimRight(string(data), "\n"), "\n") {
-		if line == "" {
-			continue
-		}
-		var e history.Entry
-		if err := json.Unmarshal([]byte(line), &e); err != nil {
-			return nil, fmt.Errorf("decode history line: %w", err)
-		}
-		entries = append(entries, e)
-	}
-	return entries, nil
-}
-
 // thenStoredInterruptedTurn (必查 權威狀態): the interrupted turn was persisted as
 // EXACTLY ONE history entry carrying the given number of completed tool steps.
 func thenStoredInterruptedTurn(ctx context.Context, want int) error {
 	sc := scenarioFrom(ctx)
-	entries, err := readInterruptedHistoryEntries(sc)
+	entries, err := readSessionEntries(sc)
 	if err != nil {
 		return err
 	}
@@ -131,7 +111,7 @@ func thenStoredInterruptedTurn(ctx context.Context, want int) error {
 // carrier (without it, `Calls: 0` leaves the E2E green).
 func thenInterruptedTurnRecordedCalls(ctx context.Context, want int) error {
 	sc := scenarioFrom(ctx)
-	entries, err := readInterruptedHistoryEntries(sc)
+	entries, err := readSessionEntries(sc)
 	if err != nil {
 		return err
 	}
@@ -149,7 +129,7 @@ func thenInterruptedTurnRecordedCalls(ctx context.Context, want int) error {
 // history replay as a valid `… assistant` sequence.
 func thenLastTurnClosedWithInterruption(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
-	entries, err := readInterruptedHistoryEntries(sc)
+	entries, err := readSessionEntries(sc)
 	if err != nil {
 		return err
 	}

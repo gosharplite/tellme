@@ -25,7 +25,8 @@ func init() {
 		ctx.Given(`^a configured provider "([^"]*)" whose endpoint asks tellme to read "([^"]*)" and then rejects the request outright$`, givenProviderReadsThenRejects)
 		ctx.Given(`^the session history already holds a failed exchange with (\d+) tool step$`, givenHistoryHoldsFailedExchange)
 		ctx.Then(`^tellme stored the failed turn in the session history with (\d+) tool step$`, thenStoredFailedTurn)
-		ctx.Then(`^the failed turn was closed with the turn-failure answer$`, thenFailedTurnClosedWithFailureAnswer)
+		ctx.Then(`^the failed turn was recorded with (\d+) completed provider call$`, thenFailedTurnRecordedCalls)
+		ctx.Then(`^the failed turn was closed with the answer "([^"]*)"$`, thenFailedTurnClosedWithAnswer)
 		ctx.Then(`^tellme reports on stderr that it kept the completed tool step$`, thenReportsKeptStep)
 		ctx.Then(`^the session history is empty$`, thenSessionHistoryEmpty)
 	})
@@ -109,8 +110,9 @@ func givenHistoryHoldsFailedExchange(ctx context.Context, steps int) error {
 	return f.Close()
 }
 
-// readFailedHistoryEntries reads the active session history lines.
-func readFailedHistoryEntries(sc *scenarioContext) ([]history.Entry, error) {
+// readSessionEntries reads the active session history lines (the ONE shared
+// reader for the round-079/080 partial-turn Thens — N-080-3).
+func readSessionEntries(sc *scenarioContext) ([]history.Entry, error) {
 	data, err := os.ReadFile(sc.historyFilePath())
 	if err != nil {
 		return nil, fmt.Errorf("read history: %w", err)
@@ -133,7 +135,7 @@ func readFailedHistoryEntries(sc *scenarioContext) ([]history.Entry, error) {
 // ONE history entry carrying the given number of completed tool steps.
 func thenStoredFailedTurn(ctx context.Context, want int) error {
 	sc := scenarioFrom(ctx)
-	entries, err := readFailedHistoryEntries(sc)
+	entries, err := readSessionEntries(sc)
 	if err != nil {
 		return err
 	}
@@ -146,21 +148,38 @@ func thenStoredFailedTurn(ctx context.Context, want int) error {
 	return nil
 }
 
-// thenFailedTurnClosedWithFailureAnswer (必查 權威狀態): the persisted failed
-// turn's answer is one of the failure synthetic constants — the close that makes
-// the stored history replay as a valid `user … assistant` sequence.
-func thenFailedTurnClosedWithFailureAnswer(ctx context.Context) error {
+// thenFailedTurnRecordedCalls (必查 權威狀態; fold F-080-2): the persisted failed
+// turn carries the given `calls` count — the completed inference rounds. Without
+// this carrier a `Calls: 0` mutant leaves the E2E green.
+func thenFailedTurnRecordedCalls(ctx context.Context, want int) error {
 	sc := scenarioFrom(ctx)
-	entries, err := readFailedHistoryEntries(sc)
+	entries, err := readSessionEntries(sc)
 	if err != nil {
 		return err
 	}
 	if len(entries) == 0 {
 		return fmt.Errorf("history is empty, want the failed turn")
 	}
-	got := entries[len(entries)-1].Answer
-	if got != history.ProviderFailedTurnAnswer && got != history.ToolFailedTurnAnswer {
-		return fmt.Errorf("failed turn's answer = %q, want %q or %q", got, history.ProviderFailedTurnAnswer, history.ToolFailedTurnAnswer)
+	if got := entries[len(entries)-1].Calls; got != want {
+		return fmt.Errorf("the failed turn's persisted calls = %d, want %d (the completed inference rounds)", got, want)
+	}
+	return nil
+}
+
+// thenFailedTurnClosedWithAnswer (必查 權威狀態; fold F-080-1/TD-080-1): the
+// persisted failed turn's answer equals the EXPECTED class-specific failure
+// answer — so a class swap (e.g. the tool answer on a provider failure) reddens.
+func thenFailedTurnClosedWithAnswer(ctx context.Context, answer string) error {
+	sc := scenarioFrom(ctx)
+	entries, err := readSessionEntries(sc)
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 {
+		return fmt.Errorf("history is empty, want the failed turn")
+	}
+	if got := entries[len(entries)-1].Answer; got != answer {
+		return fmt.Errorf("failed turn's answer = %q, want %q", got, answer)
 	}
 	return nil
 }
@@ -178,7 +197,7 @@ func thenReportsKeptStep(ctx context.Context) error {
 // failure, or a clean abort).
 func thenSessionHistoryEmpty(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
-	entries, err := readFailedHistoryEntries(sc)
+	entries, err := readSessionEntries(sc)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil // a missing file is an empty history
