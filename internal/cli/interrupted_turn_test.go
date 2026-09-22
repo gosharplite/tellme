@@ -129,11 +129,12 @@ func TestRunTurn_InterruptedAppendFailureIsEnvironmentError(t *testing.T) {
 	}
 }
 
-// TestRunTurn_NonCancellationErrorWithStepsStillFails pins the typed guard: a
-// NON-cancellation failure that happens to carry completed steps must NOT be
-// persisted as an interrupted turn — it stays a failure (the round-079 trap a
-// string match would fall into, since only the cancellation is an interruption).
-func TestRunTurn_NonCancellationErrorWithStepsStillFails(t *testing.T) {
+// TestRunTurn_NonCancellationErrorWithStepsPersistsAsFailure pins the typed guard
+// AND the round-080 change: a NON-cancellation failure that carries completed
+// steps is NOT an interruption — it stays a failure (exit 6) — but round 080 now
+// PERSISTS the completed steps with the FAILURE synthetic answer (never the
+// operator-interruption answer).
+func TestRunTurn_NonCancellationErrorWithStepsPersistsAsFailure(t *testing.T) {
 	var out, errOut bytes.Buffer
 	lp := &fakeLoop{
 		runErr:    &llm.ProviderError{Provider: "p", Err: errors.New("connection reset")},
@@ -145,7 +146,10 @@ func TestRunTurn_NonCancellationErrorWithStepsStillFails(t *testing.T) {
 	if code != ProviderError {
 		t.Fatalf("code = %d, want %d (provider error) — only a cancellation is an interruption", code, ProviderError)
 	}
-	if len(st.appended) != 0 {
-		t.Errorf("appended %d entries, want 0 (a transport failure is not an interruption)", len(st.appended))
+	if len(st.appended) != 1 {
+		t.Fatalf("appended %d entries, want 1 (round 080 keeps the completed steps)", len(st.appended))
+	}
+	if st.appended[0].Answer != history.ProviderFailedTurnAnswer {
+		t.Errorf("answer = %q, want the failure answer %q (not the operator-interruption one)", st.appended[0].Answer, history.ProviderFailedTurnAnswer)
 	}
 }

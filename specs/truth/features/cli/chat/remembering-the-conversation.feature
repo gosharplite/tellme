@@ -74,3 +74,59 @@ Feature: Remembering the conversation across runs
       Then the request replayed the earlier tool step "execute_command"
       And the request closes the earlier turn with the assistant answer "[Turn interrupted by operator via Ctrl+C]"
       And tellme exits successfully
+
+  Rule: A failed turn keeps the tool work it had already done (round 080)
+
+    # Round 080 (ADR 0052; closes #161): when a turn FAILS after some tool steps already
+    # completed — the provider keeps failing (the bounded retry exhausts) or rejects the
+    # request outright — tellme keeps those steps and closes the turn with a class-specific
+    # synthetic answer, then reports the failure EXACTLY as before (the frozen phrase + exit 6).
+    # A failure with zero completed steps writes nothing (today's clean abort).
+    # The failure is produced hermetically by the in-process fake provider (an always-drop
+    # transport; an outright rejection); the retry delay seam is collapsed to 0.
+
+    Example: A turn whose provider keeps failing keeps its completed steps
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then always drops the connection
+      When the operator starts tellme with the prompt "Read the notes, then keep going."
+      Then tellme stored the failed turn in the session history with 1 tool step
+      And the failed turn was closed with the turn-failure answer
+      And tellme reports on stderr that it kept the completed tool step
+      And the run wrote nothing to standard output
+      And tellme explains on stderr that "the provider request failed"
+      And tellme exits with the provider error code
+
+    Example: A turn whose request is rejected outright keeps its completed steps
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the working directory contains a file "notes.txt" whose text is "the launch code is ORANGE"
+      And a configured provider "test-model" whose endpoint asks tellme to read "notes.txt" and then rejects the request outright
+      When the operator starts tellme with the prompt "Read the notes, then keep going."
+      Then tellme stored the failed turn in the session history with 1 tool step
+      And tellme explains on stderr that "the provider request failed"
+      And tellme exits with the provider error code
+
+  Rule: A session whose failed turn was kept continues from it (round 080)
+
+    Example: The resumed request carries the kept step and the failure answer
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds a failed exchange with 1 tool step
+      And a configured provider "test-model" whose endpoint answers with "continued"
+      When the operator starts tellme with the prompt "continue"
+      Then the request replayed the earlier tool step "read_files"
+      And the request closes the earlier turn with the assistant answer "[Turn ended early: the provider request failed]"
+      And tellme exits successfully
+
+  Rule: A failure before any tool step completes leaves nothing behind (round 080)
+
+    Example: A turn that fails before the first tool step writes no history entry
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a configured provider "dead-model" whose endpoint is unreachable
+      When the operator starts tellme with the prompt "Hello"
+      Then the session history is empty
+      And tellme explains on stderr that "the provider request failed"
+      And tellme exits with the provider error code

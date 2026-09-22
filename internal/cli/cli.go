@@ -895,25 +895,7 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		ind.Stop()
 	}
 	if err != nil {
-		// Round 079 (ADR 0051; closes #159): an OPERATOR interruption — the turn
-		// context was cancelled by SIGINT/SIGTERM — that completed at least one
-		// tool step keeps its work: the partial turn is PERSISTED, closed with a
-		// synthetic answer (`history.InterruptedTurnAnswer`), so the stored
-		// history replays as a valid `… assistant` sequence (a partial turn
-		// ending on a `tool` result would violate role alternation on both
-		// provider families). The detection is TYPED (errors.Is on the
-		// cancellation), never string-matched, and it unwraps through the
-		// adapter's *llm.ProviderError and the round-078 retry decorator. A turn
-		// interrupted with ZERO completed steps keeps today's clean abort (no
-		// write) — see persistInterruptedTurn.
-		if errors.Is(err, context.Canceled) && len(result.Steps) > 0 {
-			return persistInterruptedTurn(env, store, prompt, result)
-		}
-		var inc *agentport.ErrIncomplete
-		if errors.As(err, &inc) {
-			return emitToolError(env.stderr, inc)
-		}
-		return emitProviderError(env.stderr, err)
+		return failTurn(env, store, prompt, err, result, ctx)
 	}
 	// Persist the turn with its AI-endpoint-call count (round 027): the number of
 	// inference rounds this turn made (`len(result.Calls)`), summed across the
@@ -929,6 +911,72 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// status trails the answer (G5).
 	renderer.EmitFinalTail()
 	return Success
+}
+
+// failTurn maps a loop error to its terminal surface (round 079 / ADR 0051 +
+// round 080 / ADR 0052).
+//
+//   - An OPERATOR interruption (the turn context was cancelled by SIGINT/SIGTERM
+//     — `ctx.Err() != nil` — or an error that wraps context.Canceled) that
+//     completed at least one tool step keeps its work: the partial turn is
+//     persisted, closed with `history.InterruptedTurnAnswer`, and reports Success.
+//   - A FAILED turn (a provider failure, or the tool-loop failure) that completed
+//     at least one tool step ALSO keeps its work: the partial turn is persisted,
+//     closed with a class-specific synthetic answer, and then the failure surface
+//     is reported UNCHANGED (the frozen phrase + exit 6/7) with one informational
+//     stderr line.
+//   - Any turn that failed/interrupted with ZERO completed steps keeps today's
+//     clean abort (no write).
+//
+// Detection is STRUCTURAL/typed — never string-matched (NFR-004). `ctx.Err()`
+// sees a SIGINT/SIGTERM `defer cancel()` has not yet run; the `errors.Is` term
+// keeps the case where the adapter surfaces the cancellation only via the error;
+// both cover the round-078 retry decorator's `lastErr`-on-abort (issue #161 hole
+// #2: a Ctrl+C during a retry wait).
+func failTurn(env runtimeEnv, store history.Store, prompt string, err error, result agentport.Result, ctx context.Context) int {
+	interrupted := ctx.Err() != nil || errors.Is(err, context.Canceled)
+	if len(result.Steps) > 0 && interrupted {
+		return persistInterruptedTurn(env, store, prompt, result)
+	}
+	var inc *agentport.ErrIncomplete
+	isTool := errors.As(err, &inc)
+	kept := len(result.Steps) > 0
+	// Round 080 (ADR 0052): a failed turn with completed steps keeps them. The
+	// append is BEST-EFFORT — a failure never masks the failure surface (D6).
+	stored := false
+	if kept {
+		answer := history.ProviderFailedTurnAnswer
+		if isTool {
+			answer = history.ToolFailedTurnAnswer
+		}
+		if aerr := store.Append(history.Entry{Prompt: prompt, Answer: answer, Calls: len(result.Calls), Steps: result.Steps}); aerr == nil {
+			stored = true
+		}
+	}
+	// The failure surface is UNCHANGED (frozen phrase + exit 6/7).
+	var code int
+	if isTool {
+		code = emitToolError(env.stderr, inc)
+	} else {
+		code = emitProviderError(env.stderr, err)
+	}
+	if stored {
+		emitKeptStepsLine(env, len(result.Steps))
+	}
+	return code
+}
+
+// emitKeptStepsLine writes the round-080 informational line (a failed turn with
+// completed steps kept them), mirroring the round-079/078 precedent: chrome-styled
+// (`[HH:MM:SS] …`) on the diagnostic stream only, control-free, carrying NO
+// `tellme: ` class prefix (the round-017 exactly-one-`tellme:`-line contract
+// holds) and never routed to turns.log.
+func emitKeptStepsLine(env runtimeEnv, steps int) {
+	if env.stderr == nil {
+		return
+	}
+	_, _ = fmt.Fprintf(env.stderr, "[%s] kept %d completed tool step(s) in the session history\n",
+		env.now().Format("15:04:05"), steps)
 }
 
 // effectiveBudget returns the budget the payload status line renders: the

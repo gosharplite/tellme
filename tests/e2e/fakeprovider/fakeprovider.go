@@ -31,6 +31,17 @@ type Reply struct {
 	// `candidates[0].finishReason`. "" omits it (a healthy response). A truncation
 	// scripts "length" (OpenAI-compatible) / "MAX_TOKENS" (Vertex) to drive the guard.
 	FinishReason string
+	// Drop, when true, makes THIS scripted reply DROP the connection (round 080):
+	// a transport-level failure the client observes as EOF/reset — used to drive a
+	// retryable failure on a specific request (e.g. request 2+), so a partial tool
+	// turn can be built before the failure. Round 078's whole-fake DropFirst still
+	// takes precedence when set.
+	Drop bool
+	// ErrorStatus, when non-zero, makes THIS scripted reply answer with that HTTP
+	// status (round 080) — used to script a NON-retryable rejection on a specific
+	// request (e.g. request 2 → 400). The round-078 whole-fake ErrorStatus still
+	// takes precedence when set.
+	ErrorStatus int
 }
 
 // ToolRequest is one tool call in a multi-tool scripted reply (round 019).
@@ -323,10 +334,11 @@ func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
 	}
 	p.mu.Unlock()
 
-	// Round 078: a scripted transport DROP — the recorded request is kept (so the
-	// count reflects the attempt), then the connection is closed with no response,
-	// so the client observes EOF / a reset (a Transport failure).
-	if drop {
+	// Round 078/080: a scripted transport DROP — the recorded request is kept (so
+	// the count reflects the attempt), then the connection is closed with no
+	// response, so the client observes EOF / a reset (a Transport failure). Round
+	// 080 adds a per-reply drop (reply.Drop) so a specific request drops.
+	if dropsResponse(drop, hasScript, reply) {
 		if hj, ok := w.(http.Hijacker); ok {
 			if conn, _, err := hj.Hijack(); err == nil {
 				_ = conn.Close()
@@ -339,10 +351,30 @@ func (p *Provider) handle(w http.ResponseWriter, r *http.Request) {
 		panic(http.ErrAbortHandler)
 	}
 
+	writeProviderResponse(w, status, reply, hasScript, noAnswer, answer, usage, vertex)
+}
+
+// dropsResponse reports whether this request must be answered by DROPPING the
+// connection: the round-078 whole-fake drop, or (round 080) the chosen scripted
+// reply's own Drop. Extracted so handle()'s cyclomatic complexity stays under the
+// cyclop gate.
+func dropsResponse(globalDrop, hasScript bool, reply Reply) bool {
+	return globalDrop || (hasScript && reply.Drop)
+}
+
+// writeProviderResponse writes the provider's HTTP response for a request: the
+// round-078 whole-fake error status, the round-080 per-reply error status, the
+// no-answer body, a scripted reply, or the default answer. Extracted from handle()
+// for the cyclop gate.
+func writeProviderResponse(w http.ResponseWriter, status int, reply Reply, hasScript, noAnswer bool, answer string, usage *usageCounts, vertex bool) {
 	w.Header().Set("Content-Type", "application/json")
 	switch {
 	case status != 0:
 		w.WriteHeader(status)
+		_, _ = w.Write([]byte(`{"error":{"message":"scripted error"}}`))
+	case hasScript && reply.ErrorStatus != 0:
+		// Round 080: a per-reply non-retryable rejection (e.g. 400 on request 2).
+		w.WriteHeader(reply.ErrorStatus)
 		_, _ = w.Write([]byte(`{"error":{"message":"scripted error"}}`))
 	case noAnswer:
 		_, _ = w.Write([]byte(noAnswerBody(vertex)))
