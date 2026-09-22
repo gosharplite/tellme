@@ -252,7 +252,7 @@ entities:
       - id: turn-bounded-by-tool-loop
         statement: "The tool rounds within one `Turn` MUST NOT exceed `Config.maxToolLoop`."
       - id: turn-answer-stored-verbatim
-        statement: "A `Turn`'s persisted `answer` is the provider's content, never the rendered form."
+        statement: "A `Turn`'s persisted `answer` is the provider's content, never the rendered form — **except** an operator-interrupted turn (round 079 / ADR 0051), whose persisted `answer` is the synthetic `history.InterruptedTurnAnswer` closing the partial turn."
 
   ToolCall:
     definition: >
@@ -474,7 +474,7 @@ entities:
         ownership: owned
     invariants:
       - id: history-append-after-complete
-        statement: "A `Turn` is persisted only after it completes (append-only)."
+        statement: "A `Turn` is persisted only after it completes (append-only). An operator-interrupted turn (round 079 / ADR 0051) with **≥ 1** completed tool step **is completed** by a synthetic closing answer (`history.InterruptedTurnAnswer`) and persisted; a turn interrupted with **zero** completed steps is **not** persisted. A *completed tool step* is a step whose tool **returned** a result (a success, or a nil-error kill/timeout result) — not necessarily a successful one."
 
   UsageRecord:
     definition: >

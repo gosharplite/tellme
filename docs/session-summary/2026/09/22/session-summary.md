@@ -268,3 +268,93 @@ Change the retry-line text ⇒ the E2E `tellme announces …` reddens · persist
 - **A retry announcement must precede a retry that WILL run (TD-1).** `notify` fired before the interruptible sleep, so a SIGINT mid-call printed "retrying …" for a retry that never happened; the fix checks `ctx.Err()` **before** announcing.
 - **Scope a hermetic seam to the scenarios that need it (TD-2).** A global `TELL_ME_FORCE_RETRY_DELAY_MS=0` would have silently retry-enabled *every* E2E scenario; the override now lives in the 078 Givens only.
 - **Reconcile, don't just append (the round-030 reconciliation).** Round 078 makes round-030's "tellme adds **no** retry layer (there is none to change)" false; the round MODIFY-ed the clause (truth + `dsl.md`) rather than leaving a contradiction — and the fold also reconciled the round-004 "exactly one provider request" note (TD-3).
+
+---
+
+## 42. Session 65 (2026-09-22, cont.) — round 079 `079-interrupted-turn-partial-persistence` **DELIVERED / FROZEN**: preserve completed tool steps on an operator-interrupted turn (anchor issue #159) → full pipeline → `architect` review-fold loop (3 passes, CLOSED) → **human-merged (PR #160 → `dev` `30fb420`)**, propagated, tagged **`round-079`**; closeout (Steps 1–8)
+
+The operator asked to read issue **#159** and *"open a new round, the goal is to close this issue."* We bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 078 delivered/frozen; active branch `dev`), opened **round 079** off `dev` `4f9c96d` with **#159 as the anchor (DoD = close it)**, ran the full AIxBDD pipeline, took **PR [#160](https://github.com/gosharplite/tellme/pull/160)** through the `architect` peer's **review → fold → fold-verification → residual fold → final fold-verification** loop to **FOLDS VERIFIED — loop CLOSED, cleared for human merge**, the human merged it and deleted the remote branch, and `SESSION-CLOSEOUT.md` Steps 1–8 ran (local branch deleted after an ancestor check; `dev` == the merge commit `30fb420`).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | `079-interrupted-turn-partial-persistence` (off `dev` `4f9c96d`) |
+| Anchor | issue [#159](https://github.com/gosharplite/tellme/issues/159) — *Preserve completed tool steps on Ctrl+C interruption … with a synthetic turn-closing answer*; **DoD = close it** |
+| Theme | **MODIFY (session-history persistence)**: an operator-interrupted turn (`SIGINT`/`SIGTERM` → `context.Canceled`) with **≥1** completed tool step is persisted as ONE `history.Entry` closed with a synthetic assistant answer; **zero** steps writes nothing (today's clean abort) |
+| Clarify | **not escalated (0 questions)** — the core behaviour is anchored by the issue; the issue's *Open Design Decisions* were routed by the operator to `/axb-technical-research` |
+| Pipeline | specify ✅ · spec-by-example ✅ (2 Rules / 2 Examples) · technical-research ✅ (**ADR 0051** + `techstack.md` MODIFY + ADD + the **domain-model** invariant amendment) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine ✅ (+2 Given / +6 Then rows) · tasks ✅ (T001–T010) · implement ✅ |
+| Before → after | a `Ctrl+C` mid-tool-turn was terminal (`the provider request failed` + exit 6) and **discarded** the prompt + all completed steps → the partial turn is **kept** (one entry, synthetic close), the run exits **0** with `stdout` empty + one informational `stderr` line; the **zero-step** case is unchanged (phrase + exit 6) |
+| The change | `internal/domain/history/history.go` (`InterruptedTurnAnswer`) · `internal/cli/cli.go` (`runTurn`: typed `errors.Is(err, context.Canceled) && len(result.Steps) > 0` ⇒ `persistInterruptedTurn`) · `internal/cli/interrupted_turn_test.go` · `tests/e2e/steps/step_r079_interrupt.go` (a scripted `execute_command` running `kill -INT $PPID; sleep 30` — a **real** `SIGINT` to the turn process) |
+| Review chain (PR #160, the `architect` peer — init once with `SESSION-BOOTSTRAP.md`, continuations) | `review` (**APPROVE WITH REQUIRED FOLDS** — no `[ARCHITECTURAL BLOCKER]`; record/witness quality: **F-079-1** the hermetic-seam record described a stall mechanism that does not exist · **F-079-2** the persisted-`calls` claim had no E2E carrier · **F-079-3** the kill-path result is a nil-error `Exit Code: -1`, not `error: …` · **F-079-4** the interrupted path leaves a dangling `╭─⠿ Turn N` frame; + TD-079-1/2, N-079-1/2) → fold `3e6564c` → `FOLD-VERIFICATION` (**FOLDS VERIFIED WITH RESIDUALS**; RES-079-FV-1…5) → residual fold `936125a` → `FOLD-VERIFICATION` (**FOLDS VERIFIED — loop CLOSED, cleared for human merge**; post-closure cosmetic table fix `4be021c`, product code byte-identical) |
+| Merge | PR [#160](https://github.com/gosharplite/tellme/pull/160) **human-merged** into `dev` (`30fb420`, **merge commit**); remote branch deleted by the human; the **local branch deleted** after an ancestor check |
+| Closeout | `make check` **OK** · `go test -count=1 ./...` green (E2E **295 scenarios · 2201 steps**) · `make test-race` green · topology audit **5 pre-existing, none new** (52 features · 6 feature modules · 17 root + 432 module rows · 2175 steps) · diff secret scan clean · `make modelith-check` ×3 green · `STATUS.md` split (round-078 detail + env note → `docs/archives/status/2026-09-22.md`) · propagation `dev → main` (**no-ff**) + tag **`round-079`** · `go install` · **[#159](https://github.com/gosharplite/tellme/issues/159) CLOSED** |
+
+### Decisions locked (round 079 / ADR 0051)
+
+| # | Decision |
+| --- | --- |
+| **D1** | Persist the completed steps on an operator interruption: one atomic `history.Entry` closed with the synthetic `history.InterruptedTurnAnswer`. *Rejected:* persisting without a closing answer (breaks role alternation). |
+| **D2** | **Typed** detection — `errors.Is(err, context.Canceled)` (unwraps through the adapter's `*llm.ProviderError` + the round-078 retry decorator); **never** string-matched. |
+| **D3** | The synthetic answer is the one stored constant `[Turn interrupted by operator via Ctrl+C]`; a `SIGTERM` shares the wording. |
+| **D4** | **Always-on**; no config toggle / no double-Ctrl+C discard (declined alternatives recorded). |
+| **D5** | Interrupted-with-work ⇒ exit **`Success` (0)**, `stdout` empty, one informational `stderr` line (no `tellme: ` prefix, not in `turns.log`); zero-step ⇒ today's surface (phrase + exit 6); append failure ⇒ the environment phrase (4). The exit-code set stays **ten**. |
+| **D6** | **No** usage persisted for the interrupted turn (the existing `persistTurnUsage` gate already yields nothing; a failed turn writes none today). |
+| **D7** | The trigger is `len(result.Steps) > 0`; a "completed tool step" is one whose tool **returned** a result (a success, or a nil-error kill/timeout `Exit Code: -1`) — the loop's `error: ` prefix applies only to a non-nil tool error. |
+| **D8** | The `history.Entry` / `history.Step` JSON shapes are **unchanged** (the synthetic answer is the `answer` value); `calls` = the completed inference rounds. |
+| **D9** | Scope: the provider/tool-loop turn only (MCP steps are ordinary steps); `-b`/`--retry` + the offline readers untouched. The live interruption is hermetic (a scripted `kill -INT $PPID`, no pty). |
+| **D10** | Records: **ADR 0051** + index; `techstack.md` MODIFY + ADD; the CLI truth feature + `dsl.md` rows; and the **domain-model** amendment (`history-append-after-complete` + `turn-answer-stored-verbatim`) per the ADR-0041 same-PR rule. |
+
+### Commits (branch `079-interrupted-turn-partial-persistence`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `eb27570` | `docs(079)`: plan package + spec |
+| `074abe9` | `docs(079)`: STATUS — round 079 in flight |
+| `a68d06d` | `docs(079)`: technical research + **ADR 0051** + techstack truth + domain-model amendment |
+| `beb3670` | `feat(079)`: acceptance + plan + dsl-refine truth + tasks + implementation (persist the interrupted turn's completed steps) |
+| `48a92ef` | `docs(079)`: STATUS — pipeline complete, PR open |
+| `3e6564c` | `fix(079)`: fold the architect review (F-079-1…4 + TD-1/2 + N-1/2) |
+| `936125a` | `docs(079)`: fold the fold-verification residuals (RES-079-FV-1…5) |
+| `4be021c` | `docs(079)`: fix the round-079 DSL table layout (RES-079-FV-6, cosmetic) |
+| `30fb420` | PR [#160](https://github.com/gosharplite/tellme/pull/160) merge into `dev` (by the operator) |
+| *(this closeout, on `dev`)* | `docs(079)`: day close — round 079 delivered + propagated; STATUS split + 09/22 summary §42 |
+
+### Artifacts / truth
+
+- Plan package: `specs/plans/079-interrupted-turn-partial-persistence/**` — `spec.md` (US1/US2 · FR-001…FR-008 · NFR-001…NFR-004 · SC-001…SC-005 · I-1…I-8 · S-1…S-12) · `checklists/requirements.md` · `features/acceptance/preserving-an-interrupted-turns-completed-work.feature` · `research.md` (D1–D10) · `plan.md` · `tasks.md` (T001–T010 + the fold ledger + the recorded narrowings) · `truth-delta.md`.
+- Truth: `specs/truth/techstack.md` *Session history store* **MODIFY** (append-after-complete qualified) + *Interrupted-turn persistence* **ADD** · `specs/truth/features/cli/chat/remembering-the-conversation.feature` (2 new Rules / 2 Examples) · `chat/dsl.md` (+2 Given / +6 Then rows + the round-079 note) · `contracts/**` + `data/**` NOOP.
+- Domain model: `docs/domain-model/tellme.modelith.{yaml,md}` — `history-append-after-complete` + `turn-answer-stored-verbatim` **MODIFY** (the operator-interrupted exception; re-rendered; `modelith-check` green). A **recorded divergence** (the reference discards the partial turn).
+- Code: `internal/domain/history/history.go` · `internal/cli/cli.go` · `internal/cli/interrupted_turn_test.go` · `tests/e2e/steps/step_r079_interrupt.go`.
+- **ADR 0051** (`docs/decisions/0051-interrupted-turn-partial-persistence.md` + index).
+
+### Falsifiability witnesses (reproduced then reverted)
+
+**M1** (reviewer) remove the interrupted-turn branch ⇒ the E2E `A turn interrupted after a tool step keeps it` reddens — proving the **typed** detection on the real `SIGINT` → `*llm.ProviderError` → retry-decorator path. **M2** (`Answer: ""`) ⇒ the synthetic-close Then reddens. **F-079-2** (`Calls: 0`) ⇒ the persisted-`calls` Then reddens (`persisted calls = 0, want 1`). **TD-079-1** (leak the class phrase / write stdout) ⇒ the phrase-absence / `wrote nothing to standard output` Thens redden.
+
+### Open items (non-blocking)
+
+- **Round-079 forward items** — **RF-079-1** the synthetic answer is stored as the turn's `answer` · **RF-079-2** a killed-tool step is counted (nil-error `Exit Code: -1`) · **RF-079-3** no usage persisted · **RF-079-4** the exit-0/zero-step-exit-6 asymmetry · **RF-079-5** `SIGTERM` shares the "via Ctrl+C" wording · **RF-079-A** no scenario chains the product-written interrupted entry into a resume · **RF-079-B** the dangling `╭─⠿ Turn N` frame reaches `stderr`/`turns.log` · **RF-079-7** no archive interaction · **RF-079-8** the informational line is `stderr`-only · **RF-079-9** the `ind.Stop()`↔append window is unexercised. All in **ADR 0051 §Forward**.
+- **Compaction**: the round-077 forward-item batch is now **compacted to a pointer row** (2 rounds old) per the curation rule.
+- **Issue tracker** — **[#159](https://github.com/gosharplite/tellme/issues/159) CLOSED (completed)** (fixed by round 079 / ADR 0051, PR [#160](https://github.com/gosharplite/tellme/pull/160)); the tracker is **0 open**.
+- **PM follow-ups** — **none open.**
+- Carried: PR #16 **Obs 1** stdout TTY probe **OPEN**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items; the **5 pre-existing** Gherkin/DSL topology-audit errors.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value** (the tracker is **0 open**; the tool surface is settled).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+*(Round 079 is fully closed out: PR #160 human-merged into `dev` (`30fb420`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-079`** with operator approval; the installed binary refreshed from the `dev` head; [#159](https://github.com/gosharplite/tellme/issues/159) closed.)*
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the `architect`'s F-079-1…4 were record/witness folds, not PM-owned gaps).
+
+### Process notes (durable)
+
+- **A recorded mechanism must match the shipped one (F-079-1).** Three durable surfaces (the `techstack.md` row, ADR §9, `research.md` D9) described a **fake-provider stall + harness signal helper** that was never built — the shipped seam is a scripted `execute_command` running `kill -INT $PPID`. Worse, that stale paragraph gave the *narrowing* the wrong reason. When a seam changes during implementation, reconcile **every** surface that names it (the round-078 "reconcile, don't append" lesson, again).
+- **A claimed E2E assertion must have a carrier that can redden (F-079-2).** SC-001 claimed the E2E asserts the persisted `calls`; it did not (`Calls: 0` left the E2E green) — the claim now has a Then, and the mutant reddens it.
+- **Describe the kill path exactly (F-079-3).** A cancelled `execute_command` returns a **nil-error** `Exit Code: -1`, not an `error: …` string; the loop's `error: ` prefix applies only to a non-nil tool error. "Completed tool step" was defined where it is used.
+- **An unavoidable artifact must be recorded, not denied (F-079-4).** The interrupted path emits the aborted call's `╭─⠿ Turn N` frame before the cancellation lands (round-040 `OnCallBegin` ordering) — recorded as RF-079-B rather than claimed absent.
+- **The live signal can be produced from inside the tool (the round's design win).** A scripted `execute_command` running `kill -INT $PPID; sleep 30` lands a **real** `SIGINT` on the turn process hermetically — no pty, no stall harness — so the typed detection is witnessed end-to-end (M1), not merely on a unit double.

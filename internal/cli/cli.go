@@ -895,6 +895,20 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		ind.Stop()
 	}
 	if err != nil {
+		// Round 079 (ADR 0051; closes #159): an OPERATOR interruption — the turn
+		// context was cancelled by SIGINT/SIGTERM — that completed at least one
+		// tool step keeps its work: the partial turn is PERSISTED, closed with a
+		// synthetic answer (`history.InterruptedTurnAnswer`), so the stored
+		// history replays as a valid `… assistant` sequence (a partial turn
+		// ending on a `tool` result would violate role alternation on both
+		// provider families). The detection is TYPED (errors.Is on the
+		// cancellation), never string-matched, and it unwraps through the
+		// adapter's *llm.ProviderError and the round-078 retry decorator. A turn
+		// interrupted with ZERO completed steps keeps today's clean abort (no
+		// write) — see persistInterruptedTurn.
+		if errors.Is(err, context.Canceled) && len(result.Steps) > 0 {
+			return persistInterruptedTurn(env, store, prompt, result)
+		}
 		var inc *agentport.ErrIncomplete
 		if errors.As(err, &inc) {
 			return emitToolError(env.stderr, inc)
@@ -925,6 +939,34 @@ func (r resolution) effectiveBudget() int {
 		return r.EffectiveBudget
 	}
 	return r.MaxHistoryTokens
+}
+
+// persistInterruptedTurn persists an operator-interrupted turn that completed at
+// least one tool step (round 079; ADR 0051) and reports success. The partial turn
+// is closed with the synthetic `history.InterruptedTurnAnswer`, so the stored
+// entry replays as a valid `… assistant` sequence (both provider families). It
+// emits ONE informational line on the diagnostic stream — chrome-styled,
+// control-free, carrying no `tellme: ` class prefix (the round-017
+// exactly-one-`tellme:`-line contract holds) and never routed to `turns.log`
+// (the round-078 retry-line / round-068 unpaired-line precedent). A failed append
+// degrades to the existing environment-class phrase via emitHistoryError (never a
+// crash, never a half-written file). The synthetic answer is NOT written to
+// `stdout` (the interrupted path produces no answer), so `stdout` stays empty.
+func persistInterruptedTurn(env runtimeEnv, store history.Store, prompt string, result agentport.Result) int {
+	entry := history.Entry{
+		Prompt: prompt,
+		Answer: history.InterruptedTurnAnswer,
+		Calls:  len(result.Calls),
+		Steps:  result.Steps,
+	}
+	if err := store.Append(entry); err != nil {
+		return emitHistoryError(env.stderr, err)
+	}
+	if env.stderr != nil {
+		_, _ = fmt.Fprintf(env.stderr, "[%s] interrupted by operator; kept %d completed tool step(s) in the session history\n",
+			env.now().Format("15:04:05"), len(result.Steps))
+	}
+	return Success
 }
 
 // (round 034, 4B: emitPayloadStatus is retired — the per-call renderer renders
