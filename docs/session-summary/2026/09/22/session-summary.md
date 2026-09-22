@@ -5,8 +5,8 @@
 **Status file**: [`STATUS.md`](../../../../../STATUS.md) *(back-link — the single live-state source)*
 **Workspace**: `…/mbp-johndoe-niffler/ait-tellme` (`$TELL_ME_HOME`); darwin/arm64 host (Go 1.26.6).
 **Session mode**: `butler`.
-**Branch**: `076-recoverable-unknown-tool` (off `dev`) → **PR [#156](https://github.com/gosharplite/tellme/pull/156)** → human-merged into `dev` (`851466e`), propagated, tagged **`round-076`**.
-**Status at end of day**: round **076** `076-recoverable-unknown-tool` **DELIVERED / FROZEN** — an **unknown tool name** becomes a **recoverable, per-turn-bounded fold-back**; **ADR 0048**; anchor issue [#154](https://github.com/gosharplite/tellme/issues/154) (**closes it**).
+**Branches (the day's rounds, all merged)**: `076-*` → PR [#156] (`851466e`) · `077-*` → PR [#157] (`273b5a9`) · `078-*` → PR [#158] (`c291e1d`) · `079-*` → PR [#160] (`30fb420`) · `080-*` → PR [#162] (`4eec76e`) · **`081-back-rollback-turns` → PR [#164](https://github.com/gosharplite/tellme/pull/164) (`f9aa96f`)**.
+**Status at end of day**: round **081** `081-back-rollback-turns` **DELIVERED / FROZEN** (the day's latest) — `-b`/`--back [N]` rolls back the last N turns of the session history (offline default-1 form + a rollback-then-prompt form); a durable `history.Store.Rollback(n)`; the optional-int pre-pass generalised (**resolves ADR 0023 RF-54-4**); **ADR 0053**; anchor issue [#163](https://github.com/gosharplite/tellme/issues/163) (**closes it**). *(The day delivered rounds 076–081; see §1–§44.)*
 
 ---
 
@@ -442,3 +442,92 @@ The operator asked to fix the remaining loss: *"retry succeeds → all executed 
 - **A widening can create a new decided surface (F-080-3).** Broadening the interruption predicate introduced an interruption-over-failure precedence that the round did not record. Record it, or the next reader assumes the old semantics.
 - **A best-effort side effect must not lie (D6).** The failed-turn append never masks the failure and never prints a keep line it did not earn — a deliberate divergence from the operator path (where exit 0 would be a lie if the work were lost).
 - **Widening a predicate is how a seam becomes testable-unreachable (RF-080-A).** The union's `errors.Is` term is now unreachable in production; a future ctx seam would restore unit-testability of the shipping mechanism.
+
+---
+
+## 44. Session 68 (2026-09-22, cont.) — round 081 `081-back-rollback-turns` **DELIVERED / FROZEN**: `-b`/`--back` roll back the last N turns (anchor issue #163) → full pipeline → `architect` review-fold loop (CLOSED) → **human-merged (PR #164 → `dev` `f9aa96f`, merge commit)**, propagated, tagged **`round-081`**; closeout (Steps 1–8)
+
+The operator asked *"Compare to tell-me-go, is there anything which tellme won't be able to do?"*, then *"What does `-b` flag do?"*, then *"Please create a detail github issue for this feature"* — I filed **[#163](https://github.com/gosharplite/tellme/issues/163)** (a detailed `-b`/`--back` issue) — and then directed *"Open a new round, the goal is to close #163."* We bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 080 delivered/frozen; active branch `dev`), opened **round 081** off `dev` `0008fd0` with **#163 as the anchor (DoD = close it)**, ran the full AIxBDD pipeline, took **PR [#164](https://github.com/gosharplite/tellme/pull/164)** through the `architect` peer's **review → fold → fold-verification** loop to **FOLDS VERIFIED — CLEARED FOR HUMAN MERGE**, the human merged it and deleted the remote branch, the local branch was deleted after an ancestor check, and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | `081-back-rollback-turns` (off `dev` `0008fd0`) |
+| Anchor | issue [#163](https://github.com/gosharplite/tellme/issues/163) — *Add `-b`/`--back`: roll back the last N turns of the session history (offline, optional count, optional follow-up prompt)*; **DoD = close it** |
+| Theme | **ADD (a CLI offline session command + a durable store capability)**: `tellme -b`/`-b N` removes the last N complete turns (default 1) **offline**; `tellme -b [N] "p"` rolls back **then** runs; whole `history.Entry` lines (incl. their `steps[]`) removed atomically |
+| Clarify | **not escalated (0 questions)** — the core behaviour is anchored by the issue; its *Open design decisions* were routed to `/axb-technical-research` |
+| Pipeline | specify ✅ · spec-by-example ✅ · technical-research ✅ (**ADR 0053** + `techstack.md` ×4 rows + the `docs/domain-model` `History`/`Session` update) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine ✅ (a NEW `history` feature, 7 Rules + the `history/dsl.md` + root `cli/dsl.md` rows) · tasks ✅ (T001–T015) · implement ✅ |
+| Before → after | `tellme -b` → `tellme: the command-line usage is invalid` (exit 2) → **`Rolled back 2 turns. History now holds 1 turn.`** (exit 0, offline); `tellme -b "p"` undoes the last turn then re-asks |
+| The change | `internal/domain/history.Store` gains `Rollback(n)`; `internal/infrastructure/history/file_store.go` implements it **durably** (raw survivor copy + temp file + `fsync` + atomic `rename`; clamp; `n ≤ 0` no-op; archive untouched); `internal/cli/cli.go` registers `-b`/`--back [N]`, **generalises** the `-l` optional-int pre-pass (`consumeOptionalIntArgs`, resolving **ADR 0023 RF-54-4**), adds `renderRollback`, runs `-b` after `-l` / before `-t`, and rolls back in `renderTurn` for the prompt-bearing form |
+| Review chain (PR #164, the `architect` peer — init once with `SESSION-BOOTSTRAP.md`, continuations) | `review` (**APPROVE WITH REQUIRED FOLDS** — no `[ARCHITECTURAL BLOCKER]`; the design was right, the folds were **evidence/record quality**: **F-081-1** the durability/atomicity claim had no discriminating witness (an in-place truncate left the suite green, reproduced) · **F-081-2** the `-l`×`-b` compose was unwitnessed (reproduced) · **F-081-3** the decode-failure claim had no carrier · **F-081-4** SC-003's request-content evidence was absent · **F-081-5** the `techstack.md` *Prompt input* precedence row was stale; + TD-081-1/2/3, N-081-1…6) → fold `7626c62` → `FOLD-VERIFICATION` (**FOLDS VERIFIED — CLEARED FOR HUMAN MERGE**; R-FV-081-1…4 nits) → residual fold `efc31d6` (doc/comment-only; product code byte-identical to the verified head) |
+| Merge | PR [#164](https://github.com/gosharplite/tellme/pull/164) **human-merged** into `dev` (`f9aa96f`, **merge commit**); remote branch deleted by the human, then the **local branch deleted** after an ancestor check |
+| Closeout | `make verify` **OK** · `go test -count=1 ./...` green (24 pkgs; E2E **307 scenarios · 2297 steps**) · `make test-race` green · topology audit **the same 5 pre-existing + 1** documented cross-module class (53 features · 454 module rows · 2271 steps) · `STATUS.md` split (round-080 detail + env note → `docs/archives/status/2026-09-22.md`) · propagation `dev → main` (**no-ff**) + tag **`round-081`** · `go install` · **[#163](https://github.com/gosharplite/tellme/issues/163) CLOSED** |
+
+### Decisions locked (round 081 / ADR 0053)
+
+| # | Decision |
+| --- | --- |
+| **D1** | `-b`/`--back [N]` (`NoOptDefVal = "1"`); an adjacent integer is consumed, a non-integer token stays a positional prompt — so `tellme -b "p"` = roll back 1 then run `p`. |
+| **D2** | A standalone `-b`/`-b N` is an **offline** action (a plain `stdout` confirmation, no provider request); `-b [N] "p"` rolls back **then** runs the prompt. |
+| **D3** | A durable `history.Store.Rollback(n)` (domain port, option (a)) — the survivors are copied **raw** + temp file + `fsync` + atomic `rename` (never truncated in place); the archive is never touched. |
+| **D4** | **Clamp** — `removed = min(n, len)`; `-b 999` on a 2-turn session empties it and reports 2. |
+| **D5** | `n ≤ 0` is a **usage error** (exit 2), symmetric with `-l ≤ 0` (the reference's silent no-op is rejected). |
+| **D6** | Rollback ≠ `--new` — `history.archive.jsonl` is never written by a rollback. |
+| **D7** | Precedence — `-b` runs after `-l` (list-then-rollback) and before `-t`; `-b` × `--new` **refuses** (usage error 2). |
+| **D8** | The confirmation is one plain `stdout` line (`Rolled back N turns. History now holds M turn(s).`), no `tellme: ` prefix; a failure reuses the environment phrase (exit 4). |
+| **D9** | The optional-int pre-pass is **generalised** to `-l`/`--list` + `-b`/`--back` (**resolves ADR 0023 RF-54-4**). |
+| **D10** | Records — ADR 0053 (+ index); `techstack.md` ×4 rows; the `history` CLI feature + `history/dsl.md` + the root `cli/dsl.md` scope; the `docs/domain-model` `History` rollback action + `Session` offline invariant (ADR 0041 same-PR); `data/**` NOOP. |
+
+### Commits (branch `081-back-rollback-turns`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `bcf2a27` | `docs(081)`: plan package + spec + STATUS — round 081 in flight |
+| `45f43e7` | `feat(081)`: add `-b`/`--back` (acceptance + research + **ADR 0053** + truth + domain-model + implementation) |
+| `8b3a20f` | `docs(081)`: STATUS — pipeline complete, PR #164 open |
+| `7626c62` | `fix(081)`: fold the architect review (F-081-1…5 + TD-1/2/3 + N-1…6) |
+| `efc31d6` | `docs(081)`: fold the fold-verification residuals (R-FV-081-1/2/3, doc/comment-only) |
+| `47a5fe4` | `docs(081)`: STATUS — review-fold loop CLOSED (cleared for human merge) |
+| `f9aa96f` | PR [#164](https://github.com/gosharplite/tellme/pull/164) merge into `dev` (by the human) |
+| *(this closeout, on `dev`)* | `docs(081)`: day close — round 081 delivered + propagated; STATUS split + 09/22 summary §44 |
+
+### Artifacts / truth
+
+- Plan package: `specs/plans/081-back-rollback-turns/**` — `spec.md` (US1/US2 · FR-001…FR-010 · NFR-001…NFR-005 · I-1…I-9 · edge cases · SC-001…SC-005 · A1…A6) · `checklists/requirements.md` · `features/acceptance/rolling-back-the-session-history.feature` · `research.md` (D1–D9) · `plan.md` · `tasks.md` (T001–T015 + the fold ledger) · `truth-delta.md`.
+- Truth: `specs/truth/techstack.md` *CLI flag parsing* / *Session history store* / *Session lifecycle flags* / *Prompt input* **MODIFY** · `specs/truth/features/cli/history/rolling-back-the-session-history.feature` (**NEW**, 7 Rules) · `history/dsl.md` (+1 Given / +5 When / +6 Then rows + the round-081 note) · the root `cli/dsl.md` offline-path scope · `contracts/**` + `data/**` NOOP.
+- Domain model: `docs/domain-model/tellme.modelith.{yaml,md}` — the `History` **rollback** action/invariant (`history-rollback-removes-complete-turns`) + the `Session` offline invariant (`session-rollback-stays-offline`) (re-rendered; `modelith-check` green).
+- Code: `internal/domain/history/history.go` · `internal/infrastructure/history/file_store.go` + `file_store_rollback_test.go` · `internal/cli/cli.go` + `rollback_test.go` + `dispatch_test.go` + the `fakeStore.Rollback` double (`turn_test.go`) · `tests/e2e/steps/step_r081_rollback.go`.
+- **ADR 0053** (`docs/decisions/0053-back-rollback-turns.md` + index; **resolves ADR 0023 §Forward RF-54-4**).
+
+### Falsifiability witnesses (reproduced then reverted)
+
+An **in-place truncate** of `writeRaw` (no temp file/rename) ⇒ `TestFileStore_Rollback_FailureLeavesPriorHistoryIntact` reddens (`Rollback succeeded despite a blocked temp path; removed=1`), and it is the **sole** carrier of the discrimination — verified by **both** me and the reviewer. Deleting the `-l`×`-b` compose branch ⇒ the `TestDispatchReportingBack` subtest reddens. A build-then-rollback regression ⇒ the E2E `the provider was asked against the trimmed history` reddens (the file-level Thens stay green). Making the rollback append to the archive ⇒ `TestFileStore_Rollback_LeavesAPreExistingArchiveByteIdentical` reddens.
+
+### Open items (non-blocking)
+
+- **Round-081 forward items (RF-081-\*)** — `ADR 0053 §Forward`: RF-081-1…RF-081-9 (wording not frozen · no `turns.log`/`tokens.log` trim · no `flock` · the `-b`×`--new` tellme-specific rule · the `-b`×`-t`/`-d` order · the read-modify-write offline action · `--retry` unimplemented · the trimmed-survivor-copy nuance · the post-rollback `Load`-error branch's missing unit witness).
+- **Round-080 forward items (RF-080-\*)** — `ADR 0052 §Forward`. **Round-079's batch is compacted to a pointer row** (now 2 rounds old).
+- **Issue tracker** — **[#163](https://github.com/gosharplite/tellme/issues/163) CLOSED (completed)** (fixed by round 081 / ADR 0053, PR [#164](https://github.com/gosharplite/tellme/pull/164)); the tracker is **0 open**.
+- **PM follow-ups** — **none open.**
+- Carried: PR #16 **Obs 1** stdout TTY probe **OPEN**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items; the **5 pre-existing + 1** topology-audit DSL errors.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value** (the tracker is **0 open**; the tool surface is settled).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+*(Round 081 is fully closed out: PR #164 human-merged into `dev` (`f9aa96f`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-081`** with operator approval; the installed binary refreshed from the `dev` head; [#163](https://github.com/gosharplite/tellme/issues/163) closed.)*
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the `architect`'s F-081-1…5 were evidence/record folds, not PM-owned gaps).
+
+### Process notes (durable)
+
+- **A claimed invariant with no discriminating witness is a defect (F-081-1).** The round's headline — the durable temp-file + fsync + atomic rename — was **unwitnessed**: replacing it with an in-place truncate left the whole suite green. `TestFileStore_Rollback_LeavesNoTempFile` only observed the *absence* of a `.tmp`; the fix is a **failure-path** witness (block the temp path ⇒ error + prior history byte-identical) that is deterministic, cheap, and proven to discriminate. "The absence of a residue" is not a durability witness.
+- **A composed behaviour needs its own carrier (F-081-2).** `-l`×`-b` "list then roll back" was documented on three surfaces (ADR/techstack/spec) but had **no** test; deleting the branch stayed green. When a round makes one flag *compose* with another, pin the composition.
+- **A record claim must be carried by a pin (F-081-3/F-081-4).** The decode-failure edge case and SC-003's "the request ran against the trimmed history" evidence were both asserted in the plan package with no test — add the carrier or drop the claim (the round-080 F-080-2 lesson, again).
+- **A shared contract's owner row must be reconciled, not appended to (F-081-5).** The round added a `-b` tier to the dispatch precedence but left the `techstack.md` *Prompt input* row (the precedence owner) stale — the round-074 F-1 class. When a round changes a shared contract, grep the truth for the old shape and MODIFY each owner row.
+- **A raw-line copy makes a "MUST NOT be touched" promise structural (TD-081-2).** Re-encoding survivors through `json.Marshal` silently drops unknown fields; copying the **raw** lines makes FR-010 a structural guarantee (and cheaper), at the cost of a trim nuance now recorded as RF-081-8.
+- **The closeout's open-items curation keeps working.** With round 081 delivered, the round-079 forward batch was **compacted to a pointer row** (2 rounds old) and the round-081 batch **added** — the index stays an index, not a work queue.
