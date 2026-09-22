@@ -110,27 +110,6 @@ func givenHistoryHoldsFailedExchange(ctx context.Context, steps int) error {
 	return f.Close()
 }
 
-// readSessionEntries reads the active session history lines (the ONE shared
-// reader for the round-079/080 partial-turn Thens — N-080-3).
-func readSessionEntries(sc *scenarioContext) ([]history.Entry, error) {
-	data, err := os.ReadFile(sc.historyFilePath())
-	if err != nil {
-		return nil, fmt.Errorf("read history: %w", err)
-	}
-	var entries []history.Entry
-	for _, line := range strings.Split(strings.TrimRight(string(data), "\n"), "\n") {
-		if line == "" {
-			continue
-		}
-		var e history.Entry
-		if err := json.Unmarshal([]byte(line), &e); err != nil {
-			return nil, fmt.Errorf("decode history line: %w", err)
-		}
-		entries = append(entries, e)
-	}
-	return entries, nil
-}
-
 // thenStoredFailedTurn (必查 權威狀態): the failed turn was persisted as EXACTLY
 // ONE history entry carrying the given number of completed tool steps.
 func thenStoredFailedTurn(ctx context.Context, want int) error {
@@ -166,7 +145,7 @@ func thenFailedTurnRecordedCalls(ctx context.Context, want int) error {
 	return nil
 }
 
-// thenFailedTurnClosedWithAnswer (必查 權威狀態; fold F-080-1/TD-080-1): the
+// thenFailedTurnClosedWithAnswer (必查 權威狀態; fold TD-080-1): the
 // persisted failed turn's answer equals the EXPECTED class-specific failure
 // answer — so a class swap (e.g. the tool answer on a provider failure) reddens.
 func thenFailedTurnClosedWithAnswer(ctx context.Context, answer string) error {
