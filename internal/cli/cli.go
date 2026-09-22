@@ -54,6 +54,8 @@ type flags struct {
 	newSession  bool
 	list        int
 	listSet     bool
+	back        int
+	backSet     bool
 	interactive bool
 	toolUsage   bool
 	turns       bool
@@ -403,9 +405,11 @@ func run(args []string, version string, scoped Options, env runtimeEnv) int {
 
 	homeDir := os.Getenv("TELL_ME_HOME")
 
-	// The offline reporting commands run in precedence order — -d → -l → -t →
-	// --tool-usage — before any prompt or stdin access.
-	if code, handled := dispatchReporting(f, homeDir, env, dp.NewHistoryStore, dp.NewTurnsLogStore, dp.NewListing, func() int {
+	// The offline reporting commands run in precedence order — -d → -l → -b (standalone)
+	// → -t → --tool-usage — before any prompt or stdin access. hasPrompt tells the
+	// dispatcher whether a positional prompt is present (a prompt-bearing `-b` is
+	// handled by the prompt path below).
+	if code, handled := dispatchReporting(f, homeDir, env, len(flagArgs) > 0, dp.NewHistoryStore, dp.NewTurnsLogStore, dp.NewListing, func() int {
 		return renderToolUsage(env, dp.NewToolRegistry, dp.NewToolUsageStore, dp.UserHomeDir, dp.NewLines(false))
 	}); handled {
 		return code
@@ -422,7 +426,7 @@ func run(args []string, version string, scoped Options, env runtimeEnv) int {
 		return EnvironmentError
 	}
 	if prompt != "" {
-		return renderTurn(homeDir, f.configPath, prompt, turnOptions{raw: f.raw, newSession: f.newSession, chrome: true}, env, dp)
+		return renderTurn(homeDir, f.configPath, prompt, turnOptions{raw: f.raw, newSession: f.newSession, chrome: true, rollbackTurns: f.back}, env, dp)
 	}
 	// Round 012 (amended, A8) — a prompt-less invocation on a terminal reads an
 	// interactive multi-line prompt: print the hint to stderr and read stdin to EOF
@@ -504,13 +508,19 @@ func parseFlags(args []string, stderr io.Writer) (f *flags, flagArgs []string, o
 	fs.IntVarP(&o.list, "list", "l", 0, "List the last N messages of the session history and exit. Defaults to 1 when the value is omitted.")
 	// Round 054 (ADR 0023): bare `-l`/`--list` defaults to 1 (reference parity).
 	fs.Lookup("list").NoOptDefVal = "1"
+	// Round 081 (ADR 0053): `-b`/`--back` rolls back the last N turns of the
+	// session history (defaults to 1 when the value is omitted) and exits; with a
+	// positional prompt it rolls back first, then runs the prompt.
+	fs.IntVarP(&o.back, "back", "b", 0, "Roll back the last N turns of the session history and exit. Defaults to 1 when the value is omitted.")
+	fs.Lookup("back").NoOptDefVal = "1"
 	fs.BoolVarP(&o.turns, "turns", "t", false, "Print the session's turn log and exit.")
 	fs.BoolVarP(&o.interactive, "interactive", "i", false, "Open the interactive TUI prompt (requires a terminal).")
 	fs.BoolVar(&o.toolUsage, "tool-usage", false, "Report per-tool invocation counts across all sessions, then exit.")
-	if err := fs.Parse(consumeListValue(args)); err != nil {
+	if err := fs.Parse(consumeOptionalIntArgs(args, "-l", "--list", "-b", "--back")); err != nil {
 		return nil, nil, false
 	}
 	o.listSet = fs.Changed("list")
+	o.backSet = fs.Changed("back")
 	if o.help {
 		// The flag list is pflag's own rendering — the text pflag's IMPLICIT
 		// help path wrote to the SetOutput writer (stderr) before this round —
@@ -521,17 +531,22 @@ func parseFlags(args []string, stderr io.Writer) (f *flags, flagArgs []string, o
 	return o, fs.Args(), true
 }
 
-// consumeListValue normalizes the optional-integer `-l`/`--list` flag so an
-// ADJACENT value is consumed (`-l 5` → `-l=5`) instead of being left as a
-// positional argument. pflag's NoOptDefVal makes a bare `-l` mean `-l=1`, but it
-// also means `-l 5` parses as `-l=1` plus a positional `5` — a prompt token that
-// would otherwise be swallowed or misread. Mirroring the reference's
-// `consumeOptionalIntFlag`: consume the next token ONLY when it is a valid
-// integer; otherwise leave it (so `-l hello` ⇒ count 1, prompt `hello`). An
-// `--` separator stops the scan.
-func consumeListValue(args []string) []string {
+// consumeOptionalIntArgs normalizes an optional-integer flag (round 054 `-l`/
+// `--list`, generalised in round 081 / ADR 0053 to also cover `-b`/`--back`) so
+// an ADJACENT value is consumed (`-l 5` → `-l=5`, `-b 3` → `-b=3`) instead of
+// being left as a positional argument. pflag's NoOptDefVal makes a bare `-l`/`-b`
+// mean the default, but it also means `-l 5` parses as `-l=1` plus a positional
+// `5` — a prompt token that would otherwise be swallowed or misread. Mirroring
+// the reference's `consumeOptionalIntFlag`: consume the next token ONLY when it
+// is a valid integer; otherwise leave it (so `-b "prompt"` ⇒ 1 + the prompt).
+// An `--` separator stops the scan.
+func consumeOptionalIntArgs(args []string, names ...string) []string {
 	if len(args) == 0 {
 		return args
+	}
+	optional := make(map[string]bool, len(names))
+	for _, n := range names {
+		optional[n] = true
 	}
 	out := make([]string, 0, len(args))
 	for i := 0; i < len(args); i++ {
@@ -540,7 +555,7 @@ func consumeListValue(args []string) []string {
 			out = append(out, args[i:]...)
 			return out
 		}
-		if arg == "-l" || arg == "--list" {
+		if optional[arg] {
 			if i+1 < len(args) {
 				if _, err := strconv.Atoi(args[i+1]); err == nil {
 					out = append(out, arg+"="+args[i+1])
@@ -706,6 +721,10 @@ type turnOptions struct {
 	// (round 023; FR-007/FR-009). It is false for the positional / Ctrl+D
 	// surfaces (they already show the typed text).
 	echo bool
+	// rollbackTurns is the round-081 `-b`/`--back [N]` count: when > 0 the turn
+	// rolls back that many turns of the session history FIRST, then runs (the
+	// prompt-bearing form). Zero means no rollback (the flag was not given).
+	rollbackTurns int
 }
 
 func renderTurn(homeDir, configPath, prompt string, opts turnOptions, env runtimeEnv, dp deps.Dependencies) int {
@@ -713,7 +732,23 @@ func renderTurn(homeDir, configPath, prompt string, opts turnOptions, env runtim
 	if rerr != nil {
 		return emitBootError(env.stderr, res, rerr)
 	}
+	// Round 081 (ADR 0053): a prompt-bearing `-b [N] "prompt"` rolls back the last
+	// N turns FIRST, then runs the prompt against the trimmed history. `res` is the
+	// same session the rollback resolves (mode precedence identical), so the rollback
+	// targets the workspace this turn will use. The single store is reused for the
+	// rollback, the confirmation count, the optional archive, and the turn.
 	store := dp.NewHistoryStore(res.Workspace)
+	if opts.rollbackTurns > 0 {
+		removed, err := store.Rollback(opts.rollbackTurns)
+		if err != nil {
+			return emitHistoryError(env.stderr, err)
+		}
+		remaining, err := store.Load()
+		if err != nil {
+			return emitHistoryError(env.stderr, err)
+		}
+		_, _ = fmt.Fprint(env.stdout, rollbackConfirmation(removed, len(remaining)))
+	}
 	if opts.newSession {
 		if err := store.Archive(); err != nil {
 			return emitHistoryError(env.stderr, err)
@@ -1111,15 +1146,26 @@ func toolOutputIdleGap(lines render.Lines) time.Duration {
 }
 
 // dispatchReporting handles the offline reporting commands in precedence order
-// — `-d` → `-l` → `--tool-usage` — before any prompt or stdin access. It returns
-// the exit code and whether a reporting command handled the run. (`--version` is
-// handled by the caller, ahead of the reporting batch.) Extracted from `run` so
-// its cyclomatic complexity stays under the cyclop gate (round 026).
-func dispatchReporting(f *flags, homeDir string, env runtimeEnv, newHistoryStore func(workspace string) history.Store, newTurnsLogStore func(workspace string) history.TurnsLogStore, newListing func() render.Listing, toolUsageReport func() int) (int, bool) {
+// — `-d` → `-l` → `-b` (standalone) → `-t` → `--tool-usage` — before any prompt
+// or stdin access. It returns the exit code and whether a reporting command
+// handled the run. (`--version` is handled by the caller, ahead of the reporting
+// batch.) Extracted from `run` so its cyclomatic complexity stays under the
+// cyclop gate (round 026). Round 081 (ADR 0053): `-l` composes with `-b` (list
+// then roll back) and the standalone rollback is an offline action; hasPrompt
+// distinguishes the standalone rollback from the prompt-bearing form (handled by
+// the prompt path).
+func dispatchReporting(f *flags, homeDir string, env runtimeEnv, hasPrompt bool, newHistoryStore func(workspace string) history.Store, newTurnsLogStore func(workspace string) history.TurnsLogStore, newListing func() render.Listing, toolUsageReport func() int) (int, bool) {
 	// -d is the reporting path: it always produces a report, and it takes
 	// precedence over a prompt or piped input (round-004 Decision 7).
 	if f.diagnostic {
 		return renderDiagnostic(homeDir, f.configPath, env.stdout), true
+	}
+	// Round 081 (ADR 0053): `-b`/`--back` validation, beside its action and below
+	// the `-d` tier (symmetric with `-l`). A non-positive count is a usage error
+	// (symmetric with `-l`), and a rollback combined with `--new` is refused (the
+	// two session actions are contradictory).
+	if f.backSet && (f.back <= 0 || f.newSession) {
+		return emitUsageError(env.stderr), true
 	}
 	// -l lists the last N messages and exits, strictly offline (round-007). A
 	// non-positive N is a usage error, evaluated before any network or stdin.
@@ -1127,7 +1173,20 @@ func dispatchReporting(f *flags, homeDir string, env runtimeEnv, newHistoryStore
 		if f.list <= 0 {
 			return emitUsageError(env.stderr), true
 		}
-		return renderHistoryList(homeDir, f.list, f.configPath, f.raw, env, newHistoryStore, newListing), true
+		if code := renderHistoryList(homeDir, f.list, f.configPath, f.raw, env, newHistoryStore, newListing); code != Success {
+			return code, true
+		}
+		// Round 081 (ADR 0053): compose with `-b` (list then roll back), matching
+		// the reference's order. With `-b` absent, `-l` is terminal (unchanged).
+		if !f.backSet {
+			return Success, true
+		}
+	}
+	// Round 081 (ADR 0053): the standalone rollback (no positional prompt) is an
+	// offline action, ordered after `-l` and before `-t`. A prompt-bearing `-b` is
+	// handled by the prompt path (the rollback runs just before the turn).
+	if f.backSet && !hasPrompt {
+		return renderRollback(homeDir, f.configPath, env, f.back, newHistoryStore), true
 	}
 	// -t prints the resolved session's turn log and exits, strictly offline
 	// (round 053; ADR 0022). Ordered after -l (which keeps its round-007
@@ -1283,12 +1342,52 @@ func renderNewSession(homeDir, configPath string, env runtimeEnv, newHistoryStor
 	return Success
 }
 
+// renderRollback rolls back the last n complete turns of the resolved session
+// and prints a plain confirmation to stdout (round 081 / ADR 0053). It is an
+// OFFLINE action: it resolves only the runtime home + effective mode + session
+// workspace (no provider), reusing the same selection as `-l`/`-t`. A resolve
+// failure reuses the boot error surface; a store failure reuses the environment
+// class phrase (exit 4). A standalone rollback never reads stdin.
+func renderRollback(homeDir, configPath string, env runtimeEnv, n int, newHistoryStore func(workspace string) history.Store) int {
+	res, rerr := resolveWorkspace(homeDir, configPath)
+	if rerr != nil {
+		return emitBootError(env.stderr, res, rerr)
+	}
+	store := newHistoryStore(res.Workspace)
+	removed, err := store.Rollback(n)
+	if err != nil {
+		return emitHistoryError(env.stderr, err)
+	}
+	remaining, err := store.Load()
+	if err != nil {
+		return emitHistoryError(env.stderr, err)
+	}
+	_, _ = fmt.Fprint(env.stdout, rollbackConfirmation(removed, len(remaining)))
+	return Success
+}
+
+// rollbackConfirmation renders the rollback result line (round 081 / ADR 0053):
+// plain text on stdout, no `tellme: ` class prefix. The effect (the file bytes)
+// is the contract; the wording is not frozen.
+func rollbackConfirmation(removed, remaining int) string {
+	return fmt.Sprintf("Rolled back %d turn%s. History now holds %d turn%s.\n",
+		removed, pluralS(removed), remaining, pluralS(remaining))
+}
+
+// pluralS returns "" for 1 and "s" otherwise.
+func pluralS(n int) string {
+	if n == 1 {
+		return ""
+	}
+	return "s"
+}
+
 // resolveWorkspace resolves only the runtime home + effective mode + session
-// workspace (no configuration/provider), for the session commands `-l`, `-t`
-// and `--new` that must work offline. Round 053 (ADR 0022): the mode comes from
-// the `-c` configuration when the env override is unset, and an explicit `-c`
-// that cannot be honoured is a resolve error. The returned resolution carries
-// the home/config path so a failure renders an actionable message.
+// workspace (no configuration/provider), for the session commands `-l`, `-t`,
+// `--new`, and `-b` that must work offline. Round 053 (ADR 0022): the mode comes
+// from the `-c` configuration when the env override is unset, and an explicit
+// `-c` that cannot be honoured is a resolve error. The returned resolution
+// carries the home/config path so a failure renders an actionable message.
 func resolveWorkspace(homeDir, configPath string) (resolution, *resolveError) {
 	res := resolution{Home: homeDir, Path: configPath, Explicit: configPath != ""}
 	if res.Path == "" {

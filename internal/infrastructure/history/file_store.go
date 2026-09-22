@@ -5,6 +5,7 @@ package history
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -126,4 +127,118 @@ func (s *fileStore) Archive() error {
 		return err
 	}
 	return os.Remove(s.activePath())
+}
+
+// Rollback removes the last n complete turns from the active history and returns
+// the number removed (round 081 / ADR 0053). It clamps n to the available turns
+// (n <= 0 is a no-op, returning 0 removed without touching the file) and is
+// DURABLE: the surviving entries are written to a temp file in the same
+// directory, fsync'd, then renamed over the active file (atomic on POSIX), so a
+// crash mid-rollback leaves the prior history intact (the live file is never
+// truncated in place). The surviving lines are copied RAW (their exact bytes, not
+// a decode+re-marshal) so FR-010's "the non-removed lines MUST NOT be touched"
+// holds structurally, even for a line carrying a field this binary does not know.
+// The archive is never touched. A missing active file is 0 removed; a decode
+// failure returns an error and never writes (no half-written file).
+func (s *fileStore) Rollback(n int) (int, error) {
+	if n <= 0 {
+		return 0, nil
+	}
+	entries, err := s.Load()
+	if err != nil {
+		return 0, err
+	}
+	removed := n
+	if removed > len(entries) {
+		removed = len(entries)
+	}
+	if removed == 0 {
+		return 0, nil
+	}
+	data, err := os.ReadFile(s.activePath())
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	lines := rawNonEmptyLines(data)
+	keep := len(lines) - removed
+	if keep < 0 {
+		keep = 0
+	}
+	if err := s.writeRaw(lines[:keep]); err != nil {
+		return 0, err
+	}
+	return removed, nil
+}
+
+// rawNonEmptyLines splits the active file into its non-empty lines, each
+// TRIMMED exactly as Load trims them (so the survivor set matches Load's entry
+// count), and returns them for a raw copy. For a history this binary wrote each
+// line is already minimal (no padding, newline-terminated), so the copy is
+// byte-verbatim; a hand-edited line with surrounding whitespace is normalised by
+// the same trim Load applies (recorded as RF-081-8 — FR-010's "MUST NOT be
+// touched" promise holds structurally for tool-written history).
+func rawNonEmptyLines(data []byte) []string {
+	var out []string
+	r := bufio.NewReader(bytes.NewReader(data))
+	for {
+		line, err := r.ReadString('\n')
+		if trimmed := strings.TrimSpace(line); trimmed != "" {
+			out = append(out, trimmed)
+		}
+		if err != nil {
+			break
+		}
+	}
+	return out
+}
+
+// writeRaw durably replaces the active history with the given raw lines: a
+// same-directory temp file, fsync, then an atomic rename over the active file.
+// The directory is fsync'd best-effort so the rename survives a crash. The
+// surviving lines' bytes are written verbatim.
+func (s *fileStore) writeRaw(lines []string) error {
+	var buf []byte
+	for _, l := range lines {
+		buf = append(buf, l...)
+		buf = append(buf, '\n')
+	}
+	tmp := s.activePath() + ".tmp"
+	f, err := os.OpenFile(tmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(buf); err != nil {
+		_ = f.Close()
+		_ = os.Remove(tmp)
+		return err
+	}
+	if err := f.Sync(); err != nil {
+		_ = f.Close()
+		_ = os.Remove(tmp)
+		return err
+	}
+	if err := f.Close(); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	if err := os.Rename(tmp, s.activePath()); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	syncDir(filepath.Dir(s.activePath()))
+	return nil
+}
+
+// syncDir fsyncs a directory so a rename is durable across a crash; best-effort
+// (a directory fsync is unsupported on some filesystems).
+func syncDir(dir string) {
+	d, err := os.Open(dir)
+	if err != nil {
+		return
+	}
+	_ = d.Sync()
+	_ = d.Close()
 }

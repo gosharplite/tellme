@@ -83,8 +83,9 @@ func TotalCalls(entries []Entry) int {
 }
 
 // Store is the network-free session-history port: load the whole conversation,
-// append one completed exchange, and archive the active history into the
-// archive file (round-007 research Decisions 1 & 3).
+// append one completed exchange, archive the active history into the archive
+// file (round-007 research Decisions 1 & 3), and roll back the last N turns
+// (round 081 / ADR 0053).
 type Store interface {
 	// Load returns the active entries in conversation order. A missing active
 	// history is an empty conversation, not an error.
@@ -94,4 +95,10 @@ type Store interface {
 	// Archive moves the active history into the archive file and clears the
 	// active file. A missing active history is a no-op returning nil.
 	Archive() error
+	// Rollback removes the last n complete turns (entries) from the active
+	// history and returns the number of turns actually removed (clamped to the
+	// available turns; n <= 0 is a no-op). It is durable (the surviving entries
+	// are written atomically) and MUST NOT touch the archive file. A missing
+	// active history is 0 removed, not an error. (round 081 / ADR 0053.)
+	Rollback(n int) (removed int, err error)
 }

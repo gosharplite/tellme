@@ -192,7 +192,9 @@ entities:
       config's MODE → `butler`, and stay offline. `-l` additionally resolves the
       rendered width (`WRAP_WIDTH`/`TELL_ME_WRAP_WIDTH`) **best-effort** — a
       width that cannot be resolved degrades to the renderer default rather than
-      failing the listing (round 073).
+      failing the listing (round 073). A standalone `-b`/`--back [N]` (round 081 /
+      ADR 0053) rolls back the last N turns of the `History` offline and exits
+      (`tellme -b [N] "prompt"` rolls back **then** runs the prompt).
     attributes:
       - name: mode
         type: string
@@ -221,6 +223,8 @@ entities:
         statement: "A session's mode resolves by the fixed precedence `TELL_ME_MODE` → the `-c` config's MODE → the default config's MODE → `butler`."
       - id: session-offline-reads-stay-offline
         statement: "The offline readers (`-l`, `-t`, `--tool-usage`, prompt-less `--new`) make no provider request."
+      - id: session-rollback-stays-offline
+        statement: "A standalone `-b`/`--back [N]` (no positional prompt, round 081 / ADR 0053) rolls back the session's `History` without any provider request; a prompt-bearing `-b [N] \"prompt\"` rolls back first, then runs the prompt as a normal reasoning turn."
 
   Turn:
     definition: >
@@ -464,6 +468,7 @@ entities:
       JSON-Lines file `history.jsonl` under `output/<mode>/`, plus an archive
       (`history.archive.jsonl`). One line per completed turn; a resumed session
       replays the stored steps (and their `signature`s) into the conversation.
+      A rollback removes the last N complete turns (round 081 / ADR 0053).
     attributes:
       - name: line
         type: object
@@ -475,6 +480,8 @@ entities:
     invariants:
       - id: history-append-after-complete
         statement: "A `Turn` is persisted only after it completes (append-only). An operator-interrupted turn (round 079 / ADR 0051) with **≥ 1** completed tool step **is completed** by a synthetic closing answer (`history.InterruptedTurnAnswer`) and persisted; a turn interrupted with **zero** completed steps is **not** persisted. **Round 080 (ADR 0052):** the same exception extends to a **failed** turn — a turn that fails (a provider failure, or the tool-loop failure) after **≥ 1** completed tool step **is completed** by a class-specific synthetic answer (`history.ProviderFailedTurnAnswer` / `history.ToolFailedTurnAnswer`) and persisted, while the failure surface (frozen phrase + exit code) is reported unchanged; a failure with **zero** completed steps is **not** persisted. A *completed tool step* is a step whose tool **returned** a result (a success, or a nil-error kill/timeout result) — not necessarily a successful one."
+      - id: history-rollback-removes-complete-turns
+        statement: "A rollback (round 081 / ADR 0053) removes the last N **complete** `history.Entry` lines — the operator prompt, the provider answer, and **every** recorded tool `step` of each removed turn, atomically (a turn is never split) — and MUST leave the surviving entries byte-unchanged; it is **durable** (temp-file + fsync + atomic rename, so a crash mid-rollback leaves the prior history intact), **clamps** N to the available turns, and MUST NOT touch the archive (`history.archive.jsonl`). The `history.Entry` / `history.Step` JSON shapes are unchanged."
 
   UsageRecord:
     definition: >
