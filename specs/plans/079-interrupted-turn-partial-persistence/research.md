@@ -59,7 +59,7 @@ The completed calls' usage is **not** written to `tokens.log`. The existing gate
 
 ### D7 — Trigger semantics: `len(result.Steps) > 0` (S-12)
 
-The trigger is the loop's recorded step count — a step is recorded whenever a tool **returned** (success, error, **or** the per-call timeout/kill result). A tool killed mid-execution by the cancellation still appends a step (its `result` is `error: …`), so a turn interrupted **during its first tool's execution** counts as "one step" and is persisted. This is the issue's literal rule (I-2 is `len(steps) == 0`), and it is the honest reading: the model *requested and saw* that tool call's outcome. Requiring a *successful* step would need a success predicate the loop does not expose and would drop a genuinely-attempted tool. **Recorded consequence:** an interrupted-in-flight first tool persists a single step whose result is an error string.
+The trigger is the loop's recorded step count — a step is recorded whenever a tool **returned** (success, error, **or** the per-call timeout/kill result). A tool killed mid-execution by the cancellation still appends a step — but its `result` is a **nil-error** `Exit Code: -1`, **not** an `error: …` string (the loop's `error: ` prefix applies only to a non-nil tool error, e.g. a `Start` failure; a kill/timeout is a nil-error result, round-024 FR-018) — so a turn interrupted **during its first tool's execution** counts as "one step" and is persisted. "Completed tool step" therefore means a tool that **returned** a result (a success, or a kill/timeout result). This is the issue's literal rule (I-2 is `len(steps) == 0`), and it is the honest reading: the model *requested and saw* that tool call's outcome. Requiring a *successful* step would need a success predicate the loop does not expose and would drop a genuinely-attempted tool. **Recorded consequence:** an interrupted-in-flight first tool persists a single step whose result is a kill/timeout marker (`Exit Code: -1`).
 
 ### D8 — The persisted entry (schema unchanged)
 
@@ -73,9 +73,10 @@ One `Append` (one JSON line, append-only). **No** change to the `history.Entry` 
 
 The E2E must land a `SIGINT` **while the child is mid-turn**, deterministically, with **no pty and no live network**:
 
-1. **Fake-provider stall** (`tests/e2e/fakeprovider`): a new `StallAfter(n int)` mode — the **`n+1`-th and later** requests **block** (the handler waits on the server's close channel) instead of answering; the request **counter increments at handler entry**, so the test can observe that the stall has been reached. (Extends the round-078 `DropFirst` pattern.)
-2. **Harness** (`tests/e2e/harness`): a new helper that `start`s the built binary (not `Run`), polls the fake's request count until the stall is observed, then `cmd.Process.Signal(syscall.SIGINT)`, then `Wait`s and returns the usual `RunResult` (exit code, streams). This mirrors the round-012 `RunInWithSyncedStdin` "observe a marker, then act" precedent — the marker here is the observed request count (equivalently, a `[Tool …]` line on `stderr`).
-3. The scenario scripts **one** tool-call reply, so: request 1 → the tool call executes → the loop re-requests → request 2 **stalls** → the test `SIGINT`s → the child's context cancels → the stalled `http.Do` aborts → the loop returns `(Steps=[1], Calls=[1])` + the cancelled error → `runTurn` persists the partial turn and exits 0. The E2E then asserts `history.jsonl` (one new entry: 1 step, the synthetic answer, `calls == 1`), the `stderr` informational line, `stdout` empty, and exit 0. A **second** run next asserts resumption (the replayed request's `messages` alternate and end with an `assistant` message). The **zero-step** scenario uses the stall on the **first** request (no tool scripted) → no `history.jsonl` write + today's exit 6.
+**The shipped seam (reconciled at fold F-079-1):** a **real** `SIGINT` to the turn process, produced **from inside a tool call** — no fake-provider stall mode and no harness signal helper were needed (the round declined both).
+1. **The Given** scripts the fake to return **one** `execute_command` tool call whose command is `kill -INT $PPID; sleep 30` (a signal to tellme itself; the `sleep 30` keeps the tool in flight until the signal lands). `MAX_TOOL_LOOP=5` bounds an unlanded signal so it fails fast rather than running the default 1000-round bound.
+2. **The sequence:** request 1 → the tool call executes → tellme's own `SIGINT` cancels the turn context → the in-flight command aborts → the loop returns `(Steps=[1], Calls=[1])` + the cancelled error → `runTurn` persists the partial turn and exits 0. The E2E asserts `history.jsonl` (one entry: the step count, the persisted `calls`, the synthetic answer), the `stderr` informational line, `stdout` empty, and exit 0.
+3. **The resume leg** arranges the persisted interrupted entry **by hand** (the round-014 replay pattern) and asserts the replayed request's `messages` alternate and close the earlier turn with an `assistant` message. The **zero-step** negative (a signal *before* the first step) is carried by unit pins — it cannot be landed from inside a tool call; recorded as RF-079-A.
 
 ### D10 — Records (S-10)
 
@@ -107,6 +108,8 @@ The E2E must land a `SIGINT` **while the child is mid-turn**, deterministically,
 - **RF-079-3** No usage is persisted for the interrupted turn (D6).
 - **RF-079-4** The exit-0/zero-step-exit-6 asymmetry (D5).
 - **RF-079-5** `SIGTERM` shares the "via Ctrl+C" wording (D3).
-- **RF-079-6** The E2E stall seam is a **test-only** fake mode; the real interruption timing (a signal landing exactly between calls) is not otherwise exercised.
+- **RF-079-A** No scenario chains the **product-written** interrupted entry into a resume (a second `tellme` run or `-l`); the resume leg arranges the entry by hand (supersedes the stub RF-079-6 — the shipped seam has no stall mode).
+- **RF-079-B** The aborted call's chrome frame (`╭─⠿ Turn N` + estimated payload, no tail) reaches `stderr` **and** `turns.log` (see `plan.md` §6 N-3).
+- **RF-079-C** The persisted `calls` now has an E2E carrier (fold F-079-2).
 - **RF-079-7** No `history.archive.jsonl` interaction is specified beyond the existing append/archive semantics.
 - **RF-079-8** The informational line is `stderr`-only and not in `turns.log` — a trace of an interrupted turn is absent from `-t` (consistent with the retry/unpaired precedent).

@@ -55,8 +55,11 @@ Feature: Remembering the conversation across runs
       And a configured provider "test-model" whose endpoint runs the command "kill -INT $PPID; sleep 30" and then answers with "unused"
       When the operator starts tellme with the prompt "Explore the repository."
       Then tellme stored an interrupted turn in the session history with 1 tool step
+      And the interrupted turn was recorded with 1 completed provider call
       And the session history's last turn was closed with the operator-interruption answer
       And tellme reports on stderr that the turn was interrupted by the operator
+      And tellme does not explain on stderr that "the provider request failed"
+      And the run wrote nothing to standard output
       And tellme sent the request exactly once
       And tellme exits successfully
 

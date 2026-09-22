@@ -23,9 +23,11 @@ func init() {
 		ctx.Given(`^a configured provider "([^"]*)" whose endpoint runs the command "([^"]*)" and then answers with "([^"]*)"$`, givenProviderRunsCommand)
 		ctx.Given(`^the session history already holds an interrupted exchange with (\d+) tool step$`, givenHistoryHoldsInterruptedExchange)
 		ctx.Then(`^tellme stored an interrupted turn in the session history with (\d+) tool step$`, thenStoredInterruptedTurn)
+		ctx.Then(`^the interrupted turn was recorded with (\d+) completed provider call$`, thenInterruptedTurnRecordedCalls)
 		ctx.Then(`^the session history's last turn was closed with the operator-interruption answer$`, thenLastTurnClosedWithInterruption)
 		ctx.Then(`^the request closes the earlier turn with the assistant answer "([^"]*)"$`, thenRequestClosesEarlierTurn)
 		ctx.Then(`^tellme reports on stderr that the turn was interrupted by the operator$`, thenReportsInterruption)
+		ctx.Then(`^tellme does not explain on stderr that "([^"]*)"$`, thenDoesNotExplainOnStderr)
 	})
 }
 
@@ -74,7 +76,16 @@ func givenHistoryHoldsInterruptedExchange(ctx context.Context, steps int) error 
 	if err := os.MkdirAll(sc.historyDir(), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(sc.historyFilePath(), append(line, '\n'), 0o644)
+	// Append (O_APPEND) — the row's verb (N-079-2; equivalent on a fresh home).
+	f, err := os.OpenFile(sc.historyFilePath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(append(line, '\n')); err != nil {
+		_ = f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 // readHistoryEntries reads the active session history lines (round 079 helper).
@@ -114,6 +125,25 @@ func thenStoredInterruptedTurn(ctx context.Context, want int) error {
 	return nil
 }
 
+// thenInterruptedTurnRecordedCalls (必查 權威狀態; fold F-079-2): the persisted
+// interrupted turn carries the given `calls` count — the completed inference
+// rounds. The round's SC-001/D9 claim that the E2E asserts `calls` needs this
+// carrier (without it, `Calls: 0` leaves the E2E green).
+func thenInterruptedTurnRecordedCalls(ctx context.Context, want int) error {
+	sc := scenarioFrom(ctx)
+	entries, err := readInterruptedHistoryEntries(sc)
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 {
+		return fmt.Errorf("history is empty, want the interrupted turn")
+	}
+	if got := entries[len(entries)-1].Calls; got != want {
+		return fmt.Errorf("the interrupted turn's persisted calls = %d, want %d (the completed inference rounds)", got, want)
+	}
+	return nil
+}
+
 // thenLastTurnClosedWithInterruption (必查 權威狀態): the persisted turn's answer is
 // the synthetic `history.InterruptedTurnAnswer` — the close that makes the stored
 // history replay as a valid `… assistant` sequence.
@@ -139,6 +169,17 @@ func thenReportsInterruption(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	if !strings.Contains(sc.stderr, "interrupted by operator") {
 		return fmt.Errorf("stderr does not report the operator interruption: %q", sc.stderr)
+	}
+	return nil
+}
+
+// thenDoesNotExplainOnStderr (必查 呈現結果; TD-079-1): the given class phrase does
+// NOT appear on stderr — the interrupted-but-saved path is not a failure and must
+// carry no `tellme: <phrase>` line.
+func thenDoesNotExplainOnStderr(ctx context.Context, reason string) error {
+	sc := scenarioFrom(ctx)
+	if strings.Contains(sc.stderr, "tellme: "+reason) {
+		return fmt.Errorf("stderr carries the failure phrase %q though the interrupted turn was saved: %q", reason, sc.stderr)
 	}
 	return nil
 }

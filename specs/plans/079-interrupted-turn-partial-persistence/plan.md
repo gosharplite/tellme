@@ -7,7 +7,7 @@
 
 | Interface | Kind | Planner | Result |
 | --- | --- | --- | --- |
-| The interrupted-turn persistence surface (the turn seam + the history record + the exit surface) | `cli` | `/axb-dsl-refine` (contract owner) | **MODIFY** — the `chat` module's *remembering the conversation* feature gains an interrupted-turn Rule/Examples; new Given/Then DSL rows script the fake provider's stall and observe the persisted entry + the exit |
+| The interrupted-turn persistence surface (the turn seam + the history record + the exit surface) | `cli` | `/axb-dsl-refine` (contract owner) | **MODIFY** — the `chat` module's *remembering the conversation* feature gains an interrupted-turn Rule/Examples; new Given/Then DSL rows script an `execute_command` that signals the turn process (`kill -INT $PPID`) and observe the persisted entry + the exit |
 | API surface | — | `/axb-api-plan` | **NOOP** — a single CLI end; no OpenAPI/HTTP surface |
 | Data surface | — | `/axb-data-plan` | **NOOP** — no persisted-state **shape** change (the synthetic answer is the existing `answer` field; the `history_entry`/`history_step` DBML is unchanged) |
 | UI surface | — | `/axb-ui-plan` | **skipped** — a plain line-oriented CLI (one informational `stderr` line; no screen/TUI change) |
@@ -19,7 +19,7 @@
 | **W1** | The synthetic-answer constant | the implementation | `internal/domain/history/history.go` — `InterruptedTurnAnswer` (a stored record value; no schema change) |
 | **W2** | The interruption detection + persist + line | the implementation | `internal/cli/cli.go` (`runTurn`) — after `loop.Run`, `errors.Is(err, context.Canceled) && len(result.Steps) > 0` ⇒ append the synthetic entry, emit the informational `stderr` line, return `Success` |
 | **W3** | The truth rows | `/axb-technical-research` (**done**) | `specs/truth/techstack.md` — *Session history store* MODIFY + *Interrupted-turn persistence* ADD; **ADR 0051** + index; the `docs/domain-model/**` invariant amendment |
-| **W4** | The executable CLI contract | `/axb-dsl-refine` | a Rule/Examples on `remembering-the-conversation.feature` + `chat/dsl.md` rows (Givens scripting the fake's stall + the harness signal; Thens for the persisted entry, the informational line, the exit) |
+| **W4** | The executable CLI contract | `/axb-dsl-refine` | a Rule/Examples on `remembering-the-conversation.feature` + `chat/dsl.md` rows (a Given scripting an `execute_command` that signals the turn process; Thens for the persisted entry/`calls`, the informational line, the exit) |
 | **W5** | The plan-side acceptance | `/axb-spec-by-example` (**done**) | `features/acceptance/preserving-an-interrupted-turns-completed-work.feature` |
 
 Every interface is delegated or carried to its contract owner — `wave-covers-interfaces` holds.
@@ -46,5 +46,5 @@ The CLI end is a first-class truth interface; there is no API/data/UI planner fo
 
 - **N-1 — the informational line must NOT carry the `tellme: ` prefix.** The round-017 *failed provider request* carrier asserts **exactly one** `tellme: `-prefixed line (the class phrase). The interrupted-with-work path emits **no** class phrase (it succeeds), so its informational line is **chrome-styled** (`[HH:MM:SS] interrupted by operator; …`), consistent with the round-078 retry line and the turn chrome. Pinned by the unit test + the E2E.
 - **N-2 — the synthetic answer is NOT printed to `stdout`.** The interrupted path's `stdout` is empty (the answer is a stored record value, not a rendered answer); the operator sees the informational `stderr` line. Keeps `stdout` byte-exact.
-- **N-3 — the interrupted path emits no deferred tail.** The cancelled `Complete` returns before `notifyCallEnd`, so the renderer's deferred final tail is nil; `runTurn` returns without `EmitFinalTail()` (no dangling state).
+- **N-3 — the interrupted path emits no deferred tail, but it DOES leave the aborted call's opening frame (corrected at fold F-079-4).** The cancelled `Complete` returns before `notifyCallEnd`, so the renderer's deferred final tail is nil and `runTurn` returns without `EmitFinalTail()` — no dangling *deferred* tail. But `OnCallBegin` fires **before** `Complete`, so the aborted call's `╭─⠿ Turn N` header + its estimated-payload line are already on `stderr` (and, via the round-053 sink, in `turns.log`) with **no** measured/metrics/`Ready` tail — an unavoidable dangling frame (round-040 `OnCallBegin` ordering). Recorded as **RF-079-B**; suppressing the frame when the ctx is already cancelled is a candidate, not done.
 - **N-4 — the informational line is `stderr`-only, not `turns.log`.** Consistent with the ADR 0050/0038 precedent (a diagnostic that is not turn chrome).

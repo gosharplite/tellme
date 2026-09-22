@@ -30,11 +30,11 @@ A **partial** save is unsafe by itself: `history.jsonl` is replayed verbatim int
 
 6. **No token-usage persistence on the interrupted path (D6).** The completed calls' usage is not written to `tokens.log`: the existing `persistTurnUsage` gate (the *final* call's reported usage) already yields nothing on an interruption, and a failed turn writes no usage today — so **no new accounting path** is added. The bounded loss is recorded (§Forward).
 
-7. **The step trigger is `len(result.Steps) > 0` (D7).** A step is recorded whenever a tool **returned** — including a tool killed mid-execution by the cancellation (its `result` is an `error: …` string). This is the issue's literal rule; requiring a *successful* step would need a success predicate the loop does not expose.
+7. **The step trigger is `len(result.Steps) > 0` (D7).** A step is recorded whenever a tool **returned** — including a tool killed mid-execution by the cancellation, whose `result` is a **nil-error** `Exit Code: -1` — **not** an `error: …` string (the loop's `error: ` prefix applies only to a non-nil tool error, e.g. a `Start` failure; a kill/timeout is a nil-error result, round-024 FR-018). A "completed tool step" therefore means a tool that **returned** a result (success or kill/timeout). This is the issue's literal rule; requiring a *successful* step would need a success predicate the loop does not expose.
 
 8. **Records; the entry schema is unchanged (D10).** ADR 0051 + index; `techstack.md` MODIFY (the *Session history store* append-after-complete qualification) + ADD (the interrupted-turn persistence row); the CLI truth feature (`remembering-the-conversation.feature` + a new Rule/Examples) + `chat/dsl.md` rows; and — per the ADR-0041 same-PR rule — a **domain-model amendment** of `history-append-after-complete` (scope the exception) and `turn-answer-stored-verbatim` (the synthetic-answer exception), re-rendered. `history.Entry` / `history.Step` JSON shapes are **unchanged**.
 
-9. **Scope (D9).** The prompt/tool-loop turn only; MCP-backed tool steps are ordinary steps on the same seam. The `-b`/`--retry` flags and the offline readers are untouched. Hermetic: no pty, no live network — the E2E lands the `SIGINT` via a fake-provider **stall** (the request counter increments at handler entry, so the test observes the stall) + a harness helper that starts the child, waits for the stall, signals `SIGINT`, and waits.
+9. **Scope (D9).** The prompt/tool-loop turn only; MCP-backed tool steps are ordinary steps on the same seam. The `-b`/`--retry` flags and the offline readers are untouched. Hermetic: no pty, no live network — the E2E lands a **real** `SIGINT` by scripting an `execute_command` whose command is `kill -INT $PPID; sleep 30` (a signal to the turn process itself), so the in-flight tool call is the interruption point and the completed step is what gets persisted; the resume leg arranges the persisted entry by hand (the established replay pattern).
 
 ## Consequences
 
@@ -53,7 +53,9 @@ A **partial** save is unsafe by itself: `history.jsonl` is replayed verbatim int
 - **RF-079-3** — no usage is persisted for the interrupted turn (D6).
 - **RF-079-4** — the exit-0 vs zero-step-exit-6 asymmetry (D5).
 - **RF-079-5** — `SIGTERM` shares the "via Ctrl+C" wording (D3).
-- **RF-079-6** — the E2E stall seam is a **test-only** fake mode; a signal landing exactly between calls is not otherwise exercised.
+- **RF-079-A** — no scenario chains the **product-written** interrupted entry into a resume (a second `tellme` run or `-l`); the resume leg arranges the entry by hand, so the entry's replay is witnessed by composition, not end-to-end (supersedes the stub RF-079-6, whose stated reason — a stall seam — does not exist: the real reason a signal *before* the first tool step cannot be landed is that the live signal is delivered **from inside** a tool call).
+- **RF-079-B** — the aborted call's chrome frame (`╭─⠿ Turn N` + its estimated-payload line, no measured/metrics/`Ready` tail) reaches `stderr` **and** `turns.log` (the round-053 sink); suppressing the frame when the ctx is already cancelled is a candidate, not done (see `plan.md` §6 N-3).
+- **RF-079-C** — the persisted `calls` now has an E2E carrier (fold F-079-2); every other boundary of the interrupted path (zero-step, append failure, non-cancellation) stays unit-carried by design.
 - **RF-079-7** — no `history.archive.jsonl` interaction beyond the existing append/archive semantics.
 - **RF-079-8** — the informational line is `stderr`-only, not in `turns.log` (consistent with the ADR 0050/0038 precedent).
 - **RF-079-9** — the ~150 ms window between `ind.Stop()` and the append is not itself exercised (the interruption is observed at the request, not the teardown).
