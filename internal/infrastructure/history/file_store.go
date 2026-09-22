@@ -173,9 +173,13 @@ func (s *fileStore) Rollback(n int) (int, error) {
 	return removed, nil
 }
 
-// rawNonEmptyLines splits the active file into its non-empty, trimmed lines —
-// the raw bytes of each surviving turn, matching Load's own line semantics so a
-// rollback can copy survivors without re-encoding them.
+// rawNonEmptyLines splits the active file into its non-empty lines, each
+// TRIMMED exactly as Load trims them (so the survivor set matches Load's entry
+// count), and returns them for a raw copy. For a history this binary wrote each
+// line is already minimal (no padding, newline-terminated), so the copy is
+// byte-verbatim; a hand-edited line with surrounding whitespace is normalised by
+// the same trim Load applies (recorded as RF-081-8 — FR-010's "MUST NOT be
+// touched" promise holds structurally for tool-written history).
 func rawNonEmptyLines(data []byte) []string {
 	var out []string
 	r := bufio.NewReader(bytes.NewReader(data))
