@@ -127,7 +127,7 @@ The persisted record of a session's completed `Turn`s — an append-only JSON-Li
 
 **Invariants**
 
-- **history-append-after-complete** — A `Turn` is persisted only after it completes (append-only). An operator-interrupted turn (round 079 / ADR 0051) with **≥ 1** completed tool step **is completed** by a synthetic closing answer (`history.InterruptedTurnAnswer`) and persisted; a turn interrupted with **zero** completed steps is **not** persisted. A *completed tool step* is a step whose tool **returned** a result (a success, or a nil-error kill/timeout result) — not necessarily a successful one.
+- **history-append-after-complete** — A `Turn` is persisted only after it completes (append-only). An operator-interrupted turn (round 079 / ADR 0051) with **≥ 1** completed tool step **is completed** by a synthetic closing answer (`history.InterruptedTurnAnswer`) and persisted; a turn interrupted with **zero** completed steps is **not** persisted. **Round 080 (ADR 0052):** the same exception extends to a **failed** turn — a turn that fails (a provider failure, or the tool-loop failure) after **≥ 1** completed tool step **is completed** by a class-specific synthetic answer (`history.ProviderFailedTurnAnswer` / `history.ToolFailedTurnAnswer`) and persisted, while the failure surface (frozen phrase + exit code) is reported unchanged; a failure with **zero** completed steps is **not** persisted. A *completed tool step* is a step whose tool **returned** a result (a success, or a nil-error kill/timeout result) — not necessarily a successful one.
 
 ### `ImageContent`
 
@@ -361,7 +361,7 @@ One atomic exchange: the prompt, zero or more provider rounds (interleaved with 
 **Invariants**
 
 - **turn-bounded-by-tool-loop** — The tool rounds within one `Turn` MUST NOT exceed `Config.maxToolLoop`.
-- **turn-answer-stored-verbatim** — A `Turn`'s persisted `answer` is the provider's content, never the rendered form — **except** an operator-interrupted turn (round 079 / ADR 0051), whose persisted `answer` is the synthetic `history.InterruptedTurnAnswer` closing the partial turn.
+- **turn-answer-stored-verbatim** — A `Turn`'s persisted `answer` is the provider's content, never the rendered form — **except** a partial turn: an operator-interrupted turn (round 079 / ADR 0051) whose persisted `answer` is the synthetic `history.InterruptedTurnAnswer`, or a **failed** turn with completed steps (round 080 / ADR 0052) whose persisted `answer` is the class-specific synthetic `history.ProviderFailedTurnAnswer` / `history.ToolFailedTurnAnswer`.
 
 ### `TurnLog`
 
@@ -452,8 +452,8 @@ The user runs tellme with a prompt. The `Orchestrator` assembles the `Context`, 
 
 **Invariants touched**
 
-- **turn-answer-stored-verbatim** — A `Turn`'s persisted `answer` is the provider's content, never the rendered form — **except** an operator-interrupted turn (round 079 / ADR 0051), whose persisted `answer` is the synthetic `history.InterruptedTurnAnswer` closing the partial turn.
-- **history-append-after-complete** — A `Turn` is persisted only after it completes (append-only). An operator-interrupted turn (round 079 / ADR 0051) with **≥ 1** completed tool step **is completed** by a synthetic closing answer (`history.InterruptedTurnAnswer`) and persisted; a turn interrupted with **zero** completed steps is **not** persisted. A *completed tool step* is a step whose tool **returned** a result (a success, or a nil-error kill/timeout result) — not necessarily a successful one.
+- **turn-answer-stored-verbatim** — A `Turn`'s persisted `answer` is the provider's content, never the rendered form — **except** a partial turn: an operator-interrupted turn (round 079 / ADR 0051) whose persisted `answer` is the synthetic `history.InterruptedTurnAnswer`, or a **failed** turn with completed steps (round 080 / ADR 0052) whose persisted `answer` is the class-specific synthetic `history.ProviderFailedTurnAnswer` / `history.ToolFailedTurnAnswer`.
+- **history-append-after-complete** — A `Turn` is persisted only after it completes (append-only). An operator-interrupted turn (round 079 / ADR 0051) with **≥ 1** completed tool step **is completed** by a synthetic closing answer (`history.InterruptedTurnAnswer`) and persisted; a turn interrupted with **zero** completed steps is **not** persisted. **Round 080 (ADR 0052):** the same exception extends to a **failed** turn — a turn that fails (a provider failure, or the tool-loop failure) after **≥ 1** completed tool step **is completed** by a class-specific synthetic answer (`history.ProviderFailedTurnAnswer` / `history.ToolFailedTurnAnswer`) and persisted, while the failure surface (frozen phrase + exit code) is reported unchanged; a failure with **zero** completed steps is **not** persisted. A *completed tool step* is a step whose tool **returned** a result (a success, or a nil-error kill/timeout result) — not necessarily a successful one.
 - **context-figures-reported** — The `Context`'s size is reported twice per turn — an `estimated` pre-flight figure and a `measured` post-turn figure.
 
 ### A tool-using turn
@@ -506,7 +506,7 @@ A later process reads `history.jsonl` and replays the stored turns, including ea
 
 **Invariants touched**
 
-- **history-append-after-complete** — A `Turn` is persisted only after it completes (append-only). An operator-interrupted turn (round 079 / ADR 0051) with **≥ 1** completed tool step **is completed** by a synthetic closing answer (`history.InterruptedTurnAnswer`) and persisted; a turn interrupted with **zero** completed steps is **not** persisted. A *completed tool step* is a step whose tool **returned** a result (a success, or a nil-error kill/timeout result) — not necessarily a successful one.
+- **history-append-after-complete** — A `Turn` is persisted only after it completes (append-only). An operator-interrupted turn (round 079 / ADR 0051) with **≥ 1** completed tool step **is completed** by a synthetic closing answer (`history.InterruptedTurnAnswer`) and persisted; a turn interrupted with **zero** completed steps is **not** persisted. **Round 080 (ADR 0052):** the same exception extends to a **failed** turn — a turn that fails (a provider failure, or the tool-loop failure) after **≥ 1** completed tool step **is completed** by a class-specific synthetic answer (`history.ProviderFailedTurnAnswer` / `history.ToolFailedTurnAnswer`) and persisted, while the failure surface (frozen phrase + exit code) is reported unchanged; a failure with **zero** completed steps is **not** persisted. A *completed tool step* is a step whose tool **returned** a result (a success, or a nil-error kill/timeout result) — not necessarily a successful one.
 
 ### An MCP tool call
 

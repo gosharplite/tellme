@@ -48,6 +48,22 @@ type Entry struct {
 // `SIGTERM` interruption shares this wording (the cause is not distinguished).
 const InterruptedTurnAnswer = "[Turn interrupted by operator via Ctrl+C]"
 
+// ProviderFailedTurnAnswer is the synthetic closing answer tellme persists for a
+// turn that FAILED (a provider request failure — the round-078 retry exhausted,
+// or a non-retryable 4xx/auth/decode/truncation) after at least one tool step
+// completed (round 080; ADR 0052). Like InterruptedTurnAnswer it is a STORED
+// record value closing the partial turn so the `history.jsonl` line replays as a
+// valid `user … assistant` sequence; it is distinct from the interruption text so
+// a reader (`-l`) does not mistake a failure for an operator stop.
+const ProviderFailedTurnAnswer = "[Turn ended early: the provider request failed]"
+
+// ToolFailedTurnAnswer is the synthetic closing answer for a turn that failed on
+// the TOOL-LOOP path (`agentport.ErrIncomplete`: the loop bound was reached, the
+// unknown-tool fold-back cap was exhausted, or no tools were registered) after at
+// least one tool step completed (round 080; ADR 0052) — the tool-loop counterpart
+// of ProviderFailedTurnAnswer.
+const ToolFailedTurnAnswer = "[Turn ended early: the tool loop did not complete]"
+
 // TotalCalls is the domain reading of the persisted call counts (round 027): the
 // total number of AI-endpoint calls (provider inference rounds) the given
 // completed turns made. Each entry contributes its persisted Calls count; an

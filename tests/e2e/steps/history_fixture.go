@@ -3,8 +3,11 @@ package steps
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
+
+	"github.com/gosharplite/tellme/internal/domain/history"
 )
 
 // historyEntry mirrors internal/domain/history.Entry for file assertions in the
@@ -98,4 +101,25 @@ func decodeWireMessages(body string) ([]wireMessage, error) {
 		out = append(out, wireMessage{Role: role, Content: sb.String()})
 	}
 	return out, nil
+}
+
+// readSessionEntries reads the active session history lines (the ONE shared
+// reader for the round-079/080 partial-turn Thens — N-080-3).
+func readSessionEntries(sc *scenarioContext) ([]history.Entry, error) {
+	data, err := os.ReadFile(sc.historyFilePath())
+	if err != nil {
+		return nil, fmt.Errorf("read history: %w", err)
+	}
+	var entries []history.Entry
+	for _, line := range strings.Split(strings.TrimRight(string(data), "\n"), "\n") {
+		if line == "" {
+			continue
+		}
+		var e history.Entry
+		if err := json.Unmarshal([]byte(line), &e); err != nil {
+			return nil, fmt.Errorf("decode history line: %w", err)
+		}
+		entries = append(entries, e)
+	}
+	return entries, nil
 }

@@ -358,3 +358,87 @@ The operator asked to read issue **#159** and *"open a new round, the goal is to
 - **Describe the kill path exactly (F-079-3).** A cancelled `execute_command` returns a **nil-error** `Exit Code: -1`, not an `error: …` string; the loop's `error: ` prefix applies only to a non-nil tool error. "Completed tool step" was defined where it is used.
 - **An unavoidable artifact must be recorded, not denied (F-079-4).** The interrupted path emits the aborted call's `╭─⠿ Turn N` frame before the cancellation lands (round-040 `OnCallBegin` ordering) — recorded as RF-079-B rather than claimed absent.
 - **The live signal can be produced from inside the tool (the round's design win).** A scripted `execute_command` running `kill -INT $PPID; sleep 30` lands a **real** `SIGINT` on the turn process hermetically — no pty, no stall harness — so the typed detection is witnessed end-to-end (M1), not merely on a unit double.
+
+---
+
+## 43. Session 66 (2026-09-22, cont.) — round 080 `080-failed-turn-partial-persistence` **DELIVERED / FROZEN**: persist a FAILED turn's completed tool steps (anchor issue #161) → full pipeline → `architect` review-fold loop (CLOSED) → **human-merged (PR #162 → `dev` `4eec76e`)**, propagated, tagged **`round-080`**; closeout (Steps 1–8)
+
+The operator asked to fix the remaining loss: *"retry succeeds → all executed steps persist; retry fails → none do. We need to fix the above."* We created a detailed issue [#161](https://github.com/gosharplite/tellme/issues/161), opened **round 080** off `dev` `b1c929e` with **#161 as the anchor (DoD = close it)**, ran the full AIxBDD pipeline, took **PR [#162](https://github.com/gosharplite/tellme/pull/162)** through the `architect` peer's **review → fold → fold-verification** loop to **FOLDS VERIFIED — loop CLOSED**, the human merged it and deleted the remote branch, and `SESSION-CLOSEOUT.md` Steps 1–8 ran (local branch deleted after an ancestor check; `dev` == the merge commit `4eec76e`).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | `080-failed-turn-partial-persistence` (off `dev` `b1c929e`) |
+| Anchor | issue [#161](https://github.com/gosharplite/tellme/issues/161) — *Persist completed tool steps when a turn FAILS mid-tool-loop (provider failure or retry exhaustion), not only on Ctrl+C*; **DoD = close it** |
+| Theme | **MODIFY (session-history persistence)**: a turn that **fails** with ≥1 completed step is persisted as ONE `history.Entry` closed with a class-specific synthetic answer, while the failure surface stays **unchanged** (frozen phrase + exit 6/7); zero steps ⇒ nothing |
+| Clarify | **not escalated (0 questions)** — the core behaviour is anchored by the issue; the issue's *Open Design Decisions* were routed by the operator to `/axb-technical-research` |
+| Pipeline | specify ✅ · spec-by-example ✅ (3 Rules / 4 Examples) · technical-research ✅ (**ADR 0052** + `techstack.md` MODIFY ×2 + the domain-model invariant extension) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine ✅ (+3 Given / +5 Then rows) · tasks ✅ (T001–T012) · implement ✅ |
+| Before → after | a failed turn (retry exhausted / non-retryable 4xx / the tool-loop exit-7 class) discarded the prompt + every completed step → it keeps them (one entry, a class-specific synthetic close), still exiting **6**/**7** with the frozen phrase + one informational `stderr` line; the **zero-step** failure is unchanged |
+| The change | `internal/domain/history` (`ProviderFailedTurnAnswer` / `ToolFailedTurnAnswer`) · `internal/cli/cli.go` (`failTurn` extracted; the interruption predicate broadened to `ctx.Err() != nil \|\| errors.Is(err, context.Canceled)` — folding issue **hole #2**) · `internal/cli/failed_turn_test.go` · `tests/e2e/fakeprovider/fakeprovider.go` (a per-reply `Drop`/`ErrorStatus`) · `tests/e2e/steps/step_r080_failed_turn.go` |
+| Review chain (PR #162, the `architect` peer — init once with `SESSION-BOOTSTRAP.md`, continuations) | `review` (**APPROVE WITH REQUIRED FOLDS** — no `[ARCHITECTURAL BLOCKER]`; witness/record quality: **F-080-1** the hole-#2 fix had no witness (a mutation left the suite green) · **F-080-2** the persisted-`calls` claim had no E2E carrier · **F-080-3** an unrecorded interruption-over-failure precedence; + TD-080-1/2, N-080-1…4) → fold `b8092dc` → `FOLD-VERIFICATION` (**FOLDS VERIFIED — loop CLOSED, cleared for human merge**; RES-080-FV-1…3) → residual fold `46fba48` (product code byte-identical) |
+| Merge | PR [#162](https://github.com/gosharplite/tellme/pull/162) **human-merged** into `dev` (`4eec76e`, **fast-forward**); remote branch deleted by the human; the **local branch deleted** after an ancestor check |
+| Closeout | `make check` **OK** · `go test -count=1 ./...` green (E2E **299 scenarios · 2239 steps**) · `make test-race` green · topology audit **5 pre-existing, none new** (52 features · 6 feature modules · 17 root + 440 module rows · 2213 steps) · diff secret scan clean · `make modelith-check` ×3 green · `STATUS.md` split (round-079 detail + env note → `docs/archives/status/2026-09-22.md`) · propagation `dev → main` (**no-ff**) + tag **`round-080`** · `go install` · **[#161](https://github.com/gosharplite/tellme/issues/161) CLOSED** |
+
+### Decisions locked (round 080 / ADR 0052)
+
+| # | Decision |
+| --- | --- |
+| **D1** | Persist a failed turn with completed steps: one atomic `history.Entry` closed with a synthetic answer. *Rejected:* persisting without a closing answer (breaks role alternation). |
+| **D2** | **Scope (B): any failed turn** with ≥1 completed step — provider failures **and** the tool-loop failure (`ErrIncomplete`, exit 7). One predicate. |
+| **D3** | The **failure surface is unchanged** — the frozen phrase + exit **6** / **7**; only one informational `stderr` line is added. *Rejected:* exit 0 / 130. |
+| **D4** | A **distinct** synthetic answer per class: `history.ProviderFailedTurnAnswer` = `[Turn ended early: the provider request failed]`; `history.ToolFailedTurnAnswer` = `[Turn ended early: the tool loop did not complete]`. |
+| **D5** | The interruption predicate is broadened to `ctx.Err() != nil \|\| errors.Is(err, context.Canceled)` (both structural) → folds issue **hole #2** (a `Ctrl+C` during a round-078 retry wait). **Precedence:** an interruption outranks a same-turn failure (only when steps > 0). |
+| **D6** | The failed-turn `Append` is **best-effort** — an append failure never masks the failure (no keep line claimed). Divergence from the operator path (which routes an append failure to exit 4) recorded. |
+| **D7** | Records: **ADR 0052** + index; `techstack.md` (the round-079 row broadened to *Partial-turn persistence (operator interruption or failure)* + the *Session history store* clause extended); the CLI truth feature + `dsl.md` rows; and the `docs/domain-model` invariant extension (same-PR, ADR 0041). |
+
+### Commits (branch `080-failed-turn-partial-persistence`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `77fdf2f` | `docs(080)`: plan package + spec + STATUS — round 080 in flight |
+| `ff9e00b` | `feat(080)`: acceptance + research + **ADR 0052** + truth + domain-model + implementation (persist a failed turn's completed steps) |
+| `f555ddb` | `docs(080)`: STATUS — pipeline complete, PR #162 open |
+| `b8092dc` | `fix(080)`: fold the architect review (F-080-1…3 + TD-1/2 + N-1…4) |
+| `46fba48` | `docs(080)`: fold the fold-verification residuals (RES-080-FV-1…3, cosmetic) |
+| `4eec76e` | `docs(080)`: STATUS — review-fold loop CLOSED, PR #162 ready for human merge (the merge; fast-forward) |
+| *(this closeout, on `dev`)* | `docs(080)`: day close — round 080 delivered + propagated; STATUS split + 09/22 summary §43 |
+
+### Artifacts / truth
+
+- Plan package: `specs/plans/080-failed-turn-partial-persistence/**` — `spec.md` (US1/US2 · FR-001…FR-007 · NFR-001…NFR-004 · SC-001…SC-005 · I-1…I-8 · S-1…S-8) · `checklists/requirements.md` · `features/acceptance/preserving-a-failed-turns-completed-work.feature` · `research.md` (D1–D7) · `plan.md` · `tasks.md` (T001–T012 + the fold ledger + the recorded narrowings) · `truth-delta.md`.
+- Truth: `specs/truth/techstack.md` (the *Interrupted-turn persistence* row broadened + the *Session history store* clause extended) · `specs/truth/features/cli/chat/remembering-the-conversation.feature` (3 new Rules / 4 Examples) · `chat/dsl.md` (+3 Given / +5 Then rows + the round-080 note) · `contracts/**` + `data/**` NOOP.
+- Domain model: `docs/domain-model/tellme.modelith.{yaml,md}` — `history-append-after-complete` + `turn-answer-stored-verbatim` **MODIFY** (extend the exception from *operator-interrupted* to *operator-interrupted or failed*; re-rendered; `modelith-check` green). A **recorded divergence** (the reference discards the partial turn in both cases).
+- Code: `internal/domain/history/history.go` · `internal/cli/cli.go` · `internal/cli/failed_turn_test.go` + `internal/cli/interrupted_turn_test.go` (reworked) · `tests/e2e/fakeprovider/fakeprovider.go` · `tests/e2e/steps/step_r080_failed_turn.go` (+ the shared `readSessionEntries` helper in `history_fixture.go`).
+- **ADR 0052** (`docs/decisions/0052-failed-turn-partial-persistence.md` + index).
+
+### Falsifiability witnesses (reproduced then reverted)
+
+`kept := false` ⇒ the two round-080 E2E Examples redden at `tellme stored the failed turn …` · `kept := true` ⇒ the zero-step Example reddens at `the session history is empty` · `Calls: 0` ⇒ the persisted-`calls` Then reddens · the keep line gated on `kept` instead of `stored` ⇒ the unit pin reddens (D6) · the failed-but-kept path returning `Success` ⇒ the E2E reddens (`exit code = 0, want 6`) · deleting the `ctx.Err() != nil` term ⇒ the `failTurn`-seam pin reddens (`code = 6, want 0`).
+
+### Open items (non-blocking)
+
+- **Round-080 forward items** — **RF-080-1** a small steady disk cost · **RF-080-2** a silent best-effort append failure on the failure path · **RF-080-3** no usage persisted for the failed-but-kept turn · **RF-080-4** the synthetic answers are stored as the `answer` · **RF-080-5** the exit-7 case is unit-carried · **RF-080-A** the `errors.Is` term is unreachable in production · **RF-080-B** nothing asserts what `-l` shows after a failed turn · **RF-080-7** no archive interaction. All in **ADR 0052 §Forward**.
+- **Compaction**: the round-078 forward-item batch is now **compacted to a pointer row** (2 rounds old).
+- **Issue tracker** — **[#161](https://github.com/gosharplite/tellme/issues/161) CLOSED (completed)** (fixed by round 080 / ADR 0052, PR [#162](https://github.com/gosharplite/tellme/pull/162)); the tracker is **0 open**.
+- **PM follow-ups** — **none open.**
+- Carried: PR #16 **Obs 1** stdout TTY probe **OPEN**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items; the **5 pre-existing** Gherkin/DSL topology-audit errors.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value** (the tracker is **0 open**; the tool surface is settled).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+*(Round 080 is fully closed out: PR #162 human-merged into `dev` (`4eec76e`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-080`** with operator approval; the installed binary refreshed from the `dev` head; [#161](https://github.com/gosharplite/tellme/issues/161) closed.)*
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the `architect`'s F-080-1…3 were witness/record folds, not PM-owned gaps).
+
+### Process notes (durable)
+
+- **A fix that cannot fail under any test is not a fix (F-080-1).** The round's headline — the broadened predicate folding issue #161 hole #2 — had **no witness**: `runTurn` builds its own ctx, so no unit could see a cancelled ctx, and the round-079 E2E's real `SIGINT` made **both** predicate terms true. The reviewer proved it by mutation (deleting the new term left the whole suite green). The fold added a direct `failTurn`-seam pin (the function already takes `ctx`) — the seam's testability was the fix.
+- **A claimed E2E assertion must have a carrier (F-080-2).** SC-001's persisted-`calls` claim had no E2E Then; `Calls: 0` left the E2E green. The fold added the carrier (and a class-swap-proof parameterisation).
+- **A widening can create a new decided surface (F-080-3).** Broadening the interruption predicate introduced an interruption-over-failure precedence that the round did not record. Record it, or the next reader assumes the old semantics.
+- **A best-effort side effect must not lie (D6).** The failed-turn append never masks the failure and never prints a keep line it did not earn — a deliberate divergence from the operator path (where exit 0 would be a lie if the work were lost).
+- **Widening a predicate is how a seam becomes testable-unreachable (RF-080-A).** The union's `errors.Is` term is now unreachable in production; a future ctx seam would restore unit-testability of the shipping mechanism.
