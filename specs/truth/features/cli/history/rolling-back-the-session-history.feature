@@ -16,7 +16,7 @@ Feature: Rolling back the session history
         | first Q  | first A  |
         | second Q | second A |
       When the operator rolls back the last turn
-      Then the active history holds exactly 1 exchanges
+      Then the active history holds exactly 1 exchange
       And tellme reports that 1 turn was rolled back
       And tellme sends no request to any provider
       And tellme exits successfully
@@ -32,7 +32,7 @@ Feature: Rolling back the session history
         | two    | a2     |
         | three  | a3     |
       When the operator rolls back the last 2 turns
-      Then the active history holds exactly 1 exchanges
+      Then the active history holds exactly 1 exchange
       And tellme reports that 2 turns were rolled back
       And tellme exits successfully
 
@@ -44,7 +44,7 @@ Feature: Rolling back the session history
       And the session history already holds a tool-using exchange
       And the session history then holds a plain exchange
       When the operator rolls back the last turn
-      Then the active history holds exactly 1 exchanges
+      Then the active history holds exactly 1 exchange
       And the remaining exchange carries its recorded tool step
       And tellme exits successfully
 
@@ -84,8 +84,10 @@ Feature: Rolling back the session history
         | first Q  | first A  |
         | second Q | second A |
       When the operator rolls back the last turn and asks "third Q"
-      Then the active history holds exactly 2 exchanges
+      Then tellme reports that 1 turn was rolled back
+      And the active history holds exactly 2 exchanges
       And the last persisted exchange asks "third Q" and answers "third A"
+      And the provider was asked against the trimmed history
       And tellme exits successfully
 
   Rule: An invalid rollback count is refused
@@ -98,7 +100,7 @@ Feature: Rolling back the session history
         | a Q    | an A   |
       When the operator rolls back a count of 0 turns
       Then tellme explains on stderr that "the command-line usage is invalid"
-      And the active history holds exactly 1 exchanges
+      And the active history holds exactly 1 exchange
 
   Rule: Rolling back while starting a fresh session is refused
 
@@ -110,4 +112,4 @@ Feature: Rolling back the session history
         | a Q    | an A   |
       When the operator rolls back the last turn and starts a fresh session
       Then tellme explains on stderr that "the command-line usage is invalid"
-      And the active history holds exactly 1 exchanges
+      And the active history holds exactly 1 exchange

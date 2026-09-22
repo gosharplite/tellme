@@ -31,8 +31,8 @@
 
 ## Unit pins
 
-- [X] **U1** `internal/infrastructure/history/file_store_test.go` — `Rollback`: normal (K→K−N), clamp (N>available ⇒ 0 lines), `n ≤ 0` no-op, missing file ⇒ 0, the archive is NOT created, the surviving bytes are the original lines (unchanged), a decode failure returns an error and leaves the file intact.
-- [X] **U2** `internal/cli/cli_test.go` — the optional-int pre-pass covers `-b` (bare `-b` ⇒ 1; `-b 3` ⇒ 3; `-b "p"` ⇒ 1 + prompt `p`); `-b 0` ⇒ usage error; `-b --new` ⇒ usage error; `renderRollback` prints the confirmation to stdout.
+- [X] **U1** `internal/infrastructure/history/file_store_rollback_test.go` — `Rollback`: normal (K→K−N), clamp (N>available ⇒ 0 lines), `n ≤ 0` no-op, missing file ⇒ 0, the archive is NOT created **and a pre-seeded archive stays byte-identical**, the surviving bytes are the original lines (unchanged — including an unknown-field line), a **decode failure** returns an error and leaves the file intact, and a **blocked temp path** (the durability witness: error + prior file byte-identical).
+- [X] **U2** `internal/cli/rollback_test.go` + `internal/cli/dispatch_test.go` — the optional-int pre-pass covers `-b` (bare `-b` ⇒ 1; `-b 3` ⇒ 3; `-b "p"` ⇒ 1 + prompt `p`); `renderRollback` prints the confirmation (clamp + pluralisation); the dispatch tier (`-b 0` ⇒ usage error; `-l` composes with `-b`: listing then rollback).
 
 ## Deliberate narrowings (recorded)
 
@@ -45,3 +45,20 @@
 - **F-081-2** (self-found at implementation) — the topology audit (`--root specs/truth/features/cli`) initially reported 11 errors: (a) a **blank line** split my new Given row out of the `history/dsl.md` Given table (fix: removed the blank line); (b) **two When rows** (`… the last {count} turns` and `… {count} turns`) both matched `the operator rolls back the last 2 turns` (dsl-exact-one-match) — folded by renaming the invalid-count form to `the operator rolls back a count of {count} turns`; (c) the refusal Thens used the `usage`-module `tellme exits with the usage error code` row from a `history` feature — switched to the **interface-root** `tellme explains on stderr that "the command-line usage is invalid"` row. **Recorded carried-check delta:** the audit now reports **6** errors (the same **5 pre-existing** + **1** of the already-documented cross-module class: a `chat`-module `a configured provider …` Given used in the `history` rollback feature — exactly the `history/reviewing-the-turn-log.feature:12` class). The audit is a **carried** check, not a `make verify` member.
 
 *(The architect review-fold ledger — F-081-3 … — is appended after the review-fold loop.)*
+
+### Architect review fold (PR #164, `APPROVE WITH REQUIRED FOLDS`)
+
+- **F-081-3 [TECHNICAL DEBT → folded]** — the **durability/atomicity** claim (I-3/NFR-001/ADR D3) had **no discriminating witness**: an in-place-truncate mutation left the whole suite green (the reviewer reproduced it). Folded: `TestFileStore_Rollback_FailureLeavesPriorHistoryIntact` — block the temp path (a directory at `<active>.tmp`) and assert **error + prior `history.jsonl` byte-identical** (verified to red under the mutation) — plus `TestFileStore_Rollback_DoesNotRewriteSurvivorBytes` (the raw-line copy).
+- **F-081-4 [TECHNICAL DEBT → folded]** — the documented `tellme -l 2 -b` "list then roll back" composition (ADR D7 / techstack / spec edge case) was unwitnessed (deleting the compose branch left the suite green). Folded: a `TestDispatchReportingPrecedence` subtest (`-l` + `-b` ⇒ the listing printed **and** the rollback ran).
+- **F-081-5 [TECHNICAL DEBT → folded]** — the decode-failure / never-partial-write claim had no committed carrier. Folded: `TestFileStore_Rollback_DecodeFailureLeavesFileIntact` (a malformed line ⇒ `(0, err)` + the file unchanged).
+- **F-081-6 [TECHNICAL DEBT → folded]** — SC-003's stated "fake-provider request content" evidence was absent. Folded: the prompt-bearing Example gains `the provider was asked against the trimmed history` (`fakeprovider.LastBody()` carries `first Q`, not `second Q`) + its `history/dsl.md` row.
+- **F-081-7 [TECHNICAL DEBT / record → folded]** — the `techstack.md` *Prompt input* dispatch-precedence row was stale (no `-b` tier; `-b` absent from the never-reads-stdin list). Folded: the order now reads `… → -l → -b → -t → …`, `-b`/`--back` joins the never-reads-stdin list, and the piped-stdin-discard note (N-081-6) is recorded there.
+- **TD-081-1 → folded** — `renderTurn`'s rollback now reuses **one** store and returns `emitHistoryError` (exit 4) on a post-rollback `Load` failure, symmetric with `renderRollback`.
+- **TD-081-2 → folded** — `Rollback` now copies survivor lines **raw** (a new `rawNonEmptyLines` + `writeRaw`), so "the non-removed lines MUST NOT be touched" (FR-010) holds structurally — even for a line carrying an unknown field.
+- **TD-081-3 → folded** — the `-b` usage validation moved **beside its action, below the `-d` tier** (symmetric with `-l`); the `-b`×`-d` composition is recorded here (RF-081-5).
+- **N-081-1 → folded** — `TestFileStore_Rollback_LeavesAPreExistingArchiveByteIdentical` (a pre-seeded archive stays byte-identical).
+- **N-081-2 → folded** — the count Then is plural-aware (`(\d+) exchanges?`); the feature reads `1 exchange`.
+- **N-081-3 → folded** — the prompt-bearing Example now asserts the confirmation line (`tellme reports that 1 turn was rolled back`).
+- **N-081-4 → folded** — `dispatch_test.go` gained the `-b 0` usage-error subtest (and the `-l`×`-b` compose subtest).
+- **N-081-5 → folded** — `truth-delta.md` placeholders resolved (`0053-…`, `D1-D9`); `tasks.md` U1/U2 name the real pin files.
+- **N-081-6 → folded** — the piped-stdin-discard recorded in the *Prompt input* row (F-081-7).

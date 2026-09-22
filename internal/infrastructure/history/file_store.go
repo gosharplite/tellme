@@ -5,6 +5,7 @@ package history
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -134,8 +135,11 @@ func (s *fileStore) Archive() error {
 // DURABLE: the surviving entries are written to a temp file in the same
 // directory, fsync'd, then renamed over the active file (atomic on POSIX), so a
 // crash mid-rollback leaves the prior history intact (the live file is never
-// truncated in place). The archive is never touched. A missing active file is 0
-// removed; a decode failure returns an error and never writes.
+// truncated in place). The surviving lines are copied RAW (their exact bytes, not
+// a decode+re-marshal) so FR-010's "the non-removed lines MUST NOT be touched"
+// holds structurally, even for a line carrying a field this binary does not know.
+// The archive is never touched. A missing active file is 0 removed; a decode
+// failure returns an error and never writes (no half-written file).
 func (s *fileStore) Rollback(n int) (int, error) {
 	if n <= 0 {
 		return 0, nil
@@ -151,24 +155,50 @@ func (s *fileStore) Rollback(n int) (int, error) {
 	if removed == 0 {
 		return 0, nil
 	}
-	survivors := entries[:len(entries)-removed]
-	if err := s.rewrite(survivors); err != nil {
+	data, err := os.ReadFile(s.activePath())
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	lines := rawNonEmptyLines(data)
+	keep := len(lines) - removed
+	if keep < 0 {
+		keep = 0
+	}
+	if err := s.writeRaw(lines[:keep]); err != nil {
 		return 0, err
 	}
 	return removed, nil
 }
 
-// rewrite durably replaces the active history with the given entries: a
-// same-directory temp file, fsync, then an atomic rename over the active file.
-// The directory is fsync'd best-effort so the rename survives a crash.
-func (s *fileStore) rewrite(entries []domainhistory.Entry) error {
-	var buf []byte
-	for _, e := range entries {
-		line, err := json.Marshal(e)
-		if err != nil {
-			return err
+// rawNonEmptyLines splits the active file into its non-empty, trimmed lines —
+// the raw bytes of each surviving turn, matching Load's own line semantics so a
+// rollback can copy survivors without re-encoding them.
+func rawNonEmptyLines(data []byte) []string {
+	var out []string
+	r := bufio.NewReader(bytes.NewReader(data))
+	for {
+		line, err := r.ReadString('\n')
+		if trimmed := strings.TrimSpace(line); trimmed != "" {
+			out = append(out, trimmed)
 		}
-		buf = append(buf, line...)
+		if err != nil {
+			break
+		}
+	}
+	return out
+}
+
+// writeRaw durably replaces the active history with the given raw lines: a
+// same-directory temp file, fsync, then an atomic rename over the active file.
+// The directory is fsync'd best-effort so the rename survives a crash. The
+// surviving lines' bytes are written verbatim.
+func (s *fileStore) writeRaw(lines []string) error {
+	var buf []byte
+	for _, l := range lines {
+		buf = append(buf, l...)
 		buf = append(buf, '\n')
 	}
 	tmp := s.activePath() + ".tmp"

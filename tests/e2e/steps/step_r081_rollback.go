@@ -23,12 +23,13 @@ func init() {
 		ctx.When(`^the operator rolls back the last turn and asks "([^"]*)"$`, whenRollbackThenAsk)
 		ctx.When(`^the operator rolls back the last turn and starts a fresh session$`, whenRollbackAndFresh)
 		// Thens
-		ctx.Then(`^the active history holds exactly (\d+) exchanges$`, thenActiveHistoryHoldsExactly)
+		ctx.Then(`^the active history holds exactly (\d+) exchanges?$`, thenActiveHistoryHoldsExactly)
 		ctx.Then(`^tellme reports that 1 turn was rolled back$`, thenReportsOneTurnRolledBack)
 		ctx.Then(`^tellme reports that (\d+) turns were rolled back$`, thenReportsNTurnsRolledBack)
 		ctx.Then(`^the remaining exchange carries its recorded tool step$`, thenRemainingExchangeCarriesStep)
 		ctx.Then(`^the session archive holds no exchanges$`, thenArchiveHoldsNoExchanges)
 		ctx.Then(`^the last persisted exchange asks "([^"]*)" and answers "([^"]*)"$`, thenLastExchangeAsksAndAnswers)
+		ctx.Then(`^the provider was asked against the trimmed history$`, thenProviderAskedAgainstTrimmedHistory)
 	})
 }
 
@@ -178,6 +179,24 @@ func thenLastExchangeAsksAndAnswers(ctx context.Context, prompt, answer string) 
 	last := entries[len(entries)-1]
 	if last.Prompt != prompt || last.Answer != answer {
 		return fmt.Errorf("last exchange = %q/%q, want %q/%q", last.Prompt, last.Answer, prompt, answer)
+	}
+	return nil
+}
+
+// thenProviderAskedAgainstTrimmedHistory (F-081-4) asserts the prompt-bearing
+// rollback built the request against the TRIMMED conversation: the surviving
+// exchange is present and the rolled-back one is absent from the wire body.
+func thenProviderAskedAgainstTrimmedHistory(ctx context.Context) error {
+	sc := scenarioFrom(ctx)
+	if len(sc.fakes) == 0 {
+		return fmt.Errorf("no fake provider was configured")
+	}
+	body := sc.fakes[0].LastBody()
+	if !strings.Contains(body, "first Q") {
+		return fmt.Errorf("the request body does not carry the surviving exchange; body=%q", body)
+	}
+	if strings.Contains(body, "second Q") {
+		return fmt.Errorf("the request body still carries the rolled-back exchange (build-then-rollback regression); body=%q", body)
 	}
 	return nil
 }

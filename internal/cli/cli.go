@@ -735,17 +735,20 @@ func renderTurn(homeDir, configPath, prompt string, opts turnOptions, env runtim
 	// Round 081 (ADR 0053): a prompt-bearing `-b [N] "prompt"` rolls back the last
 	// N turns FIRST, then runs the prompt against the trimmed history. `res` is the
 	// same session the rollback resolves (mode precedence identical), so the rollback
-	// targets the workspace this turn will use.
+	// targets the workspace this turn will use. The single store is reused for the
+	// rollback, the confirmation count, the optional archive, and the turn.
+	store := dp.NewHistoryStore(res.Workspace)
 	if opts.rollbackTurns > 0 {
-		rs := dp.NewHistoryStore(res.Workspace)
-		removed, err := rs.Rollback(opts.rollbackTurns)
+		removed, err := store.Rollback(opts.rollbackTurns)
 		if err != nil {
 			return emitHistoryError(env.stderr, err)
 		}
-		remaining, _ := rs.Load()
+		remaining, err := store.Load()
+		if err != nil {
+			return emitHistoryError(env.stderr, err)
+		}
 		_, _ = fmt.Fprint(env.stdout, rollbackConfirmation(removed, len(remaining)))
 	}
-	store := dp.NewHistoryStore(res.Workspace)
 	if opts.newSession {
 		if err := store.Archive(); err != nil {
 			return emitHistoryError(env.stderr, err)
@@ -1152,16 +1155,17 @@ func toolOutputIdleGap(lines render.Lines) time.Duration {
 // distinguishes the standalone rollback from the prompt-bearing form (handled by
 // the prompt path).
 func dispatchReporting(f *flags, homeDir string, env runtimeEnv, hasPrompt bool, newHistoryStore func(workspace string) history.Store, newTurnsLogStore func(workspace string) history.TurnsLogStore, newListing func() render.Listing, toolUsageReport func() int) (int, bool) {
-	// Round 081 (ADR 0053): `-b`/`--back` validation. A non-positive count is a
-	// usage error (symmetric with `-l`), and a rollback combined with `--new` is
-	// refused (the two session actions are contradictory).
-	if f.backSet && (f.back <= 0 || f.newSession) {
-		return emitUsageError(env.stderr), true
-	}
 	// -d is the reporting path: it always produces a report, and it takes
 	// precedence over a prompt or piped input (round-004 Decision 7).
 	if f.diagnostic {
 		return renderDiagnostic(homeDir, f.configPath, env.stdout), true
+	}
+	// Round 081 (ADR 0053): `-b`/`--back` validation, beside its action and below
+	// the `-d` tier (symmetric with `-l`). A non-positive count is a usage error
+	// (symmetric with `-l`), and a rollback combined with `--new` is refused (the
+	// two session actions are contradictory).
+	if f.backSet && (f.back <= 0 || f.newSession) {
+		return emitUsageError(env.stderr), true
 	}
 	// -l lists the last N messages and exits, strictly offline (round-007). A
 	// non-positive N is a usage error, evaluated before any network or stdin.

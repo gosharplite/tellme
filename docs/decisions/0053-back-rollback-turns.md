@@ -67,6 +67,6 @@ removing the last **n complete turns** (whole entries, including their embedded 
 - **RF-081-2** a rollback does not trim `turns.log` / `tokens.log` (a trace and a usage history).
 - **RF-081-3** no `flock`/`ModeLocker` — a concurrent process could race the rename (the repo's standing no-`flock` policy).
 - **RF-081-4** the `-b` × `--new` refusal is a tellme-specific rule (the reference has no such combination).
-- **RF-081-5** `-b` with `-t`/`--tool-usage` runs before them (recorded order).
+- **RF-081-5** `-b` with `-t`/`--tool-usage` runs before them (recorded order); the `-b` validation sits below the `-d` tier (symmetric with `-l`), so `-d -b 0` prints the diagnostic report rather than refusing, and a *valid* `-b` combined with `-d` is dropped by `-d`'s precedence (the same behaviour as `-l`).
 - **RF-081-6** the offline `-b` is a read-modify-write offline action; a `-c`-named mode with no workspace creates the workspace (`EnsureWorkspace`, round 053).
 - **RF-081-7** `--retry` (roll back the last user message + resend) remains unimplemented.

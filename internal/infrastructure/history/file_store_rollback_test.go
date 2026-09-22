@@ -134,3 +134,107 @@ func TestFileStore_Rollback_LeavesNoTempFile(t *testing.T) {
 		t.Fatalf("temp file residue (err=%v), want none", err)
 	}
 }
+
+// TestFileStore_Rollback_FailureLeavesPriorHistoryIntact is the round-081
+// durability witness (review fold F-081-1): blocking the temp path (a directory
+// at `<active>.tmp` makes the temp open fail with EISDIR) must (a) return an
+// error and (b) leave the prior `history.jsonl` BYTE-IDENTICAL. An in-place
+// truncate would fail this: it would have already destroyed the file.
+func TestFileStore_Rollback_FailureLeavesPriorHistoryIntact(t *testing.T) {
+	ws := t.TempDir()
+	s := NewFileStore(ws)
+	seedEntries(t, s,
+		domainhistory.Entry{Prompt: "one", Answer: "a1"},
+		domainhistory.Entry{Prompt: "two", Answer: "a2"},
+	)
+	before := readActive(t, ws)
+
+	// Block the temp path so the durable write cannot proceed.
+	if err := os.Mkdir(filepath.Join(ws, activeFileName+".tmp"), 0o755); err != nil {
+		t.Fatalf("mkdir tmp block: %v", err)
+	}
+
+	removed, err := s.Rollback(1)
+	if err == nil {
+		t.Fatalf("Rollback succeeded despite a blocked temp path; removed=%d", removed)
+	}
+	if removed != 0 {
+		t.Fatalf("removed = %d, want 0 on a failed rollback", removed)
+	}
+	if got := readActive(t, ws); got != before {
+		t.Fatalf("prior history was modified by a failed rollback:\n got %q\nwant %q", got, before)
+	}
+}
+
+// TestFileStore_Rollback_DoesNotRewriteSurvivorBytes pins TD-081-2: survivors are
+// copied RAW, so a line carrying a field this binary does not know survives a
+// rollback byte-for-byte.
+func TestFileStore_Rollback_DoesNotRewriteSurvivorBytes(t *testing.T) {
+	ws := t.TempDir()
+	// A hand-written line with an unknown field (which Load/Entry drops) and
+	// non-canonical key order — a decode+re-marshal would silently rewrite it.
+	unknown := `{"prompt":"kept","answer":"a","unknown_future_field":42}` + "\n"
+	drop := `{"prompt":"dropped","answer":"b"}` + "\n"
+	if err := os.WriteFile(filepath.Join(ws, activeFileName), []byte(unknown+drop), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := NewFileStore(ws)
+	if _, err := s.Rollback(1); err != nil {
+		t.Fatalf("Rollback: %v", err)
+	}
+	if got := readActive(t, ws); got != unknown {
+		t.Fatalf("survivor bytes = %q, want the original line verbatim %q", got, unknown)
+	}
+}
+
+// TestFileStore_Rollback_DecodeFailureLeavesFileIntact pins the round-081 edge
+// case (review fold F-081-3): a malformed line makes Rollback return an error and
+// never write (no half-written file).
+func TestFileStore_Rollback_DecodeFailureLeavesFileIntact(t *testing.T) {
+	ws := t.TempDir()
+	body := `{"prompt":"ok","answer":"a"}` + "\n" + "{not valid json" + "\n"
+	path := filepath.Join(ws, activeFileName)
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := NewFileStore(ws)
+
+	removed, err := s.Rollback(1)
+	if err == nil {
+		t.Fatalf("Rollback on a malformed history succeeded; removed=%d", removed)
+	}
+	if removed != 0 {
+		t.Fatalf("removed = %d, want 0 on a decode failure", removed)
+	}
+	if got, _ := os.ReadFile(path); string(got) != body {
+		t.Fatalf("history file changed on a decode failure:\n got %q\nwant %q", got, body)
+	}
+}
+
+// TestFileStore_Rollback_LeavesAPreExistingArchiveByteIdentical pins the strongest
+// form of "the archive is untouched" (review nit N-081-1): a pre-seeded archive
+// must be byte-identical after a rollback (a version that APPENDS to the archive
+// would be caught here, unlike the absent-form witness).
+func TestFileStore_Rollback_LeavesAPreExistingArchiveByteIdentical(t *testing.T) {
+	ws := t.TempDir()
+	s := NewFileStore(ws)
+	seedEntries(t, s,
+		domainhistory.Entry{Prompt: "a", Answer: "b"},
+		domainhistory.Entry{Prompt: "c", Answer: "d"},
+	)
+	seededArchive := `{"prompt":"old","answer":"archived"}` + "\n"
+	if err := os.WriteFile(filepath.Join(ws, archiveFileName), []byte(seededArchive), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := s.Rollback(1); err != nil {
+		t.Fatalf("Rollback: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(ws, archiveFileName))
+	if err != nil {
+		t.Fatalf("read archive: %v", err)
+	}
+	if string(got) != seededArchive {
+		t.Fatalf("archive changed by a rollback: got %q, want %q", got, seededArchive)
+	}
+}

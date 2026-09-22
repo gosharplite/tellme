@@ -11,10 +11,11 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| ADD | `docs/decisions/00NN-back-rollback-turns.md` (+ `docs/decisions/README.md` index row) | the decision record: the `-b`/`--back [N]` flag; the durable store rollback capability (S-1); the clamp/`N ≤ 0`/composition decisions (S-2…S-4); the confirmation line (S-5); the generalised optional-int pre-pass (S-7, resolving ADR 0023 **RF-54-4**) | `spec.md` US1/US2, FR-001…FR-010; `research.md` |
-| MODIFY | `specs/truth/techstack.md` — *CLI flag parsing* | register `-b`/`--back [N]` (default 1; a following non-integer token is a prompt); the shared optional-int pre-pass covering `-l`/`--list` and `-b`/`--back` (RF-54-4) | `spec.md` FR-001/FR-002/FR-009; `research.md` D-x |
-| MODIFY | `specs/truth/techstack.md` — *Session history store* | add the durable rollback capability (atomic temp-file + `fsync` + rename; archive untouched) | `spec.md` FR-004/FR-008, NFR-001; `research.md` D-x |
-| MODIFY | `specs/truth/techstack.md` — the offline-path set (`tellme performs no network access` scope) | the standalone `-b` / `-b N` joins the offline paths | `spec.md` FR-003, NFR-004; `research.md` D-x |
+| ADD | `docs/decisions/0053-back-rollback-turns.md` (+ `docs/decisions/README.md` index row) | the decision record: the `-b`/`--back [N]` flag; the durable store rollback capability (S-1); the clamp/`N ≤ 0`/composition decisions (S-2…S-4); the confirmation line (S-5); the generalised optional-int pre-pass (S-7, resolving ADR 0023 **RF-54-4**) | `spec.md` US1/US2, FR-001…FR-010; `research.md` |
+| MODIFY | `specs/truth/techstack.md` — *CLI flag parsing* | register `-b`/`--back [N]` (default 1; a following non-integer token is a prompt); the shared optional-int pre-pass covering `-l`/`--list` and `-b`/`--back` (RF-54-4) | `spec.md` FR-001/FR-002/FR-009; `research.md` D1-D9 |
+| MODIFY | `specs/truth/techstack.md` — *Session history store* | add the durable rollback capability (atomic temp-file + `fsync` + rename; archive untouched) | `spec.md` FR-004/FR-008, NFR-001; `research.md` D1-D9 |
+| MODIFY | `specs/truth/techstack.md` — the offline-path set (`tellme performs no network access` scope) | the standalone `-b` / `-b N` joins the offline paths | `spec.md` FR-003, NFR-004; `research.md` D1-D9 |
+| MODIFY | `specs/truth/techstack.md` — *Prompt input* | the dispatch-precedence owner row gains the `-b` tier (`… → -l → -b → -t → …`) and `-b`/`--back` joins the never-reads-stdin list (review fold **F-081-5**) | `spec.md` NFR-004; ADR 0053 D7 |
 | MODIFY | `docs/domain-model/tellme.modelith.{yaml,md}` — *`History`* | add a **rollback** action/invariant (a session's last N complete turns may be removed atomically; the archive is untouched; schema unchanged) | `spec.md` FR-001/FR-004/FR-010; ADR 0041 same-PR rule |
 
 ## /axb-api-plan
@@ -27,7 +28,7 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| NOOP (checked) | `specs/truth/data/**` | No persisted-state **shape** change — a rollback removes whole `history_entry` lines and adds none; the `history_entry`/`history_step` DBML is unchanged. | `spec.md` FR-010; `research.md` D-x |
+| NOOP (checked) | `specs/truth/data/**` | No persisted-state **shape** change — a rollback removes whole `history_entry` lines and adds none; the `history_entry`/`history_step` DBML is unchanged. | `spec.md` FR-010; `research.md` D1-D9 |
 
 ## /axb-dsl-refine
 
