@@ -186,3 +186,85 @@ Round 077 was human-merged (PR [#157](https://github.com/gosharplite/tellme/pull
 ### PM follow-ups
 
 - None new (the acceptance journey is a short presentation Rule; the round carries the falsifiable unit + E2E pins).
+
+## 41. Session 64 (2026-09-22, cont.) — round 078 `078-provider-transport-retry` **DELIVERED / FROZEN**: bounded provider transport retry (operator request) → full pipeline → `architect` review-fold loop (3 passes, CLOSED) → **human-merged (PR #158 → `dev` `c291e1d`)**, propagated, tagged **`round-078`**; closeout (Steps 1–8)
+
+The operator reported seeing a remote-server connection drop in tellme, and asked for a small bounded fix: *"wait 1 sec → retry → wait 3 sec → retry → error"*. We traced the failure to tellme having **no retry layer at all** (one provider call, one failure, terminal), agreed the **retryability predicate** (transport + HTTP 429/5xx — *not* 4xx/auth/decode/the round-030 truncation), opened **round 078** as an **operator request** (no anchor issue), ran the full AIxBDD pipeline, and took **PR [#158](https://github.com/gosharplite/tellme/pull/158)** through the `architect` peer's **review → fold → fold-verification** loop to **FOLDS VERIFIED — CLEARED FOR HUMAN MERGE**; the operator merged it, deleted the remote branch, and `SESSION-CLOSEOUT.md` Steps 1–8 ran (local branch deleted after an ancestor check; local `dev` fast-forwarded).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | `078-provider-transport-retry` (off `dev` `dd9b94b`) |
+| Theme | **operator request** (no anchor issue, rounds 073/074/075 precedent) — a **bounded transport retry** so a momentary network blip does not cost a re-run |
+| Clarify | **not escalated (0 questions)** — the theme/schedule are operator-given and the retryability predicate (transport + 429/5xx) was **operator-locked** in-session; the residual choices (mechanism / seam / typed classification / hermetic test seam / record shape) → `/axb-technical-research` |
+| Pipeline | specify ✅ · spec-by-example ✅ · technical-research ✅ (**ADR 0050** + `techstack.md` MODIFY ×2 + ADD) · system-analysis ✅ (1 CLI end; api/data NOOP; not modelled) · dsl-refine ✅ (a new Rule + 4 Examples; +4 Given / +4 Then rows) · tasks ✅ (T001–T012) · implement ✅ |
+| Before → after | a retryable failure was terminal (`the provider request failed` + exit 6, one request) → it is now retried **twice** (1 s, 3 s) and, on success, the turn completes; after exhaustion the failure surface is **byte-identical** (`the provider request failed` + exit 6) |
+| The change | `internal/domain/llm/gateway.go` (`ProviderError.Status`/`Transport` + `llm.Retryable`) · `internal/infrastructure/llm/{openai,gemini}/client.go` (the typed facts) · `internal/cli/retry_gateway.go` (a `llm.Gateway` decorator: fixed `retryDelays = {1s, 3s}`, `ctx`-aware, the `TELL_ME_FORCE_RETRY_DELAY_MS` seam, a chrome-styled `stderr` retry line that yields/restores the spinner) + `internal/cli/cli.go` (wired **inner** to `withUnpairedDiagnostic`) |
+| Review chain (PR #158, the `architect` peer) | `review` (**APPROVE WITH REQUIRED FOLDS** — no `[ARCHITECTURAL BLOCKER]`; the design was right, the folds were **witness / record quality**: **F-1** the `tellme: ` prefix quoted on three record surfaces · **F-2** the accounting MUST unwitnessed · **F-3** the notifier's yield/restore dead · **F-4** the retry line had no E2E carrier; + TD-078-1…3, RF-078-1…4, N-078-1…4) → fold `9ac7e6a` → `FOLD-VERIFICATION` (**FOLDS VERIFIED WITH RESIDUALS**; R-1…R-3) → residual fold `657ae2a` → `FOLD-VERIFICATION` (**FOLDS VERIFIED — CLEARED FOR HUMAN MERGE**; no residual) |
+| Merge | PR [#158](https://github.com/gosharplite/tellme/pull/158) **human-merged** into `dev` (`c291e1d`, **merge commit**); remote branch deleted by the human; the **local branch deleted** after an ancestor check |
+| Closeout | `make check` **OK** · `go test -count=1 ./...` green (E2E **293 scenarios**) · `make test-race` green · topology audit **5 pre-existing, none new** (52 features · 424 module rows · 2154 steps) · `STATUS.md` split (round-077 detail + env note → `docs/archives/status/2026-09-22.md`) · propagation `dev → main` (**no-ff**) + tag **`round-078`** · `go install` · **no anchor issue to close** (tracker stays 0 open) |
+
+### Decisions locked (round 078 / ADR 0050)
+
+| # | Decision |
+| --- | --- |
+| **D1** (operator-locked) | **Retryable** = a **transport** failure (dial / EOF / reset / broken pipe / GOAWAY / TLS / timeout) **or** HTTP **429/5xx**; **not** 4xx / auth / content-filter / decode / the round-030 truncation. |
+| **D2** | **Typed classification** — `ProviderError` gains `Status`/`Transport` (facts set at the adapter); the **domain-owned** `llm.Retryable` predicate (`Transport || Status == 429 || 500 ≤ Status ≤ 599`) — **never** string-matched. |
+| **D3** (operator-locked) | Fixed schedule `retryDelays = {1 s, 3 s}` (an array) → **≤2 retries / 3 attempts**; a `TELL_ME_FORCE_RETRY_DELAY_MS` hermetic seam **scoped to the 078 E2E scenarios**; a **literal** unit pin (the order is a constant-pin). |
+| **D4** | The seam is a `llm.Gateway` **decorator** in `internal/cli`, **inner to** `withUnpairedDiagnostic`; one seam covers **both** families. |
+| **D5** | The retry is announced once per retry on `stderr` only — chrome-styled `[HH:MM:SS] retrying …`, carrying **neither** the `tellme: ` prefix nor the class phrase; the spinner frame is yielded/restored. |
+| **D6** | Cancellation aborts immediately — the decorator checks `ctx.Err()` before each attempt **and before announcing** a retry; a client-side 300 s timeout stays retryable, a parent cancellation does not. |
+| **D7** | A retried call is **one** AI-endpoint call — one `calls`/usage/frame; a failed attempt writes no history. |
+| **D8** | **ADR 0050** + `techstack.md` MODIFY ×2 (incl. the round-030 "no retry layer" reconciliation) + ADD; the CLI feature + DSL rows; **not modelled** (`docs/domain-model/**` unchanged — ADR 0041 escape hatch; `plan.md` §5). |
+| **D9** | Scope: the provider path only — MCP is out (discovery is warn+skip; an MCP tool-call failure is already a recoverable fold-back); `-b`/`--retry` is unrelated; **no** new class phrase; **no** new exit code. |
+
+### Commits (branch `078-provider-transport-retry`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `489c4b7` | `docs(078)`: plan package + spec |
+| `b098058` | `docs(078)`: acceptance Gherkin |
+| `77b835b` | `docs(078)`: technical research + ADR 0050 + techstack truth |
+| `d61935e` | `feat(078)`: retry a transient provider transport failure (bounded, 1s/3s) |
+| `9ac7e6a` | `fix(078)`: fold the architect review (F-078-1…4 + TD-078-1…3 + RF/N) |
+| `657ae2a` | `docs(078)`: fold the fold-verification residuals (R-1…R-3) |
+| `c291e1d` | PR [#158](https://github.com/gosharplite/tellme/pull/158) merge into `dev` (by the operator) |
+| *(this closeout, on `dev`)* | `docs(078)`: day close — round 078 delivered + propagated; STATUS split + 09/22 summary §41 |
+
+### Artifacts / truth
+
+- Plan package: `spec.md` (US1/US2 · FR-001…FR-007 · NFR-001…NFR-004 · SC-001…SC-005) · `checklists/requirements.md` · `features/acceptance/recovering-from-a-momentary-provider-failure.feature` · `research.md` (D1–D9) · `plan.md` · `tasks.md` (T001–T012 + the fold and residual ledgers) · `truth-delta.md`.
+- Truth: `specs/truth/techstack.md` *Provider gateway port* MODIFY + *Provider output-cap truncation guard* MODIFY + *Provider request retry (transient transport)* **ADD** · `specs/truth/features/cli/chat/reporting-a-failed-provider-request.feature` (a new Rule, 4 Examples) · `chat/dsl.md` (+4 Given / +4 Then rows; **reconciled** the round-030 "no retry layer" note and the round-004 "exactly one provider request" note) · `contracts/**` + `data/**` NOOP · `docs/domain-model/**` **unchanged** (not modelled).
+- Code: `internal/domain/llm/gateway.go` · `internal/infrastructure/llm/{openai,gemini}/client.go` · `internal/cli/retry_gateway.go` + `internal/cli/cli.go` · `internal/domain/llm/retryable_test.go` · `internal/cli/retry_gateway_test.go` · `tests/e2e/fakeprovider/fakeprovider.go` (the `DropFirst` transport drop) · `tests/e2e/steps/scenario_context.go` · `tests/e2e/steps/step_r078_retry_{givens,thens}.go`.
+- **ADR 0050** (`docs/decisions/0050-bounded-provider-transport-retry.md` + index).
+
+### Falsifiability witnesses (reproduced then reverted — by us and by the architect)
+
+Change the retry-line text ⇒ the E2E `tellme announces …` reddens · persist `calls = len+1` ⇒ the E2E `the turn was recorded as a single provider call` reddens (`persisted calls = 2, want 1`) · drop the `YieldIndicator()` call ⇒ the unit `…YieldsAndRestoresAroundTheLine` reddens · remove the pre-notify `ctx.Err()` check ⇒ the unit `…NoAnnounceWhenCancelledMidCall` reddens. The `architect` independently re-ran all four.
+
+### Open items (non-blocking)
+
+- **Round-078 forward items** — **RF-078-1** the delays/count are constants · **RF-078-2** no jitter (deliberate) · **RF-078-3** the retry covers transport/status only · **RF-078-4** the added worst-case latency · **RF-078-5** the retry-line yield/restore + no-prefix (resolved) · **RF-078-6** MCP unchanged · **RF-078-7** offline readers untouched · **RF-078-8** the byte-identity re-send pin (resolved) · **RF-078-9** the split retry policy (deliberate) · **RF-078-10** the `DropFirst` hijack fallback (defensive). All in **ADR 0050 §Forward**.
+- **Compaction**: the round-076/075/074/073 forward-item batches are now **compacted to a single pointer row** (each ≥2 rounds old) per the curation rule.
+- **Issue tracker** — round 078 had **no anchor issue** (an operator request); the tracker stays **0 open** (`gh issue list --state open` = empty) — nothing to close or revise.
+- **PM follow-ups** — **none open.**
+- Carried: PR #16 **Obs 1** stdout TTY probe **OPEN**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; round-011 forward items; the **5 pre-existing** Gherkin/DSL topology-audit errors.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value** (the tracker is **0 open**; the tool surface is settled).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+*(Round 078 is fully closed out: PR #158 human-merged into `dev` (`c291e1d`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-078`** with operator approval; the installed binary refreshed from the `dev` head; no anchor issue to close.)*
+
+### PM follow-ups
+
+- None new (the acceptance journey is a short recovery Rule; the round carries the falsifiable unit + E2E pins).
+
+### Process notes (durable)
+
+- **A claim must have a witness that can redden (the round's whole review weight).** The retry change was correct, yet the **`tellme: ` prefix** was quoted on three record surfaces the code must NOT emit (F-1), the **accounting MUST** had no witness (F-2), the notifier's **yield/restore** branch was dead (unit passed `nil`; no 078 E2E terminal) (F-3), and the **retry line** had no E2E carrier (F-4). Add the pin with the claim; a witness that cannot fail is not a witness (the round-075/077 lesson, again).
+- **A retry announcement must precede a retry that WILL run (TD-1).** `notify` fired before the interruptible sleep, so a SIGINT mid-call printed "retrying …" for a retry that never happened; the fix checks `ctx.Err()` **before** announcing.
+- **Scope a hermetic seam to the scenarios that need it (TD-2).** A global `TELL_ME_FORCE_RETRY_DELAY_MS=0` would have silently retry-enabled *every* E2E scenario; the override now lives in the 078 Givens only.
+- **Reconcile, don't just append (the round-030 reconciliation).** Round 078 makes round-030's "tellme adds **no** retry layer (there is none to change)" false; the round MODIFY-ed the clause (truth + `dsl.md`) rather than leaving a contradiction — and the fold also reconciled the round-004 "exactly one provider request" note (TD-3).
