@@ -43,7 +43,7 @@
 - **F-078-3** (witness + record) — the notifier's yield/restore is now genuinely pinned by a **unit** pin (`retryYield` seam + a `[yield, write, restore]` order assertion); `plan.md` N-2 and ADR RF-078-5 corrected. Folded.
 - **F-078-4** (witness) — the retry line gains an E2E carrier (`tellme announces on stderr that it is retrying the provider request` on the `drop once` Example); `plan.md` N-1 corrected. Folded.
 - **TD-078-1** (bug) — the decorator now checks `ctx.Err()` **before** announcing a retry, so a SIGINT mid-call cannot emit a spurious "retrying …"; pinned by `TestRetryingGateway_NoAnnounceWhenCancelledMidCall`. Folded.
-- **TD-078-2** — the delay seam is now **scoped to the 078 scenarios** (set in the 078 Givens, not globally) and added to the harness `envUnset`; "count/order" corrected to **count** everywhere (the order is a constant-pin). Folded.
+- **TD-078-2** — the delay seam is now **scoped to the 078 scenarios** (set in the 078 Givens, not globally) and added to the harness `envUnset`; "count/order" corrected to **count** on every record surface the fold names (the order is a constant-pin). Folded.
 - **TD-078-3** — the round-004 "exactly one provider request" note in `chat/dsl.md` is reconciled with a parenthetical pointing at the round-078 note. Folded.
 - **RF-078-1** — a shared `newRetryingGateway` constructor now serves production + tests (no drift). Folded.
 - **RF-078-2** — `retryDelays` is an **array** (`[2]time.Duration`), not a mutable slice. Folded.

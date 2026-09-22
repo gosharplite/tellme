@@ -49,7 +49,7 @@ func thenSentRequestTwice(ctx context.Context) error { return assertRequestCount
 func thenSentRequestThreeTimes(ctx context.Context) error { return assertRequestCount(ctx, 3) }
 
 // assertRequestCount asserts the single fake provider received exactly want
-// requests (the retry count/order witness; the retry delay is pinned to 0 ms by
+// requests (the retry count witness; the retry delay is pinned to 0 ms by
 // the scenario default, so this measures the COUNT, never wall-clock).
 func assertRequestCount(ctx context.Context, want int) error {
 	sc := scenarioFrom(ctx)
@@ -93,7 +93,7 @@ func thenAnnouncesRetry(ctx context.Context) error {
 // thenRecordedSingleCall (必查 權威狀態; round-078 fold F-2): the retried turn was
 // recorded as ONE provider call — the persisted history line carries `calls == 1`
 // and exactly one usage record was written. This witnesses the round-078
-// accounting invariant (I-4/D7) the count/order probes do not cover.
+// accounting invariant (I-4/D7) the count probes do not cover.
 func thenRecordedSingleCall(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	data, err := os.ReadFile(sc.historyFilePath())
