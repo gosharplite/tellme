@@ -30,7 +30,7 @@
 
 ## Deliberate narrowings (recorded)
 
-- **N-1 — the zero-step negative is unit-carried, not E2E-carried.** Landing a signal *before the first tool step* deterministically requires a pty/stall harness the round declines; the E2E produces the interruption **inside a tool call** (`kill -INT $PPID`) so it necessarily has ≥1 step. The zero-step invariant (I-2/FR-005) is carried by the unit pin `TestRunTurn_InterruptedWithoutStepsWritesNothing` (the round-036 unit-only-narrowing precedent). Recorded in `plan.md` §6 and ADR 0051 §Forward (RF-079-A; supersedes the stub RF-079-6 — the shipped seam has no stall mode).
+- **N-1 — the zero-step negative is unit-carried, not E2E-carried.** The live signal is delivered **from inside** a tool call, so a signal *before the first tool step* cannot be landed hermetically; the E2E produces the interruption **inside a tool call** (`kill -INT $PPID`) so it necessarily has ≥1 step. The zero-step invariant (I-2/FR-005) is carried by the unit pin `TestRunTurn_InterruptedWithoutStepsWritesNothing` (the round-036 unit-only-narrowing precedent). Recorded in `plan.md` §6 and ADR 0051 §Forward (RF-079-A; supersedes the stub RF-079-6 — the shipped seam has no stall mode).
 - **N-2 — the informational line is not E2E-byte-pinned, only sub-string-asserted** (`interrupted by operator`); the exact wording is contract-free (like the class-phrase trailing detail).
 
 ## Fold ledger

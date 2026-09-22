@@ -46,7 +46,7 @@ Feature: Remembering the conversation across runs
     # BEFORE any tool step completed writes nothing (today's clean abort; the zero-step
     # negative is carried by unit pins — see the round-079 note in chat/dsl.md).
     # The live interruption is produced hermetically: a scripted `execute_command` runs
-    # `kill -INT $PPID`, a REAL SIGINT to the turn process (no pty, no stall harness).
+    # `kill -INT $PPID`, a REAL SIGINT to the turn process delivered from inside the tool call (no pty).
 
     Example: A turn interrupted after a tool step keeps it
       Given the operator has a runnable tellme installation
