@@ -160,6 +160,11 @@ func beforeScenario(ctx context.Context, _ *godog.Scenario) (context.Context, er
 			// Round 040 (B3): the WS-A idle-gap seam — unset by default so an
 			// ambient shell value cannot leak into a scenario.
 			"TELL_ME_FORCE_TOOLOUTPUT_IDLE_MS": true,
+			// Round 078 (ADR 0050): the transport retry's hermetic delay seam —
+			// unset by default (fold TD-2: the override is scoped to the 078
+			// scenarios, so no OTHER scenario is silently retry-enabled) and set
+			// explicitly by the 078 Givens.
+			"TELL_ME_FORCE_RETRY_DELAY_MS": true,
 		},
 		args:     nil,
 		exitCode: 0,

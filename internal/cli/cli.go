@@ -736,11 +736,6 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	if err != nil {
 		return emitProviderError(env.stderr, err)
 	}
-	// Round 068 (ADR 0038; resolves ADR 0037 RF-067-1): wrap the gateway so a
-	// Gemini/Vertex round that leaves a tool call unanswered (M < N) is reported as
-	// a `[Tool …]` diagnostic on stderr BEFORE the request is sent — informational,
-	// never routed to turns.log (Q1/Q2 → A). The shipped M == N path is inert.
-	gw = withUnpairedDiagnostic(gw, unpairedEmitter(env, dp.NewLines(chromeColour(opts, env))))
 	prior, err := store.Load()
 	if err != nil {
 		return emitHistoryError(env.stderr, err)
@@ -843,6 +838,21 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 	// Round 034 (ADR 0005 D1): the loop keeps a single observer — the composite
 	// composes the per-call block renderer with the round-019 spinner.
 	observer := compositeObserver{call: renderer, spinner: ind}
+
+	// Round 078 (ADR 0050): wrap the gateway with the bounded transport retry — a
+	// retryable provider failure (transport, or HTTP 429/5xx) is retried at most
+	// twice (1 s, 3 s) before the provider phrase + exit 6. It is the INNER wrapper
+	// (below the round-068 unpaired diagnostic) so the retry re-sends the SAME
+	// request through the one seam, and the retry line is written with the spinner
+	// YIELDED (the indicator is built above, so the notify closure can clear the
+	// live frame before the line and restore it after — never tearing it).
+	gw = withProviderRetry(gw, retryNotifier(env, ind))
+	// Round 068 (ADR 0038; resolves ADR 0037 RF-067-1): wrap the gateway so a
+	// Gemini/Vertex round that leaves a tool call unanswered (M < N) is reported as
+	// a `[Tool …]` diagnostic on stderr BEFORE the request is sent — informational,
+	// never routed to turns.log (Q1/Q2 → A). The shipped M == N path is inert. It is
+	// the OUTER wrapper (one emission per loop call, before the retry loop).
+	gw = withUnpairedDiagnostic(gw, unpairedEmitter(env, dp.NewLines(chromeColour(opts, env))))
 
 	// Round 050 (R5.4 of #92; ADR 0019): the loop is obtained through the injected
 	// domain port (deps.LoopFactory) — internal/cli names no internal/agent type.

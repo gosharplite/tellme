@@ -89,19 +89,19 @@ func (c *Client) Complete(ctx context.Context, req llm.Request) (llm.Response, e
 
 	resp, err := c.http.Do(httpReq)
 	if err != nil {
-		return llm.Response{}, c.wrap(err)
+		return llm.Response{}, c.wrapTransport(err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
 	if err != nil {
-		return llm.Response{}, c.wrap(err)
+		return llm.Response{}, c.wrapTransport(err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if msg := extractErrorMessage(raw); msg != "" {
-			return llm.Response{}, c.wrap(fmt.Errorf("provider returned status %d: %s", resp.StatusCode, msg))
+			return llm.Response{}, c.wrapStatus(resp.StatusCode, fmt.Errorf("provider returned status %d: %s", resp.StatusCode, msg))
 		}
-		return llm.Response{}, c.wrap(fmt.Errorf("provider returned status %d", resp.StatusCode))
+		return llm.Response{}, c.wrapStatus(resp.StatusCode, fmt.Errorf("provider returned status %d", resp.StatusCode))
 	}
 	answer, err := parseResponse(raw)
 	if err != nil {
@@ -112,6 +112,16 @@ func (c *Client) Complete(ctx context.Context, req llm.Request) (llm.Response, e
 
 func (c *Client) wrap(err error) error {
 	return &llm.ProviderError{Provider: c.cfg.ProviderName, Err: err}
+}
+
+// wrapTransport marks a connection-level failure (round 078).
+func (c *Client) wrapTransport(err error) error {
+	return &llm.ProviderError{Provider: c.cfg.ProviderName, Err: err, Transport: true}
+}
+
+// wrapStatus carries the provider's HTTP status on the error (round 078).
+func (c *Client) wrapStatus(status int, err error) error {
+	return &llm.ProviderError{Provider: c.cfg.ProviderName, Err: err, Status: status}
 }
 
 // extractErrorMessage pulls the provider's structured error message out of a
