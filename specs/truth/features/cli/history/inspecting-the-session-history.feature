@@ -96,6 +96,9 @@ Feature: Inspecting the session history
         | What is my name?  | Alice  |
       When the operator asks tellme to list the last messages without a count
       Then tellme lists the last 1 messages
+      # Round-082 fold F-082-2: the omitted-count path (`-l` ≡ `-l 1`) is the
+      # SC-002 carrier — its single listed message is `[MODEL] - 1`.
+      And the listing heads each message with its backward turn index
       And tellme exits successfully
 
   Rule: A forced session mode outranks the named configuration
