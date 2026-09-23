@@ -1,8 +1,8 @@
 # tellme — Status
 
-**Last updated**: 2026-09-23 (session 71 — round **083** `083-round-scoped-media-placement` **DELIVERED / FROZEN**: PR [#168](https://github.com/gosharplite/tellme/pull/168) human-merged into `dev` (fast-forward, `3436558`, 2026-09-23T09:07:36Z), branch deleted local + remote, propagation `dev -> main` **DONE (no-ff)**, tagged **`round-083`**; **closes [#167](https://github.com/gosharplite/tellme/issues/167)**. No round in flight; the tracker is **0 open**.)
-**Round in flight**: **none** — round **083** delivered/frozen on `dev`; the next round opens off `dev` (a value / live-issue theme; the tracker is **0 open**).
-**Active branch**: `dev` (round 083 delivered via PR [#168](https://github.com/gosharplite/tellme/pull/168) merged `3436558`, **fast-forward**; round branch deleted local + remote; propagation `dev -> main` **DONE (no-ff)**, tagged `round-083`).
+**Last updated**: 2026-09-23 (session 72 — round **084** `084-rollback-durability-witness` **IN FLIGHT** — anchor issue [#169](https://github.com/gosharplite/tellme/issues/169); the full pipeline ran to a green PR: the `fsync` durability clause becomes falsifiable via a store-level `durableFS` seam + a mechanism-seam pin, the asserted effect is calibrated, and the best-effort directory `fsync` is recorded accepted-unwitnessed (**ADR 0056**). Round 083 remains the latest delivered round.)
+**Round in flight**: **084** `084-rollback-durability-witness` — branch `084-rollback-durability-witness` off `dev`; pipeline complete + **review-fold loop CLOSED** (the `architect` peer: `APPROVE WITH REQUIRED FOLDS` → F-084-1/2 folded → `FOLDS VERIFIED WITH RESIDUALS` → R-FV-084-1/2/3 folded → **`FOLDS VERIFIED — LOOP CLOSED`**); **PR [#170](https://github.com/gosharplite/tellme/pull/170) ready for a human to review/merge**.
+**Active branch**: `084-rollback-durability-witness` (round 084 in flight; `dev` holds delivered round 083).
 **Daily log**: [`docs/session-summary/2026/09/23/session-summary.md`](docs/session-summary/2026/09/23/session-summary.md) · prior: [`2026-09-22`](docs/session-summary/2026/09/22/session-summary.md) (round 081)
 
 ## Last delivered round - 083 `083-round-scoped-media-placement` (DELIVERED / FROZEN - PR [#168](https://github.com/gosharplite/tellme/pull/168) merged into `dev` `3436558`, **fast-forward**; **ADR 0055**)

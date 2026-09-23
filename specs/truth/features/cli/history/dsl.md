@@ -17,8 +17,14 @@ interface root, every step in this module's feature must match exactly one row.
 > answer, and **every** tool step of each removed turn atomically; `N` is **clamped** to the
 > available turns; `N ≤ 0` is a usage error (exit 2); the archive is **never** written (rollback ≠
 > `--new`); `-b` composed with `--new` refuses. `tellme -b [N] "prompt"` rolls back **then** runs the
-> prompt against the trimmed history. The store's durable `Rollback` (temp-file + fsync + rename) is
-> the single owner of the truncation.
+> prompt against the trimmed history. The store's `Rollback` is the single owner of the truncation.
+
+> **Round 084 (`084-rollback-durability-witness`; ADR 0056):** the durability **guarantee** is **not**
+> asserted in this module prologue — a module prologue describes the `-b` **observable** contract,
+> not an unwitnessed mechanism guarantee (`axb-gherkin-and-dsl` STANDARDS §2.1; upstream ADR 0006).
+> The rollback's durability clause (temp file + `fsync`-before-`rename` + atomic rename) is a
+> **witnessed, calibrated decision** recorded in **ADR 0056** and carried by a store-level
+> mechanism-seam pin; the best-effort directory `fsync` is an accepted-unwitnessed limit there.
 
 > **Round 073 (`073-list-role-headers-and-rendered-body`; ADR 0045):** the `-l`/`--list` listing's
 > per-message presentation changes from the flat `role: content` line to a **role header line**

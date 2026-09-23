@@ -303,3 +303,72 @@ Round 083 was human-merged (PR [#168](https://github.com/gosharplite/tellme/pull
 **PM follow-ups**: none new.
 
 *(Round 083 is fully closed out: PR #168 human-merged into `dev` (`3436558`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-083`**; the installed binary refreshed; [#167](https://github.com/gosharplite/tellme/issues/167) closed.)*
+
+---
+
+## 4. Session 72 (2026-09-23, cont.) — round 084 `084-rollback-durability-witness` **OPENED → full pipeline → PR [#170](https://github.com/gosharplite/tellme/pull/170) open** (anchor issue [#169](https://github.com/gosharplite/tellme/issues/169); **ADR 0056**)
+
+The operator directed *"Open a new aixbdd round, the goal is to close #169."* Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 083 delivered/frozen; active branch `dev`, tree clean), created branch **`084-rollback-durability-witness`** off `dev`, ran the full AIxBDD pipeline, and opened **PR [#170](https://github.com/gosharplite/tellme/pull/170)** (awaiting a human review/merge — no Copilot review; only a human merges).
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | **MODIFY (the rollback's witness surface, not its observable behaviour)** — make round 081's durability clause **falsifiable** (issue option (a)), calibrate the asserted effect, and record the best-effort directory `fsync` as **accepted-unwitnessed** |
+| Clarify | **not escalated (0 questions)** — the goal is locked by issue #169 + `aixbdd-tmg` ADR 0006; the residual design choices (S-1…S-4) routed to `/axb-technical-research` |
+| Pipeline | specify ✅ · spec-by-example ✅ · technical-research ✅ (research D1–D9 · **ADR 0056** witnesses ADR 0053 · `techstack.md` Rule-6 correction · domain-model calibrated) · system-analysis ✅ (1 CLI end; api/data NOOP) · dsl-refine ✅ (`history/dsl.md` prologue) · tasks ✅ (T001–T015 + Claim→Witness ledger) · implement ✅ |
+| The change | `internal/infrastructure/history/file_store.go` — an **unexported `durableFS` seam** (`Sync`/`Rename`/`SyncDir`, `os`-defaulted); `writeRaw` routes through it. **No observable behaviour change** |
+| The witness (the missing tripwire) | `file_store_sync_test.go` — the recording fake + `TestFileStore_Rollback_SyncsTempFileBeforeRename` (fsync BEFORE rename) + 3 more pins (sync-error aborts, dir-sync best-effort, survivor bytes) |
+| Verification | `gofmt`/`goimports`/`go vet` clean · `make verify` **OK** · `go test -count=1 ./...` **green** (E2E **314 scenarios · 2354 steps — unchanged**) · `make test-race` green · `go.mod`/`go.sum` **unchanged** |
+| Witness (reproduced then reverted) | **W1** remove `s.fs.Sync(f)` ⇒ `…SyncsTempFileBeforeRename` reddens (`events = [rename…, syncdir…]`); reverted ⇒ green |
+| Delivery | branch `084-rollback-durability-witness` → **PR [#170](https://github.com/gosharplite/tellme/pull/170) OPEN** |
+
+### Decisions locked (round 084 / ADR 0056)
+
+| # | Decision |
+| --- | --- |
+| **D1** | Resolve by **witnessing** the clause (issue option (a)); apply option (b) narrowly to the best-effort directory `fsync`. |
+| **D2** | The seam: an **unexported `durableFS`** (`Sync`/`Rename`/`SyncDir`, `os`-defaulted) on the store; `writeRaw` routes through it; the public surface + production unchanged. |
+| **D3** | **Effect-strength calibration**: assert temp file + `fsync`-before-rename + atomic rename only; no power-loss claim. |
+| **D4** | The directory `fsync` is **best-effort** and recorded **accepted-unwitnessed** (ADR 0056 §Forward RF-084-1). |
+| **D5** | The witness: a mechanism-seam unit pin that reddens when the file `fsync` is removed (three-gate DoD: discriminating mutation / attributed failure / revert-and-re-green). |
+| **D6** | Truth corrections: `techstack.md` (Rule 6) · `history/dsl.md` prologue (prose boundary) · domain-model invariant calibrated. |
+| **D7/D8** | Records: ADR 0056 (+ index; ADR 0053 pointer) · `GAPS.md` §2/§7 · scope guard (no mutation framework / coverage / CI gate; stdlib-only; exit-code set stays ten). |
+
+### Commits (branch `084-rollback-durability-witness`)
+
+| Commit | Note |
+| --- | --- |
+| `2d09e33` | `docs(084)`: plan package + spec |
+| `ddf50cc` | `docs(084)`: acceptance Gherkin — the rollback's observable guarantees |
+| `3103c1a` | `docs(084)`: technical research + ADR 0056 + truth calibration |
+| `e2eb86c` | `docs(084)`: system analysis (plan.md) + dsl-refine (history prologue) + truth-delta |
+| `c12ad85` | `feat(084)`: witness the rollback durability clause — durableFS seam + mechanism-seam pin (ADR 0056) |
+
+### Open items (non-blocking)
+
+- **PR [#170](https://github.com/gosharplite/tellme/pull/170)** awaits a human review/merge → then `SESSION-CLOSEOUT.md` Steps 1–8 (propagate `dev → main`, tag `round-084`, refresh the binary; **close [#169](https://github.com/gosharplite/tellme/issues/169)**).
+- **ADR 0056 §Forward** RF-084-1…5 (best-effort dir `fsync` accepted-unwitnessed · the mechanism-seam witnesses call order, not on-disk durability · the seam is unexported/test-only · `Append`/`Archive` still call `f.Sync()` directly · the accept-record is a disclosure, not tasking).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the **6** topology-audit DSL errors.
+
+### Next steps
+
+1. Human reviews + merges **PR [#170](https://github.com/gosharplite/tellme/pull/170)**; then the closeout (propagate `dev → main` no-ff, tag `round-084`, close [#169](https://github.com/gosharplite/tellme/issues/169)).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `084-rollback-durability-witness` until merged, then `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the round carries the falsifiable unit pin).
+
+### 4 (cont.) — round 084 review-fold loop CLOSED (the `architect` peer; 2 verification passes) → ready for human merge
+
+Operator: *"Communicate with sub-agent 'architect'. Initialize architect with `SESSION-BOOTSTRAP.md`, don't use `--new` on architect after initialization. Ask architect to review this PR and post comment. You will read and resolve PR comments. Post your fold comments on the PR. Do the review-fold loop until PR is ready for human to merge."*
+
+- **Dispatch (per `tm-chat-ingroup`)**: staged the initialization prompt (remote-party marker) in `/tmp`; `env -u TELL_ME_MODE TELL_ME_HOME=$WS tellme --new -r -c $WS/configs/architect.yaml < …`; the architect bootstrapped `SESSION-BOOTSTRAP.md` Steps 1–8 (turn header `architect`); then **continuations** (no `--new`).
+- **Review (posted)**: [`pull/170#issuecomment-5795203703`](https://github.com/gosharplite/tellme/pull/170#issuecomment-5795203703) — **`APPROVE WITH REQUIRED FOLDS`** (no `[ARCHITECTURAL BLOCKER]`): **F-084-1** the ledger's CLM-084-3 falsifier was **non-discriminating** (a re-marshal mutant leaves `T005` green — reproduced) · **F-084-2** two issue-named surfaces still asserted the pre-calibration over-claim (ADR 0053 D3 + Consequences; the README index row 0053) · **TD-084-1** the durability class is witnessed only on the rollback path · **N-084-1/2/3**. The architect independently reproduced **W1** (remove the seam `Sync` ⇒ the pin reddens) and the W-order probe (sync-after-rename ⇒ reddens).
+- **Fold 1** (`5b5accc`): re-attributed CLM-084-3's witness to the pre-existing hand-filled `…DoesNotRewriteSurvivorBytes` and downgraded `T005` to a **companion guard**; annotated ADR 0053 **D3 + Consequences** inline with the ADR 0056 calibration pointer (083's D7 precedent) + the index row 0053; scoped the `GAPS.md` §7 closure to the rollback clause; reworded RF-084-3; **relaxed** the order pin to the sync-before-rename **relation**; reconciled the `GAPS.md` §2 dir-`fsync` marker.
+- **Fold verification** (`5795277977`): **`FOLDS VERIFIED WITH RESIDUALS`** — **R-FV-084-1** (substantive: the N-084-2 relaxation dropped the only assertion that the directory `fsync` is invoked — a drop-`SyncDir` mutant left all 14 tests green), **R-FV-084-2** (a duplicated `## Fold ledger` heading), **R-FV-084-3** (three record surfaces still described the pre-fold assertion).
+- **Fold 2** (`8cf8b9c`): the pin now asserts the order relation **and** that a dir-`fsync` event is invoked (measured: drop-`SyncDir` ⇒ reddens); removed the duplicate heading; aligned T002 + ADR 0056 D5.1/D5.4.
+- **Final verification** (`5795341023`): **`FOLDS VERIFIED — LOOP CLOSED`** (no residuals; no blocker) — the witness set re-measured at the final head (drop-`SyncDir` → red; remove `Sync` → red; sync-after-rename → red; direct `f.Sync()` seam bypass → red), independently.
+- **Fold 3** (`a103ed2`): folded the optional **N-084-4** (`GAPS.md` §2 dir-`fsync` row wording) for record-accuracy.
+- **State**: the review-fold loop is **CLOSED** — **PR [#170](https://github.com/gosharplite/tellme/pull/170) is ready for a human to review and merge** (no Copilot review; only a human merges).

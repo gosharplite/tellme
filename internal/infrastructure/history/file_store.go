@@ -24,6 +24,49 @@ const (
 // fileStore is the JSON-Lines adapter behind domainhistory.Store.
 type fileStore struct {
 	workspace string
+	// fs is the durability seam for the rollback rewrite (round 084): the file
+	// fsync, the atomic rename, and the best-effort directory fsync. It defaults
+	// to the os-backed implementation; it is injectable (unexported) so a unit
+	// pin can assert the fsync-before-rename order — an unobservable effect
+	// claim carrying a mechanism-seam witness (aixbdd-tmg ADR 0006; ADR 0056).
+	fs durableFS
+}
+
+// durableFS is the store's durability seam — the primitives the rollback rewrite
+// uses to replace history.jsonl durably: flush the temp file, rename it over the
+// active file, then fsync the directory. Injectable so the rollback's
+// fsync-before-rename order is a falsifiable claim (round 084; ADR 0056).
+type durableFS interface {
+	Sync(*os.File) error
+	Rename(oldpath, newpath string) error
+	SyncDir(dir string) error
+}
+
+// osDurableFS is the production durableFS — plain os calls, no behaviour change.
+type osDurableFS struct{}
+
+func (osDurableFS) Sync(f *os.File) error { return f.Sync() }
+
+func (osDurableFS) Rename(oldpath, newpath string) error { return os.Rename(oldpath, newpath) }
+
+// SyncDir fsyncs a directory so a rename is durable across a crash; best-effort
+// (a directory fsync is unsupported on some filesystems).
+func (osDurableFS) SyncDir(dir string) error {
+	d, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = d.Close() }()
+	return d.Sync()
+}
+
+// durable returns the store's durability seam, defaulting to the os
+// implementation so a zero-value fileStore still behaves production-identically.
+func (s *fileStore) durable() durableFS {
+	if s.fs == nil {
+		return osDurableFS{}
+	}
+	return s.fs
 }
 
 var _ domainhistory.Store = (*fileStore)(nil)
@@ -33,7 +76,7 @@ var _ domainhistory.Store = (*fileStore)(nil)
 // bufio.Scanner) so large prompts round-trip without a 64 KB token-cap failure
 // (round-007 TD-2).
 func NewFileStore(workspace string) *fileStore {
-	return &fileStore{workspace: workspace}
+	return &fileStore{workspace: workspace, fs: osDurableFS{}}
 }
 
 func (s *fileStore) activePath() string  { return filepath.Join(s.workspace, activeFileName) }
@@ -215,7 +258,7 @@ func (s *fileStore) writeRaw(lines []string) error {
 		_ = os.Remove(tmp)
 		return err
 	}
-	if err := f.Sync(); err != nil {
+	if err := s.durable().Sync(f); err != nil {
 		_ = f.Close()
 		_ = os.Remove(tmp)
 		return err
@@ -224,21 +267,12 @@ func (s *fileStore) writeRaw(lines []string) error {
 		_ = os.Remove(tmp)
 		return err
 	}
-	if err := os.Rename(tmp, s.activePath()); err != nil {
+	if err := s.durable().Rename(tmp, s.activePath()); err != nil {
 		_ = os.Remove(tmp)
 		return err
 	}
-	syncDir(filepath.Dir(s.activePath()))
+	// Best-effort: a directory fsync is unsupported on some filesystems; its
+	// durability effect is an accepted-unwitnessed limit (ADR 0056 §Forward).
+	_ = s.durable().SyncDir(filepath.Dir(s.activePath()))
 	return nil
-}
-
-// syncDir fsyncs a directory so a rename is durable across a crash; best-effort
-// (a directory fsync is unsupported on some filesystems).
-func syncDir(dir string) {
-	d, err := os.Open(dir)
-	if err != nil {
-		return
-	}
-	_ = d.Sync()
-	_ = d.Close()
 }
