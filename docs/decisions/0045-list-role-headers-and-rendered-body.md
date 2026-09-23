@@ -105,6 +105,17 @@ question at a time):
   supersedes only if requested).
 - **RF-073-5** — the answer-path stdout-chrome observation (Obs 1) stays OPEN;
   the new stdout probe serves the listing only.
+- **Obs 3 (round-006) — settled, not applicable (round-085 closeout; anchor
+  [#178](https://github.com/gosharplite/tellme/issues/178)).** The sibling round-006
+  observation — a *session-scoped renderer lifecycle* deferred "to multi-turn" — has
+  no referent: tellme runs **one turn per invocation** (the prompt is collected once,
+  then the process exits; there is no long-lived multi-turn runtime), and the glamour
+  renderer is constructed **per run** (the `deps.NewAnswer`/`NewListing` factories;
+  `ui.NewRenderer()` built inline) and discarded at exit. The one renderer's
+  *intra-turn* reuse across a turn's provider rounds is already stated on the
+  `techstack.md` *Output rendering* row. With this, the round-006-era
+  carried-observation pair is resolved: **Obs 1** → `RF-073-5` above (home: this
+  §Forward); **Obs 3** → settled here.
 - **RF-073-6** — the best-effort width resolution on the `-l` path (a broken
   `WRAP_WIDTH` silently uses the renderer default).
 - **RF-073-7** — the header is emitted on every message including the last; a
