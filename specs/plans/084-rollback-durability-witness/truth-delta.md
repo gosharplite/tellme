@@ -5,7 +5,7 @@
 
 > Plan package truth-delta. Owner rows are recorded by the truth-owner skills (`/axb-technical-research`, `/axb-api-plan`, `/axb-data-plan`, `/axb-dsl-refine`). Each owner records at least one entry; a `NOOP` entry proves the area was checked.
 >
-> **Status**: **`/axb-specify` RUN (2026-09-23)** — plan package + `spec.md` + checklist; clarify **not escalated (0 questions)**. **`/axb-technical-research` RUN (2026-09-23)** — `research.md` D1–D9; **ADR 0056** (+ index; **witnesses ADR 0053**, whose `Status` gains the pointer); `techstack.md` MODIFY (Rule 6 correction); `docs/domain-model/**` MODIFY + re-render. `/axb-system-analysis`, `/axb-dsl-refine`, `/axb-tasks`, `/axb-implement` — pending.
+> **Status**: **`/axb-specify` RUN (2026-09-23)** — plan package + `spec.md` + checklist; clarify **not escalated (0 questions)**. **`/axb-technical-research` RUN (2026-09-23)** — `research.md` D1–D9; **ADR 0056** (+ index; **witnesses ADR 0053**, whose `Status` gains the pointer); `techstack.md` MODIFY (Rule 6 correction); `docs/domain-model/**` MODIFY + re-render. **`/axb-system-analysis` RUN** — `plan.md` (1 CLI end; api/data NOOP; no new observable end). **`/axb-dsl-refine` RUN** — `history/dsl.md` prologue MODIFY (durability clause routed to ADR 0056). **`/axb-tasks` + `/axb-implement` RUN** — `tasks.md`, the seam + the unit witness, E2E green.
 
 ## /axb-technical-research
 
@@ -21,16 +21,17 @@
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | | | |
+| NOOP (checked) | `specs/truth/contracts/**` | Single CLI end; no OpenAPI/HTTP surface. | `plan.md` §1 |
 
 ## /axb-data-plan
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | | | |
+| NOOP (checked) | `specs/truth/data/**` | No persisted-state shape change — `history.jsonl` / `history.Entry` / `history.Step` are unchanged; the round adds a test-only durability seam. | `spec.md` FR-007; `plan.md` §1 |
 
 ## /axb-dsl-refine
 
 | Action | Truth Spec | Change Summary | Reason |
 | --- | --- | --- | --- |
-| (pending) | | | |
+| MODIFY | `specs/truth/features/cli/history/dsl.md` — the `-b` prologue | drops the durability mechanism clause ("The store's durable `Rollback` (temp-file + fsync + rename) …") from the `-b` prologue and replaces it with a round-084 note routing the guarantee to ADR 0056; the observable `-b` contract (offline, clamp, no-op, archive-untouched, refuse with `--new`) is unchanged | `spec.md` US2, FR-004/FR-005; `research.md` D5 (truth-prose boundary) |
+| NOOP (checked) | `specs/truth/features/cli/**` (all other features + rows) | the round adds **no** observable behaviour ⇒ no new/changed interface Gherkin or DSL row beyond the `history` prologue prose; the `-b` step definitions and the round-081 Examples are unchanged | `spec.md` FR-003/FR-007; `plan.md` §1 |
