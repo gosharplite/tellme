@@ -72,7 +72,9 @@ documentation* layer.
 
 - **I-1 — No product code / no behaviour change.** Round 085 touches only `specs/plans/**`,
   `specs/truth/features/cli/**/dsl.md`, `specs/truth/techstack.md`, `Makefile` (a help string + a
-  comment), an ADR §Forward annotation, and the governance docs (`STATUS.md` / the day summary). No
+  comment), the ADR 0012 **index row** (`docs/decisions/README.md` — its declared immutability
+  carve-out; the §Forward body is left verbatim), and the governance docs (`STATUS.md` / the day
+  summary). No
   `.go` file, no `.feature` file (the step text is unchanged), no `go.mod`/`go.sum`.
 - **I-2 — E2E unchanged and green.** The `.feature` files and the Go step definitions are untouched,
   so `go test -count=1 ./...` stays green with the same scenario/step counts (E2E **314 scenarios · 2354 steps**; the audit's own 2328 Gherkin steps are a different count).
