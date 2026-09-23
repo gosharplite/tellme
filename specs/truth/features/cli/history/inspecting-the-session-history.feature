@@ -96,6 +96,9 @@ Feature: Inspecting the session history
         | What is my name?  | Alice  |
       When the operator asks tellme to list the last messages without a count
       Then tellme lists the last 1 messages
+      # Round-082 fold F-082-2: the omitted-count path (`-l` ≡ `-l 1`) is the
+      # SC-002 carrier — its single listed message is `[MODEL] - 1`.
+      And the listing heads each message with its backward turn index
       And tellme exits successfully
 
   Rule: A forced session mode outranks the named configuration
@@ -186,4 +189,57 @@ Feature: Inspecting the session history
         | hi     | Noted. |
       When the operator asks tellme to list the last 2 messages
       Then the listing carries no accents
+      And tellme exits successfully
+
+  # Round 082 (ADR 0054; issue #165): the role header lines carry a BACKWARD turn
+  # index — `[USER] - N` / `[MODEL] - N`, where `N = 1` is the MOST RECENT
+  # `history.Entry` — so the listing maps 1:1 to `tellme -b [N]` (the turn `-b 1`
+  # removes is the one labelled `- 1`). Both messages of one turn carry the SAME
+  # index; the index is the TRUE distance from the end of the LOADED history, so a
+  # lone leading message of an odd `-l N` slice keeps its true distance (it is not
+  # renumbered by its position in the printed window). The whole label is the
+  # colour unit: `\033[1;34m[USER] - N\033[0m` / `\033[1;35m[MODEL] - N\033[0m` on
+  # a terminal stdout with `-r` off; plain otherwise. The `-l` last-N-MESSAGES
+  # selection, the body rendering, and `-b`/the stores are unchanged.
+  Rule: A listed role header shows how far back its turn is
+
+    Example: The most recent turn is numbered 1
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds the exchanges:
+        | prompt            | answer |
+        | My name is Alice. | Noted. |
+        | What is my name?  | Alice  |
+      When the operator asks tellme to list the last 4 messages
+      Then the listing heads each message with its backward turn index
+      And tellme exits successfully
+
+    Example: A partial listing keeps the leading message's true distance
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds the exchanges:
+        | prompt            | answer |
+        | My name is Alice. | Noted. |
+        | What is my name?  | Alice  |
+      When the operator asks tellme to list the last 3 messages
+      Then the listing heads each message with its backward turn index
+      And tellme exits successfully
+
+    Example: A tool-using turn numbers its two messages the same
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds a tool-using exchange
+      When the operator asks tellme to list the last 2 messages
+      Then the listing heads each message with its backward turn index
+      And tellme exits successfully
+
+    Example: A terminal listing accents the whole turn-index label
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the output is shown at a terminal
+      And the session history already holds the exchanges:
+        | prompt | answer |
+        | hi     | Noted. |
+      When the operator asks tellme to list the last 2 messages
+      Then the listing accents the operator role in blue and the model role in magenta
       And tellme exits successfully
