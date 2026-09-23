@@ -20,7 +20,7 @@
 - [X] **T002** `[WITNESS]` — `internal/infrastructure/history/file_store_sync_test.go` (new): the recording `durableFS` fake + **`TestFileStore_Rollback_SyncsTempFileBeforeRename`** — assert the ordered events `sync(*.tmp)` → `rename(*.tmp → history.jsonl)` → `syncdir`. **Falsifier**: remove the `s.fs.Sync(f)` call ⇒ this pin reddens. `Dependencies: T001` · `Test Scope: internal/infrastructure/history` · `Target: file_store.go writeRaw`
 - [X] **T003** `[WITNESS]` — `file_store_sync_test.go`: **`TestFileStore_Rollback_SyncErrorLeavesPriorHistoryIntact`** (EC-001) — the fake's `Sync` errors ⇒ `Rollback` returns the error, no rename occurs, the prior `history.jsonl` is byte-intact, and no temp file remains. `Dependencies: T001` · `Falsifier`: ignore the sync error ⇒ reddens.
 - [X] **T004** `[WITNESS]` — `file_store_sync_test.go`: **`TestFileStore_Rollback_DirSyncErrorDoesNotFail`** (EC-002) — the fake's `SyncDir` errors ⇒ `Rollback` still succeeds (best-effort). `Dependencies: T001` · `Falsifier`: propagate the dir-sync error ⇒ reddens.
-- [X] **T005** `[WITNESS]` — `file_store_sync_test.go`: **`TestFileStore_Rollback_PreservesSurvivorBytesOnToolWrittenPath`** (EC-004) — append three entries **through the store**, snapshot the file, roll back one, assert the surviving bytes are **byte-identical** to the first two original lines. `Dependencies: T001` · `Falsifier`: re-marshal the survivors instead of the raw copy ⇒ reddens.
+- [X] **T005** `[WITNESS]`— **companion guard** (fold **F-084-1**): `file_store_sync_test.go`: **`TestFileStore_Rollback_PreservesSurvivorBytesOnToolWrittenPath`** (EC-004) — append three entries **through the store**, snapshot the file, roll back one, assert the surviving bytes are **byte-identical** to the first two original lines. **It is a guard, not a discriminating witness**: for canonical tool-written lines a decode+`json.Marshal` round-trip is byte-identical, so a re-marshal mutant leaves it green (measured). The **falsifiable** form of the "byte-unchanged" claim is the pre-existing hand-filled pin `TestFileStore_Rollback_DoesNotRewriteSurvivorBytes` (an unknown future field is lost under a re-marshal) — re-attributed in the ledger. `Dependencies: T001`.
 - [X] **T006** — run the round-084 unit pins **+** the existing round-081 rollback suite — **Green**.
 
 ## Phase 3 — Truth & Records
@@ -51,13 +51,26 @@
 |---|---|---|---|---|---|---|
 | **CLM-084-1** | `spec.md` FR-001/NFR-001 · `techstack.md` *Session history store* · domain-model invariant | the rollback's **file `fsync` runs before the atomic `rename`** | `[WITNESS]` | T002 / ADR 0056 D2/D5 | remove `s.fs.Sync(f)` ⇒ T002 reddens | **witnessed** |
 | **CLM-084-2** | `spec.md` FR-005/EC-002 · ADR 0056 §Forward | the **directory `fsync` is best-effort** (its error does not fail the rollback) | `[WITNESS]` (the best-effort property) + `accepted-unwitnessed` (the dir-durability *effect*) | T004 / ADR 0056 §Forward **RF-084-1** | propagate the dir-sync error ⇒ T004 reddens; the dir-durability effect itself is **accepted-unwitnessed** | witnessed (best-effort) / accepted-unwitnessed |
-| **CLM-084-3** | `spec.md` EC-004 · domain-model invariant ("survivors byte-unchanged") | the survivors are copied **raw** (byte-unchanged) on the tool-written path | `[WITNESS]` | T005 / ADR 0056 D5 | re-marshal the survivors ⇒ T005 reddens | **witnessed** |
+| **CLM-084-3** | `spec.md` EC-004 · domain-model invariant ("survivors byte-unchanged") | the survivors are copied **raw** (byte-unchanged) | `[WITNESS]` | **`TestFileStore_Rollback_DoesNotRewriteSurvivorBytes`** (pre-existing, round 081) — **fold F-084-1**: the discriminating falsifier is the *hand-filled* line with an unknown field (lost under a re-marshal); `T005` is a **companion guard** (tool-written lines are byte-identical under a re-marshal ⇒ non-discriminating) | re-marshal the survivors ⇒ the hand-filled pin reddens (measured) | **witnessed** (hand-filled) / tool-written path = guard |
 | **CLM-084-4** | `spec.md` EC-001 | a **sync error leaves the prior history intact** (no rename, temp removed) | `[WITNESS]` | T003 / ADR 0056 D5 | ignore the sync error ⇒ T003 reddens | **witnessed** |
 | **CLM-084-5** | `spec.md` FR-003/FR-007 · `specs/truth/features/cli/history/**` | the observable rollback contract (clamp · no-op · archive-untouched · exit codes) | `[BDD-GREEN]` | the round-081 rollback Examples/suite (unchanged) | n/a (observed) | covered |
 
 ## Fold ledger
 
 *(populated during the review-fold loop)*
+
+## Fold ledger
+
+**PR #170 architectural review (the `architect` peer) — `APPROVE WITH REQUIRED FOLDS`** (no `[ARCHITECTURAL BLOCKER]`). Posted: <https://github.com/gosharplite/tellme/pull/170#issuecomment-5795203703>.
+
+| # | Finding | Fold |
+| --- | --- | --- |
+| **F-084-1** | the ledger's CLM-084-3 falsifier was non-discriminating — a re-marshal mutant leaves `T005` green (measured); the red comes from the pre-existing hand-filled `…DoesNotRewriteSurvivorBytes` | re-attributed CLM-084-3's witness to the hand-filled pin; downgraded `T005` to a companion guard (label + reason + measured note); corrected `research.md` D5.4 |
+| **F-084-2** | two issue-named surfaces still asserted the pre-calibration over-claim (ADR 0053 D3 + Consequences; the README index row 0053) | annotated ADR 0053 **D3 + Consequences** inline with the ADR 0056 calibration pointer; added the witness pointer to the index row 0053 |
+| **TD-084-1** | the durability *class* is witnessed only on the rollback path | scoped the `GAPS.md` §7 closure to the **rollback** clause (RF-084-4) |
+| **N-084-1** | RF-084-3 called the seam "test-only" | reworded — an unexported injection point, production default unchanged |
+| **N-084-2** | the order pin asserted **exact** event-sequence equality (over-coupling / doubles as a seam guard) | relaxed to the **order relation** (`sync` index < `rename` index) + the temp-file target; the seam-participation side effect noted |
+| **N-084-3** | `GAPS.md` §2's dir-`fsync` row still showed ❌ | reconciled the marker with the corrected reading (no asserted claim to falsify) |
 
 ## Falsifiability witnesses
 

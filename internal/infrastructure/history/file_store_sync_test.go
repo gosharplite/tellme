@@ -60,13 +60,28 @@ func TestFileStore_Rollback_SyncsTempFileBeforeRename(t *testing.T) {
 		t.Fatalf("removed = %d, want 1", removed)
 	}
 
-	want := []string{
-		"sync:" + activeFileName + ".tmp",
-		"rename:" + activeFileName + ".tmp->" + activeFileName,
-		"syncdir:" + filepath.Base(ws),
+	// Assert the ORDER RELATION the claim names ("the temp file is fsync'd BEFORE
+	// it is renamed") rather than an exact event sequence — exact equality would
+	// over-couple to an extra/benign primitive (fold N-084-2). The pin also, as a
+	// side effect, guards that the rewrite routes through the seam: a direct
+	// f.Sync() records no sync event.
+	syncIdx, renameIdx := -1, -1
+	for i, e := range fs.events {
+		switch {
+		case strings.HasPrefix(e, "sync:"):
+			syncIdx = i
+		case strings.HasPrefix(e, "rename:"):
+			renameIdx = i
+		}
 	}
-	if strings.Join(fs.events, ",") != strings.Join(want, ",") {
-		t.Fatalf("durability events = %v,\n  want (fsync BEFORE rename) %v", fs.events, want)
+	if syncIdx < 0 || renameIdx < 0 {
+		t.Fatalf("the rollback must fsync the temp file then rename it via the seam; events = %v", fs.events)
+	}
+	if syncIdx > renameIdx {
+		t.Fatalf("the temp-file fsync must PRECEDE the rename; events = %v", fs.events)
+	}
+	if want := "sync:" + activeFileName + ".tmp"; fs.events[syncIdx] != want {
+		t.Fatalf("the fsync must target the temp file (%q); events = %v", want, fs.events)
 	}
 }
 

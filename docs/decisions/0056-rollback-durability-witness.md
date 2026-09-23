@@ -72,6 +72,6 @@ with an `os`-backed default (`osDurableFS`) and a nil-guard accessor. `fileStore
 
 - **RF-084-1** — the directory `fsync` stays **best-effort** and is recorded as accepted-unwitnessed; a future round may make it mandatory (and witness it) if a filesystem without directory fsync is no longer supported.
 - **RF-084-2** — the mechanism-seam pin witnesses the **call order** (`fsync` before `rename`), not the kernel's on-disk durability; a true power-loss witness would need an injected crash point (the heavier fault-injection tier), not adopted.
-- **RF-084-3** — the `durableFS` seam is **unexported** and test-only; the production default is the `os` implementation (unchanged).
+- **RF-084-3** — the `durableFS` seam is **unexported** — an injection point compiled into production with the `os` default (not "test-only"); production behaviour is unchanged.
 - **RF-084-4** — `Append`/`Archive` and the usage store still call `f.Sync()` directly (not through the seam); the claim is the **rollback** path only — widening the seam to every write is out of scope.
 - **RF-084-5** — this accepted-unwitnessed record is a **disclosure, not tasking**: per the harness rules it is never re-raised without a fired trigger.
