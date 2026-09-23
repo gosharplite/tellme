@@ -1,6 +1,6 @@
 # ADR 0045 — The `-l` history listing presents messages as a conversation
 
-**Status**: Accepted (round 073)
+**Status**: Accepted (round 073) — **amended by [ADR 0054](0054-list-backward-turn-indices.md)** (round 082: the role headers carry a backward-counting turn index, `[USER] - N` / `[MODEL] - N`; the whole label is the colour unit)
 
 **Date**: 2026-09-21
 

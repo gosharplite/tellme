@@ -17,6 +17,7 @@ func init() {
 		ctx.Given(`^the output is shown at a terminal$`, givenStdoutTerminal)
 		ctx.When(`^the operator asks tellme to list the last (\d+) messages as raw output$`, whenListLastRaw)
 		ctx.Then(`^tellme heads each listed message with its role$`, thenHeadsEachMessageWithItsRole)
+		ctx.Then(`^the listing heads each message with its backward turn index$`, thenListingHeadsWithBackwardTurnIndex)
 		ctx.Then(`^the listed model answer is presented as formatted prose$`, thenModelAnswerRendered)
 		ctx.Then(`^the listed operator prompt is shown verbatim$`, thenOperatorPromptVerbatim)
 		ctx.Then(`^the listed model answer is shown as its raw source$`, thenModelAnswerRawSource)
@@ -42,11 +43,31 @@ func whenListLastRaw(ctx context.Context, count int) error {
 	return nil
 }
 
-// listingBlock is one listed message: the role header text and the (visible)
-// body.
+// listingBlock is one listed message: the role header text (the bare role), the
+// message's backward turn index (round 082; 0 when the header carries no index),
+// and the (visible) body.
 type listingBlock struct {
-	role string
-	body string
+	role  string
+	index int
+	body  string
+}
+
+// parseListingHeader parses a role header line, optionally suffixed with the
+// round-082 backward turn index: `[USER]` / `[MODEL]` / `[USER] - N` /
+// `[MODEL] - N`. It returns the bare role, the index (0 when absent), and
+// whether the line is a header at all.
+func parseListingHeader(line string) (role string, index int, ok bool) {
+	for _, r := range []string{"[USER]", "[MODEL]"} {
+		if line == r {
+			return r, 0, true
+		}
+		if v, found := strings.CutPrefix(line, r+" - "); found {
+			if n, err := strconv.Atoi(v); err == nil {
+				return r, n, true
+			}
+		}
+	}
+	return "", 0, false
 }
 
 // listingBlocks splits a listing capture into its messages by the role headers.
@@ -58,8 +79,8 @@ func listingBlocks(out string) []listingBlock {
 	var blocks []listingBlock
 	for _, ln := range lines {
 		t := strings.TrimRight(ln, " \t")
-		if t == "[USER]" || t == "[MODEL]" {
-			blocks = append(blocks, listingBlock{role: t})
+		if role, idx, ok := parseListingHeader(t); ok {
+			blocks = append(blocks, listingBlock{role: role, index: idx})
 			continue
 		}
 		if len(blocks) == 0 {
@@ -262,7 +283,7 @@ func thenMessagesSeparatedByBlankLine(ctx context.Context) error {
 	headers := 0
 	for i, ln := range lines {
 		t := strings.TrimRight(ln, " \t")
-		if t != "[USER]" && t != "[MODEL]" {
+		if _, _, ok := parseListingHeader(t); !ok {
 			continue
 		}
 		headers++
@@ -281,13 +302,18 @@ func thenMessagesSeparatedByBlankLine(ctx context.Context) error {
 
 // thenListingAccentsRoles (必查 呈現結果): on a terminal stdout the [USER] header is
 // wrapped in the reference's bright blue and the [MODEL] header in bright magenta.
+// Round 082 (ADR 0054): the wrap encloses the WHOLE label, including the ` - N`
+// backward turn index (`\x1b[1;34m[USER] - N\x1b[0m`).
 func thenListingAccentsRoles(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
-	if !strings.Contains(sc.stdout, "\x1b[1;34m[USER]\x1b[0m") {
-		return fmt.Errorf("the [USER] header must be accented bright blue; stdout=%q", sc.stdout)
+	if !strings.Contains(sc.stdout, "\x1b[1;34m[USER] - ") {
+		return fmt.Errorf("the whole [USER] label (incl. the turn index) must be accented bright blue; stdout=%q", sc.stdout)
 	}
-	if !strings.Contains(sc.stdout, "\x1b[1;35m[MODEL]\x1b[0m") {
-		return fmt.Errorf("the [MODEL] header must be accented bright magenta; stdout=%q", sc.stdout)
+	if !strings.Contains(sc.stdout, "\x1b[1;35m[MODEL] - ") {
+		return fmt.Errorf("the whole [MODEL] label (incl. the turn index) must be accented bright magenta; stdout=%q", sc.stdout)
+	}
+	if !strings.Contains(sc.stdout, "\x1b[0m") {
+		return fmt.Errorf("the accent must be reset with \\x1b[0m; stdout=%q", sc.stdout)
 	}
 	return nil
 }
@@ -311,9 +337,45 @@ func thenListingCarriesNoAccents(ctx context.Context) error {
 	if raw && strings.ContainsRune(sc.stdout, '\x1b') {
 		return fmt.Errorf("a -r listing must carry no escape byte; stdout=%q", sc.stdout)
 	}
-	for _, h := range []string{"[USER]", "[MODEL]"} {
+	// Round 082: the plain label still carries the backward turn index.
+	for _, h := range []string{"[USER] - ", "[MODEL] - "} {
 		if !strings.Contains(sc.stdout, h) {
-			return fmt.Errorf("the header %s must still be printed; stdout=%q", h, sc.stdout)
+			return fmt.Errorf("the header %q must still be printed (plain, with its turn index); stdout=%q", h, sc.stdout)
+		}
+	}
+	return nil
+}
+
+// thenListingHeadsWithBackwardTurnIndex (必查 呈現結果; round 082, ADR 0054): the
+// role header sequence equals the expected `[USER] - K` / `[MODEL] - K` lines,
+// with K the turn's TRUE distance from the end of the loaded history (1 = the
+// most recent turn). The expectation is derived from the ARRANGED exchanges and
+// the `-l N` REQUEST (the last N MESSAGES), never from the observed output — so a
+// dropped message, a missing index, or a re-numbered leading message reddens.
+func thenListingHeadsWithBackwardTurnIndex(ctx context.Context) error {
+	sc := scenarioFrom(ctx)
+	blocks := listingBlocks(sc.stdout)
+
+	var want []string
+	for i := range sc.arrangedExchanges {
+		turnIndex := len(sc.arrangedExchanges) - i
+		want = append(want,
+			fmt.Sprintf("[USER] - %d", turnIndex),
+			fmt.Sprintf("[MODEL] - %d", turnIndex))
+	}
+	if n := arrangedListCount(sc); len(want) > n {
+		want = want[len(want)-n:]
+	}
+	if len(blocks) != len(want) {
+		return fmt.Errorf("the listing showed %d messages, want %d; stdout=%q", len(blocks), len(want), sc.stdout)
+	}
+	for i, w := range want {
+		got := blocks[i].role
+		if blocks[i].index > 0 {
+			got = fmt.Sprintf("%s - %d", blocks[i].role, blocks[i].index)
+		}
+		if got != w {
+			return fmt.Errorf("message %d header = %q, want %q; stdout=%q", i, got, w, sc.stdout)
 		}
 	}
 	return nil

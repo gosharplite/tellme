@@ -68,11 +68,21 @@ const (
 	ListingModel
 )
 
-// ListingMessage is one listed history message: its presented role and its
-// (unrendered) body text.
+// ListingMessage is one listed history message: its presented role, its
+// (unrendered) body text, and its backward turn index.
+//
+// TurnIndex is the distance of the message's turn from the MOST RECENT turn of
+// the loaded history, counting back: 1 = the most recent history entry, 2 = the
+// one before it, and so on. Both messages of one entry carry the SAME index (a
+// turn is atomic under `-b`), and it is the TRUE distance from the end of the
+// loaded history — never derived from the (possibly truncated) message slice, so
+// a lone leading message of an odd `-l N` keeps its true distance. It is
+// computed by the caller (round 082; ADR 0054). A value <= 0 (a non-history
+// caller) makes the adapter print the bare role label with no suffix.
 type ListingMessage struct {
-	Role ListingRole
-	Body string
+	Role      ListingRole
+	Body      string
+	TurnIndex int
 }
 
 // ListingSpec carries the listing's presentation inputs. Colour is the

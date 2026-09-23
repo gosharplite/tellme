@@ -1,9 +1,9 @@
 # tellme — Status
 
-**Last updated**: 2026-09-23 (session 69 — **docs-only STATUS hygiene**: the accreted delivery / tracker / reference history was relocated **verbatim** into [`docs/archives/status/2026-09-23.md`](docs/archives/status/2026-09-23.md) per Rule 12; `STATUS.md` is now **live state only** — see the Split note + the current round below. No round in flight; no product/truth change.)
-**Round in flight**: **none** — round 081 delivered/frozen on `dev`; the next round opens off `dev` (a value / live-issue theme; the tracker is **0 open**).
-**Active branch**: `dev` (round 081 delivered via PR [#164](https://github.com/gosharplite/tellme/pull/164) merged `f9aa96f`, **merge commit**; propagation `dev -> main` **DONE (no-ff)**, tagged `round-081`; round branch deleted local + remote; the closeout docs sit on top of the delivery anchor). `dev` also carries the **2026-09-23 hygiene commits** `e44af79` + `7bb6c0e`; their `dev -> main` propagation is **DONE (no-ff)** (operator-approved; docs-only — **not** a round, so no `round-NNN` tag).
-**Daily log**: [`docs/session-summary/2026/09/23/session-summary.md`](docs/session-summary/2026/09/23/session-summary.md) (the 2026-09-23 STATUS-hygiene pass) · prior: [`2026-09-22`](docs/session-summary/2026/09/22/session-summary.md) (round 081)
+**Last updated**: 2026-09-23 (session 70 — round **082** `082-listing-backward-turn-indices` **review-fold loop CLOSED; PR [#166](https://github.com/gosharplite/tellme/pull/166) ready for human merge**. `architect` peer (`SESSION-BOOTSTRAP.md`-initialized once) → **APPROVE WITH REQUIRED FOLDS** (head `76474d9`) → fold `78bcde2` (F-082-1…3 + N-082-1/2) → **FOLDS VERIFIED — CLEARED FOR HUMAN MERGE**. No Copilot review; only a human merges.)
+**Round in flight**: **082** `082-listing-backward-turn-indices` — anchor issue [#165](https://github.com/gosharplite/tellme/issues/165); **PR [#166](https://github.com/gosharplite/tellme/pull/166) OPEN, review loop CLOSED** (fold head `78bcde2`; awaiting a human review/merge). Branch `082-listing-backward-turn-indices` off `dev` `7bb6c0e`.
+**Active branch**: `082-listing-backward-turn-indices` (off `dev` `7bb6c0e`; round branch). `dev` holds round 081 delivered/frozen (PR [#164](https://github.com/gosharplite/tellme/pull/164) merged `f9aa96f`, **merge commit**; propagation `dev -> main` **DONE (no-ff)**, tagged `round-081`) + the **2026-09-23 hygiene commits** `e44af79`/`7bb6c0e` (propagated no-ff; docs-only — no `round-NNN` tag).
+**Daily log**: [`docs/session-summary/2026/09/23/session-summary.md`](docs/session-summary/2026/09/23/session-summary.md) · prior: [`2026-09-22`](docs/session-summary/2026/09/22/session-summary.md) (round 081)
 
 ## Last delivered round - 081 `081-back-rollback-turns` (DELIVERED / FROZEN - PR [#164](https://github.com/gosharplite/tellme/pull/164) merged into `dev` `f9aa96f`, **merge commit**; **ADR 0053**)
 
@@ -34,7 +34,7 @@
 
 > **Direction (2026-09-15)** — no security · no Windows · **bash-first** · a deliberately small tool surface (see [`README.md`](README.md#-design-intent--direction-operator-declared)).
 
-**Delivered**: rounds 001-081 - per-round detail in the [archives](docs/archives/status/) + `specs/plans/`; delivery rounds/PRs in the archive index. **Candidates**: none - the tracker is **0 open**; a new round opens off `dev` from operator value or a live issue (Bootstrap Agent Rule 11).
+**Delivered**: rounds 001-081 - per-round detail in the [archives](docs/archives/status/) + `specs/plans/`; delivery rounds/PRs in the archive index. **Candidates**: the tracker is **1 open** — [#165](https://github.com/gosharplite/tellme/issues/165) (round **082**'s anchor, in flight); a new round opens off `dev` from operator value or a live issue (Bootstrap Agent Rule 11).
 
 ## Environment notes
 

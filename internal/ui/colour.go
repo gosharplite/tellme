@@ -30,12 +30,14 @@ const (
 	// colour-enabled terminal.
 	colorYellow = "\033[0;33m"
 	// colorBlue is the reference's bright-blue SGR (tell-me-go colors.go). Round
-	// 073 (ADR 0045): the `[USER]` header line of the `-l` listing, on a terminal
-	// stdout.
+	// 073 (ADR 0045): the `[USER]` header of the `-l` listing, on a terminal
+	// stdout. Round 082 (ADR 0054; N-082-1): the WHOLE label is the colour unit,
+	// so the wrap encloses the suffix too (`[USER] - N`).
 	colorBlue = "\033[1;34m"
 	// colorMagenta is the reference's bright-magenta SGR (tell-me-go colors.go).
-	// Round 073 (ADR 0045): the `[MODEL]` header line of the `-l` listing, on a
-	// terminal stdout.
+	// Round 073 (ADR 0045): the `[MODEL]` header of the `-l` listing, on a
+	// terminal stdout. Round 082 (ADR 0054; N-082-1): the WHOLE label is the
+	// colour unit, so the wrap encloses the suffix too (`[MODEL] - N`).
 	colorMagenta = "\033[1;35m"
 	// colorReset clears the SGR state, returning the terminal to default.
 	colorReset = "\033[0m"
