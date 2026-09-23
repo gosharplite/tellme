@@ -5,8 +5,8 @@
 **Status file**: [`STATUS.md`](../../../../../STATUS.md) *(back-link — the single live-state source)*
 **Workspace**: `…/mbp-johndoe-tellme/ait-tellme` (`$TELL_ME_HOME`); darwin/arm64 host (Go 1.26.6).
 **Session mode**: `butler`.
-**Branches**: `dev` only (no round branch) — commit `e44af79`, pushed to `origin/dev`.
-**Status at end of day**: round **081** remains DELIVERED / FROZEN (the latest delivered round); no round in flight. This session was a **docs-only `STATUS.md` hygiene pass** (no round, no product/truth change): `STATUS.md` was reduced to the **live state** (139 → 53 lines) and six accreted history/reference blocks were relocated **verbatim** into [`docs/archives/status/2026-09-23.md`](../../../../archives/status/2026-09-23.md).
+**Branches**: `dev` only (round 084 delivered via PR [#170](https://github.com/gosharplite/tellme/pull/170) merged `05b23e2`, **merge commit**); round branch deleted local + remote; propagation `dev → main` **DONE (no-ff)**, tagged `round-084`.
+**Status at end of day**: round **084** `084-rollback-durability-witness` **DELIVERED / FROZEN** (the day's latest) — the `-b` rollback **durability clause becomes falsifiable** via a store-level `durableFS` seam + a mechanism-seam pin, the asserted effect calibrated, and the best-effort directory `fsync` recorded **accepted-unwitnessed**; **ADR 0056**; anchor issue [#169](https://github.com/gosharplite/tellme/issues/169) (**closes it**). *(The day delivered rounds 082 (§2), 083 (§3), and 084 (§4); §1 is the round-082-era docs-only `STATUS.md` hygiene pass.)*
 
 ---
 
