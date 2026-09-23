@@ -46,7 +46,7 @@ Constraint-ordered execution. The round is docs/truth-only; the task list is sho
 
 | Claim | Witness | Mutant that reddens it |
 | --- | --- | --- |
-| The topology audit reports 0 errors | `audit_feature_dsl_topology.py --root specs/truth/features/cli` exits 0 (0 errors; 53 features · 6 modules · 17 root rows · 455 module rows · 2328 steps) | re-introduce a module-scoped shared row, or strip a round-083 header ⇒ the corresponding step surfaces as "找不到 DSL row" (back to 11) |
+| The topology audit reports 0 errors | `audit_feature_dsl_topology.py --root specs/truth/features/cli` exits 0 (0 errors; 53 features · 6 modules · 21 root rows · 457 module rows · 2328 steps) | re-introduce a module-scoped shared row, or strip a round-083 header ⇒ the corresponding step surfaces as "找不到 DSL row" (back to 11) |
 | The four shared rows have one home (root) | each phrase appears exactly once across `dsl.md` + `*/dsl.md`, at the root | leaving a copy in a module ⇒ the audit's duplicate-authority error |
-| The behaviour is unchanged | `go test -count=1 ./...` green, E2E counts unchanged (2328 steps) | a `.feature`/step-definition edit ⇒ count drift |
+| The behaviour is unchanged | `go test -count=1 ./...` green, E2E counts unchanged (314 scenarios · 2354 steps) | a `.feature`/step-definition edit ⇒ count drift |
 | The help text describes the witness | `make help \| grep verify-no-network` | restoring the retired "build-graph capability guard" wording |

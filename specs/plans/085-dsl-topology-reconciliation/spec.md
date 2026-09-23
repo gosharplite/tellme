@@ -57,7 +57,7 @@ documentation* layer.
 ## 3. Requirements
 
 - **FR-001** After the round, `audit_feature_dsl_topology.py --root specs/truth/features/cli` MUST
-  report **0 errors** (summary: 53 features · 6 modules · 17 root rows · 455 module rows · 2328 steps).
+  report **0 errors** (summary: 53 features · 6 modules · 21 root rows · 457 module rows · 2328 steps).
 - **FR-002** The four shared rows MUST each have **exactly one** authoritative home (the interface
   root) and MUST NOT be duplicated in a module DSL.
 - **FR-003** The round-083 rows MUST be parseable — each round block in `chat/dsl.md` carries its own
@@ -75,7 +75,7 @@ documentation* layer.
   comment), an ADR §Forward annotation, and the governance docs (`STATUS.md` / the day summary). No
   `.go` file, no `.feature` file (the step text is unchanged), no `go.mod`/`go.sum`.
 - **I-2 — E2E unchanged and green.** The `.feature` files and the Go step definitions are untouched,
-  so `go test -count=1 ./...` stays green with the same scenario/step counts (2328 steps).
+  so `go test -count=1 ./...` stays green with the same scenario/step counts (E2E **314 scenarios · 2354 steps**; the audit's own 2328 Gherkin steps are a different count).
 - **I-3 — `dsl-exact-one-match` holds.** Every step still matches exactly one row; no phrase is
   duplicated across levels.
 - **I-4 — `make verify` unaffected** (no gate added, removed, or re-scoped).

@@ -55,7 +55,7 @@ Posted as the corrected breakdown on [#173](https://github.com/gosharplite/tellm
 | Pipeline | specify ✅ · spec-by-example **NOOP** (no behaviour change) · technical-research ✅ (D1–D8; **no ADR** — no new durable decision) · system-analysis ✅ (1 CLI end; api/data/UI NOOP) · dsl-refine ✅ (the truth owner) · tasks ✅ (T001–T009) · implement ✅ |
 | The change | **Class A** — promote 4 cross-module rows to the interface root `cli/dsl.md` (removed from `chat/dsl.md` / `configuration/dsl.md`); **Class B** — restore the round-083 `## Given/Then` headings + `DSL 句型` headers; **Class C** — add the composite projection row; **#174** — `Makefile` help line + target comment, `techstack.md` R8d bullet retired, ADR 0012 §Forward annotated |
 | Witness | the topology audit **11 → 0** errors (0 warnings; 53 features · 6 modules · **21** root + **457** module rows · 2328 steps) |
-| Verification | `make verify` **OK** · `go test -count=1 ./...` **green** (E2E ~23 s; 2328 steps **unchanged**) · `gofmt`/`goimports` clean · `make help \| grep verify-no-network` prints the offline-path-witness wording · `go.mod`/`go.sum` **unchanged** |
+| Verification | `make verify` **OK** · `go test -count=1 ./...` **green** (E2E ~23 s; **314 scenarios · 2354 steps** unchanged) · `gofmt`/`goimports` clean · `make help \| grep verify-no-network` prints the offline-path-witness wording · `go.mod`/`go.sum` **unchanged** |
 | Delivery | branch `085-dsl-topology-reconciliation` → **PR open** — awaiting a human review/merge (no Copilot review) |
 
 ### Decisions locked (round 085)

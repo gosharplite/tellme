@@ -101,7 +101,7 @@ help:
 	@echo "  make check                - verify + test (the whole gate; ADR 0042)"
 	@echo "  make check-full           - check + test-race (pre-push; ADR 0042)"
 	@echo "  make verify-no-test-sleep - forbid time.Sleep for synchronization in *_test.go (ADR-036 parity)"
-	@echo "  make verify-no-network    - offline-path no-dial witness: the offline paths make no provider request (round 004)"
+	@echo "  make verify-no-network    - offline-path no-contact witness: the offline paths make no provider request (recording sink + differential; round 004)"
 	@echo "  make verify-fmt           - gofmt -l + goimports -l: fail on unformatted/ungrouped Go files (ADR 0042)"
 	@echo "  make verify-adr-index     - every docs/decisions/ ADR is indexed once (ADR 0042)"
 	@echo "  make verify-cross-compile - build + vet the module for every supported POSIX target (linux/darwin, amd64/arm64)"
@@ -255,7 +255,7 @@ verify-no-test-sleep:
 # Single definition: delegates to the Go guard in tests/e2e (harness), so the
 # Makefile and the scenario step never drift (previously two diverging copies).
 verify-no-network:
-	@echo "verify-no-network: offline-path witness (recording sink + differential) ..."
+	@echo "verify-no-network: offline-path no-contact witness (recording sink + differential) ..."
 	@if ! go list ./cmd/tellme >/dev/null 2>&1; then \
 		echo "  (skip) ./cmd/tellme package not present yet"; exit 0; \
 	fi
