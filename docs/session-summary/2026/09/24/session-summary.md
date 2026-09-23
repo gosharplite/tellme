@@ -136,7 +136,7 @@ Round 085 was human-merged (PR [#175](https://github.com/gosharplite/tellme/pull
 | **2 — gates** | **`make check` OK** (`make verify` OK + `go test -count=1 ./...` green) · `make test-race` **no data races** · E2E **314 scenarios · 2354 steps** · diff-level secret scan clean · `go.mod`/`go.sum` unchanged |
 | **3 — STATUS.md** | header → round 085 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-084 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-24.md`](../../../../archives/status/2026-09-24.md); round-085 section added; delivered-rounds pointer → 001–085; roadmap candidates → the **2 open tracker records** (#171/#172); round-085 env note + the round-close-tags line refreshed; **54 lines** (live state only) |
 | **4 — daily summary** | this §2 (closeout) appended (the §1 record preserved) |
-| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match (post-closeout: the tracker holds **2 open records** — #177/#178, with #176 closed as redundant with #171) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match (post-closeout: the tracker holds **1 open record** — #178; #176/#177 closed as redundant with #171/#172) |
 | **6 — commit** | working `dev` committed + pushed |
 | **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-085`**; installed binary refreshed (`go install ./cmd/tellme`) |
 | **8 — issue tracker** | **[#173](https://github.com/gosharplite/tellme/issues/173) + [#174](https://github.com/gosharplite/tellme/issues/174) CLOSED** (delivered by PR #175 / `5fe899d`) with linking comments; the tracker holds **#171 + #172** (two records) |
@@ -156,12 +156,12 @@ Round 085 was human-merged (PR [#175](https://github.com/gosharplite/tellme/pull
 
 ### Open items (non-blocking)
 
-- **[#171](https://github.com/gosharplite/tellme/issues/171)** (ADR §Forward residual register) + **[#172](https://github.com/gosharplite/tellme/issues/172)** (`Not Introduced Yet` inventory) — **reconciled + closed as records** (R8d struck from #172; #171 verified 24/24 ADRs). The later standing records **[#176](https://github.com/gosharplite/tellme/issues/176)/[#177](https://github.com/gosharplite/tellme/issues/177)** (re-creations of those two surfaces) were reconciled: **#176 closed** as redundant with #171; **#177 kept**; **[#178](https://github.com/gosharplite/tellme/issues/178)** (carried operational observations) is the new surface → the tracker holds **2 open records** ([#177](https://github.com/gosharplite/tellme/issues/177) · [#178](https://github.com/gosharplite/tellme/issues/178)).
+- **[#171](https://github.com/gosharplite/tellme/issues/171)** (ADR §Forward residual register) + **[#172](https://github.com/gosharplite/tellme/issues/172)** (`Not Introduced Yet` inventory) — **reconciled + closed as records** (R8d struck from #172; #171 verified 24/24 ADRs). The later standing records **[#176](https://github.com/gosharplite/tellme/issues/176)/[#177](https://github.com/gosharplite/tellme/issues/177)** (re-creations of those two surfaces) were reconciled as **redundant**: **#176 closed** (∥#171) and **#177 closed** (∥#172); **[#178](https://github.com/gosharplite/tellme/issues/178)** (carried operational observations) is the only new surface → the tracker holds **1 open record**.
 - Carried: PR #16 **Obs 1** stdout-TTY probe; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the topology audit is **0 errors / 0 warnings** (reconciled this round).
 
 ### Next steps
 
-1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker holds two standing records, #177/#178).
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker holds one standing record, #178).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
 ### PM follow-ups
