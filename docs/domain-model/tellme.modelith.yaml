@@ -339,8 +339,8 @@ entities:
       bytes: JPEG/PNG/GIF/WebP), never the name; it is
       serialized inline on **both** families — a base64 `image_url` block on the
       OpenAI-compatible wire, or a base64 `inlineData` blob on the Gemini/Vertex
-      wire (round 063 / ADR 0033) — riding a `user` message after the tool
-      result. The media is in-flight only: it is never persisted with the `Turn`
+      wire (round 063 / ADR 0033) — riding **one** `user` message after **all**
+      the round's `tool` results (round 083 / ADR 0055). The media is in-flight only: it is never persisted with the `Turn`
       (the history step stores the tool's text result).
     attributes:
       - name: mimeType
@@ -663,8 +663,9 @@ scenarios:
       With a `Provider` that declares `vision`, the model calls `read_image`.
       The tool resolves the file's kind from its content and returns the media
       **in-band** from its execution (the MediaTool/ExecuteMedia capability;
-      round 070 / ADR 0040); the loop folds it back on a `user` message after the
-      tool result — so the model can see the picture. The media is carried on the
+      round 070 / ADR 0040); the loop folds the round's media back on **one**
+      `user` message after **all** the round's `tool` results (round 083 / ADR 0055)
+      — so the model can see the picture. The media is carried on the
       selected family's wire: an inline base64 `image_url` block on the
       OpenAI-compatible family, or an inline base64 `inlineData` blob on the
       Gemini/Vertex family (round 063 / ADR 0033). A provider without `vision` is

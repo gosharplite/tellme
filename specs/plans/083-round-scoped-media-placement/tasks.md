@@ -23,7 +23,7 @@
 - [X] **T008** — `specs/truth/features/cli/chat/reading-a-local-image.feature`: the round-083 Rule + 3 Examples (done at `/axb-dsl-refine`).
 - [X] **T009** — `specs/truth/features/cli/chat/dsl.md`: the round-083 note + the 5 new rows + the round-063 supersession pointer (done at `/axb-dsl-refine`).
 - [X] **T010** — `specs/truth/techstack.md` ×3 MODIFY (*Agent tool loop*; *Image content on the provider wire (OpenAI-compatible)*; *… (Gemini/Vertex)*) (done at `/axb-technical-research`).
-- [X] **T011** — **ADR 0055** (`docs/decisions/0055-round-scoped-media-placement.md` + index) **amends ADR 0032 D7** (done at `/axb-technical-research`).
+- [X] **T011** — **ADR 0055** (`docs/decisions/0055-round-scoped-media-placement.md` + index) **clarifies ADR 0032 D7** (done at `/axb-technical-research`).
 - [X] **T012** — `docs/domain-model/**` **NOT modelled** (recorded in `plan.md` §3; `modelith-check` stays green).
 
 ## Phase 4 — Gates

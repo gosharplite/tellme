@@ -30,7 +30,7 @@
 
 | Artifact | Owner | Action |
 | --- | --- | --- |
-| `docs/decisions/0055-round-scoped-media-placement.md` (+ index) | `/axb-technical-research` | **ADD** — amends ADR 0032 D7 |
+| `docs/decisions/0055-round-scoped-media-placement.md` (+ index) | `/axb-technical-research` | **ADD** — clarifies ADR 0032 D7 |
 | `specs/truth/techstack.md` — *Agent tool loop*, *Image content on the provider wire (OpenAI-compatible)*, *… (Gemini/Vertex)* | `/axb-technical-research` | **MODIFY** (×3) |
 | `specs/truth/features/cli/chat/reading-a-local-image.feature` + `chat/dsl.md` | `/axb-dsl-refine` | **MODIFY** — a new media-round Rule + rows |
 | `specs/truth/contracts/**` | `/axb-api-plan` | **NOOP** |
