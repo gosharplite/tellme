@@ -121,3 +121,51 @@ Posted as the corrected breakdown on [#173](https://github.com/gosharplite/tellm
 - **Cross-module rows belong at the interface root.** A row used by two or more modules must live in
   `cli/dsl.md`, not in one consumer's module (the merged lookup is root ∪ own module). Promotion —
   never duplication (`dsl-single-authority`).
+
+---
+
+## 2. Session 73 closeout (2026-09-24) — round 085 `085-dsl-topology-reconciliation` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 085 was human-merged (PR [#175](https://github.com/gosharplite/tellme/pull/175) → `dev` **`5fe899d`**, **merge commit** at 2026-09-23T22:00:20Z); `git fetch --prune` reported `[deleted] origin/085-dsl-topology-reconciliation`, the local branch tip (`a96c8c9`) was an ancestor of `origin/dev`, so the **local branch was deleted** (`git branch -d 085-dsl-topology-reconciliation`), `dev` was fast-forwarded to the merge, and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+### At a glance
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == 5fe899d`; no delivered `specs/plans/**` touched (084/083/082 unmodified); no stray temp files; round branch already deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `go test -count=1 ./...` green) · `make test-race` **no data races** · E2E **314 scenarios · 2354 steps** · diff-level secret scan clean · `go.mod`/`go.sum` unchanged |
+| **3 — STATUS.md** | header → round 085 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-084 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-24.md`](../../../../archives/status/2026-09-24.md); round-085 section added; delivered-rounds pointer → 001–085; roadmap candidates → the **2 open tracker records** (#171/#172); round-085 env note + the round-close-tags line refreshed; **54 lines** (live state only) |
+| **4 — daily summary** | this §2 (closeout) appended (the §1 record preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, **2 open tracker records** (#171/#172), branch heads match |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-085`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#173](https://github.com/gosharplite/tellme/issues/173) + [#174](https://github.com/gosharplite/tellme/issues/174) CLOSED** (delivered by PR #175 / `5fe899d`) with linking comments; the tracker holds **#171 + #172** (two records) |
+
+### Commits (branch `085-dsl-topology-reconciliation`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `ad7b0c0` | `docs(085)`: plan package + spec — round 085 in flight (anchors #173, #174) |
+| `4532111` | `feat(085)`: reconcile the CLI DSL topology to 0 audit errors + fix the verify-no-network help text |
+| `adc4994` | `docs(085)`: STATUS + day log — pipeline complete; PR open |
+| `292b977` | `fix(085)`: fold the architect review (F-085-1/2/3 + R-085-1 + N-085-1/2/3) |
+| `4da897a` | `fix(085)`: fold the fold-verification residuals (R-FV-085-1/2) |
+| `a96c8c9` | `fix(085)`: fold R-FV-085-3 (spec I-1 names the ADR 0012 index row) |
+| `5fe899d` | PR [#175](https://github.com/gosharplite/tellme/pull/175) merge into `dev` (by `gosharplite`) |
+| *(this closeout, on `dev`)* | `docs(085)`: day close — round 085 delivered + propagated; STATUS split + 09/24 summary §2 |
+
+### Open items (non-blocking)
+
+- **[#171](https://github.com/gosharplite/tellme/issues/171)** (ADR §Forward residual register) + **[#172](https://github.com/gosharplite/tellme/issues/172)** (`Not Introduced Yet` inventory) — **tracker records**, not tasking (disposition: reconcile the index and close as records).
+- Carried: PR #16 **Obs 1** stdout-TTY probe; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the topology audit is **0 errors / 0 warnings** (reconciled this round).
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker holds the two records #171/#172).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no spec/acceptance change; the round was a truth/record reconciliation).
+
+*(Round 085 is fully closed out: PR #175 human-merged into `dev` (`5fe899d`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-085`**; the installed binary refreshed; [#173](https://github.com/gosharplite/tellme/issues/173) + [#174](https://github.com/gosharplite/tellme/issues/174) closed.)*
