@@ -372,3 +372,51 @@ Operator: *"Communicate with sub-agent 'architect'. Initialize architect with `S
 - **Final verification** (`5795341023`): **`FOLDS VERIFIED — LOOP CLOSED`** (no residuals; no blocker) — the witness set re-measured at the final head (drop-`SyncDir` → red; remove `Sync` → red; sync-after-rename → red; direct `f.Sync()` seam bypass → red), independently.
 - **Fold 3** (`a103ed2`): folded the optional **N-084-4** (`GAPS.md` §2 dir-`fsync` row wording) for record-accuracy.
 - **State**: the review-fold loop is **CLOSED** — **PR [#170](https://github.com/gosharplite/tellme/pull/170) is ready for a human to review and merge** (no Copilot review; only a human merges).
+
+### 4 (closeout) — round 084 DELIVERED / FROZEN (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 084 was human-merged (PR [#170](https://github.com/gosharplite/tellme/pull/170) → `dev` `05b23e2`, **merge commit** at 2026-09-23T13:15:37Z by `gosharplite`); `git fetch --prune` reported `[deleted] origin/084-rollback-durability-witness`, the local branch was **deleted** after an ancestor check (`b796067` is an ancestor of `origin/dev`), `dev` was fast-forwarded to `origin/dev`, and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == 05b23e2`; no delivered `specs/plans/**` touched (081/082/083 unmodified); no stray temp files; round branch already deleted |
+| **2 — gates** | `make check` **OK** (`make verify` OK + `go test -count=1 ./...` green) · `make test-race` **no data races** · E2E **314 scenarios · 2354 steps** · diff-level secret scan clean (prose "token"/"API key" only) · `go.mod`/`go.sum` unchanged |
+| **3 — STATUS.md** | header → round 084 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-083 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-23.md`](../../../../archives/status/2026-09-23.md); round-084 section added; delivered-rounds pointer → 001–084; round-084 env note + refreshed topology wording; **55 lines** (live state only) |
+| **4 — daily summary** | this §4 (closeout) appended (the §1 + §2 + §3 + §4 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, 0 open issues, branch heads match |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-084`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#169](https://github.com/gosharplite/tellme/issues/169) CLOSED** with a linking comment; tracker → **0 open** |
+
+**Commits (branch `084-rollback-durability-witness`, then merged)**
+
+| Commit | Note |
+| --- | --- |
+| `2d09e33` | `docs(084)`: plan package + spec |
+| `ddf50cc` | `docs(084)`: acceptance Gherkin — the rollback's observable guarantees |
+| `3103c1a` | `docs(084)`: technical research + ADR 0056 + truth calibration |
+| `e2eb86c` | `docs(084)`: system analysis (plan.md) + dsl-refine (history prologue) + truth-delta |
+| `c12ad85` | `feat(084)`: witness the rollback durability clause — durableFS seam + mechanism-seam pin (ADR 0056) |
+| `c0e5047` | `docs(084)`: STATUS + day log §4 — pipeline complete; PR #170 open |
+| `5b5accc` | `fix(084)`: fold the architect review (F-084-1/2 + TD-084-1 + N-084-1/2/3) |
+| `8cf8b9c` | `fix(084)`: fold the fold-verification residuals (R-FV-084-1/2/3) |
+| `a103ed2` | `docs(084)`: fold N-084-4 (GAPS §2 dir-fsync row wording) |
+| `a2b1b28` | `docs(084)`: review-fold loop CLOSED — day log §4 (cont.) |
+| `b796067` | `docs(084)`: STATUS — review-fold loop CLOSED; PR #170 ready for human merge |
+| `05b23e2` | PR [#170](https://github.com/gosharplite/tellme/pull/170) merge into `dev` (by `gosharplite`) |
+| *(this closeout, on `dev`)* | `docs(084)`: day close — round 084 delivered + propagated; STATUS split + 09/23 summary |
+
+**Open items (non-blocking)**
+
+- **RF-084-1…5** in **ADR 0056 §Forward** (the best-effort directory `fsync` is accepted-unwitnessed · the mechanism-seam witnesses call order, not on-disk durability · the seam is an unexported injection point compiled into production · `Append`/`Archive` still call `f.Sync()` directly · the accept-record is a disclosure, not tasking). The recorded **TD-084-1** / **N-084-1…4** live in the round's `tasks.md` §Fold ledger.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the **6** topology-audit DSL errors (5 pre-existing + 1 documented cross-module class).
+- **Issue tracker**: **0 open**.
+
+**Next steps**
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker is **0 open**; Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+**PM follow-ups**: none new.
+
+*(Round 084 is fully closed out: PR #170 human-merged into `dev` (`05b23e2`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-084`**; the installed binary refreshed; [#169](https://github.com/gosharplite/tellme/issues/169) closed.)*
