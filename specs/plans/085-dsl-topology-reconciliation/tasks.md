@@ -26,7 +26,7 @@ Constraint-ordered execution. The round is docs/truth-only; the task list is sho
       (`… read "{path}" with the reason "{reason}" … and reports the token usage:`) with the
       `prompt/cached/completion/thinking` DataTable to `chat/dsl.md`.
 - [X] **T006 (#174 / R8d)** Correct the `Makefile` `make help` `verify-no-network` line and the target
-      header comment; retire the `techstack.md` R8d bullet; annotate the ADR 0012 §Forward item.
+      header comment; retire the `techstack.md` R8d bullet; annotate the ADR 0012 **index row** (the §Forward body is left verbatim).
 - [X] **T007 (witness, re-run)** `audit_feature_dsl_topology.py` ⇒ **0 errors**; warnings not
       regressed; the four promoted phrases each appear exactly once (at the root).
 

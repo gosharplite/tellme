@@ -52,7 +52,7 @@ documentation* layer.
 4. **#174 → correct** the `Makefile` help line (`build-graph capability guard: no net/net/http in
    ./cmd/tellme closure` → the shipped offline-path witness) and the stale header comment above the
    `verify-no-network` target; retire the `techstack.md` `Not Introduced Yet` **R8d** bullet and
-   annotate the ADR 0012 §Forward item as resolved.
+   annotate the ADR 0012 **index row** (its declared immutability carve-out; the §Forward body is left verbatim).
 
 ## 3. Requirements
 

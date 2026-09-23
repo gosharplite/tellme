@@ -53,7 +53,7 @@ Posted as the corrected breakdown on [#173](https://github.com/gosharplite/tellm
 | Theme | reconcile the CLI DSL topology to **0 audit errors** + fix the R8d `make help` text — **truth-only + one Makefile string**, no product code |
 | Clarify | **not escalated (0 questions)** — the audit output + the two issues lock the goal; promotion is the only `dsl-single-authority`-legal fix |
 | Pipeline | specify ✅ · spec-by-example **NOOP** (no behaviour change) · technical-research ✅ (D1–D8; **no ADR** — no new durable decision) · system-analysis ✅ (1 CLI end; api/data/UI NOOP) · dsl-refine ✅ (the truth owner) · tasks ✅ (T001–T009) · implement ✅ |
-| The change | **Class A** — promote 4 cross-module rows to the interface root `cli/dsl.md` (removed from `chat/dsl.md` / `configuration/dsl.md`); **Class B** — restore the round-083 `## Given/Then` headings + `DSL 句型` headers; **Class C** — add the composite projection row; **#174** — `Makefile` help line + target comment, `techstack.md` R8d bullet retired, ADR 0012 §Forward annotated |
+| The change | **Class A** — promote 4 cross-module rows to the interface root `cli/dsl.md` (removed from `chat/dsl.md` / `configuration/dsl.md`); **Class B** — restore the round-083 `## Given/Then` headings + `DSL 句型` headers; **Class C** — add the composite projection row; **#174** — `Makefile` help line + target comment, `techstack.md` R8d bullet retired, ADR 0012 **index row** annotated (the §Forward body left verbatim) |
 | Witness | the topology audit **11 → 0** errors (0 warnings; 53 features · 6 modules · **21** root + **457** module rows · 2328 steps) |
 | Verification | `make verify` **OK** · `go test -count=1 ./...` **green** (E2E ~23 s; **314 scenarios · 2354 steps** unchanged) · `gofmt`/`goimports` clean · `make help \| grep verify-no-network` prints the offline-path-witness wording · `go.mod`/`go.sum` **unchanged** |
 | Delivery | branch `085-dsl-topology-reconciliation` → **PR open** — awaiting a human review/merge (no Copilot review) |
@@ -66,7 +66,7 @@ Posted as the corrected breakdown on [#173](https://github.com/gosharplite/tellm
 | **D2** | **Class A → promote** the cross-module rows to the interface root (`DSL.move_row`, semantics unchanged); duplication is forbidden by `dsl-single-authority`. |
 | **D3** | **Class B → restore** the round-083 table structure (headings + header rows); the parser only reads headed tables. |
 | **D4** | **Class C → add** the composite projection row (a tool call **with a reason** + the usage block). |
-| **D5** | **#174 → correct** the `make help` line/comment, retire the techstack R8d bullet, annotate ADR 0012. |
+| **D5** | **#174 → correct** the `make help` line/comment, retire the techstack R8d bullet, annotate the ADR 0012 **index row** (its declared carve-out; the §Forward body is left verbatim). |
 | **D6** | **No ADR** — the round applies documented rules (`dsl-single-authority` + the table-structure convention); no new durable decision. |
 
 ### Commits (branch `085-dsl-topology-reconciliation`)
@@ -87,7 +87,7 @@ Posted as the corrected breakdown on [#173](https://github.com/gosharplite/tellm
   `configuration/dsl.md` (−2 promoted rows + the round-085 note) · `specs/truth/techstack.md`
   (R8d bullet retired).
 - `Makefile` (the `verify-no-network` help line + the target header comment) ·
-  `docs/decisions/0012-hermetic-make-go-env.md` (§Forward R8d → RESOLVED).
+  `docs/decisions/README.md` (the ADR 0012 index row annotated: §Forward R8d → resolved by round 085).
 
 ### Open items (non-blocking)
 

@@ -23,7 +23,7 @@ wave applies.
 | Wave | Order | Work |
 | --- | --- | --- |
 | W1 | 1 | `/axb-dsl-refine` reconciles the DSL topology (promote / restore / add) |
-| W2 | 2 | `/axb-technical-research` retires the R8d truth bullet (+ the ADR 0012 Forward annotation) |
+| W2 | 2 | `/axb-technical-research` retires the R8d truth bullet (+ the ADR 0012 **index-row** annotation; its §Forward body stays verbatim) |
 
 W2 is independent of W1 (different truth artifact) but lands in the same delivery.
 

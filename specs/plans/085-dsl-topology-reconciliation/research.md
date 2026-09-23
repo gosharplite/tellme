@@ -71,9 +71,9 @@ JSON `usage` block).
 The `make help` line (`Makefile:104`) still describes the **round-001 whole-binary build-graph
 capability guard** (`build-graph capability guard: no net/net/http in ./cmd/tellme closure`), which
 round 004 **retired** (the prompt-bearing chat path legitimately links `net/http`). The shipped target
-is the **offline-path no-dial witness** (recording sink + differential, `TestOfflinePathsDoNotContactProvider`).
+is the **offline-path no-contact witness** (recording sink + differential, `TestOfflinePathsDoNotContactProvider`).
 Fix the help line + the target's header comment; retire the `techstack.md` R8d bullet; annotate the
-ADR 0012 §Forward item as resolved. Docs/comment-only.
+ADR 0012 **index row** — the declared immutability carve-out; the §Forward body is left verbatim (so ADR 0012 is byte-identical to `dev`). Docs/comment-only.
 
 ## D6 — No ADR owed
 
