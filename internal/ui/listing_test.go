@@ -125,3 +125,52 @@ func stripANSI(s string) string {
 	}
 	return b.String()
 }
+
+// Round 082 (ADR 0054) — the backward turn index in the role headers.
+
+// TestListingReportsBackwardTurnIndex pins the suffixed, whole-label header
+// bytes: `[USER] - N` / `[MODEL] - N`.
+func TestListingReportsBackwardTurnIndex(t *testing.T) {
+	var out bytes.Buffer
+	NewListing().Render(&out, []render.ListingMessage{
+		{Role: render.ListingOperator, Body: "q2", TurnIndex: 2},
+		{Role: render.ListingModel, Body: "a2", TurnIndex: 2},
+		{Role: render.ListingOperator, Body: "q1", TurnIndex: 1},
+		{Role: render.ListingModel, Body: "a1", TurnIndex: 1},
+	}, render.ListingSpec{Raw: true}) // raw ⇒ exact bytes
+	want := "[USER] - 2\nq2\n\n[MODEL] - 2\na2\n\n[USER] - 1\nq1\n\n[MODEL] - 1\na1\n\n"
+	if out.String() != want {
+		t.Fatalf("listing = %q, want %q", out.String(), want)
+	}
+}
+
+// TestListingAccentsTheWholeTurnIndexLabel pins that the colour unit encloses the
+// WHOLE label — role word AND the ` - N` suffix.
+func TestListingAccentsTheWholeTurnIndexLabel(t *testing.T) {
+	var out bytes.Buffer
+	NewListing().Render(&out, []render.ListingMessage{
+		{Role: render.ListingOperator, Body: "hi", TurnIndex: 1},
+		{Role: render.ListingModel, Body: "ok", TurnIndex: 1},
+	}, render.ListingSpec{Colour: true})
+	if !strings.Contains(out.String(), colorBlue+"[USER] - 1"+colorReset) {
+		t.Errorf("the whole operator label (incl. the index) must be blue; got %q", out.String())
+	}
+	if !strings.Contains(out.String(), colorMagenta+"[MODEL] - 1"+colorReset) {
+		t.Errorf("the whole model label (incl. the index) must be magenta; got %q", out.String())
+	}
+}
+
+// TestListingHeaderBareLabelWithoutTurnIndex pins the non-positive-index fallback
+// (a non-history caller): the bare label, never a ` - 0` suffix.
+func TestListingHeaderBareLabelWithoutTurnIndex(t *testing.T) {
+	var out bytes.Buffer
+	NewListing().Render(&out, []render.ListingMessage{
+		{Role: render.ListingOperator, Body: "hi"}, // TurnIndex 0
+	}, render.ListingSpec{Raw: true})
+	if !strings.HasPrefix(out.String(), "[USER]\n") {
+		t.Errorf("a non-positive index must fall back to the bare label; got %q", out.String())
+	}
+	if strings.Contains(out.String(), " - 0") {
+		t.Errorf("the header must never print a ` - 0` suffix; got %q", out.String())
+	}
+}

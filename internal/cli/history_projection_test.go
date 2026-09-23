@@ -36,3 +36,55 @@ func TestListingMessagesOmitsToolSteps(t *testing.T) {
 		t.Errorf("listingMessages(…, 1) = %+v, want the last (model) message only", got)
 	}
 }
+
+// Round 082 (ADR 0054) — the backward turn index.
+
+// TestListingMessagesStampsBackwardTurnIndex pins that each message carries its
+// turn's distance from the most recent turn (1 = newest), and that both messages
+// of one entry share it.
+func TestListingMessagesStampsBackwardTurnIndex(t *testing.T) {
+	entries := []history.Entry{
+		{Prompt: "q1", Answer: "a1"},
+		{Prompt: "q2", Answer: "a2"},
+		{Prompt: "q3", Answer: "a3"},
+	}
+	msgs := listingMessages(entries, 6)
+	want := []int{3, 3, 2, 2, 1, 1}
+	if len(msgs) != len(want) {
+		t.Fatalf("listingMessages = %d messages, want %d", len(msgs), len(want))
+	}
+	for i, m := range msgs {
+		if m.TurnIndex != want[i] {
+			t.Errorf("message[%d].TurnIndex = %d, want %d", i, m.TurnIndex, want[i])
+		}
+	}
+}
+
+// TestListingMessagesKeepsTrueDistanceOnPartialSlice pins the load-bearing
+// arithmetic: the index is the TRUE distance from the end of the loaded history,
+// computed BEFORE the message-count truncation. An odd `-l N` leaves a lone
+// leading [MODEL] that must keep its true distance (- 2), never be renumbered to
+// - 1 by its position in the printed window.
+func TestListingMessagesKeepsTrueDistanceOnPartialSlice(t *testing.T) {
+	entries := []history.Entry{
+		{Prompt: "q1", Answer: "a1"},
+		{Prompt: "q2", Answer: "a2"},
+	}
+	msgs := listingMessages(entries, 3) // the last 3 of 4 messages
+	want := []struct {
+		role  render.ListingRole
+		index int
+	}{
+		{render.ListingModel, 2},
+		{render.ListingOperator, 1},
+		{render.ListingModel, 1},
+	}
+	if len(msgs) != len(want) {
+		t.Fatalf("listingMessages(…, 3) = %d messages, want %d", len(msgs), len(want))
+	}
+	for i, w := range want {
+		if msgs[i].Role != w.role || msgs[i].TurnIndex != w.index {
+			t.Errorf("message[%d] = %+v, want role=%v index=%d", i, msgs[i], w.role, w.index)
+		}
+	}
+}

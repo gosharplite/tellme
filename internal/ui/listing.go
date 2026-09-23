@@ -29,7 +29,7 @@ func NewListing() render.Listing { return listing{r: NewRenderer()} }
 func (l listing) Render(w io.Writer, msgs []render.ListingMessage, spec render.ListingSpec) {
 	colour := spec.Colour && !spec.Raw
 	for _, m := range msgs {
-		_, _ = fmt.Fprintln(w, l.header(m.Role, colour))
+		_, _ = fmt.Fprintln(w, l.header(m, colour))
 		_, _ = fmt.Fprintln(w, l.body(m, spec))
 		// One blank line after every message (the blank separator), so
 		// consecutive messages cannot run together and the listing ends with a
@@ -38,13 +38,27 @@ func (l listing) Render(w io.Writer, msgs []render.ListingMessage, spec render.L
 	}
 }
 
-// header renders the role header line: `[USER]` for the operator, `[MODEL]` for
-// the model, accented (blue / magenta) only when colour is on.
-func (l listing) header(role render.ListingRole, colour bool) string {
-	if role == render.ListingOperator {
-		return blue("[USER]", colour)
+// header renders the role header line: `[USER] - N` for the operator, `[MODEL] -
+// N` for the model, accented (blue / magenta) only when colour is on.
+//
+// Round 082 (ADR 0054): the label carries the message's backward turn index N
+// (1 = the most recent turn), so the listing maps 1:1 to `tellme -b [N]`. The
+// WHOLE label (role word + index) is the colour unit. A non-positive index (a
+// non-history caller) falls back to the bare `[USER]` / `[MODEL]` label.
+func (l listing) header(m render.ListingMessage, colour bool) string {
+	role := render.ListingOperator
+	label := "[USER]"
+	if m.Role == render.ListingModel {
+		role = render.ListingModel
+		label = "[MODEL]"
 	}
-	return magenta("[MODEL]", colour)
+	if m.TurnIndex > 0 {
+		label = fmt.Sprintf("%s - %d", label, m.TurnIndex)
+	}
+	if role == render.ListingOperator {
+		return blue(label, colour)
+	}
+	return magenta(label, colour)
 }
 
 // body returns the message body ready to be written as one line-terminated

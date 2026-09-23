@@ -1287,10 +1287,17 @@ func renderHistoryList(homeDir string, n int, configPath string, raw bool, env r
 // — the widened tool activity is never projected (FR-017 / clarify Q2 -> A).
 func listingMessages(entries []history.Entry, n int) []render.ListingMessage {
 	msgs := make([]render.ListingMessage, 0, len(entries)*2)
-	for _, e := range entries {
+	for i, e := range entries {
+		// Round 082 (ADR 0054): the backward turn index — the distance of this
+		// entry's turn from the MOST RECENT one (1 = newest). It is the TRUE
+		// distance from the end of the loaded history, computed BEFORE the
+		// message-count truncation below, so a lone leading message of an odd
+		// `-l N` keeps its true distance (never renumbered by its position in the
+		// printed slice). Both messages of the entry carry the SAME index.
+		turnIndex := len(entries) - i
 		msgs = append(msgs,
-			render.ListingMessage{Role: render.ListingOperator, Body: e.Prompt},
-			render.ListingMessage{Role: render.ListingModel, Body: e.Answer})
+			render.ListingMessage{Role: render.ListingOperator, Body: e.Prompt, TurnIndex: turnIndex},
+			render.ListingMessage{Role: render.ListingModel, Body: e.Answer, TurnIndex: turnIndex})
 	}
 	if len(msgs) > n {
 		msgs = msgs[len(msgs)-n:]
