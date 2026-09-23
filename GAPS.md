@@ -51,8 +51,11 @@ confirmed clean):
 | remove `syncDir(...)` (directory `fsync`) | **ok — all green** ❌ |
 
 **Finding.** The review fold (`F-081-3`) added a failure-path pin that reddens — **but only for the
-temp+rename half**. **2 of the 3 named mechanisms** (`fsync` file, `fsync` dir) remain asserted on six
-live surfaces with **no falsifier**. `git blame` shows the mechanism shipped in round 081's single
+temp+rename half**. **The `fsync` predication has no falsifier** — corrected by the upstream grill
+round (`aixbdd-tmg#15` Q10): the unit of obligation is the **atomic effect claim**, not the mechanism
+list, and **none** of the six surfaces names the directory `fsync` (the code's `syncDir` is
+best-effort, its error swallowed) — so the unwitnessed predication is **one**: the file
+`fsync`-before-`rename` guarantee. `git blame` shows the mechanism shipped in round 081's single
 implementation commit (`45f43e7`).
 
 **Two distinct defects, not one:**
@@ -193,9 +196,5 @@ same scope decision as ADR 0004: a `MUST` rule + template). Full rationale + alt
 - **Closed instance — round 083 (2026-09-23; ADR 0055):** the multi-media tool round (`aixbdd-tmg#15` class in the `tellme` product) was an *unguarded normative clause* — ADR 0032 D7's round-scoped media placement had **no** falsifier (the only wire-order witness, `toolExchangeChronologyOK`, asserted precedence, never contiguity, and its fixtures used no media tool). Round 083 fixed the loop's placement and added the missing tripwire — a loop-tier 3-media order pin + the shared E2E contiguity witness carried by the multi-image fixture — both of which **redden** under the pre-fix ordering (measured W1: 1 loop pin + 1 E2E Example). This is the class **caught at authoring/review** (a round self-diagnosed its own tripwire gap), the intended remedy for this file.
 
 
-- **Filed**: `aixbdd-tmg#15` (this proposal).
-- **Open defect in `tellme`** (not yet actioned): the `fsync` clauses are asserted on 6 live surfaces
-  without a witness. Per `plan-package-frozen` / `fresh-package-per-round`, the fix is a **new round**
-  against the *live* surface — either (a) make the guarantee executable (a fault-injection pin), or
-  (b) demote it out of truth into `ADR 0053 §Forward` with an "accepted-unwitnessed" record —
-  **never** a re-open of the frozen round 081 package.
+- **Filed**: `aixbdd-tmg#15` (this proposal) — **closed (completed)** by [`aixbdd-tmg#16`](https://github.com/gosharplite/aixbdd-tmg/pull/16) (merged 2026-09-23; **ADR 0006**), which lands the claim→witness obligation across the pipeline (`axb-specify` verification intent + `EC-nnn` · `axb-tasks` `[WITNESS]` lane + Claim→Witness ledger · `axb-implement` three-gate DoD · `axb-bdd` two-authority split · `axb-technical-research` Rule 6 · the `dsl.md` prose boundary · `axb-constitution` Rule 4). The `tellme` skills are synced with it.
+- **Closed instance — round 084 (2026-09-23; ADR 0056):** the `fsync` gap is **fixed** as **option (a)** of the issue — a store-level **`durableFS` seam** (`Sync`/`Rename`/`SyncDir`, `os`-defaulted) binds the durability clause to a **mechanism-seam pin** (`TestFileStore_Rollback_SyncsTempFileBeforeRename`) that **reddens** when the file `fsync` is removed; the asserted **effect is calibrated** (temp file + `fsync`-before-rename + atomic rename; no power-loss claim); the best-effort **directory `fsync`** is recorded as an **accepted-unwitnessed** limit (ADR 0056 §Forward **RF-084-1**); the misfiled guarantee leaves `techstack.md` (Rule 6) and the `dsl.md` prologue (truth-prose boundary), and the domain-model invariant is calibrated. It is a **fresh round** — no re-open of the frozen 081 package. **Closes [#169](https://github.com/gosharplite/tellme/issues/169)**; the `fsync` clause is **no longer** an unwitnessed open defect.
