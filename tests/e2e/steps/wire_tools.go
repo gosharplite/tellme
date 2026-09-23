@@ -162,17 +162,25 @@ func anyToolActivity(f *fakeprovider.Provider) bool {
 }
 
 // toolExchangeChronologyOK reports whether every recorded request that carries a
-// tool result keeps the OpenAI-mandated chronology: an assistant tool-call is
-// immediately followed by its tool result, and a user message precedes them.
-// This makes the BLOCKER-1 inversion (tool activity before the user prompt) fail
-// the E2E suite (review PR #25 TD-2).
+// tool result keeps the OpenAI-mandated chronology AND contiguity: a `tool`
+// result is preceded by the assistant-with-tool_calls that opened the block OR by
+// another `tool` result — never by a `user`/media message — and a user message
+// precedes the block. This makes the BLOCKER-1 inversion (tool activity before
+// the user prompt) fail the E2E suite (review PR #25 TD-2); round 083 (ADR 0055)
+// adds the contiguity half, so the pre-083 per-call media interleave (a media
+// `user` message between a round's `tool` results) reddens.
 func toolExchangeChronologyOK(f *fakeprovider.Provider) bool {
 	for _, msgs := range toolRounds(f) {
 		for i, m := range msgs {
 			if m.Role != "tool" {
 				continue
 			}
-			if i < 1 || msgs[i-1].Role != "assistant" || len(msgs[i-1].ToolCalls) == 0 {
+			if i < 1 {
+				return false
+			}
+			prev := msgs[i-1]
+			opensBlock := prev.Role == "assistant" && len(prev.ToolCalls) > 0
+			if prev.Role != "tool" && !opensBlock {
 				return false
 			}
 			if !hasUserBefore(msgs, i) {
