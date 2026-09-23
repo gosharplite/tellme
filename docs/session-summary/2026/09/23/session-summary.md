@@ -428,3 +428,7 @@ The `GAPS.md` working-notes file was still framed pre-fix. Refreshed (docs-only,
 - §2's "remove `f.Sync()`" row annotated **closed by round 084** (the `durableFS` seam pin now reddens).
 - §3 inventory extended to rounds **083 (self-caught at authoring)** and **084 (F-084-1, a ledger-accuracy finding)**; the "one finding/round" reading now notes the class moved **upstream of review** (authoring-time catch).
 - §4 marked the **pre-fix record**; §5 gains a **Disposition** block — all **eight** `ADR 0006` items shipped, `tellme` skills synced.
+
+### 4 (post-closeout, cont.) — `GAPS.md` relocated into the archives (docs-only)
+
+The closed `GAPS.md` origin record was relocated **verbatim** out of the repo root into [`docs/archives/notes/2026-09-23-gaps-claim-without-a-tripwire.md`](../../../../archives/notes/2026-09-23-gaps-claim-without-a-tripwire.md) (docs-only `git mv`; body unchanged except a one-line provenance header; **no `round-NNN` tag** — ADR 0026 tags rounds only). Rationale: it was a closed, record-only root file whose durable content already lives upstream (`aixbdd-tmg` ADR 0006) and in ADR 0055/0056; the archive bucket matches the repo's existing `docs/archives/` history home. The day-summary tree stays **one file per day** (this summary is untouched in shape). **Rule-4 note**: the **083/084 plan packages** (frozen) and the **ADR 0055/0056 bodies** name it by its former name `GAPS.md` and are left as historical mentions; the non-frozen referrers — `STATUS.md` and this summary — point at the new path.

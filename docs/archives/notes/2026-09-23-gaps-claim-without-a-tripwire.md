@@ -1,5 +1,7 @@
 # GAPS.md — witness gaps in the round process (working notes)
 
+> **Provenance**: relocated verbatim from the repo root (`GAPS.md`) to `docs/archives/notes/2026-09-23-gaps-claim-without-a-tripwire.md` on **2026-09-23** (docs-only `git mv`; the records below are unchanged — this provenance note is the only addition). Previously-frozen references — the 083/084 plan packages and ADR 0055/0056 — name it by its former name `GAPS.md` (Rule 4: frozen history is not edited).
+
 > **Status**: **closed** (2026-09-23) — record-only · **not** a `specs/truth/**` artifact and **not** a process gate. The class is described below; the proposal **shipped upstream** (§5) and both `tellme` instances are **closed** (§7). Retained as the origin record, not as open work.
 > **Origin**: a `tellme`-side investigation while executing `SESSION-BOOTSTRAP.md` (2026-09-23).
 > **Scope**: **one class only** — *a claim with no tripwire* (a normative clause that nothing can
