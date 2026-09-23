@@ -152,3 +152,45 @@ Operator: *"Communicate with sub-agent 'architect'. Initialize architect with `S
 - **Folded**: F-082-1 (ADR 0045 index row + Status back-pointer), F-082-2 (`Then the listing heads each message with its backward turn index` on the no-count Example), F-082-3 (T005 path + the measured witness ledger), N-082-1 (`colour.go` comments), N-082-2 (the `chrome-colour-terminal-gated` invariant names the whole-label unit; `docs/domain-model` re-rendered). **R-FV-082-1** folded (PR body synced to the post-fold, measured state). **R-FV-082-2 / TD-082-1/2/3 / O-082-1** recorded, not actioned.
 - **Verification at `78bcde2`**: `gofmt`/`goimports`/`go vet` clean · `go test -count=1 ./...` green (E2E 311 scenarios) · `make verify` **OK** · topology audit the same 5 pre-existing + 1 documented class (2297 steps) · `go.mod`/`go.sum` unchanged.
 - **State**: **the PR is ready for a human to review and merge** (no Copilot review; only a human merges). On merge: `SESSION-CLOSEOUT.md` (propagate `dev → main` no-ff, tag `round-082`, refresh the binary, close [#165](https://github.com/gosharplite/tellme/issues/165)).
+
+### 2 (closeout) — round 082 DELIVERED / FROZEN (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 082 was human-merged (PR [#166](https://github.com/gosharplite/tellme/pull/166) → `dev` `95d8f40`, **merge commit** at 2026-09-23T03:25Z by `thptcnec`); the operator confirmed the merge + remote-branch deletion, the local branch was deleted after an ancestor check (`5303d3a` was the merge's second parent), and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == 95d8f40`; no delivered `specs/plans/**` touched (frozen history intact); `/tmp` staging removed |
+| **2 — gates** | `gofmt`/`goimports` clean · `go vet ./...` clean · `go test -count=1 ./...` **green** (E2E **311 scenarios · 2323 steps**) · `make verify` **OK** (layer 0 · `modelith-check` ×3 no drift · `verify-fmt` · `verify-adr-index` · lint 0 · govulncheck clean · cross-compile 4/4) · `make test-race` **green** · topology audit the same 5 pre-existing + 1 documented class (53 features · 455 module rows · 2297 steps) · `go.mod`/`go.sum` unchanged |
+| **3 — STATUS.md** | header → round 082 **DELIVERED / FROZEN**; **Rule-12 split**: the round-081 delivered-round detail + its env note relocated **verbatim** into [`docs/archives/status/2026-09-23.md`](../../../../archives/status/2026-09-23.md); round-082 section added; delivered-rounds pointer → 001–082; roadmap candidates → **0 open**; round-082 env note + refreshed topology counts; **54 lines** (live state only) |
+| **4 — daily summary** | this §2 (closeout) appended (the §1 + §2 record preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, 0 open issues, branch heads match |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-082`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#165](https://github.com/gosharplite/tellme/issues/165) CLOSED** with a linking comment; tracker → **0 open** |
+
+**Commits (branch `082-listing-backward-turn-indices`, then merged)**
+
+| Commit | Note |
+| --- | --- |
+| `1543ba4` | `docs(082)`: plan package + spec + STATUS — round 082 in flight |
+| `df90ede` | `feat(082)`: backward-counting turn indices in the `-l` role headers (ADR 0054) |
+| `76474d9` | `docs(082)`: STATUS + day log — pipeline complete; PR #166 open |
+| `78bcde2` | `fix(082)`: fold the architect review (F-082-1…3 + N-082-1/2) |
+| `5303d3a` | `docs(082)`: review-fold loop CLOSED — STATUS + day log |
+| `95d8f40` | PR [#166](https://github.com/gosharplite/tellme/pull/166) merge into `dev` (by `thptcnec`) |
+| *(this closeout, on `dev`)* | `docs(082)`: day close — round 082 delivered + propagated; STATUS split + 09/23 summary |
+
+**Open items (non-blocking)**
+
+- **RF-082-1…5** in **ADR 0054 §Forward** (the label is not rune-capped · the public `TurnIndex` field · no absolute/`--json` numbering · the header asserted by predicate · the index derives from the loaded history only) + the recorded **TD-082-1/2/3** / **N-082-1/2** in the round's `tasks.md` §Fold ledger. **O-082-1** (the pre-existing interactive-prompt flake the reviewer observed once) — to be homed on a live issue **if it recurs** (not a round-082 defect).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the **5 pre-existing + 1** topology-audit DSL errors.
+- **Issue tracker**: **0 open**.
+
+**Next steps**
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value** (the tracker is **0 open**).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+**PM follow-ups**: none new.
+
+*(Round 082 is fully closed out: PR #166 human-merged into `dev` (`95d8f40`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-082`**; the installed binary refreshed; [#165](https://github.com/gosharplite/tellme/issues/165) closed.)*
