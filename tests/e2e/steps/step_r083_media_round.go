@@ -17,6 +17,10 @@ import (
 // results are CONTIGUOUS on the wire (the OpenAI-compatible family rejects a
 // `tool` block interrupted by a media/user message). These steps script a
 // single-response multi-tool-call round and assert the recorded request's layout.
+//
+// The contiguity half is single-owned by the SHARED `toolExchangeChronologyOK`
+// (wire_tools.go), which this multi-image round is the carrier for (F-083-6) —
+// no second contiguity predicate is defined here (TD-083-1).
 func init() {
 	registrars = append(registrars, func(ctx *godog.ScenarioContext) {
 		ctx.Given(`^a configured provider "([^"]*)" that can take images and whose endpoint asks tellme, in one step, to read "([^"]*)", "([^"]*)" and "([^"]*)" and then answers with "([^"]*)"$`, givenVisionProviderReadsThreeImages)
@@ -120,7 +124,7 @@ func r083CountImages(content json.RawMessage) int {
 	return n
 }
 
-// r083Messages decodes the recorded request's `messages` array.
+// r083Messages decodes the recorded request's `messages` array (raw content).
 func r083Messages(body string) ([]r083Message, error) {
 	var req struct {
 		Messages []r083Message `json:"messages"`
@@ -131,38 +135,16 @@ func r083Messages(body string) ([]r083Message, error) {
 	return req.Messages, nil
 }
 
-// r083CheckContiguous asserts the OpenAI-mandated contiguity on the recorded
-// request: every `tool` result is preceded by the assistant-with-tool_calls that
-// opened the block OR by another `tool` result — never by a `user`/media message.
-func r083CheckContiguous(msgs []r083Message) error {
-	for i, m := range msgs {
-		if m.Role != "tool" {
-			continue
-		}
-		if i < 1 {
-			return fmt.Errorf("a tool result leads the conversation")
-		}
-		prev := msgs[i-1]
-		if prev.Role == "tool" {
-			continue // contiguous
-		}
-		if prev.Role == "assistant" && len(prev.ToolCalls) > 0 {
-			continue // the block's first result
-		}
-		return fmt.Errorf("a `tool` result at index %d follows a %q message — the round's tool results are not contiguous: %+v", i, prev.Role, msgs)
-	}
-	return nil
-}
-
 // thenToolResultsAnsweredTogether (必查 權威狀態): the round's `tool` results are
-// contiguous AND any media message appears AFTER the last `tool` result.
+// contiguous (single-owned by the shared `toolExchangeChronologyOK`) AND any
+// media message appears AFTER the last `tool` result.
 func thenToolResultsAnsweredTogether(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
+	if f := sc.onlyFake(); f == nil || !toolExchangeChronologyOK(f) {
+		return fmt.Errorf("the round's `tool` results are not contiguous (a non-`tool` message sits between them)")
+	}
 	msgs, err := r083Messages(lastBody(sc))
 	if err != nil {
-		return err
-	}
-	if err := r083CheckContiguous(msgs); err != nil {
 		return err
 	}
 	lastTool := -1
@@ -188,11 +170,11 @@ func thenToolResultsAnsweredTogether(ctx context.Context) error {
 // images ride ONE `user` message placed after the round's `tool` results.
 func thenThreePicturesOneMessageAfterResults(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
+	if f := sc.onlyFake(); f == nil || !toolExchangeChronologyOK(f) {
+		return fmt.Errorf("the round's `tool` results are not contiguous (a non-`tool` message sits between them)")
+	}
 	msgs, err := r083Messages(lastBody(sc))
 	if err != nil {
-		return err
-	}
-	if err := r083CheckContiguous(msgs); err != nil {
 		return err
 	}
 	// The block opener: the last assistant carrying tool calls, and the run of
@@ -234,9 +216,13 @@ func thenThreePicturesOneMessageAfterResults(ctx context.Context) error {
 
 // thenReplayedStepContiguous (必查 權威狀態): the resumed request's replayed
 // conversation answers the earlier multi-step turn's tool-call blocks
-// contiguously (no non-`tool` message between the replayed results).
+// contiguously (single-owned by the shared `toolExchangeChronologyOK`).
 func thenReplayedStepContiguous(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
+	f := sc.onlyFake()
+	if f == nil || !toolExchangeChronologyOK(f) {
+		return fmt.Errorf("the replayed conversation's `tool` results are not contiguous")
+	}
 	msgs, err := r083Messages(lastBody(sc))
 	if err != nil {
 		return err
@@ -250,5 +236,5 @@ func thenReplayedStepContiguous(ctx context.Context) error {
 	if tools < 3 {
 		return fmt.Errorf("the replayed request carries %d tool result(s), want the earlier turn's 3 steps: %+v", tools, msgs)
 	}
-	return r083CheckContiguous(msgs)
+	return nil
 }

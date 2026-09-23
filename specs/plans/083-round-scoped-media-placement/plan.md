@@ -35,7 +35,7 @@
 | `specs/truth/features/cli/chat/reading-a-local-image.feature` + `chat/dsl.md` | `/axb-dsl-refine` | **MODIFY** — a new media-round Rule + rows |
 | `specs/truth/contracts/**` | `/axb-api-plan` | **NOOP** |
 | `specs/truth/data/**` | `/axb-data-plan` | **NOOP** |
-| `docs/domain-model/**` | — | **NOT modelled** (a wire-order detail of the loop; the modelled `ToolCall`/`ImageContent`/`Tool` entities and invariants are unaffected; ADR 0041 escape hatch) |
+| `docs/domain-model/**` | `/axb-technical-research` (F-083-4) | **MODIFY** — the `ImageContent` description + the *Reading a local image* scenario step 3 narrated a per-call fold; corrected to the round-scoped fold + re-rendered (the model is bootstrap-read + load-bearing, ADR 0041) |
 
 ## 4. Boundaries & guards
 

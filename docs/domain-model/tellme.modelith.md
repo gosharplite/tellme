@@ -132,7 +132,7 @@ The persisted record of a session's completed `Turn`s — an append-only JSON-Li
 
 ### `ImageContent`
 
-A piece of non-text media (an image) a `Tool` (`read_image`) returns **in-band** from its execution — the shipped type is `tools.MediaPart` (round 070 / ADR 0040). A media-producing tool implements the optional MediaTool capability, so a `read_image` call runs via ExecuteMedia, returning the text result **and** the media; the loop folds the media onto a `user` message after the tool result. The former per-call `context` collector (WithMediaCollector/AttachMedia, ADR 0032 D7a) is **retired** — the tool no longer reaches into the conversation model to name its own result type. Its kind is resolved from the file's **content** (magic bytes: JPEG/PNG/GIF/WebP), never the name; it is serialized inline on **both** families — a base64 `image_url` block on the OpenAI-compatible wire, or a base64 `inlineData` blob on the Gemini/Vertex wire (round 063 / ADR 0033) — riding a `user` message after the tool result. The media is in-flight only: it is never persisted with the `Turn` (the history step stores the tool's text result).
+A piece of non-text media (an image) a `Tool` (`read_image`) returns **in-band** from its execution — the shipped type is `tools.MediaPart` (round 070 / ADR 0040). A media-producing tool implements the optional MediaTool capability, so a `read_image` call runs via ExecuteMedia, returning the text result **and** the media; the loop folds a round's media onto **one** `user` message, after **all** the round's `tool` results (round 083 / ADR 0055 — round-scoped placement, so the round's `tool` results stay contiguous on the wire). The former per-call `context` collector (WithMediaCollector/AttachMedia, ADR 0032 D7a) is **retired** — the tool no longer reaches into the conversation model to name its own result type. Its kind is resolved from the file's **content** (magic bytes: JPEG/PNG/GIF/WebP), never the name; it is serialized inline on **both** families — a base64 `image_url` block on the OpenAI-compatible wire, or a base64 `inlineData` blob on the Gemini/Vertex wire (round 063 / ADR 0033) — riding a `user` message after the tool result. The media is in-flight only: it is never persisted with the `Turn` (the history step stores the tool's text result).
 
 **Relationships**
 
@@ -556,7 +556,7 @@ With a `Provider` that declares `vision`, the model calls `read_image`. The tool
 
 1. `Provider` returns a call to `read_image` carrying a `reason`.
 2. The tool reads the file and resolves its kind from the content (magic bytes), and enforces the selected provider's family-aware inline ceiling.
-3. The tool returns the `ImageContent` **in-band** (via ExecuteMedia); the loop folds it onto a `user` message after the tool result.
+3. The tool returns the `ImageContent` **in-band** (via ExecuteMedia); the loop folds the round's media onto **one** `user` message after **all** the round's `tool` results (round 083 / ADR 0055 — round-scoped).
 4. The adapter serializes the image on the family's wire (`image_url` / `inlineData`); the `Provider` sees it and the turn completes.
 
 **Invariants touched**

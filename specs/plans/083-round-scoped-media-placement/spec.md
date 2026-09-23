@@ -10,14 +10,14 @@
 
 **Observed context (`dev` @ `426a93f`, round 082 era)**: `internal/agent/agentloop.go` appends the assistant `tool_calls` message once (`:143`), then **inside the same per-call loop** appends a `tool` result (`:211`) **and** — when that call attached media — a `user` media message (`:216`). The OpenAI-compatible adapter (`internal/infrastructure/llm/openai/client.go` `requestBody`) relays each message **verbatim**, preserving the loop's order. So a round with N ≥ 2 media-producing calls produces the wire order `assistant(tool_calls), tool(r1), user(img1), tool(r2), user(img2), …` — an interleaved non-`tool` message that violates the provider's contiguity requirement (`An assistant message with 'tool_calls' must be followed by tool messages responding to each 'tool_call_id' …`), rejecting the next request of the turn (exit **6**; the round-080 failure path then persists the completed steps). The **Gemini/Vertex** adapter (`internal/infrastructure/llm/gemini/client.go` `roundBuilder.consume`/`flush`) buffers media and emits it after the batched function-response turn — accidentally correct by construction. The **single-call** case (`assistant, tool, user(img)`) is a complete block and works.
 
-**Behaviour intent**: **MODIFY (the agent tool loop's media placement)** — accumulate a round's media across its calls and fold it **once**, **after** the per-call loop, so every `tool` message of the round is contiguous. Single-call output stays **byte-identical**. Amends the round-062 **ADR 0032 D7** wording ("one `user` message immediately after its tool result") to the **round-scoped** form the Gemini builder already implies. **No `specs/truth/**` file is written by this skill.**
+**Behaviour intent**: **MODIFY (the agent tool loop's media placement)** — accumulate a round's media across its calls and fold it **once**, **after** the per-call loop, so every `tool` message of the round is contiguous. Single-call output stays **byte-identical**. **Clarifies the round-062 ADR 0032 D7:** its *body* is already round-scoped ("**one** `user` message … after the round's `tool`-result message(s)"), but its *heading* ("a `user` message after the tool result") was read **per-call** in the pre-083 implementation — this round makes the implementation match D7's body. **No `specs/truth/**` file is written by this skill.**
 
 ---
 
 ## ⚠️ Read first
 
 - **Contiguity is the wire's mandate (I-1).** A round's `tool` messages MUST be contiguous: **no** `user`/`assistant`/media message may sit between the first and last `tool` result of a round. This is the invariant the OpenAI-compatible family enforces with the 400; it is the invariant the fix restores.
-- **Round-scoped media = one message (I-2).** A round's **N** media parts are delivered in **one** `user` message, placed **after** the round's results (never per-call). This is the round-scoped form this round adopts (amending ADR 0032 D7).
+- **Round-scoped media = one message (I-2).** A round's **N** media parts are delivered in **one** `user` message, placed **after** the round's results (never per-call). This is the round-scoped form this round adopts (clarifying ADR 0032 D7 — its body read round-scoped; the pre-083 implementation did not).
 - **Single-call bytes are frozen (I-3).** For N = 1 the emitted order stays exactly `assistant(tool_calls), tool(result), user(media)` — **byte-identical** to today, so the shipped single-image path is unchanged.
 - **Gemini placement unchanged (I-4).** The Gemini/Vertex adapter still emits the round's media **after** the batched function-response turn. *Recorded consequence:* because the loop now hands it **one** media message per round, the Gemini multi-media path emits **one** media turn (N `inlineData` parts) instead of N turns — a benign shape change decided/recorded by `/axb-technical-research`, never a failure.
 - **No storage / presentation change (I-5).** Media is never persisted (the `history.Step` stores the tool's **text** result); a resumed session replays contiguous `assistant(tool_calls), tool(result)…` steps and then delivers no media (the images are in-flight only). `history.jsonl` schema, `history.Store`, `-b`/`--back`, the offline readers, the interactive prompt, and the live chrome are **unchanged**. The exit-code set stays **ten**; the frozen class-phrase vocabulary is unchanged.
@@ -40,7 +40,7 @@
 | `tests/e2e/fakeprovider` (`Reply.Tools`) | scripts ONE response carrying several tool calls (round 019) — the `<server>` seam the multi-image fixture uses. |
 | `specs/truth/features/cli/chat/reading-a-local-image.feature` | the image Rules/Examples (rounds 062/063) — the owning feature for the media journey; no multi-call Rule today. |
 | `specs/truth/features/cli/chat/calling-several-tools-in-one-round.feature` | the several-tools-in-one-round feature (rounds 065/066) — the natural sibling carrier for a media round. |
-| `docs/decisions/0032-agent-image-vision.md` (D7) | the round-062 media-channel decision ("one `user` message (media-first) immediately after its tool result") — this round **amends** it. |
+| `docs/decisions/0032-agent-image-vision.md` (D7) | the round-062 media-placement decision — its heading ("a `user` message after the tool result") read per-call, its body round-scoped; this round **clarifies** it (back-pointer added to its `Status` + D7). |
 | `GAPS.md` / `aixbdd-tmg#15` | the "claim-without-a-tripwire" class record this round's missing witness is an instance of. |
 
 ---
@@ -54,7 +54,7 @@
 | **L-3** | **Placement-only**: no `history.jsonl` schema, `history.Store`, `-b`/`--back`, prompt, chrome, or exit-code/phrase change. | **locked** (issue Acceptance / references) |
 | **S-1** | **The exact emitted shape for N ≥ 2** — ONE `user` message carrying the round's N media parts (media-first, no text), appended after the round's results; vs. an alternative (e.g. one media message per call appended after the loop). | research decision (D-x); **proposed: one `user` message carrying the round's media in call order** (mirrors the issue's sketch and the multi-part content array) |
 | **S-2** | **Which witness tiers** — a loop-tier unit pin over the emitted message order (3-media round) **plus** an E2E contiguity witness (extend `toolExchangeChronologyOK` / a new multi-image fixture). Whether the wire witness rides the `openai` family only or both. | research decision (D-x); **proposed: both tiers; wire witness on the OpenAI-compatible family (the broken one) + a Gemini multi-media companion** |
-| **S-3** | **Which truth artifacts change** — a new **ADR** (amends ADR 0032 D7); the `techstack.md` *Agent tool loop* / *Image filesystem tool* / *Image content on the provider wire* rows; the `reading-a-local-image` (or `calling-several-tools-in-one-round`) feature + `dsl.md` rows; whether `docs/domain-model/**` is modelled (media placement is a wire detail — possibly **not modelled**, the ADR-0041 escape hatch). | research decision (D-x) |
+| **S-3** | **Which truth artifacts change** — a new **ADR** (clarifies ADR 0032 D7); the `techstack.md` *Agent tool loop* / *Image filesystem tool* / *Image content on the provider wire* rows; the `reading-a-local-image` (or `calling-several-tools-in-one-round`) feature + `dsl.md` rows; whether `docs/domain-model/**` is modelled (media placement is a wire detail — possibly **not modelled**, the ADR-0041 escape hatch). | research decision (D-x) |
 | **S-4** | **Scope excludes** — media persistence / re-budget (the images still ride the next round's active-turn messages), image dedupe/downscale, a `--image` flag, a config toggle, and any change to `read_image`'s contract or the family-aware ceiling. | **locked** (issue scope) |
 
 **Non-negotiable invariants (proposed, not open):**
@@ -158,7 +158,7 @@
 - **SC-001**: hermetic E2E 中，一個 model round 攜帶 **3** 個 `read_image` 呼叫時，回合完成（exit 0、印出答案），且**未**觸發 provider 400。
 - **SC-002**: 該回合記錄到的 wire 中，**沒有**任何非-`tool` 訊息夾在 `tool` 結果之間；回合的 3 個媒體區塊位於**一個** `user` 訊息、在結果之後。
 - **SC-003**: 單圖片回合（既有 E2E）位元順序**不變**（`assistant, tool, user(media)`）；`reading-a-local-image.feature` 既有 Examples 全綠。
-- **SC-004**: Gemini/Vertex 多媒體回合的 function-response turn 仍為**批次**，媒體其後送達，且回合完成。
+- **SC-004**: Gemini/Vertex 多媒體回合的 function-response turn 仍為**批次**，媒體其後送達（**載體 = `TestRequestBody_RoundScopedMedia_OneTurnTwoParts`** — 迴圈交一個含兩 parts 的媒體訊息 ⇒ 一個含兩個 `inlineData` parts 的媒體 turn），且回合完成。
 - **SC-005**: 新見證在**修復前**的媒體擺放下**變紅**（mutation 復現後回退）；`make verify` 通過、E2E 全綠、`go.mod`/`go.sum` 不變、`TestExitCodesMatchPinnedContract` 綠。
 
 ## 假設
@@ -167,5 +167,5 @@
 - **A2**: 核心行為 —— 回合內 `tool` 結果相鄰、媒體以**單一**訊息置於結果之後、單呼叫位元凍結、Gemini 擺放不變、placement-only —— 由 issue 鎖定；issue 的 *Proposed fix* 與 *Witness to add*（S-1…S-4：N≥2 的確切形狀、見證層級、truth/ADR 更新、範圍排除）由 `/axb-technical-research` 決議，故本輪 clarify **未升級（0 題）**。研究若改變正式驗收契約（例如 Gemini 多媒體 cardinality），MUST 回寫 truth 並於 `truth-delta.md` 記錄。
 - **A3**: 媒體從未落地（`history.Step` 只存文字結果，rounds 062/070 契約），故續接 session 的重播對話不含媒體；此為既有行為，本輪不改。
 - **A4**: 既有 `toolExchangeChronologyOK` 只斷言**先行**關係、未斷言**相鄰**關係，且其 fixture 從未使用媒體工具 —— 因此本輪的相鄰性缺陷目前**無任何測試可變紅**（GAPS.md / aixbdd-tmg#15 類）。本輪 MUST 補上該見證。
-- **A5**: 預期新增一枚 ADR（修正 ADR 0032 D7）、`techstack.md` 相關列更新、`reading-a-local-image`（或 `calling-several-tools-in-one-round`）feature + `dsl.md` rows 更新；`docs/domain-model/**` 是否更新由研究決議（媒体擺放為 wire 細節，可能 not modelled，ADR 0041 escape hatch）；`contracts/**` 與 `data/**` 預期 NOOP。
+- **A5**: 預期新增一枚 ADR（澄清 ADR 0032 D7 的 round-scoped 讀法）、`techstack.md` 相關列更新、`reading-a-local-image`（或 `calling-several-tools-in-one-round`）feature + `dsl.md` rows 更新；`docs/domain-model/**` 是否更新由研究決議（媒体擺放為 wire 細節，可能 not modelled，ADR 0041 escape hatch）；`contracts/**` 與 `data/**` 預期 NOOP。
 - **A6**: 本輪**不**實作媒体落地、payload 縮減/去重、`--image` 旗標或 config 開關（S-4）。

@@ -190,6 +190,9 @@ same scope decision as ADR 0004: a `MUST` rule + template). Full rationale + alt
 
 ## 7. Status
 
+- **Closed instance — round 083 (2026-09-23; ADR 0055):** the multi-media tool round (`aixbdd-tmg#15` class in the `tellme` product) was an *unguarded normative clause* — ADR 0032 D7's round-scoped media placement had **no** falsifier (the only wire-order witness, `toolExchangeChronologyOK`, asserted precedence, never contiguity, and its fixtures used no media tool). Round 083 fixed the loop's placement and added the missing tripwire — a loop-tier 3-media order pin + the shared E2E contiguity witness carried by the multi-image fixture — both of which **redden** under the pre-fix ordering (measured W1: 1 loop pin + 1 E2E Example). This is the class **caught at authoring/review** (a round self-diagnosed its own tripwire gap), the intended remedy for this file.
+
+
 - **Filed**: `aixbdd-tmg#15` (this proposal).
 - **Open defect in `tellme`** (not yet actioned): the `fsync` clauses are asserted on 6 live surfaces
   without a witness. Per `plan-package-frozen` / `fresh-package-per-round`, the fix is a **new round**

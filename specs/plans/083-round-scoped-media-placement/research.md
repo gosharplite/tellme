@@ -60,7 +60,9 @@ This round is the `GAPS.md` / `aixbdd-tmg#15` "claim-without-a-tripwire" class �
 1. **Loop tier (`internal/agent`)** — a unit pin over the emitted message order for a **3-media round**: assert `assistant(tool_calls)`, then **all three** `tool` results (contiguous), then **one** media `user` message carrying three parts; and a companion pin that the **single-media** round keeps `assistant, tool, user(media)`. The loop's existing tests already drive a fake gateway/registry, so this needs no new harness.
 2. **E2E tier** — extend `toolExchangeChronologyOK` to assert **contiguity** (no non-`tool` message between a round's `tool` results) and add a fixture that scripts a **multi-image round** on the OpenAI-compatible family, plus a **resumed-session** variant and a **Gemini multi-media** companion. The existing single-image Examples remain the N = 1 carrier.
 
-**Mutation witness (reproduced then reverted):** move the media append back inside the per-call loop (the pre-fix code) ⇒ **both** the loop-tier unit pin and the E2E contiguity witness redden.
+**Mutation witness (reproduced then reverted):** move the media append back inside the per-call loop (the pre-fix code) ⇒ `TestRunRoundScopedMedia_ThreeCalls_FoldedOnceAfterResults` reddens (`emitted messages = 8, want 6`) **and** the E2E `The model inspects three pictures in one step` reddens (`314 → 313 passed`) via the shared `toolExchangeChronologyOK`. The single-media pin, the no-media pin, the resumed Example, and the Gemini companion are **guards** (green pre- and post-fix) — see D5.
+
+The E2E contiguity check is **single-owned** by the shared `toolExchangeChronologyOK` (`wire_tools.go`, extended with contiguity), which the round-083 multi-image fixture is the **carrier** for (the helper is invoked by the round-083 Thens); no second contiguity predicate exists (round-083 fold F-083-6 / TD-083-1). The **resumed-session** and **Gemini multi-media** Examples are **guards** (green pre- and post-fix), not tripwires (TD-083-2/3).
 
 **Alternative rejected — an *enforcing* fake provider** that returns `400` when a request's tool block is broken (so the E2E would observe a real rejection): considered, and **not** adopted as the primary witness — it mutates a **shared** fake used by every scenario (a risk to unrelated suites) and duplicates a rule the assertion states directly; the assertion witness is deterministic and localised. It stays a §Forward option.
 
@@ -80,10 +82,10 @@ No `user`/`assistant`/media message may sit between `tool(result: c1)` and `tool
 
 ### D6 — Truth & records
 
-- **ADR 0055** (`docs/decisions/0055-round-scoped-media-placement.md`) — **amends ADR 0032 D7** (the "one `user` message immediately after its tool result" wording becomes the **round-scoped** form); indexed in `docs/decisions/README.md`. Records D1–D5 + the Gemini cardinality consequence (D3) + the scope guard.
+- **ADR 0055** (`docs/decisions/0055-round-scoped-media-placement.md`) — **clarifies ADR 0032 D7** (D7's *body* reads round-scoped; its *heading* + the pre-083 **implementation** were per-call; this ADR makes the implementation match the body and adds the back-pointer to ADR 0032's `Status` + D7); indexed in `docs/decisions/README.md`. Records D1–D6 + the Gemini cardinality consequence (D3) + the scope guard.
 - **`specs/truth/techstack.md`** — MODIFY the **Agent tool loop** row (the round-083 media-fold-once clause) + the **Image content on the provider wire (OpenAI-compatible)** row (the round's placement + contiguity) + the **Image content on the provider wire (Gemini/Vertex)** row (the recorded multi-media cardinality consequence).
 - **`specs/truth/features/cli/chat/reading-a-local-image.feature`** — a new Rule ("several pictures in one step are shown together, after every tool result") + `chat/dsl.md` rows; **`/axb-dsl-refine`** owns this.
-- **`docs/domain-model/**`** — **NOT modelled.** The media placement is a **wire-order** detail of the loop; the modelled entities (`ToolCall`, `ImageContent`, `Tool`) and their invariants are unaffected (the media is in-flight only, never persisted). ADR 0041 escape hatch: recorded in `plan.md` §5.
+- **`docs/domain-model/**`** — **MODIFY** (round-083 fold F-083-4): the model *does* narrate the placement (the `ImageContent` description + the *Reading a local image* scenario step 3 both said "after the tool result"), so the two sentences are corrected to "after the **round's** `tool` result(s)" and the model re-rendered (the model is bootstrap-read + load-bearing, ADR 0041). The modelled entities/invariants are unchanged (the placement is in-flight, never persisted).
 - **`specs/truth/contracts/**`** + **`specs/truth/data/**`** — **NOOP** (no API surface; no persisted-state shape change).
 
 ### D7 — Determinism, hermeticity, no new dependency
@@ -107,7 +109,7 @@ The change is a single accumulation + one append over the already-executed round
 
 - **RF-083-1** — the round's media still rides the **next** round's request (active-turn growth); a payload/dedupe mitigation is out of scope.
 - **RF-083-2** — the E2E contiguity witness asserts a **wire property** (a predicate), not a byte-golden; the byte identity for N = 1 is carried by the existing single-image Examples + a unit pin.
-- **RF-083-3** — the Gemini multi-media cardinality consequence (one media turn of N parts) is **recorded, not independently witnessed** by a dedicated Gemini N ≥ 2 assertion beyond the companion Scenario's completion (a forward item to pin the exact turn count).
+- **RF-083-3** — the Gemini multi-media cardinality consequence (one media turn of N parts) is now **carried by `TestRequestBody_RoundScopedMedia_OneTurnTwoParts`** (added in the round-083 fold F-083-5); the live end-to-end Gemini path is still only companion-guarded.
 - **RF-083-4** — the *enforcing-fake* alternative (a 400 on a broken tool block) is not adopted (D4).
 - **RF-083-5** — a round that mixes media-producing and media-free calls is covered by construction (only the producing calls contribute), but no dedicated Example scripts a mixed round.
 - **RF-083-6** — `BuildMessages` (the replay path) carries no media, so a resumed session replays text results only; unchanged and by design.
