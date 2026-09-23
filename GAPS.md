@@ -1,11 +1,11 @@
 # GAPS.md — witness gaps in the round process (working notes)
 
-> **Status**: open · report-only · **not** a `specs/truth/**` artifact and **not** a process gate.
+> **Status**: **closed** (2026-09-23) — record-only · **not** a `specs/truth/**` artifact and **not** a process gate. The class is described below; the proposal **shipped upstream** (§5) and both `tellme` instances are **closed** (§7). Retained as the origin record, not as open work.
 > **Origin**: a `tellme`-side investigation while executing `SESSION-BOOTSTRAP.md` (2026-09-23).
 > **Scope**: **one class only** — *a claim with no tripwire* (a normative clause that nothing can
 > falsify). The separate *deferral-curation* problem (a forward item parked on a bootstrap-read
 > surface becoming a recurring "muse") is **out of scope** here; see `ADR §Forward` curation rules.
-> **Filed upstream**: [`aixbdd-tmg#15`](https://github.com/gosharplite/aixbdd-tmg/issues/15).
+> **Filed upstream**: [`aixbdd-tmg#15`](https://github.com/gosharplite/aixbdd-tmg/issues/15) → **closed (completed)** by [`aixbdd-tmg#16`](https://github.com/gosharplite/aixbdd-tmg/pull/16) (merged 2026-09-23; **ADR 0006**) — the claim→witness obligation landed across the pipeline; the `tellme` skills are synced (§5).
 
 ---
 
@@ -47,7 +47,7 @@ confirmed clean):
 | Mutation of the shipped `writeRaw` | Rollback suite |
 | --- | --- |
 | in-place truncate (no temp file / no rename) | **FAIL** — `TestFileStore_Rollback_FailureLeavesPriorHistoryIntact` reddens ✅ |
-| remove `f.Sync()` (file `fsync`) | **ok — all green** ❌ |
+| remove `f.Sync()` (file `fsync`) | **ok — all green** ❌ *(the round-081-era measurement — **closed by round 084**: the store-level `durableFS` seam pin `TestFileStore_Rollback_SyncsTempFileBeforeRename` now **reddens** when the file `fsync` is removed; §7)* |
 | remove `syncDir(...)` (directory `fsync`) | **ok — all green** ❌ *(no asserted **effect** claim to falsify: the dir `fsync` is a **mechanism**, named on no asserted surface, and its durability effect is **accepted-unwitnessed** — see the corrected Finding below. Round 084 does add a **presence** tripwire that the dir `fsync` is invoked, so a dropped call reddens; the ❌ marks the absence of an unwitnessed-effect defect, not an open bug.)* |
 
 **Finding.** The review fold (`F-081-3`) added a failure-path pin that reddens — **but only for the
@@ -81,13 +81,13 @@ records with defects, so they are not used).
 
 | Tier | Meaning | Count |
 | --- | --- | --- |
-| **Finding level** (a review finding id + a witness-gap phrase) | distinct defect records | **11** |
+| **Finding level** (a review finding id + a witness-gap phrase) | distinct defect records | **16** (073 → 084; the snapshot below) |
 | **Lesson level** (the explicit "recurrence meme" line in process notes) | self-diagnoses | **7–8** (rounds 075, 076, 078, 079, 080×2, 081) |
 | **Review chains** returning `APPROVE WITH REQUIRED FOLDS` | review passes finding ≥1 required fold | **43** |
 | **Day density** | days with ≥1 witness-class mention | **12 of 14** (`2026/09/10–23`) |
 | `STATUS.md` | class mentions | 2 (hygiene pass moved narrative to archives) |
 
-**Finding-level instances (the concrete list):**
+**Finding-level instances (the concrete list, 073 → 084):**
 
 ```
 075  F-1   D6 overclaimed the witness set + FR-005 had no carrier
@@ -104,6 +104,8 @@ records with defects, so they are not used).
 081  F-081-3  the decode-failure claim had no carrier
 082  F-082-2  SC-002 had no carrier
 082  F-1   D6 overclaimed the witness set + FR-005 had no carrier
+083  (self-caught)  the multi-media round's contiguity claim had no witness — caught at authoring, fixed in-round (§7)
+084  F-084-1  the ledger's CLM-084-3 falsifier was non-discriminating (a re-marshal mutant left T005 green)
 ```
 
 **Lesson-level lines** — the same rule rewritten each round:
@@ -122,9 +124,19 @@ least one, and the last five produced a lesson-level statement in near-identical
 finding, the density is a **floor**, not a total: it counts only what review caught — the `fsync`
 clause is exactly the member of the class that review **missed** and that surfaced only under mutation.
 
+**The turn (rounds 083–084).** With the obligation shipped (§5), the class moved **upstream of review**:
+round 083 **self-caught** its own contiguity tripwire gap *at authoring* and fixed it in-round (§7),
+and round 084's residual (F-084-1) was a **ledger/falsifier-accuracy** finding on an already-witnessed
+clause — not a fresh unwitnessed claim. That is the intended remedy: the check runs at authoring, and
+review polices the *record*, not the missingness.
+
 ---
 
 ## 4. Root cause — where the pipeline has no carrier
+
+> **Pre-fix record (2026-09-23).** This section documents the gaps **as filed**; the proposal in §5
+> **shipped upstream**, so the table below is the *before* snapshot, not the current state. Each row is
+> now addressed by an `aixbdd-tmg` **ADR 0006** rule (see §5's disposition).
 
 Audit of `aixbdd-tmg/skills/` (16 skills). The pipeline converts **observable** behaviour into
 executable truth (Gherkin `Rule`/`Example` + `dsl.md` row + stepdef) and that path is genuinely
@@ -175,6 +187,28 @@ optional `Witness` column; `axb-constitution` land the invariant in the shared c
 **Not** mutation testing, **not** a coverage threshold, **not** a CI gate (prose can't be parsed —
 same scope decision as ADR 0004: a `MUST` rule + template). Full rationale + alternatives:
 [`aixbdd-tmg#15`](https://github.com/gosharplite/aixbdd-tmg/issues/15).
+
+> **Disposition (2026-09-23): the proposal shipped.** [`aixbdd-tmg#16`](https://github.com/gosharplite/aixbdd-tmg/pull/16)
+> (merged 2026-09-23; **ADR 0006**) landed **all eight items** — the minimal cut **and** the ergonomics:
+> 1. **`axb-specify`** — per-item **verification intent** (`observable → <acceptance Rule>` /
+>    `unobservable → <witness tier>` / `accepted-unwitnessed`) + minted **`EC-nnn`** ids + a
+>    completeness self-check (Rule 5).
+> 2. **`axb-tasks`** — a **`[WITNESS]` marker lane** + a **Claim→Witness 盤點對照表** in `tasks.md`
+>    (the Orphan Sweep extended from *artifacts* to *claims*).
+> 3. **`axb-implement`** — a **three-gate DoD** (discriminating mutation · attributed failure ·
+>    revert-and-re-green) with **demotion** as a first-class terminal outcome.
+> 4. **`axb-bdd`** — a **two-authority split** (signal reality in `red-失敗訊號建立判準.md`; binding in
+>    the DoD) so non-Gherkin witness pins are citable.
+> 5. **`axb-technical-research`** — **Rule 6**: a behaviour guarantee/invariant **must not** be a
+>    `techstack.md` row.
+> 6. **`axb-gherkin-and-dsl` / `axb-dsl-refine`** — a truth-prose boundary (`STANDARDS.md` §2.1/§7) so
+>    an unobservable NFR is **never dropped** at conversion.
+> 7. **`axb-truth-delta`** — an optional **`Witness`** column (derivability).
+> 8. **`axb-constitution`** — **Rule 4** landing the cross-cutting invariant (a project must declare
+>    its decision surface).
+>
+> The `tellme` **skills are synced** with it (13 files carry the obligation). So §4's gaps are **fixed
+> upstream**; this file's two `tellme` instances are **closed** (§7).
 
 ---
 
