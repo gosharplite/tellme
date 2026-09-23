@@ -65,17 +65,19 @@ func TestFileStore_Rollback_SyncsTempFileBeforeRename(t *testing.T) {
 	// over-couple to an extra/benign primitive (fold N-084-2). The pin also, as a
 	// side effect, guards that the rewrite routes through the seam: a direct
 	// f.Sync() records no sync event.
-	syncIdx, renameIdx := -1, -1
+	syncIdx, renameIdx, syncDirIdx := -1, -1, -1
 	for i, e := range fs.events {
 		switch {
 		case strings.HasPrefix(e, "sync:"):
 			syncIdx = i
 		case strings.HasPrefix(e, "rename:"):
 			renameIdx = i
+		case strings.HasPrefix(e, "syncdir:"):
+			syncDirIdx = i
 		}
 	}
-	if syncIdx < 0 || renameIdx < 0 {
-		t.Fatalf("the rollback must fsync the temp file then rename it via the seam; events = %v", fs.events)
+	if syncIdx < 0 || renameIdx < 0 || syncDirIdx < 0 {
+		t.Fatalf("the rollback must fsync the temp file, rename it, and fsync the directory via the seam; events = %v", fs.events)
 	}
 	if syncIdx > renameIdx {
 		t.Fatalf("the temp-file fsync must PRECEDE the rename; events = %v", fs.events)

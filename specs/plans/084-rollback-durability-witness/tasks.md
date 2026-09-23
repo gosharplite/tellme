@@ -17,7 +17,7 @@
 
 **Boundary**: test-only; no product behaviour change beyond T001; the recording fake is in-package.
 
-- [X] **T002** `[WITNESS]` — `internal/infrastructure/history/file_store_sync_test.go` (new): the recording `durableFS` fake + **`TestFileStore_Rollback_SyncsTempFileBeforeRename`** — assert the ordered events `sync(*.tmp)` → `rename(*.tmp → history.jsonl)` → `syncdir`. **Falsifier**: remove the `s.fs.Sync(f)` call ⇒ this pin reddens. `Dependencies: T001` · `Test Scope: internal/infrastructure/history` · `Target: file_store.go writeRaw`
+- [X] **T002** `[WITNESS]` — `internal/infrastructure/history/file_store_sync_test.go` (new): the recording `durableFS` fake + **`TestFileStore_Rollback_SyncsTempFileBeforeRename`** — assert the **order relation** (`sync` index < `rename` index; the sync targets the temp file) **and** that a directory-`fsync` event is invoked (fold R-FV-084-1). **Falsifier**: remove the `s.fs.Sync(f)` call ⇒ this pin reddens (also reds on a sync-after-rename mutant, or a dropped dir-`fsync`). `Dependencies: T001` · `Test Scope: internal/infrastructure/history` · `Target: file_store.go writeRaw`
 - [X] **T003** `[WITNESS]` — `file_store_sync_test.go`: **`TestFileStore_Rollback_SyncErrorLeavesPriorHistoryIntact`** (EC-001) — the fake's `Sync` errors ⇒ `Rollback` returns the error, no rename occurs, the prior `history.jsonl` is byte-intact, and no temp file remains. `Dependencies: T001` · `Falsifier`: ignore the sync error ⇒ reddens.
 - [X] **T004** `[WITNESS]` — `file_store_sync_test.go`: **`TestFileStore_Rollback_DirSyncErrorDoesNotFail`** (EC-002) — the fake's `SyncDir` errors ⇒ `Rollback` still succeeds (best-effort). `Dependencies: T001` · `Falsifier`: propagate the dir-sync error ⇒ reddens.
 - [X] **T005** `[WITNESS]`— **companion guard** (fold **F-084-1**): `file_store_sync_test.go`: **`TestFileStore_Rollback_PreservesSurvivorBytesOnToolWrittenPath`** (EC-004) — append three entries **through the store**, snapshot the file, roll back one, assert the surviving bytes are **byte-identical** to the first two original lines. **It is a guard, not a discriminating witness**: for canonical tool-written lines a decode+`json.Marshal` round-trip is byte-identical, so a re-marshal mutant leaves it green (measured). The **falsifiable** form of the "byte-unchanged" claim is the pre-existing hand-filled pin `TestFileStore_Rollback_DoesNotRewriteSurvivorBytes` (an unknown future field is lost under a re-marshal) — re-attributed in the ledger. `Dependencies: T001`.
@@ -57,10 +57,6 @@
 
 ## Fold ledger
 
-*(populated during the review-fold loop)*
-
-## Fold ledger
-
 **PR #170 architectural review (the `architect` peer) — `APPROVE WITH REQUIRED FOLDS`** (no `[ARCHITECTURAL BLOCKER]`). Posted: <https://github.com/gosharplite/tellme/pull/170#issuecomment-5795203703>.
 
 | # | Finding | Fold |
@@ -71,6 +67,14 @@
 | **N-084-1** | RF-084-3 called the seam "test-only" | reworded — an unexported injection point, production default unchanged |
 | **N-084-2** | the order pin asserted **exact** event-sequence equality (over-coupling / doubles as a seam guard) | relaxed to the **order relation** (`sync` index < `rename` index) + the temp-file target; the seam-participation side effect noted |
 | **N-084-3** | `GAPS.md` §2's dir-`fsync` row still showed ❌ | reconciled the marker with the corrected reading (no asserted claim to falsify) |
+
+**Fold-verification (the `architect` peer, continuation) — `FOLDS VERIFIED WITH RESIDUALS`** (no blocker; posted <https://github.com/gosharplite/tellme/pull/170#issuecomment-5795277977>).
+
+| # | Residual | Fold |
+| --- | --- | --- |
+| **R-FV-084-1** | the N-084-2 relaxation dropped the only assertion that the directory `fsync` is invoked (a drop-`SyncDir` mutant left all 14 rollback tests green at `5b5accc`) | the pin now also asserts a `syncdir:` event is invoked (measured: the drop-`SyncDir` mutant **reddens** `…SyncsTempFileBeforeRename`) |
+| **R-FV-084-2** | `tasks.md` had a duplicated `## Fold ledger` heading | removed the empty placeholder |
+| **R-FV-084-3** | three record surfaces still described the pre-fold assertion (`tasks.md` T002; ADR 0056 D5.1 + D5.4) | aligned T002, D5.1, D5.4 to the relaxed order-relation + companion-guard status |
 
 ## Falsifiability witnesses
 
