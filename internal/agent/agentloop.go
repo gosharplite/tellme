@@ -141,6 +141,16 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 		a.notifyToolsStart(toolNames(resp.ToolCalls))
 		a.logEngine(i+1, maxLoops)
 		turn = append(turn, llm.Message{Role: "assistant", ToolCalls: resp.ToolCalls})
+		// Round 083 (ADR 0055): collect the round's media and fold it ONCE, AFTER
+		// the per-call loop, so every `tool` message of the round stays CONTIGUOUS
+		// on the wire. A non-`tool` message between a round's `tool` results makes
+		// the OpenAI-compatible family reject the NEXT request (HTTP 400: an
+		// assistant `tool_calls` block must be answered by its `tool` messages
+		// together). The round-062 ADR 0032 D7 per-call placement interleaved a
+		// media `user` message between the results and so broke any round with
+		// >= 2 media calls; N == 1 is byte-identical (the media still follows the
+		// sole result).
+		var roundMedia []tools.MediaPart
 		for _, tc := range resp.ToolCalls {
 			if a.Registry == nil {
 				return agentport.Result{Steps: steps, Calls: calls}, &agentport.ErrIncomplete{Reason: "no tools are registered"}
@@ -209,13 +219,17 @@ func (a *AgentLoop) Run(ctx context.Context, prompt string, prior []history.Entr
 			a.recordToolUsage(tc.Name, terr, toolTimedOut)
 			a.logResult(tc, result)
 			turn = append(turn, llm.Message{Role: "tool", Content: result, ToolCallID: tc.ID})
-			// Round 062 (ADR 0032 D7): a call that attached media gets ONE `user`
-			// message (media-first) immediately after its tool result, so the model
-			// can see the image and the tool result stays paired.
-			if len(media) > 0 {
-				turn = append(turn, llm.Message{Role: "user", Media: media})
-			}
+			// Round 083 (ADR 0055): collect the call's media for the round's ONE
+			// trailing media message (folded after the loop) — never appended here,
+			// so the round's `tool` results stay contiguous.
+			roundMedia = append(roundMedia, media...)
 			steps = append(steps, history.Step{Tool: tc.Name, Arguments: tc.Arguments, Result: result, Signature: tc.Signature})
+		}
+		// Round 083 (ADR 0055): one `user` message carrying the round's media
+		// (call order) AFTER all the round's `tool` results — the round-scoped
+		// placement that keeps the assistant `tool_calls` block contiguous.
+		if len(roundMedia) > 0 {
+			turn = append(turn, llm.Message{Role: "user", Media: roundMedia})
 		}
 		a.notifyToolsEnd()
 		// Round 034 (ADR 0005 D1): the call-end hook fires at the END of the

@@ -79,6 +79,13 @@ func TestRequestBody_MediaBecomesInlineData(t *testing.T) {
 //
 // This supersedes the round-063 TD-063-1 interleave pin (the pre-065 shape that
 // made Vertex reject a >=2-call round).
+//
+// Round 083 (ADR 0055; closes #167) note: this pin feeds the adapter a SYNTHETIC
+// interleaved `prior` (`tool, user(media), tool, user(media)`) to exercise the
+// adapter's per-message buffering directly. The post-083 LIVE loop no longer
+// emits that shape — it hands the adapter ONE media message per round — so the
+// live shape is `[model: fcA, fcB] [user: frA, frB] [user: inlineData(A), inlineData(B)]`
+// (pinned by TestRequestBody_RoundScopedMedia_OneTurnTwoParts).
 func TestRequestBody_MultiCallRound_BatchesFunctionResponses(t *testing.T) {
 	dataA := []byte{0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A}
 	dataB := []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00}
@@ -355,5 +362,70 @@ func TestRequestBody_MediaFreeIsByteIdentical(t *testing.T) {
 	const want = `{"contents":[{"parts":[{"text":"hi"}],"role":"user"}]}`
 	if string(body) != want {
 		t.Errorf("media-free body drifted:\n got %s\nwant %s", body, want)
+	}
+}
+
+// TestRequestBody_RoundScopedMedia_OneTurnTwoParts pins round 083 (ADR 0055;
+// closes #167) D3: the post-083 LOOP hands the adapter ONE media message per
+// round carrying N media parts (call order), so the Gemini adapter emits ONE
+// media `user` turn with N `inlineData` parts — not N single-part media turns.
+// (Pre-083 the loop handed it per-call messages, which the adapter turned into N
+// turns; that interleaved `prior` is still what the round-065 pin feeds directly,
+// but the live loop no longer produces it — see
+// TestRequestBody_MultiCallRound_BatchesFunctionResponses.)
+func TestRequestBody_RoundScopedMedia_OneTurnTwoParts(t *testing.T) {
+	dataA := []byte{0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A}
+	dataB := []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00}
+	// The post-083 round shape: assistant(tool_calls ×2), the two tool results
+	// CONTIGUOUS, then ONE media message carrying BOTH images.
+	prior := []llm.Message{
+		{Role: "assistant", ToolCalls: []llm.ToolCall{
+			{ID: "call_1", Name: "read_image", Arguments: `{"filepath":"a.png"}`},
+			{ID: "call_2", Name: "read_image", Arguments: `{"filepath":"b.jpg"}`},
+		}},
+		{Role: "tool", Content: "a ok", ToolCallID: "call_1"},
+		{Role: "tool", Content: "b ok", ToolCallID: "call_2"},
+		{Role: "user", Media: []domaintools.MediaPart{
+			{MIMEType: "image/png", Data: dataA},
+			{MIMEType: "image/jpeg", Data: dataB},
+		}},
+	}
+	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	if err != nil {
+		t.Fatalf("requestBody: %v", err)
+	}
+	var decoded struct {
+		Contents []struct {
+			Role  string           `json:"role"`
+			Parts []map[string]any `json:"parts"`
+		} `json:"contents"`
+	}
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	// [model(fcA,fcB)] [user(frA,frB)] [user(inlineData A, inlineData B)]
+	if len(decoded.Contents) != 3 {
+		t.Fatalf("contents len = %d, want 3 (model, batched fr, ONE media turn): %s", len(decoded.Contents), body)
+	}
+	mediaTurn := decoded.Contents[2]
+	if mediaTurn.Role != "user" {
+		t.Errorf("media turn role = %q, want user", mediaTurn.Role)
+	}
+	if len(mediaTurn.Parts) != 2 {
+		t.Fatalf("media turn parts = %d, want 2 (one inlineData per media part): %+v", len(mediaTurn.Parts), mediaTurn.Parts)
+	}
+	for i, want := range [][]byte{dataA, dataB} {
+		blob, _ := mediaTurn.Parts[i]["inlineData"].(map[string]any)
+		if blob == nil {
+			t.Fatalf("media turn part %d carries no inlineData: %+v", i, mediaTurn.Parts[i])
+		}
+		raw, _ := blob["data"].(string)
+		got, err := base64.StdEncoding.DecodeString(raw)
+		if err != nil {
+			t.Fatalf("media turn part %d inlineData.data is not base64: %v", i, err)
+		}
+		if string(got) != string(want) {
+			t.Errorf("media turn part %d bytes = %x, want %x", i, got, want)
+		}
 	}
 }

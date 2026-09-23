@@ -162,6 +162,53 @@ Feature: Reading a local image with the agent
       And the request carried no image
       And tellme exits successfully
 
+  # Round 083 (ADR 0055; closes #167): a step that reads SEVERAL pictures delivers
+  # them TOGETHER, in ONE message, AFTER every tool result of the round, so the
+  # assistant tool-call block is answered CONTIGUOUSLY — the OpenAI-compatible
+  # family rejects (HTTP 400) a request whose tool results are interrupted by a
+  # media/user message. A single picture is unchanged (its message already
+  # follows the sole tool result). The Gemini/Vertex adapter keeps its placement
+  # (the round's media after the batched function-response turn).
+
+  Rule: A step that reads several pictures shows them together, after every tool result
+
+    Example: The model inspects three pictures in one step
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the workspace holds an image file "a.png" that is a PNG picture
+      And the workspace holds an image file "b.png" that is a PNG picture
+      And the workspace holds an image file "c.png" that is a PNG picture
+      And a configured provider "eye" that can take images and whose endpoint asks tellme, in one step, to read "a.png", "b.png" and "c.png" and then answers with "three squares"
+      When the operator starts tellme with the prompt "What do these pictures show?"
+      Then the tool results of the step were answered together, before the pictures were shown
+      And the step showed the three pictures together after the results
+      And tellme prints the provider's answer "three squares"
+      And tellme exits successfully
+
+    Example: A resumed session replays the step contiguously
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the workspace holds an image file "a.png" that is a PNG picture
+      And the workspace holds an image file "b.png" that is a PNG picture
+      And the workspace holds an image file "c.png" that is a PNG picture
+      And the session history already holds a turn in which the agent read "a.png", "b.png" and "c.png"
+      And a configured provider "eye" that can take images whose endpoint reports the offered tools and then answers with "still three squares"
+      When the operator starts tellme with the prompt "And now?"
+      Then the replayed step answered every tool result together
+      And tellme prints the provider's answer "still three squares"
+      And tellme exits successfully
+
+    Example: The Gemini family carries the round's pictures together too
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the workspace holds an image file "a.png" that is a PNG picture
+      And the workspace holds an image file "b.png" that is a PNG picture
+      And a configured Gemini provider "eye" that can take images and whose endpoint asks tellme, in one step, to read the image files "a.png" and "b.png" and then answers with "two squares"
+      When the operator starts tellme with the prompt "What do these pictures show?"
+      Then the Gemini provider received the answer to both read requests together
+      And tellme prints the provider's answer "two squares"
+      And tellme exits successfully
+
   # Delivery-protection note — NOT a Rule (it carries no Examples; the round-063
   # review TD-063-4 "meta-Rule"). RETIRED 2026-09-20 as RF-063-10: the convention
   # is now that every Rule carries ≥1 Example. Documented narrowing (the round-059

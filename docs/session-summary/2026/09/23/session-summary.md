@@ -194,3 +194,112 @@ Round 082 was human-merged (PR [#166](https://github.com/gosharplite/tellme/pull
 **PM follow-ups**: none new.
 
 *(Round 082 is fully closed out: PR #166 human-merged into `dev` (`95d8f40`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-082`**; the installed binary refreshed; [#165](https://github.com/gosharplite/tellme/issues/165) closed.)*
+
+---
+
+## 3. Session 71 (2026-09-23, cont.) — round 083 `083-round-scoped-media-placement` **OPENED → full pipeline → PR [#168](https://github.com/gosharplite/tellme/pull/168) open** (anchor issue [#167](https://github.com/gosharplite/tellme/issues/167); **ADR 0055**)
+
+Bootstrapped (`SESSION-BOOTSTRAP.md` Steps 1–8; round 082 delivered/frozen; active branch `dev`, tree clean at `426a93f`). The operator read issue **#167** and directed *"Open a new round, the goal is close #167"*, then *"Keep going unless you need to ask me question. Provide PR link for review. No Copilot review. Only human can merge github PR."* Created branch **`083-round-scoped-media-placement`** off `dev`, ran the full AIxBDD pipeline, and opened **PR [#168](https://github.com/gosharplite/tellme/pull/168)**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Theme | **MODIFY (the agent tool loop's media placement)** — a round's media is folded **once, after** the per-call loop, so a multi-media round's `tool` results are **contiguous**; fixes the OpenAI-compatible-family `400` on ≥2 `read_image` calls |
+| Clarify | **not escalated (0 questions)** — the issue locks the behaviour; its *Proposed fix* / *Witness to add* routed to `/axb-technical-research` |
+| Pipeline | specify ✅ · spec-by-example ✅ · technical-research ✅ (research D1–D9 · **ADR 0055** amends ADR 0032 D7 · `techstack.md` ×3) · system-analysis ✅ (1 CLI end; api/data NOOP; not modelled) · dsl-refine ✅ (a new media-round Rule + 3 Examples; +5 `chat/dsl.md` rows + a round-063 supersession) · tasks ✅ (T001–T015) · implement ✅ |
+| The change | `internal/agent/agentloop.go` — accumulate `roundMedia` at the call site; append **one** `user` media message **after** the per-call loop (call order); single-call byte-identical; the adapters unchanged |
+| The witness (the missing tripwire) | loop tier: `internal/agent/agentloop_media_test.go` (3-media order + single-media + no-media); E2E: `toolExchangeChronologyOK` extended with **contiguity** + `tests/e2e/steps/step_r083_media_round.go` (a multi-image fixture, a one-message-of-three-images Then, a resumed replay Then) |
+| Verification | `gofmt`/`goimports`/`go vet` clean · `go test -count=1 ./...` **green** (E2E **314 scenarios · 2354 steps**) · `make verify` **OK** · `go.mod`/`go.sum` **unchanged** |
+| Witnesses (reproduced then reverted) | **W1** (the pre-fix per-call media placement) ⇒ **1** loop-tier pin red (`ThreeCalls_FoldedOnceAfterResults`, `8 messages want 6`) **and** **1** E2E Example reddens (`313/314`, at the contiguity Then, via the shared `toolExchangeChronologyOK`); **W2** (N trailing media messages) ⇒ the unit pin reds **and** the E2E reddens at the one-message Then (`carries 1 picture(s), want 3`) |
+| Delivery | branch `083-round-scoped-media-placement` → **PR [#168](https://github.com/gosharplite/tellme/pull/168) OPEN** — awaiting a human review/merge (no Copilot review) |
+
+### Decisions locked (round 083 / ADR 0055)
+
+| # | Decision |
+| --- | --- |
+| **D1** | A round's media is folded **ONCE, after** the per-call loop — **one** `user` message (media-only, call order) after **all** the round's `tool` results; the `tool` block is **contiguous**. |
+| **D2** | Single-call output is **byte-identical** (`assistant, tool, user(media)`). |
+| **D3** | The Gemini/Vertex placement is unchanged; **recorded cardinality consequence** — a multi-media round now emits **one** media turn of N `inlineData` parts (not N turns). |
+| **D4** | The loop owns the active-turn message order (not each adapter). |
+| **D5** | The two-tier witness (loop 3-media order pin + E2E contiguity) — both redden pre-fix. |
+| **D6** | Placement-only (no storage/prompt/chrome/exit-code/phrase change). |
+| **D7** | Scope guard: no media persistence/dedupe/`--image`; the *enforcing-fake* witness not adopted (kept a forward option). |
+| **D8** | Records: **ADR 0055** (+ index) **amends ADR 0032 D7**; `techstack.md` ×3; the `chat` feature + `dsl.md`; `docs/domain-model/**` **NOT modelled**; `contracts/**`+`data/**` NOOP. |
+
+### Commits (branch `083-round-scoped-media-placement`)
+
+| Commit | Note |
+| --- | --- |
+| `faae4b1` | `docs(083)`: plan package + spec + STATUS — round 083 in flight |
+| `87473aa` | `feat(083)`: round-scoped media placement (ADR 0055) + truth + records + witnesses |
+| *(this record, on the branch)* | `docs(083)`: STATUS + day log §3 — pipeline complete; PR #168 open |
+
+### Open items (non-blocking)
+
+- **PR [#168](https://github.com/gosharplite/tellme/pull/168)** awaits a human review/merge → then `SESSION-CLOSEOUT.md` Steps 1–8 (propagate `dev → main`, tag `round-083`, refresh the binary; **close [#167](https://github.com/gosharplite/tellme/issues/167)**).
+- **ADR 0055 §Forward** RF-083-1…6 (active-turn payload growth · the wire-predicate witness · the Gemini cardinality consequence not independently pinned · the enforcing-fake option · a mixed media/no-media round · the no-media replay path).
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the **6** topology-audit DSL errors (5 pre-existing + 1 documented cross-module class).
+
+### Next steps
+
+1. Human reviews + merges **PR [#168](https://github.com/gosharplite/tellme/pull/168)**; then the closeout (propagate `dev → main` no-ff, tag `round-083`, close [#167](https://github.com/gosharplite/tellme/issues/167)).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `083-round-scoped-media-placement` until merged, then `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).
+
+
+### 3 (cont.) — round 083 review-fold loop CLOSED (the `architect` peer) → ready for human merge
+
+Operator: *"Communicate with sub-agent 'architect'. Initialize architect with `SESSION-BOOTSTRAP.md`, don't use `--new` on architect after initialization. Ask architect to review this PR and post comment. You will read and resolve PR comments. Post your fold comments on the PR. Do the review-fold loop until PR is ready for human to merge."*
+
+- **Dispatch (per `tm-chat-ingroup`)**: staged the initialization prompt (remote-party marker) in `/tmp`; `env -u TELL_ME_MODE TELL_ME_HOME=$WS tellme --new -r -c $WS/configs/architect.yaml < …` (same model `deepseek-flash`); the architect bootstrapped `SESSION-BOOTSTRAP.md` Steps 1–8 (turn header `architect`); then a **continuation** (no `--new`) asked it to review PR #168 and post a comment.
+- **Review (posted)**: [`pull/168#issuecomment-5791876759`](https://github.com/gosharplite/tellme/pull/168#issuecomment-5791876759) — **`APPROVE WITH REQUIRED FOLDS`** (no `[ARCHITECTURAL BLOCKER]`): **F-083-1** ADR 0032 had no reciprocal back-pointer · **F-083-2** ADR 0055 misquoted D7 (its body was already round-scoped; the *implementation* was per-call) · **F-083-3** the W1 record overstated the red set · **F-083-4** the domain model *does* narrate the placement ("not modelled" did not engage it) · **F-083-5** D3/SC-004's one-media-turn cardinality had no falsifier + the round-065 pin feeds a synthetic prior · **F-083-6** the `toolExchangeChronologyOK` contiguity claim had no carrier; + **TD-083-1/2/3**, **N-083-1/2/3**. The architect independently reproduced **W1** on a scratch copy (1 loop pin + 1 E2E Example red).
+- **Folds applied**: F-083-1 (ADR 0032 `Status`+D7 annotated) · F-083-2 (reframed **clarifies**, not *amends*, across ADR 0055/0032/README + `spec.md`/`research.md`/`techstack.md`/`dsl.md`) · F-083-3 (record aligned — 1 loop pin + 1 E2E) · F-083-4 (the two domain-model sentences corrected + re-rendered; `plan.md`/`research.md`/`techstack.md` restated) · F-083-5 (new adapter pin `TestRequestBody_RoundScopedMedia_OneTurnTwoParts`; the round-065 pin annotated adapter-level) · F-083-6 (the round-083 multi-image fixture now routes its contiguity Thens through the **shared** `toolExchangeChronologyOK` — single owner, resolving TD-083-1) · TD-083-2/3 (reworded as **guards**) · N-083-1 (inspection-only) · N-083-2 (T003 fixed) · N-083-3 (`GAPS.md` records the closed instance).
+- **Verification at the fold head**: `gofmt`/`goimports`/`go vet` clean · `go test -count=1 ./...` green (E2E **314 scenarios · 2354 steps**) · `make verify` **OK** · `go.mod`/`go.sum` unchanged. Re-measured **W1** post-fold: 1 loop pin + 1 E2E Example red (the E2E failure message now comes from the shared helper).
+- **Fold verification (the `architect` peer, continuation)**: [`pull/168#issuecomment-5792020821`](https://github.com/gosharplite/tellme/pull/168#issuecomment-5792020821) — `FOLDS VERIFIED`, with two record-hygiene residuals (**R-FV-083-1** the plan package still said "amends ADR 0032 D7"; **R-FV-083-2** two sibling singular "after the tool result" phrasings in the domain model). Both folded (`0ccf4f3`) + a residual-fold comment; the final verification [`pull/168#issuecomment-5792066150`](https://github.com/gosharplite/tellme/pull/168#issuecomment-5792066150) returned **`FOLDS VERIFIED — LOOP CLOSED (no residuals)`**.
+- **State**: **the review-fold loop is CLOSED** — the PR is ready for a human to review and merge (no Copilot review; only a human merges).
+
+### 3 (closeout) — round 083 DELIVERED / FROZEN (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 083 was human-merged (PR [#168](https://github.com/gosharplite/tellme/pull/168) → `dev` `3436558`, **fast-forward**, `mergedAt 2026-09-23T09:07:36Z`); the remote branch was already gone (`git fetch --prune` → `[deleted] origin/083-round-scoped-media-placement`), the local branch was **deleted** after an ancestor check (the round tip `3436558` is an ancestor of `dev`), and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == 3436558`; no delivered `specs/plans/**` touched (the round-082 package unmodified); `.git/refs/remotes/origin/HEAD` is missing so the short ref `origin` is ambiguous — use `origin/dev`/`origin/main` |
+| **2 — gates** | `make check` **OK** (`make verify` OK + `go test -count=1 ./...` green) · `make test-race` **no data races** · diff-level secret scan clean (the one hit is the pre-existing techstack prose "token") · `go.mod`/`go.sum` unchanged |
+| **3 — STATUS.md** | round 083 → the **Last delivered round** section; **Rule-12 split**: the **round-082 delivered-round detail** relocated **verbatim** into [`docs/archives/status/2026-09-23.md`](../../../../archives/status/2026-09-23.md); header/branch-model/roadmap/open-items-pointer/env notes refreshed; **54 lines** (live state only) |
+| **4 — daily summary** | this §3 (closeout) appended (the §1 + §2 + §3 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, 0 open issues, branch heads match |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-083`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#167](https://github.com/gosharplite/tellme/issues/167) CLOSED** with a linking comment; tracker → **0 open** |
+
+**Commits (branch `083-round-scoped-media-placement`, then merged fast-forward)**
+
+| Commit | Note |
+| --- | --- |
+| `faae4b1` | `docs(083)`: plan package + spec + STATUS — round 083 in flight |
+| `87473aa` | `feat(083)`: round-scoped media placement (ADR 0055) + truth + records + witnesses |
+| `ad160a0` | `docs(083)`: STATUS + day log §3 — pipeline complete; PR #168 open |
+| `42e7d6f` | `fix(083)`: fold the architect review (F-083-1…6 + TD-083-1/2/3 + N-083-1/2/3) |
+| `0ccf4f3` | `docs(083)`: fold the fold-verification residuals (R-FV-083-1/2) |
+| `3436558` | `docs(083)`: review-fold loop CLOSED — STATUS + day log (final verdict FOLDS VERIFIED); the merge head (fast-forward) |
+| *(this closeout, on `dev`)* | `docs(083)`: day close — round 083 delivered + propagated; STATUS split + 09/23 summary |
+
+**Open items (non-blocking)**
+
+- **RF-083-1…6** in **ADR 0055 §Forward** (active-turn payload growth · the wire-predicate witness · the live Gemini end-to-end cardinality only companion-guarded · the *enforcing-fake* option · a mixed media/no-media round · the no-media replay path); the **TD-083-1/2/3** / **N-083-1/2/3** records live in the round's `tasks.md` §Fold ledger.
+- Carried: PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the **6** topology-audit DSL errors (5 pre-existing + 1 documented cross-module class).
+- **Issue tracker**: **0 open**.
+
+**Next steps**
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value** (the tracker is **0 open**).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+**PM follow-ups**: none new.
+
+*(Round 083 is fully closed out: PR #168 human-merged into `dev` (`3436558`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-083`**; the installed binary refreshed; [#167](https://github.com/gosharplite/tellme/issues/167) closed.)*
