@@ -48,7 +48,7 @@ confirmed clean):
 | --- | --- |
 | in-place truncate (no temp file / no rename) | **FAIL** — `TestFileStore_Rollback_FailureLeavesPriorHistoryIntact` reddens ✅ |
 | remove `f.Sync()` (file `fsync`) | **ok — all green** ❌ |
-| remove `syncDir(...)` (directory `fsync`) | **ok — all green** ❌ *(no asserted claim to falsify: the dir `fsync` is a **mechanism**, named on no asserted surface — see the corrected Finding below; the marker reads "no tripwire needed", not "open defect")* |
+| remove `syncDir(...)` (directory `fsync`) | **ok — all green** ❌ *(no asserted **effect** claim to falsify: the dir `fsync` is a **mechanism**, named on no asserted surface, and its durability effect is **accepted-unwitnessed** — see the corrected Finding below. Round 084 does add a **presence** tripwire that the dir `fsync` is invoked, so a dropped call reddens; the ❌ marks the absence of an unwitnessed-effect defect, not an open bug.)* |
 
 **Finding.** The review fold (`F-081-3`) added a failure-path pin that reddens — **but only for the
 temp+rename half**. **The `fsync` predication has no falsifier** — corrected by the upstream grill
