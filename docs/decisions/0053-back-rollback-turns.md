@@ -1,6 +1,6 @@
 # ADR 0053 — `-b`/`--back`: roll back the last N turns of the session history
 
-- **Status:** Accepted
+- **Status:** Accepted — its durability clause is **witnessed and calibrated** by [ADR 0056](0056-rollback-durability-witness.md) (round 084; the file `fsync`-before-rename gains a mechanism-seam pin, the best-effort directory `fsync` is recorded accepted-unwitnessed)
 - **Date:** 2026-09-22
 - **Deciders:** tellme owner
 - **Related:** [ADR 0023](0023-list-default-and-chrome-colour.md) (the `-l` optional-int pre-pass whose **RF-54-4** this ADR resolves by generalising it), [ADR 0022](0022-offline-session-config-and-turns-log.md) (the offline session-command selection this reuses), [ADR 0051](0051-interrupted-turn-partial-persistence.md) / [ADR 0052](0052-failed-turn-partial-persistence.md) (the guarantee that `history.jsonl` holds only complete turns, which makes a rollback a clean line cut), [ADR 0011](0011-layer-discipline-gate.md) (the layer ranking the adapter respects); issue [#163](https://github.com/gosharplite/tellme/issues/163); round 081 (`specs/plans/081-back-rollback-turns`)
@@ -31,6 +31,8 @@ Rollback(n int) (removed int, err error)
 
 removing the last **n complete turns** (whole entries, including their embedded `steps[]`). It is **durable and atomic**: the surviving entries are written to a temp file in the same directory, `fsync`ed, then `os.Rename`d over `history.jsonl` (the live file is never truncated in place); a crash mid-rollback leaves the prior history intact. A missing active file ⇒ 0 removed. A decode failure ⇒ an error (never a partial write). *Rejected:* a generic `Rewrite([]Entry)` (a wider, less-meaningful surface) and load-trim-rewrite at the CLI (spreads history/durability knowledge out of its adapter).
 
+> **Round 084 / ADR 0056 — calibration annotation (not a rewrite):** this clause is now **witnessed and calibrated**. The asserted effect is exactly the witnessed mechanism — *temp file + `fsync` **before** the atomic `rename`* (so an in-place truncate is impossible and the prior file survives a crash **before** the rename). The stronger "*a crash mid-rollback*" / power-loss implication is **not** asserted: the directory `fsync` is best-effort (accepted-unwitnessed — **ADR 0056 §Forward RF-084-1/2**). The body above is preserved as the round-081 (pre-calibration) history; see ADR 0056 for the witnessed form.
+
 **D4 — clamp.** `removed = min(n, len(entries))`; `tellme -b 999` on a 2-turn session empties it and reports 2. *Rejected:* refusing when `n` > available (blocks the idempotent "clear the session").
 
 **D5 — `n ≤ 0` is a usage error** (exit 2), symmetric with `-l ≤ 0`. *Rejected:* the reference's silent no-op.
@@ -48,7 +50,7 @@ removing the last **n complete turns** (whole entries, including their embedded 
 ## Consequences
 
 - `tellme -b` ≡ `tellme -b 1`; `tellme -b N` drops the last N turns; `tellme -b "p"` undoes the last turn and re-asks; `tellme -l 2 -b` lists then undoes.
-- The rollback is durable: a crash mid-operation cannot corrupt `history.jsonl`.
+- The rollback is durable: a crash mid-operation cannot corrupt `history.jsonl`. *(**Round 084 / ADR 0056** — calibrated: this holds to the **witnessed** effect — the surviving entries go to a temp file, `fsync`ed **before** the atomic `rename`, so an in-place truncate cannot happen and the prior file survives a crash before the rename; the directory `fsync` — and hence power-loss durability — is best-effort / accepted-unwitnessed.)*
 - `history.Entry` / `history.Step` JSON shapes are unchanged; no id/timestamp is introduced.
 - No new dependency; POSIX-only; `go.mod`/`go.sum` unchanged.
 - **Recorded divergence:** the reference drops message pairs (`N × 2`) and prints `⏪ Rolled back …`; tellme drops whole turn lines and prints its own plain line. The reference treats `backN ≤ 0` as a no-op; tellme refuses.
