@@ -101,7 +101,7 @@ help:
 	@echo "  make check                - verify + test (the whole gate; ADR 0042)"
 	@echo "  make check-full           - check + test-race (pre-push; ADR 0042)"
 	@echo "  make verify-no-test-sleep - forbid time.Sleep for synchronization in *_test.go (ADR-036 parity)"
-	@echo "  make verify-no-network    - build-graph capability guard: no net/net/http in ./cmd/tellme closure"
+	@echo "  make verify-no-network    - offline-path no-dial witness: the offline paths make no provider request (round 004)"
 	@echo "  make verify-fmt           - gofmt -l + goimports -l: fail on unformatted/ungrouped Go files (ADR 0042)"
 	@echo "  make verify-adr-index     - every docs/decisions/ ADR is indexed once (ADR 0042)"
 	@echo "  make verify-cross-compile - build + vet the module for every supported POSIX target (linux/darwin, amd64/arm64)"
@@ -248,7 +248,10 @@ verify-no-test-sleep:
 	fi
 	@echo "  ✓ no time.Sleep in test files"
 
-# Build-graph capability guard (research.md Decision 5, backstop witness).
+# Offline-path no-network witness. Round 004 RETIRED the round-001 whole-binary
+# build-graph capability guard ("no net/http in the ./cmd/tellme closure") because
+# the prompt-bearing chat path legitimately links net/http, and re-scoped the claim
+# to the offline paths (a recording sink + the no-egress differential).
 # Single definition: delegates to the Go guard in tests/e2e (harness), so the
 # Makefile and the scenario step never drift (previously two diverging copies).
 verify-no-network:
