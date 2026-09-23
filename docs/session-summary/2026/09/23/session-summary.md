@@ -359,3 +359,16 @@ The operator directed *"Open a new aixbdd round, the goal is to close #169."* Bo
 ### PM follow-ups
 
 - None new (spec/acceptance complete; the round carries the falsifiable unit pin).
+
+### 4 (cont.) — round 084 review-fold loop CLOSED (the `architect` peer; 2 verification passes) → ready for human merge
+
+Operator: *"Communicate with sub-agent 'architect'. Initialize architect with `SESSION-BOOTSTRAP.md`, don't use `--new` on architect after initialization. Ask architect to review this PR and post comment. You will read and resolve PR comments. Post your fold comments on the PR. Do the review-fold loop until PR is ready for human to merge."*
+
+- **Dispatch (per `tm-chat-ingroup`)**: staged the initialization prompt (remote-party marker) in `/tmp`; `env -u TELL_ME_MODE TELL_ME_HOME=$WS tellme --new -r -c $WS/configs/architect.yaml < …`; the architect bootstrapped `SESSION-BOOTSTRAP.md` Steps 1–8 (turn header `architect`); then **continuations** (no `--new`).
+- **Review (posted)**: [`pull/170#issuecomment-5795203703`](https://github.com/gosharplite/tellme/pull/170#issuecomment-5795203703) — **`APPROVE WITH REQUIRED FOLDS`** (no `[ARCHITECTURAL BLOCKER]`): **F-084-1** the ledger's CLM-084-3 falsifier was **non-discriminating** (a re-marshal mutant leaves `T005` green — reproduced) · **F-084-2** two issue-named surfaces still asserted the pre-calibration over-claim (ADR 0053 D3 + Consequences; the README index row 0053) · **TD-084-1** the durability class is witnessed only on the rollback path · **N-084-1/2/3**. The architect independently reproduced **W1** (remove the seam `Sync` ⇒ the pin reddens) and the W-order probe (sync-after-rename ⇒ reddens).
+- **Fold 1** (`5b5accc`): re-attributed CLM-084-3's witness to the pre-existing hand-filled `…DoesNotRewriteSurvivorBytes` and downgraded `T005` to a **companion guard**; annotated ADR 0053 **D3 + Consequences** inline with the ADR 0056 calibration pointer (083's D7 precedent) + the index row 0053; scoped the `GAPS.md` §7 closure to the rollback clause; reworded RF-084-3; **relaxed** the order pin to the sync-before-rename **relation**; reconciled the `GAPS.md` §2 dir-`fsync` marker.
+- **Fold verification** (`5795277977`): **`FOLDS VERIFIED WITH RESIDUALS`** — **R-FV-084-1** (substantive: the N-084-2 relaxation dropped the only assertion that the directory `fsync` is invoked — a drop-`SyncDir` mutant left all 14 tests green), **R-FV-084-2** (a duplicated `## Fold ledger` heading), **R-FV-084-3** (three record surfaces still described the pre-fold assertion).
+- **Fold 2** (`8cf8b9c`): the pin now asserts the order relation **and** that a dir-`fsync` event is invoked (measured: drop-`SyncDir` ⇒ reddens); removed the duplicate heading; aligned T002 + ADR 0056 D5.1/D5.4.
+- **Final verification** (`5795341023`): **`FOLDS VERIFIED — LOOP CLOSED`** (no residuals; no blocker) — the witness set re-measured at the final head (drop-`SyncDir` → red; remove `Sync` → red; sync-after-rename → red; direct `f.Sync()` seam bypass → red), independently.
+- **Fold 3** (`a103ed2`): folded the optional **N-084-4** (`GAPS.md` §2 dir-`fsync` row wording) for record-accuracy.
+- **State**: the review-fold loop is **CLOSED** — **PR [#170](https://github.com/gosharplite/tellme/pull/170) is ready for a human to review and merge** (no Copilot review; only a human merges).
