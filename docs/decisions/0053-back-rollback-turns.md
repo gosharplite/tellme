@@ -1,6 +1,6 @@
 # ADR 0053 — `-b`/`--back`: roll back the last N turns of the session history
 
-- **Status:** Accepted
+- **Status:** Accepted — its durability clause is **witnessed and calibrated** by [ADR 0056](0056-rollback-durability-witness.md) (round 084; the file `fsync`-before-rename gains a mechanism-seam pin, the best-effort directory `fsync` is recorded accepted-unwitnessed)
 - **Date:** 2026-09-22
 - **Deciders:** tellme owner
 - **Related:** [ADR 0023](0023-list-default-and-chrome-colour.md) (the `-l` optional-int pre-pass whose **RF-54-4** this ADR resolves by generalising it), [ADR 0022](0022-offline-session-config-and-turns-log.md) (the offline session-command selection this reuses), [ADR 0051](0051-interrupted-turn-partial-persistence.md) / [ADR 0052](0052-failed-turn-partial-persistence.md) (the guarantee that `history.jsonl` holds only complete turns, which makes a rollback a clean line cut), [ADR 0011](0011-layer-discipline-gate.md) (the layer ranking the adapter respects); issue [#163](https://github.com/gosharplite/tellme/issues/163); round 081 (`specs/plans/081-back-rollback-turns`)
