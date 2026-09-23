@@ -420,3 +420,11 @@ Round 084 was human-merged (PR [#170](https://github.com/gosharplite/tellme/pull
 **PM follow-ups**: none new.
 
 *(Round 084 is fully closed out: PR #170 human-merged into `dev` (`05b23e2`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-084`**; the installed binary refreshed; [#169](https://github.com/gosharplite/tellme/issues/169) closed.)*
+
+### 4 (post-closeout) — GAPS.md refreshed to the closed state (docs-only)
+
+The `GAPS.md` working-notes file was still framed pre-fix. Refreshed (docs-only, `dev` `90c2336`; propagated `dev → main` no-ff `b59a498`, **no `round-NNN` tag** — ADR 0026 tags rounds only):
+- Header → **closed (record-only)**; upstream **`aixbdd-tmg#15` → #16 (ADR 0006)** recorded as the disposition.
+- §2's "remove `f.Sync()`" row annotated **closed by round 084** (the `durableFS` seam pin now reddens).
+- §3 inventory extended to rounds **083 (self-caught at authoring)** and **084 (F-084-1, a ledger-accuracy finding)**; the "one finding/round" reading now notes the class moved **upstream of review** (authoring-time catch).
+- §4 marked the **pre-fix record**; §5 gains a **Disposition** block — all **eight** `ADR 0006` items shipped, `tellme` skills synced.
