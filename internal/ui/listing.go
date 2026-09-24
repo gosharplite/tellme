@@ -26,9 +26,19 @@ func NewListing() render.Listing { return listing{r: NewRenderer()} }
 // and the listing ends with a blank line. The model body is rendered as Markdown
 // (the operator body is verbatim, a recorded divergence from the reference); Raw
 // prints the model body verbatim and disables the header accents.
+//
+// Round 086 (ADR 0057): a MODEL message is prefixed by the turn's tool-activity
+// line — `[TOOLS] - M (N calls)`, emitted as its own block (a blank line before
+// and after) so it reads between the turn's `[USER]` block and the `[MODEL]`
+// header. It rides the MODEL message (so a partially-listed turn still shows it);
+// the whole label is yellow only under the colour gate.
 func (l listing) Render(w io.Writer, msgs []render.ListingMessage, spec render.ListingSpec) {
 	colour := spec.Colour && !spec.Raw
 	for _, m := range msgs {
+		if m.Role == render.ListingModel {
+			_, _ = fmt.Fprintln(w, l.toolLine(m, colour))
+			_, _ = fmt.Fprintln(w)
+		}
 		_, _ = fmt.Fprintln(w, l.header(m, colour))
 		_, _ = fmt.Fprintln(w, l.body(m, spec))
 		// One blank line after every message (the blank separator), so
@@ -36,6 +46,21 @@ func (l listing) Render(w io.Writer, msgs []render.ListingMessage, spec render.L
 		// blank line — the reference's Fprintln-after-every-block shape.
 		_, _ = fmt.Fprintln(w)
 	}
+}
+
+// toolLine renders the round-086 per-turn tool-activity line: `[TOOLS] - M (N
+// calls)` (the turn's backward index M and its tool-call count N), or the bare
+// `[TOOLS] (N calls)` when M is non-positive (a non-history caller — the
+// round-082 bare-label fallback; never a ` - 0` suffix). The WHOLE label is the
+// colour unit and is wrapped yellow only under the colour gate (the round-073
+// stdout-terminal gate + `-r` off).
+func (l listing) toolLine(m render.ListingMessage, colour bool) string {
+	label := "[TOOLS]"
+	if m.TurnIndex > 0 {
+		label = fmt.Sprintf("%s - %d", label, m.TurnIndex)
+	}
+	label = fmt.Sprintf("%s (%d calls)", label, m.ToolCount)
+	return yellow(label, colour)
 }
 
 // header renders the role header line: `[USER] - N` for the operator, `[MODEL] -

@@ -118,6 +118,10 @@ type mcpServerEntry struct {
 type exchange struct {
 	prompt string
 	answer string
+	// toolCalls is the number of tool steps the arranged turn recorded (round
+	// 086; ADR 0057), so a listing Then can compute the expected
+	// `[TOOLS] - M (N calls)` line. Zero for a plain (step-free) exchange.
+	toolCalls int
 }
 
 // beforeScenario creates an independent scenarioContext backed by a fresh temp
@@ -594,6 +598,13 @@ func (sc *scenarioContext) historyArchivePath() string {
 // expected messages.
 func (sc *scenarioContext) recordExchange(prompt, answer string) {
 	sc.arrangedExchanges = append(sc.arrangedExchanges, exchange{prompt: prompt, answer: answer})
+}
+
+// recordToolUsingExchange records an arranged turn that recorded toolCalls tool
+// steps (round 086; ADR 0057), so a listing Then can compute the expected
+// `[TOOLS] - M (N calls)` line from the fixture rather than the observed output.
+func (sc *scenarioContext) recordToolUsingExchange(prompt, answer string, toolCalls int) {
+	sc.arrangedExchanges = append(sc.arrangedExchanges, exchange{prompt: prompt, answer: answer, toolCalls: toolCalls})
 }
 
 // onlyFake returns the scenario's single fake provider, or nil when none.
