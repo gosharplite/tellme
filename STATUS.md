@@ -1,11 +1,11 @@
 # tellme — Status
 
 **Last updated**: 2026-09-24 (session 74 — round **086** `086-tools-listing-line` **IN FLIGHT / PR OPEN**: a yellow per-turn `[TOOLS] - M (N calls)` line in the `-l`/`--list` listing, between the turn's `[USER]` block and its `[MODEL]` header; operator request; **ADR 0057 amends ADR 0045**.)
-**Round in flight**: **086** `086-tools-listing-line` — pipeline complete, **PR open** (awaiting a human review/merge; no Copilot review). Presentation-only; anchors **operator request** (no issue).
+**Round in flight**: **086** `086-tools-listing-line` — pipeline complete, **PR [#179](https://github.com/gosharplite/tellme/pull/179) open** (awaiting a human review/merge; no Copilot review). Presentation-only; anchors **operator request** (no issue).
 **Active branch**: `086-tools-listing-line` (off `dev` `6f0004f`); on merge: propagate `dev → main` (no-ff) + tag `round-086`.
 **Daily log**: [`docs/session-summary/2026/09/24/session-summary.md`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086) · prior: [`2026-09-23`](docs/session-summary/2026/09/23/session-summary.md) (rounds 082–084)
 
-## Round in flight — 086 `086-tools-listing-line` (PR OPEN)
+## Round in flight — 086 `086-tools-listing-line` (PR [#179](https://github.com/gosharplite/tellme/pull/179) OPEN)
 
 - **Theme (operator request, 2026-09-24)**: the `-l`/`--list` listing gains a per-turn **tool-activity line** `[TOOLS] - M (N calls)` — `M` the turn's backward turn index (round 082), `N = len(history.Entry.Steps)` (the **tool** calls, **not** `Entry.Calls`) — printed **between** the turn's `[USER]` block and its `[MODEL]` header as its own block (one blank line each side), **yellow** (whole label) on a terminal `stdout` with `-r` off, and printed for **every** turn incl. `(0 calls)`. It is a **rider** (`-l N` still selects the last N **messages**), surfaces **only the count** (never tool content), and rides the turn's `[MODEL]` message (a partial listing keeps it). Supersedes the round-073 *"tool activity must not be surfaced at all"* reading in substance (the content rule stands).
 - **The change**: `internal/domain/render/ports.go` (`ListingMessage.ToolCount` — the `TurnIndex` precedent) · `internal/ui/listing.go` (emit the line before the `[MODEL]` header; `toolLine`) · `internal/ui/colour.go` (the yellow reuse note) · `internal/cli/cli.go` (`listingMessages` sets `ToolCount: len(e.Steps)`).

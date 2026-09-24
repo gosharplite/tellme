@@ -174,7 +174,7 @@ Round 085 was human-merged (PR [#175](https://github.com/gosharplite/tellme/pull
 
 ## 3. Session 74 (2026-09-24, cont.) — round 086 `086-tools-listing-line` **OPENED → full pipeline → PR open** (operator request; **ADR 0057**)
 
-An operator session: after a bootstrap (`SESSION-BOOTSTRAP.md` Steps 1–8; round 085 delivered/frozen; active branch `dev`, tree clean at `6f0004f`), the operator asked whether the `axb-*` skills were up to date with [aixbdd-tmg PR #16](https://github.com/gosharplite/aixbdd-tmg/pull/16) (they are — 17/17 PR-#16 skill files byte-identical; a full recursive `diff` over all 16 `axb-*` dirs is empty; upstream `main` = `7d46ad7` = the local clone). The operator then probed the repo's *unresolved surfaces* and the `ADR §Forward` disclosure mechanism (homed, not lost; 3 live trigger-conditional items, all operator-discretionary). Then the operator directed a **UI change**: a `[TOOLS] - M (N calls)` **yellow** line in the `-l` listing, **between** `[USER]` and `[MODEL]`, and answered three sub-decisions one at a time. A new branch **`086-tools-listing-line`** was created **off `dev`**, the full AIxBDD pipeline ran, and **PR open**.
+An operator session: after a bootstrap (`SESSION-BOOTSTRAP.md` Steps 1–8; round 085 delivered/frozen; active branch `dev`, tree clean at `6f0004f`), the operator asked whether the `axb-*` skills were up to date with [aixbdd-tmg PR #16](https://github.com/gosharplite/aixbdd-tmg/pull/16) (they are — 17/17 PR-#16 skill files byte-identical; a full recursive `diff` over all 16 `axb-*` dirs is empty; upstream `main` = `7d46ad7` = the local clone). The operator then probed the repo's *unresolved surfaces* and the `ADR §Forward` disclosure mechanism (homed, not lost; 3 live trigger-conditional items, all operator-discretionary). Then the operator directed a **UI change**: a `[TOOLS] - M (N calls)` **yellow** line in the `-l` listing, **between** `[USER]` and `[MODEL]`, and answered three sub-decisions one at a time. A new branch **`086-tools-listing-line`** was created **off `dev`**, the full AIxBDD pipeline ran, and **[PR #179](https://github.com/gosharplite/tellme/pull/179)** was opened.
 
 ### At a glance
 
@@ -187,7 +187,7 @@ An operator session: after a bootstrap (`SESSION-BOOTSTRAP.md` Steps 1–8; roun
 | The change | `internal/domain/render/ports.go` (`ListingMessage.ToolCount` — the `TurnIndex` precedent) · `internal/ui/listing.go` (emit the line before the `[MODEL]` header, `toolLine`) · `internal/ui/colour.go` (the yellow reuse note) · `internal/cli/cli.go` (`ToolCount: len(e.Steps)`) |
 | Verification | `make check` **OK** · `go test -count=1 ./...` **green** (E2E **319 scenarios · 2386 steps**, +5 / +32) · `gofmt`/`goimports` clean · `modelith-check` no drift · ADR index consistent · topology audit **PASSED** (53 features · 21 root + 459 module rows · 2360 steps) · `go.mod`/`go.sum` unchanged |
 | Witnesses (reproduced then reverted) | **W1** emit the line after the model body ⇒ the E2E tool-activity Then red (`turn 1 carries no [TOOLS]…`) · **W2** report `Calls` ⇒ the CLI pin (`ToolCount = 7, want 2`) + E2E red · **W3** un-gate the yellow ⇒ the unit pins + the E2E no-accents Then red · **W4** bind the line to the `[USER]` message ⇒ **exactly 1** E2E red (the partial listing = EC-002) |
-| Delivery | branch `086-tools-listing-line` → **PR open** (awaiting a human review/merge; no Copilot review) |
+| Delivery | branch `086-tools-listing-line` → **PR [#179](https://github.com/gosharplite/tellme/pull/179) open** (awaiting a human review/merge; no Copilot review) |
 
 ### Decisions locked (round 086 / ADR 0057)
 
@@ -204,7 +204,7 @@ An operator session: after a bootstrap (`SESSION-BOOTSTRAP.md` Steps 1–8; roun
 
 ### Open items (non-blocking)
 
-- **PR** for round 086 awaits a human review/merge → then the closeout (`SESSION-CLOSEOUT.md`): propagate `dev → main` (no-ff), tag `round-086`, refresh the binary. No anchor issue to close.
+- **[PR #179](https://github.com/gosharplite/tellme/pull/179)** for round 086 awaits a human review/merge → then the closeout (`SESSION-CLOSEOUT.md`): propagate `dev → main` (no-ff), tag `round-086`, refresh the binary. No anchor issue to close.
 - **ADR 0057 §Forward** records the residuals (the fixed `(N calls)` wording · the count-only seam · the reframed Q2 → A rule; the reference's per-call lines remain **RF-073-4**, not closed).
 - Standing (advisory/records, not work): PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the topology audit is **0 errors / 0 warnings** (advisory).
 
