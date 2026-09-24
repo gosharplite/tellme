@@ -169,3 +169,56 @@ Round 085 was human-merged (PR [#175](https://github.com/gosharplite/tellme/pull
 - None new (no spec/acceptance change; the round was a truth/record reconciliation).
 
 *(Round 085 is fully closed out: PR #175 human-merged into `dev` (`5fe899d`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-085`**; the installed binary refreshed; [#173](https://github.com/gosharplite/tellme/issues/173) + [#174](https://github.com/gosharplite/tellme/issues/174) closed.)*
+
+---
+
+## 3. Session 74 (2026-09-24, cont.) — round 086 `086-tools-listing-line` **OPENED → full pipeline → PR open** (operator request; **ADR 0057**)
+
+An operator session: after a bootstrap (`SESSION-BOOTSTRAP.md` Steps 1–8; round 085 delivered/frozen; active branch `dev`, tree clean at `6f0004f`), the operator asked whether the `axb-*` skills were up to date with [aixbdd-tmg PR #16](https://github.com/gosharplite/aixbdd-tmg/pull/16) (they are — 17/17 PR-#16 skill files byte-identical; a full recursive `diff` over all 16 `axb-*` dirs is empty; upstream `main` = `7d46ad7` = the local clone). The operator then probed the repo's *unresolved surfaces* and the `ADR §Forward` disclosure mechanism (homed, not lost; 3 live trigger-conditional items, all operator-discretionary). Then the operator directed a **UI change**: a `[TOOLS] - M (N calls)` **yellow** line in the `-l` listing, **between** `[USER]` and `[MODEL]`, and answered three sub-decisions one at a time. A new branch **`086-tools-listing-line`** was created **off `dev`**, the full AIxBDD pipeline ran, and **PR open**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`086-tools-listing-line`** (off `dev` `6f0004f`) |
+| Theme | **operator request** (no anchor issue): the `-l`/`--list` listing gains a per-turn **tool-activity line** `[TOOLS] - M (N calls)` — `M` the turn's backward turn index (round 082), `N = len(history.Entry.Steps)` (`not` `Entry.Calls`) — between the turn's `[USER]` block and its `[MODEL]` header, its own block, **yellow** (whole label) on a terminal `stdout` with `-r` off, printed for **every** turn incl. `(0 calls)`; a **rider** (no `-l N` change); **only the count**, never tool content |
+| Clarify (one at a time) | **Q1 → B** always print (`(0 calls)` included) · **Q2 → A** rider (`-l N` = last N messages) · **Q3 → A** full separation (its own block) |
+| Pipeline | specify ✅ · spec-by-example ✅ · technical-research ✅ (**ADR 0057** amends ADR 0045; `techstack.md` MODIFY ×2) · system-analysis ✅ (1 CLI end; api/data/UI NOOP) · dsl-refine ✅ (a `## Then (round 086)` block + the reframed tool-activity row) · tasks ✅ (T001–T008 + the Claim→Witness ledger) · implement ✅ |
+| The change | `internal/domain/render/ports.go` (`ListingMessage.ToolCount` — the `TurnIndex` precedent) · `internal/ui/listing.go` (emit the line before the `[MODEL]` header, `toolLine`) · `internal/ui/colour.go` (the yellow reuse note) · `internal/cli/cli.go` (`ToolCount: len(e.Steps)`) |
+| Verification | `make check` **OK** · `go test -count=1 ./...` **green** (E2E **319 scenarios · 2386 steps**, +5 / +32) · `gofmt`/`goimports` clean · `modelith-check` no drift · ADR index consistent · topology audit **PASSED** (53 features · 21 root + 459 module rows · 2360 steps) · `go.mod`/`go.sum` unchanged |
+| Witnesses (reproduced then reverted) | **W1** emit the line after the model body ⇒ the E2E tool-activity Then red (`turn 1 carries no [TOOLS]…`) · **W2** report `Calls` ⇒ the CLI pin (`ToolCount = 7, want 2`) + E2E red · **W3** un-gate the yellow ⇒ the unit pins + the E2E no-accents Then red · **W4** bind the line to the `[USER]` message ⇒ **exactly 1** E2E red (the partial listing = EC-002) |
+| Delivery | branch `086-tools-listing-line` → **PR open** (awaiting a human review/merge; no Copilot review) |
+
+### Decisions locked (round 086 / ADR 0057)
+
+| # | Decision |
+| --- | --- |
+| **D1** | The line is `[TOOLS] - M (N calls)` for every turn (`M` = the backward turn index; `N` = the tool-call count), literarily for all `N` (no singularization). |
+| **D2** | `N = len(history.Entry.Steps)` — the **tool** calls, **not** `Entry.Calls` (the AI-endpoint inference-round count). |
+| **D3** | The count rides a new `render.ListingMessage.ToolCount` field (the `TurnIndex` precedent); the line is emitted before the `[MODEL]` header (so a partial listing keeps it). |
+| **D4** | A non-positive index ⇒ the bare `[TOOLS] (N calls)` (the round-082 fallback; never ` - 0`). |
+| **D5** | Colour: the existing `colorYellow` + `yellow()`, the **whole** label, the **same** gate as the headers (terminal `stdout` + `-r` off); never `stderr`; plain under `-r`. |
+| **D6** | Spacing: its own block (one blank line each side). |
+| **D7** | `-l N` is unchanged — the line is a **rider**, never counted as a message. |
+| **D8/D9** | Presentation-only (no store/`-b`/`-t`/chrome/exit-code change; stdlib-only) · records: **ADR 0057** amends ADR 0045; `techstack.md` ×2; the `history` feature + `dsl.md` (incl. the reframed tool-activity row); `docs/domain-model/**` colour invariant; `contracts/**`+`data/**` NOOP. |
+
+### Open items (non-blocking)
+
+- **PR** for round 086 awaits a human review/merge → then the closeout (`SESSION-CLOSEOUT.md`): propagate `dev → main` (no-ff), tag `round-086`, refresh the binary. No anchor issue to close.
+- **ADR 0057 §Forward** records the residuals (the fixed `(N calls)` wording · the count-only seam · the reframed Q2 → A rule; the reference's per-call lines remain **RF-073-4**, not closed).
+- Standing (advisory/records, not work): PR #16 **Obs 1**; round-006 **Obs 3**; sequential tools / no pruning / no `flock`; the topology audit is **0 errors / 0 warnings** (advisory).
+
+### Next steps
+
+1. Human reviews + merges the round-086 PR; then the closeout (propagate `dev → main` no-ff, tag `round-086`).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `086-tools-listing-line` until merged, then `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).
+
+### Process notes (durable)
+
+- **A claim's carrier must match the claim** (the round-080 F-080-2 class, self-caught): the `the listing carries no accents` DSL row was recast to cover the yellow accent, but the E2E step only checked blue/magenta — the fold extended the step so the claim has a discriminating carrier (W3 reddens it).
+- **A derived figure is not content.** The round surfaces `len(Steps)` — an `int` — while the round-073 no-content rule stands: only the count crosses the port; the tool name/arguments/result never leave the store (pinned by the reframed Then).
+- **Two figures in one entry invite conflation** (`Steps` vs `Calls`): the round pins the distinction at the CLI tier with a fixture whose `Calls ≠ len(Steps)`.

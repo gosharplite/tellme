@@ -1284,7 +1284,11 @@ func renderHistoryList(homeDir string, n int, configPath string, raw bool, env r
 // listingMessages projects the persisted exchanges into the listing's message
 // sequence (round 073): the operator prompt then the model answer per exchange,
 // truncated to the last n messages. It is the successor of the former toMessages
-// — the widened tool activity is never projected (FR-017 / clarify Q2 -> A).
+// — the widened tool activity's CONTENT is never projected (FR-017 / clarify
+// Q2 -> A). Round 086 (ADR 0057): the model message also carries the turn's
+// TOOL-call count (len(e.Steps)) — the `[TOOLS] - M (N calls)` line the adapter
+// prints. The count is the persisted turn's executed tool steps, NOT e.Calls
+// (the AI-endpoint inference-round count), and only the count crosses the seam.
 func listingMessages(entries []history.Entry, n int) []render.ListingMessage {
 	msgs := make([]render.ListingMessage, 0, len(entries)*2)
 	for i, e := range entries {
@@ -1297,7 +1301,7 @@ func listingMessages(entries []history.Entry, n int) []render.ListingMessage {
 		turnIndex := len(entries) - i
 		msgs = append(msgs,
 			render.ListingMessage{Role: render.ListingOperator, Body: e.Prompt, TurnIndex: turnIndex},
-			render.ListingMessage{Role: render.ListingModel, Body: e.Answer, TurnIndex: turnIndex})
+			render.ListingMessage{Role: render.ListingModel, Body: e.Answer, TurnIndex: turnIndex, ToolCount: len(e.Steps)})
 	}
 	if len(msgs) > n {
 		msgs = msgs[len(msgs)-n:]

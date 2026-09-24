@@ -8,7 +8,12 @@ Feature: Inspecting the session history
   # the **operator** body verbatim (a recorded divergence from the reference, which renders both) —
   # with one blank line after every message. The header is accented blue/magenta only when `stdout`
   # is a terminal and `-r` is off; under `-r` the model body is verbatim and no accent is emitted.
-  # The count/selection semantics are unchanged; the tool activity stays omitted.
+  # The count/selection semantics are unchanged.
+  #
+  # Round 086 (ADR 0057): the listing ALSO surfaces each turn's tool COUNT as a `[TOOLS] - M (N calls)`
+  # line — `M` the turn's backward index, `N = len(history.Entry.Steps)` — between the turn's `[USER]`
+  # block and its `[MODEL]` header, yellow on a terminal stdout with `-r` off. The tool CONTENT stays
+  # omitted (round-073 clarify Q2 -> A holds for content).
 
   Rule: The operator can list the most recent messages
 
@@ -36,14 +41,73 @@ Feature: Inspecting the session history
       Then tellme lists no messages
       And tellme exits successfully
 
-  Rule: Listing after a tool-using turn shows only the operator's messages
+  # Round 086 (ADR 0057): the listing now SURFACES each turn's tool COUNT as a
+  # `[TOOLS] - M (N calls)` line (printed between the turn's [USER] block and its
+  # [MODEL] header; yellow on a terminal stdout with -r off) — superseding the
+  # round-073 "tool activity is omitted" reading. The tool CONTENT (the tool name,
+  # its arguments, and its result) stays omitted: clarify Q2 -> A holds for
+  # content, not for the derived count.
+  Rule: Listing a tool-using turn shows the tool count but none of the tool's contents
 
-    Example: The listing omits the tool activity
+    Example: The listing counts the tools and hides their contents
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And the session history already holds a tool-using exchange
       When the operator asks tellme to list the last 2 messages
-      Then tellme lists only the operator's messages
+      Then tellme lists the tools' activity but not their contents
+      And tellme exits successfully
+
+  # Round 086 (ADR 0057; operator request): every listed turn reports how many
+  # tool calls it made. The count is len(history.Entry.Steps) — the TOOL calls —
+  # NOT Entry.Calls (the AI-endpoint inference-round count). The line is printed
+  # for every turn incl. (0 calls); it rides the turn's [MODEL] message, so a
+  # partial listing (an odd -l window starting at the answer) still shows it.
+  Rule: A listed turn reports how many tool calls it made
+
+    Example: A tool-using turn reports one tool call
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds a tool-using exchange
+      When the operator asks tellme to list the last 2 messages
+      Then the listing reports each turn's tool activity
+      And tellme exits successfully
+
+    Example: A turn without tools reports zero
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds the exchanges:
+        | prompt | answer |
+        | hi     | Noted. |
+      When the operator asks tellme to list the last 2 messages
+      Then the listing reports each turn's tool activity
+      And tellme exits successfully
+
+    Example: A partial listing still reports the answer's tool activity
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds a tool-using exchange
+      When the operator asks tellme to list the last 1 messages
+      Then the listing reports each turn's tool activity
+      And tellme exits successfully
+
+  Rule: The tool-activity line is accented only when the listing goes to a terminal
+
+    Example: A terminal listing accents the tool-activity line
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the output is shown at a terminal
+      And the session history already holds a tool-using exchange
+      When the operator asks tellme to list the last 2 messages
+      Then the listing accents the tool-activity line in yellow
+      And tellme exits successfully
+
+    Example: A redirected listing shows the tool-activity line plainly
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the session history already holds a tool-using exchange
+      When the operator asks tellme to list the last 2 messages
+      Then the listing carries no accents
+      And the listing reports each turn's tool activity
       And tellme exits successfully
 
   Rule: Listing reports no payload status

@@ -318,14 +318,16 @@ func thenListingAccentsRoles(ctx context.Context) error {
 	return nil
 }
 
-// thenListingCarriesNoAccents (必查 呈現結果): no header accent appears on a
-// redirected stdout or under `-r`; a `-r` listing carries no escape byte at all
-// (nothing renders), and the headers still read [USER] / [MODEL].
+// thenListingCarriesNoAccents (必查 呈現結果): no accent appears on a redirected
+// stdout or under `-r` — neither the blue/magenta header accents (round 073/082)
+// nor the yellow tool-activity accent (round 086, ADR 0057); a `-r` listing
+// carries no escape byte at all (nothing renders), and the headers still read
+// [USER] / [MODEL].
 func thenListingCarriesNoAccents(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
-	for _, code := range []string{"\x1b[1;34m", "\x1b[1;35m"} {
+	for _, code := range []string{"\x1b[1;34m", "\x1b[1;35m", "\x1b[0;33m"} {
 		if strings.Contains(sc.stdout, code) {
-			return fmt.Errorf("the listing must carry no header accent %q; stdout=%q", code, sc.stdout)
+			return fmt.Errorf("the listing must carry no accent %q; stdout=%q", code, sc.stdout)
 		}
 	}
 	raw := false
