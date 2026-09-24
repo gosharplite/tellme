@@ -101,7 +101,7 @@ clause is carried by an E2E (`[BDD-GREEN]`) or a unit pin (see the Claim→Witne
 | CLM-010 | NFR-001 | the listing stays offline | `[BDD-GREEN]` | T004 · the existing `tellme sends no request to any provider` Then | add a provider call ⇒ red | pending |
 | CLM-011 | NFR-002 | no new dependency | `[BDD-GREEN]` | T008 · `git diff --exit-code go.mod go.sum` | add an import ⇒ `go.mod` diff ⇒ red | pending |
 | CLM-012 | EC-001 | a non-positive `M` prints the bare `[TOOLS] (N calls)` | unit pin | T005 | print ` - 0` ⇒ unit pin red | pending |
-| CLM-013 | EC-002 | a partial listing still shows the turn's tool line | `[BDD-GREEN]` | T004 · E2E `A partial listing still reports the answer's tool activity` | emit the tool line for the `[USER]` message instead of the `[MODEL]` message ⇒ measured **15** E2E scenarios red incl. the partial-listing Example, + the unit byte pins (TD-086-1) | pending |
+| CLM-013 | EC-002 | a partial listing still shows the turn's tool line | `[BDD-GREEN]` | T004 · E2E `A partial listing still reports the answer's tool activity` | emit the tool line for the `[USER]` message instead of the `[MODEL]` message (a literal guard swap) ⇒ measured **4** E2E scenarios red (incl. the partial-listing Example: `A partial listing still reports the answer's tool activity`), + the unit byte pins (TD-086-1; independently re-measured) | pending |
 | CLM-014 | EC-003 | a legacy line with no `steps` ⇒ `(0 calls)` | `[BDD-GREEN]` | T004 · E2E `A turn without tools reports zero` | error on a missing `steps` ⇒ red | pending |
 | CLM-015 | SC-003 | gates green; `go.mod`/`go.sum` unchanged | `[BDD-GREEN]` | T008 · `make check` | — | pending |
 
