@@ -93,7 +93,7 @@ clause is carried by an E2E (`[BDD-GREEN]`) or a unit pin (see the Claim→Witne
 | CLM-002 | FR-002 | the line is printed for every turn incl. `(0 calls)` | `[BDD-GREEN]` | T004 · E2E `A turn without tools reports zero` | emit only when `N > 0` ⇒ E2E red | pending |
 | CLM-003 | FR-003 | the line is its own block (a blank line above and below) | `[BDD-GREEN]` | T005 · unit byte pin | drop a blank ⇒ byte pin red | pending |
 | CLM-004 | FR-004 | the whole label is yellow on a terminal stdout | `[BDD-GREEN]` | T004/T005 · E2E `the listing accents the tool-activity line in yellow` + unit pin | un-gate the yellow ⇒ E2E/unit red | pending |
-| CLM-005 | FR-005 | plain under `-r` / a redirected stdout | `[BDD-GREEN]` | T005 · unit pin + E2E `the listing carries no accents` | keep the accent under `-r` ⇒ red | pending |
+| CLM-005 | FR-005 | plain under `-r` / a redirected stdout | `[BDD-GREEN]` | T005 · unit pin `TestListingToolLineSuppressedUnderRawOnATerminal` (the `-r` × terminal case; fold F-086-2) + E2E `A raw listing on a terminal …` / `the listing carries no accents` | gate the tool line on `spec.Colour` only (drop `!spec.Raw`) ⇒ the unit pin + the E2E Example red | pending |
 | CLM-006 | FR-006 | `-l N` still selects the last N messages (the line is a rider) | `[BDD-GREEN]` | T004 · the existing `tellme lists the last {count} messages` Then (unchanged) | count the line as a message ⇒ the Then red | pending |
 | CLM-007 | FR-007 | only the count is surfaced — no tool content | `[BDD-GREEN]` | T003 · E2E `tellme lists the tools' activity but not their contents` | emit the tool name/args/result ⇒ red | pending |
 | CLM-008 | FR-008 | the line is not emitted by `-t`/`turns.log` nor the chrome | `[BDD-GREEN]` | T004 · the existing `-t` Thens (`tellme prints exactly the turn log line …`) | write the line into `turns.log` ⇒ red | pending |
@@ -101,7 +101,7 @@ clause is carried by an E2E (`[BDD-GREEN]`) or a unit pin (see the Claim→Witne
 | CLM-010 | NFR-001 | the listing stays offline | `[BDD-GREEN]` | T004 · the existing `tellme sends no request to any provider` Then | add a provider call ⇒ red | pending |
 | CLM-011 | NFR-002 | no new dependency | `[BDD-GREEN]` | T008 · `git diff --exit-code go.mod go.sum` | add an import ⇒ `go.mod` diff ⇒ red | pending |
 | CLM-012 | EC-001 | a non-positive `M` prints the bare `[TOOLS] (N calls)` | unit pin | T005 | print ` - 0` ⇒ unit pin red | pending |
-| CLM-013 | EC-002 | a partial listing still shows the turn's tool line | `[BDD-GREEN]` | T004 · E2E `A partial listing still reports the answer's tool activity` | bind the line to the `[USER]` message ⇒ the `-l 1` Example red | pending |
+| CLM-013 | EC-002 | a partial listing still shows the turn's tool line | `[BDD-GREEN]` | T004 · E2E `A partial listing still reports the answer's tool activity` | emit the tool line for the `[USER]` message instead of the `[MODEL]` message ⇒ measured **15** E2E scenarios red incl. the partial-listing Example, + the unit byte pins (TD-086-1) | pending |
 | CLM-014 | EC-003 | a legacy line with no `steps` ⇒ `(0 calls)` | `[BDD-GREEN]` | T004 · E2E `A turn without tools reports zero` | error on a missing `steps` ⇒ red | pending |
 | CLM-015 | SC-003 | gates green; `go.mod`/`go.sum` unchanged | `[BDD-GREEN]` | T008 · `make check` | — | pending |
 

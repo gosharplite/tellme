@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-24
 - **Deciders:** tellme owner (operator-stated UI shape)
-- **Related:** [ADR 0045](0045-list-role-headers-and-rendered-body.md) (the `-l` listing role headers + the stdout-terminal colour gate this **amends**), [ADR 0054](0054-list-backward-turn-indices.md) (the backward turn index this reuses and the whole-label colour rule), [ADR 0053](0053-back-rollback-turns.md) (the turn granularity the count describes), [ADR 0040](0040-media-channel-in-band.md) (the tool-step record this reads), [ADR 0020](0020-cli-ui-decoupling.md) (the `render.*` domain ports the CLI uses — the new field keeps the CLI free of `internal/ui` types); round 086 (`specs/plans/086-tools-listing-line`)
+- **Related:** [ADR 0045](0045-list-role-headers-and-rendered-body.md) (the `-l` listing role headers + the stdout-terminal colour gate this **amends**), [ADR 0054](0054-list-backward-turn-indices.md) (the backward turn index this reuses and the whole-label colour rule), [ADR 0053](0053-back-rollback-turns.md) (the turn granularity the count describes), [ADR 0020](0020-cli-ui-decoupling.md) (the `render.*` domain ports the CLI uses — the new field keeps the CLI free of `internal/ui` types); the tool-step record is round 008 (`specs/truth/data/data-model.dbml`, `history_step`); round 086 (`specs/plans/086-tools-listing-line`)
 
 ## Context
 
@@ -23,7 +23,7 @@ The persisted record already carries what is needed: `history.Entry.Steps []Step
 
 **D5 — colour: yellow, whole label, the existing gate.** The line reuses the reference's yellow SGR (`colorYellow = "\033[0;33m"`) and the empty-safe `yellow()`, so it is accented on a terminal `stdout` with `-r` off and plain otherwise — the **same** gate as the role headers (round 073). The **whole** label (role word + index + count) is the colour unit (the round-082 whole-label rule). The accent never reaches `stderr`, and under `-r` the listing still carries no escape byte.
 
-**D6 — spacing: its own block.** The line is separated from the `[USER]` block above and the `[MODEL]` header below by exactly one blank line — the round-073 "one blank line after every block" discipline, so it cannot read as part of the model header.
+**D6 — spacing: its own block.** The line is separated from the `[USER]` block above and the `[MODEL]` header below by exactly one blank line — the round-073 "one blank line after every block" discipline, so it cannot read as part of the model header. In a **partial** listing that begins at a turn's `[MODEL]` message (an odd `-l N` window whose `[USER]` partner is outside it) the line is the listing's **first** line — there is no blank above it (the "above" separator exists only when the `[USER]` block is listed); the blank before the `[MODEL]` header is always present (fold N-086-2).
 
 **D7 — `-l N` is unchanged: the line is a rider.** `-l N` still selects the last `N` **messages** (two per turn); the `[TOOLS]` line is never counted as a message. The selection semantics, the odd-`N` partial-turn behaviour, the body rendering, and the blank separator are unchanged.
 

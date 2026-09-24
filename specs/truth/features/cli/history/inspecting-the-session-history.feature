@@ -110,6 +110,20 @@ Feature: Inspecting the session history
       And the listing reports each turn's tool activity
       And tellme exits successfully
 
+    # Fold F-086-2: the real production path is `-r` on a TERMINAL (the two inputs
+    # to `renderHistoryList` are independent: Colour = stdout terminal, Raw = -r).
+    # Neither the redirected Example above nor the raw-source Rule forces a terminal
+    # under `-r`, so this Example is the only carrier of the `-r` × terminal case.
+    Example: A raw listing on a terminal shows the tool-activity line plainly
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the output is shown at a terminal
+      And the session history already holds a tool-using exchange
+      When the operator asks tellme to list the last 2 messages as raw output
+      Then the listing carries no accents
+      And the listing reports each turn's tool activity
+      And tellme exits successfully
+
   Rule: Listing reports no payload status
 
     Example: A listing shows no payload status

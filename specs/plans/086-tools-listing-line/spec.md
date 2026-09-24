@@ -77,7 +77,11 @@ The operator lists their session and can see, at a glance, how many tool calls e
 - **FR-002**: the line MUST be printed for **every** listed turn, including a turn with **zero** tool
   steps (`[TOOLS] - M (0 calls)`). [Verification Intent: observable → 驗收情境 2]
 - **FR-003**: the line MUST be its own block — exactly one blank line separates it from the `[USER]`
-  block above and from the `[MODEL]` header below (the round-073 separator discipline).
+  block above and from the `[MODEL]` header below (the round-073 separator discipline). In a
+  **partial** listing that begins at a turn's `[MODEL]` message (an odd `-l N` whose `[USER]` partner
+  is outside the window) the line is the listing's **first** line and there is no blank line above it
+  (the "above" separator only exists when the `[USER]` block is listed) — the one blank line before
+  the `[MODEL]` header is always present.
   [Verification Intent: observable → 驗收情境 1]
 - **FR-004**: on a terminal `stdout` with `-r` off, the **whole** `[TOOLS] - M (N calls)` label MUST
   be accented yellow (`\033[0;33m … \033[0m`); the accent MUST never reach `stderr`.

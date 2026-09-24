@@ -18,7 +18,7 @@
 | FR-002 | printed for every turn incl. `(0 calls)` | E2E (plain exchange ⇒ `(0 calls)`) + the unit byte pin |
 | FR-003 | its own block (blank line each side) | the unit byte pin + the separator Then |
 | FR-004 | whole label yellow on a terminal stdout | E2E `the listing accents the tool line in yellow` + the unit pin |
-| FR-005 | plain under `-r` / redirected | E2E (no-accents Then) + `TestListingRawSuppressesColour` |
+| FR-005 | plain under `-r` / redirected | `TestListingToolLineSuppressedUnderRawOnATerminal` (the `-r` × **terminal** case — fold F-086-2) + the E2E `A raw listing on a terminal shows the tool-activity line plainly` (+ the redirected Example) |
 | FR-006 | `-l N` = last N messages (rider) | the existing `tellme lists the last {count} messages` Then (unchanged) |
 | FR-007 | no tool step content surfaced | the modified `tellme lists the tools' activity but not their contents` row |
 | FR-008 | not in `-t`/turns.log nor the chrome | the existing `-t` Thens + a `turns.log` grep pin |

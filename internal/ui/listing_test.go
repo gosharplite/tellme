@@ -175,6 +175,27 @@ func TestListingHeaderBareLabelWithoutTurnIndex(t *testing.T) {
 	}
 }
 
+// TestListingToolLineSuppressedUnderRawOnATerminal pins FR-005's clause for the
+// TOOL line specifically: on a TERMINAL stdout (Colour on) under `-r` (Raw on)
+// the listing must carry no escape byte at all — so the yellow `[TOOLS]` accent
+// is suppressed even though the colour gate is on. This is the real production
+// path `renderHistoryList` builds (`Colour: env.stdoutIsTerminal()`, `Raw: raw`);
+// the round-073 `TestListingRawSuppressesColour` renders only a [USER] message and
+// therefore never exercises the tool line (architect fold F-086-2).
+func TestListingToolLineSuppressedUnderRawOnATerminal(t *testing.T) {
+	var out bytes.Buffer
+	NewListing().Render(&out, []render.ListingMessage{
+		{Role: render.ListingOperator, Body: "q", TurnIndex: 1},
+		{Role: render.ListingModel, Body: "a", TurnIndex: 1, ToolCount: 2},
+	}, render.ListingSpec{Colour: true, Raw: true})
+	if strings.ContainsRune(out.String(), '\x1b') {
+		t.Errorf("a raw (-r) terminal listing must carry no escape byte; got %q", out.String())
+	}
+	if !strings.Contains(out.String(), "[TOOLS] - 1 (2 calls)") {
+		t.Errorf("the tool line must still be printed plainly under -r; got %q", out.String())
+	}
+}
+
 // Round 086 (ADR 0057) — the `[TOOLS] - M (N calls)` line.
 
 // TestListingReportsTheToolActivityLine pins the line's bytes and placement: it
