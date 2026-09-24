@@ -241,3 +241,49 @@ Operator: *"Communicate with sub-agent 'architect'. Initialize architect with `S
 - **A record's replacement figure is itself a claim — measure it.** TD-086-1 fixed a wrong figure with a second wrong figure ("15"), caught by the reviewer's independent measurement. Restate a measured figure only from a *reproducible* mutation, and name the mutation so it can be re-run.
 - **A push can silently miss the branch (RES-086-2).** The repo had drifted to a **detached HEAD**, so `git push` pushed nothing and the PR kept the stale head — the very defect the round existed to remove. Always confirm `git ls-remote` / the PR head after a push; never pipe `git push -q` output to `tail` where a failure hides.
 - **One table, one vintage.** A summary table re-edited piecemeal mixes pre-fold and post-fold figures (RES-086-3); reconcile the whole table when a fold changes a figure.
+
+---
+
+## 4. Session 74 closeout (2026-09-24) — round 086 `086-tools-listing-line` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 086 was human-merged (PR [#179](https://github.com/gosharplite/tellme/pull/179) → `dev` **`77c21c5`**, **merge commit** at 2026-09-24T02:34:44Z by `thptcnec`); `git fetch --prune` reported `[deleted] origin/086-tools-listing-line`, the round tip (`9df620a`) was an ancestor of `origin/dev`, so the **local branch was deleted** (`git branch -d`), `dev` was fast-forwarded to the merge, and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == 77c21c5`; no delivered `specs/plans/**` touched (084/085 unmodified); no stray temp files; round branch already deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `go test -count=1 ./...` green) · `make test-race` **no data races** · E2E **320 scenarios · 2394 steps** · topology audit **PASSED** (53 features · 21 root + 459 module rows · 2368 steps) · `go.mod`/`go.sum` unchanged · diff-level secret scan clean |
+| **3 — STATUS.md** | header → round 086 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-085 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-24.md`](../../../../archives/status/2026-09-24.md); round-086 section added; delivered-rounds pointer → 001–086; round-086 env note + the round-close-tags line + the topology counts refreshed; **61 lines** (live state only) |
+| **4 — daily summary** | this §4 (closeout) appended (the §1–§3 record preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker 0 open |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-086`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | no anchor issue (an operator request); `gh issue list --state open` = **0 open** — nothing to close or revise |
+
+### Commits (branch `086-tools-listing-line`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `e086690` | `feat(086)`: a yellow `[TOOLS] - M (N calls)` line in the `-l` listing (ADR 0057) |
+| `f6755f6` | `docs(086)`: name the round PR (#179) in STATUS + the day log |
+| `88ed8cf` | `fix(086)`: fold the architect review (F-086-1/2 + TD-086-1 + N-086-1/2) |
+| `bf440f7` | `docs(086)`: fold RES-086-1 (restate the W4 witness figure to the re-measured 4) |
+| `0a4e7c7` | `docs(086)`: fold RES-086-3 (day-summary verification row → fold-era figures) |
+| `9df620a` | `docs(086)`: review-fold loop CLOSED — STATUS + day log §3 (cont.) |
+| `77c21c5` | PR [#179](https://github.com/gosharplite/tellme/pull/179) merge into `dev` (by `thptcnec`) |
+| *(this closeout, on `dev`)* | `docs(086)`: day close — round 086 delivered + propagated; STATUS split + 09/24 summary §4 |
+
+### Open items (non-blocking)
+
+- **None new.** Per the settled curation rule (session 69 **D2**), `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` (the authority) or a live GitHub issue. ADR 0057 §Forward RF-086-1…5 are disclosures, not tasking; the reference's per-call `[Tool Call]`/`[Tool Response]` lines stay **RF-073-4** (ADR 0045 §Forward), not closed.
+- **Issue tracker**: **0 open**.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker is **0 open**; Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).
+
+*(Round 086 is fully closed out: PR #179 human-merged into `dev` (`77c21c5`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-086`**; the installed binary refreshed; no anchor issue to close.)*
