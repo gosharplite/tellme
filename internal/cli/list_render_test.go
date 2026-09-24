@@ -125,3 +125,42 @@ func TestStdoutTerminalSeam(t *testing.T) {
 		t.Error("an injected stdout probe must be consulted")
 	}
 }
+
+// Round 086 (ADR 0057) — the CLI computes the turn's TOOL-call count for the
+// listing's `[TOOLS] - M (N calls)` line.
+
+// TestRenderHistoryListProjectsToolCount pins that the count projected onto the
+// turn's MODEL message is len(Steps) — the TOOL calls — NOT the entry's Calls
+// (the AI-endpoint inference-round count). The fixture's Calls (7) differs from
+// len(Steps) (2), so reporting Calls would redden this pin.
+func TestRenderHistoryListProjectsToolCount(t *testing.T) {
+	t.Setenv("TELL_ME_MODE", "butler")
+	t.Setenv("TELL_ME_HOME", t.TempDir())
+	home := t.TempDir()
+
+	entries := []history.Entry{
+		{Prompt: "q1", Answer: "a1"},
+		{Prompt: "q2", Answer: "a2", Calls: 7, Steps: []history.Step{
+			{Tool: "read_files"}, {Tool: "list_files"},
+		}},
+	}
+	store := func(string) history.Store { return &fakeStore{entries: entries} }
+	var got *fakeListing
+	var out, errOut bytes.Buffer
+	env := runtimeEnv{stdout: &out, stderr: &errOut}
+	mk := func() render.Listing { got = &fakeListing{}; return got }
+
+	if code := renderHistoryList(home, 4, "", true, env, store, mk); code != Success {
+		t.Fatalf("code = %d, want Success", code)
+	}
+	if len(got.got) != 4 {
+		t.Fatalf("projected %d messages, want 4", len(got.got))
+	}
+	// The plain turn (no steps) ⇒ 0; the tool-using turn ⇒ len(Steps) == 2 (NOT Calls == 7).
+	if got.got[1].Role != render.ListingModel || got.got[1].ToolCount != 0 {
+		t.Errorf("message[1] (plain turn) ToolCount = %d, want 0", got.got[1].ToolCount)
+	}
+	if got.got[3].Role != render.ListingModel || got.got[3].ToolCount != 2 {
+		t.Errorf("message[3] (tool turn) ToolCount = %d, want 2 (len(Steps), not Calls=7)", got.got[3].ToolCount)
+	}
+}

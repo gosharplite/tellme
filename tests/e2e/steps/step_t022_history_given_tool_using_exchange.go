@@ -58,6 +58,6 @@ func givenHistoryToolUsingExchange(ctx context.Context) error {
 	if err := os.WriteFile(sc.historyFilePath(), append(line, '\n'), 0o644); err != nil {
 		return err
 	}
-	sc.recordExchange(prompt, answer)
+	sc.recordToolUsingExchange(prompt, answer, len(entry.Steps))
 	return nil
 }

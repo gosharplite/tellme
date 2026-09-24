@@ -27,7 +27,8 @@ const (
 	colorGray = "\033[0;90m"
 	// colorYellow is the reference's SGR yellow (tell-me-go colors.go). Round 057
 	// (ADR 0027): the whole `[Tool Action]` line is wrapped yellow on a
-	// colour-enabled terminal.
+	// colour-enabled terminal. Round 086 (ADR 0057): the same yellow wraps the
+	// whole `[TOOLS] - M (N calls)` line of the `-l`/`--list` listing.
 	colorYellow = "\033[0;33m"
 	// colorBlue is the reference's bright-blue SGR (tell-me-go colors.go). Round
 	// 073 (ADR 0045): the `[USER]` header of the `-l` listing, on a terminal

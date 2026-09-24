@@ -69,7 +69,8 @@ const (
 )
 
 // ListingMessage is one listed history message: its presented role, its
-// (unrendered) body text, and its backward turn index.
+// (unrendered) body text, its backward turn index, and — for a model message —
+// the turn's tool-call count.
 //
 // TurnIndex is the distance of the message's turn from the MOST RECENT turn of
 // the loaded history, counting back: 1 = the most recent history entry, 2 = the
@@ -79,10 +80,19 @@ const (
 // a lone leading message of an odd `-l N` keeps its true distance. It is
 // computed by the caller (round 082; ADR 0054). A value <= 0 (a non-history
 // caller) makes the adapter print the bare role label with no suffix.
+//
+// ToolCount is the number of tool steps the message's turn recorded
+// (`len(history.Entry.Steps)` — round 086; ADR 0057), carried on the turn's
+// MODEL message. The adapter prints a `[TOOLS] - <TurnIndex> (<ToolCount> calls)`
+// line immediately before the `[MODEL]` header (between the turn's `[USER]` block
+// and its `[MODEL]` header), so a partially-listed turn still shows it. It is the
+// TOOL-call count, NOT `history.Entry.Calls` (the AI-endpoint inference-round
+// count), and only the count crosses this seam — never any tool content.
 type ListingMessage struct {
 	Role      ListingRole
 	Body      string
 	TurnIndex int
+	ToolCount int
 }
 
 // ListingSpec carries the listing's presentation inputs. Colour is the
@@ -102,8 +112,11 @@ type ListingSpec struct {
 // Listing renders the offline session history listing (`-l`/`--list`; round
 // 073; ADR 0045): for each message a role header line (`[USER]` / `[MODEL]`),
 // the body (the MODEL body rendered as Markdown unless Raw; the operator body
-// verbatim), and one blank line after every message. Colour, when enabled,
-// accents the header lines only.
+// verbatim), and one blank line after every message. Round 082 (ADR 0054): the
+// role header carries the backward turn index. Round 086 (ADR 0057): each turn's
+// MODEL message is prefixed by a `[TOOLS] - <index> (<count> calls)` line, its
+// own block between the turn's `[USER]` block and its `[MODEL]` header. Colour,
+// when enabled, accents the header lines and the tool line.
 type Listing interface {
 	Render(w io.Writer, msgs []ListingMessage, spec ListingSpec)
 }
