@@ -49,6 +49,11 @@ type Discovery struct {
 	Tools    []domaintools.Tool
 	Warnings []string
 	Closer   io.Closer
+	// Refresh, when non-nil, is the round-087 post-answer stale-cache refresh: the
+	// CLI runs it once the turn has produced its answer (best-effort) and prints
+	// any returned warnings on the diagnostic stream. Nil when no cached MCP tool
+	// entry was stale.
+	Refresh func() []string
 }
 
 // Dependencies carries every seam the CLI used to hold as a package-level
@@ -103,9 +108,11 @@ type Dependencies struct {
 	NewMetricsProvider func() metrics.SystemMetricsProvider
 
 	// MCPDiscoverer runs the round-032 prompt-path MCP discovery for a server
-	// registry. Round 051 (F-7): it returns a NAMED Discovery whose Closer is a
-	// visible field (rather than a bare trailing func()).
-	MCPDiscoverer func(ctx context.Context, servers map[string]config.MCPServerConfig) Discovery
+	// registry, consulting the round-087 cross-invocation tool cache (ADR 0058)
+	// under the resolved runtime home. Round 051 (F-7): it returns a NAMED
+	// Discovery whose Closer is a visible field (rather than a bare trailing
+	// func()); round 087 adds the post-answer Refresh hook.
+	MCPDiscoverer func(ctx context.Context, home string, servers map[string]config.MCPServerConfig) Discovery
 
 	// LoopFactory builds the agent loop for a turn (round 050; R5.4 of #92;
 	// ADR 0019). It is the construction seam that replaced the (now-removed)

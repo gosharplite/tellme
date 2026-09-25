@@ -27,6 +27,10 @@ Project "tellme_local_state" {
   ~/.tellme/tools-count.jsonl — a user-global, append-only log (shared across repos/envs/personas; the
   only artifact here that lives OUTSIDE $TELL_ME_HOME) recording {timestamp, tool, outcome}; it is never
   reset by `--new`.
+  The cross-invocation MCP tool cache (round 087; ADR 0058): one JSON object per remote MCP server at
+  $TELL_ME_HOME/mcp-toolcache.json (the runtime-home ROOT — shared across modes, not session state), mapping a server
+  key to its declaration (url + auth; never the token) and its normalized tool list, so the prompt prelude can offer the
+  tools without dialing the server in the steady state.
   None of these artifacts is a relational database — this DBML pins the record shapes and lifecycles so
   the CLI contract, the interface feature truth, and the implementation share a single model.
   '''
@@ -118,6 +122,16 @@ Table turns_log_line {
   text varchar
 
   Note: 'One line of the per-session turn log (round 053; ADR 0022) — the session''s RENDERED turn chrome, persisted VERBATIM as plain text (no JSON envelope) to `$TELL_ME_HOME/output/<mode>/turns.log` (the same per-mode workspace as `history.jsonl`/`tokens.log`). `position` is the 1-based line ordinal (the identity — no id/timestamp is stored); `text` is a single control-free line exactly as the diagnostic stream emitted it — the per-call renderer's `─` turn rule, `╭─⠿ Turn <N> - <mode>` header, `[HH:MM:SS] Payload: …` status lines (estimated + measured), grouped `[HH:MM:SS] [Tool Reason] …` lines, the `[HH:MM:SS] [<provider>] M: …` metrics line, and the `╰─⠿ Ready` summary (the input-capture ack, the `-i` prompt echo, error phrases, the spinner, and the `[Tool …]`/`[Tool Output]` block are NOT persisted — fold F-53-3(i)), so the file is the chrome-subset of the diagnostic stream and invents NO new format (the round-017/018/022/040 chrome contracts are inherited verbatim; the round-039 terminal-safe-line policy means the lines carry no ANSI/control bytes). Written on the turn path by an injected store (bound at `cmd/tellme`), BEST-EFFORT — a write failure never fails the turn. Read by the `-t`/`--turns` offline command (prints the file to `stdout`, exit 0; a missing/empty file is success). `--new` moves the active file to `turns.archive.log`, leaving a fresh session empty. Distinct from `history_entry` (the conversation), `usage_record` (per-call tokens), and `prompt_log_entry` (the shared prompt log); the log is a local trace only — it never feeds the request payload. RECORDED DIVERGENCE: this is tellme''s OWN chrome, not the reference''s `turns.log` bytes.'
+}
+
+Table mcp_tool_cache_entry {
+  server_key varchar [pk]
+  url varchar
+  auth varchar
+  fetched_at varchar
+  tools json
+
+  Note: 'One remote MCP server''s cached tool enumeration (round 087; ADR 0058) — the cross-invocation cache at `$TELL_ME_HOME/mcp-toolcache.json` (the runtime-home ROOT, deliberately NOT under `output/<mode>/`: it is shared across modes and is NOT session state, so `--new` does not clear it). A single JSON object mapping `server_key` -> `{ "url": "<endpoint>", "auth": "<effective auth mode>", "fetched_at": "<RFC3339>", "tools": [ {"name": "<server tool name>", "description": "<server text>", "input_schema": {<normalized schema>}} ] }`. The entry is VALID for a live config iff its stored `url` and `auth` still match the declaration — a changed declaration makes that key COLD (the issue''s "key + URL + auth mode" semantics, encoded by storing the fields rather than a hash). The TOKEN (and any derived Authorization header / service-account material) is NEVER stored (round-032 FR-017). Lifecycle: written on a COLD-key discovery under the fixed concurrent bound, and on a post-answer STALE refresh (a same-directory temp file + `fsync` + atomic `rename`; the `fsync` is a mechanism, not an asserted guarantee — a torn/absent file is merely a cold key). A FRESH entry (`now − fetched_at < 24 h`) is served with zero dials; a STALE entry is served with no pre-request dial and refreshed after the answer (a failed refresh keeps the prior entry). Best-effort and fail-open: an unreadable/corrupt/absent file, or a write error, degrades to live discovery and never fails a run. Distinct from every other artifact here (it is a DERIVED cache of a remote server''s tool list, not conversation, prompt, usage, or chrome state) and from the reference, which has no cross-invocation MCP tool cache (a tellme-side capability; round-032 Q2 Option 2).'
 }
 
 Ref: history_step.(location, position) > history_entry.(location, position)

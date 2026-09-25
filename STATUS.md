@@ -1,9 +1,9 @@
 # tellme — Status
 
-**Last updated**: 2026-09-24 (session 74 — round **086** `086-tools-listing-line` **DELIVERED / FROZEN**: PR [#179](https://github.com/gosharplite/tellme/pull/179) human-merged into `dev` (**merge commit** `77c21c5`, 2026-09-24T02:34:44Z), branch deleted local + remote, propagation `dev -> main` **DONE (no-ff)**, tagged **`round-086`**. No round in flight; the tracker is **0 open**.)
-**Round in flight**: **none** — round **086** delivered/frozen on `dev`; the next round opens off `dev` (a value / live-issue theme).
-**Active branch**: `dev` (round 086 delivered via PR [#179](https://github.com/gosharplite/tellme/pull/179) merged `77c21c5`, **merge commit**; round branch deleted local + remote; propagation `dev -> main` **DONE (no-ff)**, tagged `round-086`).
-**Daily log**: [`docs/session-summary/2026/09/24/session-summary.md`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086) · prior: [`2026-09-23`](docs/session-summary/2026/09/23/session-summary.md) (rounds 082–084)
+**Last updated**: 2026-09-25 (session 75 — round **087** `087-mcp-tool-cache` **OPEN** off `dev` `2162729`; anchor issue [#180](https://github.com/gosharplite/tellme/issues/180); full AIxBDD pipeline → implementation → **PR [#181](https://github.com/gosharplite/tellme/pull/181) OPEN** (awaiting a human review/merge; **no Copilot review**). Round 086 remains DELIVERED / FROZEN.)
+**Round in flight**: **087 `087-mcp-tool-cache`** — the prompt prelude's remote-MCP tool discovery caches a server's tool list across invocations (a warm fresh entry dials **nothing**); PR [#181](https://github.com/gosharplite/tellme/pull/181) open.
+**Active branch**: `087-mcp-tool-cache` off `dev` `2162729` (PR [#181](https://github.com/gosharplite/tellme/pull/181), head = the tip of the branch; **merged by a human only**).
+**Daily log**: [`docs/session-summary/2026/09/25/session-summary.md`](docs/session-summary/2026/09/25/session-summary.md) (round 087) · prior: [`2026-09-24`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086)
 
 ## Last delivered round - 086 `086-tools-listing-line` (DELIVERED / FROZEN - PR [#179](https://github.com/gosharplite/tellme/pull/179) merged into `dev` `77c21c5`, **merge commit**; **ADR 0057**)
 
