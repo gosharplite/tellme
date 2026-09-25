@@ -28,6 +28,8 @@ The `cli` end is carried forward to its contract owner `/axb-dsl-refine` (the CL
 | `specs/truth/techstack.md:105` | `/axb-technical-research` | "the vocabulary stays ten" → "the class-phrase vocabulary is unchanged" |
 | `specs/truth/features/cli/chat/dsl.md` (round-079 note) | `/axb-dsl-refine` | "the ten-value exit-code set" → "the exit-code set" |
 | `docs/decisions/README.md:69` | record (index) | Drop the "ninth" ordinal from the ADR 0043 index row |
+| `internal/infrastructure/tools/search.go` (comment) | product (comment-only) | Fold F-091-1: drop the live "ninth agent tool" ordinal from the doc comment |
+| `internal/infrastructure/tools/filesystem_test.go` (comment) | test (comment-only) | Fold TD-091-1: drop the stale "five tools" count from the `TestToolSchemasRequireReason` comment |
 
 ## 4. Boundaries honoured
 
