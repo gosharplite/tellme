@@ -105,6 +105,22 @@ residuals — folded in one commit:
 - **RES-087-FV-6** — head-figure vintage drift → refreshed.
 - Nits: day-summary §2 wording.
 
+### 2 (cont.) — review-fold loop CLOSED (PR #181 ready for a human to merge)
+
+The architect verified the residual folds at `4d32d2c` → **`FOLDS VERIFIED WITH RESIDUALS`** (all six verified closed;
+one figure residual **RES-087-FV-7** + nits). RES-087-FV-7 (W1 = **3** unit pins, not 1) + **N-087-11** (the round-open
+head qualifier) were folded at `0844540`; the final verification returned:
+
+> **`FOLDS VERIFIED — LOOP CLOSED (no residuals)`** — [`pull/181#issuecomment-5825845663`](https://github.com/gosharplite/tellme/pull/181#issuecomment-5825845663).
+
+Loop history: review @ `0986c8e` → `APPROVE WITH REQUIRED FOLDS` (F-087-1…6 + TD-087-1 + N-087-1…6) → fold-verification @
+`c92cb45` → `WITH RESIDUALS` (RES-087-FV-1…6) → residual-verification @ `4d32d2c` → `WITH RESIDUALS` (RES-087-FV-7 + nits)
+→ **final @ `0844540` → LOOP CLOSED**. A final cosmetic fold tidied the W1 carrier cell (`0844540` → this step).
+
+**State**: **PR [#181](https://github.com/gosharplite/tellme/pull/181) is ready for a human review and merge** — no Copilot
+review; only a human merges (an agent never merges or pushes to `dev`/`main` except the closeout propagation). On merge:
+propagate `dev → main` (no-ff, tagged **`round-087`**) and **close issue #180**.
+
 ### Process notes (durable)
 
 - **A cache must not dial to be correct**: `mcp.NewRemoteClient` connects at construction, so an eager client on a
