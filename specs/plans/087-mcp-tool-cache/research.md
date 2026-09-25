@@ -111,7 +111,7 @@ recorded in `plan.md` §5). `specs/truth/contracts/**` NOOP (a pure CLI end).
 | --- | --- | --- |
 | MODIFY | *MCP tool discovery (non-stall)* | The prelude consults the cross-invocation cache first; a warm fresh hit dials nothing; a cold/stale key degrades to the existing bounded discovery. |
 | ADD | *MCP tool cache* | The file, its declaration-keyed validation, `24h` TTL, the durability write, the lazy client, the post-answer refresh, best-effort semantics. |
-| MODIFY | *MCP client protocol library* / *MCP credential resolution* | Credential resolution is deferred to call time on a cache hit (the lazy client). |
+| MODIFY | *MCP credential resolution* | On a cache-hit path the resolution is deferred to the first tool call (the lazy client), and its warning is **not** surfaced on that path (a recorded limitation; ADR §Forward RF-087-8). |
 | MODIFY | *Not Introduced Yet* | Retire *Cross-invocation MCP tool caching*. |
 | NOOP | all other rows | No other technology change; stdlib-only. |
 

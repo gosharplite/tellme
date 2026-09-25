@@ -18,9 +18,10 @@ var cachedObjSchema = []byte(`{"type":"object","properties":{}}`)
 
 // memCache is an in-memory tools.MCPToolCache with a dial-independent save count.
 type memCache struct {
-	entries map[string]domaintools.MCPToolCacheEntry
-	loadErr error
-	saves   int
+	entries  map[string]domaintools.MCPToolCacheEntry
+	loadErr  error
+	failSave bool
+	saves    int
 }
 
 func (m *memCache) Load() (map[string]domaintools.MCPToolCacheEntry, error) {
@@ -32,6 +33,9 @@ func (m *memCache) Load() (map[string]domaintools.MCPToolCacheEntry, error) {
 
 func (m *memCache) Save(e map[string]domaintools.MCPToolCacheEntry) error {
 	m.saves++
+	if m.failSave {
+		return errors.New("cache write refused")
+	}
 	m.entries = e
 	return nil
 }
@@ -193,6 +197,10 @@ func TestDiscoverCached_DeclarationMismatchIsCold(t *testing.T) {
 }
 
 // TestDiscoverCached_WarmOrderEqualsLive — FR-005 (the determinism pin).
+//
+// N-087-1: the discriminating mutation (rebuild run.Tools in map-iteration
+// order) reddens this pin only PROBABILISTICALLY — with 2 keys the Go map order
+// matches ~1 in 8 single runs; run with -count=20 for a reliable red.
 func TestDiscoverCached_WarmOrderEqualsLive(t *testing.T) {
 	schema := cachedObjSchema
 	servers := map[string]config.MCPServerConfig{"alpha": {URL: "u-alpha"}, "shop": {URL: "u-shop"}}
@@ -228,8 +236,13 @@ func TestDiscoverCached_IgnoresEntryForUnknownServer(t *testing.T) {
 	if got := f.dialed(); len(got) != 1 || got[0] != "u-shop" {
 		t.Fatalf("only the configured key may be dialed; dialed %v", got)
 	}
-	if _, ok := cache.entries["gone"]; !ok {
-		t.Fatalf("an entry for a server not in the config must be preserved, not dropped")
+	// EC-003's requirement: an entry for a server NOT in the config is IGNORED —
+	// never offered (the pin asserts the requirement, not the incidental
+	// preservation of the on-disk entry; a future GC pass may prune it).
+	for _, t2 := range run.Tools {
+		if strings.Contains(t2.Name(), "gone") {
+			t.Fatalf("an unconfigured server's cached tool must never be offered; got %q", t2.Name())
+		}
 	}
 	run.Close()
 }
@@ -282,4 +295,57 @@ func TestLazyClient_NoConnectWhenUnused(t *testing.T) {
 	if len(f.dialed()) != 0 {
 		t.Fatalf("closing an unused lazy client must not dial; dialed %v", f.dialed())
 	}
+}
+
+// TestLazyClient_DelegatesOnFirstCall is the F-087-1 carrier: a cache-served tool
+// that the model DOES call must reach its server and return the server's result
+// (the lazy client's successful first-call path — resolve, connect, delegate).
+// A lazy client that never delegates leaves the whole suite green otherwise.
+func TestLazyClient_DelegatesOnFirstCall(t *testing.T) {
+	f := &recordingFactory{defs: []domaintools.MCPToolDefinition{{Name: "lookup_price", Description: "d", InputSchema: cachedObjSchema}}}
+	lc := NewLazyClient(config.MCPServerConfig{URL: "u-shop"}, time.Second, f.new, noToken)
+	res, err := lc.CallTool(context.Background(), "lookup_price", nil)
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	if res.Text != "ok" {
+		t.Fatalf("a successful call must return the server's result; got %q (delegation missing?)", res.Text)
+	}
+	if got := f.dialed(); len(got) != 1 || got[0] != "u-shop" {
+		t.Fatalf("the first call must connect exactly once; dialed %v", got)
+	}
+}
+
+// TestDiscoverCached_WriteErrorIsBestEffort — FR-008 / fold F-087-5: a cache
+// write failure never fails the run; the discovered tools are still offered.
+func TestDiscoverCached_WriteErrorIsBestEffort(t *testing.T) {
+	f := &recordingFactory{defs: []domaintools.MCPToolDefinition{{Name: "t", Description: "d", InputSchema: cachedObjSchema}}}
+	cache := &memCache{failSave: true}
+	servers := map[string]config.MCPServerConfig{"shop": {URL: "u-shop"}}
+	run := DiscoverCached(context.Background(), servers, time.Second, cache, time.Now, time.Hour, f.new, noToken)
+	if len(offeredNames(run.Tools)) != 1 {
+		t.Fatalf("a cache write failure must not drop the discovered tools; got %v", offeredNames(run.Tools))
+	}
+	run.Close()
+}
+
+// TestDiscoverCached_MismatchedSiblingStaysWarm — FR-004 / fold F-087-5: with
+// two servers, a changed declaration makes ONLY that key cold; the unchanged
+// sibling stays warm (no dial).
+func TestDiscoverCached_MismatchedSiblingStaysWarm(t *testing.T) {
+	f := &recordingFactory{defs: []domaintools.MCPToolDefinition{{Name: "b1", Description: "d", InputSchema: cachedObjSchema}}}
+	cache := &memCache{entries: map[string]domaintools.MCPToolCacheEntry{
+		"alpha": freshEntry("u-alpha", "a1"),                // declaration matches ⇒ warm
+		"shop":  freshEntry("https://old.example/mcp", "t"), // URL changed ⇒ cold
+	}}
+	servers := map[string]config.MCPServerConfig{"alpha": {URL: "u-alpha"}, "shop": {URL: "u-shop"}}
+	run := DiscoverCached(context.Background(), servers, time.Second, cache, time.Now, time.Hour, f.new, noToken)
+	if got := f.dialed(); len(got) != 1 || got[0] != "u-shop" {
+		t.Fatalf("only the mismatched key may be dialed; dialed %v", got)
+	}
+	names := offeredNames(run.Tools)
+	if len(names) != 2 { // mcp_alpha_a1 (warm) + mcp_shop_b1 (cold)
+		t.Fatalf("both servers' tools must be offered; got %v", names)
+	}
+	run.Close()
 }

@@ -323,3 +323,37 @@ Feature: Using tools from a remote MCP server
       And the run continued past the failed MCP tool call
       And tellme prints the provider's answer "I could not check the price."
       And tellme exits successfully
+
+    # F-087-1 (review fold): the cached tool's SUCCESSFUL first-call path is the
+    # load-bearing half — a live server must actually be reached and its result
+    # returned (a lazy client that never delegates would otherwise ship silent).
+
+    Example: A remembered tool against a live server is actually run
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" with the reason "check the price" and then answers with "The gadget costs $42."
+      And the tools of the MCP server "shop" have already been discovered
+      When the operator starts tellme with the prompt "What does the gadget cost?"
+      Then tellme called the tool "lookup_price" on the MCP server "shop"
+      And tellme prints the provider's answer "The gadget costs $42."
+      And tellme exits successfully
+
+    # F-087-3 (review fold): a tool the server has since DROPPED (the cache is
+    # stale relative to the server) is answered with a tool-level error, which the
+    # round-032 TD1/R3 contract folds back as a recoverable result — never an
+    # abort. (This is the cached-tool mechanism; the round-076 unknown-name
+    # fold-back fires only on a registry miss, i.e. a name the cache never
+    # offered.)
+
+    Example: A remembered tool the server has since dropped fails softly
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" whose tool "lookup_price" reports a tool error
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "lookup_price" from the server "shop" with the reason "check the price" and then answers with "I could not check the price."
+      And the tools of the MCP server "shop" have already been discovered
+      When the operator starts tellme with the prompt "What does the gadget cost?"
+      Then the request offered the tool "lookup_price" from the MCP server "shop" alongside the agent tools
+      And the run continued past the failed MCP tool call
+      And tellme prints the provider's answer "I could not check the price."
+      And tellme exits successfully

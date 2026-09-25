@@ -18,7 +18,8 @@ Per-owner ledger of the truth changes this round. Every owner records at least o
 | MODIFY | `specs/truth/techstack.md` (*MCP tool discovery (non-stall)*) | The prelude consults the cross-invocation cache first: a warm fresh entry dials nothing; a cold/stale key degrades to the existing bounded concurrent discovery. | The discovery behaviour owner. |
 | ADD | `specs/truth/techstack.md` (*MCP tool cache (cross-invocation)*) | The cache file, its declaration-keyed validation (never the token), the 24 h TTL, the durability write, the lazy client, the post-answer refresh, best-effort semantics. | A new recorded mechanism. |
 | MODIFY | `specs/truth/techstack.md` (*Not Introduced Yet*) | Retire *Cross-invocation MCP tool caching* (delivered by round 087 / ADR 0058). | The round delivers the recorded forward item. |
-| NOOP | all other `techstack.md` rows | Checked — no other technology change; credential resolution is deferred to call time on a cached path (noted in the cache row). | stdlib-only; POSIX-only. |
+| MODIFY | `specs/truth/techstack.md` (*MCP credential resolution*) | Record the **deferred, warn-less** resolution on a cache hit (the lazy client resolves the credential at first call; the cached path does not surface the `CredentialWarning` — a recorded limitation, ADR §Forward RF-087-8). | Fold F-087-6: the cached path's credential behaviour must be recorded, not left as a silent divergence from the row. |
+| NOOP | all other `techstack.md` rows | Checked — no other technology change. | stdlib-only; POSIX-only. |
 
 ## axb-api-plan / axb-data-plan / axb-ui-plan
 

@@ -159,3 +159,13 @@ Recorded in `plan.md` §5.
 - **RF-087-7** — the **cold-key** dial is the deliberate price of "MCP tools must be in
   `req.Tools` for round 0" (the issue's own wording); eliminating it requires changing the
   offered surface (rejected Option C/D).
+- **RF-087-8** — a **failed lazy connect is memoised for the run** and all of a server's cached
+  tools share one lazy client, so no reconnect is attempted after the first failure (an
+  asymmetry vs the live path, which connects once at discovery). A per-call reconnect/retry is
+  deferred.
+- **RF-087-9** — on a **cache-hit** path the deferred credential resolution's `CredentialWarning`
+  is **not surfaced** (the cold path appends it). A self-diagnosing emit on the cached path is
+  deferred.
+- **RF-087-10** — a **stale entry whose refresh keeps failing is re-dialed after every subsequent
+  run** (bounded, post-answer, one warning each; TD-087-1). A negative-cache/backoff policy is
+  deferred.

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cucumber/godog"
@@ -60,6 +61,12 @@ func thenMCPToolsRemembered(ctx context.Context, server string) error {
 	var m map[string]json.RawMessage
 	if err := json.Unmarshal(data, &m); err != nil {
 		return fmt.Errorf("the cache file must be valid JSON: %w", err)
+	}
+	// FR-009 (fold F-087-5): the cache must never persist a credential.
+	for _, banned := range []string{"token", "Token", "TOKEN", "Authorization", "Bearer", "secret"} {
+		if strings.Contains(string(data), banned) {
+			return fmt.Errorf("the MCP tool cache must not persist a credential; found %q in %s", banned, p)
+		}
 	}
 	if _, ok := m[server]; !ok {
 		keys := make([]string, 0, len(m))

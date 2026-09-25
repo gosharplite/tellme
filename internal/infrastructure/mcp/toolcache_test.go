@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -132,4 +133,67 @@ func contains(haystack, needle string) bool {
 		}
 	}
 	return false
+}
+
+// recordingCacheFS is a cacheFS that records the lifecycle events and can be
+// made to fail the rename — the F-087-4 mechanism seam.
+type recordingCacheFS struct {
+	events  []string
+	failRen bool
+}
+
+func (r *recordingCacheFS) CreateTemp(dir, pattern string) (*os.File, error) {
+	r.events = append(r.events, "createtemp")
+	return os.CreateTemp(dir, pattern)
+}
+func (r *recordingCacheFS) Rename(oldpath, newpath string) error {
+	r.events = append(r.events, "rename")
+	if r.failRen {
+		return os.ErrPermission
+	}
+	return os.Rename(oldpath, newpath)
+}
+func (r *recordingCacheFS) Remove(name string) error {
+	r.events = append(r.events, "remove")
+	return os.Remove(name)
+}
+
+// TestFileToolCache_SaveUsesTempThenRename is the F-087-4 carrier: Save MUST go
+// through a same-directory temp file that is renamed over the active path — an
+// in-place os.WriteFile calls neither method, so the recorded events are empty.
+func TestFileToolCache_SaveUsesTempThenRename(t *testing.T) {
+	home := t.TempDir()
+	fs := &recordingCacheFS{}
+	c := &fileToolCache{path: filepath.Join(home, MCPToolCacheFileName), fs: fs}
+	if err := c.Save(map[string]domaintools.MCPToolCacheEntry{"shop": sampleEntry()}); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	if got := strings.Join(fs.events, ","); got != "createtemp,rename" {
+		t.Fatalf("Save must create a temp file then rename it (never write in place); events = %q", got)
+	}
+}
+
+// TestFileToolCache_SaveFailureKeepsPrior is the F-087-4 second half: a failed
+// rename leaves the PRIOR cache file byte-intact (no in-place truncate).
+func TestFileToolCache_SaveFailureKeepsPrior(t *testing.T) {
+	home := t.TempDir()
+	if err := NewFileToolCache(home).Save(map[string]domaintools.MCPToolCacheEntry{"shop": sampleEntry()}); err != nil {
+		t.Fatalf("seed Save: %v", err)
+	}
+	prior, err := os.ReadFile(filepath.Join(home, MCPToolCacheFileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fs := &recordingCacheFS{failRen: true}
+	c := &fileToolCache{path: filepath.Join(home, MCPToolCacheFileName), fs: fs}
+	if err := c.Save(map[string]domaintools.MCPToolCacheEntry{"other": sampleEntry()}); err == nil {
+		t.Fatalf("a failed rename must surface an error")
+	}
+	after, err := os.ReadFile(filepath.Join(home, MCPToolCacheFileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != string(prior) {
+		t.Fatalf("a failed Save must leave the prior cache byte-intact")
+	}
 }

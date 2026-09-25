@@ -91,9 +91,12 @@ already-discovered tool list, so my common path makes no MCP network call.
 - **FR-005**: The **offered set and order** from a warm cache MUST be **identical** to live
   discovery (same names, same order: native tools, then MCP tools in sorted server-key
   order, each server's tools in advertised order). [Verification Intent: observable → the E2E offered-name Then + the unit determinism pin]
-- **FR-006**: A **dropped/renamed** server tool (the cache is stale relative to the server)
-  MUST yield the round-076 **recoverable unknown-name fold-back**, never an abort.
-  [Verification Intent: observable → the E2E recoverable-fold-back Then]
+- **FR-006**: A tool the server has since **dropped/renamed** (a cached declaration whose server no
+  longer knows the tool) MUST yield a **recoverable** tool result — the cached (lazy) call forwards
+  the name to the server, whose tool-level error is folded back as `error: …` (the round-032 TD1/R3
+  contract) and the turn completes, never aborts. (The round-076 unknown-name fold-back fires only
+  on a **registry miss** — a name the cache never offered — not for a cached tool the server has
+  dropped.) [Verification Intent: observable → the E2E `A remembered tool the server has since dropped fails softly`]
 - **FR-007**: An MCP server that is **down when the tool is called** (a warm-cache entry
   whose server no longer answers) MUST yield a **recoverable** `error: …` tool result; the
   turn completes. [Verification Intent: observable → the E2E recoverable-error Then]

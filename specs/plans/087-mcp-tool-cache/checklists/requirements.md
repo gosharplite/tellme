@@ -15,15 +15,15 @@
 
 | # | Requirement | Judgeable by |
 | --- | --- | --- |
-| FR-001 | warm+fresh ⇒ zero dials, per-tool declarations offered | E2E `the MCP server has received no further connections` + `the request offered the tool "mcp_<s>_<t>"`; unit pin (fake cache + recording factory) |
+| FR-001 | warm+fresh ⇒ zero dials, per-tool declarations offered | E2E `tellme never contacted …` + `the request offered the tool …` (2 Examples) and the **success path** `A remembered tool against a live server is actually run` (`tellme called the tool …`); unit pins `TestDiscoverCached_WarmFreshMakesNoDial` + `TestLazyClient_NoConnectWhenUnused` + `TestLazyClient_DelegatesOnFirstCall` |
 | FR-002 | cold/corrupt ⇒ one bounded discovery + write | E2E cold Then (`the MCP server has been dialed` + `the MCP tool cache holds an entry for "github"`); unit pin |
 | FR-003 | stale ⇒ cached served (no pre-dial) + post-answer refresh; failed refresh keeps prior | E2E stale-with-never-answering Then (offered from cache); unit pin on `Refresh` |
-| FR-004 | changed decl ⇒ cold key | unit pin (declaration mismatch) |
+| FR-004 | changed decl ⇒ cold key (sibling stays warm) | unit pins `TestDiscoverCached_DeclarationMismatchIsCold` + `TestDiscoverCached_MismatchedSiblingStaysWarm` |
 | FR-005 | warm offer set/order == live | unit determinism pin (warm vs live) + the E2E offered-name Then |
-| FR-006 | dropped/renamed tool ⇒ round-076 fold-back | E2E recoverable fold-back Then |
+| FR-006 | dropped/renamed tool ⇒ recoverable `error: …` (the cached-tool mechanism; the round-076 fold-back is a registry-miss case) | E2E `A remembered tool the server has since dropped fails softly` + `the run continued past the failed MCP tool call` |
 | FR-007 | server down at call ⇒ recoverable `error: …` | E2E recoverable-error Then |
-| FR-008 | best-effort / no new failure mode | unit pins (corrupt file, write error) |
-| FR-009 | no credential persisted | cache-file content Then + unit pin (`TOKEN` absent) |
+| FR-008 | best-effort / no new failure mode | unit pins `TestDiscoverCached_CorruptCacheIsCold` + `TestDiscoverCached_WriteErrorIsBestEffort` |
+| FR-009 | no credential persisted | E2E `tellme remembered the tools …` (it also scans the cache file for credential substrings) + unit pin `TestFileToolCache_NeverStoresCredential` |
 | FR-010 | `--new` does not clear the cache | E2E `--new` Then |
 | NFR-001 | offline paths network-free | the existing `make verify-no-network` + offline E2E Thens |
 | NFR-002 | stdlib-only / no new dependency | `git diff go.mod go.sum` empty + `make lint`/`vet` |

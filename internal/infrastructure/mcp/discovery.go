@@ -238,6 +238,10 @@ func DiscoverCached(ctx context.Context, servers map[string]config.MCPServerConf
 }
 
 // cachedTools rebuilds one cached entry's offered tools, bound to a lazy client.
+// The cached NAME and SCHEMA are both re-validated (fold N-087-4): the name must
+// satisfy the wire grammar and the schema is re-normalized (an absent/unsafe
+// schema is skipped, exactly like the live path), so a hand-edited cache file is
+// an untrusted input on BOTH axes, not just the name.
 func cachedTools(key string, cfg config.MCPServerConfig, e domaintools.MCPToolCacheEntry, lc domaintools.MCPClient) []domaintools.Tool {
 	to := ResolveMCPTimeout(cfg.Timeout)
 	tools := make([]domaintools.Tool, 0, len(e.Tools))
@@ -245,6 +249,11 @@ func cachedTools(key string, cfg config.MCPServerConfig, e domaintools.MCPToolCa
 		if !ValidToolName(NamespacedName(key, def.Name)) {
 			continue
 		}
+		schema, err := NormalizeMCPSchema(def.InputSchema)
+		if err != nil {
+			continue
+		}
+		def.InputSchema = schema
 		tools = append(tools, NewTool(key, def, lc, to))
 	}
 	return tools
