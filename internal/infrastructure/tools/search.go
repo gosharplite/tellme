@@ -16,8 +16,8 @@ import (
 )
 
 // search_files (round 071; ADR 0043): the missing half of the reader trio — a
-// bounded, deterministic in-file content search over a directory subtree. It is
-// the ninth agent tool and clears tellme's design-intent bar (a dedicated tool
+// bounded, deterministic in-file content search over a directory subtree. It
+// clears tellme's design-intent bar (a dedicated tool
 // beats bash on a real axis): context-boundness (an unbounded `grep -rn` can blow
 // the window) and determinism (a fixed result order — a tool's output is
 // executable truth). Against the reference
