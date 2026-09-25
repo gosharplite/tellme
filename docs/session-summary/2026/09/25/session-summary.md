@@ -708,3 +708,47 @@ Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with
 Review/fold comments: [review](https://github.com/gosharplite/tellme/pull/192#issuecomment-5831066497) · [fold](https://github.com/gosharplite/tellme/pull/192#issuecomment-5831111856) · [fold-verification](https://github.com/gosharplite/tellme/pull/192#issuecomment-5831187134).
 
 | residual verification @ `1074644` | **`FOLDS VERIFIED — LOOP CLOSED (no residuals)`** ([`5831239990`](https://github.com/gosharplite/tellme/pull/192#issuecomment-5831239990)) — RES-092-FV-1/2/3 verified; `make verify` OK, `go test -count=1 ./...` green (E2E **330 · 2487** unchanged), `make test-race` no data races, `go.mod`/`go.sum` unchanged. PR [#192](https://github.com/gosharplite/tellme/pull/192) is **ready for a human review/merge** (no Copilot review; only a human merges). |
+
+---
+
+## 13. Session 79 closeout (2026-09-25) — round 092 `092-single-source-agent-tool-set` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 092 was human-merged (PR [#192](https://github.com/gosharplite/tellme/pull/192) → `dev` **`1abc1ca`**, **merge commit** at 2026-09-25T13:10:49Z); `git fetch --prune` reported `[deleted] origin/092-single-source-agent-tool-set`, the round tip (`97da305`) was an ancestor of `origin/dev`, so the **local branch was deleted** (`git branch -d 092-single-source-agent-tool-set`, was `97da305`), `dev` was fast-forwarded to the merge, and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == 1abc1ca`; no delivered `specs/plans/**` package touched (≤091 unmodified); harness `/tmp/tellme-bin-*` dirs cleaned; round branch already deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `go test -count=1 ./...` green) · `make test-race` **no data races** · E2E **330 scenarios · 2487 steps** · `verify-adr-index` consistent (ADR 0062 once/unique) · `modelith-check` no drift · `go.mod`/`go.sum` unchanged · diff-level secret scan clean |
+| **3 — STATUS.md** | header → round 092 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-091 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-25.md`](../../../../archives/status/2026-09-25.md) (same-day file — appended); round-092 section added; delivered-rounds pointer → 001–092; roadmap candidates → the live seed #191; round-close-tags line refreshed; **54 lines** (live state only) |
+| **4 — daily summary** | this §13 (closeout) appended (the §1–§12 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker → **#189 closed at closeout; #191 open** |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-092`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#189](https://github.com/gosharplite/tellme/issues/189) CLOSED** (`completed`, with a linking comment — verified; the plain `Closes #189.` line did not auto-fire); **[#191](https://github.com/gosharplite/tellme/issues/191)** verified **open** (the remaining live round seed) |
+
+### Commits (branch `092-single-source-agent-tool-set`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `8c4e7f8` | `refactor(092)`: single-source the base agent-tool composition (ADR 0062) — code + carriers + truth + records |
+| `6014b35` | `fix(092)`: fold the architect review (F-092-1..6 + TD-092-1 + N-092-1..3) |
+| `1074644` | `docs(092)`: fold the fold-verification residuals (RES-092-FV-1/2/3) |
+| `97da305` | `docs(092)`: review-fold loop CLOSED — STATUS + day log |
+| `1abc1ca` | PR [#192](https://github.com/gosharplite/tellme/pull/192) merge into `dev` (by the human, merge commit) |
+| *(this closeout, on `dev`)* | `docs(092)`: day close — round 092 delivered + propagated; STATUS split + 09/25 summary §13 |
+
+### Open items (non-blocking)
+
+- **None new.** `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` or a live GitHub issue. **ADR 0062 §Forward** RF-092-1…3 are disclosures, not tasking; **TD-092-1** is recorded (the union half of the capability set stays unwitnessed — ADR 0032 RF-062-12).
+- **Issue tracker**: **#191 open** (live round seed); **#189 closed**.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the live seed is [#191](https://github.com/gosharplite/tellme/issues/191); Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round is a scoped composition refactor).
+
+*(Round 092 is fully closed out: PR #192 human-merged into `dev` (`1abc1ca`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-092`**; the installed binary refreshed; [#189](https://github.com/gosharplite/tellme/issues/189) closed.)*
