@@ -8,15 +8,16 @@ import (
 	"testing"
 )
 
-// Round 090 (issue #186) — the offered-set single-source carrier.
+// Round 090 (issue #186) — the offered-set doc-consistency carrier.
 //
 // The truth surface `chat/dsl.md` documents the offered agent-tool set for the
 // `the request offered exactly the agent tools` step. That documentation must be
-// **single-sourced** to the live production registry so it cannot silently rot
-// again (the round-088 F-088-1 / round-089 RF-089-6 class: a docs-prose claim
-// with no mechanical carrier). This test binds the doc to `agentTools()` — the
-// NON-overridable production assembler — so adding/removing a tool, or editing
-// the documented list, REDDENS here instead of drifting undetected.
+// **bound to** the live production registry so it cannot silently rot again (the
+// round-088 F-088-1 / round-089 RF-089-6 class: a docs-prose claim with no
+// mechanical carrier). This test binds the doc's `集合` cell to `agentTools()` —
+// the NON-overridable production assembler — so adding/removing a tool, or
+// editing the documented list, REDDENS here instead of drifting undetected.
+// (It enforces doc↔registry *consistency*, not the *size* of the surface.)
 //
 // It is a UNIT test (rides `go test` / `make test`), not a `make verify` member —
 // the same tier as the round-031 schema gate and the round-061 projection gate.

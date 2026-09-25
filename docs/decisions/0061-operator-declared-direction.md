@@ -10,12 +10,13 @@
 `tellme` is a deliberate **re-specification** of `tell-me-go` (a multi-provider reasoning agent CLI), not
 a feature-for-feature port. Since its first rounds it has been shaped by **operator-declared directions**
 that the operator stated repeatedly in-session and that were echoed in `README.md` ("Design Intent &
-Direction") and `STATUS.md`. The directions were **never recorded in an ADR** — `README.md` even asserted
-that direction changes are "recorded here", making a narrative README the *de facto* home of a durable
-governance decision. That is the wrong home: an ADR is the durable, citable record
-(`docs/decisions/README.md`: *"a decision that other artifacts or future rounds depend on and must be able
-to cite"*). The operator decided (issue #186) that the direction **belongs in an ADR**, and that
-`README.md` is **not** the source of truth for directions.
+Direction") and `STATUS.md`. The directions had **no dedicated home** — several ADRs **cite** them as
+settled (e.g. ADR 0043 D5; ADR 0041's `NoSecurityLayer`; ADR 0060), but none **records** the direction
+itself — and `README.md` even asserted that direction changes are "recorded here", making a narrative
+README the *de facto* home of a durable governance decision. That is the wrong home: an ADR is the
+durable, citable record (`docs/decisions/README.md`: *"a decision that other artifacts (or) future rounds
+depend on and must be able to cite"*). The operator decided (issue #186) that the direction **belongs in
+an ADR**, and that `README.md` is **not** the source of truth for directions.
 
 ## Decision
 
@@ -56,8 +57,10 @@ recorded by a **superseding ADR**, never by editing the README summary.
   platform question can cite ADR 0061 instead of inferring intent from a README narrative.
 - The **accepted risk** of D1 is explicit: an operator (or an agent) must not "fix" the absence of a
   security layer as though it were a defect — that is the settled, deliberate position.
-- D5 is a **load-bearing, testable** consequence: the offered set is single-sourced to the live registry
-  and checked (round 090's carrier over `agentTools()`), so the "small surface" cannot silently grow.
+- D5's **documentation** is bound to the live registry: the offered set is **bound to** the production
+  assembler `agentTools()` and checked (round 090's carrier), so the *documented* set cannot silently
+  **drift**. The *size* of the surface remains a **per-round judgement** (RF-061-1) and is **not**
+  mechanically gated (RF-061-3) — the carrier enforces **doc↔registry consistency**, not smallness.
 - `README.md`'s direction section is now a summary; a direction change that edited only the README would
   be **non-authoritative** (the ADR controls).
 - No product behaviour changes; `--version` stays `dev`; no new flag/phrase/exit code.

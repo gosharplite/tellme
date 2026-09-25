@@ -69,8 +69,8 @@ No product behaviour change; no new flag/phrase/exit code; `go.mod`/`go.sum` unc
 ## 3. Requirements
 
 - **FR-001** (A) `specs/truth/features/cli/chat/dsl.md` no longer asserts a stale count/set; the offered-set
-  claim is **single-sourced** and **mechanically checked** against the live agent-tool registry — a carrier
-  that **reddens** if a tool is added/removed (or the documented list is edited) without reconciliation.
+  claim's `集合` cell is **bound to** (checked against) the live agent-tool registry — a carrier that
+  **reddens** if a tool is added/removed (or the documented list is edited) without reconciliation.
 - **FR-002** (A) `chat/dsl.md` and `chat/offering-the-agent-tools.feature` agree (one current description).
 - **FR-003** (A rider) the stale history comment is corrected (no false history).
 - **FR-004** (B) `README.md`'s tool-surface enumeration matches the shipped set.

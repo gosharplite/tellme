@@ -19,9 +19,11 @@ round-088 **F-088-1** class), and **nothing reddens**: the topology audit parses
 the E2E step enumerates the *live* registry (so it passes regardless of the row's prose). This is the
 round-089 **RF-089-6** limit (a docs-prose claim with no mechanical carrier).
 
-## D2 — Decision: the offered-set claim is single-sourced to the code, with a reddening carrier
+## D2 — Decision: the offered-set claim is bound to the code, with a reddening carrier
 
-Operator decision (issue #186): **(A) → single-source carrier** — the claim is *checked*, not hand-copied.
+Operator decision (issue #186): **(A) → a single-source carrier** — the claim is *checked*, not
+hand-copied. *(Mechanism, stated precisely: the doc's `集合` cell stays a hand-maintained list, but it is
+**bound to** the live registry — a **checked mirror**, not a generated/derived source. N-090-2.)*
 
 **The single source** = the **production** agent-tool assembler. `cmd/tellme` `agentTools()`
 (`= assembleAgentTools(deps.ToolSetSpec{})`, the base set — no `vision`) is the non-overridable
