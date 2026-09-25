@@ -14,6 +14,12 @@ Feature: Presenting the interactive prompt
   # as the current choice". This SUPERSEDES round 016's "marks one suggestion as the current choice"
   # (which followed the reference's mockup; the reference's code never pre-selects). The first `Tab`
   # still selects the first suggestion — carried by the accept journey in prompting-with-suggestions.feature.
+  #
+  # Round 093 (issue #191): a scripted line break is delivered as the terminal Enter byte (CR), so the
+  # product inserts a newline and the typed lines stay apart; and "keeps the typed text" now requires each
+  # line of a multi-line value on its OWN editor row — the pre-093 substring check passed vacuously on a
+  # joined row (`line oneline two`). The scripted keys are delivered after the composed frame paints (a
+  # content-aware handshake), so the composed frame is always captured.
 
   Rule: The interactive prompt frames a multi-line editor above a suggestion list
 
@@ -50,6 +56,8 @@ Feature: Presenting the interactive prompt
 
   Rule: The editor keeps a multi-line prompt and shows no line numbers
 
+  # Round 093 carrier: the typed two-line value must be kept on two editor rows (the joined-row defect
+  # `line oneline two` reddens this Example's Then — see the DSL row for the separate-rows clause).
     Example: The operator composes a prompt across several lines
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"

@@ -1,5 +1,7 @@
 package steps
 
+import "strings"
+
 // Round-015 TUI key-sequence convention shared by the interactive-prompt step
 // definitions and the product runner (round-015 T034). The scripted keys are the
 // raw control bytes the TUI decodes from the injected stdin; the forced-terminal
@@ -8,6 +10,7 @@ package steps
 //
 //	Ctrl+C (\x03) — abort the prompt (no request)
 //	Ctrl+S (\x13) — submit the composed prompt
+//	Enter  (\r)   — a line break inside the multi-line editor (round 093)
 //
 // A key sequence is the operator's keystrokes concatenated.
 //
@@ -17,7 +20,18 @@ const (
 	tuiKeyAbort  = "\x03" // Ctrl+C
 	tuiKeySubmit = "\x13" // Ctrl+S
 	tuiKeyAccept = "\t"   // Tab — accept the current suggestion (round 016)
+	// tuiKeyEnter is the byte a REAL terminal delivers for the Enter key (CR) —
+	// NOT a line feed. bubbletea decodes LF as `ctrl+j`, which the bubbles
+	// textarea does not bind to `insert newline` (it binds CR/`enter` and
+	// `ctrl+m`), so a raw \n was silently dropped and the typed lines collapsed
+	// onto one row (round 093; issue #191).
+	tuiKeyEnter = "\r"
 )
+
+// typeText encodes a scripted text keystroke sequence: each logical line break
+// (`\n`, the readable Gherkin escape) becomes the terminal Enter byte so the
+// product inserts a newline and keeps the lines apart (round 093).
+func typeText(text string) string { return strings.ReplaceAll(text, "\n", tuiKeyEnter) }
 
 // launchTUI arranges the next run as `tellme -i` against the forced-terminal seam
 // with a scripted key sequence, then runs it (怎麼做 for the interactive-prompt
@@ -56,14 +70,14 @@ func launchTUIArgs(sc *scenarioContext, keys string, args []string) {
 func tuiKeysOpenAndAbort() string { return tuiKeyAbort }
 
 // tuiKeysTypeAndAbort opens the prompt, types q, then aborts.
-func tuiKeysTypeAndAbort(q string) string { return q + tuiKeyAbort }
+func tuiKeysTypeAndAbort(q string) string { return typeText(q) + tuiKeyAbort }
 
 // tuiKeysTypeAndSubmit opens the prompt, types text, then submits.
-func tuiKeysTypeAndSubmit(text string) string { return text + tuiKeySubmit }
+func tuiKeysTypeAndSubmit(text string) string { return typeText(text) + tuiKeySubmit }
 
 // tuiKeysTypeAcceptAbort opens the prompt, types q, accepts the current
 // suggestion (Tab), then aborts (round 016).
-func tuiKeysTypeAcceptAbort(q string) string { return q + tuiKeyAccept + tuiKeyAbort }
+func tuiKeysTypeAcceptAbort(q string) string { return typeText(q) + tuiKeyAccept + tuiKeyAbort }
 
 // renderedOutput returns the captured output a suggestion/dashboard presence
 // assertion searches: the rendered interactive frame plus the answer stream. The
