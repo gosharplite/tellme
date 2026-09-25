@@ -22,8 +22,10 @@ if spec.Vision { tools = append(tools, infratools.NewReadImageTool(...)) }  // r
 
 So `search_files` is the **4th** by offer order; the **base set** is **eight** (round 090's reconciled
 count); the only **ninth** is the capability-gated `read_image`. The "ninth" is defensible only under a
-*chronological add-order* reading nothing states. **Decision (D1.1): drop the ordinal** — identify the tool
-by name + round/ADR. Same handling as round 090 (which dropped the hand-count from the `集合` cell).
+*chronological add-order* reading — which **ADR 0043 D1 in fact states** ("ADD `search_files` as the ninth
+agent tool", correct under add-order) — an axis the **live** surface does not state. **Decision (D1.1):
+drop the ordinal** — identify the tool by name + round/ADR. Same handling as round 090 (which dropped the
+hand-count from the `集合` cell).
 
 ## D2 — (A) The ADR body is immutable; the index row is live
 
@@ -58,8 +60,18 @@ the round-090 approach. Rewrite the three **live** surfaces that restate it:
 3. `specs/truth/features/cli/chat/dsl.md` (round-079 note) — "the ten-value exit-code set" → "the exit-code
    set".
 
-**Immutable (left verbatim):** `docs/decisions/0051-*.md:43`, `0052-*.md:23`, `0055-*.md:45`,
-`0058-*.md:92` — Accepted ADRs, historical.
+**Immutable (left verbatim):** the stale figure recurs on **eight Accepted ADR lines** —
+`docs/decisions/0051-*.md:43` ("the vocabulary stays ten") · `0052-*.md:23` ("the exit-code set stays
+**ten**") · `0053-*.md:44` · `0054-*.md:26` · `0055-*.md:45` · `0056-*.md:53` · `0057-*.md:30` ·
+`0058-*.md:92` (each "the set stays ten") — all historical (immutable Accepted ADRs).
+**(R-091-1)** those eight bodies therefore carry the stale figure **permanently**; the round does not edit
+them (supersede, never edit), so the divergence is a recorded, accepted residual.
+
+**Why `eleven` survives where "ten" did not (N-091-2):** the live class-phrase count in
+`specs/truth/features/cli/dsl.md:47` is **self-carried** — the figure sits adjacent to the full
+enumeration of the eleven phrases, so a reader can verify it in place and any drift reddens a
+re-enumeration; the "ten" was a **bare** number in a sentence naming exit codes, with nothing adjacent to
+check it against.
 
 ## D4 — (C) Carrier decision (honest)
 
@@ -106,5 +118,5 @@ name, not ordinal; the domain model carries no class-phrase count). Recorded in 
 - **Truth owners**: `specs/truth/techstack.md` → `/axb-technical-research`;
   `specs/truth/features/cli/chat/dsl.md` → `/axb-dsl-refine`.
 - **Records (not truth)**: `docs/decisions/README.md` (the curated index).
-- **Immutable**: ADR bodies (0043, 0051, 0052, 0055, 0058); frozen `specs/plans/**`.
+- **Immutable**: ADR bodies (0043, 0051, 0052, 0053, 0054, 0055, 0056, 0057, 0058); frozen `specs/plans/**`.
 - **No** product code, `.feature` step text, `.feature` row semantics, `go.mod`/`go.sum`.

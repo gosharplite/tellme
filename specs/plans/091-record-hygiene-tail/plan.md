@@ -46,8 +46,8 @@ files are **not** touched → `modelith-check` stays green with no re-render.
 
 | Claim | Witness | Kind | Reddens if |
 | --- | --- | --- | --- |
-| **W-A** (A) no live bare ordinal | manual inspection of `techstack.md:36` + `docs/decisions/README.md:69` (no "ninth") + `grep -rn ninth` over live surfaces = only frozen history + the immutable ADR 0043 body | **carried, manual** | the ordinal is reintroduced on a live surface |
-| **W-C** (C) no stale "ten" on a live surface | manual inspection of the three live surfaces (`techstack.md:31`/`:105`, `chat/dsl.md` round-079 note); the ADRs byte-identical to `dev` | **carried, manual** | a stale count is reintroduced (no `make verify` member — RF-089-6) |
+| **W-A** (A) no live bare ordinal | **predicate**: `grep -rn 'ninth agent tool'` over the live tree, **excluding** (i) frozen history (`specs/plans/**`, `docs/session-summary/**`, `docs/archives/**`), (ii) the immutable Accepted ADR body (`docs/decisions/0043-search-files-tool.md`), and (iii) any **self-referential mention of the defect** (a line that quotes the ordinal as the thing being fixed — e.g. this round's own plan/STATUS text; N-091-4). After the fold the predicate returns **nothing** (product code `search.go` + truth + the ADR index row were all fixed); a **reintroduction** on any live surface matches | **carried, manual** | the ordinal is reintroduced on a live (non-excluded) surface |
+| **W-C** (C) no stale "ten" on a live surface | manual inspection of the three live surfaces (`techstack.md:31`/`:105`, `chat/dsl.md` round-079 note); the eight ADRs byte-identical to `dev` (`git diff` shows no `0051`–`0058` body change) | **carried, manual** | a stale count is reintroduced (no `make verify` member — RF-089-6) |
 | **W-B** (B) | **deferred** — homed on [#189](https://github.com/gosharplite/tellme/issues/189) (D5.1); no carrier added | n/a | n/a |
 | **Standing** | `make verify-adr-index` (the index edit), `modelith-check` (no drift), `go test -count=1 ./...` | mechanical | the index row breaks ADR-index consistency |
 

@@ -43,7 +43,7 @@ mechanical carrier*, so it drifts and is caught only by review. Three items rema
    since drifted on **both** axes. The fix is to **name the subject and drop the drifting number** (the
    round-090 approach). The same stale conflation recurs on two more **live** surfaces:
    `specs/truth/techstack.md:31` and `specs/truth/features/cli/chat/dsl.md` (the round-079 note: "the
-   ten-value exit-code set"). The ADR occurrences (`0051:43`, `0052:23`, `0055:45`, `0058:92`) are
+   ten-value exit-code set"). The ADR occurrences (`0051:43`, `0052:23`, `0053:44`, `0054:26`, `0055:45`, `0056:53`, `0057:30`, `0058:92`) are
    **immutable Accepted ADRs** — left verbatim on the same principle as ADR 0043.
 
 3. **(B, optional) A mirrored list.** The offered-tool set is mirrored across ~7 live surfaces; only the
@@ -55,7 +55,7 @@ mechanical carrier*, so it drifts and is caught only by review. Three items rema
 
 1. **(A) Drop the ordinal — `techstack.md` + the ADR index row.**
    - `specs/truth/techstack.md:36` — remove "the **ninth** agent tool"; keep the name + round/ADR
-     (`the in-file content search tool (`search_files`) — the missing half of the reader trio`).
+     (`` the `search_files` tool — the missing half of the reader trio ``).
    - `docs/decisions/README.md:69` (the ADR 0043 index row) — replace "a ninth tool offered to every
      provider" with an ordinal-free phrasing ("offered to every provider").
    - `docs/decisions/0043-search-files-tool.md` — **unchanged** (immutable Accepted ADR, historical).
@@ -65,7 +65,7 @@ mechanical carrier*, so it drifts and is caught only by review. Three items rema
    - `specs/truth/techstack.md:31` — "the ten-value exit-code set" → "the exit-code set".
    - `specs/truth/features/cli/chat/dsl.md` (round-079 note) — "the ten-value exit-code set" → "the
      exit-code set".
-   - ADRs `0051`/`0052`/`0055`/`0058` — **unchanged** (immutable; historical).
+   - ADRs `0051`/`0052`/`0053`/`0054`/`0055`/`0056`/`0057`/`0058` — **unchanged** (immutable; historical).
 3. **(B) Defer with a recorded reason** (§5) and home the deferral on a **live issue** (a durable home per
    Bootstrap Agent Rule 11). Rationale in §5.
 
@@ -114,7 +114,7 @@ frozen package.
 
 - **I-1** — `specs/truth/**` stays the single source of truth; the `.modelith.md` files are generated and
   are **not** touched (nothing modelled changes — ADR 0041 escape hatch, recorded in `plan.md`).
-- **I-2** — no **Accepted ADR** body is edited (ADR 0043 + the `0051`/`0052`/`0055`/`0058` counts are
+- **I-2** — no **Accepted ADR** body is edited (ADR 0043 + the `0051`/`0052`/`0053`/`0054`/`0055`/`0056`/`0057`/`0058` counts are
   historical). The **ADR index** (`docs/decisions/README.md`) is a live curated surface and may be edited.
 - **I-3** — frozen `specs/plans/NNN-*/**` packages (incl. 007's origin note and 089/090's) are never
   modified.

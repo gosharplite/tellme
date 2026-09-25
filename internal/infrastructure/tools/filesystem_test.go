@@ -232,8 +232,9 @@ func TestTruncateToBudgetDropsSplitRune(t *testing.T) {
 }
 
 // TestToolSchemasRequireReason pins the `reason` requirement of every
-// builder-backed tool (the five tools the shared `resourceSchema` builds; the
-// `execute_command` tool builds its schema inline). Round 031 strengthened it to
+// builder-backed tool enumerated below (the list is a subset of the tools the
+// shared `resourceSchema` backs; the `execute_command` tool builds its schema
+// inline). Round 031 strengthened it to
 // assert that `reason` is a declared PROPERTY — not merely listed in `required` —
 // which is the defect this round fixes (issue #64): a `required` name with no
 // matching property is rejected by a strict provider (Vertex/Gemini). Completeness
