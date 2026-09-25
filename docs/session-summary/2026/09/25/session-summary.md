@@ -822,3 +822,48 @@ Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with
 Review/fold comments: [review](https://github.com/gosharplite/tellme/pull/193#issuecomment-5834874802) · [fold](https://github.com/gosharplite/tellme/pull/193#issuecomment-5835009565) · [fold-verification](https://github.com/gosharplite/tellme/pull/193#issuecomment-5835119680) · [residual fold](https://github.com/gosharplite/tellme/pull/193#issuecomment-5835141080) · [final](https://github.com/gosharplite/tellme/pull/193#issuecomment-5835149605).
 
 **State**: the review-fold loop is **CLOSED** — **PR [#193](https://github.com/gosharplite/tellme/pull/193) is ready for a human to review and merge** (head `d0f2c2d`; no Copilot review; only a human merges). On merge: the closeout (`SESSION-CLOSEOUT.md` Steps 1–8) — propagate `dev → main` (no-ff), tag **`round-093`**, refresh the binary, **close [#191](https://github.com/gosharplite/tellme/issues/191)**.
+
+---
+
+## 15. Session 80 closeout (2026-09-25) — round 093 `093-interactive-prompt-seam-determinism` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 093 was human-merged (PR [#193](https://github.com/gosharplite/tellme/pull/193) → `dev` **`e7ec4a9`**, **merge commit** at 2026-09-25T15:52:06Z); `git fetch --prune` reported `[deleted] origin/093-interactive-prompt-seam-determinism`, the round tip (`d3b2064`) was an ancestor of `origin/dev`, so the **local branch was deleted** (`git branch -d 093-interactive-prompt-seam-determinism`, was `d3b2064`), `dev` was fast-forwarded to the merge, and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == e7ec4a9`; no delivered `specs/plans/**` package touched (only `093-…` is new); no stray temp files (the architect staging files removed); round branch already deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `make test` green) · `go test -count=1 ./...` **green** · E2E **330 scenarios · 2487 steps** · `make test-race` **no data races** · `verify-architecture` **0 issues** · `verify-adr-index` consistent · `modelith-check` no drift · cross-compile 4/4 · diff-level secret scan clean · all changed Markdown relative links resolve (12 files) |
+| **3 — STATUS.md** | header → round 093 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-092 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-25.md`](../../../../archives/status/2026-09-25.md) (same-day file — appended); round-093 section added; delivered-rounds pointer → 001–093; roadmap candidates → **0 open** (closes #191); round-close-tags line + the round-093 env note refreshed; **54 lines** (live state only) |
+| **4 — daily summary** | this §15 (closeout) appended (the §1–§14 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker → **#191 closed at merge** |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-093`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#191](https://github.com/gosharplite/tellme/issues/191)** was still **OPEN** after the merge (the PR body's plain `Closes #191.` did **not** auto-fire — the round-092 #189 precedent); **closed** (`completed`) with a linking comment naming PR #193 / `e7ec4a9`. Tracker → **0 open** |
+
+### Commits (branch `093-interactive-prompt-seam-determinism`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `327db98` | `docs(093)`: plan package + spec — make the `-i` E2E seam deterministic (anchor #191) |
+| `9b48841` | `fix(093)`: make the `-i` E2E seam deterministic and faithful (ADR 0063) — code + truth + records + carriers |
+| `bc76745` | `fix(093)`: fold the architect review (F-093-1/2/3 + TD-093-1 + N-093-1/2) |
+| `d0f2c2d` | `fix(093)`: fold RES-093-FV-1 (qualify the ADR 0063 index-row figure) |
+| `d3b2064` | `docs(093)`: record the review-fold loop + fold the predicate-nit |
+| `e7ec4a9` | PR [#193](https://github.com/gosharplite/tellme/pull/193) merge into `dev` (by the human, merge commit) |
+| *(this closeout, on `dev`)* | `docs(093)`: day close — round 093 delivered + propagated; STATUS split + 09/25 summary §15 |
+
+### Open items (non-blocking)
+
+- **None new.** `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` or a live GitHub issue. Round 093 records **ADR 0063 §Forward RF-093-1…4** (the wiring/ordering gap · the soft-wrapped gate limit · the carrier-quality lineage · the `paintGate` fallback path — from TD-093-1) — disclosures, not tasking.
+- **Issue tracker**: **0 open** (round 093 closed [#191](https://github.com/gosharplite/tellme/issues/191)).
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker is **0 open**; Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).
+
+*(Round 093 is fully closed out: PR #193 human-merged into `dev` (`e7ec4a9`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-093`**; the installed binary refreshed; [#191](https://github.com/gosharplite/tellme/issues/191) closed.)*
