@@ -246,3 +246,48 @@ Fold commit `81d83f6` → fold-verification [`#issuecomment-5827680804`](https:/
 Gates: `make verify` **OK** · `go test -count=1 ./...` **green** · `make test-race` **no data races** · topology audit **PASSED**.
 
 **State**: **PR [#183](https://github.com/gosharplite/tellme/pull/183) is ready for a human to review and merge** — no Copilot review; only a human merges. On merge: propagate `dev → main` (no-ff, tagged **`round-088`**), refresh the binary, and **close [#182](https://github.com/gosharplite/tellme/issues/182)**.
+
+
+---
+
+## 5. Session 75 closeout (2026-09-25) — round 088 `088-mcp-cache-header-routing-and-mode-location` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 088 was human-merged (PR [#183](https://github.com/gosharplite/tellme/pull/183) → `dev` **`033f364`**, **fast-forward** at 2026-09-25T06:08:59Z by `thptcnec`); `git fetch --prune` reported `[deleted] origin/088-mcp-cache-header-routing-and-mode-location`, the round tip (`033f364`) was an ancestor of `origin/dev`, so the **local branch was deleted** (`git branch -d 088-mcp-cache-header-routing-and-mode-location`, was `033f364`), `dev` was fast-forwarded to the merge, and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == 033f364`; no delivered `specs/plans/**` package touched (087/085/084 unmodified); no stray temp files; round branch already deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `go test -count=1 ./...` green) · `make test-race` **no data races** · E2E **330 scenarios · 2487 steps** · topology audit **PASSED** (53 features · 21 root + 467 module rows · 2461 steps) · `go.mod`/`go.sum` unchanged · diff-level secret scan clean |
+| **3 — STATUS.md** | header → round 088 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-087 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-25.md`](../../../../archives/status/2026-09-25.md) (same-day file — appended); round-088 section added; delivered-rounds pointer → 001–088; round-close-tags line + the topology counts (467 rows · 2461 steps) refreshed; **54 lines** (live state only) |
+| **4 — daily summary** | this §5 (closeout) appended (the §1–§4 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker → **0 open** (closes #182) |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-088`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#182](https://github.com/gosharplite/tellme/issues/182) CLOSED** (completed) with a linking comment (the PR body's `Closes **#182**` bold markers defeated the auto-close — the round-065 lesson); tracker → **0 open** |
+
+### Commits (branch `088-mcp-cache-header-routing-and-mode-location`, then merged fast-forward)
+
+| Commit | Note |
+| --- | --- |
+| `e452b33` | `fix(088)`: repair the round-087 MCP cache — header routing + per-mode placement (ADR 0059) |
+| `10a7950` | `docs(088)`: STATUS + day log §4 — pipeline complete; PR #183 open |
+| `81d83f6` | `fix(088)`: fold the architect review (F-088-1…5 + TD-088-1 + N-088-1…4) |
+| `b9d63f3` | `docs(088)`: fold RES-088-FV-1 (T013 wording) |
+| `033f364` | `docs(088)`: day log — review-fold loop CLOSED (the merge head, fast-forward) |
+| *(this closeout, on `dev`)* | `docs(088)`: day close — round 088 delivered + propagated; STATUS split + 09/25 summary §5 |
+
+### Open items (non-blocking)
+
+- **None new.** Per the settled curation rule, `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` (the authority) or a live GitHub issue. ADR 0059 §Forward RF-088-1…5 are disclosures, not tasking; ADR 0058 §Forward RF-087-1…10 stand.
+- **Issue tracker**: **0 open**.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker is **0 open**; Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).
+
+*(Round 088 is fully closed out: PR #183 human-merged into `dev` (`033f364`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-088`**; the installed binary refreshed; [#182](https://github.com/gosharplite/tellme/issues/182) closed.)*
