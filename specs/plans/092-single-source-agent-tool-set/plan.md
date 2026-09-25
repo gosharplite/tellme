@@ -19,7 +19,7 @@ for this round (no executable-truth change).
 | `internal/infrastructure/tools/agentbase.go` | **NEW** — `NewAgentBaseTools(sink)` (the canonical base-set owner) | production (tools) |
 | `cmd/tellme/deps.go` | `assembleAgentTools` delegates its **base** half to `NewAgentBaseTools(spec.Sink)`; the `vision` append + the ceiling stay | production (root; exempt) |
 | `tests/e2e/steps/tool_usage.go` | `registeredToolNames()` / `recordableToolNames()` delegate to `NewAgentBaseTools(nil)` (+ the unchanged `read_image` union) | e2e harness (outside `internal/`) |
-| `cmd/tellme/deps_test.go` | **+** `TestAgentToolsIsTheCanonicalBaseSet` (binding carrier) | test |
+| `cmd/tellme/deps_agentbase_test.go` | **+** `TestAgentToolsIsTheCanonicalBaseSet` (binding carrier) | test |
 | `tests/e2e/steps/tool_usage_test.go` | **NEW** — `TestRegisteredToolNamesIsTheCanonicalBaseSet` (binding carrier) | test |
 | `docs/decisions/0062-*.md` + `docs/decisions/README.md` | **ADR 0062** + index row (the placement decision) | record |
 | `specs/truth/techstack.md` | the *Composition root* row gains a one-line placement note | truth (owner `/axb-technical-research`) |

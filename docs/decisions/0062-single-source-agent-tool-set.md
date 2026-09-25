@@ -65,7 +65,9 @@ flag, phrase, exit code, config key, `.feature`/DSL step, or dependency; no new 
 equality-of-surfaces shape): `cmd/tellme`'s `TestAgentToolsIsTheCanonicalBaseSet` (the production base set
 == the owner) and `tests/e2e/steps`' `TestRegisteredToolNamesIsTheCanonicalBaseSet` (the enumerator == the
 owner). Either reddens if a future edit re-inlines a **divergent** base copy; a tool removed from the owner
-reddens round-090's `TestOfferedSetDocMatchesTheLiveRegistry` (the owner is **load-bearing**).
+reddens round-090's `TestOfferedSetDocMatchesTheLiveRegistry` **and** `TestNewToolRegistryOffersAgentTools`
+**and** the four `search_files` E2E Examples (fold N-092-1 — the owner is **load-bearing** with more carriers
+than the two 092 pins, which merely pin the delegation).
 
 ## Why an ADR
 
@@ -112,9 +114,13 @@ policy). It continues the ADR-0013/0039 composition lineage and records the **pa
 
 ## Verification
 
-- **Structural** — the base constructors are composed in `internal/infrastructure/tools/agentbase.go`
-  only; both callers delegate. Grep-verifiable (the raw base constructors appear in the tools package and
-  the two delegating call sites only).
+- **Structural** — the **agent base** constructors are composed in
+  `internal/infrastructure/tools/agentbase.go` only; both **agent-set** callers (`assembleAgentTools()`,
+  `registeredToolNames()`) delegate. Grep-verifiable, with **two named non-delegating listers**, both
+  deliberate and disclosed (fold F-092-1 — so the claim does not contradict RF-092-3 below): (a)
+  `newTUIRegistry()` (`cmd/tellme/deps.go`) composes the narrower 3-reader TUI sub-set directly; (b) the
+  round-031 schema gate's literal eight-tool fixture (`cmd/tellme/deps_test.go`,
+  `TestNewToolRegistryOffersAgentTools`) is a test expectation, not a production composition.
 - **Carriers** — `cmd/tellme` `TestAgentToolsIsTheCanonicalBaseSet`; `tests/e2e/steps`
   `TestRegisteredToolNamesIsTheCanonicalBaseSet` (both pass at head; both redden under a divergent
   re-inline).
@@ -123,7 +129,8 @@ policy). It continues the ADR-0013/0039 composition lineage and records the **pa
 - **Gates** — `make verify` green (`verify-architecture` at its 0-violation baseline; `modelith-check`
   unchanged); `go.mod`/`go.sum` unchanged.
 - **Falsifiability** — W-1/W-3 (a divergent re-inline in either caller) redden the carrier; W-2 (a tool
-  removed from the owner) reddens round-090's doc carrier; all reproduced then reverted.
+  removed from the owner) reddens round-090's doc carrier, `TestNewToolRegistryOffersAgentTools`, and the
+  four `search_files` E2E Examples (fold N-092-1); all reproduced then reverted.
 
 ## References
 
@@ -148,7 +155,8 @@ policy). It continues the ADR-0013/0039 composition lineage and records the **pa
   package both callers use (a future option if a third consumer of the base set appears).
 - **RF-092-2** — the capability-gated `read_image` append and the union enumerator remain composed
   **separately** in the root and the harness (single tool, single constructor); only the **base** set is
-  single-sourced. A future second capability would re-open the question of a shared capability-gated
-  builder.
+  single-sourced. This **halves** ADR 0032's **RF-062-12** (which names the same hand-kept duplicate); the
+  union's capability half stays **unwitnessed** (**TD-092-1**). A future second capability would re-open the
+  question of a shared capability-gated builder.
 - **RF-092-3** — `newTUIRegistry()` (`cmd/tellme`) composes the 3-reader TUI sub-set directly; it is a
   distinct, narrower set, deliberately not folded into `NewAgentBaseTools` (which owns the agent base set).

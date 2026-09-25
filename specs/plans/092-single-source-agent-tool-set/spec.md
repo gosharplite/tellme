@@ -67,9 +67,14 @@ No product behaviour change; the offered set + order are byte-identical; `go.mod
 
 ## 4. Invariants
 
-- **I-1 — One composition owner.** The base tool constructors are composed in exactly one production
-  function (`NewAgentBaseTools`); no second production site re-lists them. (Grep-verifiable: the raw base
-  constructors appear in the tools package and the two delegating call sites only.)
+- **I-1 — One composition owner (of the *agent base* set).** The **agent base** tool constructors are
+  composed in exactly one function (`NewAgentBaseTools`); the two **agent-set** call sites
+  (`cmd/tellme.assembleAgentTools()` and `tests/e2e/steps.registeredToolNames()`) **delegate** to it rather
+  than re-list the constructors. Grep-verifiable, with **two named, deliberate non-delegating listers**
+  (fold F-092-1 — neither is drift): (a) `newTUIRegistry()` (`cmd/tellme/deps.go`) composes the narrower
+  3-reader TUI sub-set directly (ADR 0062 **RF-092-3**); (b) the round-031 well-formedness gate's literal
+  eight-tool expectation (`cmd/tellme/deps_test.go`, `TestNewToolRegistryOffersAgentTools`) — a test
+  expectation, not a production composition.
 - **I-2 — Behaviour identity.** The set, the offer order, and every observable surface are unchanged; the
   full suite passes with **no assertion changed** (the ADR-0039 behaviour-identity witness).
 - **I-3 — Layer baseline 0.** No new import edge: `internal/infrastructure/tools` is already imported by

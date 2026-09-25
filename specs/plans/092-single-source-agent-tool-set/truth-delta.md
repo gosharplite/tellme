@@ -32,5 +32,5 @@ area was checked).
 | MODIFY | `docs/decisions/README.md` | Add the **ADR 0062** index row (status `Accepted`). | `verify-adr-index` (`adr-index-consistent`). |
 | ADD | `internal/infrastructure/tools/agentbase.go` | The canonical base-set owner `NewAgentBaseTools(sink)`. | FR-001 single source. |
 | MODIFY | `cmd/tellme/deps.go`, `tests/e2e/steps/tool_usage.go` | Delegate the base-set composition to the canonical owner; the capability gate / union unchanged. | FR-001 — derive, not re-implement. |
-| ADD | `cmd/tellme/deps_test.go` (carrier), `tests/e2e/steps/tool_usage_test.go` (carrier) | Binding carriers: the production base set and the e2e enumerator each equal the canonical owner (W-1/W-3). | FR-002/FR-003 — the round-090 equality-of-surfaces carrier shape. |
+| ADD | `cmd/tellme/deps_agentbase_test.go` (carrier), `tests/e2e/steps/tool_usage_test.go` (carrier) | Binding carriers: the production base set and the e2e enumerator each equal the canonical owner (W-1/W-3). | FR-002/FR-003 — the round-090 equality-of-surfaces carrier shape. |
 | NOOP | `docs/domain-model/**` | Checked — **not modelled** (ADR 0041 escape hatch). The model already records the tool surface; a composition-placement refactor changes no entity/invariant/scenario. | A refactor touches no modelled behaviour. |

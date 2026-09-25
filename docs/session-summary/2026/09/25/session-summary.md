@@ -648,13 +648,13 @@ Round 091 was human-merged (PR [#190](https://github.com/gosharplite/tellme/pull
 
 ## 12. Session 79 (2026-09-25, cont.) — round 092 `092-single-source-agent-tool-set` **OPENED → full pipeline → PR open** (anchor issue [#189](https://github.com/gosharplite/tellme/issues/189); **ADR 0062**)
 
-After the round-091 closeout, the operator read issue **#189** and directed *"Open a new aixbdd round, the goal is to close #189."* A new branch **`092-single-source-agent-tool-set`** was created off `dev` `e0dcea2`, the (docs+refactor-only) pipeline ran, and a PR was opened.
+After the round-091 closeout, the operator read issue **#189** and directed *"Open a new aixbdd round, the goal is to close #189."* A new branch **`092-single-source-agent-tool-set`** was created off `dev` `65ad377` (the round-091 day-close head — not its PR-merge `e0dcea2`), the (docs+refactor-only) pipeline ran, and a PR was opened.
 
 ### At a glance
 
 | Area | Outcome |
 | --- | --- |
-| Branch | **`092-single-source-agent-tool-set`** (off `dev` `e0dcea2`) |
+| Branch | **`092-single-source-agent-tool-set`** (off `dev` `65ad377`) |
 | Anchor | issue [#189](https://github.com/gosharplite/tellme/issues/189) — the **(B)** deferral of round 091 / #188 item (B): bind the e2e tool enumerator `registeredToolNames()` to the production assembler `agentTools()`; **DoD = close it** |
 | Theme | **Single-source the base agent-tool composition** — one canonical owner (`internal/infrastructure/tools.NewAgentBaseTools`) both the composition root and the e2e harness derive from (closing round-090 **R-090-1**) |
 | Clarify | **not escalated (0 questions)** — the issue fixes the goal + the options; the design choice is the round's (RD-owned) |
