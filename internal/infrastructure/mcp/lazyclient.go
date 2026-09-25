@@ -26,9 +26,12 @@ type lazyClient struct {
 	newClient    ClientFactory
 	resolveToken TokenSource
 
-	mu     sync.Mutex
-	inner  domaintools.MCPClient
-	err    error
+	mu    sync.Mutex
+	inner domaintools.MCPClient
+	err   error
+	// listed memoizes the one-shot tools/list warm-up. It is not a strict
+	// once-guard under concurrency, which is fine: the agent loop dispatches a
+	// round's tool calls SEQUENTIALLY (no goroutines), so at most one warm runs.
 	listed bool
 }
 

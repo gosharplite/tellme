@@ -248,12 +248,16 @@ func TestDiscoverCached_IgnoresEntryForUnknownServer(t *testing.T) {
 	run.Close()
 }
 
-// TestDiscoverCached_NoServersIsInert — EC-004.
+// TestDiscoverCached_NoServersIsInert — EC-003 (no servers ⇒ no dial, no tools, and NO cache write).
 func TestDiscoverCached_NoServersIsInert(t *testing.T) {
 	f := &recordingFactory{}
-	run := DiscoverCached(context.Background(), nil, time.Second, &memCache{}, time.Now, time.Hour, f.new, noToken)
+	cache := &memCache{}
+	run := DiscoverCached(context.Background(), nil, time.Second, cache, time.Now, time.Hour, f.new, noToken)
 	if len(f.dialed()) != 0 || len(run.Tools) != 0 {
 		t.Fatalf("no MCP servers ⇒ no dial, no tools; dialed=%v tools=%v", f.dialed(), offeredNames(run.Tools))
+	}
+	if cache.saves != 0 {
+		t.Fatalf("no MCP servers ⇒ the cache must not be written; saves=%d", cache.saves)
 	}
 }
 

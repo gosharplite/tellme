@@ -87,7 +87,7 @@ stdlib-only; POSIX-only.
 | Persist the raw annotated schema and replay it into the SDK | Impossible via the `tools.MCPClient` domain port; the SDK reads only its own `tools/list` cache. |
 | Issue `tools/list` at discovery time on the cached path | Re-introduces a **prelude dial** every run — defeats round 087's purpose. |
 | Revert the cache (round 087) | The cache is the right shape; only the two defects are wrong. |
-| Eager warm-up at `connect` for a no-tool hit | Violates the zero-dial guarantee (FR-002). |
+| Warm **eagerly when the cached tools are assembled** (`DiscoverCached`) — an unconditional prelude dial | Violates the zero-dial guarantee (FR-002): a no-tool hit would dial. (Warming inside `connect` is *not* this — `connect` is reached only from `CallTool`, so it cannot dial on a no-tool hit.) |
 
 ## Forward (non-blocking)
 
@@ -101,3 +101,8 @@ stdlib-only; POSIX-only.
   floor); the SDK recovers the annotation from its own `tools/list`, not from the offered schema.
 - **RF-088-4** — the cache path is fixed to `output/<mode>/`; a future multi-mode shared cache would
   be a separate decision.
+- **RF-088-5** — the warm-up is charged to the **call's own deadline** (`agentloop` wraps each tool call
+  in its per-call timeout, and that ctx is passed into `CallTool`), so a slow `tools/list` can consume the
+  budget and tip the first cached call into the structural `timeout`/"stopped" path — a small regression
+  vs pre-087, where listing ran under the separate 3 s discovery bound. A mitigation (bound the warm-up by
+  its own deadline, e.g. `min(mcpDiscoveryBound, remaining)`) is deferred.

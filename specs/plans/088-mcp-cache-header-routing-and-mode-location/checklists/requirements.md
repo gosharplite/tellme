@@ -18,7 +18,7 @@
 | FR-005 | no other surface change; offline network-free | the existing MCP feature Examples + `make verify-no-network` |
 | EC-001 | a warm-up failure does not block the call | unit pin (a failing `ListTools` still allows the call) |
 | EC-002 | dropped cached tool ⇒ recoverable | the existing `A remembered tool the server has since dropped fails softly` Example |
-| EC-003 | no servers ⇒ inert | unit pin (`DiscoverCached` with nil servers) |
+| EC-003 | no servers ⇒ inert (no dial, no tools, **no write**) | unit pin `TestDiscoverCached_NoServersIsInert` (asserts `saves == 0`) |
 | SC-001…003 | the two fixes + gates | the carriers above + `make check` |
 
 ## Boundaries

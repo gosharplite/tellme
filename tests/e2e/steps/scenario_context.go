@@ -514,16 +514,26 @@ func (sc *scenarioContext) writeMCPToolCache(server string, age time.Duration) e
 	if err != nil {
 		return err
 	}
-	return sc.writeFile(filepath.Join("output", "butler", mcpCacheFileName), data)
+	return sc.writeFile(filepath.Join("output", sc.effectiveMode(), mcpCacheFileName), data)
 }
 
 // mcpCacheFileName mirrors the production cache file name (round 087; ADR 0058).
 const mcpCacheFileName = "mcp-toolcache.json"
 
+// effectiveMode resolves the mode the next run will use: the arranged
+// TELL_ME_MODE, else "butler" (the E2E default — N-088-1: the cache helpers must
+// not hardcode a mode).
+func (sc *scenarioContext) effectiveMode() string {
+	if m := sc.envOverrides["TELL_ME_MODE"]; m != "" {
+		return m
+	}
+	return "butler"
+}
+
 // mcpCacheWorkspacePath is the per-mode workspace cache path a round-088 run uses
-// (output/butler/mcp-toolcache.json — the E2E default mode is butler).
+// (output/<mode>/mcp-toolcache.json — the mode is derived, not hardcoded).
 func (sc *scenarioContext) mcpCacheWorkspacePath() string {
-	return filepath.Join(sc.home, "output", "butler", mcpCacheFileName)
+	return filepath.Join(sc.home, "output", sc.effectiveMode(), mcpCacheFileName)
 }
 
 // mcpCacheHomeRootPath is the OLD (round-087) home-root path, which a round-088

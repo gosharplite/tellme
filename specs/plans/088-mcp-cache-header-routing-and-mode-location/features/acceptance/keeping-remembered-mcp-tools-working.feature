@@ -17,7 +17,7 @@ Feature: Keeping remembered MCP tools working
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
       And a remote MCP server "gh" that offers a tool "create_issue" whose "owner" argument is routed as a header
-      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "create_issue" from the server "gh" with the reason "file a bug" and then answers with "Filed."
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "create_issue" from the server "gh" with the reason "file a bug" and the argument "owner" set to "me" and then answers with "Filed."
       And the tools of the MCP server "gh" have already been discovered
       When the operator starts tellme with the prompt "File a bug."
       Then tellme called the tool "create_issue" on the MCP server "gh"

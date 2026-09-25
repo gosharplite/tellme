@@ -78,7 +78,7 @@ annotate) and:
 | Persist the raw annotated schema and replay it into the SDK | Not possible through the `tools.MCPClient` domain port; the SDK reads only its own `tools/list` cache. |
 | Issue `tools/list` at discovery time on the cached path | Re-introduces a **prelude dial** every run — defeats round 087's whole purpose (FR-001). |
 | Revert the cache (round 087) | The cache is the right shape; only the two defects are wrong. |
-| Do the warm-up eagerly at `connect` for a cache hit that runs no tool | Violates FR-002 (a no-tool hit must dial nothing). |
+| Warm **eagerly when the cached tools are assembled** (`DiscoverCached`) — an unconditional prelude dial | Violates FR-002: a cache hit that runs no tool would dial. (Warming inside `connect` is *not* this: `connect` is itself reached only from `CallTool`, so warming there cannot dial on a no-tool hit.) |
 
 ### D7 — Records
 
