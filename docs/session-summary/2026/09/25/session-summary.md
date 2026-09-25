@@ -595,3 +595,51 @@ Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with
 - **A record round must sweep the whole live tree, not just its named surfaces** — the round's own headline ("no live bare ordinal") was falsified by a **product-code comment** and a **self-referential STATUS mention** the round had not swept. The round-089/090 lesson (a docs claim has no mechanical carrier) applies to the *sweep* too: state the predicate and its exclusions.
 - **A predicate that matches its own subject is non-discriminating** — the recorded W-A (`grep -rn ninth`) matched the round's own text; the fold named the "quotes-the-defect" exclusion explicitly.
 - **Complete the enumeration, don't sample it** — the "four ADRs" list was a sample of eight; in a round whose thesis is "a stale count is a defect", an incomplete count is the same defect.
+
+---
+
+## 11. Session 78 closeout (2026-09-25) — round 091 `091-record-hygiene-tail` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 091 was human-merged (PR [#190](https://github.com/gosharplite/tellme/pull/190) → `dev` **`e0dcea2`**, **fast-forward** at 2026-09-25T09:57:22Z); `git fetch --prune` reported `[deleted] origin/091-record-hygiene-tail`, the round tip (`733fe45`) was an ancestor of `origin/dev`, so the **local branch was deleted** (`git branch -d 091-record-hygiene-tail`, was `733fe45`), `dev` was fast-forwarded to the merge, and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == e0dcea2`; no delivered `specs/plans/**` package touched (089/090 unmodified); no stray temp files (`/tmp` staging cleaned); round branch already deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `go test -count=1 ./...` green) · `make test-race` **no data races** · E2E **330 scenarios · 2487 steps** · `verify-adr-index` consistent · `modelith-check` no drift · `go.mod`/`go.sum` unchanged · diff-level secret scan clean (prose-only matches: "tokens"/"usage") |
+| **3 — STATUS.md** | header → round 091 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-090 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-25.md`](../../../../archives/status/2026-09-25.md) (same-day file — appended); round-091 section added; delivered-rounds pointer → 001–091; roadmap candidates → the live seeds (#189/#191); round-091 env note + the round-close-tags line refreshed; **54 lines** (live state only) |
+| **4 — daily summary** | this §11 (closeout) appended (the §1–§10 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker → **#188 closed** at merge (auto-close via `closes #188`), **#189 + #191 open** |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-091`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#188](https://github.com/gosharplite/tellme/issues/188) CLOSED** (auto-closed by the PR's `closes #188` link at merge); **[#189](https://github.com/gosharplite/tellme/issues/189)** + **[#191](https://github.com/gosharplite/tellme/issues/191)** verified **open** (live round seeds) — nothing to revise |
+
+### Commits (branch `091-record-hygiene-tail`, then merged fast-forward)
+
+| Commit | Note |
+| --- | --- |
+| `8849e07` | `docs(091)`: reconcile the tail record-hygiene — drop the tool ordinal + name the class-phrase count (closes #188) |
+| `88ec0ad` | `docs(091)`: name round 091 + PR #190 in STATUS and the day log |
+| `f58ce9e` | `fix(091)`: fold the architect review (F-091-1/2/3 + TD-091-1 + N-091-1..4) |
+| `ca30591` | `docs(091)`: fold ledger — record the fold head (f58ce9e) |
+| `cb8f3a2` | `docs(091)`: fold the fold-verification residuals (RES-091-FV-1/2/3) |
+| `b7fdfa5` | `docs(091)`: fold the fold-verification nits (N-091-FV-1/2) |
+| `1999737` | `docs(091)`: fold the fold-verification nits (N-091-FV-3) + day-log §10 (cont.) |
+| `733fe45` | `docs(091)`: STATUS — review-fold loop CLOSED; PR #190 ready for human merge |
+| `e0dcea2` | PR [#190](https://github.com/gosharplite/tellme/pull/190) merge into `dev` (by the human, fast-forward) |
+| *(this closeout, on `dev`)* | `docs(091)`: day close — round 091 delivered + propagated; STATUS split + 09/25 summary §11 |
+
+### Open items (non-blocking)
+
+- **None new.** `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` or a live GitHub issue. Round 091 records no ADR; its deferral (**B**) is homed on **live issue [#189](https://github.com/gosharplite/tellme/issues/189)**, and the recurring round-082 flake on **live issue [#191](https://github.com/gosharplite/tellme/issues/191)**. **R-091-1** (the eight Accepted-ADR bodies carry the stale "ten" permanently) is a recorded, accepted residual in the round's `tasks.md` §Fold ledger.
+- **Issue tracker**: **#189 + #191 open** (live round seeds); **#188 closed**.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the live seeds are [#189](https://github.com/gosharplite/tellme/issues/189) and [#191](https://github.com/gosharplite/tellme/issues/191); Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round was a truth/record reconciliation).
+
+*(Round 091 is fully closed out: PR #190 human-merged into `dev` (`e0dcea2`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-091`**; the installed binary refreshed; [#188](https://github.com/gosharplite/tellme/issues/188) closed.)*
