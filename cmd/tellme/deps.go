@@ -68,8 +68,8 @@ func buildDeps() deps.Dependencies {
 			})
 		},
 		NewMetricsProvider: func() metrics.SystemMetricsProvider { return infratelemetry.NewSystemMetricsProvider() },
-		MCPDiscoverer: func(ctx context.Context, home string, servers map[string]config.MCPServerConfig) deps.Discovery {
-			cache := mcp.NewFileToolCache(home)
+		MCPDiscoverer: func(ctx context.Context, workspace string, servers map[string]config.MCPServerConfig) deps.Discovery {
+			cache := mcp.NewFileToolCache(workspace)
 			run := mcp.DiscoverCached(ctx, servers, mcpDiscoveryBound, cache, time.Now, mcpToolCacheTTL, di.NewRemoteClient, di.NewGhTokenResolver(mcpDiscoveryBound))
 			// F-7: the close is a visible field (round 051 / ADR 0020). Adapt the
 			// bare func() into an io.Closer.

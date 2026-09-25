@@ -1579,7 +1579,7 @@ func emitProviderError(w io.Writer, err error) int {
 // called from runTurn), so an offline run makes no MCP network contact. The
 // returned close hook tears down the discovered clients when the turn ends.
 func augmentRegistryWithMCP(ctx context.Context, res resolution, reg domaintools.Registry, stderr io.Writer, dp deps.Dependencies) (domaintools.Registry, func()) {
-	d := dp.MCPDiscoverer(ctx, res.Home, res.MCPServers)
+	d := dp.MCPDiscoverer(ctx, res.Workspace, res.MCPServers)
 	for _, w := range res.MCPWarnings {
 		_, _ = fmt.Fprintln(stderr, w)
 	}

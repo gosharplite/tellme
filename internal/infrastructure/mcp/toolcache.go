@@ -8,9 +8,11 @@ import (
 	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
-// MCPToolCacheFileName is the cross-invocation cache file's name under
-// $TELL_ME_HOME (round 087; ADR 0058). The home root (not output/<mode>/) keeps
-// it shared across modes and untouched by `--new` (it is not session state).
+// MCPToolCacheFileName is the cross-invocation cache file's name under the
+// per-mode session WORKSPACE (round 087; ADR 0058 — relocated by round 088 /
+// ADR 0059 from the $TELL_ME_HOME root to output/<mode>/ for consistency with the
+// other per-mode artifacts and because the MCP server set is per-mode config).
+// It is untouched by `--new` (not a recognised archive target).
 const MCPToolCacheFileName = "mcp-toolcache.json"
 
 // cacheFS is the unexported durability seam for the cache write (round 087 fold
@@ -48,9 +50,10 @@ type fileToolCache struct {
 	fs   cacheFS
 }
 
-// NewFileToolCache returns the cache store rooted at home ($TELL_ME_HOME).
-func NewFileToolCache(home string) domaintools.MCPToolCache {
-	return &fileToolCache{path: filepath.Join(home, MCPToolCacheFileName), fs: osCacheFS{}}
+// NewFileToolCache returns the cache store rooted at the given directory — the
+// per-mode session WORKSPACE (round 088; ADR 0059).
+func NewFileToolCache(workspace string) domaintools.MCPToolCache {
+	return &fileToolCache{path: filepath.Join(workspace, MCPToolCacheFileName), fs: osCacheFS{}}
 }
 
 // Load reads and decodes the cache. A missing file is (nil, nil) — every key is
