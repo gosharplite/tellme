@@ -291,3 +291,57 @@ Round 088 was human-merged (PR [#183](https://github.com/gosharplite/tellme/pull
 - None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).
 
 *(Round 088 is fully closed out: PR #183 human-merged into `dev` (`033f364`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-088`**; the installed binary refreshed; [#182](https://github.com/gosharplite/tellme/issues/182) closed.)*
+
+---
+
+## 6. Session 76 (2026-09-25, cont.) — round 089 `089-context-control-position` **OPENED → full pipeline → PR open** (anchor issue [#184](https://github.com/gosharplite/tellme/issues/184); **ADR 0060**)
+
+After the round-088 closeout, the operator filed issue **#184** (a truth-hygiene defect + an unrecorded
+decision) and directed *"Open a new aixbdd round, the goal is to close #184."* A new branch
+**`089-context-control-position`** was created off `dev` `53753a0`, the (docs/truth-only) pipeline ran,
+and a PR was opened.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`089-context-control-position`** (off `dev` `53753a0`) |
+| Anchor | issue [#184](https://github.com/gosharplite/tellme/issues/184) — reconcile the stale `-b`/`--retry` clause + record the context-control position; **DoD = close it** |
+| Theme | **Truth/record-only**: (a) split the `techstack.md` clause — `-b`/`--back` is **delivered** (round 081 / ADR 0053), `--retry` stays a genuine non-introduction; (b) record the position as **ADR 0060** (no `summarize_history` port; operator-manual `-l`/`-b`; a revisit trigger) |
+| Clarify | **not escalated (0 questions)** — the issue locks the goal + decision content; the operator's round instruction grants the intent (A1) |
+| Pipeline | specify ✅ · spec-by-example **NOOP** (no behaviour change) · technical-research ✅ (**ADR 0060** + the `techstack.md` clause fix) · system-analysis ✅ (1 CLI end; api/data/UI/dsl NOOP) · dsl-refine **NOOP** (no `.feature` change — the "no summarisation tool" claim already ships) · tasks ✅ (T001–T008 + the Claim→Witness ledger) · implement ✅ |
+| The change | `specs/truth/techstack.md` (*History summarisation* bullet — `-b` out, `--retry` kept accurate) · **ADR 0060** (`docs/decisions/0060-context-control-position.md`) · `docs/decisions/README.md` (the 0060 index row + a 0053 back-pointer) |
+| Witness | **W1** reproducible grep (the stale clause is gone; `-b` reads as delivered) · **W2** `make verify-adr-index` (the ADR is indexed once) · **W3 not used** (no equivalence claim asserted — the ADR records the **non-equivalence** and cites the **existing** `offering-the-agent-tools.feature` carrier) |
+| Verification | `make verify` **OK** (incl. `verify-adr-index` + `modelith-check`) · `go test -count=1 ./...` **green** (E2E **330 scenarios · 2487 steps — unchanged**) · `gofmt`/`goimports` clean · `go.mod`/`go.sum` unchanged |
+| Delivery | branch → **PR open** (no Copilot review; only a human merges) |
+
+### Decisions locked (round 089 / ADR 0060)
+
+| # | Decision |
+| --- | --- |
+| **D1** | tellme does **not** port `summarize_history` — neither as an agent tool nor as automatic summarisation. |
+| **D2** | Supported context control is **operator-manual**: `-l` (inspect) + `-b` (roll back); `--new` archives (does not prune). |
+| **D3** | `MAX_HISTORY_TOKENS` is displayed + caps the tool-result bound but **prunes nothing**; token-budget pruning / history pinning stay settled exclusions. |
+| **D4** | A **deliberate divergence**, and **not** an equivalence claim: the reference's compression is lossy-but-retaining; `-b` is coarse, whole-turn, destructive. |
+| **D5** | The `techstack.md` clause is reconciled: `-b` **delivered**, `--retry` a **genuine non-introduction** (`truth-current` holds). |
+| **D6** | Witness: the "no summarisation tool" half is **already carried** by `chat/offering-the-agent-tools.feature` (cited, not re-created); the ADR's durability is `verify-adr-index`. |
+
+### Open items (non-blocking)
+
+- **PR** for round 089 awaits a human review/merge → then the closeout (`SESSION-CLOSEOUT.md`): propagate `dev → main` (no-ff), tag **`round-089`**, refresh the binary; **close [#184](https://github.com/gosharplite/tellme/issues/184)**.
+- **ADR 0060 §Forward** RF-089-1…5 (the revisit trigger · the non-equivalence until a carrier exists · `--retry` still unimplemented · pruning-absence not mechanically gated · `docs/domain-model` not engaged).
+
+### Process notes (durable)
+
+- **A truth-surplus is a defect too.** `-b` was documented as delivered *and* excluded; `truth-current` requires one current description — the round applied the round-088 F-088-1 class to a *scope* clause, not just a path.
+- **A decision record is not an equivalence claim.** The honest form is the **non-equivalence** + a **revisit trigger**; an unfalsifiable coverage claim was refused (W3 not used).
+- **Cite the carrier, don't manufacture one.** The "no summarisation tool" claim already had an E2E carrier; the round cited it rather than inventing a vacuous new one.
+
+### Next steps
+
+1. Human reviews + merges the round-089 PR; then the closeout (propagate `dev → main` no-ff, tag `round-089`; close #184).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `089-context-control-position` until merged, then `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round is a truth/record reconciliation).
