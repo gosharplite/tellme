@@ -528,3 +528,49 @@ Round 090 was human-merged (PR [#187](https://github.com/gosharplite/tellme/pull
 - None new (no PM-owned requirement gap; the round was a truth/record reconciliation + a decision record).
 
 *(Round 090 is fully closed out: PR #187 human-merged into `dev` (`4017ad7`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-090`**; the installed binary refreshed; [#186](https://github.com/gosharplite/tellme/issues/186) closed.)*
+
+---
+
+## 10. Session 78 (2026-09-25, cont.) — round 091 `091-record-hygiene-tail` **OPENED → full pipeline → PR [#190](https://github.com/gosharplite/tellme/pull/190) open** (anchor issue [#188](https://github.com/gosharplite/tellme/issues/188))
+
+After the round-090 closeout, the operator read issue **#188** and directed *"Open a new aixbdd round, the goal is to close #188."* A new branch **`091-record-hygiene-tail`** was created off `dev` `9f9cd9c`, the (docs/truth-only) pipeline ran, and **PR [#190](https://github.com/gosharplite/tellme/pull/190)** was opened.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`091-record-hygiene-tail`** (off `dev` `9f9cd9c`) |
+| Anchor | issue [#188](https://github.com/gosharplite/tellme/issues/188) — the **tail** of the 089/090 record-hygiene sweep; **DoD = close it** |
+| Theme | **Truth/record only**: (A) drop the stale `search_files` **"ninth agent tool"** ordinal; (C) name the **class-phrase count**'s subject and drop the stale **"ten"**; (B, optional) the e2e-enumerator binding — **deferred** → homed on [#189](https://github.com/gosharplite/tellme/issues/189) |
+| Clarify | **not escalated (0 questions)** — #188 fixes the goals + the two locked decisions (A1) |
+| Pipeline | specify ✅ · spec-by-example **NOOP** (no behaviour change) · technical-research ✅ (research D1–D7) · system-analysis ✅ (1 CLI end; api/data/UI NOOP; dsl-refine = a **prose-note** MODIFY) · dsl-refine ✅ (the `chat/dsl.md` round-079 note) · tasks ✅ (T001–T012 + the Claim→Witness ledger) · implement ✅ |
+| The change | `specs/truth/techstack.md` (`:36` drop "ninth"; `:31`/`:105` count wording) · `specs/truth/features/cli/chat/dsl.md` (the round-079 note) · `docs/decisions/README.md` (the ADR 0043 **index** row, ordinal dropped) |
+| Witness | **W-A/W-C** — **carried, manual** (a docs-prose claim has no `make verify` member — ADR 0060 §Forward RF-089-6 / TD-090-1; recorded honestly per the F-089-1 lesson) · **W-B** deferred → [#189](https://github.com/gosharplite/tellme/issues/189) |
+| Verification | `make verify` **OK** (incl. `verify-adr-index`, `modelith-check` no drift) · `go test -count=1 ./...` **green** — E2E **330 scenarios · 2487 steps (unchanged)** · `go.mod`/`go.sum` unchanged · **no** product-code diff |
+| Delivery | branch → **PR [#190](https://github.com/gosharplite/tellme/pull/190) open** (no Copilot review; only a human merges) |
+
+### Decisions locked (round 091)
+
+| # | Decision |
+| --- | --- |
+| **D1.1** | **(A)** Drop the ordinal (identify `search_files` by name + round/ADR); the Accepted **ADR 0043** body stays verbatim, its **index row** loses the ordinal. |
+| **D3.1** | **(C)** Name the subject and **drop** the drifting number: "the class-phrase vocabulary is unchanged"; "the exit-code set" (no "ten-value"). The live authority: **eleven** class phrases (`features/cli/dsl.md`), **seven** exit codes (`exitcode.go`). ADRs `0051`/`0052`/`0055`/`0058` stay verbatim. |
+| **D5.1** | **(B)** Defer the e2e-enumerator binding with a recorded reason and home it on the **live issue** [#189](https://github.com/gosharplite/tellme/issues/189). |
+
+### Open items (non-blocking)
+
+- **PR [#190](https://github.com/gosharplite/tellme/pull/190)** awaits a human review/merge → then the closeout: propagate `dev → main` (no-ff), tag **`round-091`**, refresh the binary; **close [#188](https://github.com/gosharplite/tellme/issues/188)**.
+- **[#189](https://github.com/gosharplite/tellme/issues/189)** — the (B) deferral (a live-issue home; a scoped-refactor round candidate).
+
+### Process notes (durable)
+
+- **A stale figure is a defect too, not just a stale ordinal.** The round-007 "ten" had drifted on **both** axes (phrases **11**, exit codes **7**) and sat in a sentence naming exit codes — the round-088 F-088-1 class applied to a *count*. Dropping the number (round 090's approach) removes the drift; restating it would re-arm the same rot.
+
+### Next steps
+
+1. Human reviews + merges the round-091 PR; then the closeout (propagate `dev → main` no-ff, tag `round-091`; close #188).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `091-record-hygiene-tail` until merged, then `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round is a truth/record reconciliation).
