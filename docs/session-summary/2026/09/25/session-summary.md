@@ -483,3 +483,48 @@ Loop history: review `3366ac9` → fold `9c8b623` → fold-verification (**WITH 
 → prose-only tidy `d6a8a72`; loop-closed summary [`5829612330`](https://github.com/gosharplite/tellme/pull/187#issuecomment-5829612330).
 
 **State**: **PR [#187](https://github.com/gosharplite/tellme/pull/187) is ready for a human to review and merge** (head `d6a8a72`; no Copilot review; only a human merges). On merge: propagate `dev → main` (no-ff, tagged **`round-090`**), refresh the binary, and **close [#186](https://github.com/gosharplite/tellme/issues/186)**.
+
+---
+
+## 9. Session 77 closeout (2026-09-25) — round 090 `090-record-hygiene-offered-set-and-direction` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 090 was human-merged (PR [#187](https://github.com/gosharplite/tellme/pull/187) → `dev` **`4017ad7`**, **fast-forward**); `git fetch --prune` reported `[deleted] origin/090-record-hygiene-offered-set-and-direction`, the round tip (`4017ad7`) was an ancestor of `origin/dev` (and the local `dev` fast-forwarded to it), so the **local branch was deleted** (`git branch -d 090-record-hygiene-offered-set-and-direction`, was `4017ad7`), and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == 4017ad7`; no delivered `specs/plans/**` package touched (089/088 unmodified); no stray temp files; round branch already deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `go test -count=1 ./...` green) · `make test-race` **no data races** · E2E **330 scenarios · 2487 steps** · `verify-adr-index` consistent (ADR 0061 once/unique) · `modelith-check` no drift · `go.mod`/`go.sum` unchanged · diff-level secret scan clean |
+| **3 — STATUS.md** | header → round 090 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-089 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-25.md`](../../../../archives/status/2026-09-25.md) (same-day file — appended); round-090 section added; delivered-rounds pointer → 001–090; roadmap candidates → **0 open**; round-close-tags line refreshed; **54 lines** (live state only) |
+| **4 — daily summary** | this §9 (closeout) appended (the §1–§8 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker → **0 open** (closes #186) |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-090`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#186](https://github.com/gosharplite/tellme/issues/186) CLOSED** (completed) with a linking comment; the tracker → **0 open** |
+
+### Commits (branch `090-record-hygiene-offered-set-and-direction`, then merged fast-forward)
+
+| Commit | Note |
+| --- | --- |
+| `b76bc54` | `docs(090)`: reconcile the offered-set row (+ single-source carrier) + record the direction in ADR 0061 (closes #186) |
+| `3366ac9` | `docs(090)`: name PR #187 in the STATUS Last-updated line |
+| `9c8b623` | `fix(090)`: fold the architect review (F-090-1/2 + N-090-1/2/4) |
+| `17f0eee` | `docs(090)`: fold RES-090-FV-1/2 (必查 cell count + terminology sweep) |
+| `d6a8a72` | `docs(090)`: fold N-090-FV-3 (drop the literal count from the row's Round-062 note) |
+| `4017ad7` | `docs(090)`: day-log §8 (cont.) — review-fold loop CLOSED (the merge head, fast-forward) |
+| *(this closeout, on `dev`)* | `docs(090)`: day close — round 090 delivered + propagated; STATUS split + 09/25 summary §9 |
+
+### Open items (non-blocking)
+
+- **None new.** `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` or a live GitHub issue. ADR 0061 §Forward RF-061-1…3 are disclosures, not tasking.
+- **Issue tracker**: **0 open**.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker is **0 open**; Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round was a truth/record reconciliation + a decision record).
+
+*(Round 090 is fully closed out: PR #187 human-merged into `dev` (`4017ad7`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-090`**; the installed binary refreshed; [#186](https://github.com/gosharplite/tellme/issues/186) closed.)*
