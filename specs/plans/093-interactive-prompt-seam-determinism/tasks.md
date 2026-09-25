@@ -85,3 +85,4 @@ Review: [`pull/193#issuecomment-5834874802`](https://github.com/gosharplite/tell
 | **TD-093-1** the `paintGate` fallback path has no direct carrier | Recorded as **RF-093-4** (ADR 0063 §Forward + `research.md` §5). |
 | **N-093-1** the `cmd_helper_test.go` comment repeats the unreproduced `~63 %` | Folded with F-093-2 (the comment now states host/load-specificity) + the pin's coverage scope (F-093-1). |
 | **N-093-2** this ledger heading read `PR #TBD` | Named **#193** (this heading). |
+| **RES-093-FV-1** (fold verification) the ADR 0063 **index row** (`docs/decisions/README.md`) kept the unqualified `599/960 → 0/960` figure the fold had swept past | Qualified it (~62 % → 0, authoring host; the direction is the claim, **F-093-2**) — the F-090-1/F-091-2 index-row lineage. |
