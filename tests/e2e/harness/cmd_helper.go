@@ -139,24 +139,56 @@ const markerDeadline = 10 * time.Second
 
 // RunInWithSyncedStdin runs the child with a scripted stdin delivered in two
 // chunks, but the second chunk (the terminal key) is written only AFTER the
-// child's stderr shows `marker` (the editor frame painted) — an
+// child's stderr shows the PAINT GATE (the composed text painted) — an
 // output-synchronized handshake instead of a wall-clock sleep (PR #51
 // implementation-review TD1; the ADR-036 determinism discipline). bubbletea
 // COALESCES frames when all keys are available at once, so without the handshake
 // only the final frame would render and the editor box would never reach the
 // capture (the round-016/015 presence assertions + the teardown witness).
-func RunInWithSyncedStdin(dir string, args []string, compose, key, marker string, set map[string]string, unset []string) RunResult {
+//
+// The gate is CONTENT-AWARE (round 093): the composed text itself is the gate
+// when the scripted composition carries visible text, so the terminal key cannot
+// be delivered before the frame carrying the WHOLE composition has flushed.
+// `fallbackMarker` gates only a compose-less sequence (open / abort only), where
+// any painted frame (the editor border) is the intent.
+func RunInWithSyncedStdin(dir string, args []string, compose, key, fallbackMarker string, set map[string]string, unset []string) RunResult {
 	bin, err := BinaryPath()
 	if err != nil {
 		return RunResult{ExitCode: -1, Err: err}
 	}
-	return runExecSynced(bin, dir, args, compose, key, marker, set, unset, pipedRunTimeout)
+	return runExecSynced(bin, dir, args, compose, key, fallbackMarker, set, unset, pipedRunTimeout)
+}
+
+// paintGate returns the substring the child's stderr MUST carry before the
+// terminal key is delivered. When the scripted composition carries visible text,
+// the gate is that text's last visible line: the renderer flushes the whole
+// composed frame, so gating on the composition's tail guarantees the composed
+// frame has painted before the key is written (round 093 — a generic marker such
+// as the editor border is satisfied by an EARLIER, partial frame, which let the
+// key coalesce with the rest of the composition and drop the composed frame).
+// When the composition carries no visible text (an open / abort-only sequence),
+// the caller's fallback (the editor border) is used. Control bytes in the
+// composition (e.g. a leading submit key) are not visible text and are skipped.
+func paintGate(compose, fallback string) string {
+	last := ""
+	for _, line := range strings.FieldsFunc(compose, func(r rune) bool { return r < 0x20 || r == 0x7f }) {
+		if strings.TrimSpace(line) != "" {
+			last = line
+		}
+	}
+	if last != "" {
+		return last
+	}
+	return fallback
 }
 
 // runExecSynced is runExec with the output-synchronized stdin handshake: it
 // drains stderr concurrently, writes `compose`, waits until the stream carries
-// `marker` (bounded by markerDeadline), then writes `key` and closes stdin.
-func runExecSynced(bin, dir string, args []string, compose, key, marker string, set map[string]string, unset []string, timeout time.Duration) RunResult {
+// the paint gate derived from `compose` (bounded by markerDeadline, falling back
+// to `fallbackMarker` for a compose-less sequence), then writes `key` and closes
+// stdin.
+func runExecSynced(bin, dir string, args []string, compose, key, fallbackMarker string, set map[string]string, unset []string, timeout time.Duration) RunResult {
+	marker := paintGate(compose, fallbackMarker)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, bin, args...)

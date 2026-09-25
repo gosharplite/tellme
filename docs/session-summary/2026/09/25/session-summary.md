@@ -752,3 +752,118 @@ Round 092 was human-merged (PR [#192](https://github.com/gosharplite/tellme/pull
 - None new (no PM-owned requirement gap; the round is a scoped composition refactor).
 
 *(Round 092 is fully closed out: PR #192 human-merged into `dev` (`1abc1ca`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-092`**; the installed binary refreshed; [#189](https://github.com/gosharplite/tellme/issues/189) closed.)*
+
+---
+
+## 14. Session 80 (2026-09-25, cont.) — round 093 `093-interactive-prompt-seam-determinism` **OPENED → full pipeline → PR open** (anchor issue [#191](https://github.com/gosharplite/tellme/issues/191); **ADR 0063**)
+
+After the round-092 closeout the operator read issue **#191** and directed *"Open a new aixbdd round, the
+goal is to close https://github.com/gosharplite/tellme/issues/191."* A new branch
+**`093-interactive-prompt-seam-determinism`** was created off `dev` `4723d3b`, the pipeline ran, and a PR
+was opened.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`093-interactive-prompt-seam-determinism`** (off `dev` `4723d3b`) |
+| Anchor | issue [#191](https://github.com/gosharplite/tellme/issues/191) — the `-i` interactive-prompt E2E flake (round-082 **O-082-1** / round-091 **RES-091-FV-4**); **DoD = close it** |
+| Theme | **Test-seam only**: make the `-i` scripted-key E2E seam deterministic and faithful — (A) a **content-aware paint gate** (the terminal key is released only once the composed text painted); (B) a scripted **line break** delivered as the terminal **Enter byte (CR)**; (C) a **discriminating** `keeps the typed text` assertion (each line on its own editor row) |
+| Clarify | **not escalated (0 questions)** — #191 fixes the goals + the falsifiability sketch; the residual design choices are RD-owned |
+| Pipeline | specify ✅ · spec-by-example ✅ (1 acceptance Rule) · technical-research ✅ (**ADR 0063** + the techstack harness row) · system-analysis ✅ (1 CLI end; api/data/UI NOOP) · dsl-refine ✅ (the `keeps the typed text` row + the feature note) · tasks ✅ (T001–T014 + the Claim→Witness ledger) · implement ✅ |
+| The change | `tests/e2e/harness/cmd_helper.go` (`paintGate` + `runExecSynced` gate) · `tests/e2e/steps/tui_keys.go` (`tuiKeyEnter`/`typeText`) · `step_r038.go` · `step_t011_chat_then_keeps_typed_text.go` (`joinedRow`) · 3 unit pins |
+| Witness | **W-A** revert the gate to the constant `┌` ⇒ the `paintGate` pin reds + the flake re-opens (**~62 %** at 16-way concurrency, authoring host — **F-093-2**) · **W-A′** revert the **call site** (`marker := paintGate(…)` → `marker := fallbackMarker`) ⇒ the pin stays **green**, only the repetition witness reds (**F-093-1** — the mutations are not equivalent) · **W-B** revert the Enter byte to LF ⇒ the multi-line Example reds (joined row) + the `typeText` pin reds · **W-C** drop the separate-rows clause ⇒ the joined state passes (the `joinedRow` pin reds) — all reproduced then reverted |
+| Verification | `make verify` **OK** · `go test -count=1 ./...` **green** — E2E **330 scenarios · 2487 steps (unchanged)** · `make test-race` no data races · topology audit **PASSED** (53 features · 21 root + 467 module rows · 2461 steps) · `modelith-check` no drift · `go.mod`/`go.sum` unchanged |
+| Determinism | pre-fix seam: **~62 %** red at 16-way concurrency (authoring host; host/load-specific — **F-093-2**); fixed: **0** red (and **50/50** green serially) |
+| Delivery | branch → **PR open** (no Copilot review; only a human merges) |
+
+### Decisions locked (round 093 / ADR 0063)
+
+| # | Decision |
+| --- | --- |
+| **D1** | The round-023 handshake's paint gate is **content-aware**, single-owned by the harness: the gate is the composition's **last visible line** (control bytes skipped); the editor border `┌` is only the **compose-less** fallback. |
+| **D2** | A scripted line break is the terminal **Enter byte (CR)** (`tuiKeyEnter`/`typeText`); a raw LF is decoded by bubbletea as `KeyCtrlJ`, which the bubbles textarea does not bind to `InsertNewline` (the joined-row symptom). |
+| **D3** | `keeps the typed text` requires each line of a multi-line value on its **own** editor row (the Gherkin sentence is unchanged; its implementation semantics are strengthened). |
+| **D4** | The seam change is witnessed by three mechanism unit pins + the E2E repetition witness (≥50 runs). |
+| **D5** | No product change (`internal/**`/`cmd/**` untouched); no sleep/retry (`verify-no-test-sleep`); `go.mod`/`go.sum` unchanged; no new `make verify` member. |
+| **D6** | Records: **ADR 0063** (+ index) · `techstack.md` (the *Interactive TUI prompt harness* row) · the `chat` feature note + the `chat/dsl.md` row · `docs/domain-model/**` **not modelled** (ADR 0041 escape hatch). |
+
+### Open items (non-blocking)
+
+- **The round-093 PR** awaits a human review/merge → then the closeout: propagate `dev → main` (no-ff), tag **`round-093`**, refresh the binary; **close [#191](https://github.com/gosharplite/tellme/issues/191)**.
+- **ADR 0063 §Forward** RF-093-1…4 (no deterministic wiring/ordering unit pin — the pin covers the gate *rule*, not its call site (**F-093-1**) · the gate's wrapped-line limit · the carrier-quality lineage · the `paintGate` fallback path has no direct carrier (**TD-093-1**)).
+
+### Process notes (durable)
+
+- **A recorded flake's *symptom* can be a second, deterministic defect.** The issue described a *swallowed Enter* (`line oneline`); investigation found (a) a genuine timing race (the non-content-aware gate) **and** (b) a deterministic seam bug (LF is not Enter for the bubbles textarea) — the latter hidden by a **non-discriminating** assertion that passed on the joined row.
+- **A gate must be satisfied by the frame you need, not a proxy.** The `┌` border marked "a frame painted"; it does not mark "*the composed* frame painted". Gating on the composed text's tail is the root-cause fix.
+
+### Next steps
+
+1. Human reviews + merges the round-093 PR; then the closeout (propagate `dev → main` no-ff, tag `round-093`; close #191).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `093-interactive-prompt-seam-determinism` until merged, then `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).
+
+### 14 (cont.) — the `architect` review-fold loop (PR [#193](https://github.com/gosharplite/tellme/pull/193)) → `FOLDS VERIFIED — LOOP CLOSED`
+
+Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with `SESSION-BOOTSTRAP.md` (`--new` once), then continuations (no `--new`). The architect reviewed PR #193 and reproduced the gates + the mutation witnesses on out-of-tree worktrees.
+
+| Pass | Outcome |
+| --- | --- |
+| `review` @ `9b48841` | **`APPROVE WITH REQUIRED FOLDS`** — no `[ARCHITECTURAL BLOCKER]`; all folds **record / carrier accuracy**: **F-093-1** the `paintGate` pin exercises the gate **rule**, not its **call site** (reverting `runExecSynced`'s wiring reproduces the flake yet leaves the pin green; *gut `paintGate`* ≠ *revert the call site*) · **F-093-2** the determinism magnitudes (`599/960`, `607/960`, `~62–63 %`) are **host/load-specific** (review host ~2.8 %) · **F-093-3** `STATUS.md` Candidates self-contradicted ("0 open while round 093 carries #191") · **TD-093-1** the `paintGate` fallback path has no carrier · **N-093-1** the `cmd_helper_test.go` `~63 %` comment · **N-093-2** the fold-ledger heading read `PR #TBD`. |
+| fold @ `bc76745` | F-093-1 → the claim restated across the ledger (FR-001 **split**: rule vs wiring), ADR 0063 D4/§Verification/§Forward RF-093-1, `research.md` D4/§5, the `cmd_helper_test.go` comment; W-A′ named and the two mutations marked **not equivalent**. F-093-2 → every pre-fix figure qualified as an authoring-host measurement (direction is the claim) across `research.md`/`spec.md`/ADR/`tasks.md`/`techstack.md`/the day log/the `cmd_helper_test.go` comment/the PR body. F-093-3 → STATUS restated. TD-093-1 → **RF-093-4**. N-093-1/N-093-2 folded. Re-verified at `bc76745`: `make check` OK; E2E **330 · 2487** unchanged; `make test-race` no data races; 20/20 serial + 8/8 at 16-way. |
+| fold verification @ `bc76745` | **`FOLDS VERIFIED WITH RESIDUALS`** — five of six folds closed; **RES-093-FV-1**: the ADR 0063 **index row** (`docs/decisions/README.md`) still carried the unqualified `599/960 → 0/960` figure the F-093-2 sweep had missed (the F-090-1/F-091-2 index-row lineage). Architect re-attacked W-A / W-A′ / W-B / W-C (all reproduced) and measured the direction (fixed seam 0 red; W-A′ re-opens the flake at 16-way). |
+| residual fold @ `d0f2c2d` | RES-093-FV-1 folded: the index row now qualifies the figure (~62 % → 0, authoring host; the direction is the claim). `make verify` **OK** (incl. `verify-adr-index` consistent, `modelith-check` no drift); repo-wide re-sweep finds no *live* unqualified magnitude (the sole hit is the ledger row quoting the defect). Diff `bc76745 → d0f2c2d` docs-only. |
+| final verification @ `d0f2c2d` | **`FOLDS VERIFIED — LOOP CLOSED (no residuals)`** ([`5835149605`](https://github.com/gosharplite/tellme/pull/193#issuecomment-5835149605)) — no `[ARCHITECTURAL BLOCKER]`; gates green; product diff empty; witnesses reproduce. One **nit** (not a residual): the residual-fold note said the sweep returned "no matches" — it should state the predicate **with its exclusion** (the ledger row quotes the fixed defect); folded cosmetically in the ledger. |
+
+Review/fold comments: [review](https://github.com/gosharplite/tellme/pull/193#issuecomment-5834874802) · [fold](https://github.com/gosharplite/tellme/pull/193#issuecomment-5835009565) · [fold-verification](https://github.com/gosharplite/tellme/pull/193#issuecomment-5835119680) · [residual fold](https://github.com/gosharplite/tellme/pull/193#issuecomment-5835141080) · [final](https://github.com/gosharplite/tellme/pull/193#issuecomment-5835149605).
+
+**State**: the review-fold loop is **CLOSED** — **PR [#193](https://github.com/gosharplite/tellme/pull/193) is ready for a human to review and merge** (head `d0f2c2d`; no Copilot review; only a human merges). On merge: the closeout (`SESSION-CLOSEOUT.md` Steps 1–8) — propagate `dev → main` (no-ff), tag **`round-093`**, refresh the binary, **close [#191](https://github.com/gosharplite/tellme/issues/191)**.
+
+---
+
+## 15. Session 80 closeout (2026-09-25) — round 093 `093-interactive-prompt-seam-determinism` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 093 was human-merged (PR [#193](https://github.com/gosharplite/tellme/pull/193) → `dev` **`e7ec4a9`**, **merge commit** at 2026-09-25T15:52:06Z); `git fetch --prune` reported `[deleted] origin/093-interactive-prompt-seam-determinism`, the round tip (`d3b2064`) was an ancestor of `origin/dev`, so the **local branch was deleted** (`git branch -d 093-interactive-prompt-seam-determinism`, was `d3b2064`), `dev` was fast-forwarded to the merge, and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == e7ec4a9`; no delivered `specs/plans/**` package touched (only `093-…` is new); no stray temp files (the architect staging files removed); round branch already deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `make test` green) · `go test -count=1 ./...` **green** · E2E **330 scenarios · 2487 steps** · `make test-race` **no data races** · `verify-architecture` **0 issues** · `verify-adr-index` consistent · `modelith-check` no drift · cross-compile 4/4 · diff-level secret scan clean · all changed Markdown relative links resolve (12 files) |
+| **3 — STATUS.md** | header → round 093 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-092 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-25.md`](../../../../archives/status/2026-09-25.md) (same-day file — appended); round-093 section added; delivered-rounds pointer → 001–093; roadmap candidates → **0 open** (closes #191); round-close-tags line + the round-093 env note refreshed; **54 lines** (live state only) |
+| **4 — daily summary** | this §15 (closeout) appended (the §1–§14 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker → **#191 closed at merge** |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-093`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#191](https://github.com/gosharplite/tellme/issues/191)** was still **OPEN** after the merge (the PR body's plain `Closes #191.` did **not** auto-fire — the round-092 #189 precedent); **closed** (`completed`) with a linking comment naming PR #193 / `e7ec4a9`. Tracker → **0 open** |
+
+### Commits (branch `093-interactive-prompt-seam-determinism`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `327db98` | `docs(093)`: plan package + spec — make the `-i` E2E seam deterministic (anchor #191) |
+| `9b48841` | `fix(093)`: make the `-i` E2E seam deterministic and faithful (ADR 0063) — code + truth + records + carriers |
+| `bc76745` | `fix(093)`: fold the architect review (F-093-1/2/3 + TD-093-1 + N-093-1/2) |
+| `d0f2c2d` | `fix(093)`: fold RES-093-FV-1 (qualify the ADR 0063 index-row figure) |
+| `d3b2064` | `docs(093)`: record the review-fold loop + fold the predicate-nit |
+| `e7ec4a9` | PR [#193](https://github.com/gosharplite/tellme/pull/193) merge into `dev` (by the human, merge commit) |
+| *(this closeout, on `dev`)* | `docs(093)`: day close — round 093 delivered + propagated; STATUS split + 09/25 summary §15 |
+
+### Open items (non-blocking)
+
+- **None new.** `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` or a live GitHub issue. Round 093 records **ADR 0063 §Forward RF-093-1…4** (the wiring/ordering gap · the soft-wrapped gate limit · the carrier-quality lineage · the `paintGate` fallback path — from TD-093-1) — disclosures, not tasking.
+- **Issue tracker**: **0 open** (round 093 closed [#191](https://github.com/gosharplite/tellme/issues/191)).
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker is **0 open**; Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).
+
+*(Round 093 is fully closed out: PR #193 human-merged into `dev` (`e7ec4a9`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-093`**; the installed binary refreshed; [#191](https://github.com/gosharplite/tellme/issues/191) closed.)*
