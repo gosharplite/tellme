@@ -16,7 +16,7 @@
 | FR-002 | `--retry` stays a non-introduction | the bullet records `--retry` (roll back + resend); the reference ships it, tellme does not |
 | FR-003 | An ADR is recorded + indexed | `docs/decisions/0060-context-control-position.md` exists; `# ADR 0060` unique; `make verify-adr-index` green |
 | FR-004 | No unfalsifiable equivalence claim | the ADR states a **non-equivalence** and cites `offering-the-agent-tools.feature` (the "no summarisation tool offered" carrier) |
-| FR-005 | Surviving exclusions stay true | `--retry` unimplemented (`grep` finds no code); no pruning/pinning seams exist |
+| FR-005 | Surviving exclusions stay true | all four: `--retry` (no code — `grep`), token-budget pruning (no prune seam in `internal`/`cmd`), history pinning (no pin seam in `internal`/`cmd`), `SafePath`/consent (absent by the settled no-security-layer direction) |
 
 ## Boundaries
 

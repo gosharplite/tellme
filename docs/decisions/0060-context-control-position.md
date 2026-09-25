@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-25
 - **Deciders:** tellme owner (issue [#184](https://github.com/gosharplite/tellme/issues/184))
-- **Related:** **ADR 0053** (the `-b`/`--back` rollback this decision builds on — **delivered round 081**), **ADR 0023** (the `-l` listing), **ADR 0045**/**0054**/**0057** (listing presentation), **ADR 0026** (round-close tags); the reference's `summarize_history` tool + automatic self-healing summarisation; round 008 (introduced the summarisation tool), round 021 (removed it — tool-surface parity), round 089 (`specs/plans/089-context-control-position`); `specs/truth/techstack.md` (*History summarisation* bullet; *Session lifecycle flags* row)
+- **Related:** **ADR 0053** (the `-b`/`--back` rollback this decision builds on — **delivered round 081**), **ADR 0023** (the `-l` *optional count* + chrome colour — **not** the listing's own record), **ADR 0045** (the `-l` listing — role headers + rendered body) and its refinements **0054**/**0057**, **ADR 0026** (round-close tags); the reference's `summarize_history` tool + automatic self-healing summarisation; round 008 (introduced the summarisation tool), round 021 (removed it — tool-surface parity), round 089 (`specs/plans/089-context-control-position`); `specs/truth/techstack.md` (*History summarisation* bullet; *Session lifecycle flags* row)
 
 ## Context
 
@@ -56,10 +56,14 @@ flags* row) and keeps `--retry` as a **genuine non-introduction** (roll back the
 resend — the reference ships it, tellme does not). `truth-current` holds after the edit.
 
 **D6 — The durable witness.** The *"tellme offers no summarisation tool"* half is **already carried**
-by the E2E: `specs/truth/features/cli/chat/offering-the-agent-tools.feature` (Rule *"a summarisation
-tool must not be offered"*, with its `chat/dsl.md` row). This ADR **cites** that carrier; it adds no
-new claim requiring one. The ADR's own durability is witnessed by `make verify-adr-index` (a standing
-`make verify` member) plus this index row.
+by the E2E — specifically as the **negative (`不該發生`) clause of the DSL row** `the request offered
+exactly the agent tools` (`specs/truth/features/cli/chat/dsl.md:208`), which requires the offered set
+to be exactly the seven agent tools and *"a summarisation tool must not be offered"*; that row is
+exercised by `specs/truth/features/cli/chat/offering-the-agent-tools.feature` (the comment at `:7`
+recording the round-021 removal, and the Example at `:42`). It is **not** a standalone `Rule`. The
+carrier is real and non-vacuous (a re-offered summarisation tool makes the offered set eight ⇒ the row
+reds). This ADR **cites** that carrier; it adds no new claim requiring one. The ADR's own durability is
+witnessed by `make verify-adr-index` (a standing `make verify` member) plus this index row.
 
 ## Consequences
 
@@ -100,5 +104,14 @@ new claim requiring one. The ADR's own durability is witnessed by `make verify-a
 - **RF-089-4 (pruning absence is not mechanically gated).** "No token-budget pruning" rests on the
   E2E + review, not on a dedicated gate (the repo's `topology-audit-not-a-gate` posture); a future
   pruning feature would have to update this ADR and the truth row together.
-- **RF-089-5 (`docs/domain-model` not engaged).** The decision changes no modelled behaviour; the
-  product model already records `-b`/`--back` and has no summarisation/pruning entity (ADR 0041).
+- **RF-089-5 (`docs/domain-model` not engaged).** The decision changes no modelled behaviour: the
+  product model already records `-b`/`--back` in the `History` invariant
+  `history-rollback-removes-complete-turns` and the `Session` invariant `session-rollback-stays-offline`,
+  and it has **no** summarisation/pruning entity (ADR 0041 escape hatch).
+- **RF-089-6 (a truth-prose *status* claim has no mechanical carrier).** The `techstack.md`
+  *Not Introduced Yet* bullet is prose; "`-b` is delivered, not excluded" is a *status* claim with no
+  `make verify` member (a docs-prose claim has no harness — the `topology-audit-not-a-gate` posture).
+  The **F-088-1** self-contradiction class recurred in exactly this shape and was caught only by
+  review. The round's `RF-089-4` records the *pruning*-absence half; this records the general limit,
+  so the next status-claim edit is at least nameable. (Surfaced as **TD-089-1** at the round-089
+  review; accepted, not actioned — a gate for docs prose is a separate, larger decision.)

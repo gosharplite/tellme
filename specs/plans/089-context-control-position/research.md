@@ -76,17 +76,26 @@ Decision: **do not assert equivalence.** The ADR records the **non-equivalence**
 coarse operator trim) — which is the honest reading — and cites the **existing** carrier for the only
 mechanical half that already exists:
 
-- `specs/truth/features/cli/chat/offering-the-agent-tools.feature` carries **Rule** *"a summarisation
-  tool must not be offered"* (with its `chat/dsl.md` row), i.e. the "tellme offers no summarisation
-  tool" claim is **already falsifiable in the E2E** — a mutant that re-offers such a tool reddens it.
-  The ADR **cites** this carrier; the round adds **no** new claim that would need one.
+- The *"tellme offers no summarisation tool"* claim is carried **precisely** by the **negative
+  (`不該發生`) clause of the DSL row** `the request offered exactly the agent tools`
+  (`specs/truth/features/cli/chat/dsl.md:208`) — the row requires the offered set to be exactly the
+  seven agent tools and states *"a summarisation tool must not be offered"*. It is **not** a standalone
+  `Rule`. That row is exercised by `specs/truth/features/cli/chat/offering-the-agent-tools.feature`
+  (the comment at `:7` recording the round-021 removal; the Example at `:42`). The carrier is real and
+  non-vacuous (a re-offered summarisation tool makes the offered set eight ⇒ the row reds). The ADR
+  **cites** this carrier; the round adds **no** new claim that would need one.
 
 ## D5 — The witness (falsifiability)
 
-- **W1 (the stale clause)** — a **reproducible** grep: pre-fix, `specs/truth/techstack.md` lists `-b`
-  in the out-of-scope set; post-fix it does not (SC-001). Reproduced pre-fix and re-run post-fix. (A
-  carried, on-demand check — like round 085's audit, it is not a `make verify` member; the round adds
-  no gate, honouring the repo's `topology-audit-not-a-gate` posture.)
+- **W1 (the stale clause)** — a **carried, manual inspection** of `specs/truth/techstack.md:173`,
+  **not** a reddening test. A docs-prose *status* claim has no mechanical carrier: a bare
+  `grep -- '-b'` is **non-discriminating** (37 matches in both base `53753a0` and head), and
+  `grep -- '--retry'` matches both states (lines 105 + 173). The **discriminating manual check** is
+  that the exact stale idiom ``the undo/retry flags (`-b`/`--retry`)`` is **absent from the
+  exclusion position** — it survives only inside the trailing *"Corrected (round 089 …)"* clause as a
+  **quoted historical reference**, so the check must target the exclusion sentence, not the word. The
+  round adds no gate, honouring the repo's `topology-audit-not-a-gate` posture; the general limit is
+  recorded as **RF-089-6** / **TD-089-1** (F-089-1 fold).
 - **W2 (the decision is durable)** — `make verify-adr-index` (a **standing** `make verify` member)
   proves the ADR is indexed once and its number unique; the ADR file itself **is** the witness
   (quality-model `ADR`/`DecisionIndex` invariants).

@@ -94,9 +94,14 @@ it does not reintroduce); porting `--retry`; any other `Not Introduced Yet` item
 
 ## 6. Success criteria
 
-- **SC-001** `grep -n -- '--retry' specs/truth/techstack.md` finds **no** line that lists `-b` as an
-  out-of-scope exclusion; the *History summarisation* bullet names `-b` as delivered (ADR 0053) and
-  `--retry` as a non-introduction.
+- **SC-001** A **carried, manual inspection** of `specs/truth/techstack.md:173` (the *History
+  summarisation* bullet) confirms `-b`/`--back` appears **only as delivered** (ADR 0053; a forward
+  pointer to the *Session lifecycle flags* row) and **never** in the "settled exclusion / out of
+  scope" list; the exact stale idiom ``the undo/retry flags (`-b`/`--retry`)`` is absent from the
+  exclusion position (it survives only inside the trailing *"Corrected"* clause as a quoted historical
+  reference), and `--retry` is recorded as a non-introduction. *(No mechanical carrier exists — a
+  docs-prose status claim has no `make verify` member; a bare `grep -- '-b'` is non-discriminating —
+  recorded as RF-089-6 / TD-089-1.)*
 - **SC-002** `docs/decisions/0060-context-control-position.md` exists, its `# ADR 0060` heading is
   unique, and `make verify-adr-index` is green.
 - **SC-003** `make check` (verify + test) is green; E2E scenario/step counts unchanged.
