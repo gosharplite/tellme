@@ -81,7 +81,7 @@ func TestOfferedSetDocMatchesTheLiveRegistry(t *testing.T) {
 		t.Fatal("the carrier would pass vacuously — the doc or the registry enumerates nothing")
 	}
 	if strings.Join(doc, ",") != strings.Join(live, ",") {
-		t.Fatalf("the documented offered set is not single-sourced to the live registry:\n  doc  (%d): %v\n  live (%d): %v\n"+
+		t.Fatalf("the documented offered set is not bound to the live registry:\n  doc  (%d): %v\n  live (%d): %v\n"+
 			"reconcile %s (the `集合` cell) with cmd/tellme agentTools()", len(doc), doc, len(live), live, offeredSetDocPath)
 	}
 }

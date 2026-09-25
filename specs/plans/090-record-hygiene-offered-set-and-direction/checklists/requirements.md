@@ -11,7 +11,7 @@
 
 | # | Requirement | Judgeable by |
 | --- | --- | --- |
-| FR-001 | Offered-set claim single-sourced + mechanically checked | the `cmd/tellme` doc-consistency test reddens under a tool add/remove (W-A) and passes at head |
+| FR-001 | Offered-set claim bound to the live registry + mechanically checked | the `cmd/tellme` doc-consistency test reddens under a tool add/remove (W-A) and passes at head |
 | FR-002 | `dsl.md` ↔ feature agree | both name the **eight** base tools incl. `search_files` |
 | FR-003 | Step comment corrected | `step_r021_t026_chat_then_offered_tools.go` records round 071 (no "grew to seven") |
 | FR-004 | README enumeration matches the shipped set | `README.md` lists readers + `search_files` + write pair + `list_skills` (+ `read_image` noted) |

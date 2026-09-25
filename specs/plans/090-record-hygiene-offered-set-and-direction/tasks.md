@@ -70,6 +70,20 @@ target is the `集合` cell.
 | **F-090-1** ADR 0061 §Consequences over-claimed ("the 'small surface' cannot silently grow") and contradicted its own §Forward RF-061-3 | Reworded: the offered set is **bound to** `agentTools()` (doc↔registry **consistency**), so the *documented* set cannot silently **drift**; the *size* of the surface stays a per-round judgement (RF-061-1), **not** mechanically gated (RF-061-3). |
 | **F-090-2** the reconciled row kept a second, unchecked copy of the eight-tool set in its `必查` cell | **Dropped** the inline list (option (a)): the `必查` cell now refers to the row's `集合` cell / the live registry — one enumeration, the checked one. |
 | **N-090-1** ADR §Context "never recorded in an ADR" over-claimed | Reworded to the honest form: the direction had **no dedicated home** (several ADRs **cite** it), only a README narrative. |
-| **N-090-2** "single-sourced" read as *generated* | Restated across the round artifacts as **bound to / checked against** (a checked mirror, not a derived source). |
+| **N-090-2** "single-sourced" read as *generated* | Restated as **bound to / checked against** across the round artifacts (the carrier comment, the ADR, `research.md`, `spec.md`, the checklist, the ledger, and the carrier's error string); the only remaining "single-source" usages are the **decision's name** ("the single-source carrier"), never a claim that the doc is generated. |
 | **N-090-4** ADR mis-quoted `docs/decisions/README.md` | Quote corrected ("…other artifacts **(or)** future rounds…"). |
 | **N-090-3 / N-090-5 / N-090-6** | Accepted, not actioned: N-090-3 (the carrier is a `go test` tier, not a `make verify` member — the plan states this honestly); N-090-5 (the `backtickedName` regex is fine today); N-090-6 (a **pre-existing** `techstack.md` "ninth agent tool" ordinal, out of this round's scope). |
+
+### Fold verification (continuation) → `FOLDS VERIFIED WITH RESIDUALS` → folded
+
+The architect verified the folds at `9c8b623` (read-only;
+[`pull/187#issuecomment-5829548820`](https://github.com/gosharplite/tellme/pull/187#issuecomment-5829548820)):
+F-090-1 + F-090-2 present and honest, the carrier re-attacked (both directions red; `必查`-only edit stays
+green), gates green. Two cosmetic residual record-precision items, folded here:
+
+- **RES-090-FV-1** — the reconciled row's `必查` cell said "the **eight** … the count is not repeated here",
+  restating the literal count it claimed not to. → reworded ("the base set the production assembler
+  `agentTools()` builds"; "the count is not restated here as a literal").
+- **RES-090-FV-2** — the N-090-2 ledger row over-stated its own scope. → the terminology sweep is now
+  complete across the round artifacts; the ledger row states the remaining "single-source" usages are the
+  **decision's name** only.

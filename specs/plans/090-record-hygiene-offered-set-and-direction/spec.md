@@ -1,7 +1,7 @@
 # Round 090 — `090-record-hygiene-offered-set-and-direction`
 
 **Theme**: four coupled **record-hygiene** fixes on tellme's own documentation/truth layer — reconcile the
-stale **"seven agent tools"** truth row (and give the offered-set claim a **single-sourced, mechanically
+stale **"seven agent tools"** truth row (and give the offered-set claim a **bound-to-the-code, mechanically
 checked carrier**), fix the `README.md` tool-surface enumeration, **relocate the operator-declared
 direction into an ADR** (README demoted to a pointer), and correct the `cobra` note that calls `retry` a
 subcommand. **Truth/record + a test-only carrier** — no product behaviour change.

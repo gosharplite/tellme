@@ -1,6 +1,6 @@
 # Technical research — round 090 `090-record-hygiene-offered-set-and-direction`
 
-**Topic**: reconcile four record-hygiene surfaces, and give the offered-set claim a **single-sourced,
+**Topic**: reconcile four record-hygiene surfaces, and give the offered-set claim a **bound-to-the-code,
 mechanically checked carrier**.
 
 **Owner**: `axb-technical-research` (owns the `techstack.md` `cobra` note; no new technology, no new
