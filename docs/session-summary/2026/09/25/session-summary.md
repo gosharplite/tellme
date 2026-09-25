@@ -366,3 +366,47 @@ non-contradictory, and the domain model correctly unmodelled.
 Loop history: review `0177611` → fold `02005ee` → fold-verification (**WITH RESIDUALS**) → residual fold `35faa95` → **residual verification → `FOLDS VERIFIED — LOOP CLOSED (no residuals)`** ([`5828914506`](https://github.com/gosharplite/tellme/pull/185#issuecomment-5828914506)); loop-closed summary [`5828917787`](https://github.com/gosharplite/tellme/pull/185#issuecomment-5828917787).
 
 **State**: **PR [#185](https://github.com/gosharplite/tellme/pull/185) is ready for a human to review and merge** (head `35faa95`; no Copilot review; only a human merges). On merge: propagate `dev → main` (no-ff, tagged **`round-089`**), refresh the binary, and **close [#184](https://github.com/gosharplite/tellme/issues/184)**.
+
+---
+
+## 7. Session 76 closeout (2026-09-25) — round 089 `089-context-control-position` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 089 was human-merged (PR [#185](https://github.com/gosharplite/tellme/pull/185) → `dev` **`761733a`**, **fast-forward**); `git fetch --prune` reported `[deleted] origin/089-context-control-position`, the round tip (`761733a`) was an ancestor of `origin/dev` (and the local `dev` fast-forwarded to it), so the **local branch was deleted** (`git branch -d 089-context-control-position`, was `761733a`), and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == 761733a`; no delivered `specs/plans/**` package touched (087/088 unmodified); no stray temp files; round branch already deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `go test -count=1 ./...` green) · `make test-race` **no data races** · E2E **330 scenarios · 2487 steps** · `verify-adr-index` consistent (ADR 0060 once/unique) · `modelith-check` no drift · `go.mod`/`go.sum` unchanged · diff-level secret scan clean (only benign "token-budget"/"tokens" prose) |
+| **3 — STATUS.md** | header → round 089 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-088 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-25.md`](../../../../archives/status/2026-09-25.md) (same-day file — appended); round-089 section added; delivered-rounds pointer → 001–089; roadmap candidates → **0 open**; round-close-tags line + the topology counts (round 089 added no rows) refreshed; **54 lines** (live state only) |
+| **4 — daily summary** | this §7 (closeout) appended (the §1–§6 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker → **0 open** (closes #184) |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-089`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#184](https://github.com/gosharplite/tellme/issues/184) CLOSED** (completed) with a linking comment; the tracker → **0 open** |
+
+### Commits (branch `089-context-control-position`, then merged fast-forward)
+
+| Commit | Note |
+| --- | --- |
+| `c1108c6` | `docs(089)`: reconcile the stale `-b`/`--retry` clause + record the context-control position (ADR 0060) |
+| `0177611` | `docs(089)`: name the round PR (#185) in STATUS + the day log |
+| `02005ee` | `fix(089)`: fold the architect review (F-089-1/2/3 + N-089-1..4 + TD-089-1) |
+| `35faa95` | `docs(089)`: fold RES-089-FV-1/2 (plan.md witness + truth-delta carrier kind) |
+| `761733a` | `docs(089)`: day-log §6 (cont.) — review-fold loop CLOSED (the merge head, fast-forward) |
+| *(this closeout, on `dev`)* | `docs(089)`: day close — round 089 delivered + propagated; STATUS split + 09/25 summary §7 |
+
+### Open items (non-blocking)
+
+- **None new.** Per the settled curation rule, `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` (the authority) or a live GitHub issue. ADR 0060 §Forward RF-089-1…6 are disclosures, not tasking.
+- **Issue tracker**: **0 open**.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker is **0 open**; Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round was a truth/record reconciliation).
+
+*(Round 089 is fully closed out: PR #185 human-merged into `dev` (`761733a`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-089`**; the installed binary refreshed; [#184](https://github.com/gosharplite/tellme/issues/184) closed.)*
