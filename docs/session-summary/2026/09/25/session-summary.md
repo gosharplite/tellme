@@ -460,3 +460,26 @@ After the round-089 closeout, the operator filed issue **#186** (four record-hyg
 ### PM follow-ups
 
 - None new (no PM-owned requirement gap; the round is a truth/record reconciliation + a decision record).
+
+### 8 (cont.) — the `architect` review-fold loop (PR #187) → `FOLDS VERIFIED — LOOP CLOSED`
+
+Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with `SESSION-BOOTSTRAP.md`
+(`--new`), then continuations. The architect reviewed PR #187 and posted
+[`pull/187#issuecomment-5829481252`](https://github.com/gosharplite/tellme/pull/187#issuecomment-5829481252)
+— **`APPROVE WITH REQUIRED FOLDS`**, no `[ARCHITECTURAL BLOCKER]`; it reproduced `make verify` / `go test`
+(E2E 330 · 2487) on a scratch copy and **attacked the carrier from both directions** (doc edit ⇒ `doc (7)
+vs live (8)`; assembler edit ⇒ `doc (8) vs live (7)`).
+
+| Fold | Resolution |
+| --- | --- |
+| **F-090-1** ADR 0061 §Consequences over-claimed ("the 'small surface' cannot silently grow") and contradicted its own §Forward RF-061-3 | Reworded — the offered set is **bound to** `agentTools()` (doc↔registry **consistency**); the surface *size* stays a per-round judgement (RF-061-1), not gated (RF-061-3). |
+| **F-090-2** the reconciled row kept a second, unchecked eight-tool copy in its `必查` cell | **Dropped** the inline list — one enumeration, the checked `集合` cell. |
+| N-090-1/2/4 | Context reworded (no dedicated home); "single-sourced" → "bound to / checked against"; the ADR-index quote corrected. |
+| **RES-090-FV-1/2** → **N-090-FV-3** | The `必查` literal count dropped; the terminology sweep completed; the Round-062 note's hand-copied literal dropped (prose-only). |
+| N-090-3/5/6 | Accepted, not actioned (the carrier's `go test` tier; the regex; a pre-existing `techstack` ordinal). |
+
+Loop history: review `3366ac9` → fold `9c8b623` → fold-verification (**WITH RESIDUALS**) → residual fold
+`17f0eee` → **residual verification → `FOLDS VERIFIED — LOOP CLOSED`** ([`5829603253`](https://github.com/gosharplite/tellme/pull/187#issuecomment-5829603253))
+→ prose-only tidy `d6a8a72`; loop-closed summary [`5829612330`](https://github.com/gosharplite/tellme/pull/187#issuecomment-5829612330).
+
+**State**: **PR [#187](https://github.com/gosharplite/tellme/pull/187) is ready for a human to review and merge** (head `d6a8a72`; no Copilot review; only a human merges). On merge: propagate `dev → main` (no-ff, tagged **`round-090`**), refresh the binary, and **close [#186](https://github.com/gosharplite/tellme/issues/186)**.
