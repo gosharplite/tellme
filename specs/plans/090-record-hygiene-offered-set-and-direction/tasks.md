@@ -87,3 +87,9 @@ green), gates green. Two cosmetic residual record-precision items, folded here:
 - **RES-090-FV-2** — the N-090-2 ledger row over-stated its own scope. → the terminology sweep is now
   complete across the round artifacts; the ledger row states the remaining "single-source" usages are the
   **decision's name** only.
+
+**Post-verification tidy (N-090-FV-3, prose-only).** The architect's residual-fold verification returned
+**`FOLDS VERIFIED — LOOP CLOSED`** ([`pull/187#issuecomment-5829603253`](https://github.com/gosharplite/tellme/pull/187#issuecomment-5829603253))
+with one optional, pre-existing nit: the same row's **Round-062** note still carried a hand-copied literal
+count (*"nine vs eight"*). Reworded to avoid the literal (the note no longer asserts a number). Prose-only —
+no logic, no carrier change (the round-088 `RES-088-FV-1` post-LOOP-CLOSED tidy precedent).
