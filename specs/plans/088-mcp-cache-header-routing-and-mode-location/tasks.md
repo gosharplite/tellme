@@ -26,7 +26,7 @@ Executed One-Shot via `/axb-implement` (Red → Green → Refactor).
 
 ## Phase 4 — Verification / delivery
 
-- [X] **T013** Reproduce the witnesses (warm-up removed ⇒ unit + E2E red; home-root path ⇒ the location Example red).
+- [X] **T013** Reproduce the witnesses (warm-up removed ⇒ unit + E2E red; cache path rooted at `filepath.Dir(workspace)` ⇒ **6** location E2E scenarios red).
 - [X] **T014** `make check` + `make test-race`; `modelith-check`; the topology audit.
 - [X] **T015** Open the round PR.
 
