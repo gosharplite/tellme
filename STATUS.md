@@ -1,9 +1,9 @@
 # tellme — Status
 
 **Last updated**: 2026-09-25 (session 78 — round **091** `091-record-hygiene-tail` **IN FLIGHT**: the tail of the 089/090 record-hygiene sweep — anchor issue [#188](https://github.com/gosharplite/tellme/issues/188); PR [#190](https://github.com/gosharplite/tellme/pull/190) **open** off `dev` `9f9cd9c`.)
-**Round in flight**: round **091** `091-record-hygiene-tail` — **PR [#190](https://github.com/gosharplite/tellme/pull/190) open** (awaiting a human review/merge; no Copilot review). Truth/record only: drop the stale `search_files` tool ordinal + name the **class-phrase count**'s subject (dropping the stale "ten"); item (B) deferred → homed on [#189](https://github.com/gosharplite/tellme/issues/189).
+**Round in flight**: round **091** `091-record-hygiene-tail` — **PR [#190](https://github.com/gosharplite/tellme/pull/190) open, review-fold loop CLOSED** (`architect`: `FOLDS VERIFIED — LOOP CLOSED`) — **ready for a human to review/merge** (no Copilot review; only a human merges). Truth/record only: drop the stale `search_files` tool ordinal + name the **class-phrase count**'s subject (dropping the stale "ten"); item (B) deferred → homed on [#189](https://github.com/gosharplite/tellme/issues/189); the round-082 interactive-prompt flake recurred → homed on [#191](https://github.com/gosharplite/tellme/issues/191).
 **Active branch**: `091-record-hygiene-tail` (off `dev` `9f9cd9c`; round 090 delivered/frozen on `dev` via PR [#187](https://github.com/gosharplite/tellme/pull/187) merged `4017ad7`, **fast-forward**, tagged `round-090` — after round 091 merges, `dev` is active again).
-**Daily log**: [`docs/session-summary/2026/09/25/session-summary.md`](docs/session-summary/2026/09/25/session-summary.md) (rounds 087–090) · prior: [`2026-09-24`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086)
+**Daily log**: [`docs/session-summary/2026/09/25/session-summary.md`](docs/session-summary/2026/09/25/session-summary.md) (rounds 087–091) · prior: [`2026-09-24`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086)
 
 ## Last delivered round - 090 `090-record-hygiene-offered-set-and-direction` (DELIVERED / FROZEN - PR [#187](https://github.com/gosharplite/tellme/pull/187) merged into `dev` `4017ad7`, **fast-forward**; **ADR 0061**)
 
