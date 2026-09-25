@@ -26,8 +26,10 @@ Investigation (round 093) found **two** root causes, both in the **test seam** (
   frame — including a frame flushed before the input reader has applied the whole composition. Under
   scheduling contention the renderer flushes such a **partial** frame, the harness releases the terminal
   key, and the rest of the composition **coalesces** with the key, so the frame carrying the complete
-  composed text may never flush; the E2E assertion then finds the typed text missing. **Measured: 599 / 960
-  red at 16-way concurrency.**
+  composed text may never flush; the E2E assertion then finds the typed text missing. **Measured: ~62 % red
+  at 16-way concurrency on the authoring host (linux/amd64) — a host/load-specific figure** (the review host,
+  darwin/amd64, measured ~2.8 %); the *direction* (0 fixed vs > 0 pre-fix) is the claim, not the magnitude
+  (**F-093-2**).
 - **The scripted line break is the wrong byte.** The seam scripted Enter as a raw `\n`. bubbletea decodes LF
   as `KeyCtrlJ` (not `KeyEnter`), which the bubbles `textarea` does **not** bind to `InsertNewline`
   (`enter`/CR and `ctrl+m` only), so the line break was silently dropped and the two typed lines collapsed
@@ -58,8 +60,12 @@ row is the authority) rather than manufacturing a new sentence.
 **D4 — The seam change is witnessed deterministically.** Mechanism **unit pins**
 (`paintGate` — a revert to a constant gate reddens; `typeText` — a revert to LF reddens; `joinedRow` — the
 discriminating clause) plus the **E2E repetition witness** (N ≥ 50 consecutive green runs; a 16-way
-concurrency hammer for measurement). A direct *ordering* unit pin (a re-exec helper child) is a forward
-option (**RF-093-1**).
+concurrency hammer for measurement). **Coverage scope (F-093-1):** the `paintGate` pin exercises the gate
+**rule**, not its **call site**; reverting `runExecSynced`'s wiring
+(`marker := paintGate(compose, fallbackMarker)` → `marker := fallbackMarker`) re-opens the flake yet leaves
+the pin green, so the wiring is covered only by the (probabilistic) repetition witness. "Gut `paintGate`"
+and "revert the call site" are **not** equivalent mutations. A direct ordering/wiring unit pin
+(a re-exec helper child) is a forward option (**RF-093-1**).
 
 **D5 — No product change; no sleep/retry.** `internal/**` and `cmd/**` are untouched; no new flag, phrase,
 exit code, or dependency; `go.mod`/`go.sum` unchanged; no `time.Sleep` in the seam
@@ -89,8 +95,9 @@ round-191 flake and the vacuous multi-line assertion.
 
 ### Positive
 
-- The `-i` scenario is **deterministic**: 0 / 960 red at 16-way concurrency (was 599 / 960); 50/50 green
-  serially.
+- The `-i` scenario is **deterministic**: 0 red at 16-way concurrency on the authoring host (was ~62 %
+  pre-fix); 50/50 green serially. The pre-fix magnitude is host/load-specific (**F-093-2**) — the fixed
+  direction is what is claimed.
 - The multi-line Example is **faithful**: the typed two lines are kept on two editor rows, and the joined
   state now **reddens** (was vacuous).
 - The handshake rule and the Enter byte are **recorded** (this ADR + the DSL row + the feature note), so
@@ -102,8 +109,12 @@ round-191 flake and the vacuous multi-line assertion.
   render contiguously (soft-wrapped) would not satisfy it and the handshake falls back to
   `markerDeadline`. All shipped interactive composes are short or the two-line fixture. Recorded
   (**RF-093-2**).
-- The ordering is pinned **by construction** (the `paintGate` unit pin + the repetition witness), not by a
-  direct ordering unit test. Recorded (**RF-093-1**).
+- The ordering is pinned by the `paintGate` unit pin (the **rule**) + the repetition witness; the
+  call-site **wiring** has no deterministic carrier (only the probabilistic repetition witness). Recorded
+  (**RF-093-1**).
+- The `paintGate` fallback path — a composition whose tail cannot be matched (a soft-wrapped line, or a
+  visible control byte) falls back to `markerDeadline` — has **no direct carrier**. Recorded (**RF-093-4**;
+  architect review **TD-093-1**).
 
 ### Neutral
 
@@ -114,11 +125,16 @@ round-191 flake and the vacuous multi-line assertion.
 
 ## Verification
 
-- **Witnesses** — W-A: revert the gate to a constant marker ⇒ 607 / 960 red at 16-way concurrency (the
-  `paintGate` pin reddens). W-B: revert the Enter byte to LF ⇒ the multi-line Example reddens (the joined
-  row) and the `typeText` pin reddens. W-C: drop the separate-rows clause ⇒ the joined state passes (the
-  `joinedRow` pin reddens). All reproduced then reverted.
-- **Determinism** — 50/50 green serially; 0 / 960 red at 16-way concurrency (was 599 / 960).
+- **Witnesses** — W-A: revert the gate to a constant marker ⇒ the `paintGate` pin reddens; the mutation
+  also re-opens the flake, measured ~62 % red at 16-way concurrency on the authoring host (host/load-
+  specific — **F-093-2**; the review host measured ~2.8 %). **W-A′ (the distinction, F-093-1):** reverting
+  the **call site** in `runExecSynced` (`marker := paintGate(…)` → `marker := fallbackMarker`) reproduces
+  the flake yet leaves the pin **green** — the wiring is covered only by the repetition witness. W-B:
+  revert the Enter byte to LF ⇒ the multi-line Example reddens (the joined row) and the `typeText` pin
+  reddens. W-C: drop the separate-rows clause ⇒ the joined state passes (the `joinedRow` pin reddens). All
+  reproduced then reverted.
+- **Determinism** — 50/50 green serially; 0 red at 16-way concurrency on the authoring host (was ~62 %
+  pre-fix; direction reproduces on the review host: 0/288 fixed vs 4/144 pre-fix — **F-093-2**).
 - **Behaviour identity** — `internal/**`/`cmd/**` unchanged; the full unit suite + the godog E2E are green;
   E2E **scenarios 330** (unchanged) · **steps 2487** (unchanged; the strengthened Then is the same line).
 - **Gates** — `make check` green (`make verify` incl. `verify-no-test-sleep`, `verify-architecture` at its
@@ -139,13 +155,18 @@ round-191 flake and the vacuous multi-line assertion.
 
 > **⚠ Not open work.** A decision deferred to a trigger, or a recorded divergence — not tasking.
 
-- **RF-093-1** — no direct **ordering** unit pin. The ordering ("the terminal key is delivered only after
-  the composed frame painted") is pinned **by construction** via the `paintGate` unit pin (the gate *is*
-  the ordering rule) plus the repetition witness. A stronger pin would run the handshake against a
-  re-exec helper child that records the two chunks' arrival order.
+- **RF-093-1** — no deterministic **wiring/ordering** unit pin. The gate **rule** is pinned by the
+  `paintGate` unit pin; the **call-site wiring** (`runExecSynced` uses the rule's result as the marker) is
+  covered only by the (probabilistic) repetition witness — reverting the call site re-opens the flake yet
+  leaves the pin green (F-093-1). A stronger pin would run the handshake against a re-exec helper child that
+  records the two chunks' arrival order, closing the wiring gap deterministically.
 - **RF-093-2** — the gate is a visible substring of the composition's last line; a **soft-wrapped** composed
   line would not satisfy it and the handshake would fall back to `markerDeadline` (a bounded, still-exits
   wait, not a hang).
 - **RF-093-3** — the pre-093 gap was a **carrier-quality** defect (a non-discriminating assertion). The
   round strengthens this clause; tellme has **no** general "assertion is discriminating" gate (the
   round-089/090/091 record-hygiene lineage — a docs/record claim has no mechanical carrier).
+- **RF-093-4** — the `paintGate` **fallback path** (a composition whose tail cannot be matched — a
+  soft-wrapped line per RF-093-2, or a visible control byte in the tail — falls back to `markerDeadline` and
+  the wait still bounds and exits) has **no direct carrier** (architect review **TD-093-1**). Accepted as
+  recorded.

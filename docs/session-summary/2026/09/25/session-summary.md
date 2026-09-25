@@ -772,9 +772,9 @@ was opened.
 | Clarify | **not escalated (0 questions)** — #191 fixes the goals + the falsifiability sketch; the residual design choices are RD-owned |
 | Pipeline | specify ✅ · spec-by-example ✅ (1 acceptance Rule) · technical-research ✅ (**ADR 0063** + the techstack harness row) · system-analysis ✅ (1 CLI end; api/data/UI NOOP) · dsl-refine ✅ (the `keeps the typed text` row + the feature note) · tasks ✅ (T001–T014 + the Claim→Witness ledger) · implement ✅ |
 | The change | `tests/e2e/harness/cmd_helper.go` (`paintGate` + `runExecSynced` gate) · `tests/e2e/steps/tui_keys.go` (`tuiKeyEnter`/`typeText`) · `step_r038.go` · `step_t011_chat_then_keeps_typed_text.go` (`joinedRow`) · 3 unit pins |
-| Witness | **W-A** revert the gate to the constant `┌` ⇒ **607/960** red at 16-way concurrency (the `paintGate` pin reds) · **W-B** revert the Enter byte to LF ⇒ the multi-line Example reds (joined row) + the `typeText` pin reds · **W-C** drop the separate-rows clause ⇒ the joined state passes (the `joinedRow` pin reds) — all reproduced then reverted |
+| Witness | **W-A** revert the gate to the constant `┌` ⇒ the `paintGate` pin reds + the flake re-opens (**~62 %** at 16-way concurrency, authoring host — **F-093-2**) · **W-A′** revert the **call site** (`marker := paintGate(…)` → `marker := fallbackMarker`) ⇒ the pin stays **green**, only the repetition witness reds (**F-093-1** — the mutations are not equivalent) · **W-B** revert the Enter byte to LF ⇒ the multi-line Example reds (joined row) + the `typeText` pin reds · **W-C** drop the separate-rows clause ⇒ the joined state passes (the `joinedRow` pin reds) — all reproduced then reverted |
 | Verification | `make verify` **OK** · `go test -count=1 ./...` **green** — E2E **330 scenarios · 2487 steps (unchanged)** · `make test-race` no data races · topology audit **PASSED** (53 features · 21 root + 467 module rows · 2461 steps) · `modelith-check` no drift · `go.mod`/`go.sum` unchanged |
-| Determinism | pre-fix seam: **599/960** red at 16-way concurrency; fixed: **0/960** red (and **50/50** green serially) |
+| Determinism | pre-fix seam: **~62 %** red at 16-way concurrency (authoring host; host/load-specific — **F-093-2**); fixed: **0** red (and **50/50** green serially) |
 | Delivery | branch → **PR open** (no Copilot review; only a human merges) |
 
 ### Decisions locked (round 093 / ADR 0063)
@@ -791,7 +791,7 @@ was opened.
 ### Open items (non-blocking)
 
 - **The round-093 PR** awaits a human review/merge → then the closeout: propagate `dev → main` (no-ff), tag **`round-093`**, refresh the binary; **close [#191](https://github.com/gosharplite/tellme/issues/191)**.
-- **ADR 0063 §Forward** RF-093-1…3 (no direct ordering unit pin · the gate's wrapped-line limit · the carrier-quality lineage).
+- **ADR 0063 §Forward** RF-093-1…4 (no deterministic wiring/ordering unit pin — the pin covers the gate *rule*, not its call site (**F-093-1**) · the gate's wrapped-line limit · the carrier-quality lineage · the `paintGate` fallback path has no direct carrier (**TD-093-1**)).
 
 ### Process notes (durable)
 

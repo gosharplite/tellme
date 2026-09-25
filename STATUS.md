@@ -34,7 +34,7 @@
 
 > **Direction (2026-09-15; recorded by [ADR 0061](docs/decisions/0061-operator-declared-direction.md))** — no security · no Windows · **bash-first** · POSIX-only · a deliberately small tool surface (ADR 0061 is the direction's **authoritative home**; `README.md` summarises it).
 
-**Delivered**: rounds 001-092 - per-round detail in the [archives](docs/archives/status/) + `specs/plans/`; delivery rounds/PRs in the archive index. **Candidates**: none pending; a new round opens off `dev` from operator value or a **live issue** (Bootstrap Agent Rule 11) — the tracker is **0 open** while round 093 carries [#191](https://github.com/gosharplite/tellme/issues/191).
+**Delivered**: rounds 001-092 - per-round detail in the [archives](docs/archives/status/) + `specs/plans/`; delivery rounds/PRs in the archive index. **Candidates**: none pending; a new round opens off `dev` from operator value or a **live issue** (Bootstrap Agent Rule 11) — the tracker holds the in-flight anchor [#191](https://github.com/gosharplite/tellme/issues/191) (closed at closeout).
 
 ## Environment notes
 

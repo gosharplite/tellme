@@ -27,8 +27,11 @@ of the composition **coalesces** with the terminal key — so the frame carrying
 text may never flush. The assertion (which reads the flat accumulated capture) then finds the typed text
 missing → intermittent red.
 
-**Measured (16-way concurrency, 960 runs, the shipped seam):** **599 / 960 red**; with a **content-aware**
-gate (**gate on the composed text**, here its last visible line `line two`): **0 / 960 red**.
+**Measured (16-way concurrency, the shipped seam, authoring host linux/amd64):** **~62 % red**; with a
+**content-aware** gate (**gate on the composed text**, here its last visible line `line two`): **0 red**.
+The magnitude is **host/load-specific** (the review host, darwin/amd64, measured **~2.8 %** pre-fix:
+4/144), so the reproduced **direction** (0 fixed vs > 0 pre-fix / the exact #191 symptom) is the claim,
+not the size (**F-093-2**).
 
 ### Root cause B — the scripted line break is the wrong byte (the symptom)
 
@@ -39,8 +42,8 @@ two typed lines are **joined** (`line oneline two`) — exactly the recorded sym
 required each line only as a **substring of some editor row**, and `line oneline two` contains both lines,
 so the Example passed **vacuously**: the scenario never exercised two lines.
 
-**Measured (16-way concurrency, 960 runs):** scripted LF ⇒ **960 / 960 joined** (the defect is
-deterministic, not a flake); scripted **CR** ⇒ **960 / 960 two rows**.
+**Measured (16-way concurrency, authoring host):** scripted LF ⇒ **every run joined** (the defect is
+deterministic, not a flake); scripted **CR** ⇒ **every run two rows**.
 
 A real terminal delivers **CR** for Enter (raw mode, `ICRNL` off); the product is correct. The seam was the
 defect.
@@ -98,11 +101,15 @@ new sentence (the round-089 lesson: *cite the carrier, don't manufacture one*).
 ### D4 — Carriers
 
 - **Mechanism unit pins** (deterministic, no timing): the harness `paintGate` pin (a revert to a constant
-  gate reddens; the ordering rule is pinned); the steps `typeText` pin (a revert to LF reddens); the steps
-  `joinedRow` pin (the discriminating clause).
+  gate reddens **the rule**; the ordering rule is pinned); the steps `typeText` pin (a revert to LF
+  reddens); the steps `joinedRow` pin (the discriminating clause). **Coverage scope (F-093-1):** the
+  `paintGate` pin covers the gate **rule**, not its **call-site wiring** — reverting `runExecSynced`'s
+  `marker := paintGate(…)` to `marker := fallbackMarker` re-opens the flake yet leaves the pin green; the
+  wiring is covered only by the repetition witness (RF-093-1).
 - **The E2E repetition witness** (the flake is a timing race; a flat capture cannot observe the timing):
   N ≥ 50 consecutive green runs of the feature, plus — for measurement — a 16-way concurrency hammer. The
-  pre-fix seam measured ~62 % red at 16-way concurrency; the fixed seam measured 0/960.
+  pre-fix seam measured **~62 % red at 16-way concurrency on the authoring host** (host/load-specific —
+  **F-093-2**); the fixed seam measured 0 red.
 
 A stronger **ordering** pin (a re-exec helper child asserting the key is written only after the composed
 text) is a **forward option** (RF-093-1).
@@ -132,10 +139,13 @@ text) is a **forward option** (RF-093-1).
 
 ## 5. Residual risks (forward)
 
-- **RF-093-1** — no direct *ordering* unit pin (a re-exec helper child); the ordering is pinned **by
-  construction** via the `paintGate` unit pin + the repetition witness.
+- **RF-093-1** — no deterministic *wiring/ordering* unit pin. The gate **rule** is pinned by the `paintGate`
+  unit pin; the call-site **wiring** (`runExecSynced` uses the rule's result as the marker) is covered only
+  by the probabilistic repetition witness (F-093-1) — a re-exec helper child would close the gap.
 - **RF-093-2** — the gate is a visible substring of the composition's last line; a soft-wrapped line would
   fall back to the deadline.
 - **RF-093-3** — the pre-093 gap (a vacuous multi-line assertion) was a **carrier-quality** defect: the
   round strengthens this one clause; a general "assertion is discriminating" gate does not exist (the
   round-089/090/091 record-hygiene lineage).
+- **RF-093-4** — the `paintGate` **fallback path** (tail unmatched) has no direct carrier (architect review
+  **TD-093-1**).

@@ -11,7 +11,8 @@ intermittently red, and make its multi-line Example vacuous:
   such a **partial** frame, the harness writes the terminal key, and the remainder of the composition
   **coalesces** with the terminal key, so the frame carrying the **complete** composed text is never
   flushed. The E2E assertion (which reads a flat accumulated capture) then finds the typed text missing →
-  intermittent red. Measured: **599 / 960** runs red at 16-way concurrency.
+  intermittent red. Measured: **~62 % red at 16-way concurrency** (authoring host linux/amd64 — a
+  host/load-specific magnitude; the review host measured ~2.8 % — the *direction* is the claim; **F-093-2**).
 - **(B) the scripted line break is the wrong byte.** The seam scripts a line break as a raw `\n` (LF). In
   the child, bubbletea decodes LF as `KeyCtrlJ`, which the bubbles textarea does **not** bind to
   `InsertNewline` (it binds CR/`enter` and `ctrl+m`), so the newline is silently dropped and the two typed
@@ -99,7 +100,8 @@ state it); frozen plan packages.
 - **SC-001** the multi-line Example passes on its **own** (two editor rows) and cannot pass on the joined
   state. [Verification Intent: observable → acceptance scenario 1]
 - **SC-002** the handshake is deterministic: **N≥50** consecutive runs (incl. under concurrency) are green,
-  where the pre-fix seam measured ~62 % red at 16-way concurrency. [Verification Intent: unobservable →
+  where the pre-fix seam was intermittently red at 16-way concurrency (authoring host: ~62 %; review host:
+  ~2.8 % — the *direction* is the claim, not the magnitude; **F-093-2**). [Verification Intent: unobservable →
   the repetition witness + the unit pin]
 - **SC-003** `make check` green; E2E counts unchanged (state the delta, if a pin adds Examples).
   [Verification Intent: observable → `make check`]
