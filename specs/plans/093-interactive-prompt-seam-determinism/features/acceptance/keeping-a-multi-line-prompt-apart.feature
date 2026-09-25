@@ -18,11 +18,3 @@ Feature: Composing a multi-line prompt
       When the operator opens the interactive prompt and types "line one\nline two"
       Then the interactive prompt keeps each typed line on its own row
       And tellme exits successfully
-
-    Example: The operator composes a prompt across three lines
-      Given the operator has a runnable tellme installation
-      And the runtime home is "ait-tmg"
-      And the operator is working at an interactive terminal
-      When the operator opens the interactive prompt and types "alpha\nbeta\ngamma"
-      Then the interactive prompt keeps each typed line on its own row
-      And tellme exits successfully

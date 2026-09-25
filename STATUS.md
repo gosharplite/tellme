@@ -1,9 +1,9 @@
 # tellme — Status
 
-**Last updated**: 2026-09-25 (session 79, closeout — round **092** `092-single-source-agent-tool-set` **DELIVERED / FROZEN**: PR [#192](https://github.com/gosharplite/tellme/pull/192) human-merged into `dev` (**merge commit** `1abc1ca`), branch deleted local + remote, propagation `dev -> main` **DONE (no-ff)**, tagged **`round-092`**. **Closes [#189](https://github.com/gosharplite/tellme/issues/189)**; the tracker holds [#191](https://github.com/gosharplite/tellme/issues/191) (a live round seed).)
-**Round in flight**: **none** — round **092** delivered/frozen on `dev`; the next round opens off `dev` (operator value or a live issue — [#191](https://github.com/gosharplite/tellme/issues/191)).
-**Active branch**: `dev` (round 092 delivered via PR [#192](https://github.com/gosharplite/tellme/pull/192) merged `1abc1ca`, **merge commit**; round branch deleted local + remote; propagation `dev -> main` **DONE (no-ff)**, tagged `round-092`).
-**Daily log**: [`docs/session-summary/2026/09/25/session-summary.md`](docs/session-summary/2026/09/25/session-summary.md) (rounds 087–092) · prior: [`2026-09-24`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086)
+**Last updated**: 2026-09-25 (session 80 — round **093** `093-interactive-prompt-seam-determinism` **IN FLIGHT**: branch off `dev` `4723d3b`; the `-i` E2E seam made deterministic + faithful; **ADR 0063**; PR open.)
+**Round in flight**: **093** `093-interactive-prompt-seam-determinism` — anchor issue [#191](https://github.com/gosharplite/tellme/issues/191) (DoD = close it); full AIxBDD pipeline complete; **PR open** (awaiting a human review/merge; no Copilot review).
+**Active branch**: `093-interactive-prompt-seam-determinism` (off `dev` `4723d3b`; round 092 delivered via PR [#192](https://github.com/gosharplite/tellme/pull/192) merged `1abc1ca`, propagation `dev -> main` **DONE (no-ff)**, tagged `round-092`).
+**Daily log**: [`docs/session-summary/2026/09/25/session-summary.md`](docs/session-summary/2026/09/25/session-summary.md) (rounds 087–093) · prior: [`2026-09-24`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086)
 
 ## Last delivered round - 092 `092-single-source-agent-tool-set` (DELIVERED / FROZEN - PR [#192](https://github.com/gosharplite/tellme/pull/192) merged into `dev` `1abc1ca`, **merge commit**)
 
@@ -34,7 +34,7 @@
 
 > **Direction (2026-09-15; recorded by [ADR 0061](docs/decisions/0061-operator-declared-direction.md))** — no security · no Windows · **bash-first** · POSIX-only · a deliberately small tool surface (ADR 0061 is the direction's **authoritative home**; `README.md` summarises it).
 
-**Delivered**: rounds 001-092 - per-round detail in the [archives](docs/archives/status/) + `specs/plans/`; delivery rounds/PRs in the archive index. **Candidates**: none pending; a new round opens off `dev` from operator value or a **live issue** (Bootstrap Agent Rule 11) — the live seed is [#191](https://github.com/gosharplite/tellme/issues/191) (the interactive-prompt flake).
+**Delivered**: rounds 001-092 - per-round detail in the [archives](docs/archives/status/) + `specs/plans/`; delivery rounds/PRs in the archive index. **Candidates**: none pending; a new round opens off `dev` from operator value or a **live issue** (Bootstrap Agent Rule 11) — the tracker is **0 open** while round 093 carries [#191](https://github.com/gosharplite/tellme/issues/191).
 
 ## Environment notes
 

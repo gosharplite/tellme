@@ -752,3 +752,57 @@ Round 092 was human-merged (PR [#192](https://github.com/gosharplite/tellme/pull
 - None new (no PM-owned requirement gap; the round is a scoped composition refactor).
 
 *(Round 092 is fully closed out: PR #192 human-merged into `dev` (`1abc1ca`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-092`**; the installed binary refreshed; [#189](https://github.com/gosharplite/tellme/issues/189) closed.)*
+
+---
+
+## 14. Session 80 (2026-09-25, cont.) — round 093 `093-interactive-prompt-seam-determinism` **OPENED → full pipeline → PR open** (anchor issue [#191](https://github.com/gosharplite/tellme/issues/191); **ADR 0063**)
+
+After the round-092 closeout the operator read issue **#191** and directed *"Open a new aixbdd round, the
+goal is to close https://github.com/gosharplite/tellme/issues/191."* A new branch
+**`093-interactive-prompt-seam-determinism`** was created off `dev` `4723d3b`, the pipeline ran, and a PR
+was opened.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`093-interactive-prompt-seam-determinism`** (off `dev` `4723d3b`) |
+| Anchor | issue [#191](https://github.com/gosharplite/tellme/issues/191) — the `-i` interactive-prompt E2E flake (round-082 **O-082-1** / round-091 **RES-091-FV-4**); **DoD = close it** |
+| Theme | **Test-seam only**: make the `-i` scripted-key E2E seam deterministic and faithful — (A) a **content-aware paint gate** (the terminal key is released only once the composed text painted); (B) a scripted **line break** delivered as the terminal **Enter byte (CR)**; (C) a **discriminating** `keeps the typed text` assertion (each line on its own editor row) |
+| Clarify | **not escalated (0 questions)** — #191 fixes the goals + the falsifiability sketch; the residual design choices are RD-owned |
+| Pipeline | specify ✅ · spec-by-example ✅ (1 acceptance Rule) · technical-research ✅ (**ADR 0063** + the techstack harness row) · system-analysis ✅ (1 CLI end; api/data/UI NOOP) · dsl-refine ✅ (the `keeps the typed text` row + the feature note) · tasks ✅ (T001–T014 + the Claim→Witness ledger) · implement ✅ |
+| The change | `tests/e2e/harness/cmd_helper.go` (`paintGate` + `runExecSynced` gate) · `tests/e2e/steps/tui_keys.go` (`tuiKeyEnter`/`typeText`) · `step_r038.go` · `step_t011_chat_then_keeps_typed_text.go` (`joinedRow`) · 3 unit pins |
+| Witness | **W-A** revert the gate to the constant `┌` ⇒ **607/960** red at 16-way concurrency (the `paintGate` pin reds) · **W-B** revert the Enter byte to LF ⇒ the multi-line Example reds (joined row) + the `typeText` pin reds · **W-C** drop the separate-rows clause ⇒ the joined state passes (the `joinedRow` pin reds) — all reproduced then reverted |
+| Verification | `make verify` **OK** · `go test -count=1 ./...` **green** — E2E **330 scenarios · 2487 steps (unchanged)** · `make test-race` no data races · topology audit **PASSED** (53 features · 21 root + 467 module rows · 2461 steps) · `modelith-check` no drift · `go.mod`/`go.sum` unchanged |
+| Determinism | pre-fix seam: **599/960** red at 16-way concurrency; fixed: **0/960** red (and **50/50** green serially) |
+| Delivery | branch → **PR open** (no Copilot review; only a human merges) |
+
+### Decisions locked (round 093 / ADR 0063)
+
+| # | Decision |
+| --- | --- |
+| **D1** | The round-023 handshake's paint gate is **content-aware**, single-owned by the harness: the gate is the composition's **last visible line** (control bytes skipped); the editor border `┌` is only the **compose-less** fallback. |
+| **D2** | A scripted line break is the terminal **Enter byte (CR)** (`tuiKeyEnter`/`typeText`); a raw LF is decoded by bubbletea as `KeyCtrlJ`, which the bubbles textarea does not bind to `InsertNewline` (the joined-row symptom). |
+| **D3** | `keeps the typed text` requires each line of a multi-line value on its **own** editor row (the Gherkin sentence is unchanged; its implementation semantics are strengthened). |
+| **D4** | The seam change is witnessed by three mechanism unit pins + the E2E repetition witness (≥50 runs). |
+| **D5** | No product change (`internal/**`/`cmd/**` untouched); no sleep/retry (`verify-no-test-sleep`); `go.mod`/`go.sum` unchanged; no new `make verify` member. |
+| **D6** | Records: **ADR 0063** (+ index) · `techstack.md` (the *Interactive TUI prompt harness* row) · the `chat` feature note + the `chat/dsl.md` row · `docs/domain-model/**` **not modelled** (ADR 0041 escape hatch). |
+
+### Open items (non-blocking)
+
+- **The round-093 PR** awaits a human review/merge → then the closeout: propagate `dev → main` (no-ff), tag **`round-093`**, refresh the binary; **close [#191](https://github.com/gosharplite/tellme/issues/191)**.
+- **ADR 0063 §Forward** RF-093-1…3 (no direct ordering unit pin · the gate's wrapped-line limit · the carrier-quality lineage).
+
+### Process notes (durable)
+
+- **A recorded flake's *symptom* can be a second, deterministic defect.** The issue described a *swallowed Enter* (`line oneline`); investigation found (a) a genuine timing race (the non-content-aware gate) **and** (b) a deterministic seam bug (LF is not Enter for the bubbles textarea) — the latter hidden by a **non-discriminating** assertion that passed on the joined row.
+- **A gate must be satisfied by the frame you need, not a proxy.** The `┌` border marked "a frame painted"; it does not mark "*the composed* frame painted". Gating on the composed text's tail is the root-cause fix.
+
+### Next steps
+
+1. Human reviews + merges the round-093 PR; then the closeout (propagate `dev → main` no-ff, tag `round-093`; close #191).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `093-interactive-prompt-seam-determinism` until merged, then `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).

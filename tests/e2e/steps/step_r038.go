@@ -111,7 +111,7 @@ func givenRunsColouringCommandStopped(ctx context.Context, provider, answer stri
 func whenSubmitEmptyThenSubmit(ctx context.Context, prompt string) error {
 	sc := scenarioFrom(ctx)
 	sc.lastPrompt = prompt
-	launchTUI(sc, tuiKeySubmit+unescapeText(prompt)+tuiKeySubmit)
+	launchTUI(sc, tuiKeySubmit+typeText(unescapeText(prompt))+tuiKeySubmit)
 	return nil
 }
 
