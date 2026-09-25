@@ -643,3 +643,68 @@ Round 091 was human-merged (PR [#190](https://github.com/gosharplite/tellme/pull
 - None new (no PM-owned requirement gap; the round was a truth/record reconciliation).
 
 *(Round 091 is fully closed out: PR #190 human-merged into `dev` (`e0dcea2`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-091`**; the installed binary refreshed; [#188](https://github.com/gosharplite/tellme/issues/188) closed.)*
+
+---
+
+## 12. Session 79 (2026-09-25, cont.) — round 092 `092-single-source-agent-tool-set` **OPENED → full pipeline → PR open** (anchor issue [#189](https://github.com/gosharplite/tellme/issues/189); **ADR 0062**)
+
+After the round-091 closeout, the operator read issue **#189** and directed *"Open a new aixbdd round, the goal is to close #189."* A new branch **`092-single-source-agent-tool-set`** was created off `dev` `65ad377` (the round-091 day-close head — not its PR-merge `e0dcea2`), the (docs+refactor-only) pipeline ran, and a PR was opened.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`092-single-source-agent-tool-set`** (off `dev` `65ad377`) |
+| Anchor | issue [#189](https://github.com/gosharplite/tellme/issues/189) — the **(B)** deferral of round 091 / #188 item (B): bind the e2e tool enumerator `registeredToolNames()` to the production assembler `agentTools()`; **DoD = close it** |
+| Theme | **Single-source the base agent-tool composition** — one canonical owner (`internal/infrastructure/tools.NewAgentBaseTools`) both the composition root and the e2e harness derive from (closing round-090 **R-090-1**) |
+| Clarify | **not escalated (0 questions)** — the issue fixes the goal + the options; the design choice is the round's (RD-owned) |
+| Pipeline | specify ✅ · spec-by-example **NOOP** (no behaviour change) · technical-research ✅ (**ADR 0062** + the `techstack.md` placement note) · system-analysis ✅ (1 CLI end; api/data/UI NOOP; dsl-refine **NOOP**) · dsl-refine **NOOP** · tasks ✅ (T001–T011 + the Claim→Witness ledger) · implement ✅ |
+| The change | `internal/infrastructure/tools/agentbase.go` (**NEW** — the canonical base-set owner) · `cmd/tellme/deps.go` (`assembleAgentTools` delegates the base half; the `vision` gate + ceiling stay) · `tests/e2e/steps/tool_usage.go` (`registeredToolNames()` / `recordableToolNames()` delegate) · `cmd/tellme/deps_agentbase_test.go` + `tests/e2e/steps/tool_usage_test.go` (the two binding carriers) |
+| Witness | **W-1** re-inline a divergent copy in `registeredToolNames()` ⇒ `TestRegisteredToolNamesIsTheCanonicalBaseSet` red (`owner (8) vs enumerator (7)`) · **W-2** drop `search_files` from the owner ⇒ round-090's `TestOfferedSetDocMatchesTheLiveRegistry` red (`doc (8) vs live (7)`) **and** `TestNewToolRegistryOffersAgentTools` red **and** the four `search_files` E2E Examples red (fold N-092-1) · **W-3** re-inline a divergent copy in `assembleAgentTools()` ⇒ `TestAgentToolsIsTheCanonicalBaseSet` red — all reproduced then reverted · **W-4** behaviour identity (no assertion changed) |
+| Verification | `make verify` **OK** (incl. `verify-architecture` **0 issues**, `verify-adr-index`, `modelith-check` no drift, `verify-cross-compile` 4/4) · `go test -count=1 ./...` **green** — E2E **330 scenarios · 2487 steps (unchanged)** · `go.mod`/`go.sum` unchanged |
+| Delivery | branch → **PR open** (no Copilot review; only a human merges) |
+
+### Decisions locked (round 092 / ADR 0062)
+
+| # | Decision |
+| --- | --- |
+| **D1** | The base set (readers · `search_files` · write pair · `execute_command` · `list_skills`) is composed by **one** canonical owner, `internal/infrastructure/tools.NewAgentBaseTools(sink)`; the root and the e2e harness **derive** from it. |
+| **D2** | The home is the tools package (it composes the package's own constructors; no capability policy); the composition **root** keeps the capability policy + the registry construction. A **list** relocation, not a root move. |
+| **D3** | No new import edge; `verify-architecture` stays at its **0-violation** baseline. |
+| **D4** | Behaviour is **byte-identical**; no `.feature`/DSL step, no dependency, no `make verify` member added. |
+| **D5** | The binding is carried by two equality-of-surfaces unit pins (the round-090 carrier shape) + the load-bearing doc carrier. |
+
+### Open items (non-blocking)
+
+- **The round-092 PR** awaits a human review/merge → then the closeout: propagate `dev → main` (no-ff), tag **`round-092`**, refresh the binary; **close [#189](https://github.com/gosharplite/tellme/issues/189)**.
+- **ADR 0062 §Forward** RF-092-1…3 (the binding carriers are equal by construction — they catch a divergent re-inline; the capability append stays composed separately; `newTUIRegistry` is a distinct narrower set).
+- **[#191](https://github.com/gosharplite/tellme/issues/191)** (the interactive-prompt flake) remains an open live seed.
+
+### Process notes (durable)
+
+- **A mirror with no single owner is a drift hazard, not (necessarily) a defect.** Round 090's R-090-1 was declined as a *defect* and *homed as a seed*; round 092 owns the **design question** (where the base composition lives) and answers it with a single owner + equality-of-surfaces carriers — the round-090 carrier shape reused.
+- **No single Go package can see both surfaces** (the root is `package main`; the enumerator is godog-coupled) — so the binding is *by construction* (one owner) plus **equality** carriers, not a "compare the two" test.
+
+### Next steps
+
+1. Human reviews + merges the round-092 PR; then the closeout (propagate `dev → main` no-ff, tag `round-092`; close #189).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `092-single-source-agent-tool-set` until merged, then `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round is a scoped composition refactor).
+
+### 12 (cont.) — the `architect` review-fold loop (PR #192) → `FOLDS VERIFIED WITH RESIDUALS` → residual fold
+
+Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with `SESSION-BOOTSTRAP.md` (`--new` once), then continuations (no `--new`). The architect reproduced the gates on an out-of-tree copy of each head and attacked the carriers by mutation.
+
+| Pass | Outcome |
+| --- | --- |
+| `review` @ `8c4e7f8` | **`APPROVE WITH REQUIRED FOLDS`** — no `[ARCHITECTURAL BLOCKER]`; all folds **record / live-state accuracy**: **F-092-1** the "single production site / two call sites only" claim was falsified by `newTUIRegistry()` + the round-031 literal-eight fixture · **F-092-2** the `cmd/tellme` carrier mis-cited as `deps_test.go` (shipped: `deps_agentbase_test.go`) · **F-092-3** a stale owner name (`cli.newToolRegistry`) left in `step_r021_t026_chat_then_offered_tools.go` · **F-092-4** a stale "all seven tools" count (`techstack.md`) + `agentTools()`'s comment omitting `search_files` · **F-092-5** the recorded round base was `e0dcea2` (measured: `65ad377`) · **F-092-6** `STATUS.md`'s candidates line named the in-flight anchor #189; + **TD-092-1** (FR-004's union half unwitnessed), **N-092-1** (W-2 enumeration understated), **N-092-2** (bolded `Closes #189.`), **N-092-3** (RF-092-2 uncited). |
+| fold @ `6014b35` | All six required folds + TD + nits folded (records + two comment-only `.go` edits); a Fold ledger added to `tasks.md`. Gates green; E2E **330 · 2487** unchanged. |
+| fold verification @ `6014b35` | **`FOLDS VERIFIED WITH RESIDUALS`** — every fold verified, all measured claims reproduced (W-1/W-3a/W-3b/W-2/FR-004 mutations, all reverted), gates green, E2E unchanged; three records-only residuals: **RES-092-FV-1** (the day-log §12 Witness row still understated W-2) · **RES-092-FV-2** (the loop not yet recorded on the live-state surfaces — recorded here at loop-closed) · **RES-092-FV-3** (the candidates line still named #189 inside the "not a candidate" parenthetical). |
+| residual fold | RES-092-FV-1 (day-log Witness row) + RES-092-FV-3 (drop the parenthetical) folded; RES-092-FV-2 recorded by this §12 (cont.). |
+
+Review/fold comments: [review](https://github.com/gosharplite/tellme/pull/192#issuecomment-5831066497) · [fold](https://github.com/gosharplite/tellme/pull/192#issuecomment-5831111856) · [fold-verification](https://github.com/gosharplite/tellme/pull/192#issuecomment-5831187134).
+
+| residual verification @ `1074644` | **`FOLDS VERIFIED — LOOP CLOSED (no residuals)`** ([`5831239990`](https://github.com/gosharplite/tellme/pull/192#issuecomment-5831239990)) — RES-092-FV-1/2/3 verified; `make verify` OK, `go test -count=1 ./...` green (E2E **330 · 2487** unchanged), `make test-race` no data races, `go.mod`/`go.sum` unchanged. PR [#192](https://github.com/gosharplite/tellme/pull/192) is **ready for a human review/merge** (no Copilot review; only a human merges). |

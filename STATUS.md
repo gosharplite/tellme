@@ -1,9 +1,9 @@
 # tellme — Status
 
-**Last updated**: 2026-09-25 (session 78, closeout — round **091** `091-record-hygiene-tail` **DELIVERED / FROZEN**: PR [#190](https://github.com/gosharplite/tellme/pull/190) human-merged into `dev` (**fast-forward** `e0dcea2`), branch deleted local + remote, propagation `dev -> main` **DONE (no-ff)**, tagged **`round-091`**. **Closes [#188](https://github.com/gosharplite/tellme/issues/188)**; the tracker holds [#189](https://github.com/gosharplite/tellme/issues/189) + [#191](https://github.com/gosharplite/tellme/issues/191) (live round seeds).)
-**Round in flight**: **none** — round **091** delivered/frozen on `dev`; the next round opens off `dev` (operator value or a live issue — [#189](https://github.com/gosharplite/tellme/issues/189) / [#191](https://github.com/gosharplite/tellme/issues/191)).
-**Active branch**: `dev` (round 091 delivered via PR [#190](https://github.com/gosharplite/tellme/pull/190) merged `e0dcea2`, **fast-forward**; round branch deleted local + remote; propagation `dev -> main` **DONE (no-ff)**, tagged `round-091`).
-**Daily log**: [`docs/session-summary/2026/09/25/session-summary.md`](docs/session-summary/2026/09/25/session-summary.md) (rounds 087–091) · prior: [`2026-09-24`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086)
+**Last updated**: 2026-09-25 (session 79 — round **092** `092-single-source-agent-tool-set` **IN FLIGHT**: the base agent-tool composition is **single-owned** by `internal/infrastructure/tools.NewAgentBaseTools` (**ADR 0062**), cited by the composition root + the e2e harness, closing issue [#189](https://github.com/gosharplite/tellme/issues/189) / round-090 **R-090-1**; **review-fold loop CLOSED** — PR [#192](https://github.com/gosharplite/tellme/pull/192) ready for a **human review/merge** (the `architect` peer: `APPROVE WITH REQUIRED FOLDS` → fold → `FOLDS VERIFIED — LOOP CLOSED`). Last delivered: round **091** `091-record-hygiene-tail` (PR [#190](https://github.com/gosharplite/tellme/pull/190) into `dev` `e0dcea2`, tagged **`round-091`**).)
+**Round in flight**: **092** `092-single-source-agent-tool-set` — **review-fold loop CLOSED; PR [#192](https://github.com/gosharplite/tellme/pull/192) ready for a human review/merge** (anchor [#189](https://github.com/gosharplite/tellme/issues/189); branch off `dev` `65ad377` — the round-091 day-close head, not its PR-merge `e0dcea2`).
+**Active branch**: `092-single-source-agent-tool-set` (round 092 in flight; off `dev` `65ad377`; review-fold loop CLOSED — PR [#192](https://github.com/gosharplite/tellme/pull/192) ready for a human review/merge).
+**Daily log**: [`docs/session-summary/2026/09/25/session-summary.md`](docs/session-summary/2026/09/25/session-summary.md) (rounds 087–092) · prior: [`2026-09-24`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086)
 
 ## Last delivered round - 091 `091-record-hygiene-tail` (DELIVERED / FROZEN - PR [#190](https://github.com/gosharplite/tellme/pull/190) merged into `dev` `e0dcea2`, **fast-forward**)
 
@@ -34,7 +34,7 @@
 
 > **Direction (2026-09-15; recorded by [ADR 0061](docs/decisions/0061-operator-declared-direction.md))** — no security · no Windows · **bash-first** · POSIX-only · a deliberately small tool surface (ADR 0061 is the direction's **authoritative home**; `README.md` summarises it).
 
-**Delivered**: rounds 001-091 - per-round detail in the [archives](docs/archives/status/) + `specs/plans/`; delivery rounds/PRs in the archive index. **Candidates**: none pending; a new round opens off `dev` from operator value or a **live issue** (Bootstrap Agent Rule 11) — the live seeds are [#189](https://github.com/gosharplite/tellme/issues/189) (the (B) e2e-enumerator binding) and [#191](https://github.com/gosharplite/tellme/issues/191) (the interactive-prompt flake).
+**Delivered**: rounds 001-091 - per-round detail in the [archives](docs/archives/status/) + `specs/plans/`; delivery rounds/PRs in the archive index. **Candidates**: none pending; a new round opens off `dev` from operator value or a **live issue** (Bootstrap Agent Rule 11) — the live seed is [#191](https://github.com/gosharplite/tellme/issues/191) (the interactive-prompt flake).
 
 ## Environment notes
 
