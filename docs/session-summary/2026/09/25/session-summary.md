@@ -30,7 +30,7 @@ branch **`087-mcp-tool-cache`** was created off `dev`, the full AIxBDD pipeline 
 | Pipeline | specify ✅ · spec-by-example ✅ · technical-research ✅ (**ADR 0058** + the techstack MCP rows + the retired forward item) · system-analysis ✅ (1 CLI end; api NOOP; **data conditional → the cache file**) · dsl-refine ✅ (4 Rules / 6 Examples + the round-087 DSL blocks) · tasks ✅ (T001–T017 + the Claim→Witness ledger) · implement ✅ |
 | The change | `internal/domain/tools/toolcache.go` (`MCPToolCache` + entry) · `internal/infrastructure/mcp/{toolcache,lazyclient}.go` (file store; deferred connect) · `discovery.go` (`DiscoverCached` + `discoverKeys`) · `deps.Discovery.Refresh` + `MCPDiscoverer(ctx, home, servers)` · the CLI post-answer refresh hook · `cmd/tellme` wiring + `mcpToolCacheTTL = 24h` |
 | Verification | `make verify` **OK** · `go test -count=1 ./...` **green** · `make test-race` **no data races** · `gofmt`/`goimports` clean · `modelith-check` no drift · topology audit **PASSED** (53 features · 21 root + 464 module rows) · `go.mod`/`go.sum` unchanged |
-| Witnesses (reproduced then reverted) | **W1** force every key cold ⇒ the unit pin `dialed [u-shop]` + 3 E2E Examples fail at `never contacted`; **W3** skip the cache write ⇒ `saves=0` + the E2E fails at `remembered the tools`; **W5** return the lazy connect error ⇒ the unit pin reddens (`got boom`) |
+| Witnesses (reproduced then reverted) | **W1** every key cold ⇒ the unit pin `dialed [u-shop]` + **4** E2E Examples (2 at `never contacted`, 2 at `the request offered the tool`); **W3** skip the cache write ⇒ `saves=0` (2 pins) + the E2E fails at `remembered the tools`; **W5** return the lazy connect error ⇒ the unit pin reddens (`got boom`) |
 | Delivery | branch `087-mcp-tool-cache` → **PR [#181](https://github.com/gosharplite/tellme/pull/181) open** (head `a1154c0`; awaiting a human review/merge; **no Copilot review**) |
 
 ### Decisions locked (round 087 / ADR 0058)
@@ -67,6 +67,28 @@ branch **`087-mcp-tool-cache`** was created off `dev`, the full AIxBDD pipeline 
 ### PM follow-ups
 
 - None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).
+
+## 2. Session 75 (cont.) — the `architect` review-fold loop (PR #181)
+
+Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with `SESSION-BOOTSTRAP.md`
+(`--new`), then **continuations** (no `--new`). The architect reviewed PR #181 and posted
+[`pull/181#issuecomment-5825601267`](https://github.com/gosharplite/tellme/pull/181#issuecomment-5825601267) —
+**`APPROVE WITH REQUIRED FOLDS`**, no `[ARCHITECTURAL BLOCKER]`; it reproduced `make verify` / `go test` / race /
+topology and 11 mutation probes on an out-of-tree copy of the head.
+
+| Fold | Resolution |
+| --- | --- |
+| **F-087-1** the lazy client's successful delegation had no carrier | Added the live-server E2E Example `A remembered tool against a live server is actually run` + `TestLazyClient_DelegatesOnFirstCall`; the mutation (never delegate) now reddens both. |
+| **F-087-2** the recorded W1 figures did not reproduce (4 Examples, not 3; 2 pins per W2/W3) | Restated in `tasks.md` §Claim→Witness + §Falsifiability, this summary, and the PR body. |
+| **F-087-3** FR-006 had no carrier/ledger row and named the wrong mechanism | Reworded FR-006 to the actual mechanism (a recoverable `error: …` from a dropped/renamed cached tool; the round-076 fold-back is a registry-**miss** case) + added the dropped-tool Example + the ledger row. |
+| **F-087-4** the temp-file + `fsync` + `rename` was asserted but undistinguished from an in-place write | Added the `cacheFS` seam + `TestFileToolCache_SaveUsesTempThenRename` + `TestFileToolCache_SaveFailureKeepsPrior`; an in-place `os.WriteFile` now reddens. |
+| **F-087-5** the checklist carated three rows incorrectly | Added `TestDiscoverCached_WriteErrorIsBestEffort` + `TestDiscoverCached_MismatchedSiblingStaysWarm`; the E2E remember Then scans the cache for credentials; corrected the checklist. |
+| **F-087-6** the credential-resolution deferral was un-reconciled and the cached path dropped `CredentialWarning` | Recorded the deferred/warn-less resolution in the techstack row + ADR RF-087-9; reconciled `research.md` ↔ `truth-delta.md`. |
+| **TD-087-1** a stale entry whose refresh keeps failing re-dials every run | Recorded (ADR §Consequences + RF-087-10 + a tasks narrowing). |
+| Nits **N-087-1…6** | FR-005 mutation probabilistic (recorded); memoised failed connect (D4); the EC-003 pin asserts the requirement not preservation; the cached schema is re-normalized; the head figure refreshed; `issue #180` wording. |
+
+Post-fold: `make verify` **OK** · `go test -count=1 ./...` **green** · `make test-race` **no data races** · topology
+audit **PASSED** (53 features · 21 root + 464 module rows · 2445 steps). Fold commit `d6def99`.
 
 ### Process notes (durable)
 

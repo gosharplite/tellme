@@ -2,7 +2,7 @@
 
 **Last updated**: 2026-09-25 (session 75 — round **087** `087-mcp-tool-cache` **OPEN** off `dev` `2162729`; anchor issue [#180](https://github.com/gosharplite/tellme/issues/180); full AIxBDD pipeline → implementation → **PR [#181](https://github.com/gosharplite/tellme/pull/181) OPEN** (awaiting a human review/merge; **no Copilot review**). Round 086 remains DELIVERED / FROZEN.)
 **Round in flight**: **087 `087-mcp-tool-cache`** — the prompt prelude's remote-MCP tool discovery caches a server's tool list across invocations (a warm fresh entry dials **nothing**); PR [#181](https://github.com/gosharplite/tellme/pull/181) open.
-**Active branch**: `087-mcp-tool-cache` off `dev` `2162729` (PR [#181](https://github.com/gosharplite/tellme/pull/181), head `a1154c0`; **merged by a human only**).
+**Active branch**: `087-mcp-tool-cache` off `dev` `2162729` (PR [#181](https://github.com/gosharplite/tellme/pull/181), head `d6def99`; **merged by a human only**).
 **Daily log**: [`docs/session-summary/2026/09/25/session-summary.md`](docs/session-summary/2026/09/25/session-summary.md) (round 087) · prior: [`2026-09-24`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086)
 
 ## Last delivered round - 086 `086-tools-listing-line` (DELIVERED / FROZEN - PR [#179](https://github.com/gosharplite/tellme/pull/179) merged into `dev` `77c21c5`, **merge commit**; **ADR 0057**)
