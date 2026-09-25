@@ -96,7 +96,7 @@ already-discovered tool list, so my common path makes no MCP network call.
   the name to the server, whose tool-level error is folded back as `error: …` (the round-032 TD1/R3
   contract) and the turn completes, never aborts. (The round-076 unknown-name fold-back fires only
   on a **registry miss** — a name the cache never offered — not for a cached tool the server has
-  dropped.) [Verification Intent: observable → the E2E `A remembered tool the server has since dropped fails softly`]
+  dropped.) [Verification Intent: observable → the E2E `A remembered tool the server has since dropped fails softly` (a companion guard — the recoverable fold is structural/loop-owned, round-032 TD1/R3)]
 - **FR-007**: An MCP server that is **down when the tool is called** (a warm-cache entry
   whose server no longer answers) MUST yield a **recoverable** `error: …` tool result; the
   turn completes. [Verification Intent: observable → the E2E recoverable-error Then]

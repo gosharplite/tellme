@@ -24,8 +24,10 @@ schemas are normalized/verified (`mcp.NormalizeMCPSchema` + the ADR 0031 floor),
 register in **sorted key order**. A cached copy is therefore **byte-reproducible** across runs
 and can be offered **without contacting the server**. Two facts make this safe:
 
-- a **stale** entry is harmless — a dropped/renamed tool surfaces as a round-076 **recoverable
-  unknown-name fold-back**, never an abort;
+- a **stale** entry is harmless — a tool the server has since dropped/renamed is answered by the
+  server with a tool-level error, which the round-032 TD1/R3 contract folds back as a **recoverable
+  `error: …` result**, never an abort (the round-076 unknown-name fold-back fires only on a
+  **registry miss** — a name the cache never offered — not for a cached tool the server has dropped);
 - a **missing/corrupt** entry falls back to **one bounded discovery** — the existing path,
   unchanged.
 

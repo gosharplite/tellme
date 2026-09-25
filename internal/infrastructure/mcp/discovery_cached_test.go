@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"sync"
@@ -346,6 +347,29 @@ func TestDiscoverCached_MismatchedSiblingStaysWarm(t *testing.T) {
 	names := offeredNames(run.Tools)
 	if len(names) != 2 { // mcp_alpha_a1 (warm) + mcp_shop_b1 (cold)
 		t.Fatalf("both servers' tools must be offered; got %v", names)
+	}
+	run.Close()
+}
+
+// TestDiscoverCached_CachedNameAndSchemaReValidated is the RES-087-FV-3 carrier:
+// the cache file is UNTRUSTED on both axes — a cached tool whose wire NAME is
+// invalid or whose SCHEMA is unsafe (required not a subset of properties) must be
+// skipped, exactly like the live path, so a hand-edited cache can never 400 a
+// strict provider.
+func TestDiscoverCached_CachedNameAndSchemaReValidated(t *testing.T) {
+	badSchema := json.RawMessage(`{"type":"object","properties":{},"required":["nope"]}`)
+	cache := &memCache{entries: map[string]domaintools.MCPToolCacheEntry{
+		"shop": {URL: "u-shop", Auth: "auto", FetchedAt: time.Now(), Tools: []domaintools.MCPToolDefinition{
+			{Name: "ok_tool", Description: "d", InputSchema: cachedObjSchema},
+			{Name: "bad name", Description: "d", InputSchema: cachedObjSchema},
+			{Name: "unsafe", Description: "d", InputSchema: badSchema},
+		}},
+	}}
+	servers := map[string]config.MCPServerConfig{"shop": {URL: "u-shop"}}
+	run := DiscoverCached(context.Background(), servers, time.Second, cache, time.Now, time.Hour, (&recordingFactory{}).new, noToken)
+	names := offeredNames(run.Tools)
+	if len(names) != 1 || names[0] != "mcp_shop_ok_tool" {
+		t.Fatalf("a cached name/schema must be re-validated (untrusted input); got %v", names)
 	}
 	run.Close()
 }

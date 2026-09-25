@@ -16,7 +16,7 @@
 | # | Requirement | Judgeable by |
 | --- | --- | --- |
 | FR-001 | warm+fresh ⇒ zero dials, per-tool declarations offered | E2E `tellme never contacted …` + `the request offered the tool …` (2 Examples) and the **success path** `A remembered tool against a live server is actually run` (`tellme called the tool …`); unit pins `TestDiscoverCached_WarmFreshMakesNoDial` + `TestLazyClient_NoConnectWhenUnused` + `TestLazyClient_DelegatesOnFirstCall` |
-| FR-002 | cold/corrupt ⇒ one bounded discovery + write | E2E cold Then (`the MCP server has been dialed` + `the MCP tool cache holds an entry for "github"`); unit pin |
+| FR-002 | cold/corrupt ⇒ one bounded discovery + write | E2E `tellme contacted the MCP server "shop"` + `tellme remembered the tools of the MCP server "shop"`; unit pins `TestDiscoverCached_ColdDiscoversAndWrites` + `TestDiscoverCached_CorruptCacheIsCold` |
 | FR-003 | stale ⇒ cached served (no pre-dial) + post-answer refresh; failed refresh keeps prior | E2E stale-with-never-answering Then (offered from cache); unit pin on `Refresh` |
 | FR-004 | changed decl ⇒ cold key (sibling stays warm) | unit pins `TestDiscoverCached_DeclarationMismatchIsCold` + `TestDiscoverCached_MismatchedSiblingStaysWarm` |
 | FR-005 | warm offer set/order == live | unit determinism pin (warm vs live) + the E2E offered-name Then |

@@ -54,11 +54,12 @@ Executed One-Shot via `/axb-implement` (Red → Green → Refactor per feature).
 | **FR-003 refresh** a failed refresh keeps the prior entry | unit `TestDiscoverCached_FailedRefreshKeepsPrior` | Overwrite on failure ⇒ the pin reports the changed `fetched_at`. |
 | **FR-004 / EC-001 / F-087-5** a changed declaration is cold; the sibling stays warm | unit `TestDiscoverCached_DeclarationMismatchIsCold` + `TestDiscoverCached_MismatchedSiblingStaysWarm` | Ignore the declaration match ⇒ the pins report dial sets that include the warm key. |
 | **FR-005** the warm offer set/order equals live | unit `TestDiscoverCached_WarmOrderEqualsLive` | Rebuild `run.Tools` in map-iteration order ⇒ the pin's name lists diverge (**N-087-1**: discriminating in ~1 of 8 single runs with 2 keys — `-count=20` makes it reliable). |
-| **FR-006 / F-087-3** a dropped/renamed cached tool fails softly | E2E `A remembered tool the server has since dropped fails softly` + `the run continued past the failed MCP tool call` | Return a non-nil error from `CallTool` on a tool-level error ⇒ the E2E fails at `the run continued`. |
+| **FR-006 / F-087-3** a dropped/renamed cached tool fails softly | E2E `A remembered tool the server has since dropped fails softly` + `the run continued past the failed MCP tool call` — a **companion guard**, not a discriminating witness (see the note) | The recoverable fold is **structural / loop-owned** (round-032 TD1/R3, 076/080): no in-round mutation of this feature reddens it (measured — a tool-level-error mutant leaves all scenarios green). The Example pins the *observable* outcome; the fold *mechanism* stays owned by the round-032/076 unit tier. |
 | **FR-007 / W5** a call-time connect failure is recoverable | unit `TestLazyClient_ConnectFailureIsRecoverable` + E2E `A remembered tool against a server that has stopped` | Return the connect error ⇒ the unit pin reports `got boom`. |
 | **FR-008 / F-087-5** a corrupt cache / a write error is best-effort | unit `TestDiscoverCached_CorruptCacheIsCold` + `TestDiscoverCached_WriteErrorIsBestEffort` | Ignore `Load`'s error / fail on the save ⇒ the pins' dial sets / tool sets differ. |
 | **FR-009** no credential persisted | unit `TestFileToolCache_NeverStoresCredential` + E2E `tellme remembered the tools …` (the step scans the cache file) | Add a `token` field to the entry ⇒ the banned-substring scans fail (`found "token"`). |
 | **FR-010** `--new` keeps the cache | E2E `A fresh session keeps the remembered tool list` | Have `--new` delete the cache file ⇒ the Example fails at `never contacted`. |
+| **trust boundary (N-087-4 / RES-087-FV-3)** a cached name/schema is untrusted | unit `TestDiscoverCached_CachedNameAndSchemaReValidated` (an invalid name + an unsafe schema + a good tool ⇒ only the good tool offered) | Trust the cached name + skip schema normalization ⇒ the pin reports `[mcp_shop_ok_tool mcp_shop_bad name mcp_shop_unsafe]`. |
 | **F-087-4** the write is a temp file + rename, not in place | unit `TestFileToolCache_SaveUsesTempThenRename` + `TestFileToolCache_SaveFailureKeepsPrior` | Replace `Save` with an in-place `os.WriteFile` ⇒ the recording seam sees no `createtemp`/`rename` (pin reddens); a failed rename leaves the prior file byte-intact. |
 | **EC-003** an unknown server's entry is ignored | unit `TestDiscoverCached_IgnoresEntryForUnknownServer` (asserts the unconfigured key is never offered) | Offer from any entry ⇒ the pin's dial/tool sets grow. |
 | **EC-004** no servers ⇒ inert | unit `TestDiscoverCached_NoServersIsInert` | Dial unconditionally ⇒ the pin reports a dial. |
@@ -74,6 +75,8 @@ Executed One-Shot via `/axb-implement` (Red → Green → Refactor per feature).
 - Extra probes (affirmations): always-schedule-refresh ⇒ the warm Examples red; a CLI-without-refresh ⇒ the aged Example reds.
 
 ## Recorded narrowings (non-blocking)
+
+- **FR-006's Example is a companion guard, not a discriminating witness** (fold-verification RES-087-FV-2): making `CallTool` return a non-nil error on a tool-level error leaves the whole suite green — the recoverable fold is structural/loop-owned (round-032 TD1/R3 + 076/080), so no in-round mutation of *this* feature reddens it. The Example still pins the observable outcome end-to-end.
 
 - The E2E arranges the warm cache **directly** (a Given), so `ConnectionCount() == 0` is asserted against a never-dialed server; there is no two-run baseline.
 - The **post-answer refresh** is witnessed by the aged Example's `could not be reached` warning (the refresh ran), not by a wall-clock assertion.
