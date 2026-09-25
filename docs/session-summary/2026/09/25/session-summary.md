@@ -133,3 +133,50 @@ propagate `dev → main` (no-ff, tagged **`round-087`**) and **close issue #180*
 - **Lint is a gate, not a nicety**: `DiscoverCached` first failed `cyclop` (CC=24); it was refactored into
   `classifyCache`-style helpers (`cachedTools` / `discoverColdKeys` / `mergeCache` / `makeStaleRefresh`) — tellme has
   **no** `NonFixCatalog`, so a complexity finding is a refactor, not an acceptance record.
+
+---
+
+## 3. Session 75 closeout (2026-09-25) — round 087 `087-mcp-tool-cache` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 087 was human-merged (PR [#181](https://github.com/gosharplite/tellme/pull/181) → `dev` **`c6ccb14`**, **merge commit**); `git fetch --prune` reported `[deleted] origin/087-mcp-tool-cache`, the round tip (`be3199b`) was an ancestor of `origin/dev`, so the **local branch was deleted** (`git branch -d 087-mcp-tool-cache`, was `be3199b`), `dev` was fast-forwarded to the merge, and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == c6ccb14`; no delivered `specs/plans/**` package touched (frozen history intact); no stray temp files; round branch already deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `go test -count=1 ./...` green) · `make test-race` **no data races** · E2E **328 scenarios · 2471 steps** · topology audit **PASSED** (53 features · 21 root + 464 module rows · 2445 steps) · `go.mod`/`go.sum` unchanged · diff-level secret scan clean |
+| **3 — STATUS.md** | header → round 087 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-086 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-25.md`](../../../../archives/status/2026-09-25.md); round-087 section added; delivered-rounds pointer → 001–087; round-087 env note + the round-close-tags line + the topology counts (464 rows · 2445 steps) refreshed; live state only |
+| **4 — daily summary** | this §3 (closeout) appended (the §1 + §2 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker → **0 open** (closes #180) |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-087`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#180](https://github.com/gosharplite/tellme/issues/180) CLOSED** (completed) with a linking comment; tracker → **0 open** |
+
+### Commits (branch `087-mcp-tool-cache`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `a1154c0` | `feat(087)`: cross-invocation MCP tool cache (ADR 0058) — code + truth + records + unit/E2E pins |
+| `0986c8e` | `docs(087)`: STATUS + day log §1 — pipeline complete; PR #181 open |
+| `d6def99` | `fix(087)`: fold the architect review (F-087-1…6 + TD-087-1 + N-087-1…6) |
+| `c92cb45` | `docs(087)`: day-log §2 (review-fold loop) + STATUS head figure |
+| `4d32d2c` | `fix(087)`: fold the fold-verification residuals (RES-087-FV-1…6 + nits) |
+| `0844540` | `docs(087)`: fold RES-087-FV-7 (W1 = 3 unit pins) + N-087-11 |
+| `be3199b` | `docs(087)`: loop CLOSED (final verdict) + tidy the W1 carrier cell |
+| `c6ccb14` | PR [#181](https://github.com/gosharplite/tellme/pull/181) merge into `dev` (by the human) |
+| *(this closeout, on `dev`)* | `docs(087)`: day close — round 087 delivered + propagated; STATUS split + 09/25 summary §3 |
+
+### Open items (non-blocking)
+
+- **None new.** Per the settled curation rule, `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` (the authority) or a live GitHub issue. ADR 0058 §Forward RF-087-1…10 are disclosures, not tasking.
+- **Issue tracker**: **0 open**.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker is **0 open**; Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).
+
+*(Round 087 is fully closed out: PR #181 human-merged into `dev` (`c6ccb14`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-087`**; the installed binary refreshed; [#180](https://github.com/gosharplite/tellme/issues/180) closed.)*
