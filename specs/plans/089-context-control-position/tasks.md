@@ -76,3 +76,15 @@ non-contradictory, and the domain model correctly unmodelled.
 | **N-089-3** `STATUS.md` Daily log still read "(rounds 087 + 088)" | Refreshed to "(rounds 087–089)". |
 | **N-089-4** RF-089-5 asserted "not engaged" without naming the model anchors | Named the two anchors (`History.history-rollback-removes-complete-turns`; `Session.session-rollback-stays-offline`). |
 | **TD-089-1** a truth-prose *status* claim has no mechanical guard | Recorded as **RF-089-6** in ADR 0060 §Forward (a carried check; the F-088-1 class recurs and is caught by review). Accepted, not actioned in-round. |
+
+### Fold verification (continuation) → `FOLDS VERIFIED WITH RESIDUALS` → folded
+
+The architect verified the folds at `02005ee` (read-only; posted
+[`pull/185#issuecomment-5828880040`](https://github.com/gosharplite/tellme/pull/185#issuecomment-5828880040)):
+all 3 required folds + 4 nits present and honest; gates green; no fold-introduced defect. Two
+record-hygiene residuals, folded here:
+
+- **RES-089-FV-1** — `plan.md:45-46` and the day summary `:314` still described W1 as a "reproducible
+  grep" (contradicting the folded `research.md` D5). → restated as the carried, manual inspection.
+- **RES-089-FV-2** — `truth-delta.md:17` still cited the summarisation carrier as a `Rule`. → re-cited
+  as the DSL row's negative (`不該發生`) clause (`chat/dsl.md:208`).

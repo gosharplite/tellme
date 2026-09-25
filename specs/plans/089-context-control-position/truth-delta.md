@@ -14,7 +14,7 @@ proves the area was checked).
 
 | Action | Artifact | Summary | Reason |
 | --- | --- | --- | --- |
-| NOOP | `specs/truth/features/cli/**/*.feature` + `**/dsl.md` | Checked — **no change**. The "tellme offers no summarisation tool" claim is **already carried** by `chat/offering-the-agent-tools.feature` (Rule: *"a summarisation tool must not be offered"*, `chat/dsl.md`). The round records the decision (an ADR), which is not a Gherkin sentence pattern. | The decision is a durable record (`docs/decisions/**`), not interface truth; the carrier already exists (FR-004). |
+| NOOP | `specs/truth/features/cli/**/*.feature` + `**/dsl.md` | Checked — **no change**. The "tellme offers no summarisation tool" claim is **already carried** by the **negative (`不該發生`) clause of the DSL row** `the request offered exactly the agent tools` (`chat/dsl.md:208`), exercised by `chat/offering-the-agent-tools.feature` (comment `:7`, Example `:42`) — not a standalone `Rule`. The round records the decision (an ADR), which is not a Gherkin sentence pattern. | The decision is a durable record (`docs/decisions/**`), not interface truth; the carrier already exists (FR-004). |
 
 ## axb-api-plan / axb-data-plan / axb-ui-plan
 

@@ -42,7 +42,9 @@ about a **non-capability** plus a truth *status* fix touch no modelled entity/in
 
 ## 6. Notes
 
-- The **witness** is the ADR-index gate (`make verify-adr-index`, a standing member) for W2 and a
-  reproducible grep for W1 (D5); the round adds **no** new gate (`topology-audit-not-a-gate` posture).
+- The **witness**: **W2** is the ADR-index gate (`make verify-adr-index`, a standing member); **W1**
+  is a **carried, manual inspection** of `techstack.md:173` (no mechanical carrier exists for a
+  docs-prose status claim — see `research.md` D5 / RF-089-6); the round adds **no** new gate
+  (`topology-audit-not-a-gate` posture).
 - The E2E contract remains the behaviour guard (I-4): unchanged counts, green.
 - Frozen `specs/plans/NNN-*/**` history is left verbatim (`plan-package-frozen`).
