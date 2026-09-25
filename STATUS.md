@@ -1,8 +1,8 @@
 # tellme — Status
 
-**Last updated**: 2026-09-25 (session 76, closeout — round **089** `089-context-control-position` **DELIVERED / FROZEN**: PR [#185](https://github.com/gosharplite/tellme/pull/185) human-merged into `dev` (**fast-forward** `761733a`), branch deleted local + remote, propagation `dev -> main` **DONE (no-ff)**, tagged **`round-089`**. **Closes [#184](https://github.com/gosharplite/tellme/issues/184)**; the tracker is **0 open**.)
-**Round in flight**: **none** — round **089** delivered/frozen on `dev`; the next round opens off `dev` (operator value; the tracker is **0 open**).
-**Active branch**: `dev` (round 089 delivered via PR [#185](https://github.com/gosharplite/tellme/pull/185) merged `761733a`, **fast-forward**; round branch deleted local + remote; propagation `dev -> main` **DONE (no-ff)**, tagged `round-089`).
+**Last updated**: 2026-09-25 (session 77 — round **090** `090-record-hygiene-offered-set-and-direction` **IN FLIGHT**: PR open, awaiting human review/merge; reconcile the stale "seven agent tools" truth row (+ a single-source carrier), relocate the operator-declared direction into **ADR 0061**, fix the README surface enumeration, and correct the `cobra` note; anchor [#186](https://github.com/gosharplite/tellme/issues/186); the tracker is **1 open**.)
+**Round in flight**: round **090** `090-record-hygiene-offered-set-and-direction` — **truth/record + a test-only carrier**: (A) reconcile `chat/dsl.md`'s offered-set row (seven → eight, incl. `search_files`) + a `cmd/tellme` doc-consistency carrier over `agentTools()`; (B) the README tool-surface enumeration; (C) **ADR 0061** records the operator-declared direction (README/STATUS demoted to pointers); (D) the `cobra` note (`retry` is a flag); anchor [#186](https://github.com/gosharplite/tellme/issues/186); **PR open**.
+**Active branch**: `090-record-hygiene-offered-set-and-direction` (off `dev` `72bb592`; round 089 delivered/frozen on `dev` — PR [#185](https://github.com/gosharplite/tellme/pull/185) merged `761733a`, propagation `dev -> main` **DONE (no-ff)**, tagged `round-089`).
 **Daily log**: [`docs/session-summary/2026/09/25/session-summary.md`](docs/session-summary/2026/09/25/session-summary.md) (rounds 087–089) · prior: [`2026-09-24`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086)
 
 ## Last delivered round - 089 `089-context-control-position` (DELIVERED / FROZEN - PR [#185](https://github.com/gosharplite/tellme/pull/185) merged into `dev` `761733a`, **fast-forward**; **ADR 0060**)
@@ -32,9 +32,9 @@
 
 ## Roadmap
 
-> **Direction (2026-09-15)** — no security · no Windows · **bash-first** · a deliberately small tool surface (see [`README.md`](README.md#-design-intent--direction-operator-declared)).
+> **Direction (2026-09-15; recorded by [ADR 0061](docs/decisions/0061-operator-declared-direction.md))** — no security · no Windows · **bash-first** · POSIX-only · a deliberately small tool surface (ADR 0061 is the direction's **authoritative home**; `README.md` summarises it).
 
-**Delivered**: rounds 001-089 - per-round detail in the [archives](docs/archives/status/) + `specs/plans/`; delivery rounds/PRs in the archive index. **Candidates**: none — the tracker is **0 open**; a new round opens off `dev` from operator value or a live issue (Bootstrap Agent Rule 11).
+**Delivered**: rounds 001-089 - per-round detail in the [archives](docs/archives/status/) + `specs/plans/`; delivery rounds/PRs in the archive index. **Candidates**: **[#186](https://github.com/gosharplite/tellme/issues/186)** (the round-090 anchor) — the tracker is **1 open**; a new round opens off `dev` from operator value or a live issue (Bootstrap Agent Rule 11).
 
 ## Environment notes
 

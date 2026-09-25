@@ -152,7 +152,7 @@ under `specs/truth/features/**`.)*
 
 ## Not Introduced Yet
 
-- `spf13/cobra` (subcommand framework) — deferred until subcommands (`browse`, `retry`) exist
+- `spf13/cobra` (subcommand framework) — deferred until subcommands (e.g. `browse`) and further flag surfaces exist (the reference's `retry` is a **flag**, `--retry`, not a subcommand)
 - `spf13/viper` (config framework with env binding / watchers)
 - `testify` (assertion / mock library)
 - Provider SDKs (Google/Vertex, OpenAI, DeepSeek, Anthropic, Moonshot, Z.AI) — the provider transport uses stdlib `net/http`, not an SDK

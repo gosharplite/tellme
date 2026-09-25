@@ -410,3 +410,53 @@ Round 089 was human-merged (PR [#185](https://github.com/gosharplite/tellme/pull
 - None new (no PM-owned requirement gap; the round was a truth/record reconciliation).
 
 *(Round 089 is fully closed out: PR #185 human-merged into `dev` (`761733a`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-089`**; the installed binary refreshed; [#184](https://github.com/gosharplite/tellme/issues/184) closed.)*
+
+---
+
+## 8. Session 77 (2026-09-25, cont.) — round 090 `090-record-hygiene-offered-set-and-direction` **OPENED → full pipeline → PR open** (anchor issue [#186](https://github.com/gosharplite/tellme/issues/186); **ADR 0061**)
+
+After the round-089 closeout, the operator filed issue **#186** (four record-hygiene items, with two locked decisions: (A) a single-source carrier; the direction → an ADR) and directed *"Open a new aixbdd round, the goal is to close #186."* A new branch **`090-record-hygiene-offered-set-and-direction`** was created off `dev` `72bb592`, the pipeline ran, and a PR was opened.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`090-record-hygiene-offered-set-and-direction`** (off `dev` `72bb592`) |
+| Anchor | issue [#186](https://github.com/gosharplite/tellme/issues/186) — four record-hygiene items; **DoD = close it** |
+| Theme | **Truth/record + a test-only carrier**: (A) reconcile the stale "seven agent tools" truth row + a single-source carrier; (B) the README tool-surface enumeration; (C) **ADR 0061** (the operator-declared direction as its authoritative home); (D) the `cobra` note (`retry` is a flag) |
+| Clarify | **not escalated (0 questions)** — #186 records the two operator-locked decisions (A1) |
+| Pipeline | specify ✅ · spec-by-example **NOOP** (no behaviour change) · technical-research ✅ (**ADR 0061** + the `cobra` note) · system-analysis ✅ (1 CLI end; api/data/UI NOOP) · dsl-refine ✅ (the offered-set row) · tasks ✅ (T001–T011 + the Claim→Witness ledger) · implement ✅ |
+| The change | `specs/truth/features/cli/chat/dsl.md` (the offered-set row: seven → **eight**, incl. `search_files`; the stale count dropped; the owner named) · the **carrier** `cmd/tellme/deps_offered_set_test.go` (parses the row's `集合` cell, asserts set-equality with `agentTools()`) · the step **comment** fix · `README.md` (surface enumeration + direction demoted to an ADR pointer) · **ADR 0061** + index · `STATUS.md` direction line · `specs/truth/techstack.md:155` (`cobra` note) |
+| Witness | **W-A (real carrier)** — the carrier reddens under either mutation (**remove `search_files` from the doc** ⇒ `doc (7) vs live (8)`; **remove `NewSearchTool` from `agentTools()`** ⇒ `doc (8) vs live (7)`), reproduced + reverted · **W-C** `make verify-adr-index` (ADR 0061 indexed once/unique) · **W-B/W-D** manual (README enumeration; the `cobra` note) |
+| Verification | `make verify` **OK** (incl. `verify-adr-index` + `modelith-check`) · `go test -count=1 ./...` **green** — E2E **330 scenarios · 2487 steps (unchanged)** · `gofmt`/`goimports` clean · `go.mod`/`go.sum` unchanged |
+| Delivery | branch → **PR open** (no Copilot review; only a human merges) |
+
+### Decisions locked (round 090 / ADR 0061)
+
+| # | Decision |
+| --- | --- |
+| **D1** | **No security layer** — absent by decision; the resulting risk is an **accepted operator decision**, not an oversight. |
+| **D2** | **No Windows** — bash on POSIX only. |
+| **D3** | **Bash-first execution** — `execute_command` is the universal primitive; no `pipe_commands`. |
+| **D4** | **POSIX-only** interactive surfaces. |
+| **D5** | The **consequence**: a deliberately small tool surface (a tool must beat bash on context-boundedness / determinism / reliability); the offered set is **single-sourced + checked**. |
+| **D6** | This ADR is the direction's **authoritative home**; README/STATUS **summarise and point**; a direction change is a **superseding ADR**. |
+
+### Open items (non-blocking)
+
+- **PR** for round 090 awaits a human review/merge → then the closeout (`SESSION-CLOSEOUT.md`): propagate `dev → main` (no-ff), tag **`round-090`**, refresh the binary; **close [#186](https://github.com/gosharplite/tellme/issues/186)**.
+- **ADR 0061 §Forward** RF-061-1…3 (the small-surface bar is a per-round judgement · D1's risk has no guardrail by construction · no general "small surface" gate).
+
+### Process notes (durable)
+
+- **A single-source carrier beats a hand-copied count** — the round-089 W1 weakness (a non-discriminating grep) is answered here by binding the truth doc to the live registry; both mutation directions redden.
+- **A direction is a decision, not prose** — a durable, citable home (ADR) replaces a README narrative that claimed to be the source.
+
+### Next steps
+
+1. Human reviews + merges the round-090 PR; then the closeout (propagate `dev → main` no-ff, tag `round-090`; close #186).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `090-record-hygiene-offered-set-and-direction` until merged, then `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round is a truth/record reconciliation + a decision record).
