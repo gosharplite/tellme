@@ -31,7 +31,7 @@ branch **`087-mcp-tool-cache`** was created off `dev`, the full AIxBDD pipeline 
 | The change | `internal/domain/tools/toolcache.go` (`MCPToolCache` + entry) · `internal/infrastructure/mcp/{toolcache,lazyclient}.go` (file store; deferred connect) · `discovery.go` (`DiscoverCached` + `discoverKeys`) · `deps.Discovery.Refresh` + `MCPDiscoverer(ctx, home, servers)` · the CLI post-answer refresh hook · `cmd/tellme` wiring + `mcpToolCacheTTL = 24h` |
 | Verification | `make verify` **OK** · `go test -count=1 ./...` **green** · `make test-race` **no data races** · `gofmt`/`goimports` clean · `modelith-check` no drift · topology audit **PASSED** (53 features · 21 root + 464 module rows) · `go.mod`/`go.sum` unchanged |
 | Witnesses (reproduced then reverted; *figures restated at fold-verification — see §2*) | **W1** every key cold ⇒ the unit pin `dialed [u-shop]` + **4** E2E Examples (2 at `never contacted`, 2 at `the request offered the tool`); **W3** skip the cache write ⇒ `saves=0` (2 pins) + the E2E fails at `remembered the tools`; **W5** return the lazy connect error ⇒ the unit pin reddens (`got boom`) |
-| Delivery | branch `087-mcp-tool-cache` → **PR [#181](https://github.com/gosharplite/tellme/pull/181) open** (head `a1154c0`; awaiting a human review/merge; **no Copilot review**) |
+| Delivery | branch `087-mcp-tool-cache` → **PR [#181](https://github.com/gosharplite/tellme/pull/181) open** (round-open head `a1154c0`; awaiting a human review/merge; **no Copilot review**) |
 
 ### Decisions locked (round 087 / ADR 0058)
 
