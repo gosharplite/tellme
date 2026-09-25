@@ -31,8 +31,8 @@ The `cli` end is carried forward to its contract owner `/axb-dsl-refine` (the CL
 
 ## 4. Boundaries honoured
 
-- **No** product code; no `.feature` step text; no `.feature` row semantics; no `go.mod`/`go.sum`.
-- **No** Accepted-ADR body edited (ADR 0043 + the `0051`/`0052`/`0055`/`0058` counts stay verbatim).
+- **No** product **behaviour** code (the fold adds **comment-only** `.go` edits: `search.go` + `filesystem_test.go`); no `.feature` step text; no `.feature` row semantics; no `go.mod`/`go.sum`.
+- **No** Accepted-ADR body edited (ADR 0043 + the `0051`/`0052`/`0053`/`0054`/`0055`/`0056`/`0057`/`0058` counts stay verbatim).
 - **No** frozen `specs/plans/NNN-*/**` touched.
 - The round-090 offered-set carrier (`cmd/tellme/deps_offered_set_test.go`) is untouched.
 
