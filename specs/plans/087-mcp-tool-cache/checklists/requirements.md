@@ -1,0 +1,50 @@
+# Requirements checklist — round 087 `087-mcp-tool-cache`
+
+## Readiness
+
+- [x] A fresh `PlanPackage` (`specs/plans/087-mcp-tool-cache/`) — `fresh-package-per-round`
+      (never a re-open of the frozen round-032 package).
+- [x] Anchor: live issue **#180** (DoD = close it); the remedy is the recorded forward item
+      `techstack.md` → *Not Introduced Yet → Cross-invocation MCP tool caching*.
+- [x] Clarify **not escalated** — the issue fixes the goals (option A recommended, FR-1…7,
+      NFR-1…3, W1…W6); the residual choices are RD-owned (`/axb-technical-research`) and do
+      not change the story split or the acceptance logic (A5).
+- [x] Every normative clause (FR / NFR / EC / SC) carries a **Verification Intent**.
+
+## Requirements → judgeable carriers
+
+| # | Requirement | Judgeable by |
+| --- | --- | --- |
+| FR-001 | warm+fresh ⇒ zero dials, per-tool declarations offered | E2E `tellme never contacted …` + `the request offered the tool …` (2 Examples) and the **success path** `A remembered tool against a live server is actually run` (`tellme called the tool …`); unit pins `TestDiscoverCached_WarmFreshMakesNoDial` + `TestLazyClient_NoConnectWhenUnused` + `TestLazyClient_DelegatesOnFirstCall` |
+| FR-002 | cold/corrupt ⇒ one bounded discovery + write | E2E `tellme contacted the MCP server "shop"` + `tellme remembered the tools of the MCP server "shop"`; unit pins `TestDiscoverCached_ColdDiscoversAndWrites` + `TestDiscoverCached_CorruptCacheIsCold` |
+| FR-003 | stale ⇒ cached served (no pre-dial) + post-answer refresh; failed refresh keeps prior | E2E stale-with-never-answering Then (offered from cache); unit pin on `Refresh` |
+| FR-004 | changed decl ⇒ cold key (sibling stays warm) | unit pins `TestDiscoverCached_DeclarationMismatchIsCold` + `TestDiscoverCached_MismatchedSiblingStaysWarm` |
+| FR-005 | warm offer set/order == live | unit determinism pin (warm vs live) + the E2E offered-name Then |
+| FR-006 | dropped/renamed tool ⇒ recoverable `error: …` (the cached-tool mechanism; the round-076 fold-back is a registry-miss case) | E2E `A remembered tool the server has since dropped fails softly` + `the run continued past the failed MCP tool call` |
+| FR-007 | server down at call ⇒ recoverable `error: …` | E2E recoverable-error Then |
+| FR-008 | best-effort / no new failure mode | unit pins `TestDiscoverCached_CorruptCacheIsCold` + `TestDiscoverCached_WriteErrorIsBestEffort` |
+| FR-009 | no credential persisted | E2E `tellme remembered the tools …` (it also scans the cache file for credential substrings) + unit pin `TestFileToolCache_NeverStoresCredential` |
+| FR-010 | `--new` does not clear the cache | E2E `--new` Then |
+| NFR-001 | offline paths network-free | the existing `make verify-no-network` + offline E2E Thens |
+| NFR-002 | stdlib-only / no new dependency | `git diff go.mod go.sum` empty + `make lint`/`vet` |
+| EC-001 | declaration mismatch ⇒ cold | unit pin (same as FR-004) |
+| EC-002 | stale + never-answering server ⇒ cached tool still offered | E2E |
+| EC-003 | entry for a server not in config ⇒ ignored | unit pin |
+| EC-004 | no MCP_SERVERS ⇒ no cache effect | unit pin |
+| SC-001…SC-005 | the four behaviours + gates green | the E2E/unit carriers above + `make check` |
+
+## Boundaries
+
+- **In**: the cache store and its JSON shape; `DiscoverCached` + the lazy client; the
+  `deps.Discovery` refresh hook; the `MCPDiscoverer` home parameter; the composition-root
+  wiring + `mcpToolCacheTTL`; the CLI post-answer refresh; the `techstack.md` / `chat`
+  truth rows; ADR 0058 (+ index); the unit + E2E carriers.
+- **Out**: a re-open of round 032; the stdio transport; the MCP `-d` diagnostic;
+  MEMORY/PLUR; the tool-call envelope/naming/schema/auth/call-time-error contracts; an
+  explicit refresh flag; a detached refresh helper; `go.mod`/`go.sum`.
+
+## Verdict
+
+**Ready** — no `NEEDS CLARIFICATION`; the falsifiable witnesses exist on day one (the
+zero-connection warm Then; the cold-discovery Then; the stale-served Then; the
+offer-set equality pin; the recoverable call-failure Then).

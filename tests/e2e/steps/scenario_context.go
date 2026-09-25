@@ -104,6 +104,9 @@ type scenarioContext struct {
 	// started, so a Then can assert on its records; every started fake is closed
 	// by afterScenario.
 	mcpFakeByName map[string]*mcptest.Server
+	// mcpToolByName records the tool each fake MCP server advertises (round 087),
+	// so a cache-arranging Given can write the entry the server would produce.
+	mcpToolByName map[string]string
 }
 
 // mcpServerEntry is one arranged MCP_SERVERS entry (round 032).
@@ -471,8 +474,49 @@ func (sc *scenarioContext) startMCPFake(name string, opts mcptest.Options) *mcpt
 		sc.mcpFakeByName = map[string]*mcptest.Server{}
 	}
 	sc.mcpFakeByName[name] = s
+	if opts.Tool != "" {
+		if sc.mcpToolByName == nil {
+			sc.mcpToolByName = map[string]string{}
+		}
+		sc.mcpToolByName[name] = opts.Tool
+	}
 	return s
 }
+
+// writeMCPToolCache arranges a cross-invocation MCP tool cache entry for a server
+// at a given age (round 087; ADR 0058) — a fresh entry (age 0) makes the prelude
+// dial nothing, an old one (age > the TTL) is served-then-refreshed. The entry
+// carries the server's fake URL and advertised tool, and never a credential.
+func (sc *scenarioContext) writeMCPToolCache(server string, age time.Duration) error {
+	fake := sc.mcpFake(server)
+	if fake == nil {
+		return fmt.Errorf("the MCP server %q must be started before arranging its tool cache", server)
+	}
+	tool := sc.mcpToolByName[server]
+	if tool == "" {
+		return fmt.Errorf("the MCP server %q advertises no tool to cache", server)
+	}
+	entry := map[string]any{
+		server: map[string]any{
+			"url":        fake.URL(),
+			"auth":       "auto",
+			"fetched_at": time.Now().Add(-age).UTC().Format(time.RFC3339Nano),
+			"tools": []map[string]any{{
+				"name":         tool,
+				"description":  "a fake MCP tool",
+				"input_schema": map[string]any{"type": "object", "properties": map[string]any{}},
+			}},
+		},
+	}
+	data, err := json.MarshalIndent(entry, "", "  ")
+	if err != nil {
+		return err
+	}
+	return sc.writeFile(mcpCacheFileName, data)
+}
+
+// mcpCacheFileName mirrors the production cache file name (round 087; ADR 0058).
+const mcpCacheFileName = "mcp-toolcache.json"
 
 // mcpFake returns the fake MCP server registered under a server key, or nil.
 func (sc *scenarioContext) mcpFake(name string) *mcptest.Server {

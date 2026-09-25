@@ -1579,7 +1579,7 @@ func emitProviderError(w io.Writer, err error) int {
 // called from runTurn), so an offline run makes no MCP network contact. The
 // returned close hook tears down the discovered clients when the turn ends.
 func augmentRegistryWithMCP(ctx context.Context, res resolution, reg domaintools.Registry, stderr io.Writer, dp deps.Dependencies) (domaintools.Registry, func()) {
-	d := dp.MCPDiscoverer(ctx, res.MCPServers)
+	d := dp.MCPDiscoverer(ctx, res.Home, res.MCPServers)
 	for _, w := range res.MCPWarnings {
 		_, _ = fmt.Fprintln(stderr, w)
 	}
@@ -1589,9 +1589,21 @@ func augmentRegistryWithMCP(ctx context.Context, res resolution, reg domaintools
 	if len(d.Tools) > 0 {
 		reg = domaintools.NewRegistry(append(reg.Tools(), d.Tools...)...)
 	}
-	closeFn := func() {}
-	if d.Closer != nil {
-		closeFn = func() { _ = d.Closer.Close() }
+	// The returned hook runs when the turn ends (post-answer): first the round-087
+	// stale-cache refresh (best-effort; a stale entry is revalidated off the
+	// critical path, and a failure keeps the prior entry), then the client
+	// teardown. It never affects the turn's outcome.
+	refresh := d.Refresh
+	closer := d.Closer
+	closeFn := func() {
+		if refresh != nil {
+			for _, w := range refresh() {
+				_, _ = fmt.Fprintln(stderr, w)
+			}
+		}
+		if closer != nil {
+			_ = closer.Close()
+		}
 	}
 	return reg, closeFn
 }
