@@ -220,3 +220,29 @@ The operator reported that the GitHub MCP stopped working after round 087, then 
 
 - **A regression is a witness gap, not just a bug.** The GitHub header-routing failure had **no carrier** (the fake server accepted what the real one rejects). The round's core obligation was to add the carrier (`HeaderRouted`).
 - **Check the SDK's actual contract.** The fix came from reading the vendored SDK (`lookupTool` / `generateParamHeaders` / `validateMcpHeaders`), not from guessing.
+
+
+### 4 (cont.) — the `architect` review-fold loop (PR #183) → `FOLDS VERIFIED — LOOP CLOSED`
+
+Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with `SESSION-BOOTSTRAP.md`
+(`--new`), then **continuations** (no `--new`). The architect reviewed PR #183 and posted
+[`pull/183#issuecomment-5827544857`](https://github.com/gosharplite/tellme/pull/183#issuecomment-5827544857) —
+**`APPROVE WITH REQUIRED FOLDS`**, no `[ARCHITECTURAL BLOCKER]`; it reproduced `make verify` / `go test` (E2E 330·2487) /
+race / topology and five mutations on an out-of-tree copy of the head (including a **mutation C** — an assembly-time
+eager warm — which filled the FR-002/FR-004 ledger cells, and a **mutation E** that proved the EC-003 write half was
+unwitnessed).
+
+| Fold | Resolution |
+| --- | --- |
+| **F-088-1** `techstack.md` self-contradiction (*shared across modes*) + a stale path | Replaced with the per-mode statement; corrected line 168. |
+| **F-088-2** the round-087 `chat/dsl.md` rows documented the old cache path | Annotated the three rows + the note with the per-mode path (history preserved). |
+| **F-088-3** EC-003's carrier over-claimed (no write half) + a stale `EC-004` label | `TestDiscoverCached_NoServersIsInert` now asserts `saves == 0`; label corrected. |
+| **F-088-4** the rejected alternative mis-stated (`connect` is itself lazy) | Restated as an **assembly-time** warm in `research.md` + ADR 0059 §Alternatives. |
+| **F-088-5** superseded home-root claim present-tense | Qualifiers on `STATUS.md` + the ADR-0058 index row. |
+| **TD-088-1** the warm-up is charged to the call's deadline | Recorded as ADR §Forward **RF-088-5**. |
+| Nits **N-088-1…4** | E2E mode derived; the Example clause added; the memo comment; the FR-003 cell wording. |
+
+Fold commit `81d83f6` → fold-verification [`#issuecomment-5827680804`](https://github.com/gosharplite/tellme/pull/183#issuecomment-5827680804) → **`FOLDS VERIFIED — LOOP CLOSED`** (nit residual RES-088-FV-1) → residual fold `b9d63f3`.
+Gates: `make verify` **OK** · `go test -count=1 ./...` **green** · `make test-race` **no data races** · topology audit **PASSED**.
+
+**State**: **PR [#183](https://github.com/gosharplite/tellme/pull/183) is ready for a human to review and merge** — no Copilot review; only a human merges. On merge: propagate `dev → main` (no-ff, tagged **`round-088`**), refresh the binary, and **close [#182](https://github.com/gosharplite/tellme/issues/182)**.
