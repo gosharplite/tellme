@@ -34,9 +34,11 @@ func init() {
 //
 // Round-029 PR #61 review finding 7 + implementation review finding 3: the
 // expected set is NOT hand-copied. It is single-sourced from the shared
-// registeredToolNames() enumerator (the same constructors cli.newToolRegistry
-// uses, also used by the round-026 all-zero Then) — one owner for the set, in
-// process, with no subprocess/log dependency.
+// registeredToolNames() enumerator (which since round 092 / ADR 0062 derives
+// from the SINGLE canonical owner `infratools.NewAgentBaseTools` — the same
+// owner the production assembler `cmd/tellme.assembleAgentTools` uses — also
+// used by the round-026 all-zero Then) — one owner for the set, in process,
+// with no subprocess/log dependency.
 func thenOfferedTools(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
 	f := sc.onlyFake()

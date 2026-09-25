@@ -121,32 +121,27 @@ func parseReportLine(stdout, tool string) (reportToolCounts, bool) {
 	return reportToolCounts{}, false
 }
 
-// registeredToolNames enumerates the LIVE agent-tool registry (the same
-// constructors cli.newToolRegistry uses), so the all-zero Then cannot pass
-// vacuously when a tool is added or removed (round-026 review F8). Round 029 adds
-// the write pair (write_file, replace_text) and round 033 adds the read-only
-// list_skills tool, keeping this in sync with cli.newToolRegistry. This is the
-// BASE set — the tools a non-vision provider is offered (round 062: the
-// capability-gated read_image is NOT here; see recordableToolNames).
+// registeredToolNames enumerates the LIVE agent-tool BASE set — the tools a
+// non-vision provider is offered — so the all-zero Then cannot pass vacuously
+// when a tool is added or removed (round-026 review F8). It derives the set from
+// the SINGLE canonical owner of the base composition,
+// `infratools.NewAgentBaseTools` (round 092; ADR 0062) — the same owner the
+// production assembler `cmd/tellme.assembleAgentTools` uses — so this harness and
+// the production registry can no longer be edited out of step (the round-090
+// R-090-1 mirror hazard). The capability-gated `read_image` is NOT here; see
+// recordableToolNames.
 func registeredToolNames() []string {
-	return flattenToolNames(infratools.NewFilesystemTools(),
-		infratools.NewSearchTool(),
-		infratools.NewWriteTools(),
-		[]domaintools.Tool{infratools.NewCommandTool(nil)},
-		[]domaintools.Tool{infratools.NewSkillsTool(nil)})
+	return flattenToolNames(infratools.NewAgentBaseTools(nil))
 }
 
 // recordableToolNames enumerates every tool that can be RECORDED in the tool-usage
 // log — the UNION of the base set and the capability-gated set (round 062;
 // PR #129 fold F-062-1). The offline `--tool-usage` report lists this union, so
-// the all-zero guard reads the same authority.
+// the all-zero guard reads the same authority. The base half is the canonical
+// owner (round 092; ADR 0062); the capability-gated `read_image` is appended here
+// exactly as the composition root appends it under the `vision` gate.
 func recordableToolNames() []string {
-	return flattenToolNames(infratools.NewFilesystemTools(),
-		infratools.NewSearchTool(),
-		infratools.NewWriteTools(),
-		[]domaintools.Tool{infratools.NewCommandTool(nil)},
-		[]domaintools.Tool{infratools.NewSkillsTool(nil)},
-		[]domaintools.Tool{infratools.NewReadImageTool(0)})
+	return flattenToolNames(append(infratools.NewAgentBaseTools(nil), infratools.NewReadImageTool(0)))
 }
 
 // flattenToolNames flattens the given tool groups into their wire names, in order.

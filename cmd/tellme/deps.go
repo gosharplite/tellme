@@ -91,14 +91,16 @@ func buildDeps() deps.Dependencies {
 	}
 }
 
-// agentTools assembles the agent tool set in offer order: the read-only
-// filesystem readers, the write pair (round 029), the bash-first command tool,
-// the read-only skills listing tool (round 033), and — only for a vision-enabled
-// provider (round 062; ADR 0032) — the image reader. It stays PARAMETERLESS for
-// the no-vision default (the round-031 well-formedness gate iterates it here):
-// the `list_skills` catalog source is unbound here and bound on the prompt path
-// only (round 044). `read_image` is NOT part of this default set, so its ceiling
-// input is unused (0).
+// agentTools assembles the agent tool set in offer order: the BASE set — the
+// read-only filesystem readers, the in-file content search `search_files`
+// (round 071; ADR 0043), the write pair (round 029), the bash-first command
+// tool, and the read-only skills listing tool (round 033) — single-owned by
+// infratools.NewAgentBaseTools (round 092; ADR 0062), plus — only for a
+// vision-enabled provider (round 062; ADR 0032) — the image reader. It stays
+// PARAMETERLESS for the no-vision default (the round-031 well-formedness gate
+// iterates it here): the `list_skills` catalog source is unbound here and bound
+// on the prompt path only (round 044). `read_image` is NOT part of this default
+// set, so its ceiling input is unused (0).
 func agentTools() []domaintools.Tool { return assembleAgentTools(deps.ToolSetSpec{}) }
 
 // assembleAgentTools builds the agent tool set from ONE named capability value
@@ -113,11 +115,11 @@ func agentTools() []domaintools.Tool { return assembleAgentTools(deps.ToolSetSpe
 // branch) from the spec's provider label via the single-owned `infrallm.Family`
 // classifier — the resolution stays out of internal/cli (ADR 0039 D2).
 func assembleAgentTools(spec deps.ToolSetSpec) []domaintools.Tool {
-	tools := infratools.NewFilesystemTools()
-	tools = append(tools, infratools.NewSearchTool()...)
-	tools = append(tools, infratools.NewWriteTools()...)
-	tools = append(tools, infratools.NewCommandTool(spec.Sink))
-	tools = append(tools, infratools.NewSkillsTool(nil))
+	// The BASE set is single-owned by infratools.NewAgentBaseTools (round 092;
+	// ADR 0062) so this root and the e2e harness cannot drift. The capability gate
+	// and the family-aware ceiling stay HERE — a capability must not enter the
+	// tools layer (ADR 0039 D2/D3).
+	tools := infratools.NewAgentBaseTools(spec.Sink)
 	if spec.Vision {
 		tools = append(tools, infratools.NewReadImageTool(resolveImageCeiling(spec)))
 	}
