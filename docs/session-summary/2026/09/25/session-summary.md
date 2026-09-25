@@ -410,3 +410,121 @@ Round 089 was human-merged (PR [#185](https://github.com/gosharplite/tellme/pull
 - None new (no PM-owned requirement gap; the round was a truth/record reconciliation).
 
 *(Round 089 is fully closed out: PR #185 human-merged into `dev` (`761733a`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-089`**; the installed binary refreshed; [#184](https://github.com/gosharplite/tellme/issues/184) closed.)*
+
+---
+
+## 8. Session 77 (2026-09-25, cont.) — round 090 `090-record-hygiene-offered-set-and-direction` **OPENED → full pipeline → PR open** (anchor issue [#186](https://github.com/gosharplite/tellme/issues/186); **ADR 0061**)
+
+After the round-089 closeout, the operator filed issue **#186** (four record-hygiene items, with two locked decisions: (A) a single-source carrier; the direction → an ADR) and directed *"Open a new aixbdd round, the goal is to close #186."* A new branch **`090-record-hygiene-offered-set-and-direction`** was created off `dev` `72bb592`, the pipeline ran, and a PR was opened.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`090-record-hygiene-offered-set-and-direction`** (off `dev` `72bb592`) |
+| Anchor | issue [#186](https://github.com/gosharplite/tellme/issues/186) — four record-hygiene items; **DoD = close it** |
+| Theme | **Truth/record + a test-only carrier**: (A) reconcile the stale "seven agent tools" truth row + a single-source carrier; (B) the README tool-surface enumeration; (C) **ADR 0061** (the operator-declared direction as its authoritative home); (D) the `cobra` note (`retry` is a flag) |
+| Clarify | **not escalated (0 questions)** — #186 records the two operator-locked decisions (A1) |
+| Pipeline | specify ✅ · spec-by-example **NOOP** (no behaviour change) · technical-research ✅ (**ADR 0061** + the `cobra` note) · system-analysis ✅ (1 CLI end; api/data/UI NOOP) · dsl-refine ✅ (the offered-set row) · tasks ✅ (T001–T011 + the Claim→Witness ledger) · implement ✅ |
+| The change | `specs/truth/features/cli/chat/dsl.md` (the offered-set row: seven → **eight**, incl. `search_files`; the stale count dropped; the owner named) · the **carrier** `cmd/tellme/deps_offered_set_test.go` (parses the row's `集合` cell, asserts set-equality with `agentTools()`) · the step **comment** fix · `README.md` (surface enumeration + direction demoted to an ADR pointer) · **ADR 0061** + index · `STATUS.md` direction line · `specs/truth/techstack.md:155` (`cobra` note) |
+| Witness | **W-A (real carrier)** — the carrier reddens under either mutation (**remove `search_files` from the doc** ⇒ `doc (7) vs live (8)`; **remove `NewSearchTool` from `agentTools()`** ⇒ `doc (8) vs live (7)`), reproduced + reverted · **W-C** `make verify-adr-index` (ADR 0061 indexed once/unique) · **W-B/W-D** manual (README enumeration; the `cobra` note) |
+| Verification | `make verify` **OK** (incl. `verify-adr-index` + `modelith-check`) · `go test -count=1 ./...` **green** — E2E **330 scenarios · 2487 steps (unchanged)** · `gofmt`/`goimports` clean · `go.mod`/`go.sum` unchanged |
+| Delivery | branch → **PR [#187](https://github.com/gosharplite/tellme/pull/187) open** (no Copilot review; only a human merges) |
+
+### Decisions locked (round 090 / ADR 0061)
+
+| # | Decision |
+| --- | --- |
+| **D1** | **No security layer** — absent by decision; the resulting risk is an **accepted operator decision**, not an oversight. |
+| **D2** | **No Windows** — bash on POSIX only. |
+| **D3** | **Bash-first execution** — `execute_command` is the universal primitive; no `pipe_commands`. |
+| **D4** | **POSIX-only** interactive surfaces. |
+| **D5** | The **consequence**: a deliberately small tool surface (a tool must beat bash on context-boundedness / determinism / reliability); the offered set is **single-sourced + checked**. |
+| **D6** | This ADR is the direction's **authoritative home**; README/STATUS **summarise and point**; a direction change is a **superseding ADR**. |
+
+### Open items (non-blocking)
+
+- **PR** for round 090 awaits a human review/merge → then the closeout (`SESSION-CLOSEOUT.md`): propagate `dev → main` (no-ff), tag **`round-090`**, refresh the binary; **close [#186](https://github.com/gosharplite/tellme/issues/186)**.
+- **ADR 0061 §Forward** RF-061-1…3 (the small-surface bar is a per-round judgement · D1's risk has no guardrail by construction · no general "small surface" gate).
+
+### Process notes (durable)
+
+- **A single-source carrier beats a hand-copied count** — the round-089 W1 weakness (a non-discriminating grep) is answered here by binding the truth doc to the live registry; both mutation directions redden.
+- **A direction is a decision, not prose** — a durable, citable home (ADR) replaces a README narrative that claimed to be the source.
+
+### Next steps
+
+1. Human reviews + merges the round-090 PR; then the closeout (propagate `dev → main` no-ff, tag `round-090`; close #186).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `090-record-hygiene-offered-set-and-direction` until merged, then `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round is a truth/record reconciliation + a decision record).
+
+### 8 (cont.) — the `architect` review-fold loop (PR #187) → `FOLDS VERIFIED — LOOP CLOSED`
+
+Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with `SESSION-BOOTSTRAP.md`
+(`--new`), then continuations. The architect reviewed PR #187 and posted
+[`pull/187#issuecomment-5829481252`](https://github.com/gosharplite/tellme/pull/187#issuecomment-5829481252)
+— **`APPROVE WITH REQUIRED FOLDS`**, no `[ARCHITECTURAL BLOCKER]`; it reproduced `make verify` / `go test`
+(E2E 330 · 2487) on a scratch copy and **attacked the carrier from both directions** (doc edit ⇒ `doc (7)
+vs live (8)`; assembler edit ⇒ `doc (8) vs live (7)`).
+
+| Fold | Resolution |
+| --- | --- |
+| **F-090-1** ADR 0061 §Consequences over-claimed ("the 'small surface' cannot silently grow") and contradicted its own §Forward RF-061-3 | Reworded — the offered set is **bound to** `agentTools()` (doc↔registry **consistency**); the surface *size* stays a per-round judgement (RF-061-1), not gated (RF-061-3). |
+| **F-090-2** the reconciled row kept a second, unchecked eight-tool copy in its `必查` cell | **Dropped** the inline list — one enumeration, the checked `集合` cell. |
+| N-090-1/2/4 | Context reworded (no dedicated home); "single-sourced" → "bound to / checked against"; the ADR-index quote corrected. |
+| **RES-090-FV-1/2** → **N-090-FV-3** | The `必查` literal count dropped; the terminology sweep completed; the Round-062 note's hand-copied literal dropped (prose-only). |
+| N-090-3/5/6 | Accepted, not actioned (the carrier's `go test` tier; the regex; a pre-existing `techstack` ordinal). |
+
+Loop history: review `3366ac9` → fold `9c8b623` → fold-verification (**WITH RESIDUALS**) → residual fold
+`17f0eee` → **residual verification → `FOLDS VERIFIED — LOOP CLOSED`** ([`5829603253`](https://github.com/gosharplite/tellme/pull/187#issuecomment-5829603253))
+→ prose-only tidy `d6a8a72`; loop-closed summary [`5829612330`](https://github.com/gosharplite/tellme/pull/187#issuecomment-5829612330).
+
+**State**: **PR [#187](https://github.com/gosharplite/tellme/pull/187) is ready for a human to review and merge** (head `d6a8a72`; no Copilot review; only a human merges). On merge: propagate `dev → main` (no-ff, tagged **`round-090`**), refresh the binary, and **close [#186](https://github.com/gosharplite/tellme/issues/186)**.
+
+---
+
+## 9. Session 77 closeout (2026-09-25) — round 090 `090-record-hygiene-offered-set-and-direction` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 090 was human-merged (PR [#187](https://github.com/gosharplite/tellme/pull/187) → `dev` **`4017ad7`**, **fast-forward**); `git fetch --prune` reported `[deleted] origin/090-record-hygiene-offered-set-and-direction`, the round tip (`4017ad7`) was an ancestor of `origin/dev` (and the local `dev` fast-forwarded to it), so the **local branch was deleted** (`git branch -d 090-record-hygiene-offered-set-and-direction`, was `4017ad7`), and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == 4017ad7`; no delivered `specs/plans/**` package touched (089/088 unmodified); no stray temp files; round branch already deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `go test -count=1 ./...` green) · `make test-race` **no data races** · E2E **330 scenarios · 2487 steps** · `verify-adr-index` consistent (ADR 0061 once/unique) · `modelith-check` no drift · `go.mod`/`go.sum` unchanged · diff-level secret scan clean |
+| **3 — STATUS.md** | header → round 090 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-089 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-25.md`](../../../../archives/status/2026-09-25.md) (same-day file — appended); round-090 section added; delivered-rounds pointer → 001–090; roadmap candidates → **0 open**; round-close-tags line refreshed; **54 lines** (live state only) |
+| **4 — daily summary** | this §9 (closeout) appended (the §1–§8 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker → **0 open** (closes #186) |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-090`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#186](https://github.com/gosharplite/tellme/issues/186) CLOSED** (completed) with a linking comment; the tracker → **0 open** |
+
+### Commits (branch `090-record-hygiene-offered-set-and-direction`, then merged fast-forward)
+
+| Commit | Note |
+| --- | --- |
+| `b76bc54` | `docs(090)`: reconcile the offered-set row (+ single-source carrier) + record the direction in ADR 0061 (closes #186) |
+| `3366ac9` | `docs(090)`: name PR #187 in the STATUS Last-updated line |
+| `9c8b623` | `fix(090)`: fold the architect review (F-090-1/2 + N-090-1/2/4) |
+| `17f0eee` | `docs(090)`: fold RES-090-FV-1/2 (必查 cell count + terminology sweep) |
+| `d6a8a72` | `docs(090)`: fold N-090-FV-3 (drop the literal count from the row's Round-062 note) |
+| `4017ad7` | `docs(090)`: day-log §8 (cont.) — review-fold loop CLOSED (the merge head, fast-forward) |
+| *(this closeout, on `dev`)* | `docs(090)`: day close — round 090 delivered + propagated; STATUS split + 09/25 summary §9 |
+
+### Open items (non-blocking)
+
+- **None new.** `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` or a live GitHub issue. ADR 0061 §Forward RF-061-1…3 are disclosures, not tasking.
+- **Issue tracker**: **0 open**.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker is **0 open**; Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round was a truth/record reconciliation + a decision record).
+
+*(Round 090 is fully closed out: PR #187 human-merged into `dev` (`4017ad7`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-090`**; the installed binary refreshed; [#186](https://github.com/gosharplite/tellme/issues/186) closed.)*

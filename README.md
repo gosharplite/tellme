@@ -18,7 +18,10 @@ This is a long-term journey. Rather than rushing code implementation, `tellme` w
 
 ## 🧭 Design Intent & Direction (operator-declared)
 
-`tellme` is not a feature-for-feature port of `tell-me-go`; it is a deliberate **re-specification** of the same capability, carried out with an engineering-grade BDD/SDD/TDD process. Three operator-declared directions define the target shape of `tellme`:
+> **The authoritative home of the direction is [ADR 0061](docs/decisions/0061-operator-declared-direction.md)** —
+> a superseding ADR records any direction change (never a README edit). This section is a **summary** that points at it.
+
+`tellme` is not a feature-for-feature port of `tell-me-go`; it is a deliberate **re-specification** of the same capability, carried out with an engineering-grade BDD/SDD/TDD process. Three operator-declared directions define the target shape of `tellme` (see [ADR 0061](docs/decisions/0061-operator-declared-direction.md)):
 
 1. **No security layer.** `tell-me-go` shipped `SafePath` authorization, consent prompts, command whitelists, and forbidden-character rules. In real usage the operator **always bypassed them** — the rules never held in practice, yet they caused the AI to *repeatedly fail* tool calls for no protection gained. A guardrail that is always disengaged is pure overhead, so `tellme` removes it entirely: tools read, write, and execute whatever they are given. The resulting risk (destructive commands, out-of-tree writes) is an **explicitly accepted operator decision**, not an oversight.
 2. **No Windows.** Dropping Windows removes the entire cross-platform tax — path translation, `cmd`/PowerShell shell wrappers, Windows built-in probing, and separator handling. `tellme` targets **bash on POSIX** only.
@@ -30,9 +33,9 @@ This is a long-term journey. Rather than rushing code implementation, `tellme` w
 - **Determinism / testable contract** — in BDD a tool's output is *executable truth*; a fixed result shape is testable where a shell one-liner's is not.
 - **Reliability** — exact-content writes and exact-block replacements are easy for a schema'd tool and error-prone in shell (`sed`/quoting).
 
-The surface is therefore kept intentionally minimal: `execute_command` as the universal primitive, plus only the tools that clearly clear that bar — the reader family (`list_files`/`read_files`/`get_tree`), the bounded in-file content search `search_files` (round 071; ADR 0043), `write_file`, and `replace_text`. Tools that merely duplicate a trivial shell command are omitted rather than carried for parity.
+The surface is therefore kept intentionally minimal: `execute_command` as the universal primitive, plus only the tools that clearly clear that bar — the reader family (`list_files`/`read_files`/`get_tree`), the bounded in-file content search `search_files` (round 071; ADR 0043), the write pair (`write_file`, `replace_text`), and the read-only `list_skills` (round 033); a provider that declares the `vision` capability is additionally offered `read_image` (round 062; ADR 0032). Tools that merely duplicate a trivial shell command are omitted rather than carried for parity.
 
-*This direction is consistent with the project's settled decisions (round 008 Clarify Q3 and round 021 D4 record "no security/consent layer" as a settled exclusion; rounds 012/015 declare POSIX-only). Direction changes are recorded here and in [`STATUS.md`](STATUS.md).*
+*This direction is recorded in [ADR 0061](docs/decisions/0061-operator-declared-direction.md), which is its authoritative home (it is consistent with the project's earlier settled decisions — round 008 Clarify Q3 and round 021 D4 record "no security/consent layer" as a settled exclusion; rounds 012/015 declare POSIX-only). A direction change is recorded by a superseding ADR, not by editing this summary.*
 
 ---
 

@@ -17,6 +17,11 @@ import (
 // write pair, execute_command, and the read-only list_skills tool. The expected
 // set is single-sourced from the shared registeredToolNames() enumerator, so no
 // count is hand-copied. Aligned to the latest `chat/dsl.md` row.
+//
+// Round 071 MODIFY: the offered set grew to EIGHT — adding the in-file content
+// search tool `search_files` (ADR 0043). (The round-090 reconciliation of the
+// `chat/dsl.md` row, which had stayed at "seven", also added a single-source
+// carrier over the production assembler; see cmd/tellme's offered-set test.)
 func init() {
 	registrars = append(registrars, func(ctx *godog.ScenarioContext) {
 		ctx.Then(`^the request offered exactly the agent tools$`, thenOfferedTools)
