@@ -345,3 +345,24 @@ and a PR was opened.
 ### PM follow-ups
 
 - None new (no PM-owned requirement gap; the round is a truth/record reconciliation).
+
+### 6 (cont.) — the `architect` review-fold loop (PR #185) → `FOLDS VERIFIED — LOOP CLOSED`
+
+Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with `SESSION-BOOTSTRAP.md`
+(`--new`), then continuations (no `--new`). The architect reviewed PR #185 and posted
+[`pull/185#issuecomment-5828815049`](https://github.com/gosharplite/tellme/pull/185#issuecomment-5828815049)
+— **`APPROVE WITH REQUIRED FOLDS`**, no `[ARCHITECTURAL BLOCKER]`; it reproduced `make verify` /
+`go test` (E2E 330 · 2487) on a scratch copy of the head and confirmed ADR 0060 indexed once, unique,
+non-contradictory, and the domain model correctly unmodelled.
+
+| Fold | Resolution |
+| --- | --- |
+| **F-089-1** the recorded W1 carrier was not discriminating (measured: `grep -- '--retry'` matches both states; `grep -c -- '-b'` = 37 in both) | Restated W1 as a **carried, manual inspection** of `techstack.md:173` with a discriminating manual check (target the exclusion *sentence*, not the word) — `tasks.md` / `research.md` D5 / `spec.md` SC-001; the general limit recorded as **RF-089-6**. |
+| **F-089-2** FR-005 (and FR-002) had no ledger row; the FR-005 cell dropped `SafePath`/consent | Added ledger rows for **FR-002** + **FR-005** (all four exclusions name a witness); completed the FR-005 cell. |
+| **F-089-3** the "already carried" half cited as a `Rule` | Re-cited as the DSL row's **negative (`不該發生`) clause** (`chat/dsl.md:208`) — ADR 0060 D6 + `research.md` D4. |
+| N-089-1…4 + TD-089-1 | ADR 0023 relabel; `--retry` disambiguated; STATUS daily-log vintage; RF-089-5 names the two model anchors; TD-089-1 → RF-089-6. |
+| **RES-089-FV-1/2** (fold verification) | `plan.md` + day-summary witness restated; `truth-delta.md` carrier kind re-cited. |
+
+Loop history: review `0177611` → fold `02005ee` → fold-verification (**WITH RESIDUALS**) → residual fold `35faa95` → **residual verification → `FOLDS VERIFIED — LOOP CLOSED (no residuals)`** ([`5828914506`](https://github.com/gosharplite/tellme/pull/185#issuecomment-5828914506)); loop-closed summary [`5828917787`](https://github.com/gosharplite/tellme/pull/185#issuecomment-5828917787).
+
+**State**: **PR [#185](https://github.com/gosharplite/tellme/pull/185) is ready for a human to review and merge** (head `35faa95`; no Copilot review; only a human merges). On merge: propagate `dev → main` (no-ff, tagged **`round-089`**), refresh the binary, and **close [#184](https://github.com/gosharplite/tellme/issues/184)**.
