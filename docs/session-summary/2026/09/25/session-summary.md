@@ -660,7 +660,7 @@ After the round-091 closeout, the operator read issue **#189** and directed *"Op
 | Clarify | **not escalated (0 questions)** — the issue fixes the goal + the options; the design choice is the round's (RD-owned) |
 | Pipeline | specify ✅ · spec-by-example **NOOP** (no behaviour change) · technical-research ✅ (**ADR 0062** + the `techstack.md` placement note) · system-analysis ✅ (1 CLI end; api/data/UI NOOP; dsl-refine **NOOP**) · dsl-refine **NOOP** · tasks ✅ (T001–T011 + the Claim→Witness ledger) · implement ✅ |
 | The change | `internal/infrastructure/tools/agentbase.go` (**NEW** — the canonical base-set owner) · `cmd/tellme/deps.go` (`assembleAgentTools` delegates the base half; the `vision` gate + ceiling stay) · `tests/e2e/steps/tool_usage.go` (`registeredToolNames()` / `recordableToolNames()` delegate) · `cmd/tellme/deps_agentbase_test.go` + `tests/e2e/steps/tool_usage_test.go` (the two binding carriers) |
-| Witness | **W-1** re-inline a divergent copy in `registeredToolNames()` ⇒ `TestRegisteredToolNamesIsTheCanonicalBaseSet` red (`owner (8) vs enumerator (7)`) · **W-2** drop `search_files` from the owner ⇒ round-090's `TestOfferedSetDocMatchesTheLiveRegistry` red (`doc (8) vs live (7)`) · **W-3** re-inline a divergent copy in `assembleAgentTools()` ⇒ `TestAgentToolsIsTheCanonicalBaseSet` red — all reproduced then reverted · **W-4** behaviour identity (no assertion changed) |
+| Witness | **W-1** re-inline a divergent copy in `registeredToolNames()` ⇒ `TestRegisteredToolNamesIsTheCanonicalBaseSet` red (`owner (8) vs enumerator (7)`) · **W-2** drop `search_files` from the owner ⇒ round-090's `TestOfferedSetDocMatchesTheLiveRegistry` red (`doc (8) vs live (7)`) **and** `TestNewToolRegistryOffersAgentTools` red **and** the four `search_files` E2E Examples red (fold N-092-1) · **W-3** re-inline a divergent copy in `assembleAgentTools()` ⇒ `TestAgentToolsIsTheCanonicalBaseSet` red — all reproduced then reverted · **W-4** behaviour identity (no assertion changed) |
 | Verification | `make verify` **OK** (incl. `verify-architecture` **0 issues**, `verify-adr-index`, `modelith-check` no drift, `verify-cross-compile` 4/4) · `go test -count=1 ./...` **green** — E2E **330 scenarios · 2487 steps (unchanged)** · `go.mod`/`go.sum` unchanged |
 | Delivery | branch → **PR open** (no Copilot review; only a human merges) |
 
@@ -693,3 +693,16 @@ After the round-091 closeout, the operator read issue **#189** and directed *"Op
 ### PM follow-ups
 
 - None new (no PM-owned requirement gap; the round is a scoped composition refactor).
+
+### 12 (cont.) — the `architect` review-fold loop (PR #192) → `FOLDS VERIFIED WITH RESIDUALS` → residual fold
+
+Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with `SESSION-BOOTSTRAP.md` (`--new` once), then continuations (no `--new`). The architect reproduced the gates on an out-of-tree copy of each head and attacked the carriers by mutation.
+
+| Pass | Outcome |
+| --- | --- |
+| `review` @ `8c4e7f8` | **`APPROVE WITH REQUIRED FOLDS`** — no `[ARCHITECTURAL BLOCKER]`; all folds **record / live-state accuracy**: **F-092-1** the "single production site / two call sites only" claim was falsified by `newTUIRegistry()` + the round-031 literal-eight fixture · **F-092-2** the `cmd/tellme` carrier mis-cited as `deps_test.go` (shipped: `deps_agentbase_test.go`) · **F-092-3** a stale owner name (`cli.newToolRegistry`) left in `step_r021_t026_chat_then_offered_tools.go` · **F-092-4** a stale "all seven tools" count (`techstack.md`) + `agentTools()`'s comment omitting `search_files` · **F-092-5** the recorded round base was `e0dcea2` (measured: `65ad377`) · **F-092-6** `STATUS.md`'s candidates line named the in-flight anchor #189; + **TD-092-1** (FR-004's union half unwitnessed), **N-092-1** (W-2 enumeration understated), **N-092-2** (bolded `Closes #189.`), **N-092-3** (RF-092-2 uncited). |
+| fold @ `6014b35` | All six required folds + TD + nits folded (records + two comment-only `.go` edits); a Fold ledger added to `tasks.md`. Gates green; E2E **330 · 2487** unchanged. |
+| fold verification @ `6014b35` | **`FOLDS VERIFIED WITH RESIDUALS`** — every fold verified, all measured claims reproduced (W-1/W-3a/W-3b/W-2/FR-004 mutations, all reverted), gates green, E2E unchanged; three records-only residuals: **RES-092-FV-1** (the day-log §12 Witness row still understated W-2) · **RES-092-FV-2** (the loop not yet recorded on the live-state surfaces — recorded here at loop-closed) · **RES-092-FV-3** (the candidates line still named #189 inside the "not a candidate" parenthetical). |
+| residual fold | RES-092-FV-1 (day-log Witness row) + RES-092-FV-3 (drop the parenthetical) folded; RES-092-FV-2 recorded by this §12 (cont.). |
+
+Review/fold comments: [review](https://github.com/gosharplite/tellme/pull/192#issuecomment-5831066497) · [fold](https://github.com/gosharplite/tellme/pull/192#issuecomment-5831111856) · [fold-verification](https://github.com/gosharplite/tellme/pull/192#issuecomment-5831187134).
