@@ -149,7 +149,7 @@ Round 087 was human-merged (PR [#181](https://github.com/gosharplite/tellme/pull
 | **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker → **0 open** (closes #180) |
 | **6 — commit** | working `dev` committed + pushed |
 | **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-087`**; installed binary refreshed (`go install ./cmd/tellme`) |
-| **8 — issue tracker** | **[#180](https://github.com/gosharplite/tellme/issues/180) CLOSED** (completed) with a linking comment; tracker → **0 open** |
+| **8 — issue tracker** | **[#180](https://github.com/gosharplite/tellme/issues/180)** was already **CLOSED (completed)** by the human (`thptcnec`, 2026-09-25T04:55Z) at the merge; `gh issue list --state open` = **0 open** — nothing for closeout to action |
 
 ### Commits (branch `087-mcp-tool-cache`, then merged)
 
@@ -179,4 +179,4 @@ Round 087 was human-merged (PR [#181](https://github.com/gosharplite/tellme/pull
 
 - None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).
 
-*(Round 087 is fully closed out: PR #181 human-merged into `dev` (`c6ccb14`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-087`**; the installed binary refreshed; [#180](https://github.com/gosharplite/tellme/issues/180) closed.)*
+*(Round 087 is fully closed out: PR #181 human-merged into `dev` (`c6ccb14`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-087`**; the installed binary refreshed; [#180](https://github.com/gosharplite/tellme/issues/180) was closed (completed) by the human at the merge.)*
