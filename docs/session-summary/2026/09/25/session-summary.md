@@ -313,7 +313,7 @@ and a PR was opened.
 | The change | `specs/truth/techstack.md` (*History summarisation* bullet — `-b` out, `--retry` kept accurate) · **ADR 0060** (`docs/decisions/0060-context-control-position.md`) · `docs/decisions/README.md` (the 0060 index row + a 0053 back-pointer) |
 | Witness | **W1** reproducible grep (the stale clause is gone; `-b` reads as delivered) · **W2** `make verify-adr-index` (the ADR is indexed once) · **W3 not used** (no equivalence claim asserted — the ADR records the **non-equivalence** and cites the **existing** `offering-the-agent-tools.feature` carrier) |
 | Verification | `make verify` **OK** (incl. `verify-adr-index` + `modelith-check`) · `go test -count=1 ./...` **green** (E2E **330 scenarios · 2487 steps — unchanged**) · `gofmt`/`goimports` clean · `go.mod`/`go.sum` unchanged |
-| Delivery | branch → **PR open** (no Copilot review; only a human merges) |
+| Delivery | branch → **PR [#185](https://github.com/gosharplite/tellme/pull/185) open** (no Copilot review; only a human merges) |
 
 ### Decisions locked (round 089 / ADR 0060)
 
@@ -328,7 +328,7 @@ and a PR was opened.
 
 ### Open items (non-blocking)
 
-- **PR** for round 089 awaits a human review/merge → then the closeout (`SESSION-CLOSEOUT.md`): propagate `dev → main` (no-ff), tag **`round-089`**, refresh the binary; **close [#184](https://github.com/gosharplite/tellme/issues/184)**.
+- **PR [#185](https://github.com/gosharplite/tellme/pull/185)** for round 089 awaits a human review/merge → then the closeout (`SESSION-CLOSEOUT.md`): propagate `dev → main` (no-ff), tag **`round-089`**, refresh the binary; **close [#184](https://github.com/gosharplite/tellme/issues/184)**.
 - **ADR 0060 §Forward** RF-089-1…5 (the revisit trigger · the non-equivalence until a carrier exists · `--retry` still unimplemented · pruning-absence not mechanically gated · `docs/domain-model` not engaged).
 
 ### Process notes (durable)
