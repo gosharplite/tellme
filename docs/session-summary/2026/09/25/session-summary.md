@@ -429,7 +429,7 @@ After the round-089 closeout, the operator filed issue **#186** (four record-hyg
 | The change | `specs/truth/features/cli/chat/dsl.md` (the offered-set row: seven → **eight**, incl. `search_files`; the stale count dropped; the owner named) · the **carrier** `cmd/tellme/deps_offered_set_test.go` (parses the row's `集合` cell, asserts set-equality with `agentTools()`) · the step **comment** fix · `README.md` (surface enumeration + direction demoted to an ADR pointer) · **ADR 0061** + index · `STATUS.md` direction line · `specs/truth/techstack.md:155` (`cobra` note) |
 | Witness | **W-A (real carrier)** — the carrier reddens under either mutation (**remove `search_files` from the doc** ⇒ `doc (7) vs live (8)`; **remove `NewSearchTool` from `agentTools()`** ⇒ `doc (8) vs live (7)`), reproduced + reverted · **W-C** `make verify-adr-index` (ADR 0061 indexed once/unique) · **W-B/W-D** manual (README enumeration; the `cobra` note) |
 | Verification | `make verify` **OK** (incl. `verify-adr-index` + `modelith-check`) · `go test -count=1 ./...` **green** — E2E **330 scenarios · 2487 steps (unchanged)** · `gofmt`/`goimports` clean · `go.mod`/`go.sum` unchanged |
-| Delivery | branch → **PR open** (no Copilot review; only a human merges) |
+| Delivery | branch → **PR [#187](https://github.com/gosharplite/tellme/pull/187) open** (no Copilot review; only a human merges) |
 
 ### Decisions locked (round 090 / ADR 0061)
 
