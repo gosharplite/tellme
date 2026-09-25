@@ -113,11 +113,11 @@ func agentTools() []domaintools.Tool { return assembleAgentTools(deps.ToolSetSpe
 // branch) from the spec's provider label via the single-owned `infrallm.Family`
 // classifier — the resolution stays out of internal/cli (ADR 0039 D2).
 func assembleAgentTools(spec deps.ToolSetSpec) []domaintools.Tool {
-	tools := infratools.NewFilesystemTools()
-	tools = append(tools, infratools.NewSearchTool()...)
-	tools = append(tools, infratools.NewWriteTools()...)
-	tools = append(tools, infratools.NewCommandTool(spec.Sink))
-	tools = append(tools, infratools.NewSkillsTool(nil))
+	// The BASE set is single-owned by infratools.NewAgentBaseTools (round 092;
+	// ADR 0062) so this root and the e2e harness cannot drift. The capability gate
+	// and the family-aware ceiling stay HERE — a capability must not enter the
+	// tools layer (ADR 0039 D2/D3).
+	tools := infratools.NewAgentBaseTools(spec.Sink)
 	if spec.Vision {
 		tools = append(tools, infratools.NewReadImageTool(resolveImageCeiling(spec)))
 	}

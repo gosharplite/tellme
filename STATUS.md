@@ -1,9 +1,9 @@
 # tellme — Status
 
-**Last updated**: 2026-09-25 (session 78, closeout — round **091** `091-record-hygiene-tail` **DELIVERED / FROZEN**: PR [#190](https://github.com/gosharplite/tellme/pull/190) human-merged into `dev` (**fast-forward** `e0dcea2`), branch deleted local + remote, propagation `dev -> main` **DONE (no-ff)**, tagged **`round-091`**. **Closes [#188](https://github.com/gosharplite/tellme/issues/188)**; the tracker holds [#189](https://github.com/gosharplite/tellme/issues/189) + [#191](https://github.com/gosharplite/tellme/issues/191) (live round seeds).)
-**Round in flight**: **none** — round **091** delivered/frozen on `dev`; the next round opens off `dev` (operator value or a live issue — [#189](https://github.com/gosharplite/tellme/issues/189) / [#191](https://github.com/gosharplite/tellme/issues/191)).
-**Active branch**: `dev` (round 091 delivered via PR [#190](https://github.com/gosharplite/tellme/pull/190) merged `e0dcea2`, **fast-forward**; round branch deleted local + remote; propagation `dev -> main` **DONE (no-ff)**, tagged `round-091`).
-**Daily log**: [`docs/session-summary/2026/09/25/session-summary.md`](docs/session-summary/2026/09/25/session-summary.md) (rounds 087–091) · prior: [`2026-09-24`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086)
+**Last updated**: 2026-09-25 (session 79 — round **092** `092-single-source-agent-tool-set` **IN FLIGHT**: the base agent-tool composition is **single-owned** by `internal/infrastructure/tools.NewAgentBaseTools` (**ADR 0062**), cited by the composition root + the e2e harness, closing issue [#189](https://github.com/gosharplite/tellme/issues/189) / round-090 **R-090-1**; **PR open** — awaiting a human review/merge. Last delivered: round **091** `091-record-hygiene-tail` (PR [#190](https://github.com/gosharplite/tellme/pull/190) into `dev` `e0dcea2`, tagged **`round-091`**).)
+**Round in flight**: **092** `092-single-source-agent-tool-set` — **PR open** (anchor [#189](https://github.com/gosharplite/tellme/issues/189); branch off `dev` `e0dcea2`).
+**Active branch**: `092-single-source-agent-tool-set` (round 092 in flight; off `dev` `e0dcea2`; PR open — awaiting a human review/merge).
+**Daily log**: [`docs/session-summary/2026/09/25/session-summary.md`](docs/session-summary/2026/09/25/session-summary.md) (rounds 087–092) · prior: [`2026-09-24`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086)
 
 ## Last delivered round - 091 `091-record-hygiene-tail` (DELIVERED / FROZEN - PR [#190](https://github.com/gosharplite/tellme/pull/190) merged into `dev` `e0dcea2`, **fast-forward**)
 
