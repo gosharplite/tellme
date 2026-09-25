@@ -291,3 +291,122 @@ Round 088 was human-merged (PR [#183](https://github.com/gosharplite/tellme/pull
 - None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).
 
 *(Round 088 is fully closed out: PR #183 human-merged into `dev` (`033f364`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-088`**; the installed binary refreshed; [#182](https://github.com/gosharplite/tellme/issues/182) closed.)*
+
+---
+
+## 6. Session 76 (2026-09-25, cont.) — round 089 `089-context-control-position` **OPENED → full pipeline → PR open** (anchor issue [#184](https://github.com/gosharplite/tellme/issues/184); **ADR 0060**)
+
+After the round-088 closeout, the operator filed issue **#184** (a truth-hygiene defect + an unrecorded
+decision) and directed *"Open a new aixbdd round, the goal is to close #184."* A new branch
+**`089-context-control-position`** was created off `dev` `53753a0`, the (docs/truth-only) pipeline ran,
+and a PR was opened.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`089-context-control-position`** (off `dev` `53753a0`) |
+| Anchor | issue [#184](https://github.com/gosharplite/tellme/issues/184) — reconcile the stale `-b`/`--retry` clause + record the context-control position; **DoD = close it** |
+| Theme | **Truth/record-only**: (a) split the `techstack.md` clause — `-b`/`--back` is **delivered** (round 081 / ADR 0053), `--retry` stays a genuine non-introduction; (b) record the position as **ADR 0060** (no `summarize_history` port; operator-manual `-l`/`-b`; a revisit trigger) |
+| Clarify | **not escalated (0 questions)** — the issue locks the goal + decision content; the operator's round instruction grants the intent (A1) |
+| Pipeline | specify ✅ · spec-by-example **NOOP** (no behaviour change) · technical-research ✅ (**ADR 0060** + the `techstack.md` clause fix) · system-analysis ✅ (1 CLI end; api/data/UI/dsl NOOP) · dsl-refine **NOOP** (no `.feature` change — the "no summarisation tool" claim already ships) · tasks ✅ (T001–T008 + the Claim→Witness ledger) · implement ✅ |
+| The change | `specs/truth/techstack.md` (*History summarisation* bullet — `-b` out, `--retry` kept accurate) · **ADR 0060** (`docs/decisions/0060-context-control-position.md`) · `docs/decisions/README.md` (the 0060 index row + a 0053 back-pointer) |
+| Witness | **W1** carried, manual inspection of `techstack.md:173` (the stale clause is gone; `-b` reads as delivered — no mechanical carrier) · **W2** `make verify-adr-index` (the ADR is indexed once) · **W3 not used** (no equivalence claim asserted — the ADR records the **non-equivalence** and cites the **existing** `offering-the-agent-tools.feature` carrier) |
+| Verification | `make verify` **OK** (incl. `verify-adr-index` + `modelith-check`) · `go test -count=1 ./...` **green** (E2E **330 scenarios · 2487 steps — unchanged**) · `gofmt`/`goimports` clean · `go.mod`/`go.sum` unchanged |
+| Delivery | branch → **PR [#185](https://github.com/gosharplite/tellme/pull/185) open** (no Copilot review; only a human merges) |
+
+### Decisions locked (round 089 / ADR 0060)
+
+| # | Decision |
+| --- | --- |
+| **D1** | tellme does **not** port `summarize_history` — neither as an agent tool nor as automatic summarisation. |
+| **D2** | Supported context control is **operator-manual**: `-l` (inspect) + `-b` (roll back); `--new` archives (does not prune). |
+| **D3** | `MAX_HISTORY_TOKENS` is displayed + caps the tool-result bound but **prunes nothing**; token-budget pruning / history pinning stay settled exclusions. |
+| **D4** | A **deliberate divergence**, and **not** an equivalence claim: the reference's compression is lossy-but-retaining; `-b` is coarse, whole-turn, destructive. |
+| **D5** | The `techstack.md` clause is reconciled: `-b` **delivered**, `--retry` a **genuine non-introduction** (`truth-current` holds). |
+| **D6** | Witness: the "no summarisation tool" half is **already carried** by `chat/offering-the-agent-tools.feature` (cited, not re-created); the ADR's durability is `verify-adr-index`. |
+
+### Open items (non-blocking)
+
+- **PR [#185](https://github.com/gosharplite/tellme/pull/185)** for round 089 awaits a human review/merge → then the closeout (`SESSION-CLOSEOUT.md`): propagate `dev → main` (no-ff), tag **`round-089`**, refresh the binary; **close [#184](https://github.com/gosharplite/tellme/issues/184)**.
+- **ADR 0060 §Forward** RF-089-1…5 (the revisit trigger · the non-equivalence until a carrier exists · `--retry` still unimplemented · pruning-absence not mechanically gated · `docs/domain-model` not engaged).
+
+### Process notes (durable)
+
+- **A truth-surplus is a defect too.** `-b` was documented as delivered *and* excluded; `truth-current` requires one current description — the round applied the round-088 F-088-1 class to a *scope* clause, not just a path.
+- **A decision record is not an equivalence claim.** The honest form is the **non-equivalence** + a **revisit trigger**; an unfalsifiable coverage claim was refused (W3 not used).
+- **Cite the carrier, don't manufacture one.** The "no summarisation tool" claim already had an E2E carrier; the round cited it rather than inventing a vacuous new one.
+
+### Next steps
+
+1. Human reviews + merges the round-089 PR; then the closeout (propagate `dev → main` no-ff, tag `round-089`; close #184).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `089-context-control-position` until merged, then `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round is a truth/record reconciliation).
+
+### 6 (cont.) — the `architect` review-fold loop (PR #185) → `FOLDS VERIFIED — LOOP CLOSED`
+
+Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with `SESSION-BOOTSTRAP.md`
+(`--new`), then continuations (no `--new`). The architect reviewed PR #185 and posted
+[`pull/185#issuecomment-5828815049`](https://github.com/gosharplite/tellme/pull/185#issuecomment-5828815049)
+— **`APPROVE WITH REQUIRED FOLDS`**, no `[ARCHITECTURAL BLOCKER]`; it reproduced `make verify` /
+`go test` (E2E 330 · 2487) on a scratch copy of the head and confirmed ADR 0060 indexed once, unique,
+non-contradictory, and the domain model correctly unmodelled.
+
+| Fold | Resolution |
+| --- | --- |
+| **F-089-1** the recorded W1 carrier was not discriminating (measured: `grep -- '--retry'` matches both states; `grep -c -- '-b'` = 37 in both) | Restated W1 as a **carried, manual inspection** of `techstack.md:173` with a discriminating manual check (target the exclusion *sentence*, not the word) — `tasks.md` / `research.md` D5 / `spec.md` SC-001; the general limit recorded as **RF-089-6**. |
+| **F-089-2** FR-005 (and FR-002) had no ledger row; the FR-005 cell dropped `SafePath`/consent | Added ledger rows for **FR-002** + **FR-005** (all four exclusions name a witness); completed the FR-005 cell. |
+| **F-089-3** the "already carried" half cited as a `Rule` | Re-cited as the DSL row's **negative (`不該發生`) clause** (`chat/dsl.md:208`) — ADR 0060 D6 + `research.md` D4. |
+| N-089-1…4 + TD-089-1 | ADR 0023 relabel; `--retry` disambiguated; STATUS daily-log vintage; RF-089-5 names the two model anchors; TD-089-1 → RF-089-6. |
+| **RES-089-FV-1/2** (fold verification) | `plan.md` + day-summary witness restated; `truth-delta.md` carrier kind re-cited. |
+
+Loop history: review `0177611` → fold `02005ee` → fold-verification (**WITH RESIDUALS**) → residual fold `35faa95` → **residual verification → `FOLDS VERIFIED — LOOP CLOSED (no residuals)`** ([`5828914506`](https://github.com/gosharplite/tellme/pull/185#issuecomment-5828914506)); loop-closed summary [`5828917787`](https://github.com/gosharplite/tellme/pull/185#issuecomment-5828917787).
+
+**State**: **PR [#185](https://github.com/gosharplite/tellme/pull/185) is ready for a human to review and merge** (head `35faa95`; no Copilot review; only a human merges). On merge: propagate `dev → main` (no-ff, tagged **`round-089`**), refresh the binary, and **close [#184](https://github.com/gosharplite/tellme/issues/184)**.
+
+---
+
+## 7. Session 76 closeout (2026-09-25) — round 089 `089-context-control-position` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 089 was human-merged (PR [#185](https://github.com/gosharplite/tellme/pull/185) → `dev` **`761733a`**, **fast-forward**); `git fetch --prune` reported `[deleted] origin/089-context-control-position`, the round tip (`761733a`) was an ancestor of `origin/dev` (and the local `dev` fast-forwarded to it), so the **local branch was deleted** (`git branch -d 089-context-control-position`, was `761733a`), and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == 761733a`; no delivered `specs/plans/**` package touched (087/088 unmodified); no stray temp files; round branch already deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `go test -count=1 ./...` green) · `make test-race` **no data races** · E2E **330 scenarios · 2487 steps** · `verify-adr-index` consistent (ADR 0060 once/unique) · `modelith-check` no drift · `go.mod`/`go.sum` unchanged · diff-level secret scan clean (only benign "token-budget"/"tokens" prose) |
+| **3 — STATUS.md** | header → round 089 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-088 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-25.md`](../../../../archives/status/2026-09-25.md) (same-day file — appended); round-089 section added; delivered-rounds pointer → 001–089; roadmap candidates → **0 open**; round-close-tags line + the topology counts (round 089 added no rows) refreshed; **54 lines** (live state only) |
+| **4 — daily summary** | this §7 (closeout) appended (the §1–§6 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker → **0 open** (closes #184) |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-089`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#184](https://github.com/gosharplite/tellme/issues/184) CLOSED** (completed) with a linking comment; the tracker → **0 open** |
+
+### Commits (branch `089-context-control-position`, then merged fast-forward)
+
+| Commit | Note |
+| --- | --- |
+| `c1108c6` | `docs(089)`: reconcile the stale `-b`/`--retry` clause + record the context-control position (ADR 0060) |
+| `0177611` | `docs(089)`: name the round PR (#185) in STATUS + the day log |
+| `02005ee` | `fix(089)`: fold the architect review (F-089-1/2/3 + N-089-1..4 + TD-089-1) |
+| `35faa95` | `docs(089)`: fold RES-089-FV-1/2 (plan.md witness + truth-delta carrier kind) |
+| `761733a` | `docs(089)`: day-log §6 (cont.) — review-fold loop CLOSED (the merge head, fast-forward) |
+| *(this closeout, on `dev`)* | `docs(089)`: day close — round 089 delivered + propagated; STATUS split + 09/25 summary §7 |
+
+### Open items (non-blocking)
+
+- **None new.** Per the settled curation rule, `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` (the authority) or a live GitHub issue. ADR 0060 §Forward RF-089-1…6 are disclosures, not tasking.
+- **Issue tracker**: **0 open**.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the tracker is **0 open**; Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round was a truth/record reconciliation).
+
+*(Round 089 is fully closed out: PR #185 human-merged into `dev` (`761733a`, fast-forward); propagation `dev → main` **DONE (no-ff)**, tagged **`round-089`**; the installed binary refreshed; [#184](https://github.com/gosharplite/tellme/issues/184) closed.)*
