@@ -14,9 +14,9 @@ import (
 // that knows the protocol library's schema representation; the domain layer
 // stays dependency-free.
 type MCPToolDefinition struct {
-	Name        string
-	Description string
-	InputSchema json.RawMessage
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	InputSchema json.RawMessage `json:"input_schema,omitempty"`
 }
 
 // MCPToolResult is the outcome of an MCP tool call: the text fed back into the

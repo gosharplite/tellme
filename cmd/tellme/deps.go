@@ -31,6 +31,12 @@ import (
 // credential token source (FR-020).
 const mcpDiscoveryBound = 3 * time.Second
 
+// mcpToolCacheTTL is the cross-invocation MCP tool cache's freshness window
+// (round 087; ADR 0058). A cached entry older than this is served once more (no
+// pre-request dial) and refreshed after the answer; within it the prelude dials
+// nothing. A named constant — no operator config key (ADR 0058 §Forward RF-087-1).
+const mcpToolCacheTTL = 24 * time.Hour
+
 // buildOptions constructs the single injected value internal/cli consumes
 // (round 044 / ADR 0013). It is the composition root: the concrete adapters are
 // built here (this package is exempt from the R1 tier table) and injected into
@@ -62,15 +68,16 @@ func buildDeps() deps.Dependencies {
 			})
 		},
 		NewMetricsProvider: func() metrics.SystemMetricsProvider { return infratelemetry.NewSystemMetricsProvider() },
-		MCPDiscoverer: func(ctx context.Context, servers map[string]config.MCPServerConfig) deps.Discovery {
-			tools, warnings, closeFn := mcp.Discover(ctx, servers, mcpDiscoveryBound, di.NewRemoteClient, di.NewGhTokenResolver(mcpDiscoveryBound))
+		MCPDiscoverer: func(ctx context.Context, home string, servers map[string]config.MCPServerConfig) deps.Discovery {
+			cache := mcp.NewFileToolCache(home)
+			run := mcp.DiscoverCached(ctx, servers, mcpDiscoveryBound, cache, time.Now, mcpToolCacheTTL, di.NewRemoteClient, di.NewGhTokenResolver(mcpDiscoveryBound))
 			// F-7: the close is a visible field (round 051 / ADR 0020). Adapt the
 			// bare func() into an io.Closer.
 			var closer io.Closer
-			if closeFn != nil {
-				closer = closeFunc(closeFn)
+			if run.Close != nil {
+				closer = closeFunc(run.Close)
 			}
-			return deps.Discovery{Tools: tools, Warnings: warnings, Closer: closer}
+			return deps.Discovery{Tools: run.Tools, Warnings: run.Warnings, Closer: closer, Refresh: run.Refresh}
 		},
 		LoopFactory:  func(spec agentport.LoopSpec) agentport.Loop { return agent.NewLoop(spec) },
 		NewLines:     func(colour bool) render.Lines { return ui.NewLines(colour) },

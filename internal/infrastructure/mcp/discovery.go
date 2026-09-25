@@ -47,28 +47,11 @@ type mcpRun struct {
 // all (FR-011); a COMMAND (stdio) entry is excluded by validation.
 func discover(ctx context.Context, servers map[string]config.MCPServerConfig, bound time.Duration, newClient ClientFactory, resolveToken TokenSource) mcpRun {
 	run := mcpRun{close: func() {}}
-	keys := make([]string, 0, len(servers))
-	for name, s := range servers {
-		if s.IsRemote() && s.IsEnabled() {
-			keys = append(keys, name)
-		}
-	}
+	keys := enabledRemoteKeys(servers)
 	if len(keys) == 0 {
 		return run
 	}
-	sort.Strings(keys)
-
-	results := make([]serverResult, len(keys))
-	var wg sync.WaitGroup
-	for i, key := range keys {
-		wg.Add(1)
-		go func(i int, key string) {
-			defer wg.Done()
-			results[i] = discoverServer(ctx, key, servers[key], bound, newClient, resolveToken)
-		}(i, key)
-	}
-	wg.Wait()
-
+	results := discoverKeys(ctx, keys, servers, bound, newClient, resolveToken)
 	var clients []domaintools.MCPClient
 	for _, r := range results {
 		if r.client != nil {
@@ -87,10 +70,39 @@ func discover(ctx context.Context, servers map[string]config.MCPServerConfig, bo
 	return run
 }
 
+// enabledRemoteKeys returns the sorted keys of the enabled remote MCP servers.
+func enabledRemoteKeys(servers map[string]config.MCPServerConfig) []string {
+	keys := make([]string, 0, len(servers))
+	for name, s := range servers {
+		if s.IsRemote() && s.IsEnabled() {
+			keys = append(keys, name)
+		}
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// discoverKeys probes the given server keys concurrently (one goroutine each,
+// bounded by bound) and returns the results in the SAME order as keys.
+func discoverKeys(ctx context.Context, keys []string, servers map[string]config.MCPServerConfig, bound time.Duration, newClient ClientFactory, resolveToken TokenSource) []serverResult {
+	results := make([]serverResult, len(keys))
+	var wg sync.WaitGroup
+	for i, key := range keys {
+		wg.Add(1)
+		go func(i int, key string) {
+			defer wg.Done()
+			results[i] = discoverServer(ctx, key, servers[key], bound, newClient, resolveToken)
+		}(i, key)
+	}
+	wg.Wait()
+	return results
+}
+
 // serverResult is one server's discovery outcome.
 type serverResult struct {
 	client   domaintools.MCPClient
 	tools    []domaintools.Tool
+	defs     []domaintools.MCPToolDefinition // the offered defs (normalized), in order
 	warnings []string
 }
 
@@ -134,7 +146,184 @@ func discoverServer(parent context.Context, key string, cfg config.MCPServerConf
 			continue
 		}
 		dt.InputSchema = schema
+		res.defs = append(res.defs, dt)
 		res.tools = append(res.tools, NewTool(key, dt, client, timeout))
 	}
 	return res
+}
+
+// CachedRun is the outcome of the cache-aware prelude (round 087; ADR 0058).
+type CachedRun struct {
+	Tools    []domaintools.Tool
+	Warnings []string
+	// Close tears down every opened client (the cold-discovery clients and the
+	// lazy clients the cached tools bound).
+	Close func()
+	// Refresh is the post-answer stale refresh; nil when no key was stale. It
+	// dials the stale keys (bounded, concurrent), rewrites their cache entries on
+	// success (keeping the prior entry on failure), and returns any warnings.
+	Refresh func() []string
+}
+
+// DiscoverCached is the round-087 (ADR 0058) cache-aware prompt-path prelude. For
+// each enabled remote MCP server it prefers a cached entry whose declaration
+// (url + auth) still matches the config:
+//
+//   - a FRESH entry is served with NO dial;
+//   - a STALE entry is served with no pre-request dial and scheduled for a
+//     post-answer Refresh;
+//   - a COLD key (absent / declaration mismatch / corrupt cache) falls back to
+//     exactly one bounded concurrent discovery and is written to the cache.
+//
+// The assembled tool list preserves the live order (native tools are appended by
+// the caller; MCP tools appear in sorted server-key order, each server's tools in
+// advertised order), so a warm cache offers an identical set/order to live
+// discovery. Best-effort: a cache read/write failure degrades to live discovery
+// and never fails the run.
+func DiscoverCached(ctx context.Context, servers map[string]config.MCPServerConfig, bound time.Duration,
+	cache domaintools.MCPToolCache, now func() time.Time, ttl time.Duration,
+	newClient ClientFactory, resolveToken TokenSource) CachedRun {
+	run := CachedRun{Close: func() {}}
+	keys := enabledRemoteKeys(servers)
+	if len(keys) == 0 {
+		return run
+	}
+	loaded, _ := cache.Load() // best-effort: a read failure ⇒ every key cold
+
+	byKey := make(map[string][]domaintools.Tool, len(keys))
+	var clients []domaintools.MCPClient
+	var cold, stale []string
+	for _, key := range keys {
+		cfg := servers[key]
+		e, ok := loaded[key]
+		if !ok || e.URL != cfg.URL || e.Auth != cfg.EffectiveAuth() {
+			cold = append(cold, key)
+			continue
+		}
+		// Serve the cached entry: bind a lazily-connecting client so an uneventful
+		// turn dials nothing (round-032 TD1/R3 contract on failure).
+		lc := NewLazyClient(cfg, ResolveMCPTimeout(cfg.Timeout), newClient, resolveToken)
+		clients = append(clients, lc)
+		byKey[key] = cachedTools(key, cfg, e, lc)
+		if now().Sub(e.FetchedAt) >= ttl {
+			stale = append(stale, key)
+		}
+	}
+
+	coldTools, warns, coldClients, fresh := discoverColdKeys(ctx, cold, servers, bound, newClient, resolveToken, now)
+	run.Warnings = append(run.Warnings, warns...)
+	clients = append(clients, coldClients...)
+	for k, ts := range coldTools {
+		byKey[k] = ts
+	}
+	if len(fresh) > 0 {
+		_ = cache.Save(mergeCache(loaded, fresh)) // best-effort
+	}
+
+	for _, key := range keys { // assemble in the LIVE order (sorted key order)
+		run.Tools = append(run.Tools, byKey[key]...)
+	}
+	if len(clients) > 0 {
+		cs := clients
+		run.Close = func() {
+			for _, c := range cs {
+				_ = c.Close()
+			}
+		}
+	}
+	if len(stale) > 0 {
+		run.Refresh = makeStaleRefresh(stale, servers, bound, cache, now, newClient, resolveToken)
+	}
+	return run
+}
+
+// cachedTools rebuilds one cached entry's offered tools, bound to a lazy client.
+func cachedTools(key string, cfg config.MCPServerConfig, e domaintools.MCPToolCacheEntry, lc domaintools.MCPClient) []domaintools.Tool {
+	to := ResolveMCPTimeout(cfg.Timeout)
+	tools := make([]domaintools.Tool, 0, len(e.Tools))
+	for _, def := range e.Tools {
+		if !ValidToolName(NamespacedName(key, def.Name)) {
+			continue
+		}
+		tools = append(tools, NewTool(key, def, lc, to))
+	}
+	return tools
+}
+
+// discoverColdKeys probes the cold keys (bounded, concurrent) and returns their
+// tools keyed by server, their warnings, their clients, and the cache entries to
+// persist (only for keys that answered, so a failed key is never cached).
+func discoverColdKeys(ctx context.Context, cold []string, servers map[string]config.MCPServerConfig, bound time.Duration, newClient ClientFactory, resolveToken TokenSource, now func() time.Time) (map[string][]domaintools.Tool, []string, []domaintools.MCPClient, map[string]domaintools.MCPToolCacheEntry) {
+	byKey := make(map[string][]domaintools.Tool, len(cold))
+	entries := make(map[string]domaintools.MCPToolCacheEntry, len(cold))
+	var warns []string
+	var clients []domaintools.MCPClient
+	if len(cold) == 0 {
+		return byKey, warns, clients, entries
+	}
+	results := discoverKeys(ctx, cold, servers, bound, newClient, resolveToken)
+	for i, r := range results {
+		warns = append(warns, r.warnings...)
+		if r.client == nil {
+			continue
+		}
+		key := cold[i]
+		clients = append(clients, r.client)
+		byKey[key] = r.tools
+		entries[key] = domaintools.MCPToolCacheEntry{
+			URL:       servers[key].URL,
+			Auth:      servers[key].EffectiveAuth(),
+			FetchedAt: now(),
+			Tools:     r.defs,
+		}
+	}
+	return byKey, warns, clients, entries
+}
+
+// mergeCache returns loaded with fresh overriding same-key entries.
+func mergeCache(loaded, fresh map[string]domaintools.MCPToolCacheEntry) map[string]domaintools.MCPToolCacheEntry {
+	merged := make(map[string]domaintools.MCPToolCacheEntry, len(loaded)+len(fresh))
+	for k, v := range loaded {
+		merged[k] = v
+	}
+	for k, v := range fresh {
+		merged[k] = v
+	}
+	return merged
+}
+
+// makeStaleRefresh builds the post-answer refresh: dial the stale keys (bounded,
+// concurrent), rewrite their entries on success, keep the prior entry on failure.
+func makeStaleRefresh(stale []string, servers map[string]config.MCPServerConfig, bound time.Duration, cache domaintools.MCPToolCache, now func() time.Time, newClient ClientFactory, resolveToken TokenSource) func() []string {
+	keys := append([]string(nil), stale...)
+	return func() []string {
+		ctx, cancel := context.WithTimeout(context.Background(), bound)
+		defer cancel()
+		results := discoverKeys(ctx, keys, servers, bound, newClient, resolveToken)
+		cur, _ := cache.Load()
+		if cur == nil {
+			cur = map[string]domaintools.MCPToolCacheEntry{}
+		}
+		var warns []string
+		changed := false
+		for i, r := range results {
+			warns = append(warns, r.warnings...)
+			if r.client == nil {
+				continue // failed refresh: keep the prior entry
+			}
+			_ = r.client.Close()
+			key := keys[i]
+			cur[key] = domaintools.MCPToolCacheEntry{
+				URL:       servers[key].URL,
+				Auth:      servers[key].EffectiveAuth(),
+				FetchedAt: now(),
+				Tools:     r.defs,
+			}
+			changed = true
+		}
+		if changed {
+			_ = cache.Save(cur)
+		}
+		return warns
+	}
 }

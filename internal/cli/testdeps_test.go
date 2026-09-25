@@ -125,7 +125,7 @@ func defaultTestDeps(mods ...func(*deps.Dependencies)) deps.Dependencies {
 		NewTUIRegistry:     func() domaintools.Registry { return domaintools.NewRegistry() },
 		BindSkillsCatalog:  func(domaintools.Registry, string) {},
 		NewMetricsProvider: func() metrics.SystemMetricsProvider { return nil },
-		MCPDiscoverer: func(context.Context, map[string]config.MCPServerConfig) deps.Discovery {
+		MCPDiscoverer: func(context.Context, string, map[string]config.MCPServerConfig) deps.Discovery {
 			return deps.Discovery{}
 		},
 		LoopFactory: func(spec agentport.LoopSpec) agentport.Loop {
