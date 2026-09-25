@@ -56,6 +56,14 @@ type Options struct {
 	// TransportFail, when true, makes a tools/call request fail at the transport
 	// layer (HTTP 500).
 	TransportFail bool
+	// HeaderRouted, when non-empty, advertises the tool with an argument of that
+	// name annotated `x-mcp-header` (the SEP-2243 header-routing extension, e.g.
+	// the GitHub MCP server's `owner`/`repo`). The SDK SERVER then REQUIRES the
+	// client to send it as the HTTP header `Mcp-Param-<name>` and rejects a call
+	// that arrives without it (CodeHeaderMismatch) — so the cache-regression
+	// witness (round 088; ADR 0059) reproduces the real failure hermetically. The
+	// argument is also a declared (string) property, so the model may supply it.
+	HeaderRouted string
 }
 
 // Server is a scriptable in-process MCP server.
@@ -79,6 +87,21 @@ func defaultSchema() any {
 	return map[string]any{"type": "object", "properties": map[string]any{}}
 }
 
+// headerRoutedSchema returns an object schema declaring one required string
+// property `name` annotated with the SEP-2243 `x-mcp-header` extension (round
+// 088; ADR 0059) — the shape the GitHub MCP server uses. The SDK server then
+// requires `Mcp-Param-<name>` on every call to this tool.
+func headerRoutedSchema(name string) any {
+	n := strings.TrimSpace(name)
+	return map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			n: map[string]any{"type": "string", "description": "routed as a header", "x-mcp-header": n},
+		},
+		"required": []any{n},
+	}
+}
+
 // Start launches the fake MCP server on a loopback listener.
 func Start(opts Options) *Server {
 	s := &Server{opts: opts}
@@ -86,7 +109,11 @@ func Start(opts Options) *Server {
 	if opts.Tool != "" {
 		schema := opts.Schema
 		if schema == nil {
-			schema = defaultSchema()
+			if opts.HeaderRouted != "" {
+				schema = headerRoutedSchema(opts.HeaderRouted)
+			} else {
+				schema = defaultSchema()
+			}
 		}
 		desc := opts.Description
 		if opts.EmptyDescription {

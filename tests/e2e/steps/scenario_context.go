@@ -484,9 +484,11 @@ func (sc *scenarioContext) startMCPFake(name string, opts mcptest.Options) *mcpt
 }
 
 // writeMCPToolCache arranges a cross-invocation MCP tool cache entry for a server
-// at a given age (round 087; ADR 0058) — a fresh entry (age 0) makes the prelude
-// dial nothing, an old one (age > the TTL) is served-then-refreshed. The entry
-// carries the server's fake URL and advertised tool, and never a credential.
+// at a given age (round 087; ADR 0058) in the per-mode SESSION WORKSPACE
+// (round 088 / ADR 0059 — output/<mode>/mcp-toolcache.json, not the home root).
+// A fresh entry (age 0) makes the prelude dial nothing; an old one (age > the TTL)
+// is served-then-refreshed. The entry carries the server's fake URL and advertised
+// tool, and never a credential.
 func (sc *scenarioContext) writeMCPToolCache(server string, age time.Duration) error {
 	fake := sc.mcpFake(server)
 	if fake == nil {
@@ -512,11 +514,23 @@ func (sc *scenarioContext) writeMCPToolCache(server string, age time.Duration) e
 	if err != nil {
 		return err
 	}
-	return sc.writeFile(mcpCacheFileName, data)
+	return sc.writeFile(filepath.Join("output", "butler", mcpCacheFileName), data)
 }
 
 // mcpCacheFileName mirrors the production cache file name (round 087; ADR 0058).
 const mcpCacheFileName = "mcp-toolcache.json"
+
+// mcpCacheWorkspacePath is the per-mode workspace cache path a round-088 run uses
+// (output/butler/mcp-toolcache.json — the E2E default mode is butler).
+func (sc *scenarioContext) mcpCacheWorkspacePath() string {
+	return filepath.Join(sc.home, "output", "butler", mcpCacheFileName)
+}
+
+// mcpCacheHomeRootPath is the OLD (round-087) home-root path, which a round-088
+// run must NOT use.
+func (sc *scenarioContext) mcpCacheHomeRootPath() string {
+	return filepath.Join(sc.home, mcpCacheFileName)
+}
 
 // mcpFake returns the fake MCP server registered under a server key, or nil.
 func (sc *scenarioContext) mcpFake(name string) *mcptest.Server {

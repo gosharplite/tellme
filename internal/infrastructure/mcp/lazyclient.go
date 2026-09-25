@@ -26,9 +26,10 @@ type lazyClient struct {
 	newClient    ClientFactory
 	resolveToken TokenSource
 
-	mu    sync.Mutex
-	inner domaintools.MCPClient
-	err   error
+	mu     sync.Mutex
+	inner  domaintools.MCPClient
+	err    error
+	listed bool
 }
 
 // NewLazyClient builds a client that connects on first use (round 087; ADR 0058).
@@ -66,12 +67,35 @@ func (c *lazyClient) ListTools(ctx context.Context) ([]domaintools.MCPToolDefini
 	return cl.ListTools(ctx)
 }
 
-// CallTool connects on first use; a connect failure is a recoverable result.
+// warmToolsList issues ONE tools/list on the session so the client SDK caches the
+// tool definitions (round 088; ADR 0059). This is REQUIRED for `x-mcp-header`
+// routing: the SDK resolves a tool's argument-header annotations from its
+// `tools/list` cache (mcp/client.go `lookupTool`), so a session that never listed
+// the tools sends the arguments in the body instead of as `Mcp-Param-*` headers,
+// and a server that requires them (e.g. the GitHub MCP server) rejects the call.
+// Best-effort: a warm-up failure is ignored and the call is still attempted.
+func (c *lazyClient) warmToolsList(ctx context.Context, cl domaintools.MCPClient) {
+	c.mu.Lock()
+	if c.listed {
+		c.mu.Unlock()
+		return
+	}
+	c.mu.Unlock()
+	_, _ = cl.ListTools(ctx) // populate the SDK tools cache; ignore a failure
+	c.mu.Lock()
+	c.listed = true
+	c.mu.Unlock()
+}
+
+// CallTool connects on first use, warms the session's tools/list cache (so
+// header-routed arguments are emitted as `Mcp-Param-*`; ADR 0059), then
+// delegates. A connect failure is a recoverable result.
 func (c *lazyClient) CallTool(ctx context.Context, name string, args map[string]interface{}) (domaintools.MCPToolResult, error) {
 	cl, err := c.connect(ctx)
 	if err != nil {
 		return domaintools.MCPToolResult{Text: "error: " + err.Error()}, nil
 	}
+	c.warmToolsList(ctx, cl)
 	return cl.CallTool(ctx, name, args)
 }
 

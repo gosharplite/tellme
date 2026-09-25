@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -53,7 +52,7 @@ func givenMCPServerStoppedAnswering(ctx context.Context, server string) error {
 // (the cold-discovery write happened).
 func thenMCPToolsRemembered(ctx context.Context, server string) error {
 	sc := scenarioFrom(ctx)
-	p := filepath.Join(sc.home, mcpCacheFileName)
+	p := sc.mcpCacheWorkspacePath()
 	data, err := os.ReadFile(p)
 	if err != nil {
 		return fmt.Errorf("tellme must remember the server's tools, but the cache file is unreadable: %w", err)

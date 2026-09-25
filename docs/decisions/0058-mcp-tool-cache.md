@@ -1,6 +1,7 @@
 # ADR 0058 — A cross-invocation MCP tool cache (the prompt prelude dials nothing in the steady state)
 
-- **Status:** Accepted
+- **Status:** Amended by [ADR 0059](0059-mcp-cache-header-routing-and-mode-location.md) — **D2** (home-root placement) is **superseded**, **D4** (the lazy connect) is **qualified** (it must warm `tools/list` before calling).
+- **Status (original):** Accepted
 - **Date:** 2026-09-25
 - **Deciders:** tellme owner (issue #180)
 - **Related:** [ADR 0006](https://github.com/gosharplite/aixbdd-tmg/blob/main/decisions/0006-claim-witness-obligation.md) (upstream — no normative clause reaches truth unwitnessed), [ADR 0041](0041-domain-model-drift-guard.md) (the load-bearing domain model), [ADR 0012](0012-deterministic-hermetic-tests.md) (determinism/hermeticity), [ADR 0056](0056-rollback-durability-witness.md) (the `fsync`-before-rename durability discipline this borrows), round 032 (`specs/plans/032-mcp-client` — the discovery this caches; its Q2 Option 2), round 044 (**ADR 0013** — the `deps.MCPDiscoverer` seam), round 076 (**ADR 0048** — the recoverable unknown-name fold-back); issue [#180](https://github.com/gosharplite/tellme/issues/180)

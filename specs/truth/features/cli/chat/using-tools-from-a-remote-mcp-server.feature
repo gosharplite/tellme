@@ -357,3 +357,38 @@ Feature: Using tools from a remote MCP server
       And the run continued past the failed MCP tool call
       And tellme prints the provider's answer "I could not check the price."
       And tellme exits successfully
+
+  Rule: A remembered tool whose argument is routed as a header still works
+
+    # Round 088 (issue #182 / ADR 0059): a server may route a tool argument as an
+    # HTTP header (the SEP-2243 `x-mcp-header` extension, e.g. the GitHub MCP
+    # server's `owner`/`repo`). The client SDK resolves that annotation from its
+    # `tools/list` cache, so a cached tool whose lazy client skips `tools/list`
+    # sends the argument in the body and the server rejects the call. The lazy
+    # client now warms `tools/list` on the first call.
+
+    Example: A remembered header-routed tool is actually run
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "gh" that offers a tool "create_issue" whose "owner" argument is routed as a header
+      And a configured provider "test-model" whose endpoint asks tellme to use the MCP tool "create_issue" from the server "gh" with the reason "file a bug" and the argument "owner" set to "me" and then answers with "Filed."
+      And the tools of the MCP server "gh" have already been discovered
+      When the operator starts tellme with the prompt "File a bug."
+      Then tellme called the tool "create_issue" on the MCP server "gh"
+      And tellme prints the provider's answer "Filed."
+      And tellme exits successfully
+
+  Rule: The remembered tool list lives in the session's own workspace
+
+    # Round 088 (ADR 0059): the cache moved from the $TELL_ME_HOME root to the
+    # per-mode workspace (output/<mode>/mcp-toolcache.json), consistent with the
+    # other per-mode artifacts (the MCP server set is per-mode config).
+
+    Example: The remembered tool list lives in the session workspace
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And a remote MCP server "shop" that offers a tool "lookup_price" answering "$42"
+      And a configured provider "test-model" whose endpoint reports the offered tools and then answers with "done"
+      When the operator starts tellme with the prompt "Which tools can you use?"
+      Then tellme remembered the tools of the MCP server "shop" in the session workspace
+      And tellme exits successfully
