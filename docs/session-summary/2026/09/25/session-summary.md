@@ -574,3 +574,24 @@ After the round-090 closeout, the operator read issue **#188** and directed *"Op
 ### PM follow-ups
 
 - None new (no PM-owned requirement gap; the round is a truth/record reconciliation).
+
+### 10 (cont.) — the `architect` review-fold loop (PR [#190](https://github.com/gosharplite/tellme/pull/190)) → `FOLDS VERIFIED — LOOP CLOSED`
+
+Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with `SESSION-BOOTSTRAP.md` (`--new` once), then continuations (no `--new`). The architect reproduced `make verify` / `go test -count=1 ./...` (E2E 330 · 2487) on an out-of-tree copy of each head, md5-compared the eight ADR bodies to `dev`, and swept the tree for the ordinal.
+
+| Pass | Outcome |
+| --- | --- |
+| `review` @ `88ec0ad` | **`APPROVE WITH REQUIRED FOLDS`** — no `[ARCHITECTURAL BLOCKER]`; folds were **record accuracy** — **F-091-1** the "no live bare ordinal" claim was falsified (a live product-code comment `search.go:20` + a self-referential `STATUS.md` mention) and the recorded W-A sweep was non-discriminating · **F-091-2** the immutable-ADR enumeration named **4** of **8** · **F-091-3** FR-1 quoted a non-shipped string; + **TD-091-1** (stale "five tools" test comment), **N-091-1…4**, **R-091-1…3** |
+| fold @ `f58ce9e` | F-091-1 → dropped the ordinal from the `search.go` comment + the `STATUS.md` literal + restated W-A as a predicate with an explicit exclusion list; F-091-2 → the eight-ADR enumeration completed; F-091-3 → the shipped FR-1 string; TD-091-1 folded; N-091-1/2/3/4 folded. Gates green. |
+| fold-verification @ `ca30591` | **`FOLDS VERIFIED WITH RESIDUALS`** — substantive folds verified (predicate empty; the eight ADR bodies byte-identical to `dev`; every changed `.go` line a comment); **RES-091-FV-1** (the "four" enumeration survived on `plan.md` + `tasks.md` T009) · **RES-091-FV-2** (the W-A restatement missed the checklist FR-2 + `tasks.md` T008) · **RES-091-FV-3** (behaviour-scoping folded `CLM-006` only) · **RES-091-FV-4** (the round-082 interactive-prompt flake recurred) |
+| residual fold @ `cb8f3a2` | RES-091-FV-1/2/3 folded (record-only); RES-091-FV-4 homed on **live issue [#191](https://github.com/gosharplite/tellme/issues/191)** |
+| re-verification @ `cb8f3a2` | **`FOLDS VERIFIED — LOOP CLOSED`** (no substantive residuals; three locator nits **N-091-FV-1/2/3** for a hash-follow-up commit) |
+| nits @ `b7fdfa5` | N-091-FV-1 (the §3 change-surface table gained the two comment-only `.go` edits) + N-091-FV-2 (`plan.md` §3 → §4 locator) folded; N-091-FV-3 (the ledger hash placeholder) resolved here |
+
+**State**: **PR [#190](https://github.com/gosharplite/tellme/pull/190) is ready for a human to review and merge** (no Copilot review; only a human merges). On merge: `SESSION-CLOSEOUT.md` Steps 1–8 — propagate `dev → main` (no-ff), tag **`round-091`**, refresh the binary, and verify **#188** closed. **#189** (the (B) deferral) and **#191** (the interactive-prompt flake) remain open as live round-seed issues.
+
+### Process notes (durable)
+
+- **A record round must sweep the whole live tree, not just its named surfaces** — the round's own headline ("no live bare ordinal") was falsified by a **product-code comment** and a **self-referential STATUS mention** the round had not swept. The round-089/090 lesson (a docs claim has no mechanical carrier) applies to the *sweep* too: state the predicate and its exclusions.
+- **A predicate that matches its own subject is non-discriminating** — the recorded W-A (`grep -rn ninth`) matched the round's own text; the fold named the "quotes-the-defect" exclusion explicitly.
+- **Complete the enumeration, don't sample it** — the "four ADRs" list was a sample of eight; in a round whose thesis is "a stale count is a defect", an incomplete count is the same defect.
