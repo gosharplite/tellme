@@ -1,9 +1,9 @@
 # tellme — Status
 
-**Last updated**: 2026-09-25 (session 75 — round **087** `087-mcp-tool-cache` **DELIVERED / FROZEN**: PR [#181](https://github.com/gosharplite/tellme/pull/181) human-merged into `dev` (**merge commit** `c6ccb14`), branch deleted local + remote, propagation `dev -> main` **DONE (no-ff)**, tagged **`round-087`**. **Closes [#180](https://github.com/gosharplite/tellme/issues/180)**; the tracker is **0 open**.)
-**Round in flight**: **none** — round **087** delivered/frozen on `dev`; the next round opens off `dev` (a value / live-issue theme).
-**Active branch**: `dev` (round 087 delivered via PR [#181](https://github.com/gosharplite/tellme/pull/181) merged `c6ccb14`, **merge commit**; round branch deleted local + remote; propagation `dev -> main` **DONE (no-ff)**, tagged `round-087`).
-**Daily log**: [`docs/session-summary/2026/09/25/session-summary.md`](docs/session-summary/2026/09/25/session-summary.md) (round 087) · prior: [`2026-09-24`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086)
+**Last updated**: 2026-09-25 (session 75, cont. — round **088** `088-mcp-cache-header-routing-and-mode-location` **OPEN** off `dev` `13d5e08`; anchor issue [#182](https://github.com/gosharplite/tellme/issues/182); full AIxBDD pipeline → implementation → **PR [#183](https://github.com/gosharplite/tellme/pull/183) OPEN** (awaiting a human review/merge; **no Copilot review**). Round 087 remains DELIVERED / FROZEN.)
+**Round in flight**: **088 `088-mcp-cache-header-routing-and-mode-location`** — repair the round-087 MCP cache (a warm-cached tool again routes `x-mcp-header` args; the cache moves to the per-mode workspace); PR [#183](https://github.com/gosharplite/tellme/pull/183) open.
+**Active branch**: `088-mcp-cache-header-routing-and-mode-location` off `dev` `13d5e08` (PR [#183](https://github.com/gosharplite/tellme/pull/183); **merged by a human only**).
+**Daily log**: [`docs/session-summary/2026/09/25/session-summary.md`](docs/session-summary/2026/09/25/session-summary.md) (rounds 087 + 088) · prior: [`2026-09-24`](docs/session-summary/2026/09/24/session-summary.md) (rounds 085 + 086)
 
 ## Last delivered round - 087 `087-mcp-tool-cache` (DELIVERED / FROZEN - PR [#181](https://github.com/gosharplite/tellme/pull/181) merged into `dev` `c6ccb14`, **merge commit**; **ADR 0058**)
 

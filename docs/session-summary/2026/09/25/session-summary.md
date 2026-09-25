@@ -180,3 +180,43 @@ Round 087 was human-merged (PR [#181](https://github.com/gosharplite/tellme/pull
 - None new (spec/acceptance complete; the round carries the falsifiable unit + E2E pins).
 
 *(Round 087 is fully closed out: PR #181 human-merged into `dev` (`c6ccb14`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-087`**; the installed binary refreshed; [#180](https://github.com/gosharplite/tellme/issues/180) was closed (completed) by the human at the merge.)*
+
+---
+
+## 4. Session 75 (cont.) — round 088 `088-mcp-cache-header-routing-and-mode-location` **OPENED → full pipeline → PR [#183](https://github.com/gosharplite/tellme/pull/183) open** (anchor issue [#182](https://github.com/gosharplite/tellme/issues/182); **ADR 0059**)
+
+The operator reported that the GitHub MCP stopped working after round 087, then that the cache file was at the wrong location. Investigation confirmed **two round-087 defects** → filed issue **#182** and opened **round 088** off `dev` `13d5e08`, ran the full AIxBDD pipeline, and opened **PR [#183](https://github.com/gosharplite/tellme/pull/183)**.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`088-mcp-cache-header-routing-and-mode-location`** (off `dev` `13d5e08`) |
+| Anchor | issue **#182** — the round-087 regression (header routing + cache location); **DoD = close it** |
+| Theme | **Repair**: (A) a warm-cached tool again routes `x-mcp-header` args as `Mcp-Param-*` — the lazy client warms `tools/list` on the first call; (B) the cache moves to `output/<mode>/mcp-toolcache.json` |
+| Clarify | **not escalated** — the issue fixes the goal + fix |
+| Pipeline | specify ✅ · spec-by-example ✅ · technical-research ✅ (**ADR 0059** + the techstack rows) · system-analysis ✅ · data-plan ✅ (location) · dsl-refine ✅ · tasks ✅ · implement ✅ |
+| The change | `lazyclient.go` (`warmToolsList`) · `toolcache.go` + the `MCPDiscoverer` seam (`res.Workspace`) + `cmd/tellme` · `mcptest` (`HeaderRouted`) · E2E (`step_r088_toolcache.go`, the scenario helper) · unit pins |
+| Verification | `make verify` **OK** · `go test -count=1 ./...` **green** · `make test-race` **no data races** · topology audit **PASSED** (21 root + 467 module rows · 2461 steps) · `go.mod`/`go.sum` unchanged |
+| Witnesses (reproduced then reverted) | remove the `tools/list` warm-up ⇒ the unit pin `lists=0 calls=1` **and** the header-routed E2E Example red (`did not record a call to "create_issue"`); root the cache at the home ⇒ the location Example red (`no such file`) |
+| Delivery | branch → **PR [#183](https://github.com/gosharplite/tellme/pull/183) open** (no Copilot review; only a human merges) |
+
+### Decisions locked (round 088 / ADR 0059)
+
+| # | Decision |
+| --- | --- |
+| **D1** | Header routing is restored by **warming `tools/list`** on the first cached call (the SDK reads `x-mcp-header` only from its `tools/list` cache). |
+| **D2** | The warm-up is **lazy** (inside `CallTool`) + **best-effort** — a no-tool cache hit still dials nothing. |
+| **D3** | The cache moves to the **per-mode workspace** (`output/<mode>/`); **supersedes ADR 0058 D2**. |
+| **D5** | The **witness**: the fake MCP server advertises a **header-routed** tool (the SDK server enforces `Mcp-Param-*`), so the regression reddens. |
+
+### Open items (non-blocking)
+
+- **PR [#183](https://github.com/gosharplite/tellme/pull/183)** awaits a human review/merge → then the closeout (propagate `dev → main` no-ff, tag **`round-088`**, refresh the binary; **close [#182](https://github.com/gosharplite/tellme/issues/182)**).
+- **ADR 0059 §Forward** RF-088-1…4.
+- **Interim note**: the installed binary is still the round-087 head until the PR merges + the closeout reinstalls; the harness's own GitHub MCP calls stay broken until then (use `gh`/`curl`). The stale home-root `mcp-toolcache.json` was removed.
+
+### Process notes (durable)
+
+- **A regression is a witness gap, not just a bug.** The GitHub header-routing failure had **no carrier** (the fake server accepted what the real one rejects). The round's core obligation was to add the carrier (`HeaderRouted`).
+- **Check the SDK's actual contract.** The fix came from reading the vendored SDK (`lookupTool` / `generateParamHeaders` / `validateMcpHeaders`), not from guessing.
