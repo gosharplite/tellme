@@ -6,7 +6,7 @@
 **Workspace**: `…/beta-tellme/ait-tellme` (`$TELL_ME_HOME`); linux/amd64 host (Go 1.26.6).
 **Session mode**: `butler`.
 **Branch**: `dev` only (session 81 — **no round**); `dev == origin/dev == a49134c`.
-**Status at end of session**: **no round in flight.** The session did a **docs-only domain-model lint hygiene** fix — `a49134c` — landed directly on `dev`; **one** dev-only commit is **pending propagation** to `main` (the next closeout's `dev → main` no-ff merge). Last delivered round remains **093** `093-interactive-prompt-seam-determinism` (frozen, tagged `round-093`).
+**Status at end of session**: **no round in flight.** The session did a **docs-only domain-model lint hygiene** fix — `a49134c` — landed directly on `dev`; the **post-093 docs-only commits** (the lint hygiene + this closeout's docs commit) are **pending propagation** to `main` (the next closeout's `dev → main` no-ff merge — none is a round). Last delivered round remains **093** `093-interactive-prompt-seam-determinism` (frozen, tagged `round-093`).
 
 ---
 
@@ -78,7 +78,7 @@ The session began with a bootstrap (`SESSION-BOOTSTRAP.md` Steps 1–8; round 09
 | **4 — daily summary** | this file created fresh (new calendar day — `2026-09-26`); §1 + this §2 |
 | **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, heads match (`dev == origin/dev == a49134c`), **1** un-propagated dev commit, tracker **0 open** |
 | **6 — commit** | this closeout's `STATUS.md` + summary committed and pushed on `dev` (below) |
-| **7 — propagate + hand off** | **Propagation deferred** (no round): `dev`'s **1** extra commit rides to `main` at the next closeout's `dev → main` (no-ff). **No `round-NNN` tag** (ADR 0026 tags rounds only). Installed binary **not re-installed** — **no product code changed** (the binary is functionally identical to the round-093 head; the refresh is the round-delivery convention) |
+| **7 — propagate + hand off** | **Propagation deferred** (no round): the post-093 **docs-only** commits ride to `main` at the next closeout's `dev → main` (no-ff). **No `round-NNN` tag** (ADR 0026 tags rounds only). Installed binary **not re-installed** — **no product code changed** (the binary is functionally identical to the round-093 head; the refresh is the round-delivery convention) |
 | **8 — issue tracker** | `gh issue list --state open` = **0 open** — nothing to close or revise |
 
 ### Commits (on `dev`, then pushed)
@@ -90,7 +90,7 @@ The session began with a bootstrap (`SESSION-BOOTSTRAP.md` Steps 1–8; round 09
 
 ### Open items (non-blocking)
 
-- **Propagation pending** — `dev` is ahead of `main` by `a49134c` (docs-only); the next closeout that propagates carries it to `main` (no-ff, **untagged** — not a round). `main` sits at the round-093 propagation merge `c01be52` (tagged `round-093`).
+- **Propagation pending** — `dev` is ahead of `main` by the post-093 **docs-only** commits (`a49134c` lint hygiene + this closeout); the next closeout that propagates carries them to `main` (no-ff, **untagged** — none is a round). `main` sits at the round-093 propagation merge `c01be52` (tagged `round-093`).
 - **None new.** No open-items index on `STATUS.md` (Rule 17): a deferred item lives in its `ADR 00NN §Forward` or a live issue.
 - **Issue tracker**: **0 open**.
 
