@@ -104,3 +104,59 @@ The session began with a bootstrap (`SESSION-BOOTSTRAP.md` Steps 1–8; round 09
 - None (no spec/acceptance change; a docs-only markup fix).
 
 *(Session 81 ended committed and pushed on `dev` (`a49134c` + this closeout's docs commits). No round. The post-093 docs-only commits were propagated `dev → main` (no-ff, untagged).)*
+
+---
+
+## 3. Session 82 (2026-09-26, cont.) — **no round**; add `docs/model-specs.md` (live DeepSeek/Gemini spec sources) + bootstrap pointer (`5884082`)
+
+A short, **docs-only** session. After the session-81 closeout, the operator asked a sequence of
+questions about `aixbdd-tmg` (its origin, its licence/attribution, and Spec Kit's relation to it),
+which led to a probe of **live vendor-spec access** for DeepSeek and Gemini — and the realisation that
+this environment **does** have general HTTPS egress + credentials, contrary to an earlier (wrong)
+assumption that it was offline-only. The operator directed that the knowledge be **captured** so a
+future model knows how to reach the specs.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Round | **none** — next round opens off `dev` via `/axb-specify` (operator value or a live issue; Bootstrap Agent Rule 11) |
+| Theme | **docs-only reference addition** — capture the *live* DeepSeek/Gemini spec-fetch procedure in the repo |
+| Artifact | `docs/model-specs.md` (**new**; descriptive, **not** truth) — verified vendor spec sources, fetch/reconcile recipes, credential checks (**never print a secret**), issue checklist |
+| Bootstrap | `SESSION-BOOTSTRAP.md` gains **§7** (on-demand reference) + **Agent Rule 12** so a bootstrapped model **knows the file exists** and checks the live spec on a provider issue |
+| Facts verified (live, read-only) | Gemini/Vertex **discovery documents** (`generativelanguage.googleapis.com/$discovery/rest?version=v1beta` 382 KB rev `20260925`; `aiplatform.googleapis.com/...?version=v1` 3.8 MB; `v1beta` on aiplatform → 404); DeepSeek **HTML docs** (server-rendered; **no** OpenAPI — `openapi.json`/`swagger.json` return the SPA HTML fallback); OpenAI Chat Completions spec (`openai-openapi.yaml` 200); egress to `api-docs.deepseek.com`/`api.deepseek.com`/`aiplatform.googleapis.com`/`oauth2.googleapis.com` OK |
+| Gates (docs) | all local Markdown links in the two changed files resolve (the only "missing" are the pre-existing `~/tmp/...` absolute reference-tree paths); **secret scan over the diff: clean**; no product / `specs/truth/**` / `docs/domain-model/**` change |
+| Delivery | committed `5884082` on `dev` (docs-only; direct-to-`dev` per the 2026-09-23/`a49134c` precedent) and **pushed** |
+
+### Decisions locked (session 82)
+
+| # | Decision |
+| --- | --- |
+| **D1** | Capture the live-spec procedure as a **descriptive** repo doc (`docs/model-specs.md`), explicitly **subordinate to `specs/truth/**`** — not truth, not a mandatory read. |
+| **D2** | Surface it to future sessions via `SESSION-BOOTSTRAP.md` **§7** + **Agent Rule 12** — **on-demand**, and it does **not** relax the repo's offline/hermetic **test** posture. |
+| **D3** | Land the change **directly on `dev`** (docs-only, the 2026-09-23 precedent — not a round NO ADR); no `dev → main` propagation **without** operator approval (closeout Step 7). |
+
+### Commits (on `dev`, pushed)
+
+| Commit | Note |
+| --- | --- |
+| `5884082` | `docs: add docs/model-specs.md (live DeepSeek/Gemini spec sources) + bootstrap reference` |
+| *(this closeout, on `dev`)* | `docs(closeout): 2026-09-26 — model-specs reference; STATUS + session-82 summary` |
+
+### Open items (non-blocking)
+
+- **Propagation DONE** — `5884082` (the model-specs commit) + the closeout commit were propagated `dev → main` (**no-ff**, **untagged** — docs-only, not a round → **no** `round-NNN` tag, ADR 0026), on operator approval.
+- **Security follow-up (operator-owned)** — a partial OpenAI key was printed to the session transcript; the operator is handling rotation (recorded; no secret entered the repo).
+- **None new.** No open-items index on `STATUS.md` (Rule 17): a deferred item lives in its `ADR 00NN §Forward` or a live issue.
+- **Issue tracker**: **0 open**.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (Bootstrap Agent Rule 11).
+3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None (no spec/acceptance change; a docs-only reference addition).
+
+*(Session 82 ended committed and pushed on `dev` (`5884082` + this closeout's docs commit). No round. Propagation `dev → main` is **pending** operator approval.)*
