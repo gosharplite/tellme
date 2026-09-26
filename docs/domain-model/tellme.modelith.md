@@ -70,7 +70,7 @@ The diagnostic surface on `stderr`: the turn rule and header, the payload status
 
 **Invariants**
 
-- **chrome-colour-terminal-gated** — The turn chrome's colour appears only on a terminal `stderr` with `-r` off — never in `turns.log`. (The offline `-l` listing's accents are a separate surface, gated on a terminal `stdout` with `-r` off — round 073; the role-header accent's unit is the WHOLE label incl. the backward turn index, `[USER] - N` / `[MODEL] - N` — round 082; round 086 (ADR 0057) adds a per-turn tool-activity line `[TOOLS] - M (N calls)` — `M` the turn's backward index, `N = len(history.Entry.Steps)` — accented yellow as a WHOLE label, its own block between `[USER]` and `[MODEL]`, and it surfaces only the count, never tool content.)
+- **chrome-colour-terminal-gated** — The turn chrome's colour appears only on a terminal `stderr` with `-r` off — never in `turns.log`. (The offline `-l` listing's accents are a separate surface, gated on a terminal `stdout` with `-r` off — round 073; the role-header accent's unit is the WHOLE label incl. the backward turn index, `[USER] - N` / `[MODEL] - N` — round 082; round 086 (ADR 0057) adds a per-turn tool-activity line `[TOOLS] - M (N calls)` — M the turn's backward index, `N = len(history.Entry.Steps)` — accented yellow as a WHOLE label, its own block between `[USER]` and `[MODEL]`, and it surfaces only the count, never tool content.)
 - **chrome-tool-values-control-free** — Every `[Tool …]` value is folded, control-free, and rune-capped.
 - **chrome-spinner-sample-cadence** — The spinner's braille frame stays on its fast cadence while its resource figures refresh at most once per second.
 
