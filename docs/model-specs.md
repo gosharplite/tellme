@@ -214,5 +214,36 @@ tellme -c "$TELL_ME_HOME/configs/butler.yaml" -r "ping"     # spends tokens — 
 
 ---
 
-*Sources verified 2026-09-26. Vendor URLs and API surfaces change; re-run §2/§3 before trusting any
+## 7. Future direction — vendor API evolution (Gemini)
+
+> Read as **directional, not a contract**: vendor roadmaps slip and shapes change. Re-fetch before acting.
+
+**Gemini has its own native API — it is NOT the OpenAI spec.** tellme's `gemini` label drives the
+**native Vertex `:generateContent`** shape (`{contents, parts, candidates}`), via
+`internal/infrastructure/llm/gemini/`. Google *separately* offers an **OpenAI compatibility shim**
+(point an OpenAI SDK's `base_url` at `https://generativelanguage.googleapis.com/v1beta/openai/`); the
+docs *recommend calling the Gemini API directly*. So the OpenAI-compatible adapter in tellme serves
+`deepseek`/`kimi`/`z.ai`/`openai` — **not** Gemini. (Relevant when issue #195's `max_tokens` field is
+discussed: it is an **OpenAI-adapter** concern, unrelated to Gemini.)
+
+**The actual Gemini trajectory: `generateContent` → the "Interactions API".** Verified live 2026-09-26:
+
+| Fact | Source |
+| --- | --- |
+| Interactions API is **GA as of June 2026**, *"recommended for all new projects"*; `generateContent` is now *"considered legacy"* but *"remains fully supported"* | `ai.google.dev/gemini-api/docs/interactions-overview` |
+| *"all new models, multimodal capabilities, tools, and agentic features will launch on the Interactions API"* | same |
+| Shape: `outputs[]` → **`steps[]`** (typed, discriminated); `response_mime_type` → polymorphic `response_format`; legacy schema removal dated **June 8, 2026** (governed by an `Api-Revision` header) | `…/docs/interactions-breaking-changes-may-2026` |
+| Server-side state: `previous_interaction_id`, `store=true` by default (`store=false` = stateless) | `…/docs/interactions-overview` |
+| Thinking becomes **first-class**: a dedicated `thought` **step** (`signature` always present + optional `summary`). In `generateContent` there are **no dedicated thought blocks** — signatures are metadata attached to any part (e.g. inside `functionCall`); in Interactions, signatures live **only** in thought/tool steps and stateful mode manages them server-side | `…/docs/thinking` |
+| New surfaces named: background/long-running (`background=true`), mid-flight steering, async tool calls, Batch, Webhooks, Flex/Priority inference, `serviceTier`, media resolution | overview + breaking-changes pages |
+
+**What this means for tellme:**
+- tellme is on the **supported legacy** track (`:generateContent`) for the **Vertex** surface — no forced migration, but **Vertex historically lags** the public API, so tellme's real clock is *"if/when Vertex adopts Interactions."*
+- The gap **widens over time**: new capabilities land only on Interactions.
+- **Reinforces Issues #194 / #196** (a single reasoning/CoT surface): the CoT is being **promoted to a first-class `thought` step** (`signature` + `summary`), and tellme's manual `thoughtSignature` echo is a `generateContent`-track concern that stateful Interactions would handle server-side.
+- **Rule of thumb:** keep the **transport swappable** (it already is, behind `llm.Gateway`) so a future Interactions adapter is an **addition**, not a rewrite — and avoid deep new investment in generateContent-only assumptions.
+
+---
+
+*Sources verified 2026-09-26. Vendor URLs and API surfaces change; re-run §2/§3/§7 before trusting any
 date-stamped claim here. This document records **how to fetch**, not the specs themselves.*
