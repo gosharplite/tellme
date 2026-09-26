@@ -145,15 +145,14 @@ future model knows how to reach the specs.
 
 ### Open items (non-blocking)
 
-- **Propagation PENDING** — `5884082` is **not yet** propagated `dev → main` (closeout Step 7 requires operator approval; not a round → **no** `round-NNN` tag, ADR 0026).
-- **Security follow-up (operator)** — while probing, a **partial OpenAI key** was printed to the session transcript from `$TELL_ME_HOME/secrets/keys`; recommend **rotating** that OpenAI key. (Recorded here; no secret enters the repo.)
+- **Propagation DONE** — `5884082` (the model-specs commit) + the closeout commit were propagated `dev → main` (**no-ff**, **untagged** — docs-only, not a round → **no** `round-NNN` tag, ADR 0026), on operator approval.
+- **Security follow-up (operator-owned)** — a partial OpenAI key was printed to the session transcript; the operator is handling rotation (recorded; no secret entered the repo).
 - **None new.** No open-items index on `STATUS.md` (Rule 17): a deferred item lives in its `ADR 00NN §Forward` or a live issue.
 - **Issue tracker**: **0 open**.
 
 ### Next steps
 
-1. Operator: approve (or decline) the `dev → main` propagation of `5884082`; rotate the exposed OpenAI key.
-2. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (Bootstrap Agent Rule 11).
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (Bootstrap Agent Rule 11).
 3. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
 
 ### PM follow-ups

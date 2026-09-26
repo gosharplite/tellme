@@ -2,7 +2,7 @@
 
 **Last updated**: 2026-09-26 (session 82 — **no round**; a **docs-only reference addition** on `dev` `5884082` — [`docs/model-specs.md`](docs/model-specs.md) + the `SESSION-BOOTSTRAP.md` **§7** / **Agent Rule 12** pointer. Earlier the same day: session 81 docs-only lint hygiene (`a49134c`). Last delivered round: **093** `093-interactive-prompt-seam-determinism` — PR [#193](https://github.com/gosharplite/tellme/pull/193) merged into `dev` `e7ec4a9`; propagation `dev -> main` **DONE (no-ff)**, tagged `round-093`.)
 **Round in flight**: none — the next round opens off `dev` via `/axb-specify` (a theme from operator value or a live issue; Bootstrap Agent Rule 11).
-**Active branch**: `dev` (== `origin/dev` `5884082`). This session's docs-only commit (`5884082`) is **propagation-pending** (`dev -> main`, **no-ff**, **untagged** — docs-only, not a round; ADR 0026 tags rounds only); the earlier 2026-09-26 docs-only commits are **propagated** `dev -> main` (no-ff, untagged).
+**Active branch**: `dev` (== `origin/dev`). This session's docs-only commits (`5884082` + the closeout commit) are **propagated** `dev -> main` (**no-ff**, **untagged** — docs-only, not a round; ADR 0026 tags rounds only); the earlier 2026-09-26 docs-only commits are likewise **propagated**.
 **Daily log**: [`docs/session-summary/2026/09/26/session-summary.md`](docs/session-summary/2026/09/26/session-summary.md) (sessions 81–82 — docs-only) · prior: [`2026-09-25`](docs/session-summary/2026/09/25/session-summary.md) (rounds 087–093)
 
 ## Last delivered round - 093 `093-interactive-prompt-seam-determinism` (DELIVERED / FROZEN - PR [#193](https://github.com/gosharplite/tellme/pull/193) merged into `dev` `e7ec4a9`, **merge commit**)
