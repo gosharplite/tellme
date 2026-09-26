@@ -2,7 +2,7 @@
 
 **Last updated**: 2026-09-26 (session 81 — **no round**; a **docs-only domain-model lint hygiene** commit on `dev` `a49134c`. Last delivered round: **093** `093-interactive-prompt-seam-determinism` — PR [#193](https://github.com/gosharplite/tellme/pull/193) merged into `dev` `e7ec4a9`; propagation `dev -> main` **DONE (no-ff)**, tagged `round-093`.)
 **Round in flight**: none — the next round opens off `dev` via `/axb-specify` (a theme from operator value or a live issue; Bootstrap Agent Rule 11).
-**Active branch**: `dev` (== `origin/dev`; **post-093 docs-only commits pending propagation** to `main` — the `2026-09-26` lint-hygiene + closeout commits, none a round; `main` sits at the round-093 propagation merge `c01be52`, tagged `round-093`).
+**Active branch**: `dev` (== `origin/dev`; the post-093 docs-only commits — the `2026-09-26` lint-hygiene + closeout — are **propagated** `dev -> main` (**no-ff**, **untagged**: docs-only, not a round — ADR 0026 tags rounds only)).
 **Daily log**: [`docs/session-summary/2026/09/26/session-summary.md`](docs/session-summary/2026/09/26/session-summary.md) (session 81 — docs-only hygiene) · prior: [`2026-09-25`](docs/session-summary/2026/09/25/session-summary.md) (rounds 087–093)
 
 ## Last delivered round - 093 `093-interactive-prompt-seam-determinism` (DELIVERED / FROZEN - PR [#193](https://github.com/gosharplite/tellme/pull/193) merged into `dev` `e7ec4a9`, **merge commit**)
