@@ -250,3 +250,40 @@ the (toolchain/record-only) pipeline ran, and a PR was opened.
   superseded fork), the immutable ADR 0030 body, and frozen history — the discriminating claim is scoped to
   the **operational/shipping** surfaces (README · Makefile · truth); the full exclusion set is recorded in
   `tasks.md` T010 (TD-095-1 / ADR 0065 RF-065-5).
+
+### 4 (cont.) — the `architect` review-fold loop (PR [#201](https://github.com/gosharplite/tellme/pull/201)) → `FOLDS VERIFIED — LOOP CLOSED`
+
+Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with `SESSION-BOOTSTRAP.md`
+(`--new`), then continuations (no `--new`). The architect ran the gates and all mutation probes in
+out-of-tree worktrees (the shared clone untouched), and hosted each verdict on the PR as a comment.
+
+| Pass | Verdict | Comment |
+| --- | --- | --- |
+| `review` @ `4876fbd` | **`APPROVE WITH REQUIRED FOLDS`** (no `[ARCHITECTURAL BLOCKER]`) — **F-095-1** ADR D1's "cite rather than restate" is false for the two surfaces it names; **F-095-2** the README's `(vcs.modified=false)` provenance qualifier does not describe a `go install` build; **F-095-3** the "not modelled" clause is contradicted by the model's `deterministic-and-hermetic` invariant; **TD-095-1** the W3 predicate un-recorded/un-mechanised; **N-095-1..4** | [5854303545](https://github.com/gosharplite/tellme/pull/201#issuecomment-5854303545) |
+| fold `f8c5664` | all required folds + nits folded | [5854304877](https://github.com/gosharplite/tellme/pull/201#issuecomment-5854304877) |
+| fold-verification @ `f8c5664` | **`FOLDS VERIFIED WITH RESIDUALS`** — **RES-095-FV-1..4** (the recurring "fixed the surface I named, missed its siblings" shape) + 2 nits | [5854351150](https://github.com/gosharplite/tellme/pull/201#issuecomment-5854351150) |
+| residual fold `818f296` | all four residuals + both nits folded (swept the siblings by grep) | [5854366959](https://github.com/gosharplite/tellme/pull/201#issuecomment-5854366959) |
+| re-verification @ `818f296` | **`FOLDS VERIFIED — LOOP CLOSED`** (no residuals) | [5854387714](https://github.com/gosharplite/tellme/pull/201#issuecomment-5854387714) |
+
+**Gates at the closed head `818f296`:** `make verify` **OK** (adr-index consistent · `modelith-check` no
+drift ×3 · architecture 0 · lint 0 · govulncheck clean) · `go test -count=1 ./...` green — **E2E 330
+scenarios · 2487 steps** · W1 still prints the new route. **Invariants re-confirmed:** ADR 0030 body
+byte-identical to `dev` (index-row pointer only); change surface = Makefile + records + truth row (no `.go`,
+no `go.mod`/`go.sum`, no `docs/domain-model/*.modelith.*`, no frozen history).
+
+**State:** the review-fold loop is **CLOSED** — **PR [#201](https://github.com/gosharplite/tellme/pull/201)
+is ready for a human to review and merge** (head `818f296`; no Copilot review; only a human merges).
+
+### 4 (cont.) — process notes (durable)
+
+- **A claim can be falsified by the model's own text.** The "not any model's invariant" record was one
+  `grep` from the `deterministic-and-hermetic` invariant — a boundary sentence (ADR 0012 governs the
+  *ambient Go-env*, not dev-tool versions) closed it without a model change (F-095-3).
+- **A "not modelled" record must name the invariant it is near.** Saying "not an invariant" is a claim about
+  the *whole* model; scope it (which invariant, and why it is not engaged).
+- **"Fixed the surface I named, missed its siblings."** RES-095-FV-1..4 were all sibling sites of the
+  original findings (README vs the ADR; research/spec vs plan; day-log §4 vs its process note; SC-001 vs
+  T010). Sweep the *class*, not the instance.
+- **A predicate's stated scope must match its recorded exclusions.** SC-001 said "live tree (excl. frozen
+  history)" — a scope that *includes* the round package + ADR records and so self-falsified; the folded
+  scope is the operational/shipping surfaces, set-identical to T010.
