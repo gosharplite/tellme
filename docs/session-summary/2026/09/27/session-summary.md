@@ -208,7 +208,7 @@ the (toolchain/record-only) pipeline ran, and a PR was opened.
 | Facts verified | upstream `main` HEAD = `9008354f19ff…` (`v0.5.1-0.20260927062055-9008354f19ff`); `go install …@main` builds it; `make modelith-check` green with it |
 | Verification | `make verify` **OK** (adr-index consistent · modelith-check no drift ×3) · `go test -count=1 ./...` **green** — E2E **330 scenarios · 2487 steps (unchanged)** · `go.mod`/`go.sum` unchanged · no product code |
 | Witnesses | **W1** absent `modelith` ⇒ `make modelith-check` exits non-zero **printing the new route** · **W2** `go install …@main` resolves/builds + gate green · **W3** no **live** fork/pin reference remains (operational surfaces clean; only the round package + ADR 0065 + the immutable ADR 0030 body + frozen history mention it) · **W4** `verify-adr-index` consistent |
-| Delivery | branch `095-modelith-upstream-main-route` → **PR open** (no Copilot review; only a human merges) |
+| Delivery | branch `095-modelith-upstream-main-route` → **PR [#201](https://github.com/gosharplite/tellme/pull/201) open** (no Copilot review; only a human merges) |
 
 ### Decisions locked (round 095 / ADR 0065)
 
