@@ -111,8 +111,18 @@ dev host's default PATH (heavy binary) → **skip**, exit 0 · injected dead `Un
 broken tree → **`analysis did not run (tool exit 1)`** · W1 top-level synthetic → reported, exit 0.
 
 **State**: **PR [#199](https://github.com/gosharplite/tellme/pull/199) is ready for a human to review
-and merge** (no Copilot review; only a human merges). On merge: propagate `dev → main` (no-ff), tag
-`round-094`, refresh the binary, and **close [#198](https://github.com/gosharplite/tellme/issues/198)**.
+and merge** (head `fb21879`; no Copilot review; only a human merges). On merge: propagate `dev → main`
+(no-ff), tag `round-094`, refresh the binary, and **close [#198](https://github.com/gosharplite/tellme/issues/198)**.
+
+### 2 (cont.) — review-fold loop CLOSED (the `architect` peer; 3 verification passes)
+
+Loop history: `review` @ `77db4c1` → **`APPROVE WITH REQUIRED FOLDS`** (F-094-1..6 + TD-094-1/2 +
+N-094-1..4 + R-094-1/2) → `fold` `27e122a` → fold-verification → **`FOLDS VERIFIED WITH RESIDUALS`**
+(RES-094-FV-1..4 + N-094-FV-1/2) → residual fold `f9112b4` → residual verification → **WITH
+RESIDUALS** (RES-094-FV-5 + N-094-FV-3) → residual fold 2 `fb21879` → **final verification →
+`FOLDS VERIFIED — LOOP CLOSED`** (no residuals, no nits) — [`5852572109`](https://github.com/gosharplite/tellme/pull/199#issuecomment-5852572109).
+The loop is **CLOSED**; the PR is ready for a human to merge.
+
 
 
 ### Process notes (durable)
