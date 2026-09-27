@@ -4,7 +4,7 @@
 - **Date:** 2026-09-27
 - **Deciders:** tellme owner (operator directive, 2026-09-27; issue [#200](https://github.com/gosharplite/tellme/issues/200))
 - **Related:** **ADR 0030** (the domain model + the toolchain; **supersedes its D2 acquisition route** — its
-  §Forward **RF-060-1**/RF-060-5 are qualified; §Related's own *"a gate must not be a spurious-red
+  §Forward **RF-060-1**/RF-060-5 are qualified; ADR 0030 §Related's own *"a gate must not be a spurious-red
   generator"* characterisation of ADR 0012 is the lineage the pin served) · **ADR 0012** (hermetic `make` —
   its **D1/D5** boundary governs the **ambient Go-env invocation**, not dev-tool versions) · **ADR 0041**
   (the model is load-bearing; the install route is **not** modelled) · **ADR 0026** (a superseding decision

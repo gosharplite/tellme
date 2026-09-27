@@ -46,9 +46,11 @@ Truth owner: `/axb-technical-research` (the **Techstack** owner). The round has 
 
 ## 決策 4：Single source stays `docs/domain-model/README.md`
 
-- **Decision**: the route is single-sourced in `docs/domain-model/README.md`; the `Makefile`
-  (`$(MODELITH_INSTALL)`) and the gate's failure message **quote** it; `techstack.md` + ADR 0065 **cite** the
-  README section rather than restating the command.
+- **Decision**: the route's **designation** is single-sourced in `docs/domain-model/README.md`; the
+  `Makefile` (`$(MODELITH_INSTALL)`) and the gate's failure message **quote** it and derive it from
+  `$(MODELITH_REF)`; `techstack.md`, ADR 0065, and the ADR index row each carry a **self-contained one-line
+  restatement** (the round-060 **R-060-1** precedent) — the single-source discipline governs the designation,
+  not verbatim re-use.
 - **Rationale**: the round-060 **B-060-1** discipline (one owner, no drifting prose copies); `RF-060-1`
   already flagged the ADR↔Makefile drift risk.
 - **Alternatives considered**: restate the command in every surface — rejected (the B-060-1 drift class).
@@ -66,6 +68,9 @@ Truth owner: `/axb-technical-research` (the **Techstack** owner). The round has 
 
 - **Decision**: the install *route* is **not** a modelled entity/enum/glossary term/invariant; no behaviour
   changes ⇒ no `*.modelith.{yaml,md}` edit. `make modelith-check` must stay green.
+  **Boundary note (F-095-3):** the product model's `deterministic-and-hermetic` invariant (*"`make verify`
+  is hermetic (ADR 0012)"*) is **not** engaged — ADR 0012's hermetic boundary governs the **ambient Go-env
+  invocation** (ADR 0012 D1/D5/R1), whereas this round changes a **dev-tool version**, which is outside it.
 - **Rationale**: ADR 0041 load-bearing rule applies only to **modelled behaviour**; the escape hatch
   ("record why not modelled") is recorded in `plan.md` §5.
 - **Alternatives considered**: add a glossary term for the toolchain — rejected (a dev-tool install route is

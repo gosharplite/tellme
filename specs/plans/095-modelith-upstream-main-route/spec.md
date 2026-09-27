@@ -73,7 +73,9 @@ row, and ADR 0065. The gate behaviour is unchanged: a `main` move is a **visible
 
 **Not modelled** — the install *route* is not a modelled entity/enum/glossary/invariant and no behaviour
 changes ⇒ `docs/domain-model/*.modelith.{yaml,md}` are **NOT** touched (ADR 0041 escape hatch, recorded in
-`plan.md` §5).
+`plan.md` §5). Boundary note: the product model's `deterministic-and-hermetic` invariant (*"`make verify`
+is hermetic (ADR 0012)"*) is **not** engaged — ADR 0012's boundary governs the **ambient Go-env
+invocation**, not dev-tool versions (ADR 0012 D1/D5/R1), so no same-PR model update applies.
 
 ---
 
@@ -88,7 +90,8 @@ fork 與 commit pin。
 **為何為此優先級**: 這是本輪唯一的操作者價值；route 是所有 domain-model gate 的前置條件。
 
 **獨立驗證方式**: 在一台沒有 `modelith` 的環境照文件安裝 → 得到上游 `main` HEAD 的建置；並以 grep
-證明 live tree 不再出現 fork/pin 路線（見 §5 SC、`tasks.md` W1/W2/W3）。
+證明 **operational/shipping surfaces**（`docs/domain-model/README.md` · `Makefile` · `specs/truth/**` ·
+bootstrap/closeout/README/STATUS · `scripts/`）不再出現 fork/pin 路線（見 §5 SC-001、`tasks.md` W1/W2/W3）。
 
 **驗收情境**:
 
@@ -139,9 +142,11 @@ fork 與 commit pin。
 
 ### 可量測成果
 
-- **SC-001**: live tree（排除 frozen history）不再出現任何 fork/pin route 字樣
-  （`gosharplite/modelith`、`feat/self-domain-model`、`b4153541`），且新 route 字串存在於
-  `docs/domain-model/README.md` 與 `Makefile`。 [Verification Intent: unobservable → grep predicate (W3)]
+- **SC-001**: operational/shipping surfaces — `docs/domain-model/README.md`、`Makefile`、`specs/truth/**`、
+  `SESSION-BOOTSTRAP.md`、`SESSION-CLOSEOUT.md`、root `README.md`、`STATUS.md`、`scripts/` — 不再出現任何
+  fork/pin route 字樣（`gosharplite/modelith`、`feat/self-domain-model`、`b4153541`），且新 route 字串存在於
+  `docs/domain-model/README.md` 與 `Makefile`（round package / ADR 0065 / ADR index row / 既有 0030 body /
+  frozen history 為預期例外；見 `tasks.md` T010 的 exclusion set）。 [Verification Intent: unobservable → grep predicate (W3)]
 - **SC-002**: 在沒有 `modelith` 的 `PATH` 下，`make modelith-check` 以非零退出並印出新 route。 [Verification Intent: observable → W1]
 - **SC-003**: `make verify` OK（含 `verify-adr-index`：ADR 0065 恰被索引一次；`modelith-check` no drift ×3）。 [Verification Intent: unobservable → make verify]
 - **SC-004**: `git diff --name-only` 不含 `go.mod`/`go.sum`，也不含任何 frozen-history 路徑。 [Verification Intent: unobservable → git-diff predicate]

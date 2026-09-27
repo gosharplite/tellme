@@ -36,13 +36,16 @@ go install github.com/stacklok/modelith/cmd/modelith@main
 ```
 
 `$(MODELITH_INSTALL)` in the `Makefile` (and the message `make modelith-check` prints) quotes
-this same route; the ADR/truth prose cites this section rather than restating it.
+this route and derives it from `$(MODELITH_REF)`; the truth row, ADR 0065, and the ADR index row each
+carry a **self-contained one-line restatement** of the command — the single-source discipline governs the
+route's *designation*, not verbatim re-use (the round-060 **R-060-1** precedent).
 
 - **Tracked ref:** `main` (HEAD of the upstream branch), by operator directive (2026-09-27;
   **ADR 0065**, superseding ADR 0030 D2's fork + immutable-commit clone route).
 - **Accepted cost (non-hermetic tool version):** because the route tracks `main`, a `main`-branch
   advance can change the renderer ⇒ a committed `.md` renders differently ⇒ `modelith-check` reds
-  on a re-install with **no repo change** (the ADR-0012 "spurious-red generator" class). This is
+  on a re-install with **no repo change** (the spurious-red class ADR 0030 §Related names — *"a gate
+  must not be a spurious-red generator"* — for ADR 0012's hermetic intent). This is
   **accepted** by ADR 0065 — a `main` move is a **visible red**, never silent rot. (ADR 0030 D2's
   immutable pin existed to avoid exactly this; it is re-adopted away by operator decision.)
 - **Last-render provenance (recorded, not a pin):** the three committed `.md` files were rendered
