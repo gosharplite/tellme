@@ -170,7 +170,7 @@ symbols. No other file changes.
 
 - **A1** — the operator's instruction grants the intent to reopen ADR 0042 §D4/§D5 (Rule 11(b)).
 - **A2** — the two locked operator decisions hold: **D1** = carrier (ii) — filter the recorded FPs
-  so a clean tree prints nothing; **D2** = `config.EffectiveUseTUIPrompt` is **deleted** (its inline
+  so a clean tree reports no findings; **D2** = `config.EffectiveUseTUIPrompt` is **deleted** (its inline
   duplicate in `cli.tuiRequested` is **not** a drop-in — it returns `true` for `-i` without loading
   config) and recorded as a single-owner candidate in the ADR.
 - **A3** — the tool pin is `golang.org/x/tools/cmd/deadcode@v0.47.0` (the `go.sum`-indirect

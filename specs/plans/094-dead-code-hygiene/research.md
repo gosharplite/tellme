@@ -111,7 +111,7 @@ Recorded as a divergence from the issue's inventory.
 ## D6 — Starting from clean
 
 Remove the dead set **first**, then add the target — so the advisory begins from the recorded-FP
-steady state (empty output on a clean tree), not from real hits.
+steady state (no findings on a clean tree), not from real hits.
 
 ## D7 — Records
 

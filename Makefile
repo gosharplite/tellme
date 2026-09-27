@@ -435,6 +435,11 @@ dead-code:
 		exit 0; \
 	fi; \
 	prov="$$(go version -m "$$bin" 2>/dev/null | awk '$$1=="path"{print $$2; exit}')"; \
+	if [ -z "$$prov" ]; then \
+		echo "dead-code (advisory): could not read the build path of '$$bin' (no Go build info) — skipping:"; \
+		echo "  install the vanilla tool: $(DEADCODE_INSTALL)"; \
+		exit 0; \
+	fi; \
 	if [ "$$prov" != "golang.org/x/tools/cmd/deadcode" ]; then \
 		echo "dead-code (advisory): the PATH 'deadcode' is NOT the vanilla x/tools binary (\`$$prov\`) — skipping:"; \
 		echo "  (a wrong binary — e.g. the reference's heavy tell-me-go/cmd/deadcode — would re-mean the advisory)"; \

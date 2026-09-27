@@ -6,7 +6,7 @@
 **Workspace**: `…/mbp-johndoe-tellme/ait-tellme` (`$TELL_ME_HOME`); darwin/arm64 host (Go 1.26.6).
 **Session mode**: `butler`.
 **Branch**: `094-dead-code-hygiene` (off `dev` `ae300e9`); **PR [#199](https://github.com/gosharplite/tellme/pull/199) open**.
-**Status at end of session**: round **094** `094-dead-code-hygiene` **PR OPEN** — remove the genuinely-dead exported symbols no shipped gate can see + add an **advisory** `make dead-code` carrier (never fails); anchor issue [#198](https://github.com/gosharplite/tellme/issues/198) (DoD = close it); **ADR 0064** (reopens ADR 0042 §D4/§D5 + retired `RF-068-1`).
+**Status at end of session**: round **094** `094-dead-code-hygiene` **PR OPEN** — remove the genuinely-dead exported symbols no shipped gate can see + add an **advisory** `make dead-code` carrier (never fails); anchor issue [#198](https://github.com/gosharplite/tellme/issues/198) (DoD = close it); **ADR 0064** (supersedes ADR 0042 §D5's wording; the §D4 percentage-coverage decline stands; corrects the `techstack.md` reachability clause — `RF-068-1` stays retired).
 
 ---
 
@@ -122,5 +122,6 @@ and merge** (no Copilot review; only a human merges). On merge: propagate `dev �
   class. Measure the clean tree, then design the predicate to it.
 - **A truly-dead production type is removed, not filtered.** `cli.noopCallObserver` (uninstantiated)
   belongs in the cleanup; filtering it would hide a real finding (the advisory-muse failure).
-- **`-test` is mandatory.** Without it the whole test surface reads as dead (~330 items); with it, the
+- **`-test` is mandatory.** Without it the whole test surface reads as dead (**1151** items on the
+  head `77b…`; **1157** on `dev` `ae300e9`); with it, the
   clean tree reduces to the recorded FPs.

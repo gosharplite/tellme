@@ -78,7 +78,7 @@ entities:
       runs the vanilla `golang.org/x/tools/cmd/deadcode` whole-program
       reachability pass to surface the exported-dead class the `unused` linter
       cannot see, filtering its recorded interface-conformance-only false
-      positives so a clean tree prints nothing (never fails). The
+      positives so a clean tree reports no findings (never fails). The
       pipeline stops at the first failing gate.
     relationships:
       - entity: QualityGate

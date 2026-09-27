@@ -26,7 +26,7 @@
 
 ## Verifiability & success criteria
 
-- [x] Acceptance shape verifies the main path (clean tree prints nothing; injected export prints).
+- [x] Acceptance shape verifies the main path (clean tree reports no findings; injected export prints).
 - [x] Success criteria are measurable and tech-neutral (grep, exit codes, `modelith-check`).
 - [x] **Every** normative entry (FR / NFR / SC / EC) carries a Verification Intent.
 - [x] Assumptions express premises only (the Rule-11 intent + the two locked decisions).
