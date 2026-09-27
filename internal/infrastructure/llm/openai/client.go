@@ -51,14 +51,6 @@ func New(cfg Config) *Client {
 	return &Client{cfg: cfg, http: &http.Client{Timeout: defaultTimeout}}
 }
 
-// NewWithHTTPClient builds an adapter with an explicit HTTP client.
-func NewWithHTTPClient(cfg Config, c *http.Client) *Client {
-	if c == nil {
-		c = &http.Client{Timeout: defaultTimeout}
-	}
-	return &Client{cfg: cfg, http: c}
-}
-
 // Complete sends exactly one non-streaming Chat Completions request and returns
 // the normalized answer (round-004 research Decision 3 & 4). Every failure is
 // wrapped in a *llm.ProviderError.

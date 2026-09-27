@@ -57,7 +57,7 @@ func clampBytes(result string, byteBudget int) string {
 
 // resolveTimeout resolves a call's effective timeout in three tiers
 // (round-024 FR-016): the call's `timeout` param when positive, else the tool's
-// declared default (toolDefault, from its Contract), else DefaultToolTimeout;
+// declared default (toolDefault, from its Contract), else tools.DefaultToolTimeout;
 // then clamped to TimeoutCeiling. It delegates to the shared domain resolver so
 // the loop and the tool adapters share one implementation (F4).
 func resolveTimeout(param, toolDefault time.Duration) time.Duration {

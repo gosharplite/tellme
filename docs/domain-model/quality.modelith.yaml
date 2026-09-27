@@ -73,7 +73,12 @@ entities:
       (**ADR 0042**; **not** a `verify` member — expense). An
       **advisory** `make modelith-drift` (ADR 0041) is available on demand —
       *not* a member: it surfaces a modeled entity whose concept left the code
-      (the model is load-bearing; the round-time rule is the primary guard). The
+      (the model is load-bearing; the round-time rule is the primary guard). A
+      second **advisory** `make dead-code` (ADR 0064) — also *not* a member —
+      runs the vanilla `golang.org/x/tools/cmd/deadcode` whole-program
+      reachability pass to surface the exported-dead class the `unused` linter
+      cannot see, filtering its recorded interface-conformance-only false
+      positives so a clean tree prints nothing (never fails). The
       pipeline stops at the first failing gate.
     relationships:
       - entity: QualityGate

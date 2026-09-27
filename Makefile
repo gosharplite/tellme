@@ -85,7 +85,7 @@ MODELITH_MODELS := $(wildcard docs/domain-model/*.modelith.yaml)
 # code-backed (reference: MODELITH_CODE_MODEL).
 MODELITH_CODE_MODEL := docs/domain-model/tellme.modelith.yaml
 
-.PHONY: help build fmt vet tidy lint vulncheck test test-race test-fast check check-full verify verify-no-test-sleep verify-no-network verify-fmt verify-adr-index verify-cross-compile verify-mcp-sdk-confinement verify-architecture verify-architecture-update modelith-lint modelith-render modelith-check modelith-drift
+.PHONY: help build fmt vet tidy lint vulncheck test test-race test-fast check check-full verify verify-no-test-sleep verify-no-network verify-fmt verify-adr-index verify-cross-compile verify-mcp-sdk-confinement verify-architecture verify-architecture-update modelith-lint modelith-render modelith-check modelith-drift dead-code
 
 help:
 	@echo "tellme development tasks:"
@@ -112,6 +112,7 @@ help:
 	@echo "  make modelith-render      - regenerate docs/domain-model/*.modelith.md from the YAML (never hand-edit)"
 	@echo "  make modelith-check       - drift gate: fail if a committed *.modelith.md is stale (or modelith is absent)"
 	@echo "  make modelith-drift       - ADVISORY (not a verify member): a modeled entity with no code anchor"
+	@echo "  make dead-code            - ADVISORY (not a verify member): vanilla x/tools deadcode -test, exported-dead class (ADR 0064)"
 	@echo "  make verify               - aggregate: verify-no-test-sleep + verify-no-network + verify-fmt + verify-adr-index + vet + verify-cross-compile + verify-mcp-sdk-confinement + verify-architecture + modelith-check + lint + vulncheck"
 
 # NOTE: `VERSION ?= dev` is the local/release default ONLY.
@@ -396,6 +397,42 @@ endif
 # model only. POSIX-only (grep/awk/sed).
 modelith-drift:
 	@scripts/modelith-drift.sh $(MODELITH_CODE_MODEL)
+
+# ---- Dead-code reachability (advisory; ADR 0064) -----------------------------
+# `dead-code` runs the VANILLA golang.org/x/tools/cmd/deadcode (a PATH dev-tool
+# binary, like golangci-lint/modelith — NOT a go.mod dependency) over ./... with
+# `-test` (test-reachable symbols stay live) and reports the exported-dead class
+# the standard `unused` linter cannot see (it treats any exported symbol as used).
+#
+# ADVISORY — never fails, NOT a `verify` member (the modelith-drift shape; ADR
+# 0041). An absent tool prints the install hint and exits 0 — a deliberate
+# divergence from `modelith-check` (a gate, which fails on absent). The recorded
+# false positives — the interface-conformance-only class (e.g. ui.sharedSource.Suggest:
+# a method pinned only by a compile-time `var _ I = T{}` assertion) plus the
+# unwrap-class (…Unwrap, used through errors.Is/As) — are FILTERED so a clean tree
+# prints nothing and only NEW findings appear. This is ONE documented exclusion
+# predicate, NOT a NonFixCatalog (ADR 0064 D5). Reopens ADR 0042 §D4/§D5.
+#
+# PROVENANCE: the PATH name `deadcode` collides with the reference's HEAVY
+# tell-me-go/cmd/deadcode ([DEAD]/[PRIVATE] + ports machinery). This target
+# requires the VANILLA x/tools binary (install route below).
+DEADCODE_PIN := v0.47.0
+DEADCODE_INSTALL := go install golang.org/x/tools/cmd/deadcode@$(DEADCODE_PIN)
+# The recorded FP exclusion predicate: the interface-conformance-only + unwrap class.
+DEADCODE_FP := unreachable func: (sharedSource\.Suggest|.*\.Unwrap)$$
+dead-code:
+	@bin="$$(command -v deadcode 2>/dev/null)"; \
+	if [ -z "$$bin" ]; then \
+		echo "dead-code (advisory): 'deadcode' is not on PATH — install the VANILLA tool:"; \
+		echo "  $(DEADCODE_INSTALL)"; \
+		echo "  (golang.org/x/tools/cmd/deadcode — NOT the reference's tell-me-go/cmd/deadcode)"; \
+		exit 0; \
+	fi; \
+	echo "dead-code (advisory — never fails; ADR 0064): vanilla x/tools deadcode -test ./..."; \
+	found="$$( "$$bin" -test ./... 2>/dev/null | grep -vE '$(DEADCODE_FP)' || true )"; \
+	if [ -n "$$found" ]; then echo "$$found"; else echo "  ✓ no unreachable functions found (beyond the recorded FP class)"; fi; \
+	echo "dead-code: advisory done (exit 0)"; \
+	exit 0
 
 # `vet` runs before `verify-cross-compile` for fail-fast on host-local errors;
 # `verify-cross-compile` then re-covers the host target as part of the matrix.

@@ -96,22 +96,6 @@ func Run(args []string, set map[string]string, unset []string) RunResult {
 	return runExec(bin, "", args, nil, set, unset, 0, false)
 }
 
-// RunWithStdin is Run with a scripted standard input: the child's stdin is an
-// os.Pipe carrying `stdin` (a non-terminal, so the CLI reads it), then EOF. The
-// run is bounded by pipedRunTimeout so a hang fails explicitly (grill Q6).
-func RunWithStdin(args []string, stdin string, set map[string]string, unset []string) RunResult {
-	bin, err := BinaryPath()
-	if err != nil {
-		return RunResult{ExitCode: -1, Err: err}
-	}
-	return runExec(bin, "", args, strings.NewReader(stdin), set, unset, pipedRunTimeout, false)
-}
-
-// RunBinary is Run against an explicit binary path.
-func RunBinary(bin string, args []string, set map[string]string, unset []string) RunResult {
-	return runExec(bin, "", args, nil, set, unset, 0, false)
-}
-
 // RunIn is Run with the child's working directory set to dir, so a scenario's
 // working-directory fixtures (e.g. a file for the read_files tool) are visible
 // to the child.
@@ -123,7 +107,8 @@ func RunIn(dir string, args []string, set map[string]string, unset []string) Run
 	return runExec(bin, dir, args, nil, set, unset, 0, false)
 }
 
-// RunInWithStdin is RunWithStdin with the child's working directory set to dir.
+// RunInWithStdin is Run with a scripted, bounded (piped) standard input and the
+// child's working directory set to dir.
 func RunInWithStdin(dir string, args []string, stdin string, set map[string]string, unset []string) RunResult {
 	bin, err := BinaryPath()
 	if err != nil {
