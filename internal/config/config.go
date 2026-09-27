@@ -276,11 +276,3 @@ func (c *Config) EffectiveMaxHistoryTokens(override string) (int, error) {
 	}
 	return limit, nil
 }
-
-// EffectiveUseTUIPrompt resolves whether the opt-in interactive TUI prompt is
-// enabled: the -i/--interactive flag OR the config USE_TUI_PROMPT key
-// (round-015 FR-001). The TUI also requires a terminal stdin; that second gate
-// lives in internal/cli (the real-isatty seam), not here.
-func (c *Config) EffectiveUseTUIPrompt(flag bool) bool {
-	return flag || c.UseTUIPrompt
-}

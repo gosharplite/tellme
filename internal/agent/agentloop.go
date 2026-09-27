@@ -19,11 +19,6 @@ import (
 	"github.com/gosharplite/tellme/internal/domain/tools"
 )
 
-// DefaultToolTimeout bounds each individual tool execution when the loop is not
-// given an explicit timeout (round-008 FR-009). It aliases the shared domain
-// constant (round-032 implementation-review F4).
-const DefaultToolTimeout = tools.DefaultToolTimeout
-
 // maxUnknownToolFolds bounds the recoverable fold-backs for an UNKNOWN tool name
 // within one turn (round 076). An off-list name is a recoverable model slip — the
 // loop folds back a `tool`-role result and continues — but tellme has NO
