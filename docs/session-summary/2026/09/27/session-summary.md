@@ -246,5 +246,7 @@ the (toolchain/record-only) pipeline ran, and a PR was opened.
 - **Supersede, don't edit.** ADR 0065 records the new route; ADR 0030's fork prose stays verbatim with an
   index forward pointer — the same shape as ADR 0064→0042.
 - **A witness must exclude its own records.** W3's grep legitimately matches the round's plan package,
-  ADR 0065 (which records what it supersedes), the immutable ADR 0030 body, and frozen history — the
-  discriminating claim is scoped to the **operational/shipping** surfaces (README · Makefile · truth).
+  ADR 0065 (which records what it supersedes), the ADR index row (`docs/decisions/README.md` — names the
+  superseded fork), the immutable ADR 0030 body, and frozen history — the discriminating claim is scoped to
+  the **operational/shipping** surfaces (README · Makefile · truth); the full exclusion set is recorded in
+  `tasks.md` T010 (TD-095-1 / ADR 0065 RF-065-5).

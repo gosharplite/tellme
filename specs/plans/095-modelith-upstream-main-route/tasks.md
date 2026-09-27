@@ -26,7 +26,23 @@
 
 - [X] **T008** — **[WITNESS] W1** — absent `modelith` fails the gate **naming the new route** (`env PATH=/usr/bin:/bin make modelith-check` ⇒ non-zero + `go install github.com/stacklok/modelith/cmd/modelith@main`). *(CLM-001)*
 - [X] **T009** — **[WITNESS] W2** — the documented route resolves & builds (`GOBIN=$(mktemp -d) go install …@main` ⇒ `9008354f19ff`); `make modelith-check` green. *(CLM-002)*
-- [X] **T010** — **[WITNESS] W3** — no **live** fork/pin reference remains; new route present (operational surfaces `docs/domain-model/README.md` · `Makefile` · `specs/truth/**` · the bootstrap/closeout/README/STATUS · `scripts/` ⇒ **clean**). *(CLM-003)*
+- [X] **T010** — **[WITNESS] W3** — no **live** fork/pin reference remains; new route present. *(CLM-003; TD-095-1: the exact predicate is recorded here.)*
+
+  **Predicate (recorded, carried manual — not mechanised, ADR 0065 RF-065-5):**
+
+  ```sh
+  grep -rn 'b4153541\|gosharplite/modelith\|feat/self-domain-model' \
+    docs/domain-model/README.md Makefile specs/truth/ \
+    SESSION-BOOTSTRAP.md SESSION-CLOSEOUT.md README.md STATUS.md scripts/
+  # ⇒ empty (operational/shipping surfaces clean)
+  grep -c 'stacklok/modelith/cmd/modelith@main' specs/truth/techstack.md   # ⇒ 1
+  ```
+
+  **Full-tree hits are expected only for** (the exclusion set — exactly the observed hit set):
+  the round package `specs/plans/095-*/**` · `docs/decisions/0065-*.md` (records what it supersedes) ·
+  the **ADR index row** `docs/decisions/README.md` (names the superseded fork) · the **immutable ADR 0030
+  body** (verbatim, historical) · **frozen history** (`specs/plans/060-*/**`, `docs/archives/status/2026-09-19.md`,
+  `docs/session-summary/2026/09/19/**`). Any hit on a surface *outside* this set reddens the claim.
 - [X] **T011** — **[WITNESS] W4** — ADR 0065 indexed exactly once (`make verify-adr-index` ⇒ consistent). *(CLM-004)*
 
 ## Verification

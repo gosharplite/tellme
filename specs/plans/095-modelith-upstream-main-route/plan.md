@@ -52,8 +52,14 @@ specs/plans/095-modelith-upstream-main-route/
 ## §5 — `docs/domain-model/**` 未建模（ADR 0041 escape hatch）
 
 本輪不改變任何**已建模行為**：dev-tool binary 的**安裝路線**不是任何模型的 entity / relationship /
-attribute / invariant / enum / glossary term / scenario。故 `docs/domain-model/*.modelith.{yaml,md}`
+attribute / enum / glossary term / scenario。故 `docs/domain-model/*.modelith.{yaml,md}`
 **不更新**（`make modelith-check` 仍須 green）。此即 ADR 0041 的「或在 plan package 記錄為何未建模」情形。
+
+**邊界澄清（F-095-3 fold）**：產品模型的 `deterministic-and-hermetic` invariant（*"`make verify` is
+hermetic (ADR 0012)"*，`tellme.modelith.yaml:746-747`）**不**被本輪觸及 —— ADR 0012 的 hermetic 邊界治理的是
+**ambient Go-env invocation**（ADR 0012 D1/D5；其 **R1** 已載明 *"hermeticity is a `make`-boundary property,
+not a toolchain property"*），而本輪改的是 **dev-tool 版本**，落在該邊界**之外**，故 invariant 的
+`(ADR 0012)` 指涉不受影響，ADR 0041 的 same-PR 規則不適用。
 
 ## Artifacts touched
 

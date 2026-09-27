@@ -46,9 +46,10 @@ this same route; the ADR/truth prose cites this section rather than restating it
   **accepted** by ADR 0065 — a `main` move is a **visible red**, never silent rot. (ADR 0030 D2's
   immutable pin existed to avoid exactly this; it is re-adopted away by operator decision.)
 - **Last-render provenance (recorded, not a pin):** the three committed `.md` files were rendered
-  with `github.com/stacklok/modelith v0.5.1-0.20260927062055-9008354f19ff` — commit `9008354f19ff`
-  (`vcs.modified=false`), the `main` HEAD at adoption. *Provenance is recorded here; the gate runs
-  whatever `modelith` is on `PATH`.*
+  with `github.com/stacklok/modelith v0.5.1-0.20260927062055-9008354f19ff` — commit `9008354f19ff`,
+  the `main` HEAD at adoption (a module-version `go install` build carries **no** `vcs.*` stamps, so the
+  version string is the identifier). *Provenance is recorded here; the gate runs whatever `modelith` is on
+  `PATH`.*
 - **To pin instead of track:** set `MODELITH_REF := 9008354f19ff` (or another commit) — a one-line
   change (ADR 0065 RF-065-1).
 

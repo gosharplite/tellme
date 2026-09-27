@@ -4,13 +4,14 @@
 - **Date:** 2026-09-27
 - **Deciders:** tellme owner (operator directive, 2026-09-27; issue [#200](https://github.com/gosharplite/tellme/issues/200))
 - **Related:** **ADR 0030** (the domain model + the toolchain; **supersedes its D2 acquisition route** — its
-  §Forward **RF-060-1**/RF-060-5 are qualified) · **ADR 0012** (hermetic `make` — the "a gate must not be a
-  spurious-red generator" lineage the pin served) · **ADR 0041** (the model is load-bearing; the
-  install route is **not** modelled) · **ADR 0026** (a superseding decision is a new ADR + an index row) ·
-  **ADR 0064** (the same-session precedent: a superseding ADR + a dev-tool binary with a provenance caveat)
-  · `docs/domain-model/README.md` (the single source of the route) · `Makefile` (`MODELITH_REF` /
-  `MODELITH_INSTALL`) · `specs/truth/techstack.md` (*Domain model* row) · upstream
-  `github.com/stacklok/modelith`
+  §Forward **RF-060-1**/RF-060-5 are qualified; §Related's own *"a gate must not be a spurious-red
+  generator"* characterisation of ADR 0012 is the lineage the pin served) · **ADR 0012** (hermetic `make` —
+  its **D1/D5** boundary governs the **ambient Go-env invocation**, not dev-tool versions) · **ADR 0041**
+  (the model is load-bearing; the install route is **not** modelled) · **ADR 0026** (a superseding decision
+  is a new ADR + an index row) · **ADR 0064** (the same-session precedent: a superseding ADR + a dev-tool
+  binary with a provenance caveat) · `docs/domain-model/README.md` (the single source of the route) ·
+  `Makefile` (`MODELITH_REF` / `MODELITH_INSTALL`) · `specs/truth/techstack.md` (*Domain model* row) ·
+  upstream `github.com/stacklok/modelith`
 
 ## Context
 
@@ -48,9 +49,12 @@ go install github.com/stacklok/modelith/cmd/modelith@main
 ```
 
 — an ordinary `go install` of the upstream module's own path; the fork + commit-pin clone route is
-**superseded**. The route is single-sourced in `docs/domain-model/README.md` (the **single source**); the
-`Makefile` (`$(MODELITH_INSTALL)`) and the `modelith-check` failure message **quote** it; `techstack.md` and
-this ADR **cite** that section rather than restating the command.
+**superseded**. The route's **designation** is single-sourced in `docs/domain-model/README.md`; the
+`Makefile` **quotes** it and **derives** it from `$(MODELITH_REF)` (`MODELITH_INSTALL`), and the
+`modelith-check` failure message prints that derived value — so a ref change propagates without editing
+prose. The truth row, this ADR, and the ADR index row each carry a **self-contained one-line restatement**
+of the command (the round-060 **R-060-1** precedent: an ADR is self-contained) — the single-source
+discipline governs the *designation*, not verbatim re-use.
 
 **D2 — the tracked ref is `main` (HEAD); the current HEAD hash is recorded as provenance, not a pin.**
 `MODELITH_REF := main`; `MODELITH_INSTALL := go install github.com/stacklok/modelith/cmd/modelith@$(MODELITH_REF)`.
@@ -71,7 +75,12 @@ descriptive docs, subordinate to truth), **D5** (the ADR 0011 D10 amendment), or
 lifecycle) — all are unchanged.
 
 **D5 — the install route is not modelled.** No `docs/domain-model/*.modelith.{yaml,md}` change: the route is
-process, not a product/quality/environment concept, and no behaviour changes (ADR 0041 escape hatch).
+process, not a product/quality/environment concept, and no behaviour changes (ADR 0041 escape hatch). The
+product model's `deterministic-and-hermetic` invariant (*"`make verify` is hermetic (ADR 0012)"*) is **not**
+engaged: ADR 0012's hermetic boundary governs the **ambient Go-env invocation** (D1/D5; its R1 already
+records *"hermeticity is a `make`-boundary property, not a toolchain property"*), whereas this round changes a
+**dev-tool version**, which is **outside** that boundary — so the invariant's `(ADR 0012)` reference is
+unaffected and the same-PR model rule does not apply.
 
 **D6 — frozen history is out of scope.** `specs/plans/060-domain-model-and-drift-gate/**`,
 `docs/archives/status/2026-09-19.md`, and `docs/session-summary/2026/09/19/**` legitimately still name the
@@ -98,3 +107,7 @@ fork route (they record the `B-060-1` / `TD-060-1` fork-era decision) and MUST N
   the module path is the chosen acquisition.
 - **RF-065-4** — ADR 0030's own prose (D2 + §Forward RF-060-1/RF-060-5) still describes the fork pin
   verbatim; it is **corrected forward** by this ADR's index pointer, not by editing the body.
+- **RF-065-5** — the W3 predicate ("no **live** fork/pin reference remains") is carried with its exact grep
+  and exclusion set recorded in the round's `tasks.md` (T010) but is **not mechanised** (no gate reddens if a
+  future live surface re-introduces the fork route) — the ADR-0060 §Forward **RF-089-6** class (a docs claim
+  with no mechanical carrier). A trivial `grep -q` witness could be added if it ever recurs.
