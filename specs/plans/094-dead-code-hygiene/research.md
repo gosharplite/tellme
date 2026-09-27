@@ -27,11 +27,24 @@ advisory's meaning.
 
 ## D2 — `-test` is mandatory
 
-`deadcode ./...` (no `-test`) reports **~330** items because test-reachable code reads as dead
-(tests are not entry points). `deadcode -test ./...` roots the analysis at each package's **test
-executable too**, so test-reachable symbols stay live. Measured: on `dev` `ae300e9`, `-test` reports
-**7** items; without `-test`, `harness.RunInWithSyncedStdin`, every E2E step, every test helper,
-etc. — the whole test surface — reads as dead. The carrier uses **`-test`**.
+`deadcode ./...` (no `-test`) reports **1151** items on the head (`77db4c1`; **1157** on `dev`
+`ae300e9`) because test-reachable code reads as dead (tests are not entry points). `deadcode -test
+./...` roots the analysis at each package's **test executable too**, so test-reachable symbols stay
+live. Measured: on `dev` `ae300e9`, `-test` reports **7** items; without `-test`, every E2E step,
+every test helper, the whole test surface — reads as dead. The direction is load-bearing (three
+orders of magnitude); the figure is the **measured** one (the former "~330" was a non-reproducing
+estimate — F-094-1). The carrier uses **`-test`**.
+
+## D2b — Provenance must be probed, not asserted (F-094-2)
+
+The documented dev host has the reference's **heavy** `tell-me-go/cmd/deadcode` installed at
+`$GOPATH/bin/deadcode` (`go version -m $(command -v deadcode)` → `path
+github.com/gosharplite/tell-me-go/cmd/deadcode`). Resolving `deadcode` from PATH therefore finds the
+**wrong** tool, which prints `[PRIVATE]`/`[DEAD]` noise (284 lines, exit 0) — the ADR 0041
+advisory-muse failure. The target therefore **probes the binary's provenance** (`go version -m` →
+the `path` line must be `golang.org/x/tools/cmd/deadcode`) and **skips** (exit 0, naming the vanilla
+install route) otherwise — a wrong binary is a **no-op**, never a silently re-meant advisory
+(ADR 0064 D5 / RF-064-3).
 
 ## D3 — Advisory, never fails, not a `verify` member
 
@@ -44,6 +57,12 @@ human invokes, **not** an automated guard — it proves the tool *works*, not th
 (an interface-conformance method the RTA cannot see) — the same class the heavy reference tool needs
 a `[PRIVATE]`/acceptance apparatus to manage. A gate would force per-round exemptions; an advisory
 surfaces **new** findings for a human without blocking. (Recorded in ADR 0064 §Forward.)
+
+**A quiet run must mean *clean*, not *unknown* (F-094-4).** The advisory's one promise is that no
+findings = clean. A **tool failure** (non-zero exit — e.g. the tree does not compile) yields empty
+stdout; the target therefore **checks the tool's exit status** and, if non-zero, prints `analysis
+did not run (tool exit N)` (and still exits 0) rather than the `✓ no unreachable functions found`
+line. "Never fails" stays the policy; "reports success for an analysis that never ran" does not.
 
 ## D4 — Absent tool ⇒ install hint + exit 0 (a deliberate divergence)
 
@@ -70,10 +89,17 @@ them):
   assignability the TUI adapter relies on. Structural typing the analyzer cannot see; the method is
   never *called*. **Filtered, never deleted** (deleting it deletes a contract pin).
 
-The filter predicate therefore = **"an interface-conformance-only method"**, implemented as a small
-documented symbol regex covering the measured member plus the documented **unwrap-class**
-(`…\.Unwrap$`) so a future unwrap-only usage (if the RTA ever stops seeing it) is handled without a
-recipe edit. The **predicate** is the durable artifact; the members are its current instances.
+The filter predicate is therefore **exactly this measured member** —
+`DEADCODE_FP := unreachable func: sharedSource\.Suggest$$` — an **interface-conformance-only class**
+the predicate documents. It is **NAME-KEYED and un-witnessed** (RF-064-2): a rename of the receiver
+re-noises the clean tree; nothing asserts the predicate still matches its member.
+
+**Not** included: a name-wide `.*\.Unwrap$` alternative. Measured (F-094-3), that **swallows a
+genuinely-dead new** `Unwrap` method (a synthetic dead `W1ProbeError.Unwrap` was reported raw by the
+tool but hidden by the filter, while its sibling `.Error` survived) — directly contradicting FR-4's
+"only NEW findings appear". The unwrap-class is a *documented* structural-typing FP that the RTA
+currently does **not** report (so it needs no term); if it ever does, it is added as a **recorded
+symbol** then, never a name-wide alternative.
 
 **The cleanup set** (grep-verified zero callers; §2 of `spec.md`): the issue's 7 plus
 `cli.noopCallObserver` — a **production** symbol the issue's inventory missed, whose **only**

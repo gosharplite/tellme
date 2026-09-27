@@ -83,6 +83,38 @@ divergences, both recorded:
 
 - None new (spec/acceptance complete; the round carries the falsifiable witnesses).
 
+---
+
+## 2. Session 84 (cont.) — round 094 review-fold loop (PR [#199](https://github.com/gosharplite/tellme/pull/199)) → `APPROVE WITH REQUIRED FOLDS` → folded
+
+Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with `SESSION-BOOTSTRAP.md`
+(`--new`), then continuations (no `--new`). The architect reproduced the gates on two out-of-tree
+worktrees (`/tmp/pr199` head, `/tmp/pr199base` `dev` `ae300e9`) + a vanilla `deadcode@v0.47.0` in a
+temp GOBIN, attacked the carrier by mutation, and independently verified the cleanup. Verdict:
+**`APPROVE WITH REQUIRED FOLDS`** — no `[ARCHITECTURAL BLOCKER]`; every finding is **claim-accuracy /
+one-line-recipe**. All were folded:
+
+| Fold | Resolution |
+| --- | --- |
+| **F-094-1** the no-`-test` figure "~330" does not reproduce | Restated as the **measured 1151** (head) / **1157** (base) with the command (`spec.md` §1, `research.md` D2, ADR D2, this log). |
+| **F-094-2** "a clean tree prints nothing" is **false in situ** (the dev host's PATH `deadcode` is the heavy tool ⇒ 284 lines, exit 0) + the banner asserted an unverified provenance | The target now **probes the binary's provenance** (`go version -m` → `path` must be `golang.org/x/tools/cmd/deadcode`) and **skips** (exit 0, naming the vanilla route); the claim restated as "**reports no findings**" across FR-4/SC-002/CLM-004/ADR/PR body. |
+| **F-094-3** the `.*\.Unwrap$` alternative **swallows a genuine new finding** | Dropped it → the predicate is the single recorded member; the over-match recorded in ADR D5 / RF-064-2 (a live unwrap FP, if ever surfaced, is added as a **recorded symbol**, never a name-wide alternative). |
+| **F-094-4** a **tool failure** is reported as `✓ no unreachable functions found` | The target now **checks the tool's exit status** and prints `analysis did not run (tool exit N)` (still exit 0). |
+| **F-094-5** `techstack.md:172` left the **falsified** reachability clause present-tense | Reconciled **in place** (asserted → **falsified 2026-09-27 by round 094 / ADR 0064**). |
+| **F-094-6** the governance banner mis-cited **`RF-068-1`** (it is the *unpaired-call diagnostic's E2E carrier*, not reachability) | The reopen restated precisely (supersede ADR 0042 §D5's wording; correct the `techstack.md` clause; `RF-068-1` stays **retired and inert**), aligned with D8. |
+| **TD-094-1 / TD-094-2** | The predicate is **name-keyed + un-witnessed** (RF-064-2); the carrier has **no invocation occasion** → named as an on-demand **closeout / round-open** step (RF-064-7 + a `STATUS.md` env-note). |
+| **N-094-1..4** | "prints nothing" → "reports no findings"; the 0042 index row names §D4's orphan half; the Makefile header aligned to D8; `DEADCODE_FP` quoted in the ADR + `research.md`. |
+| **R-094-1 / R-094-2** | The heavy binary stays at `$GOPATH/bin/deadcode` → the `STATUS.md` env-note names the required provenance; the architect's race sweep was scoped to the 8 touched packages (the round's full-suite no-race claim stands). |
+
+Witnesses re-measured at the fold head: clean tree (vanilla on PATH) → **no findings**, exit 0 · the
+dev host's default PATH (heavy binary) → **skip**, exit 0 · injected dead `Unwrap` → **surfaces** ·
+broken tree → **`analysis did not run (tool exit 1)`** · W1 top-level synthetic → reported, exit 0.
+
+**State**: **PR [#199](https://github.com/gosharplite/tellme/pull/199) is ready for a human to review
+and merge** (no Copilot review; only a human merges). On merge: propagate `dev → main` (no-ff), tag
+`round-094`, refresh the binary, and **close [#198](https://github.com/gosharplite/tellme/issues/198)**.
+
+
 ### Process notes (durable)
 
 - **Re-verify the inventory; do not trust a tool verdict alone.** The issue's "Unwrap-class" FP proved

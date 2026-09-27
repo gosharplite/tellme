@@ -76,12 +76,27 @@ task. The round reopens **ADR 0042 §D4/§D5** + retired **`RF-068-1`** under ex
 | **CLM-001** — each §3 symbol is genuinely dead (zero callers) and removed | grep per symbol (only its definition before; **nothing** after) + `go build ./...` green | mechanism/grep | verified |
 | **CLM-002** — `make dead-code` is advisory + never fails | **W1/W2**: clean tree ⇒ exit **0** + empty output; injected synthetic export ⇒ exit **0** + reported; `verify:` aggregate line unchanged (grep) | mechanism | verified |
 | **CLM-003** — the carrier runs the **vanilla** pinned tool with `-test` | the target recipe (`deadcode -test ./...`, `DEADCODE_PIN=v0.47.0`); the temp-GOBIN build's `go version -m` shows `path golang.org/x/tools/cmd/deadcode` | mechanism | verified |
-| **CLM-004** — the FP filter makes the clean tree print nothing | clean-tree run prints **empty**; the predicate = the interface-conformance-only class (`sharedSource.Suggest` + the unwrap-class) | mechanism | verified |
+| **CLM-004** — the FP filter makes the clean tree **report no findings** | clean-tree run (vanilla on PATH) prints the banner + `✓ no unreachable functions found…` + `advisory done`, **no finding lines**; the predicate = the single recorded member (`unreachable func: sharedSource\.Suggest$`), **not** a name-wide `Unwrap` alternative | mechanism | verified |
 | **CLM-005** — absent tool ⇒ hint + exit 0 | **EC-001**: a scrubbed-PATH run prints the install hint and exits 0 | mechanism | verified |
 | **CLM-006** — the round adds **no** `verify` member + **no** dependency | grep the `verify:` aggregate; `go.mod`/`go.sum` unchanged (`git diff`) | mechanism | verified |
 | **CLM-007** — records consistent | `make verify-adr-index` (0064 indexed once/unique); `modelith-check` no drift | mechanical | verified |
 | **CLM-008** — no product behaviour change | `go build ./...` + `make check` green; E2E **330 · 2487** unchanged; each removed `.go` symbol is a whole-symbol deletion (no logic touched) | mechanism | verified |
+| **CLM-009** — the target **probes provenance** (F-094-2) | the dev host's PATH `deadcode` is the heavy `tell-me-go/cmd/deadcode` ⇒ the target **skips** (exit 0, naming the vanilla route); with vanilla on PATH it runs | mechanism | verified |
+| **CLM-010** — a **tool failure** is distinguished from clean (F-094-4) | a broken-tree run prints `analysis did not run (tool exit 1)` and exits 0 — never the `✓ … found` clean line | mechanism | verified |
+| **CLM-011** — the `Unwrap` over-match is removed (F-094-3) | an injected dead `W1ProbeError.Unwrap` **surfaces** (previously hidden) while `.Error` also surfaces | mechanism | verified |
 
 ## Fold ledger
 
-_(populated during the `architect` review-fold loop)_
+**Review 1** (PR [#199](https://github.com/gosharplite/tellme/pull/199), the `architect` peer — init once with `SESSION-BOOTSTRAP.md`, continuations): [`review`](https://github.com/gosharplite/tellme/pull/199#issuecomment-5852480113) — **`APPROVE WITH REQUIRED FOLDS`**, no `[ARCHITECTURAL BLOCKER]`. The architect reproduced the gates on two out-of-tree worktrees (`/tmp/pr199` head, `/tmp/pr199base` `dev` `ae300e9`) + a vanilla `deadcode@v0.47.0` in a temp GOBIN, attacked the carrier by mutation, and verified the cleanup independently; all findings are **claim-accuracy / one-line-recipe** (no architectural change).
+
+**Fold 1** (`f1e…`, this commit): all six required folds + the two TDs + nits folded:
+- **F-094-1** — the no-`-test` figure "~330" → the **measured 1151** (head) / **1157** (base), with the command; `spec.md` §1, `research.md` D2, ADR 0064 D2, the day log.
+- **F-094-2** — "a clean tree prints nothing" was **false in situ** (the dev host's PATH `deadcode` is the heavy `tell-me-go/cmd/deadcode` ⇒ 284 lines, exit 0): the target now **probes the binary's provenance** (`go version -m` → `path` must be `golang.org/x/tools/cmd/deadcode`) and **skips** (exit 0, naming the vanilla route); the claim is restated as "**reports no findings**" everywhere (FR-4, SC-002, CLM-004, the ADR, the PR body).
+- **F-094-3** — the `.*\.Unwrap$` alternative **swallowed a genuine new finding** (a synthetic dead `W1ProbeError.Unwrap` was hidden while `.Error` survived): the predicate is now the single recorded member (`unreachable func: sharedSource\.Suggest$`); the over-match is recorded in ADR D5 / RF-064-2.
+- **F-094-4** — a **tool failure** was reported as `✓ no unreachable functions found`: the target now **checks the tool's exit status** and prints `analysis did not run (tool exit N)` (still exit 0).
+- **F-094-5** — `techstack.md` left the **falsified** "reachability orphan … caught by reasoning" clause **present-tense** next to its own correction: reconciled **in place** (marked asserted→**falsified 2026-09-27 by round 094 / ADR 0064**).
+- **F-094-6** — the governance banner mis-cited **`RF-068-1`** (ADR 0038 §Forward — the *unpaired-call diagnostic's E2E carrier*, **not** reachability): the reopen is now stated precisely (supersede ADR 0042 §D5's wording; correct the `techstack.md` clause; `RF-068-1` stays **retired and inert**), aligned with D8 across `spec.md` / ADR §Related+§Context / the README index row.
+- **TD-094-1** → ADR RF-064-2 (the predicate is **name-keyed + un-witnessed**: a rename re-noises the clean tree). **TD-094-2** → ADR RF-064-7 (the carrier has **no invocation occasion** — named as an on-demand closeout/round-open step).
+- **N-094-1** ("prints nothing" → "reports no findings"); **N-094-2** (the 0042 index row now names §D4's orphan half); **N-094-3** (the Makefile header aligned to D8); **N-094-4** (`DEADCODE_FP` quoted in the ADR + `research.md`).
+- **R-094-1** (the heavy binary stays at `$GOPATH/bin/deadcode`; the `STATUS.md` env-note now names the required provenance). **R-094-2** (the architect's race sweep was scoped to the 8 touched packages; the round's full-suite no-race claim stands).
+

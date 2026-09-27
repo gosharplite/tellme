@@ -10,11 +10,14 @@ tellme ships no `dead-code`. No product behaviour change.
 
 > ⚠ **Governance — this round REOPENS a settled decision under explicit operator intent.**
 > Bootstrap **Agent Rule 11 addendum (b)** forbids reopening a declined decision without explicit
-> operator intent. This round reopens **ADR 0042 §D4** (*coverage / reachability-orphan tooling
-> **declined**, #144*) and **§D5** (*"no `test-coverage`/`dead-code`"*), and the **retired
-> `RF-068-1`** (*"Closed, not deferred — do not re-raise"*). The operator filed #198 as a round
-> candidate and directed *"Open a new aixbdd round, the goal is to close #198"* — the explicit
-> intent. The **carrier form is deliberately NOT the reference's heavy `cmd/deadcode`**.
+> operator intent. This round **supersedes ADR 0042 §D5's "no `dead-code`" wording** (its **§D4
+> percentage-coverage decline stands**; the **§D4 *reachability-orphan* half is answered** by this
+> round's carrier) and **corrects the `specs/truth/techstack.md` reachability clause** that cited
+> round 068. The retired **ADR 0038 §Forward `RF-068-1`** — which is about the *unpaired-call
+> diagnostic's E2E carrier*, **not** reachability — stays **retired and inert**: this round neither
+> fires nor unfires its trigger, and does not reopen it. The operator filed #198 as a round candidate
+> and directed *"Open a new aixbdd round, the goal is to close #198"* — the explicit intent. The
+> **carrier form is deliberately NOT the reference's heavy `cmd/deadcode`**.
 
 ---
 
@@ -23,8 +26,8 @@ tellme ships no `dead-code`. No product behaviour change.
 tellme's quality posture includes **no coverage tooling** (ADR 0042 §D4; `techstack.md` *Coverage
 tooling — DECLINED*): a coverage *percentage* is misleading because the E2E contract runs the built
 binary as a subprocess. That stance left **one** class a profile uniquely adds — a **reachability
-orphan** — answered **by reasoning** in round 068 (`RF-068-1`, now retired). The operator's
-measurement (issue #198, 2026-09-27) **falsifies the reasoning claim**: a whole-program
+orphan** — *asserted* (round 068) to be **caught by reasoning**. The operator's
+measurement (issue #198, 2026-09-27) **falsifies that assertion**: a whole-program
 reachability pass finds a small set of **genuinely-dead exported symbols** the standard `unused`
 linter cannot see (it treats any **exported** symbol as used), and tellme has **no carrier** for
 this class at all.
@@ -36,9 +39,16 @@ Re-measured this round (2026-09-27, session 84; see §2), on the round branch's 
   (tested `exported-is-used: false` + `whole-program: true`; it never reports an unused **exported**
   symbol).
 - **Vanilla** `golang.org/x/tools/cmd/deadcode@v0.47.0` (pinned) with **`-test`** reports **7**
-  items on `dev` (see §3) — 4 of the issue's 7 plus 3 the issue's inventory did **not** list
-  (`cli.noopCallObserver.OnCallBegin/OnCallEnd`, `ui.sharedSource.Suggest`). Without `-test` it
-  reports ~330 (test-reachable code reads as dead), so `-test` is **mandatory**.
+  items on `dev` `ae300e9` (see §3) — 4 of the issue's 7 plus 3 the issue's inventory did **not**
+  list (`cli.noopCallObserver.OnCallBegin/OnCallEnd`, `ui.sharedSource.Suggest`). Without `-test` it
+  reports **1151** items (head `77db4c1`; **1157** on `dev` `ae300e9`) — test-reachable code reads as
+  dead — so `-test` is **mandatory**.
+- **Provenance (measured, load-bearing).** The PATH binary named `deadcode` on the documented dev
+  host is the reference's **heavy** `tell-me-go/cmd/deadcode` (`go version -m $(command -v deadcode)`
+  → `path github.com/gosharplite/tell-me-go/cmd/deadcode`), which prints `[PRIVATE]`/`[DEAD]` noise
+  (284 lines, exit 0) — **not** tellme's carrier. The target therefore **probes the binary's
+  provenance** and **skips** (exit 0, naming the vanilla install route) if the PATH binary is not
+  `golang.org/x/tools/cmd/deadcode` (ADR 0064 D5 / RF-064-3).
 
 ## 2. The re-verification (do not trust a tool verdict alone)
 
@@ -61,7 +71,7 @@ alone:
 | Symbol | Why |
 | --- | --- |
 | `ui.sharedSource.Suggest` (`internal/ui/tuiprompt_test.go`) | **Interface-conformance-only** (`var _ domaintui.Source = sharedSource{}` + `var _ prompt.Source = sharedSource{}`) — the assertions pin that `domaintui.Source` and `prompt.Source` have **identical method sets** (the load-bearing assignability the adapter relies on). Structural typing the analyzer cannot see; removing the method would delete a **contract pin**, not dead code. |
-| `llm.(ProviderError).Unwrap` (+ the `ErrIncomplete`/`resolveError` unwrap methods) | Required by `errors.Is`/`errors.As` unwrap chains — structural-typing usage. **Not currently surfaced** by vanilla `deadcode -test` (the RTA sees the interface call), but recorded as part of the FP class so a future unwrap-only usage is handled. |
+| `llm.(ProviderError).Unwrap` (+ the `ErrIncomplete`/`resolveError` unwrap methods) | Required by `errors.Is`/`errors.As` unwrap chains — structural-typing usage. **Not currently surfaced** by vanilla `deadcode -test` (the RTA sees the interface call), so it needs **no** filter term. The predicate deliberately does **not** carry a name-wide `.*\.Unwrap$` alternative: measured (F-094-3), that swallows a **genuinely-dead new** `Unwrap` method — a NEW finding must surface. If the RTA ever reports a *live* unwrap FP, it is added as a **recorded symbol** then (ADR 0064 RF-064-2), never a name-wide alternative. |
 
 ## 3. The cleanup inventory (remove)
 
@@ -91,10 +101,17 @@ symbols. No other file changes.
   (`v0.47.0`), as a **PATH dev-tool binary** (like `modelith`/`golangci-lint`) — **no**
   `go.mod`/`go.sum` change — with **`-test`**; an **absent tool prints an install hint + exits 0**
   (never fail). [Verification Intent: unobservable → the target recipe + a run with a scrubbed PATH]
-- **FR-4** — the target **filters the recorded FP class** (the interface-conformance-only methods —
-  measured member `ui.sharedSource.Suggest`, plus the documented unwrap-class) so the steady-state
-  output on the **clean** tree is **empty** and only **new** findings appear. [Verification Intent:
-  unobservable → a clean-tree run prints nothing; W1 positive control prints the injected symbol]
+- **FR-4** — the target **filters the recorded FP class** (the interface-conformance-only class —
+  measured member `ui.sharedSource.Suggest`; **not** a name-wide `Unwrap` alternative, which would
+  swallow a genuinely-dead new `Unwrap` method — F-094-3) so the **findings body** on the **clean**
+  tree is **empty** (the run still prints its banner + `✓` + `advisory done` lines) and only **new**
+  findings appear. [Verification Intent: unobservable → a clean-tree run reports no findings; W1
+  positive control prints the injected symbol]
+- **FR-7** — the target **skips** (exit 0, naming the vanilla install route) when the PATH `deadcode`
+  is **not** the vanilla `golang.org/x/tools/cmd/deadcode` binary (a provenance probe), so a wrong
+  binary is a **no-op**, never a silently re-meant advisory; and it **distinguishes a tool failure**
+  (non-zero exit — a compile error etc.) from a clean tree, so a quiet run always means *clean*.
+  [Verification Intent: unobservable → EC-003 + EC-004 runs]
 - **FR-5** — **ADR 0064** records the advisory decision (tool pin, advisory-not-a-gate, the FP
   policy, **not-a-catalog**, **not** the reference's `cmd/deadcode`, the provenance hazard) and
   states it **supersedes ADR 0042 §D5's "no `dead-code`" wording**; **ADR 0042** gets a back-pointer
@@ -119,9 +136,11 @@ symbols. No other file changes.
 - **EC-002** — a **new** genuine dead export is introduced ⇒ the target **reports it** (and still
   exits 0). [Verification Intent: unobservable → W1 positive control]
 - **EC-003** — the PATH binary is the **heavy** `tell-me-go/cmd/deadcode` (name collision) ⇒ the
-  target's doc/ADR **name the required provenance** (vanilla x/tools); a wrong binary changes the
-  advisory's meaning, which the provenance note guards by inspection. [Verification Intent:
-  unobservable → the ADR's provenance statement + the target's header comment]
+  **provenance probe** skips it (exit 0, naming the vanilla install route), so the advisory never
+  silently re-means. [Verification Intent: unobservable → the probe's run on the dev host]
+- **EC-004** — a **tool failure** (the tool exits non-zero — e.g. the tree does not compile) ⇒ the
+  target prints `analysis did not run (tool exit N)` and still exits 0, so a quiet output never
+  means *unknown*. [Verification Intent: unobservable → a broken-tree run]
 
 ## 7. Invariants
 
@@ -137,9 +156,9 @@ symbols. No other file changes.
 
 - **SC-001 (cleanup)** — the §3 symbols are absent; `make check` green; behaviour-neutral.
   [Verification Intent: unobservable → grep + `make check`]
-- **SC-002 (carrier)** — `make dead-code` exits 0 on a clean tree with **empty** output; with an
-  injected synthetic export it reports it and still exits 0. [Verification Intent: unobservable →
-  W1 positive control + W2]
+- **SC-002 (carrier)** — `make dead-code` exits 0 on a clean tree with **no findings reported**;
+  with an injected synthetic export it reports it and still exits 0. [Verification Intent:
+  unobservable → W1 positive control + W2]
 - **SC-003 (advisory, not a gate)** — the `verify:` aggregate line is unchanged. [Verification
   Intent: unobservable → grep]
 - **SC-004 (records)** — ADR 0064 indexed; ADR 0042 index row + forward pointer; `techstack.md`
