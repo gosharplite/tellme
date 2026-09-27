@@ -287,3 +287,48 @@ is ready for a human to review and merge** (head `818f296`; no Copilot review; o
 - **A predicate's stated scope must match its recorded exclusions.** SC-001 said "live tree (excl. frozen
   history)" — a scope that *includes* the round package + ADR records and so self-falsified; the folded
   scope is the operational/shipping surfaces, set-identical to T010.
+
+---
+
+## 5. Session 84 closeout (2026-09-27) — round 095 `095-modelith-upstream-main-route` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 095 was **human-merged** (PR [#201](https://github.com/gosharplite/tellme/pull/201) → `dev` **`567f30b`**, **merge commit**); the remote branch was already gone (`git fetch --prune` → `[deleted] origin/095-modelith-upstream-main-route`), `dev` was fast-forwarded to the merge, the **local branch was deleted** (`git branch -d 095-modelith-upstream-main-route`, was `38c42c0`), and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == 567f30b`; no delivered `specs/plans/**` package touched; no stray temp files; round branch deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `go test -count=1 ./...` green) · E2E **330 scenarios · 2487 steps** · `make test-race` **no data races** · `verify-architecture` 0 · `verify-adr-index` consistent · `modelith-check` no drift ×3 · diff-level secret scan clean (prose-only matches: "TokenResolver" in an ADR index row) |
+| **3 — STATUS.md** | header → round 095 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-094 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-27.md`](../../../../archives/status/2026-09-27.md) (appended); round-095 section added; delivered-rounds pointer → 001–095; roadmap candidates → **#194–#197** (round 095 closed #200); the round-095 env note + the round-close-tags line (`round-095` at this propagation) refreshed |
+| **4 — daily summary** | this §5 (closeout) appended (the §1–§4 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker → **#200 closed at merge; #194–#197 open** |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-095`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#200](https://github.com/gosharplite/tellme/issues/200) CLOSED** (completed) with a linking comment naming PR #201 / `567f30b`; **[#194](https://github.com/gosharplite/tellme/issues/194)–[#197](https://github.com/gosharplite/tellme/issues/197)** verified **open** (live round seeds) — nothing to revise |
+
+### Commits (branch `095-modelith-upstream-main-route`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `dd8ed01` | `docs(095)`: install modelith from the upstream stacklok/modelith main HEAD (ADR 0065) |
+| `4876fbd` | `docs(095)`: name round PR #201 in STATUS + the day log |
+| `f8c5664` | `fix(095)`: fold the architect review (F-095-1/2/3 + TD-095-1 + N-095-1..4) |
+| `818f296` | `fix(095)`: fold the fold-verification residuals (RES-095-FV-1..4 + 2 nits) |
+| `38c42c0` | `docs(095)`: record the review-fold loop CLOSED (FOLDS VERIFIED at 818f296) |
+| `567f30b` | PR [#201](https://github.com/gosharplite/tellme/pull/201) merge into `dev` (by the human, merge commit) |
+| *(this closeout, on `dev`)* | `docs(095)`: day close — round 095 delivered + propagated; STATUS split + 09/27 summary §5 |
+
+### Open items (non-blocking)
+
+- **None new.** `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` or a live GitHub issue. **ADR 0065 §Forward RF-065-1…5** are disclosures, not tasking.
+- **Issue tracker**: **#194–#197 open** (live round seeds); **#200 closed**.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the live seeds are [#194](https://github.com/gosharplite/tellme/issues/194)–[#197](https://github.com/gosharplite/tellme/issues/197); Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round was a toolchain/record reconciliation).
+
+*(Round 095 is fully closed out: PR #201 human-merged into `dev` (`567f30b`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-095`**; the installed binary refreshed; [#200](https://github.com/gosharplite/tellme/issues/200) closed.)*
