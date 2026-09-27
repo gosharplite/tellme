@@ -17,7 +17,7 @@ func init() {
 // thenCompletesWithoutWaiting (必查 呈現結果): the run completed cleanly with the
 // prompt read from a piped (non-terminal) standard input — i.e. the process did
 // not block awaiting interactive input. Piped runs execute under a bounded
-// deadline (harness.RunWithStdin), so a hang surfaces here as a non-nil runErr
+// deadline (harness.RunInWithStdin), so a hang surfaces here as a non-nil runErr
 // carrying an explicit deadline message rather than being inferred from the
 // suite's own hang-to-timeout (grill Q6).
 func thenCompletesWithoutWaiting(ctx context.Context) error {

@@ -289,12 +289,6 @@ func schemaJSON(s string) any {
 	return v
 }
 
-// SchemaWithProperty builds a well-formed object schema declaring one required
-// string property named name — a helper for tests asserting the offered schema.
-func SchemaWithProperty(name string) any {
-	return schemaJSON(`{"type":"object","properties":{"` + strings.TrimSpace(name) + `":{"type":"string"}},"required":["` + strings.TrimSpace(name) + `"]}`)
-}
-
 // AnnotatedSchema returns a server-advertised input schema carrying the GitHub
 // MCP server's shape (round 061, issue #127): two arguments annotated with the
 // vendor extension `x-mcp-header`, plus standard-but-unsupported keywords

@@ -99,16 +99,3 @@ func (c compositeObserver) RestoreIndicator() {
 
 // Compile-time port conformance (round 034 ADR 0005 D1).
 var _ agentport.LoopObserver = compositeObserver{}
-
-// noopCallObserver is the default call observer: it renders nothing (the seam's
-// no-op default, ADR 0005 D1). The real block renderer is bound in T025/T027.
-type noopCallObserver struct{}
-
-// OnCallBegin is a no-op.
-func (noopCallObserver) OnCallBegin(int, []llm.Message) {}
-
-// OnCallEnd is a no-op.
-func (noopCallObserver) OnCallEnd(int, llm.Usage, []string, bool) {}
-
-// Compile-time port conformance.
-var _ agentport.CallObserver = noopCallObserver{}

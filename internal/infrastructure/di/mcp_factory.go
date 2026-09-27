@@ -15,12 +15,6 @@ import (
 	mcp "github.com/gosharplite/tellme/internal/infrastructure/mcp"
 )
 
-// TokenResolver resolves a token from an external source (the `gh` CLI) for a
-// server's credential. It is the injectable seam (round-032 FR-020, review fold
-// B3): tests inject a fake so NO `gh` process is ever spawned. It aliases
-// mcp.TokenSource so the CLI seam and the adapter agree on one type.
-type TokenResolver = mcp.TokenSource
-
 // NewRemoteClient builds the remote (Streamable HTTP) MCP client adapter for a
 // server, given the already-resolved Authorization header (empty = anonymous)
 // and the two bounding deadlines: discoveryTimeout caps the connect/list phase
