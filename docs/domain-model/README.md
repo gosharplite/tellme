@@ -23,34 +23,38 @@ scenarios. It is authored as modelith `*.modelith.yaml` **sources** and rendered
 
 ## Toolchain
 
-Built with **modelith** — the [`gosharplite/modelith`](https://github.com/gosharplite/modelith)
-fork at `feat/self-domain-model` (a fork of [`stacklok/modelith`](https://github.com/stacklok/modelith)).
-It is a **dev-tool binary**, **not** a Go module dependency — `go.mod`/`go.sum` are unchanged.
+Built with **modelith** — the upstream [`stacklok/modelith`](https://github.com/stacklok/modelith)
+toolchain. It is a **dev-tool binary**, **not** a Go module dependency — `go.mod`/`go.sum` are unchanged.
 
 ### Install (the single source of the route)
 
-The fork **declares the upstream module path** (`github.com/stacklok/modelith`), so it is
-**not** installable via `go install github.com/gosharplite/modelith/...@<ref>` at **any**
-ref — the branch query form is rejected (`invalid version … disallowed version string`) and
-the pseudo-version form fails (`module declares its path as: github.com/stacklok/modelith`).
-The working route is a **local clone of the fork, checked out at an immutable commit, built
-locally** (a local module build is unaffected by the declared-path mismatch):
+Install **modelith** from the **HEAD of the upstream `stacklok/modelith` `main` branch** — an
+ordinary `go install` of the module's own path:
 
 ```sh
-git clone https://github.com/gosharplite/modelith && cd modelith && git checkout b4153541cee8 && go install ./cmd/modelith
+go install github.com/stacklok/modelith/cmd/modelith@main
 ```
 
 `$(MODELITH_INSTALL)` in the `Makefile` (and the message `make modelith-check` prints) quotes
-this same route; the ADR/truth prose cites this section rather than restating it.
+this route and derives it from `$(MODELITH_REF)`; the truth row, ADR 0065, and the ADR index row each
+carry a **self-contained one-line restatement** of the command — the single-source discipline governs the
+route's *designation*, not verbatim re-use (the round-060 **R-060-1** precedent).
 
-- **Pinned identifier (immutable):** commit `b4153541cee8` — the `feat/self-domain-model` tip
-  this round was authored against. Branch-tracking is an explicit, documented **upgrade**, not
-  the default (a fork move changes the renderer ⇒ a committed `.md` renders differently ⇒
-  `make verify` reds on a re-install; that is the observable cost of the pin — TD-060-1).
-- **Known-good tool (provenance):** `github.com/stacklok/modelith v0.0.0-20260815121344-b4153541cee8`,
-  commit `b4153541cee8`, `vcs.modified=false` (the build the three committed `.md` files were
-  rendered with). *Provenance is recorded here; it is not a claim about which tool the gate
-  "supports" — the gate runs whatever `modelith` is on `PATH`.*
+- **Tracked ref:** `main` (HEAD of the upstream branch), by operator directive (2026-09-27;
+  **ADR 0065**, superseding ADR 0030 D2's fork + immutable-commit clone route).
+- **Accepted cost (non-hermetic tool version):** because the route tracks `main`, a `main`-branch
+  advance can change the renderer ⇒ a committed `.md` renders differently ⇒ `modelith-check` reds
+  on a re-install with **no repo change** (the spurious-red class ADR 0030 §Related names — *"a gate
+  must not be a spurious-red generator"* — for ADR 0012's hermetic intent). This is
+  **accepted** by ADR 0065 — a `main` move is a **visible red**, never silent rot. (ADR 0030 D2's
+  immutable pin existed to avoid exactly this; it is re-adopted away by operator decision.)
+- **Last-render provenance (recorded, not a pin):** the three committed `.md` files were rendered
+  with `github.com/stacklok/modelith v0.5.1-0.20260927062055-9008354f19ff` — commit `9008354f19ff`,
+  the `main` HEAD at adoption (a module-version `go install` build carries **no** `vcs.*` stamps, so the
+  version string is the identifier). *Provenance is recorded here; the gate runs whatever `modelith` is on
+  `PATH`.*
+- **To pin instead of track:** set `MODELITH_REF := 9008354f19ff` (or another commit) — a one-line
+  change (ADR 0065 RF-065-1).
 
 ## Quick commands
 

@@ -185,3 +185,105 @@ Round 094 was human-merged (PR [#199](https://github.com/gosharplite/tellme/pull
 - **`-test` is mandatory.** Without it the whole test surface reads as dead (**1151** items on the
   head `77db4c1`; **1157** on `dev` `ae300e9`); with it, the
   clean tree reduces to the recorded FPs.
+
+---
+
+## 4. Session 84 (cont.) — round 095 `095-modelith-upstream-main-route` **OPENED → full pipeline → PR open** (anchor issue [#200](https://github.com/gosharplite/tellme/issues/200); **ADR 0065**)
+
+After the round-094 closeout, the operator filed issue **#200** (the `modelith` dev-tool MUST be installed
+from the HEAD of the upstream `stacklok/modelith` `main` branch) and directed *"Open a new aixbdd round, the
+goal is to close #200."* A new branch **`095-modelith-upstream-main-route`** was created off `dev` `248846c`,
+the (toolchain/record-only) pipeline ran, and a PR was opened.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Branch | **`095-modelith-upstream-main-route`** (off `dev` `248846c`) |
+| Anchor | issue [#200](https://github.com/gosharplite/tellme/issues/200) — install `modelith` from the upstream `main` HEAD; **DoD = close it** |
+| Theme | **Toolchain/record**: the route becomes `go install github.com/stacklok/modelith/cmd/modelith@main`; revise every **live** reference; **supersede ADR 0030 D2** (ADR 0065) |
+| Clarify | **not escalated (0 questions)** — the directive locks the route; residual choices RD-owned |
+| Pipeline | specify ✅ · spec-by-example **NOOP** (no behaviour change) · technical-research ✅ (**ADR 0065** + the `techstack.md` row) · system-analysis ✅ (1 toolchain end; api/data/UI NOOP) · dsl-refine **NOOP** · tasks ✅ (T001–T014 + the Claim→Witness ledger) · implement ✅ |
+| The change | `Makefile` (`MODELITH_REF := main` / `MODELITH_INSTALL := go install github.com/stacklok/modelith/cmd/modelith@$(MODELITH_REF)`; `MODELITH_PIN` removed) · `docs/domain-model/README.md` (*Toolchain → Install*) · `specs/truth/techstack.md` (*Domain model* row, in place) · **ADR 0065** + `docs/decisions/README.md` (the 0065 index row + an ADR 0030 forward pointer) |
+| Facts verified | upstream `main` HEAD = `9008354f19ff…` (`v0.5.1-0.20260927062055-9008354f19ff`); `go install …@main` builds it; `make modelith-check` green with it |
+| Verification | `make verify` **OK** (adr-index consistent · modelith-check no drift ×3) · `go test -count=1 ./...` **green** — E2E **330 scenarios · 2487 steps (unchanged)** · `go.mod`/`go.sum` unchanged · no product code |
+| Witnesses | **W1** absent `modelith` ⇒ `make modelith-check` exits non-zero **printing the new route** · **W2** `go install …@main` resolves/builds + gate green · **W3** no **live** fork/pin reference remains on the operational/shipping surfaces (the expected full-tree hits are the round package + ADR 0065 + the **ADR 0065 index row** `docs/decisions/README.md:91` + the immutable ADR 0030 body + frozen history) · **W4** `verify-adr-index` consistent |
+| Delivery | branch `095-modelith-upstream-main-route` → **PR [#201](https://github.com/gosharplite/tellme/pull/201) open** (no Copilot review; only a human merges) |
+
+### Decisions locked (round 095 / ADR 0065)
+
+| # | Decision |
+| --- | --- |
+| **D1** | The route is the **upstream `main` HEAD** — `go install github.com/stacklok/modelith/cmd/modelith@main`; the fork + commit-pin clone route is superseded. |
+| **D2** | The tracked ref is **`main`** (`MODELITH_REF`); the current HEAD hash (`9008354f19ff`) is recorded as **provenance, not a pin** (`go.mod`/`go.sum` unchanged; dev-tool binary). |
+| **D3** | The accepted cost: tracking `main` is **non-hermetic** (a `main` advance may red `modelith-check` with no repo change — the ADR-0012 spurious-red class), **re-adopted deliberately**; recorded in the README, the Makefile comment, the truth row, and the ADR. |
+| **D4** | **ADR 0030 D2 is superseded, not repealed** — its body stays verbatim; its index row gains a forward pointer; D3/D4/D5/D6 stand. |
+| **D5** | The install route is **not modelled** — no `docs/domain-model/*.modelith.{yaml,md}` change (ADR 0041 escape hatch; recorded in `plan.md` §5). |
+| **D6** | Frozen history (`specs/plans/060-*`, the 09/19 archive/summary) is **out of scope** (`plan-package-frozen` / Rule 12). |
+
+### Open items (non-blocking)
+
+- **PR** for round 095 awaits a human review/merge → then the closeout (`SESSION-CLOSEOUT.md`): propagate
+  `dev → main` (no-ff), tag **`round-095`**, refresh the binary; **close [#200](https://github.com/gosharplite/tellme/issues/200)**.
+- **ADR 0065 §Forward** RF-065-1…4 (the moving `@main` ref · provenance not machine-checked · the
+  release-binary route not adopted · ADR 0030's own fork prose corrected forward only).
+
+### Next steps
+
+1. Human reviews + merges the round-095 PR; then the closeout (propagate `dev → main` no-ff, tag
+   `round-095`; close #200).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `095-modelith-upstream-main-route` until
+   merged, then `dev`).
+
+### PM follow-ups
+
+- None new (no PM-owned requirement gap; the round is a toolchain/record reconciliation).
+
+### Process notes (durable)
+
+- **A dev-tool route is a `TruthArtifact` clause, not just prose.** The `techstack.md` *Domain model* row
+  is truth, so the route change is a **round** (truth + a superseding ADR), not a docs-only hygiene commit.
+- **Supersede, don't edit.** ADR 0065 records the new route; ADR 0030's fork prose stays verbatim with an
+  index forward pointer — the same shape as ADR 0064→0042.
+- **A witness must exclude its own records.** W3's grep legitimately matches the round's plan package,
+  ADR 0065 (which records what it supersedes), the ADR index row (`docs/decisions/README.md` — names the
+  superseded fork), the immutable ADR 0030 body, and frozen history — the discriminating claim is scoped to
+  the **operational/shipping** surfaces (README · Makefile · truth); the full exclusion set is recorded in
+  `tasks.md` T010 (TD-095-1 / ADR 0065 RF-065-5).
+
+### 4 (cont.) — the `architect` review-fold loop (PR [#201](https://github.com/gosharplite/tellme/pull/201)) → `FOLDS VERIFIED — LOOP CLOSED`
+
+Dispatched the `architect` peer per `tm-chat-ingroup`: initialized **once** with `SESSION-BOOTSTRAP.md`
+(`--new`), then continuations (no `--new`). The architect ran the gates and all mutation probes in
+out-of-tree worktrees (the shared clone untouched), and hosted each verdict on the PR as a comment.
+
+| Pass | Verdict | Comment |
+| --- | --- | --- |
+| `review` @ `4876fbd` | **`APPROVE WITH REQUIRED FOLDS`** (no `[ARCHITECTURAL BLOCKER]`) — **F-095-1** ADR D1's "cite rather than restate" is false for the two surfaces it names; **F-095-2** the README's `(vcs.modified=false)` provenance qualifier does not describe a `go install` build; **F-095-3** the "not modelled" clause is contradicted by the model's `deterministic-and-hermetic` invariant; **TD-095-1** the W3 predicate un-recorded/un-mechanised; **N-095-1..4** | [5854303545](https://github.com/gosharplite/tellme/pull/201#issuecomment-5854303545) |
+| fold `f8c5664` | all required folds + nits folded | [5854304877](https://github.com/gosharplite/tellme/pull/201#issuecomment-5854304877) |
+| fold-verification @ `f8c5664` | **`FOLDS VERIFIED WITH RESIDUALS`** — **RES-095-FV-1..4** (the recurring "fixed the surface I named, missed its siblings" shape) + 2 nits | [5854351150](https://github.com/gosharplite/tellme/pull/201#issuecomment-5854351150) |
+| residual fold `818f296` | all four residuals + both nits folded (swept the siblings by grep) | [5854366959](https://github.com/gosharplite/tellme/pull/201#issuecomment-5854366959) |
+| re-verification @ `818f296` | **`FOLDS VERIFIED — LOOP CLOSED`** (no residuals) | [5854387714](https://github.com/gosharplite/tellme/pull/201#issuecomment-5854387714) |
+
+**Gates at the closed head `818f296`:** `make verify` **OK** (adr-index consistent · `modelith-check` no
+drift ×3 · architecture 0 · lint 0 · govulncheck clean) · `go test -count=1 ./...` green — **E2E 330
+scenarios · 2487 steps** · W1 still prints the new route. **Invariants re-confirmed:** ADR 0030 body
+byte-identical to `dev` (index-row pointer only); change surface = Makefile + records + truth row (no `.go`,
+no `go.mod`/`go.sum`, no `docs/domain-model/*.modelith.*`, no frozen history).
+
+**State:** the review-fold loop is **CLOSED** — **PR [#201](https://github.com/gosharplite/tellme/pull/201)
+is ready for a human to review and merge** (head `818f296`; no Copilot review; only a human merges).
+
+### 4 (cont.) — process notes (durable)
+
+- **A claim can be falsified by the model's own text.** The "not any model's invariant" record was one
+  `grep` from the `deterministic-and-hermetic` invariant — a boundary sentence (ADR 0012 governs the
+  *ambient Go-env*, not dev-tool versions) closed it without a model change (F-095-3).
+- **A "not modelled" record must name the invariant it is near.** Saying "not an invariant" is a claim about
+  the *whole* model; scope it (which invariant, and why it is not engaged).
+- **"Fixed the surface I named, missed its siblings."** RES-095-FV-1..4 were all sibling sites of the
+  original findings (README vs the ADR; research/spec vs plan; day-log §4 vs its process note; SC-001 vs
+  T010). Sweep the *class*, not the instance.
+- **A predicate's stated scope must match its recorded exclusions.** SC-001 said "live tree (excl. frozen
+  history)" — a scope that *includes* the round package + ADR records and so self-falsified; the folded
+  scope is the operational/shipping surfaces, set-identical to T010.
