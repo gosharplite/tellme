@@ -123,6 +123,56 @@ RESIDUALS** (RES-094-FV-5 + N-094-FV-3) → residual fold 2 `fb21879` → **fina
 `FOLDS VERIFIED — LOOP CLOSED`** (no residuals, no nits) — [`5852572109`](https://github.com/gosharplite/tellme/pull/199#issuecomment-5852572109).
 The loop is **CLOSED**; the PR is ready for a human to merge.
 
+---
+
+## 3. Session 84 closeout (2026-09-27) — round 094 `094-dead-code-hygiene` **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 094 was human-merged (PR [#199](https://github.com/gosharplite/tellme/pull/199) → `dev`
+**`efdc614`**, **merge commit**); the remote branch was already gone (`git fetch --prune` →
+`[deleted] origin/094-dead-code-hygiene`), the local branch tip (`dc8f9b6`) was an ancestor of
+`origin/dev`, so the **local branch was deleted** (`git branch -d 094-dead-code-hygiene`, was
+`dc8f9b6`), `dev` was fast-forwarded to the merge, and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean; `dev == origin/dev == efdc614`; no delivered `specs/plans/**` package touched (093's package unmodified); no stray temp files (the architect staging files cleaned); round branch already deleted (local + remote) |
+| **2 — gates** | **`make check` OK** (`make verify` OK + `go test -count=1 ./...` green) · E2E **330 scenarios · 2487 steps** · `make test-race` **no data races** · `verify-architecture` 0 issues · `verify-adr-index` consistent · `modelith-check` no drift ×3 · diff-level secret scan clean (prose-only matches: "token"/"TokenResolver") |
+| **3 — STATUS.md** | header → round 094 **DELIVERED / FROZEN**; **Rule-12 split**: the **round-093 delivered-round detail + its env note** relocated **verbatim** into [`docs/archives/status/2026-09-27.md`](../../../../archives/status/2026-09-27.md); round-094 section added; delivered-rounds pointer → 001–094; roadmap candidates → **#194–#197** (round 094 closed #198); the round-094 env note + the round-close-tags line (`round-094` at this propagation) refreshed; **58 lines** (live state only) |
+| **4 — daily summary** | this §3 (closeout) appended (the §1 + §2 records preserved) |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, branch heads match, tracker → **#198 closed at merge; #194–#197 open** |
+| **6 — commit** | working `dev` committed + pushed |
+| **7 — propagate + hand off** | `dev → main` (**no-ff**), tagged **`round-094`**; installed binary refreshed (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **[#198](https://github.com/gosharplite/tellme/issues/198) CLOSED** (completed) with a linking comment naming PR #199 / `efdc614`; **[#194](https://github.com/gosharplite/tellme/issues/194)–[#197](https://github.com/gosharplite/tellme/issues/197)** verified **open** (live round seeds) — nothing to revise |
+
+### Commits (branch `094-dead-code-hygiene`, then merged)
+
+| Commit | Note |
+| --- | --- |
+| `6322a16` | `feat(094)`: dead-code hygiene — remove the genuinely-dead exports + an advisory `make dead-code` carrier (ADR 0064) |
+| `77db4c1` | `docs(094)`: STATUS + day log — round 094 pipeline complete; PR #199 open (anchor #198) |
+| `27e122a` | `fix(094)`: fold the architect review (F-094-1..6 + TD-094-1/2 + N-094-1..4 + R-094-1) |
+| `f9112b4` | `fix(094)`: fold the fold-verification residuals (RES-094-FV-1..4 + N-094-FV-1/2) |
+| `fb21879` | `fix(094)`: fold the fold-verification-2 residuals (RES-094-FV-5 + N-094-FV-3) |
+| `dc8f9b6` | `docs(094)`: review-fold loop CLOSED — record the loop history + verdict |
+| `efdc614` | PR [#199](https://github.com/gosharplite/tellme/pull/199) merge into `dev` (by the human, merge commit) |
+| *(this closeout, on `dev`)* | `docs(094)`: day close — round 094 delivered + propagated; STATUS split + 09/27 summary §3 |
+
+### Open items (non-blocking)
+
+- **None new.** `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` or a live GitHub issue. **ADR 0064 §Forward RF-064-1…7** are disclosures, not tasking.
+- **Issue tracker**: **#194–#197 open** (live round seeds); **#198 closed**.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (the live seeds are [#194](https://github.com/gosharplite/tellme/issues/194)–[#197](https://github.com/gosharplite/tellme/issues/197); Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None new (spec/acceptance complete; the round carries the falsifiable witnesses).
+
+*(Round 094 is fully closed out: PR #199 human-merged into `dev` (`efdc614`, merge commit); propagation `dev → main` **DONE (no-ff)**, tagged **`round-094`**; the installed binary refreshed; [#198](https://github.com/gosharplite/tellme/issues/198) closed.)*
+
 
 
 ### Process notes (durable)
