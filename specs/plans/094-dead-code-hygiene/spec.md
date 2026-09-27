@@ -87,8 +87,8 @@ symbols. No other file changes.
 - **US-1 (P1)** — As the tellme operator, I want the genuinely-dead exported symbols removed, so the
   tree carries no unreachable surface the shipped gates cannot see.
 - **US-2 (P1)** — As the tellme operator, I want an **advisory** `make dead-code` carrier, so the
-  exported-dead class has a mechanical surface that surfaces **new** findings while printing
-  **nothing** on the clean tree.
+  exported-dead class has a mechanical surface that surfaces **new** findings while reporting
+  **no findings** on the clean tree.
 
 ## 5. Requirements
 

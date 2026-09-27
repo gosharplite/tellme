@@ -55,7 +55,7 @@ divergences, both recorded:
 | --- | --- |
 | **D1** | Carry the exported-dead class with an **advisory** `make dead-code` (vanilla `x/tools/cmd/deadcode` pinned `v0.47.0`, a PATH dev-tool — **no** `go.mod`/`go.sum` change — run with `-test`), **never fails**, **not** a `make verify` member. |
 | **D2** | "Starting state = clean": remove the dead set **first**, then add the target. |
-| **D3** | The FP policy = **one documented exclusion predicate** (the **interface-conformance-only** class + the unwrap-class), so a clean tree prints **nothing**; **not** a `NonFixCatalog` (avoids the ADR 0041 advisory-muse failure). |
+| **D3** | The FP policy = **one documented exclusion predicate** (the **interface-conformance-only** class — the single recorded member `sharedSource\.Suggest`; **not** a name-wide `Unwrap` alternative), so a clean tree **reports no findings**; **not** a `NonFixCatalog` (avoids the ADR 0041 advisory-muse failure). |
 | **D4** | An **absent** tool prints an install hint + exits **0** (a deliberate divergence from the fail-on-absent `modelith-check` gate). |
 | **D5** | The carrier records the **provenance hazard** (the PATH name `deadcode` collides with the reference's heavy `tell-me-go/cmd/deadcode`): the vanilla x/tools binary is required. |
 | **D6** | The round **supersedes ADR 0042 §D5's "no `dead-code`"** wording (the §D4 **percentage**-coverage decline **stands**); ADR 0042's body stays **verbatim**; its **index row** gains a forward pointer. |
@@ -123,5 +123,5 @@ and merge** (no Copilot review; only a human merges). On merge: propagate `dev �
 - **A truly-dead production type is removed, not filtered.** `cli.noopCallObserver` (uninstantiated)
   belongs in the cleanup; filtering it would hide a real finding (the advisory-muse failure).
 - **`-test` is mandatory.** Without it the whole test surface reads as dead (**1151** items on the
-  head `77b…`; **1157** on `dev` `ae300e9`); with it, the
+  head `77db4c1`; **1157** on `dev` `ae300e9`); with it, the
   clean tree reduces to the recorded FPs.

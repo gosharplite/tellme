@@ -86,7 +86,7 @@ gains a forward pointer to this ADR.
 ## Consequences
 
 - The exported-dead class gains a **mechanical surface**: `make dead-code` surfaces **new** findings
-  on demand, printing nothing on the clean tree.
+  on demand, reporting no findings on the clean tree.
 - It is **advisory**: no `verify` member, no gate change, no automatic guard (tellme has no CI). The
   carrier proves the tool *works*; a human decides whether a finding is dead or an FP.
 - The **provenance hazard** is **guarded, not merely recorded**: the target probes the binary's
