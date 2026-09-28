@@ -6,7 +6,7 @@
 **Workspace**: `…/mbp-johndoe-tellme/ait-tellme` (`$TELL_ME_HOME`); darwin/arm64 host (Go 1.26.6).
 **Session mode**: `butler`.
 **Branch**: `dev` (== `origin/dev` == `fe5d164`); round **095** remains the last delivered round.
-**Status at end of day**: **no round in flight** — a **toolchain / record hygiene** day (not a round): the skill/model source tree switched to **`~/tmp/github/gosharplite/aixbdd-en`** (the English translation of `aixbdd-tmg`), the **fixed DSL contract tokens migrated to English** across `specs/truth/features/cli/**/dsl.md`, the offered-set doc-consistency **carrier taught the English `Set` cell**, and the **upstream `aixbdd-tmg` topology script taught to accept the `DSL Sentence` header**. `dev` is **3 commits ahead of `main`** ⇒ propagation **PENDING** (operator approval; not a round ⇒ no `round-NNN` tag).
+**Status at end of day**: **no round in flight** — a **toolchain / record hygiene** day (not a round): the skill/model source tree switched to **`~/tmp/github/gosharplite/aixbdd-en`** (the English translation of `aixbdd-tmg`), the **fixed DSL contract tokens migrated to English** across `specs/truth/features/cli/**/dsl.md`, the offered-set doc-consistency **carrier taught the English `Set` cell**, and the **upstream `aixbdd-tmg` topology script taught to accept the `DSL Sentence` header**. The aixbdd-en alignment is **propagated** `dev -> main` (**no-ff**, merge commit `30b5234`, **operator-approved**; **not a round** ⇒ **no `round-NNN` tag**), and the installed binary is refreshed (`vcs.revision` `912e816`; `--version` → `dev`).
 
 ---
 
@@ -67,14 +67,13 @@ The `6cbef86` token migration renamed the `chat/dsl.md` offered-set cell from ``
 
 ### Open items (non-blocking)
 
-- **Propagation pending**: `dev` is **3 commits ahead of `main`** (`origin/main` `1b89b37`). The three docs/truth-hygiene commits need an operator-approved `dev → main` no-ff merge. **No `round-NNN` tag** (Rule 15 — a tag marks a *round's* delivery; this is not a round).
+- **Propagation pending** *(resolved)*: `dev` was ahead of `main` by the 3 docs/truth-hygiene commits + the closeout docs commits. **Resolved** — operator-approved `dev → main` **no-ff** merge (`30b5234`), trees verified equal (`main^{tree} == dev^{tree}`), pushed to `origin/main`. **No `round-NNN` tag** (Rule 15 — a tag marks a *round's* delivery; this is not a round). Installed binary refreshed from the `dev` head (`vcs.revision` `912e816`, `vcs.modified=false`; `--version` → `dev`).
 - **Not a `STATUS.md` item** — homed here + in the `STATUS.md` Handoff note (Rule 17: no open-items index on `STATUS.md`).
 
 ### Next steps (next-session starting point)
 
 1. Re-read `SESSION-BOOTSTRAP.md` (now pointing at `aixbdd-en`) + `STATUS.md`.
 2. Confirm `dev` head + open a fresh `NNN-*` round off `dev` via `/axb-specify` (a theme from operator value or a **live issue**; Bootstrap Agent Rule 11).
-3. If the operator approves, run the pending `dev → main` propagation (no tag).
 
 ### PM follow-ups
 
@@ -86,9 +85,9 @@ The `6cbef86` token migration renamed the `chat/dsl.md` offered-set cell from ``
 
 - **Step 1** working tree: clean at the start; only `cmd/tellme/deps_offered_set_test.go` modified → committed (`fe5d164`). No frozen `specs/plans/**` package touched.
 - **Step 2** gates: `make verify` **OK** · `go test -count=1 ./...` **green** · `make test-race` **no data races** · topology audit **PASSED** from both skill trees · diff-level secret scan clean (`mcp_github_run_secret_scanning` unavailable for this repo — STATUS env note).
-- **Step 3** `STATUS.md`: "Last updated" → **2026-09-28 (session 85)**; Active-branch line records the 3 hygiene commits + `origin/main` `1b89b37` + **propagation PENDING**; Daily-log link → today; new **aixbdd-en alignment** env note; path authorizations add `…/aixbdd-en`; Roadmap handoff note. `STATUS.md` stays **lean** (~62 lines — no split).
+- **Step 3** `STATUS.md`: "Last updated" → **2026-09-28 (session 85)**; Active-branch line records the 3 hygiene commits + the closeout commits + `origin/main` `1b89b37` + **propagation PENDING** (later updated to **DONE** `30b5234`); Daily-log link → today; new **aixbdd-en alignment** env note; path authorizations add `…/aixbdd-en`; Roadmap handoff note. `STATUS.md` stays **lean** (~62 lines — no split).
 - **Step 4** this summary.
-- **Step 5** status ↔ summary reconciled (same day, same commits, same pending-propagation item, same branch heads).
-- **Step 6** committed + pushed (`dev` `fe5d164`; `aixbdd-tmg` `main` `c34ae49`).
-- **Step 7** propagation: **pending** — recorded (not run; needs operator approval; not a round).
+- **Step 5** status ↔ summary reconciled (same day, same commits, same branch heads).
+- **Step 6** committed + pushed (`dev` `912e816`; `aixbdd-tmg` `main` `c34ae49`).
+- **Step 7** propagation: **DONE** — operator-approved `dev -> main` **no-ff** merge (`30b5234`), `main^{tree} == dev^{tree}` verified, pushed to `origin/main`; **no `round-NNN` tag** (not a round). Installed binary refreshed from the `dev` head (`vcs.revision` `912e816`, `vcs.modified=false`; `--version` → `dev`).
 - **Step 8** issue tracker: **4 open issues** (#[194](https://github.com/gosharplite/tellme/issues/194) DeepSeek CoT display · #[195](https://github.com/gosharplite/tellme/issues/195) output-token budget-field owner · #[196](https://github.com/gosharplite/tellme/issues/196) Gemini thought parts · #[197](https://github.com/gosharplite/tellme/issues/197) provider API-surface posture) — all **future operator-value round candidates** recorded 2026-09-26 (session 82); **none** is touched by this day's work ⇒ **all four left as-is (accurate)**. No issue opened / closed / revised.
