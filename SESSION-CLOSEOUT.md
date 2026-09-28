@@ -2,7 +2,7 @@
 
 > **Repo**: `github.com/gosharplite/tellme`
 > **Folder**: `~/tmp/github/gosharplite/tellme/`
-> **Mission**: Disciplined BDD re-creation of `tell-me-go` driven by `aixbdd-tmg`
+> **Mission**: Disciplined BDD re-creation of `tell-me-go` driven by `aixbdd-en`
 > **Workflow**: AIxBDD (Strict PM/RD separation, single truth, Red-Green-Refactor)
 > **Companion**: start-of-session procedure is [`SESSION-BOOTSTRAP.md`](SESSION-BOOTSTRAP.md) — this file is its end-of-day mirror.
 

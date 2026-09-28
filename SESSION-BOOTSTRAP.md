@@ -70,7 +70,7 @@ When executing Step 2, consult the reference implementation at `~/tmp/github/gos
 
 ### 2. `aixbdd-en` Domain Model & Workflow (Steps 3 & 4 Details)
 
-The operational engine at `~/tmp/github/gosharplite/aixbdd-en/` provides the formal BDD methodology:
+The operational engine at `~/tmp/github/gosharplite/aixbdd-en/` (the English translation of `aixbdd-tmg`) provides the formal BDD methodology:
 
 - **Canonical Domain Model** (`~/tmp/github/gosharplite/aixbdd-en/domain-model/aixbdd.modelith.md`):
   - **Entities**: `PlanPackage`, `Spec`, `AcceptanceFeature`, `TruthArtifact` (`Contract`, `DataModel`, `DSL`, `InterfaceFeature`, `Techstack`), `TruthDelta`, `DeltaEntry`, `Task`.
