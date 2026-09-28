@@ -24,24 +24,24 @@ match exactly one row.
 
 ## Given
 
-| DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
+| DSL Sentence | Gherkin Params | Data Table Params | Default Params | StepDef Implementation Semantics |
 | --- | --- | --- | --- | --- |
-| `a configuration "{config_path}" that does not resolve` | `config_path`: string; path relative to the runtime home. | 不支援 | `失效原因`: defaults to a missing or malformed file so the diagnostic reports unresolved. | `怎麼做`: arrange a configuration at `{home}/{config_path}` that does not reach a ready state. `權威狀態落地`: setup resolution is not ready. `回寫`: the arranged (unusable) configuration. |
+| `a configuration "{config_path}" that does not resolve` | `config_path`: string; path relative to the runtime home. | Not supported | `Failure reason`: defaults to a missing or malformed file so the diagnostic reports unresolved. | `How`: arrange a configuration at `{home}/{config_path}` that does not reach a ready state. `State landing`: setup resolution is not ready. `Write-back`: the arranged (unusable) configuration. |
 
 ## When
 
-| DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
+| DSL Sentence | Gherkin Params | Data Table Params | Default Params | StepDef Implementation Semantics |
 | --- | --- | --- | --- | --- |
-| `the operator runs tellme's diagnostic` | 無 | 不支援 | `旗標`: the run is invoked with `-d` (the reporting path; `--json` has been removed). | `怎麼做`: run `tellme -d` under the current environment. `權威狀態落地`: the diagnostic report is produced regardless of the resolution outcome. `回寫`: captured exit code, stdout, stderr. |
+| `the operator runs tellme's diagnostic` | none | Not supported | `Flags`: the run is invoked with `-d` (the reporting path; `--json` has been removed). | `How`: run `tellme -d` under the current environment. `State landing`: the diagnostic report is produced regardless of the resolution outcome. `Write-back`: captured exit code, stdout, stderr. |
 
 ## Then
 
-| DSL 句型 | Gherkin 參數 | Data Table 參數 | 預設參數 | StepDef 實作語意 |
+| DSL Sentence | Gherkin Params | Data Table Params | Default Params | StepDef Implementation Semantics |
 | --- | --- | --- | --- | --- |
-| `tellme prints the build version` | 無 | 不支援 | 無 | `必查`: `呈現結果`: stdout contains the build version string (the E2E build uses a distinctive sentinel so a missed injection fails). |
-| `tellme reports the configuration resolved` | 無 | 不支援 | 無 | `必查`: `呈現結果`: stdout reports the configuration resolved. `權威狀態`: the resolution matches a ready configuration + effective provider. |
-| `tellme reports the runtime home resolved to "{home}"` | `home`: string; the operator-facing runtime home name. | 不支援 | 無 | `必查`: `呈現結果`: stdout reports the runtime home resolved to `{home}` (the arranged `TELL_ME_HOME`). |
-| `tellme reports the session workspace resolved to "{workspace_path}"` | `workspace_path`: string; the expected operator-facing path reported on stdout (e.g. "ait-tmg/output/butler"). | 不支援 | 無 | `必查`: `呈現結果`: stdout reports the session workspace resolved to `{workspace_path}`. |
-| `tellme reports the configuration did not resolve` | 無 | 不支援 | 無 | `必查`: `呈現結果`: stdout reports the configuration did not resolve. `權威狀態`: the reported status matches the arranged unresolved setup. |
-| `tellme reports the reason the configuration did not resolve` | 無 | 不支援 | 無 | `必查`: `呈現結果`: stdout names the unresolved category (one of `config-missing`, `config-invalid`, `provider-mismatch`, `home-unset`, `home-unusable`) consistent with the arranged setup. |
-| `tellme exits with the diagnostic error code` | 無 | 不支援 | `碼值`: `5` (**pinned**, round 002 / FR-005) — a dedicated non-zero code distinct from success (0) and from every other error class (usage 2, configuration 3, environment 4). | `必查`: `呈現結果`: the report was produced and the exit code **equals the pinned diagnostic code `5`**. `不該發生`: it must not collapse to the success code or to any other error class. |
+| `tellme prints the build version` | none | Not supported | none | `Must-check`: `Presented Result`: stdout contains the build version string (the E2E build uses a distinctive sentinel so a missed injection fails). |
+| `tellme reports the configuration resolved` | none | Not supported | none | `Must-check`: `Presented Result`: stdout reports the configuration resolved. `Authoritative State`: the resolution matches a ready configuration + effective provider. |
+| `tellme reports the runtime home resolved to "{home}"` | `home`: string; the operator-facing runtime home name. | Not supported | none | `Must-check`: `Presented Result`: stdout reports the runtime home resolved to `{home}` (the arranged `TELL_ME_HOME`). |
+| `tellme reports the session workspace resolved to "{workspace_path}"` | `workspace_path`: string; the expected operator-facing path reported on stdout (e.g. "ait-tmg/output/butler"). | Not supported | none | `Must-check`: `Presented Result`: stdout reports the session workspace resolved to `{workspace_path}`. |
+| `tellme reports the configuration did not resolve` | none | Not supported | none | `Must-check`: `Presented Result`: stdout reports the configuration did not resolve. `Authoritative State`: the reported status matches the arranged unresolved setup. |
+| `tellme reports the reason the configuration did not resolve` | none | Not supported | none | `Must-check`: `Presented Result`: stdout names the unresolved category (one of `config-missing`, `config-invalid`, `provider-mismatch`, `home-unset`, `home-unusable`) consistent with the arranged setup. |
+| `tellme exits with the diagnostic error code` | none | Not supported | `Code`: `5` (**pinned**, round 002 / FR-005) — a dedicated non-zero code distinct from success (0) and from every other error class (usage 2, configuration 3, environment 4). | `Must-check`: `Presented Result`: the report was produced and the exit code **equals the pinned diagnostic code `5`**. `Should Not Happen`: it must not collapse to the success code or to any other error class. |
