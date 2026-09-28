@@ -14,7 +14,7 @@ import (
 // `the request offered exactly the agent tools` step. That documentation must be
 // **bound to** the live production registry so it cannot silently rot again (the
 // round-088 F-088-1 / round-089 RF-089-6 class: a docs-prose claim with no
-// mechanical carrier). This test binds the doc's `集合` cell to `agentTools()` —
+// mechanical carrier). This test binds the doc's `Set` / `集合` cell to `agentTools()` —
 // the NON-overridable production assembler — so adding/removing a tool, or
 // editing the documented list, REDDENS here instead of drifting undetected.
 // (It enforces doc↔registry *consistency*, not the *size* of the surface.)
@@ -26,13 +26,13 @@ import (
 // relative to the cmd/tellme package dir (where `go test` runs).
 const offeredSetDocPath = "../../specs/truth/features/cli/chat/dsl.md"
 
-// offeredSetRowMarker identifies the DSL row whose `集合` cell enumerates the set.
+// offeredSetRowMarker identifies the DSL row whose `Set` (or legacy `集合`) cell enumerates the set.
 const offeredSetRowMarker = "the request offered exactly the agent tools"
 
 // backtickedName matches a backticked wire tool name (`list_files`, …).
 var backtickedName = regexp.MustCompile("`([a-z_][a-z0-9_]*)`")
 
-// documentedOfferedSet parses the `集合` cell of the offered-set DSL row and
+// documentedOfferedSet parses the `Set` (or legacy `集合`) cell of the offered-set DSL row and
 // returns its backticked tool names, sorted.
 func documentedOfferedSet(t *testing.T) []string {
 	t.Helper()
@@ -44,10 +44,10 @@ func documentedOfferedSet(t *testing.T) []string {
 		if !strings.HasPrefix(strings.TrimSpace(line), "|") || !strings.Contains(line, offeredSetRowMarker) {
 			continue
 		}
-		// The row is a pipe-delimited Markdown table line; the `集合` cell is
+		// The row is a pipe-delimited Markdown table line; the `Set` / `集合` cell is
 		// the structured enumeration (its sibling cells carry prose/round notes).
 		for _, cell := range strings.Split(line, "|") {
-			if !strings.Contains(cell, "`集合`") {
+			if !strings.Contains(cell, "`Set`") && !strings.Contains(cell, "`集合`") {
 				continue
 			}
 			var names []string
@@ -55,12 +55,12 @@ func documentedOfferedSet(t *testing.T) []string {
 				names = append(names, m[1])
 			}
 			if len(names) == 0 {
-				t.Fatalf("the `集合` cell of the offered-set row enumerates no tool names: %q", strings.TrimSpace(cell))
+				t.Fatalf("the `Set`/`集合` cell of the offered-set row enumerates no tool names: %q", strings.TrimSpace(cell))
 			}
 			sort.Strings(names)
 			return names
 		}
-		t.Fatalf("the offered-set row has no `集合` cell: %q", strings.TrimSpace(line))
+		t.Fatalf("the offered-set row has no `Set` (or `集合`) cell: %q", strings.TrimSpace(line))
 	}
 	t.Fatalf("%s carries no row for the offered-set step %q", offeredSetDocPath, offeredSetRowMarker)
 	return nil
@@ -82,6 +82,6 @@ func TestOfferedSetDocMatchesTheLiveRegistry(t *testing.T) {
 	}
 	if strings.Join(doc, ",") != strings.Join(live, ",") {
 		t.Fatalf("the documented offered set is not bound to the live registry:\n  doc  (%d): %v\n  live (%d): %v\n"+
-			"reconcile %s (the `集合` cell) with cmd/tellme agentTools()", len(doc), doc, len(live), live, offeredSetDocPath)
+			"reconcile %s (the `Set` cell) with cmd/tellme agentTools()", len(doc), doc, len(live), live, offeredSetDocPath)
 	}
 }
