@@ -129,7 +129,7 @@ One development iteration, carried by a plan package. A delivered round is froze
 
 ### `TopologyAudit`
 
-The Gherkin/DSL topology script (from the aixbdd-tmg toolchain) that checks the truth-tree's feature/DSL structure. It is a **carried** check, not a `make verify` member; a small set of pre-existing DSL-matching errors is recorded rather than gated.
+The Gherkin/DSL topology script (from the aixbdd-en toolchain) that checks the truth-tree's feature/DSL structure. It is a **carried** check, not a `make verify` member; a small set of pre-existing DSL-matching errors is recorded rather than gated.
 
 **Invariants**
 

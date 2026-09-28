@@ -55,13 +55,14 @@ The development of `tellme` is anchored against two primary reference repositori
   - Security and safety guardrails: `SafePath` authorization, run-away loop detection, and cost auditing. *(The `SafePath`/consent rules are deliberately **not** re-created in `tellme` — see [Design Intent & Direction](#-design-intent--direction-operator-declared).)*
   - Environment management: Niffler group/persona templates and provider hot-swapping.
 
-### 2. `aixbdd-tmg` (BDD Execution, Skills & Domain Model Reference)
-- **Local Path**: `~/tmp/github/gosharplite/aixbdd-tmg`
-- **Upstream**: [github.com/gosharplite/aixbdd-tmg](https://github.com/gosharplite/aixbdd-tmg)
+### 2. `aixbdd-en` (BDD Execution, Skills & Domain Model Reference)
+- **Local Path**: `~/tmp/github/gosharplite/aixbdd-en`
+- **Upstream**: [github.com/gosharplite/aixbdd-en](https://github.com/gosharplite/aixbdd-en)
+- **Provenance**: The **English translation of `aixbdd-tmg`** (itself a derivative of [AIxBDD](https://github.com/Waterball-Software-Academy/aixbdd)). `tellme` tracks `aixbdd-en` as its skill/model source: its default *project language* is **English**, and its **fixed DSL contract tokens** are the English ones (`DSL Sentence`, `Gherkin Params`, `Data Table Params`, `Default Params`, …) that `specs/truth/**` uses.
 - **Role**: The operational engine and domain model for the BDD workflow.
   - **Canonical Domain Model** (`domain-model/aixbdd.modelith.md`): Defines core entities (`PlanPackage`, `Spec`, `AcceptanceFeature`, `TruthArtifact`, `TruthDelta`, `DSL`, `Task`), truth single-ownership, and step-to-DSL matching invariants.
-  - **15+ Specialized Skills** (`skills/axb-*`): Directs each phase from specification (`axb-specify`), acceptance journeys (`axb-spec-by-example`), technical research (`axb-technical-research`), system analysis (`axb-system-analysis`), executable DSL refinement (`axb-dsl-refine`), task generation (`axb-tasks`), to TDD implementation (`axb-implement`, `axb-bdd`).
-  - **Dedicated Roles** (`roles/pm.yaml` and `roles/rd.yaml`): Enforces clean boundaries between PM requirement definition and RD engineering implementation.
+  - **16 Specialized Skills** (`skills/axb-*`): Directs each phase from specification (`axb-specify`), acceptance journeys (`axb-spec-by-example`), technical research (`axb-technical-research`), system analysis (`axb-system-analysis`), executable DSL refinement (`axb-dsl-refine`), task generation (`axb-tasks`), to TDD implementation (`axb-implement`, `axb-bdd`).
+  - **Dedicated Roles**: `roles/pm.yaml` and `roles/rd.yaml` enforce clean boundaries between PM requirement definition and RD engineering implementation — these live in the **upstream `aixbdd-tmg`** tree (not translated into `aixbdd-en`).
   - **CLI-Streamlined Workflow**: Standards for CLI BDD (skipping `/axb-ui-plan`, marking `/axb-api-plan` as NOOP, conditional `/axb-data-plan`, and treating interface Gherkin/DSL as executable CLI contract).
 
 ---
