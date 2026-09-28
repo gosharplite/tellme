@@ -91,4 +91,4 @@ The `6cbef86` token migration renamed the `chat/dsl.md` offered-set cell from ``
 - **Step 5** status ↔ summary reconciled (same day, same commits, same pending-propagation item, same branch heads).
 - **Step 6** committed + pushed (`dev` `fe5d164`; `aixbdd-tmg` `main` `c34ae49`).
 - **Step 7** propagation: **pending** — recorded (not run; needs operator approval; not a round).
-- **Step 8** issue tracker: reconciled (no issue opened/closed/changed this day).
+- **Step 8** issue tracker: **4 open issues** (#[194](https://github.com/gosharplite/tellme/issues/194) DeepSeek CoT display · #[195](https://github.com/gosharplite/tellme/issues/195) output-token budget-field owner · #[196](https://github.com/gosharplite/tellme/issues/196) Gemini thought parts · #[197](https://github.com/gosharplite/tellme/issues/197) provider API-surface posture) — all **future operator-value round candidates** recorded 2026-09-26 (session 82); **none** is touched by this day's work ⇒ **all four left as-is (accurate)**. No issue opened / closed / revised.
