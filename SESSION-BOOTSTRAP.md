@@ -2,7 +2,7 @@
 
 > **Repo**: `github.com/gosharplite/tellme`
 > **Folder**: `~/tmp/github/gosharplite/tellme/`
-> **Mission**: Disciplined BDD re-creation of `tell-me-go` driven by `aixbdd-tmg`
+> **Mission**: Disciplined BDD re-creation of `tell-me-go` driven by `aixbdd-en`
 > **Workflow**: AIxBDD (Strict PM/RD separation, single truth, Red-Green-Refactor)
 > **Companion**: end-of-day procedure is [`SESSION-CLOSEOUT.md`](SESSION-CLOSEOUT.md) — this file is its start-of-session mirror.
 
@@ -19,8 +19,8 @@
 |:---|:---|:---|
 | **1** | Read [`README.md`](README.md), then tellme's **three domain models** | Repo overview — vision, BDD methodology, core roles, and CLI workflow roadmap; then, **right after the README**, read tellme's own domain model: [`docs/domain-model/tellme.modelith.md`](docs/domain-model/tellme.modelith.md) (the shipped product) · [`docs/domain-model/quality.modelith.md`](docs/domain-model/quality.modelith.md) (the quality process) · [`docs/domain-model/environment-management.modelith.md`](docs/domain-model/environment-management.modelith.md) (the environment manager). They are **descriptive docs, not truth** — on conflict, `specs/truth/**` wins. Modelith sources: the sibling `*.modelith.yaml`; regenerate with `make modelith-render` |
 | **2** | Read [`~/tmp/github/gosharplite/tell-me-go/README.md`](~/tmp/github/gosharplite/tell-me-go/README.md) and execute `AI session bootstrap` | Target capability & architecture reference. Execute all 8 bootstrap items defined in `tell-me-go` (see breakdown below) |
-| **3** | Read [`~/tmp/github/gosharplite/aixbdd-tmg/domain-model`](~/tmp/github/gosharplite/aixbdd-tmg/domain-model) | Read `aixbdd.modelith.md` (and `.yaml`): canonical entities (`PlanPackage`, `Spec`, `TruthDelta`, `TruthArtifact`, `DSL`, `Task`), invariants, and scenarios |
-| **4** | Read [`~/tmp/github/gosharplite/aixbdd-tmg/README.md`](~/tmp/github/gosharplite/aixbdd-tmg/README.md) | Operational BDD engine: PM/RD separation, skills execution pipeline, and CLI-streamlined adaptations |
+| **3** | Read [`~/tmp/github/gosharplite/aixbdd-en/domain-model`](~/tmp/github/gosharplite/aixbdd-en/domain-model) | Read `aixbdd.modelith.md` (and `.yaml`): canonical entities (`PlanPackage`, `Spec`, `TruthDelta`, `TruthArtifact`, `DSL`, `Task`), invariants, and scenarios |
+| **4** | Read [`~/tmp/github/gosharplite/aixbdd-en/README.md`](~/tmp/github/gosharplite/aixbdd-en/README.md) | Operational BDD engine: PM/RD separation, skills execution pipeline, and CLI-streamlined adaptations |
 | **5** | List all pre-load skills | Inventory and inspect all pre-loaded skills in the current session context to establish operational capabilities and governance boundaries |
 | **6** | List all agents you can talk to in current shell env | Discover peer agents and personas in the current workspace (`$TELL_ME_HOME/configs/*.yaml`), identify self (`$TELL_ME_MODE`), and map available conversational targets per `tmg-chat-ingroup` |
 | **7** | Read [`STATUS.md`](STATUS.md), then align to the active branch | Live session state — current round / active plan package and its pipeline position, the branch model (`main` → `dev` → session branch), decisions locked so far, artifact progress, and open items. Then run `git branch --show-current`; if it is **not** the **Active branch** named in `STATUS.md`, `git checkout` that branch before doing any work, so the round's artifacts are present |
@@ -68,16 +68,16 @@ When executing Step 2, consult the reference implementation at `~/tmp/github/gos
 | **2.7** | `~/tmp/github/gosharplite/tell-me-go/docs/architect/INTENTIONAL_NON_FIXES.md` | Authoritative catalog of known patterns deliberately left as-is to avoid circular refactoring |
 | **2.8** | Execute `list_skills` | Discover available skills loaded in the current agent session |
 
-### 2. `aixbdd-tmg` Domain Model & Workflow (Steps 3 & 4 Details)
+### 2. `aixbdd-en` Domain Model & Workflow (Steps 3 & 4 Details)
 
-The operational engine at `~/tmp/github/gosharplite/aixbdd-tmg/` provides the formal BDD methodology:
+The operational engine at `~/tmp/github/gosharplite/aixbdd-en/` provides the formal BDD methodology:
 
-- **Canonical Domain Model** (`~/tmp/github/gosharplite/aixbdd-tmg/domain-model/aixbdd.modelith.md`):
+- **Canonical Domain Model** (`~/tmp/github/gosharplite/aixbdd-en/domain-model/aixbdd.modelith.md`):
   - **Entities**: `PlanPackage`, `Spec`, `AcceptanceFeature`, `TruthArtifact` (`Contract`, `DataModel`, `DSL`, `InterfaceFeature`, `Techstack`), `TruthDelta`, `DeltaEntry`, `Task`.
   - **Truth Governance**: Each `TruthArtifact` under `specs/truth/**` has exactly one authoritative owner skill (`truth-single-owner`).
   - **Package Immutability**: A delivered `PlanPackage` (`specs/plans/NNN-<slug>/`) is frozen history (`plan-package-frozen`); new work creates a fresh package (`fresh-package-per-round`).
   - **Executable Alignment**: Every acceptance rule is carried by at least one `InterfaceFeature` (`acceptance-coverage`), and every step must match exactly one `DSLRow` (`dsl-exact-one-match`).
-- **Operational Workflow** (`~/tmp/github/gosharplite/aixbdd-tmg/README.md`):
+- **Operational Workflow** (`~/tmp/github/gosharplite/aixbdd-en/README.md`):
   - **Phase Pipeline**: `/axb-specify` → `/axb-spec-by-example` / `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` (Red → Green → Refactor via `/axb-bdd`).
   - **Streamlined CLI Rules**:
     1. Skip `/axb-ui-plan` (no HTML mockups).
@@ -124,7 +124,7 @@ Read the per-day session summaries for the **last 5 days** to inherit recent ses
 
 1. **No Vibe Coding**: Never write speculative code directly. All product code in `tellme` must be driven by an active `PlanPackage` with executable tests.
 2. **Strict BDD Pipeline**: Always follow the sequence: Requirements (`spec.md`) → Acceptance Gherkin (`features/acceptance/`) → Truth Delta (`truth-delta.md`) → Executable DSL (`specs/truth/features/**`) → Tasks (`tasks.md`) → TDD Implementation.
-3. **Reference, Never Copy Blindly**: `tell-me-go` is the benchmark for capability, behavior, and architecture; `aixbdd-tmg` is the benchmark for development discipline. Clean architecture, testability, and determinism take precedence over legacy shortcuts.
+3. **Reference, Never Copy Blindly**: `tell-me-go` is the benchmark for capability, behavior, and architecture; `aixbdd-en` is the benchmark for development discipline. Clean architecture, testability, and determinism take precedence over legacy shortcuts.
 4. **Frozen History**: Never modify delivered `specs/plans/NNN-<slug>/` directories. Always create a new package for new iterations or modifications.
 5. **Truth Integrity**: Keep `specs/truth/**` as the single source of truth for current system behavior. Record all modifications through `truth-delta.md`.
 6. **Skill Awareness**: Verify pre-loaded skills before taking action; follow the specific SOP and invariants defined in each active skill.
