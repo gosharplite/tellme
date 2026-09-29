@@ -6,9 +6,9 @@ A disciplined re-creation of **tell-me-go** driven by a strict **Behavior-Driven
 
 ## 🎯 Project Vision & Intention
 
-`tell-me-go` is a high-performance, multi-provider reasoning agent CLI designed for terminal developer workflows. While the original `tell-me-go` project was built in a rapid, vibe-coding style, **tellme** aims to re-create the exact same capabilities through an engineering-grade, test-first **BDD methodology**.
+`tell-me-go` is a high-performance, multi-provider reasoning agent CLI designed for terminal developer workflows. The original `tell-me-go` was built in a rapid, vibe-coding style; **tellme** is a disciplined re-specification of the same capabilities, built with an engineering-grade, test-first **BDD methodology** — and it is now a **stable, working CLI** in its own right.
 
-This is a long-term journey. Rather than rushing code implementation, `tellme` will be developed incrementally through structured plan packages, explicit requirements verification, and continuous executable tests:
+It was built incrementally, one round at a time, through structured plan packages, explicit requirements verification, and continuous executable tests — rather than by rushing implementation. That discipline still governs **every** change, but the work has settled: the core capability is **delivered and stable**, and new rounds are driven by operator value or a [live issue](https://github.com/gosharplite/tellme/issues) rather than by a fixed roadmap:
 
 - **PM Responsibility**: Clear requirements in business language (`spec.md`), acceptance journeys in Gherkin (`features/acceptance/*.feature`), and acceptance criteria verification.
 - **RD Responsibility**: Decision-driven technical research (`research.md`), system architecture, single-source-of-truth contracts (`specs/truth/**`), executable interface Gherkin and DSL definitions (`specs/truth/features/**`), and strict Red-Green-Refactor implementation via TDD/BDD.
