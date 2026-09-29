@@ -18,7 +18,7 @@
 | **1** | Review the working tree | `git status` + `git diff --stat`: no half-written artifacts, no stray temp files, every change belongs to the active round / plan package. |
 | **2** | Run the quality gates | Execute the project's gates — currently `gofmt` + `go vet` (research D7); the full `make check`-style pipeline once code lands. Docs-only round: verify internal links, artifact consistency, and run a secret scan. **Never close out on a red gate.** |
 | **3** | Update [`STATUS.md`](STATUS.md) (split it when too long) | Refresh "Last updated" using the exact system date from `date`, pipeline position, artifacts checklist, decisions locked, and environment notes — the single live-state source the next `SESSION-BOOTSTRAP.md` reads. **If `STATUS.md` has outgrown the live state, split the historical detail into a dated archive** (`docs/archives/status/<YYYY-MM-DD>.md`) — see the Step 3 details. |
-| **4** | Write / refresh the day's session summary | **Run `date` to determine today's exact `<YYYY>/<MM>/<DD>` calendar date — NEVER guess or inherit from `STATUS.md` or prior summaries**. Create or update `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` — what was done, decisions, artifacts, commits, open items, next steps. This is the file `SESSION-BOOTSTRAP.md` **Step 8** reads. |
+| **4** | Write / refresh the day's session summary | **Run `date` to determine today's exact `<YYYY>/<MM>/<DD>` calendar date — NEVER guess or inherit from `STATUS.md` or prior summaries**. Create or update `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` — what was done, decisions, artifacts, commits, open items, next steps. This is the file `SESSION-BOOTSTRAP.md` **Step 5** reads. |
 | **5** | Reconcile status ↔ summary | Confirm `STATUS.md` and the day's `session-summary.md` agree: same decisions, same pipeline position, same open items, same branch heads. |
 | **6** | Commit the working branch | Commit with a descriptive message (e.g. `docs(<NNN>): …`). The day must end committed and pushed. |
 | **7** | Propagate + hand off | If the round is at a mergeable point **and the user approves**, run the two-step merge `working → dev → main`; otherwise record the pending propagation in `STATUS.md`. State the exact next-session starting point. |
@@ -92,7 +92,7 @@ Write or extend `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` (e.g.
 
 ### 5. Status ↔ Summary Reconciliation (Step 5 Details)
 
-The next bootstrap reads **both** (`STATUS.md` at Step 7, the day summaries at Step 8) — they must not disagree:
+The next bootstrap reads **both** (`STATUS.md` at Step 4, the day summaries at Step 5) — they must not disagree:
 
 - Same **pipeline position** (`done` vs `next`).
 - Same **decisions locked**.
@@ -145,7 +145,7 @@ Before the session ends, reconcile the GitHub issue tracker against the state ju
 7. **No secrets committed** — scan the diff before committing; credentials/`secrets/`-style files never enter history.
 8. **Propagate only with approval** — the two-step merge `working → dev → main` runs on a green, user-approved round; otherwise record it as pending.
 9. **Hand off explicitly** — always name the active branch, pipeline position, next skill/step, and any pending decision for the next session.
-10. **Keep it current and linked** — maintain the daily log and its back-link so `SESSION-BOOTSTRAP.md` Step 8 always has a fresh, accurate summary to read.
+10. **Keep it current and linked** — maintain the daily log and its back-link so `SESSION-BOOTSTRAP.md` Step 5 always has a fresh, accurate summary to read.
 11. **Always verify system date with `date`** — run `date` to determine the exact calendar date (`<YYYY>/<MM>/<DD>`) before updating `STATUS.md` or writing `session-summary.md`. Never infer the date from previous turns, previous files, or `STATUS.md` — midnight crossings must begin a new daily summary file.
 12. **Keep `STATUS.md` lean — split it when too long** — it is the *live* state, not a history log. When it outgrows that (roughly **> ~150 lines**, or more than one delivered-round detail section beyond the current round), relocate the historical detail **verbatim** into `docs/archives/status/<YYYY-MM-DD>.md` (today's date), trim `STATUS.md` back to the live state, point the header **Archive** line at the folder (`docs/archives/status/` — one stable link, **not** a per-file list), and back-link `STATUS.md` from the archive. Never delete history. **The `Fold ledger` is history, not live state** — its authority is each `specs/plans/NNN-*/tasks.md` §Fold ledger (frozen) + the round PR; it belongs in the archive, **not** as an accumulating `STATUS.md` line (keep at most the current round's chain, and only if useful). It reached ~8 KB by round 081 and was dropped by the 2026-09-23 hygiene pass.
 13. **Reconcile the issue tracker — don't just close things** — every open issue is checked against the delivered state: **close** what has landed (with a linking comment) or is superseded / duplicate, **revise** what is stale (renumbered slice prefixes, drifted scope), and **leave** the rest. Never close an issue whose work has not landed, and never rewrite a frozen plan decision.
