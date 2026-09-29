@@ -69,31 +69,29 @@ The development of `tellme` is anchored against two primary reference repositori
 
 ## 🛤️ Workflow Roadmap
 
-When development begins, iterations will proceed through the standard AIxBDD lifecycle:
+Each iteration proceeds through the standard AIxBDD lifecycle — the skills in order, exactly as listed in [`aixbdd-en`](https://github.com/gosharplite/aixbdd-en) — creating the next `specs/plans/NNN-<slug>/` package:
 
-```text
-[Requirement]
-      │
-      ▼
-/axb-specify ─────────► Create specs/plans/NNN-<slug>/ (spec.md, checklist, truth-delta.md)
-      │
-      ├─────────────────► (Optional) /axb-clarify-over-specs
-      │
-      ▼
-/axb-spec-by-example ──► Formalize PM acceptance criteria into features/acceptance/*.feature
-      │
-      ▼
-/axb-technical-research ► Select tech stack & record decisions (research.md, specs/truth/techstack.md)
-      │
-      ▼
-/axb-system-analysis ──► Map the CLI interfaces (plan.md); for this CLI: /axb-api-plan = NOOP, /axb-data-plan conditional / NOOP, /axb-ui-plan skipped
-      │
-      ▼
-/axb-dsl-refine ───────► Decompose acceptance rules into executable Gherkin & DSL (specs/truth/features/**)
-      │
-      ▼
-/axb-tasks ────────────► Break down work into test-aligned execution tasks (tasks.md)
-      │
-      ▼
-/axb-implement ────────► Execute TDD cycle (Red → Green → Refactor via /axb-bdd) to completion
-```
+1. `/axb-specify` (PM) — create a numbered plan package with `spec.md` + requirements checklist
+2. `/axb-clarify-over-specs` (PM) — (optional) interactive requirement clarification, written back into the spec
+3. `/axb-spec-by-example` (PM) — render the acceptance criteria into `features/acceptance/*.feature` (business language)
+4. `/axb-ui-plan` (PM) — **only when the round has a governed UX surface**: terminal-mode frames (`ui/screens/*.txt`) for the interactive TUI; skipped for a plain line-oriented round
+5. `/axb-technical-research` (RD) — technical research & update `specs/truth/techstack.md`
+6. `/axb-system-analysis` (RD) — map the CLI interfaces into `plan.md`; orchestrates `/axb-api-plan` (RD) and `/axb-data-plan` (RD) via dependency waves
+7. `/axb-dsl-refine` (RD) — split acceptance rules into executable interface Gherkin + DSL (`specs/truth/features/**`)
+8. `/axb-tasks` (RD) — generate the BDD task list `tasks.md`
+9. `/axb-implement` (RD) — One-Shot TDD execution, red → green → refactor via `/axb-bdd` (RD)
+
+Supporting skills:
+- `/axb-clarify` (PM/RD) — user interviews
+- `/axb-truth-delta` (RD) — truth change tracking
+- `/axb-gherkin-and-dsl` (PM/RD) — Gherkin/DSL standards + the topology audit script
+
+> `tellme` does not use `/axb-constitution` — it has no `.agents/constitution/` governance surface; its durable decisions are recorded as ADRs under [`docs/decisions/`](docs/decisions/README.md).
+
+### Developing CLI Applications
+
+`tellme` is a line-oriented CLI that also ships an interactive TUI prompt (`-i`), so the workflow is streamlined:
+
+1. **`/axb-ui-plan`** — terminal mode (rendered frames, never HTML) only when the round has a governed UX surface; skipped for a plain line-oriented round. On the RD side, `/axb-system-analysis` reviews the TUI surface but does not redo or re-plan it.
+2. **Lean `/axb-system-analysis`** — `/axb-api-plan` is marked **NOOP** in `truth-delta.md` (a standalone CLI has no OpenAPI endpoints); `/axb-data-plan` is **conditional** — invoked only if the round manages persistent/local state (history, SQLite, JSON), otherwise NOOP.
+3. **CLI contract via `/axb-dsl-refine`** — the `cli` interface is a first-class truth-tree interface; the executable Gherkin under `specs/truth/features/cli/**` and its `dsl.md` serve as the formal CLI contract and acceptance test runner.
