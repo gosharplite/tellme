@@ -18,15 +18,14 @@
 | Step | Action | Description |
 |:---|:---|:---|
 | **1** | Read [`README.md`](README.md), then tellme's **three domain models** | Repo overview — vision, BDD methodology, core roles, and CLI workflow roadmap; then, **right after the README**, read tellme's own domain model: [`docs/domain-model/tellme.modelith.md`](docs/domain-model/tellme.modelith.md) (the shipped product) · [`docs/domain-model/quality.modelith.md`](docs/domain-model/quality.modelith.md) (the quality process) · [`docs/domain-model/environment-management.modelith.md`](docs/domain-model/environment-management.modelith.md) (the environment manager). They are **descriptive docs, not truth** — on conflict, `specs/truth/**` wins. Modelith sources: the sibling `*.modelith.yaml`; regenerate with `make modelith-render` |
-| **2** | Read [`~/tmp/github/gosharplite/tell-me-go/README.md`](~/tmp/github/gosharplite/tell-me-go/README.md) and execute `AI session bootstrap` | Target capability & architecture reference. Execute all 8 bootstrap items defined in `tell-me-go` (see breakdown below) |
-| **3** | Read [`~/tmp/github/gosharplite/aixbdd-en/domain-model`](~/tmp/github/gosharplite/aixbdd-en/domain-model) | Read `aixbdd.modelith.md` (and `.yaml`): canonical entities (`PlanPackage`, `Spec`, `TruthDelta`, `TruthArtifact`, `DSL`, `Task`), invariants, and scenarios |
-| **4** | Read [`~/tmp/github/gosharplite/aixbdd-en/README.md`](~/tmp/github/gosharplite/aixbdd-en/README.md) | Operational BDD engine: PM/RD separation, skills execution pipeline, and CLI-streamlined adaptations |
-| **5** | List all pre-load skills | Inventory and inspect all pre-loaded skills in the current session context to establish operational capabilities and governance boundaries |
-| **6** | List all agents you can talk to in current shell env | Discover peer agents and personas in the current workspace (`$TELL_ME_HOME/configs/*.yaml`), identify self (`$TELL_ME_MODE`), and map available conversational targets per `tmg-chat-ingroup` |
-| **7** | Read [`STATUS.md`](STATUS.md), then align to the active branch | Live session state — current round / active plan package and its pipeline position, the branch model (`main` → `dev` → session branch), decisions locked so far, artifact progress, and open items. Then run `git branch --show-current`; if it is **not** the **Active branch** named in `STATUS.md`, `git checkout` that branch before doing any work, so the round's artifacts are present |
-| **8** | Read the **session summary of the last 5 days** | Session continuity — read `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` for the current day and the preceding 4 calendar days to inherit what recent sessions did, decisions locked, artifact progress, and open items. Skip any calendar day with no summary file |
+| **2** | List all pre-load skills | Inventory and inspect all pre-loaded skills in the current session context to establish operational capabilities and governance boundaries |
+| **3** | List all agents you can talk to in current shell env | Discover peer agents and personas in the current workspace (`$TELL_ME_HOME/configs/*.yaml`), identify self (`$TELL_ME_MODE`), and map available conversational targets per `tmg-chat-ingroup` |
+| **4** | Read [`STATUS.md`](STATUS.md), then align to the active branch | Live session state — current round / active plan package and its pipeline position, the branch model (`main` → `dev` → session branch), decisions locked so far, artifact progress, and open items. Then run `git branch --show-current`; if it is **not** the **Active branch** named in `STATUS.md`, `git checkout` that branch before doing any work, so the round's artifacts are present |
+| **5** | Read the **session summary of the last 5 days** | Session continuity — read `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` for the current day and the preceding 4 calendar days to inherit what recent sessions did, decisions locked, artifact progress, and open items. Skip any calendar day with no summary file |
 
-Only after Steps 1, 2, 3, 4, 5, 6, 7, and 8 are complete and results are reported may the agent respond to user tasking.
+> **The two external reference trees are no longer bootstrap reads.** `tell-me-go` and `aixbdd-en` are now consulted **on demand** (see *On-demand reference repos* below) — `README.md`'s *Essential References* is the pointer. `tellme` is stable; the session inherits its capability model from `tellme`'s **own** domain model (Step 1) and its BDD discipline from the already-loaded skills (Step 2).
+
+Only after Steps 1–5 are complete and results are reported may the agent respond to user tasking.
 
 ---
 
@@ -34,11 +33,11 @@ Only after Steps 1, 2, 3, 4, 5, 6, 7, and 8 are complete and results are reporte
 
 **You just finished reading this file. Do not reply. Do not summarize. Do not ask what to do next.**
 
-Immediately return to the step table at the top and execute **Step 1 → Step 2 → Step 3 → Step 4 → Step 5 → Step 6 → Step 7 → Step 8** in order. Report results when Steps 1–8 are complete.
+Immediately return to the step table at the top and execute **Step 1 → Step 2 → Step 3 → Step 4 → Step 5** in order. Report results when Steps 1–5 are complete.
 
 ---
 
-## 🗺️ Reference Repositories & Execution Mapping
+## 🗺️ Execution Mapping & On-Demand References
 
 ### 0. tellme's own domain model (Step 1 Details)
 
@@ -53,42 +52,22 @@ Right after `README.md`, read **tellme's own** domain model (round 060; **ADR 00
 - **Descriptive docs, not truth**: on any conflict with [`specs/truth/**`](specs/truth), the **truth wins** and the model is corrected (ADR 0030 §D4).
 - **Source vs. rendered**: edit the `*.modelith.yaml`; the `*.modelith.md` is **generated** — never hand-edit. Regenerate with `make modelith-render`; `make modelith-check` (a `make verify` member) fails on drift.
 
-### 1. `tell-me-go` AI Session Bootstrap (Step 2 Details)
+### 1. On-demand reference repos — `tell-me-go` / `aixbdd-en` (NOT bootstrap reads)
 
-When executing Step 2, consult the reference implementation at `~/tmp/github/gosharplite/tell-me-go/` across its 8 mandatory bootstrap targets:
+`tellme` is stable and development is slowing, so the bootstrap no longer reads the two external reference trees. They remain **on-demand references**: consult one **only when a round actually needs it**, and treat [`README.md`](README.md) → *Essential References* as the pointer. Neither is truth — on any conflict, [`specs/truth/**`](specs/truth) wins.
 
-| # | File / Command | Focus & Key Insights |
+| Reference | Local path | Consult it when… |
 |---|---|---|
-| **2.1** | `~/tmp/github/gosharplite/tell-me-go/README.md` | Core capabilities: multi-provider reasoning (`Thought` model), agentic tools, MCP client, context self-healing, durability |
-| **2.2** | `~/tmp/github/gosharplite/tell-me-go/Makefile` | Build/test conventions, coverage exclusions (`*test/`, `testing/`), architectural guards (`verify-architecture`, etc.) |
-| **2.3** | `~/tmp/github/gosharplite/tell-me-go/docs/domain-model/tell-me-go.modelith.md` | Core domain model: `Session`, `Turn`, `Provider`, `Tool`, `ContextWindow`, invariants, and execution scenarios |
-| **2.4** | `~/tmp/github/gosharplite/tell-me-go/docs/domain-model/quality.modelith.md` | Quality process model: `QualityPipeline` gates, complexity triage, `NonFixCatalog` curation rules |
-| **2.5** | `~/tmp/github/gosharplite/tell-me-go/docs/architect/environments/` | Environment management evolution (Toby, Dobby, Porter, Sprawl, Niffler) |
-| **2.6** | `~/tmp/github/gosharplite/tell-me-go/docs/architect/environments/domain-model/environment-management.modelith.md` | Domain model for environment isolation, persona templates, and dynamic provider switching |
-| **2.7** | `~/tmp/github/gosharplite/tell-me-go/docs/architect/INTENTIONAL_NON_FIXES.md` | Authoritative catalog of known patterns deliberately left as-is to avoid circular refactoring |
-| **2.8** | Execute `list_skills` | Discover available skills loaded in the current agent session |
+| **`tell-me-go`** (capability & architecture) | `~/tmp/github/gosharplite/tell-me-go/` | a round needs the target capability/architecture behaviour — `README.md`, `Makefile`, `docs/domain-model/{tell-me-go,quality}.modelith.md`, `docs/architect/environments/**`, `docs/architect/INTENTIONAL_NON_FIXES.md` |
+| **`aixbdd-en`** (BDD discipline) | `~/tmp/github/gosharplite/aixbdd-en/` | a round needs the formal BDD methodology — `domain-model/aixbdd.modelith.md` (entities, `truth-single-owner`, `plan-package-frozen`, `fresh-package-per-round`, `acceptance-coverage`, `dsl-exact-one-match`) and `README.md` (phase pipeline, CLI streamlining) |
 
-### 2. `aixbdd-en` Domain Model & Workflow (Steps 3 & 4 Details)
+The **skills** are already loaded in the session (Step 2 — `list_skills`); read a chosen skill's `SKILL.md` on demand with `read_files`, rather than reading a whole reference tree at bootstrap.
 
-The operational engine at `~/tmp/github/gosharplite/aixbdd-en/` (the English translation of `aixbdd-tmg`) provides the formal BDD methodology:
-
-- **Canonical Domain Model** (`~/tmp/github/gosharplite/aixbdd-en/domain-model/aixbdd.modelith.md`):
-  - **Entities**: `PlanPackage`, `Spec`, `AcceptanceFeature`, `TruthArtifact` (`Contract`, `DataModel`, `DSL`, `InterfaceFeature`, `Techstack`), `TruthDelta`, `DeltaEntry`, `Task`.
-  - **Truth Governance**: Each `TruthArtifact` under `specs/truth/**` has exactly one authoritative owner skill (`truth-single-owner`).
-  - **Package Immutability**: A delivered `PlanPackage` (`specs/plans/NNN-<slug>/`) is frozen history (`plan-package-frozen`); new work creates a fresh package (`fresh-package-per-round`).
-  - **Executable Alignment**: Every acceptance rule is carried by at least one `InterfaceFeature` (`acceptance-coverage`), and every step must match exactly one `DSLRow` (`dsl-exact-one-match`).
-- **Operational Workflow** (`~/tmp/github/gosharplite/aixbdd-en/README.md`):
-  - **Phase Pipeline**: `/axb-specify` → `/axb-spec-by-example` / `/axb-technical-research` → `/axb-system-analysis` → `/axb-dsl-refine` → `/axb-tasks` → `/axb-implement` (Red → Green → Refactor via `/axb-bdd`).
-  - **Streamlined CLI Rules**:
-    1. Skip `/axb-ui-plan` (no HTML mockups).
-    2. Lean `/axb-system-analysis` (`/axb-api-plan` marked as `NOOP` in `truth-delta.md`; `/axb-data-plan` conditional on local state persistence).
-    3. Executable CLI contract via `/axb-dsl-refine` (`specs/truth/features/**` and `dsl.md`).
-
-### 3. Pre-loaded Skills Verification (Step 5 Details)
+### 2. Pre-loaded Skills Verification (Step 2 Details)
 
 Identify and enumerate all pre-loaded skills injected into the session context.
 
-### 4. In-Group Agent Discovery (Step 6 Details)
+### 3. In-Group Agent Discovery (Step 3 Details)
 
 Inspect the current shell environment and discover available peer agents using the `tmg-chat-ingroup` protocol:
 1. Identify the current workspace root via `$TELL_ME_HOME`.
@@ -96,7 +75,7 @@ Inspect the current shell environment and discover available peer agents using t
 3. Identify the active agent identity via `$TELL_ME_MODE`.
 4. Report all peer agents that can be reached (every mode except self; never message your own mode to avoid session self-pollution).
 
-### 5. Session Status Verification (Step 7 Details)
+### 4. Session Status Verification (Step 4 Details)
 
 Read the repo-root `STATUS.md` to establish live session state, then align the working branch:
 1. Current round / active plan package and its position in the phase pipeline.
@@ -105,7 +84,7 @@ Read the repo-root `STATUS.md` to establish live session state, then align the w
 4. Decisions locked so far. (An open / future item lives in its `ADR 00NN §Forward` or a live issue — `STATUS.md` carries no open-items index.)
 5. Keep it current: update `STATUS.md` at each pipeline phase gate and whenever a decision is locked.
 
-### 6. Recent Session Summaries (Step 8 Details)
+### 5. Recent Session Summaries (Step 5 Details)
 
 Read the per-day session summaries for the **last 5 days** to inherit recent session context:
 1. Locate summaries under `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` (e.g. `docs/session-summary/2026/09/10/session-summary.md`).
@@ -114,7 +93,7 @@ Read the per-day session summaries for the **last 5 days** to inherit recent ses
 4. **Skip any calendar day with no `session-summary.md` file** — do not treat a missing day as an error.
 5. Keep it current: maintain the daily summary (`docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md`) alongside `STATUS.md` so the next session inherits accurate state.
 
-### 7. Vendor API specs — on-demand (DeepSeek / Gemini)
+### 6. Vendor API specs — on-demand (DeepSeek / Gemini)
 
 [`docs/model-specs.md`](docs/model-specs.md) is a **descriptive, repo-side reference** (not truth) for fetching the **live** DeepSeek and Gemini/Vertex API specs and reproducing a call. Consult it **whenever a provider/API issue appears** — a wire decode, a usage/cost field, the image/media shape, auth, or a transport failure — instead of concluding from memory. Its rule: **test egress → fetch the live spec → reproduce the call** (a spec says what is *allowed*, not what `tellme` *uses*; the defect is as often in tellme's hand-rolled adapter, `${VAR}` config expansion, auth, or the sandbox). It is **not** a mandatory read — an **on-demand** reference, subordinate to `specs/truth/**` on conflict, and it does **not** relax the repo's offline/hermetic **test** posture.
 
@@ -124,14 +103,14 @@ Read the per-day session summaries for the **last 5 days** to inherit recent ses
 
 1. **No Vibe Coding**: Never write speculative code directly. All product code in `tellme` must be driven by an active `PlanPackage` with executable tests.
 2. **Strict BDD Pipeline**: Always follow the sequence: Requirements (`spec.md`) → Acceptance Gherkin (`features/acceptance/`) → Truth Delta (`truth-delta.md`) → Executable DSL (`specs/truth/features/**`) → Tasks (`tasks.md`) → TDD Implementation.
-3. **Reference, Never Copy Blindly**: `tell-me-go` is the benchmark for capability, behavior, and architecture; `aixbdd-en` is the benchmark for development discipline. Clean architecture, testability, and determinism take precedence over legacy shortcuts.
+3. **Reference, Never Copy Blindly**: `tell-me-go` is the benchmark for capability, behavior, and architecture; `aixbdd-en` is the benchmark for development discipline. Both are **on-demand references**, not bootstrap reads (they are no longer read at session start — see *On-Demand References*). Clean architecture, testability, and determinism take precedence over legacy shortcuts.
 4. **Frozen History**: Never modify delivered `specs/plans/NNN-<slug>/` directories. Always create a new package for new iterations or modifications.
 5. **Truth Integrity**: Keep `specs/truth/**` as the single source of truth for current system behavior. Record all modifications through `truth-delta.md`.
 6. **Skill Awareness**: Verify pre-loaded skills before taking action; follow the specific SOP and invariants defined in each active skill.
 7. **In-Group Protocol**: Respect peer agent boundaries and messaging rules defined in `tmg-chat-ingroup` (clear `TELL_ME_MODE`, sequential dispatch, and never message self).
-8. **Session Status Discipline**: Read `STATUS.md` at bootstrap (Step 7) and keep it current — update it at every pipeline phase gate and whenever a decision is locked, so the next session inherits accurate state.
-9. **Session History Continuity**: Read the **session summaries of the last 5 days** at bootstrap (Step 8) — `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` — to inherit recent context, decisions, artifact progress, and open items before tasking; reconcile them with `STATUS.md` and skip missing days.
+8. **Session Status Discipline**: Read `STATUS.md` at bootstrap (Step 4) and keep it current — update it at every pipeline phase gate and whenever a decision is locked, so the next session inherits accurate state.
+9. **Session History Continuity**: Read the **session summaries of the last 5 days** at bootstrap (Step 5) — `docs/session-summary/<YYYY>/<MM>/<DD>/session-summary.md` — to inherit recent context, decisions, artifact progress, and open items before tasking; reconcile them with `STATUS.md` and skip missing days.
 10. **Domain Model is Descriptive Docs**: tellme's domain model (`docs/domain-model/**`, Step 1) is **subordinate** to truth — on any conflict, `specs/truth/**` wins and the model is corrected. Edit the `*.modelith.yaml` source only; the `*.modelith.md` is generated (`make modelith-render`), and `make modelith-check` (a `make verify` member) fails on drift (**ADR 0030**). The model is **load-bearing** (**ADR 0041**): a round that changes **modelled behaviour** updates `docs/domain-model/**` **in the same PR** (or records, in its plan package, why the change is not modelled), and the **advisory** `make modelith-drift` (never fails; **not** a `verify` member) surfaces a modeled entity whose concept has left the code.
 11. **Disclosures live in their durable home, not on `STATUS.md`**: `STATUS.md` carries **no** open-items index. A *forward item* — a decision *deferred to a trigger* — lives in its **`ADR 00NN §Forward`** (the authority) or a **live issue**; it is a disclosure, **not** tasking. Do **not** re-raise, re-litigate, or propose one as a round theme unless its **trigger has fired**; a **⚠ trigger-gated** item is inert. Pick a round theme from the **roadmap / a live issue**, **never** from an `ADR §Forward` item. **Two addenda (session 52):** (a) **a forward-item cluster must never generate a round theme** — a theme comes from operator value or a live issue, never from "this would clear the backlog"; (b) **a settled / declined decision is never reopened — even to fire a trigger — without explicit operator intent.** **Third addendum (session 55):** when answering "what is next?" / listing candidates, name **only** (i) **live issues** and (ii) **operator-value themes** — **never** an `ADR §Forward` item, **not even labelled "disclosure, not a candidate"**. Putting a disclosure in a candidates list *is* surfacing it (it invites exactly the "what is this?" round-trip the curation rule exists to prevent). If asked about a forward item, answer **from its ADR** and **do not add it to any next-steps list**. *(The `RF-063-10`/`RF-068-1`/`RF-069-2..4` lesson: an un-curated deferral sitting on a bootstrap-read surface becomes a permanent muse — the recurrence, not the item, is the bug.)* **Fourth addendum (2026-09-24):** do **not** use the word **"carried"** as a status on a bootstrap-read surface — it collides with *"carried-forward item"* (a deferral) and reads as open work. Use the quality-model terms instead: an **advisory** check (reported, never fails) vs a **gate** (a `make verify` member / zero-tolerance), and name the invariant (`topology-audit-not-a-gate`) when describing a non-gating check.
 
-12. **Vendor API specs are live-fetchable, not memorized**: when a DeepSeek or Gemini/Vertex issue appears, do **not** conclude from memory — use [`docs/model-specs.md`](docs/model-specs.md) (**§7 reference**): **test egress → fetch the live spec** (the Gemini/Vertex *discovery document*; DeepSeek's HTML docs **+** the OpenAI Chat Completions spec for its deltas) → **reproduce the call** with the real credential (presence-only checks; **never print a secret**). Reading the spec is necessary but **not sufficient** — the defect may be in tellme's hand-rolled adapter, `${VAR}` config expansion, auth, or the sandbox. The reference is **descriptive, subordinate to `specs/truth/**`**, and does **not** change the offline/hermetic **test** posture; any fix still needs an executable witness (ADR 0006).
+12. **Vendor API specs are live-fetchable, not memorized**: when a DeepSeek or Gemini/Vertex issue appears, do **not** conclude from memory — use [`docs/model-specs.md`](docs/model-specs.md) (**§6 reference**): **test egress → fetch the live spec** (the Gemini/Vertex *discovery document*; DeepSeek's HTML docs **+** the OpenAI Chat Completions spec for its deltas) → **reproduce the call** with the real credential (presence-only checks; **never print a secret**). Reading the spec is necessary but **not sufficient** — the defect may be in tellme's hand-rolled adapter, `${VAR}` config expansion, auth, or the sandbox. The reference is **descriptive, subordinate to `specs/truth/**`**, and does **not** change the offline/hermetic **test** posture; any fix still needs an executable witness (ADR 0006).
