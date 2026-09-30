@@ -90,3 +90,57 @@ All four are **docs-only** — no product / `specs/truth/**` / `docs/domain-mode
 - **A doc commit on `dev` is not "recorded" until the status surface names it.** `go install` stamped `945ccf1` while `STATUS.md` still named `3ac3d9f`; the four docs commits had landed on `dev` without a STATUS refresh. `go version -m $(command -v tellme)` is the cheap probe that surfaces this class early.
 - **A docs-only day propagates untagged.** Rule 15: a `round-NNN` tag marks a *round's* delivery; a docs-only propagation rides `dev -> main` **no-ff** with **no** tag (matches the session-85 / 2026-09-26 precedent).
 - **`SESSION-BOOTSTRAP.md` now reads the reference trees on demand.** `5e47955` made `tell-me-go`/`aixbdd-en` **on-demand**; the pre-loaded **skills** (Step 2) remain the BDD discipline carrier, so bootstrap Steps 1–5 still run cleanly.
+
+---
+
+## 3. Session 87 (2026-09-30) — README: tellme as an "agentskills.io-shaped, non-conforming" host; closeout
+
+The session began with a bootstrap (`SESSION-BOOTSTRAP.md` Steps 1–5; round 095 delivered/frozen; active branch `dev`, tree clean at `880f2e5`). The operator asked whether tellme is an **agentskills.io-compatible host** (in the context of using [`confighub/confighub-skills`](https://github.com/confighub/confighub-skills)). After a live check of the tellme loader + the agentskills.io spec, the answer was recorded as a **short README section**, committed + pushed, then this closeout ran.
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Round | **none** — the next round opens off `dev` via `/axb-specify` (a theme from operator value or a live issue; Bootstrap Agent Rule 11) |
+| Theme | **docs-only hygiene** — a README compatibility note (no product / truth / model change) |
+| Question answered | *Is tellme an agentskills.io-compatible host?* — **No**: it is agentskills.io-*shaped* but **non-conforming** |
+| Evidence | tellme `internal/infrastructure/skills/loader.go` (frontmatter `name`+`description` only; single root `$TELL_ME_HOME/docs/skills` recursive) + `internal/infrastructure/tools/skills.go` (the `list_skills` catalog); the **agentskills.io** spec (`/specification`) + host guide (`/client-implementation/adding-skills-support`) |
+| The change | `README.md` — new **"🧩 Agent-Skills Compatibility (agentskills.io)"** section between **Design Intent & Direction** and **Essential References**: **Honoured** (SKILL.md format + progressive disclosure: `list_skills` catalog → `read_files` activation → on-demand resources; block-scalar descriptions per ADR 0047) vs **Not honoured** (one discovery root, no `.agents/skills` scan; extra frontmatter ignored; no name validation; silent duplicate drop; **no `allowed-tools` pre-approval / host permission layer** — ADR 0061). Links to ADR 0047 + ADR 0061 |
+| Gates | **`make verify` OK** (architecture 0 · adr-index consistent · `modelith-check` no drift ×3 · lint 0 · govulncheck clean · cross-compile ×4) · README local Markdown links resolve · diff-level secret grep **clean** |
+| Delivery | commit `f5fb4f8` on `dev`, **pushed**; then this closeout committed + pushed `dev`; propagation `dev -> main` (**no-ff**, **untagged**) |
+
+### Decisions locked (session 87)
+
+| # | Decision |
+| --- | --- |
+| **D1** | Record the agentskills.io posture as a **README note** (README is not truth; no modelled behaviour ⇒ no `docs/domain-model/**` change, no ADR). |
+| **D2** | Land it directly on `dev` as **docs-only hygiene** (the 2026-09-23 / `a49134c` precedent) — **not a round**: no plan package, **no PR**, **no `round-NNN` tag** (Rule 15). |
+| **D3** | The claim is framed as **client-convention divergence** (the spec does not mandate discovery locations), not a spec violation — accurate, non-normative. |
+| **D4** | Propagate the docs commit with an operator-approved `dev -> main` **no-ff** merge, **untagged** (not a round). |
+
+### Commits (on `dev`, then pushed)
+
+| Commit | Note |
+| --- | --- |
+| `f5fb4f8` | `docs(readme): note tellme's agentskills.io-shaped, non-conforming skills host` |
+| *(this closeout, on `dev`)* | `docs(closeout): 2026-09-30 (session 87) — README agentskills.io note; STATUS refresh + summary §3` |
+
+### Open items (non-blocking)
+
+- **None new.** `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` or a live GitHub issue.
+- **Issue tracker**: **#194–#197 open** (live round seeds) — none touched by this docs-only session ⇒ **left as-is**.
+- **Not a `STATUS.md` item** — the `confighub-skills` evaluation (potential future round seed) is a disclosure, not tasking; no issue was opened (the operator did not ask to).
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (live seeds [#194](https://github.com/gosharplite/tellme/issues/194)–[#197](https://github.com/gosharplite/tellme/issues/197); Bootstrap Agent Rule 11).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None (no spec/acceptance change; a docs-only README note).
+
+### Process notes (durable)
+
+- **"Compatible host?" is two questions: format vs convention.** tellme consumes the `SKILL.md` *file format* + the *progressive-disclosure* model, but not the ecosystem's *discovery conventions* (`.agents/skills/`) or its *governance* (`allowed-tools` pre-approval / host permission). It is **shape-compatible, governance-divergent**.
+- **Skills are consumed, not enforced.** tellme has **no** security/consent layer (ADR 0061) ⇒ a third-party skill's "tool boundary"/"preflight gate" prose is **advisory to the model, not an enforced boundary** — worth stating before adopting external skill packs.
