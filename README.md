@@ -39,6 +39,17 @@ The surface is therefore kept intentionally minimal: `execute_command` as the un
 
 ---
 
+## 🧩 Agent-Skills Compatibility (agentskills.io)
+
+`tellme` consumes the **`SKILL.md` format** popularized by [agentskills.io](https://agentskills.io/home), but it is **agentskills.io-*shaped*, not conforming**: it adheres to the file format and the *progressive-disclosure* model, not to the ecosystem's client conventions or its governance.
+
+- **Honoured.** A skill is a `SKILL.md` with `---` YAML frontmatter declaring `name` + `description`, plus a Markdown body. The three disclosure tiers map cleanly: the `list_skills` tool surfaces the **catalog** (name · description · location, path-sorted); the model opens the full `SKILL.md` with `read_files` on activation; and any bundled `scripts/`/`references/`/`assets/` are read on demand. Block-scalar `description`s (`>` / `|`) are supported ([ADR 0047](docs/decisions/0047-skill-frontmatter-block-scalars.md)).
+- **Not honoured.** Discovery is **one root only** — `$TELL_ME_HOME/docs/skills/` (recursive); the cross-client `.agents/skills/`, `~/.agents/skills/`, and `.claude/skills/` locations are **not** scanned. Only `name`/`description` are parsed — `license`, `compatibility`, `metadata`, and `allowed-tools` are ignored; `name` rules (parent-directory match, character set) are not validated; and a duplicate `name` drops **silently** (first wins) rather than warning. There is **no `allowed-tools` pre-approval or host permission system** — tellme ships no security/consent layer ([ADR 0061](docs/decisions/0061-operator-declared-direction.md)).
+
+**Consequence.** An agentskills.io-authored skill loads and runs once its directory sits under `$TELL_ME_HOME/docs/skills/`, and its extra frontmatter is tolerated — but any "tool boundary" / "preflight gate" / "host permission" language is **advisory for the model, not an enforced boundary**.
+
+---
+
 ## 📚 Essential References
 
 The development of `tellme` is anchored against two primary reference repositories:
