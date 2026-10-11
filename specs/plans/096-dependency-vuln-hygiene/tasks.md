@@ -35,7 +35,7 @@
 
 ## Delivery
 
-- [X] **T013** — Commit + push the round branch; open the round PR into `dev` (no Copilot review; only a human merges).
+- [X] **T013** — Commit + push the round branch; open the round PR into `dev` (no Copilot review; only a human merges) — **PR [#202](https://github.com/gosharplite/tellme/pull/202)**.
 
 ---
 

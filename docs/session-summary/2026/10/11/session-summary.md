@@ -6,7 +6,7 @@
 **Workspace**: `$TELL_ME_HOME` on the new **`kiosk`** env (a **GKE container managed by ConfigHub**); linux/amd64; Go **1.26.6** system, **1.26.9** user-scoped.
 **Session mode**: `butler`.
 **Branch**: `096-dependency-vuln-hygiene` (off `dev` `99f1114`).
-**Status at end of session**: **round 096 `096-dependency-vuln-hygiene` IN FLIGHT** — a **dependency / toolchain vulnerability-hygiene** round (bump `golang.org/x/net ≥ v0.60.0` + record the `vulncheck` gate's toolchain floor ≥ 1.26.9; **ADR 0066**); **PR OPEN** (awaiting a human merge). **Last delivered round remains 095.**
+**Status at end of session**: **round 096 `096-dependency-vuln-hygiene` IN FLIGHT** — a **dependency / toolchain vulnerability-hygiene** round (bump `golang.org/x/net ≥ v0.60.0` + record the `vulncheck` gate's toolchain floor ≥ 1.26.9; **ADR 0066**); **PR [#202](https://github.com/gosharplite/tellme/pull/202) OPEN** (awaiting a human merge). **Last delivered round remains 095.**
 
 ---
 
@@ -24,7 +24,7 @@ The session began with `SESSION-BOOTSTRAP.md` Steps 1–5 (round 095 delivered/f
 | Toolchain | Go **1.26.9** provisioned **user-scoped** (`~/sdk/go1.26.9` + a `~/.local/bin/go` wrapper pinning `GOROOT`, since the container pins `GOROOT=/usr/local/go` + `/usr/local/go` is root-only) |
 | Module bump | `golang.org/x/net v0.38.0 → v0.60.0` (+ transitive `x/sys`·`x/term`·`x/sync`·`x/text`) |
 | Gates (post-fix) | **`make check-full` exit 0** · `make verify` **OK** · `govulncheck` **"No vulnerabilities found."** · E2E **green (counts unchanged)** · `make test-race` no races |
-| Delivery | branch `096-dependency-vuln-hygiene` → **PR open into `dev`** (no Copilot review; only a human merges) |
+| Delivery | branch `096-dependency-vuln-hygiene` → **PR [#202](https://github.com/gosharplite/tellme/pull/202) open into `dev`** (no Copilot review; only a human merges) |
 
 ### Environment facts (durable)
 
