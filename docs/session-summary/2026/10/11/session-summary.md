@@ -2,7 +2,7 @@
 
 **Project**: `tellme` — a disciplined BDD re-creation of `tell-me-go`
 **Repo**: `github.com/gosharplite/tellme`
-**Status file**: [`STATUS.md`](../../../../STATUS.md) *(back-link — the single live-state source)*
+**Status file**: [`STATUS.md`](../../../../../STATUS.md) *(back-link — the single live-state source)*
 **Workspace**: `$TELL_ME_HOME` on the new **`kiosk`** env (a **GKE container managed by ConfigHub**); linux/amd64; Go **1.26.6** system, **1.26.9** user-scoped.
 **Session mode**: `butler`.
 **Branch**: `096-dependency-vuln-hygiene` (off `dev` `99f1114`).
