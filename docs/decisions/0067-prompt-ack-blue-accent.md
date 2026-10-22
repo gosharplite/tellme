@@ -64,7 +64,12 @@ wrapping helper.
 (`stderr`) is a **terminal**, `-r` is **off**, and the surface is prompt-bearing — the single
 `chromeColour` predicate (`internal/cli/cli.go:1116`), shared with the spinner. Redirected/piped
 `stderr`, `-r`, the offline paths, `stdout`, and `turns.log` stay **byte-identical** to the plain form.
-No second colour predicate may be introduced.
+No second colour predicate may be introduced. **It is the *resolved* gate that is consumed:** the call site
+reads the turn's once-resolved `colourOn` (`internal/cli/cli.go:808`, round 054 fold **RF-54-2** — *"resolve
+the shared terminal gate ONCE per turn so the consumers cannot disagree"*), never re-running `chromeColour`
+at the ack site. Re-probing would let the ack disagree with the spinner/payload/`Ready` accents **within one
+turn**, which is exactly the disagreement the RF-54-2 fold exists to make impossible — so this element is a
+**consumer** of the shared verdict, not a sixth opinion on it.
 
 **D3 — the colour lives in the adapter (ADR 0023 D5's rule, applied).** `ui.Lines.InputCaptured` gains
 the value receiver `(l Lines)` and returns the colour variant; the pure `FormatInputCaptured` stays the
@@ -76,7 +81,10 @@ sibling — the `formatPayloadEstimateColour` / `formatToolReasonColour` shape. 
 prompt-bearing surface — positional, piped, Ctrl+D multi-line, `-b <N> "prompt"`, and `-i` submit —
 because all five reach the single `if opts.chrome` block that emits the ack. If a future change colours
 only some surfaces, this ADR's premise is void and the element should be withdrawn rather than
-half-applied.
+half-applied. **The witnessing unit is the `turnOptions` construction site, not the reader label:** that
+value is built in exactly **three** places — `:295` (`-i`), `:429` (positional · piped · `-b` · a
+prompt-bearing `--new`), and `:479` (the Ctrl+D reader) — so one colouring Example per site is
+**exhaustive** (piped and `-b` are the same construction as positional). All three are witnessed.
 
 **D5 — under `-r` the line stays and only the colour drops.** The acknowledgement is gated on
 `opts.chrome`, **not** on `opts.raw`; `-r` suppresses the accent, never the line.
@@ -122,3 +130,14 @@ rendered Markdown is regenerated with `make modelith-render` (ADR 0041 — `mode
   terminal. A future terminal-profile concern would be a **new** decision, not a defect here.
 - **RF-067-4** — the palette count in §Consequences is a **snapshot**: each accent-bearing round updates
   it. There is no mechanical carrier for "green now means five things" — the ADR set is the record.
+- **RF-067-5** — **this round also fired ADR 0066's RF-066-1.** Running `make verify` surfaced a newly
+  published stdlib advisory, **`GO-2026-6809`** (`crypto/x509`, reached via `fmt.Fprintf` →
+  `x509.Certificate.Verify`), fixed only in **`go1.26.10`**; on the then-provisioned `go1.26.9` the
+  `vulncheck` gate reds with **no repo change** — exactly the "recorded, not machine-checked" limit
+  RF-066-1 named. Cleared per **ADR 0066 D3** (module half in `go.mod` — nothing to do, no module
+  advisory; toolchain half in the environment: the user-scoped SDK is now `~/sdk/go1.26.10`), and the
+  recorded floor on the gate's `specs/truth/techstack.md` row was reconciled **≥ 1.26.9 → ≥ 1.26.10**.
+  ADR 0066's **body stays verbatim**; its `docs/decisions/README.md` index row gains the forward pointer.
+  **The underlying limit stands:** the floor is still recorded rather than machine-checked, so it will
+  drift again at the next advisory — a future `make` guard parsing `go env GOVERSION` is the standing
+  (unclaimed) remedy.

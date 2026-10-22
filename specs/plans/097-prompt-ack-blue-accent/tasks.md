@@ -39,6 +39,46 @@
 
 - [X] **T017** — Commit the round branch; open the round PR into `dev` (no Copilot review; only a human merges).
 
+## Phase 5: PR-review fold (2026-10-22; second reviewer, automated Claude Code review — comment `6334186002`)
+
+Five findings triaged individually. **Four accepted; one rejected as written** because its proposed fix rested on a
+false premise, and re-implemented to serve the finding's actual intent.
+
+- [X] **T018 (finding 1 — accepted; my miss)** — the ack call site **re-computed** `chromeColour(opts, env)` although
+      `colourOn` had already been resolved once per turn at `internal/cli/cli.go:808` under the **RF-54-2** fold
+      (*"resolve the shared terminal gate ONCE per turn so the three consumers cannot disagree"*). A second isatty probe
+      could disagree with line 808's verdict and colour the ack while the spinner/payload/`Ready` accents stayed plain in
+      the **same** turn. Fix: `dp.NewLines(colourOn)`. ADR 0067 **D2**'s "no second predicate" now holds in *invocation*,
+      not merely in definition. *(FR-002)*
+- [X] **T019 (finding 2 — intent accepted; the reviewer's fix REJECTED)** — the reviewer proposed replacing the
+      enumerated SGR list with `strings.Contains(sc.stderr, "\x1b")`. **That is wrong:** `internal/ui/tooloutput.go:40`
+      writes `ToolOutputReset = "\x1b[0m"` **UNCONDITIONALLY** on every `[Tool Output]` close path, *including a
+      non-terminal stream* (ADR 0007 **TD-2** — the isatty-gated alternative was explicitly rejected). Proven by running
+      the reviewer's fix: the suite reds on the pre-existing `A piped command run keeps its whole output block plain`. The
+      reviewer's analogy was the trap — `the session turn log carries no decoration` reads the **`turns.log` file**
+      (plain by construction), not `stderr`. Implemented instead: **exhaustive by construction** — strip the one designed
+      `\x1b[0m` and assert **no** remaining `\x1b`. The finding's genuine premise (a hand-maintained list is a per-accent
+      trap) is fixed; the list had already been widened for rounds 054, 057 and 097. *(EC-001 / SC-002)*
+- [X] **T020 (finding 3 — accepted, and sharpened)** — ADR 0067 **D4** pins five surfaces but only two were
+      witnessed. The reviewer said three were missing; precisely, `turnOptions` is built at **three sites** (`:295` `-i`,
+      `:429` positional/piped/`-b`, `:479` Ctrl+D), so positional already covers piped and `-b` **structurally**. The
+      genuinely unwitnessed site was **Ctrl+D** (`:479`). Fix: one Example
+      (`A prompt read to end-of-input at a terminal is acknowledged in blue`) — every construction site now witnessed. *(FR-005)*
+- [X] **T021 (finding 4 — accepted)** — the truth row moved the floor to ≥ 1.26.10, but the floor's **policy
+      home** (ADR 0066 **D2**) still read ≥ 1.26.9 with no pointer. ADR bodies are immutable, so: a forward pointer on
+      the **ADR 0066 index row** + a new **RF-067-5** in ADR 0067 recording that **RF-066-1 fired** and that the underlying
+      "recorded-not-machine-checked" limit **stands**. *(SC-004)*
+- [X] **T022 (finding 5 — partly accepted)** — the `chrome-colour-terminal-gated` invariant had absorbed ADR 0067's
+      *rationale* prose ("green was rejected because … the `$` session cost"): not checkable, and it would need lockstep
+      hand-editing against the ADR forever. Trimmed to the checkable content (fifth accent · whole line · bright blue ·
+      same gate · every surface). Round provenance itself is the established shape (rounds 073/082/086), so it stays. *(ADR 0041)*
+- [X] **T023** — Witness the two new carriers. **F2:** an accent code present in **no** list (`\x1b[0;36m`, forced
+      unconditionally) **reds 5 scenarios** under the exhaustive check — under the old list it would have reddened none.
+      **F3:** mutating the Ctrl+D site alone (`:479`) **reds only** the new Ctrl+D Example. *(CLM-007 / CLM-008)*
+- [X] **T024** — Re-run the full gate after the fold: `make verify` OK · full E2E green · `test-race` clean ·
+      `modelith-check` no drift · `modelith-lint` 0/0 · `verify-adr-index` consistent · topology audit PASSED.
+
+
 ---
 
 ## Claim → Witness ledger
@@ -51,6 +91,8 @@
 | CLM-004 | FR-005 · ADR 0067 D4 | the accent lands on **every** prompt surface (positional **and** `-i` submit) | `[WITNESS]` W4 (the two cross-surface Examples) | T009 / T013 | gating the colour on `!opts.echo` ⇒ the `-i` Example reddens while the positional one stays green (mutation run) | verified |
 | CLM-005 | FR-003 · I-2 · NFR-001 | the colour-off path is byte-identical; no palette growth | `[WITNESS]` unit pins | T014 | wrapping the plain path (or adding a new constant) reddens the byte-identity pin | verified |
 | CLM-006 | FR-006 · EC-004 · `the session turn log carries no decoration` | the accent never reaches `turns.log` (a separate plain writer) | existing E2E row (already run on a colour-enabled turn) | T015 | the ack is written to `env.turnsLog` ⇒ the row reddens | verified (existing carrier) |
+| CLM-007 | FR-002 · EC-001 · SC-002 (fold T019) | the no-colour assertion is **exhaustive**: no ESC byte survives off the gate except the designed `[Tool Output]` restore | `[WITNESS]` F2 (mutation) + the piped/`-r` Examples | T019 / T023 | forcing an accent code that appears in **no** enumerated list (`\x1b[0;36m`) reddens **5** scenarios — under the old hand-maintained list it reddens **none** | verified |
+| CLM-008 | FR-005 · ADR 0067 D4 (fold T020) | every `turnOptions` **construction site** carries the accent (`:295` · `:429` · `:479`) | `[WITNESS]` F3 (mutation) + the three surface Examples | T020 / T023 | mutating ONLY the `:479` Ctrl+D site reddens exactly the Ctrl+D Example and nothing else (before the fold the whole gate stayed green) | verified |
 
 ## Pre-Delivery Orphan Coverage Sweep
 

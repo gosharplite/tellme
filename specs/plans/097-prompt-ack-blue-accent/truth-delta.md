@@ -20,6 +20,14 @@ proves the area was checked).
 | MODIFY | `specs/truth/features/cli/chat/colouring-the-session-chrome.feature` | The feature's header comment widens from "accents **four** elements in green" to "four elements in green **plus** the acknowledgement in blue"; a **new Rule** ("The input-capture acknowledgement is blue at a terminal") with two Examples — one positional, one `-i` submit — pins the cross-surface uniformity (FR-005). | FR-001/FR-005; W3 of issue #204 (uniformity is the round's premise). |
 | NOOP | `specs/truth/features/cli/chat/continuing-the-interactive-prompt.feature`, `reading-a-multi-line-prompt.feature`, `piped-prompt` / `presenting-the-turn` Examples | Checked — their steps are **unchanged**; the ack row they use keeps its semantics (the plain/non-terminal class), and the `-i` colour witness lives in the colouring feature (one authority per contract). | `dsl-single-authority`; no behavioural change on those surfaces. |
 
+### PR-review fold (2026-10-22; second reviewer — comment `6334186002`)
+
+| Action | Artifact | Summary | Reason |
+| --- | --- | --- | --- |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` — `the session chrome carries no colour` (again) | Restated **exhaustively**: no ESC byte at all except the **one documented designed exception** — the `[Tool Output]` close path's unconditional default-state restore `\033[0m` (ADR 0007 TD-2). Replaces the hand-enumerated accent-code list, which had already been widened twice and could go vacuously green for a future accent. | PR #205 review finding 2 (intent); the proposed `substring "\x1b"` fix was rejected — it reds the pre-existing piped-command scenario because the unconditional restore is by design. |
+| MODIFY | `specs/truth/features/cli/chat/dsl.md` — `the input capture acknowledgement is shown in blue` | The uniformity clause now names the **three `turnOptions` construction sites** (`:295` · `:429` · `:479`) as the exhaustive surface set, so piped / `-b` are covered structurally by the positional Example. | PR #205 review finding 3. |
+| MODIFY | `specs/truth/features/cli/chat/colouring-the-session-chrome.feature` | A **third** surface Example — `A prompt read to end-of-input at a terminal is acknowledged in blue` — witnessing the Ctrl+D site (`:479`), the one construction site with no carrier. | PR #205 review finding 3 (the discriminating gap). |
+
 ## axb-api-plan / axb-data-plan / axb-ui-plan
 
 | Action | Artifact | Summary | Reason |

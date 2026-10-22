@@ -60,6 +60,25 @@ inconsistency.*
 | **W4** | gate the colour on `!opts.echo` | the **`-i`** Example **red**, the positional one **green** (the uniformity proof) |
 | + | 3 unit pins | colour-off byte-identity · whole-line wrap · adapter flag honoured |
 
+### PR-review fold (2026-10-22; second reviewer — comment `6334186002`)
+
+An automated Claude Code review ran 8 angles over the diff and raised five cleanup/coverage/doc items.
+All five were verified against the code: **four accepted, one rejected as written**.
+
+| # | Finding | Disposition |
+| --- | --- | --- |
+| 1 | `cli.go:864` re-computed `chromeColour` instead of reusing `colourOn` | **Accepted — a genuine miss of mine.** `colourOn` is resolved at `:808` under the **RF-54-2** fold ("so the three consumers cannot disagree"); the ack was a second isatty probe. Now `dp.NewLines(colourOn)`. |
+| 2 | Replace the enumerated SGR list with `substring "\x1b"` | **Premise right, fix wrong.** `internal/ui/tooloutput.go:40` writes `ToolOutputReset = "\x1b[0m"` **unconditionally** on every `[Tool Output]` close path incl. a non-terminal stream (**ADR 0007 TD-2**). **Proven:** the reviewer's fix reds the pre-existing `A piped command run keeps its whole output block plain`. Implemented instead as **exhaustive-by-construction** (strip the one designed reset, then forbid any `\x1b`). |
+| 3 | Only 2 of the 5 pinned surfaces witnessed | **Accepted, sharpened.** The witnessing unit is the `turnOptions` **construction site** — three of them (`:295` · `:429` · `:479`), so positional already covers piped and `-b`. The real gap was **Ctrl+D** (`:479`); a new Example closes it. |
+| 4 | ADR 0066 still says ≥ 1.26.9, no forward pointer | **Accepted.** Immutable body ⇒ forward pointer on the **index row** + **RF-067-5** recording that **RF-066-1 fired** and the limit stands. |
+| 5 | The invariant embeds ADR 0067's rationale | **Partly accepted.** Trimmed to the checkable clause; round provenance stays (the rounds 073/082/086 shape). |
+
+**New witnesses:** F2 — an accent code present in no list (`\x1b[0;36m`) reds **5** scenarios under the exhaustive check (vacuous under the old list); F3 — mutating only `:479` reds **only** the new Ctrl+D Example (before the fold, that regression left the whole gate green).
+
+**Post-fold gates:** `make verify` **OK** · E2E **334 scenarios · 2519 steps** green · `test-race` no races · `modelith-lint` 0/0 · `modelith-check` no drift · `verify-adr-index` consistent · topology audit PASSED (2493 steps).
+
+The durable lesson: **the second review was right that my `no second predicate` claim was only true of the *definition*, not the *invocation*** — I had read the RF-54-2 fold and still re-probed the gate 56 lines below it.
+
 ### Environment finding (durable)
 
 - **`GO-2026-6809`** (`crypto/x509`, via `fmt.Fprintf` → `x509.Certificate.Verify`) was published against

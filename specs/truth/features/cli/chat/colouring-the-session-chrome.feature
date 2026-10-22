@@ -97,6 +97,13 @@ Feature: Colouring the session chrome
       Then the input capture acknowledgement is shown in blue
       And tellme exits successfully
 
+    # Round 097 fold (PR #205 review finding 3): the accent is pinned to the
+    # prompt surfaces by CONSTRUCTION SITE, not by reader label. `turnOptions` is
+    # built in exactly three places — :295 (`-i`), :429 (positional · piped ·
+    # `-b <N> "prompt"` · a prompt-bearing `--new`), and :479 (the Ctrl+D
+    # multi-line reader) — so an Example per SITE is exhaustive: piped and `-b`
+    # are structurally the same construction as the positional Example above.
+
     Example: A prompt typed at the interactive prompt is acknowledged in blue
       Given the operator has a runnable tellme installation
       And the runtime home is "ait-tmg"
@@ -105,6 +112,17 @@ Feature: Colouring the session chrome
       And a configured provider "test-model" whose endpoint answers with "all good"
       When the operator submits the prompt "hi" at the interactive prompt
       Then the input capture acknowledgement is shown in blue
+      And tellme exits successfully
+
+    Example: A prompt read to end-of-input at a terminal is acknowledged in blue
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the diagnostics are shown at a terminal
+      And the operator is working at an interactive terminal
+      And a configured provider "test-model" whose endpoint answers with "ok"
+      When the operator pipes "What is two plus two?" into tellme
+      Then the reading announcement is reported on the diagnostic output
+      And the input capture acknowledgement is shown in blue
       And tellme exits successfully
 
   Rule: The acknowledgement keeps its line but loses its accent under raw output
