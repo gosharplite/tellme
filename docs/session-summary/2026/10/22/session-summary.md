@@ -2,7 +2,7 @@
 
 **Project**: `tellme` — a disciplined BDD re-creation of `tell-me-go`
 **Repo**: `github.com/gosharplite/tellme`
-**Status file**: [`STATUS.md`](../../../../STATUS.md) *(back-link — the single live-state source)*
+**Status file**: [`STATUS.md`](../../../../../STATUS.md) *(back-link — the single live-state source)*
 **Workspace**: `$TELL_ME_HOME` on the **`kiosk`** env (a **GKE container managed by ConfigHub**); linux/amd64; Go **1.26.10** (user-scoped).
 **Session mode**: `butler`.
 **Branch**: `dev` (round branch `097-prompt-ack-blue-accent` merged + deleted; `dev == origin/dev == eadcc8d`).
@@ -127,17 +127,19 @@ Round 097 was **human-merged** (PR [#205](https://github.com/gosharplite/tellme/
 | **4 — daily summary** | this §2 appended (§1 preserved verbatim); the header's branch + end-of-session status refreshed to the delivered state |
 | **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, heads match (`dev == origin/dev == eadcc8d`), artifact checklist complete, tracker → live seeds |
 | **6 — commit** | this closeout's `STATUS.md` + archive + summary committed and pushed on `dev` |
-| **7 — propagate + hand off** | `dev -> main` (**no-ff**), verified `main^{tree} == dev^{tree}`, tagged **`round-097`** (annotated, pushed); installed binary refreshed from the `dev` head (`go install ./cmd/tellme`) |
+| **7 — propagate + hand off** | `dev -> main` (**no-ff**, propagation merge **`18b9a3b`**), `main^{tree} == dev^{tree}` **verified** before tagging; annotated **`round-097`** created on that merge and pushed (`round-097` → `18b9a3b`); installed binary refreshed from the `dev` head (`go install ./cmd/tellme` → `vcs.revision` `a5d2043`, `vcs.modified=false`; `--version` → `dev`). A **second, untagged** `dev -> main` **no-ff** merge followed (Rule 15 docs-only precedent) to carry this closeout's own `STATUS.md` de-stale commit, and trees were re-verified equal |
 | **8 — issue tracker** | **#204 closed** by the PR merge (`closes #204`); the remaining open issues checked — [#194](https://github.com/gosharplite/tellme/issues/194)–[#197](https://github.com/gosharplite/tellme/issues/197) and [#203](https://github.com/gosharplite/tellme/issues/203) reviewed |
 
 ### Decisions locked (closeout)
 
 | # | Decision |
 | --- | --- |
-| **D1** | Round 097 is delivered/frozen; the plan package `specs/plans/097-prompt-ack-blue-accent/` is history from now on (a new iteration starts a fresh package). |
-| **D2** | The round-096 detail was **relocated verbatim** to the archive rather than deleted (Rule 12), and `STATUS.md` trimmed to live state — it had reached two delivered-round sections. |
-| **D3** | The toolchain env notes were corrected to **Go 1.26.10** (the wrapper); the container's own `/usr/local/go` (1.26.6) stays recorded as the root-only system Go, so the note still explains why the bump is user-scoped. |
-| **D4** | `round-097` is tagged on the **`dev → main` propagation merge**, not on the PR merge commit (ADR 0026). |
+| **C1** | Round 097 is delivered/frozen; the plan package `specs/plans/097-prompt-ack-blue-accent/` is history from now on (a new iteration starts a fresh package). |
+| **C2** | The round-096 detail was **relocated verbatim** to the archive rather than deleted (Rule 12), and `STATUS.md` trimmed to live state — it had reached two delivered-round sections. |
+| **C3** | The toolchain env notes were corrected to **Go 1.26.10** (the wrapper); the container's own `/usr/local/go` (1.26.6) stays recorded as the root-only system Go, so the note still explains why the bump is user-scoped. |
+| **C4** | `round-097` is tagged on the **`dev → main` propagation merge**, not on the PR merge commit (ADR 0026). |
+| **C5** | The `STATUS.md` active-branch line **no longer pins a head SHA** — it named the PR merge commit while `dev` had already advanced past it (the round-096 precedent had the same born-stale wart). It now names the **PR merge** and the **propagation merge** as provenance and points at `git rev-parse` for live heads. |
+| **C6** | Two docs defects found by the Step-2 link check were fixed: the **day-log → `STATUS.md` back-link** was one `../` short (in **both** 2026-10-22 **and** the 2026-10-11 log — the latter shipped broken in session 88), and the closeout's own decisions are labelled **C1–C6** so they cannot be confused with the round-097 decisions **D1–D6** in §1. |
 
 ### Open items (non-blocking)
 
