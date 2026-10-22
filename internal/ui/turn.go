@@ -22,8 +22,31 @@ const turnGlyph = "⠿"
 // FormatInputCaptured renders the reference's input-capture acknowledgement line
 // (no trailing newline): `[HH:MM:SS] Input captured. Processing...`. The
 // timestamp comes from the caller's injected clock seam.
+//
+// Round 097 (ADR 0067): this stays the SINGLE plain entry point — the colour-off
+// path is byte-identical to it (the round-046 no-orphan rule), and the accent
+// lives in formatInputCapturedColour below.
 func FormatInputCaptured(t time.Time) string {
 	return fmt.Sprintf("[%s] Input captured. Processing...", formatClock(t))
+}
+
+// formatInputCapturedColour is FormatInputCaptured with the round-097 blue accent
+// (ADR 0067 — the FIFTH chrome element): the WHOLE line, its timestamp included,
+// is wrapped in the reference's bright-blue SGR pair, exactly as
+// formatToolReasonColour wraps the whole `[Tool Reason]` line (round 054).
+//
+// The colour-off path returns FormatInputCaptured verbatim, so the round-054 gate
+// (terminal stderr + `-r` off) leaves the ack byte-identical to the plain form.
+// Blue (not green) because green's dominant instance is the `$` session cost on
+// the `Ready` line three lines below, while blue's only other meaning — the `-l`
+// listing's `[USER]` header — is the same operator-side concept on a DIFFERENT
+// surface (stdout), so the two never share a block.
+func formatInputCapturedColour(t time.Time, colour bool) string {
+	plain := FormatInputCaptured(t)
+	if !colour {
+		return plain
+	}
+	return blue(plain, true)
 }
 
 // turnRule is the reference's fixed-width horizontal rule, computed once at

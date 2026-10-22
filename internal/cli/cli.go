@@ -855,7 +855,13 @@ func runTurn(res resolution, store history.Store, prompt string, opts turnOption
 		if opts.echo {
 			_, _ = fmt.Fprintln(env.stderr, prompt)
 		}
-		emitInputCaptured(env, dp.NewLines(false))
+		// Round 097 (ADR 0067): the acknowledgement is the FIFTH chrome accent
+		// (bright blue, whole line). It rides the SAME gate as the spinner and the
+		// payload/`Ready` accents (chromeColour = a terminal stderr, `-r` off, a
+		// prompt-bearing surface) — no second predicate. NOTE: the ack gates on
+		// opts.chrome, NOT on `raw`, so under `-r` the LINE stays and only its
+		// COLOUR drops; the echo above stays plain (issue #204 rev-1, withdrawn).
+		emitInputCaptured(env, dp.NewLines(chromeColour(opts, env)))
 	}
 	// Round 032 (F9) — discover MCP tools BEFORE the turn frames, so a
 	// slow/unreachable server's bounded wait is never silent and the per-call

@@ -1,8 +1,10 @@
 Feature: Colouring the session chrome
 
   # Interface truth (CLI end, `chat` module) — on a terminal the diagnostic turn
-  # chrome accents four elements in green (round 054; ADR 0023). Acceptance
-  # journeys: features/acceptance/colouring-the-session-chrome.feature.
+  # chrome accents four elements in green (round 054; ADR 0023), and — since
+  # round 097 (ADR 0067) — a fifth element, the input-capture acknowledgement, in
+  # bright blue. Acceptance journeys: features/acceptance/colouring-the-session-chrome.feature
+  # (round 054) and features/acceptance/colouring-the-prompt-capture.feature (round 097).
 
   Rule: The chrome accents four elements in green at a terminal
 
@@ -73,4 +75,51 @@ Feature: Colouring the session chrome
       When the operator starts tellme with the prompt "Run the colouring command."
       Then the tool output frame is shown in grey
       And the action line is shown in yellow
+      And tellme exits successfully
+
+  Rule: The input-capture acknowledgement is blue at a terminal
+
+    # Round 097 (ADR 0067; closes #204). The acknowledgement is the one
+    # tellme-owned line that marks the moment the operator's prompt enters the
+    # session. It is accented in bright blue because blue's only other meaning —
+    # the `[USER]` header of the `-l` listing — is the SAME concept (the
+    # operator's side) on a DIFFERENT surface (`stdout`), so the two never share a
+    # block; green's dominant instance is the `$` session cost on the `Ready` line,
+    # three lines below the ack. The two Examples below are the cross-surface
+    # witness (the accent must not be a per-surface accident).
+
+    Example: A prompt given as an argument is acknowledged in blue
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the diagnostics are shown at a terminal
+      And a configured provider "test-model" whose endpoint answers with "ok"
+      When the operator starts tellme with the prompt "Say hi."
+      Then the input capture acknowledgement is shown in blue
+      And tellme exits successfully
+
+    Example: A prompt typed at the interactive prompt is acknowledged in blue
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the diagnostics are shown at a terminal
+      And the operator is working at an interactive terminal
+      And a configured provider "test-model" whose endpoint answers with "all good"
+      When the operator submits the prompt "hi" at the interactive prompt
+      Then the input capture acknowledgement is shown in blue
+      And tellme exits successfully
+
+  Rule: The acknowledgement keeps its line but loses its accent under raw output
+
+    # Round 097 (ADR 0067) D5: the ack gates on the prompt-bearing surface, NOT on
+    # `-r` — so `-r` must suppress the COLOUR without suppressing the LINE. A
+    # "skip the ack when raw" refactor would delete a real line and red the
+    # round-017 announced row.
+
+    Example: Raw output still announces the capture, without the accent
+      Given the operator has a runnable tellme installation
+      And the runtime home is "ait-tmg"
+      And the diagnostics are shown at a terminal
+      And a configured provider "test-model" whose endpoint answers with "ok"
+      When the operator starts tellme with the prompt "Say hi." and the raw flag
+      Then the input capture is announced for the turn
+      And the session chrome carries no colour
       And tellme exits successfully

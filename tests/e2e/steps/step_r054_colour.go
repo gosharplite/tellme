@@ -107,10 +107,11 @@ func (m *missingAccent) Error() string {
 }
 
 // thenChromeNoColour (必查 呈現結果): the captured stderr carries no chrome
-// accent — neither the round-054 green nor the round-057 grey/yellow.
+// accent — neither the round-054 green, the round-057 grey/yellow, nor (round 097,
+// ADR 0067) the round-097 bright blue of the input-capture acknowledgement.
 func thenChromeNoColour(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
-	for _, code := range []string{"\x1b[0;32m", "\x1b[0;90m", "\x1b[0;33m"} {
+	for _, code := range []string{"\x1b[0;32m", "\x1b[0;90m", "\x1b[0;33m", "\x1b[1;34m"} {
 		if strings.Contains(sc.stderr, code) {
 			return &unexpectedColour{stderr: sc.stderr}
 		}
