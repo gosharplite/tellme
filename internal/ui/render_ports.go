@@ -26,8 +26,14 @@ var _ render.Lines = Lines{}
 // NewLines builds the production lines adapter with the round-054 colour flag.
 func NewLines(colour bool) Lines { return Lines{colour: colour} }
 
-// InputCaptured renders the input-capture acknowledgement.
-func (Lines) InputCaptured(t time.Time) string { return FormatInputCaptured(t) }
+// InputCaptured renders the input-capture acknowledgement. Round 097 (ADR 0067):
+// the adapter's colour flag reaches it too — the ack is the FIFTH chrome accent
+// (bright blue, whole line), so the same gate that colours the payload/`Ready`
+// lines colours this one. The plain path is byte-identical (formatInputCapturedColour
+// returns FormatInputCaptured verbatim when the flag is off).
+func (l Lines) InputCaptured(t time.Time) string {
+	return formatInputCapturedColour(t, l.colour)
+}
 
 // TurnOpening renders the frame's opening block.
 func (Lines) TurnOpening(turn int, mode string) string { return FormatTurnOpening(turn, mode) }

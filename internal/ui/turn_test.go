@@ -70,3 +70,45 @@ func TestPayloadEstimateLineText(t *testing.T) {
 		t.Fatalf("estimated payload line changed: got %q, want %q", got, want)
 	}
 }
+
+// Round 097 (ADR 0067) — the input-capture acknowledgement's blue accent is the
+// FIFTH chrome element. These pins carry the parts the E2E cannot see cheaply:
+// the byte-identity of the colour-off path, and the whole-line (timestamp
+// included) scope of the wrap.
+
+func TestFormatInputCapturedColour_OffIsByteIdentical(t *testing.T) {
+	ts := time.Date(2026, 10, 22, 13, 2, 41, 0, time.UTC)
+	if got, want := formatInputCapturedColour(ts, false), FormatInputCaptured(ts); got != want {
+		t.Fatalf("colour-off path must be byte-identical to the plain form: got %q, want %q", got, want)
+	}
+}
+
+func TestFormatInputCapturedColour_OnWrapsTheWholeLine(t *testing.T) {
+	ts := time.Date(2026, 10, 22, 13, 2, 41, 0, time.UTC)
+	got := formatInputCapturedColour(ts, true)
+	// The bright-blue pair encloses the TIMESTAMP as well as the message — the
+	// whole-line unit (ADR 0067 D1), matching the `[Tool Reason]` precedent.
+	want := colorBlue + FormatInputCaptured(ts) + colorReset
+	if got != want {
+		t.Fatalf("colour-on wrap = %q, want %q", got, want)
+	}
+	if !strings.HasPrefix(got, "\x1b[1;34m") {
+		t.Fatalf("the accent must be the bright blue SGR pair: %q", got)
+	}
+	// The visible text is unchanged by the wrap (the pair is the only escape).
+	if stripped := strings.TrimSuffix(strings.TrimPrefix(got, colorBlue), colorReset); stripped != FormatInputCaptured(ts) {
+		t.Fatalf("the wrap altered the visible text: %q", stripped)
+	}
+}
+
+// The `Lines` adapter (the production render.Lines implementation) must honour
+// its colour flag on the acknowledgement — the wiring the CLI gate relies on.
+func TestLines_InputCapturedHonoursTheColourFlag(t *testing.T) {
+	ts := time.Date(2026, 10, 22, 13, 2, 41, 0, time.UTC)
+	if got, want := NewLines(false).InputCaptured(ts), FormatInputCaptured(ts); got != want {
+		t.Fatalf("Lines(false).InputCaptured = %q, want the plain form %q", got, want)
+	}
+	if got, want := NewLines(true).InputCaptured(ts), colorBlue+FormatInputCaptured(ts)+colorReset; got != want {
+		t.Fatalf("Lines(true).InputCaptured = %q, want %q", got, want)
+	}
+}

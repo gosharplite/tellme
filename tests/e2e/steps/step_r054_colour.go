@@ -106,14 +106,25 @@ func (m *missingAccent) Error() string {
 	return "the chrome is missing the green " + m.name + " accent; stderr=" + quoteForLog(m.stderr)
 }
 
+// toolOutputReset is the ONE designed, unconditional ESC byte the diagnostic
+// stream may carry off a colour-enabled terminal: the default-state restore the
+// `[Tool Output]` close path writes on EVERY close path, including a non-terminal
+// stderr (`internal/ui/tooloutput.go` ToolOutputReset; ADR 0007 TD-2 — the
+// isatty-gated alternative was explicitly rejected, so this is by design, not a
+// leak).
+const toolOutputReset = "\x1b[0m"
+
 // thenChromeNoColour (必查 呈現結果): the captured stderr carries no chrome
-// accent — neither the round-054 green nor the round-057 grey/yellow.
+// accent. Round 097 fold (PR #205 review finding 2): the check is EXHAUSTIVE BY
+// CONSTRUCTION rather than a hand-enumerated code list — every ESC byte is
+// rejected except the designed unconditional `toolOutputReset` above. The list
+// form had to be widened for each new accent (round 054 green → round 057
+// grey/yellow → round 097 blue), so a future sixth accent whose author forgot to
+// append its code would leave every scenario using this step VACUOUSLY green.
 func thenChromeNoColour(ctx context.Context) error {
 	sc := scenarioFrom(ctx)
-	for _, code := range []string{"\x1b[0;32m", "\x1b[0;90m", "\x1b[0;33m"} {
-		if strings.Contains(sc.stderr, code) {
-			return &unexpectedColour{stderr: sc.stderr}
-		}
+	if strings.Contains(strings.ReplaceAll(sc.stderr, toolOutputReset, ""), "\x1b") {
+		return &unexpectedColour{stderr: sc.stderr}
 	}
 	return nil
 }
