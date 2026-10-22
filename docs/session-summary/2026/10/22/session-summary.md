@@ -5,8 +5,8 @@
 **Status file**: [`STATUS.md`](../../../../STATUS.md) *(back-link — the single live-state source)*
 **Workspace**: `$TELL_ME_HOME` on the **`kiosk`** env (a **GKE container managed by ConfigHub**); linux/amd64; Go **1.26.10** (user-scoped).
 **Session mode**: `butler`.
-**Branch**: `097-prompt-ack-blue-accent` (off `dev` `0f72b06`).
-**Status at end of session**: **round 097 `097-prompt-ack-blue-accent` IN FLIGHT** — the fifth chrome accent (the input-capture acknowledgement, **bright blue**, uniform across every prompt surface); **PR open into `dev`**, awaiting a human merge. Closes [#204](https://github.com/gosharplite/tellme/issues/204). **Last delivered round remains 096.**
+**Branch**: `dev` (round branch `097-prompt-ack-blue-accent` merged + deleted; `dev == origin/dev == eadcc8d`).
+**Status at end of session**: **round 097 DELIVERED / FROZEN** — the fifth chrome accent (the input-capture acknowledgement, **bright blue**, uniform across every prompt surface); PR [#205](https://github.com/gosharplite/tellme/pull/205) human-merged into `dev` (`eadcc8d`), propagated `dev -> main` (**no-ff**) and tagged **`round-097`**. Closes [#204](https://github.com/gosharplite/tellme/issues/204).
 
 ---
 
@@ -100,3 +100,56 @@ The durable lesson: **the second review was right that my `no second predicate` 
 1. Human reviews + merges the round-097 PR; then the closeout.
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `097-prompt-ack-blue-accent` until merged,
    then `dev`).
+
+---
+
+## 2. Session 89 closeout (2026-10-22) — round 097 **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+Round 097 was **human-merged** (PR [#205](https://github.com/gosharplite/tellme/pull/205) → `dev` **`eadcc8d`**, **merge commit**, `2026-10-22T06:36:25Z`) after two review rounds — a merge-readiness review (LGTM) and an automated Claude Code review whose five findings were folded (`f18322f` → `7fbba3f`) and then re-reviewed and cleared. The remote branch was already deleted (`git fetch --prune` → `[deleted] origin/097-prompt-ack-blue-accent`); the local tip `7fbba3f` was verified an **ancestor** of `origin/dev` *before* `git branch -d` (safe delete, not `-D`), then `dev` was fast-forwarded to the merge and `SESSION-CLOSEOUT.md` Steps 1–8 ran.
+
+### The two review rounds (recorded because they shaped the delivered change)
+
+| Round | Reviewer | Outcome |
+| --- | --- | --- |
+| 1 | merge-readiness review (`6333989774`) | **LGTM / recommended for human merge**; every factual claim re-verified independently (line refs, audit counts, the reviewed SHA vs local HEAD) |
+| 2 | automated Claude Code review (`6334186002`) | **No correctness bug**; **five** cleanup/coverage/doc findings, most severe first |
+| 2b | fold re-review (`6334420540`) | **Every disposition holds; no new findings** — independently re-verified in a detached worktree, including the rejected proposed fix |
+
+**The fold** (`7fbba3f`): (1) the ack now consumes the once-per-turn resolved **`colourOn`** instead of re-probing `chromeColour` (round 054 **RF-54-2** — my "no second predicate" claim was true of the *definition*, false of the *invocation*); (2) the no-colour E2E assertion is **exhaustive by construction** (strip the one designed `\x1b[0m`, then forbid any ESC) — the reviewer's `substring "\x1b"` fix was **rejected because it reds a correct pre-existing scenario** (the `[Tool Output]` reset is written unconditionally, **ADR 0007 TD-2**); (3) the witnessing unit is the `turnOptions` **construction site** (three: `:295` · `:429` · `:479`), and a new **Ctrl+D** Example closes the one site with no carrier; (4) a forward pointer on the **ADR 0066 index row** + **RF-067-5** recording that **RF-066-1 fired**; (5) the model invariant trimmed to its checkable clause.
+
+### Closeout step results
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean at start; no delivered `specs/plans/**` package touched after freeze (the round touched only its own **new** package); no stray temp files; diff-level secret grep **clean** |
+| **2 — gates** | **`make check` OK** (verify + full E2E) · E2E **334 scenarios · 2519 steps** green · `make test-race` **no data races** · `govulncheck` **"No vulnerabilities found."** · `modelith-check` no drift · `modelith-lint` **0/0** ×3 · `verify-adr-index` consistent · topology audit **PASSED** (2493 steps) · advisory `modelith-drift` **28 terms all anchored** |
+| **3 — STATUS.md** | header → round 097 **DELIVERED / FROZEN**, round in flight **none**, active branch `dev`; **Rule-12 split**: the **round-096** delivered-round detail relocated **verbatim** into [`docs/archives/status/2026-10-22.md`](../../../../archives/status/2026-10-22.md) (with a back-link), STATUS trimmed to **69 lines** of live state; the round section corrected to post-fold truth (`colourOn`, exhaustive no-colour row, the Ctrl+D Example, 334/2519, 2493 audit steps) + a **Delivered** line; **stale toolchain references de-staled** (the env notes still said the wrapper was 1.26.9) |
+| **4 — daily summary** | this §2 appended (§1 preserved verbatim); the header's branch + end-of-session status refreshed to the delivered state |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, heads match (`dev == origin/dev == eadcc8d`), artifact checklist complete, tracker → live seeds |
+| **6 — commit** | this closeout's `STATUS.md` + archive + summary committed and pushed on `dev` |
+| **7 — propagate + hand off** | `dev -> main` (**no-ff**), verified `main^{tree} == dev^{tree}`, tagged **`round-097`** (annotated, pushed); installed binary refreshed from the `dev` head (`go install ./cmd/tellme`) |
+| **8 — issue tracker** | **#204 closed** by the PR merge (`closes #204`); the remaining open issues checked — [#194](https://github.com/gosharplite/tellme/issues/194)–[#197](https://github.com/gosharplite/tellme/issues/197) and [#203](https://github.com/gosharplite/tellme/issues/203) reviewed |
+
+### Decisions locked (closeout)
+
+| # | Decision |
+| --- | --- |
+| **D1** | Round 097 is delivered/frozen; the plan package `specs/plans/097-prompt-ack-blue-accent/` is history from now on (a new iteration starts a fresh package). |
+| **D2** | The round-096 detail was **relocated verbatim** to the archive rather than deleted (Rule 12), and `STATUS.md` trimmed to live state — it had reached two delivered-round sections. |
+| **D3** | The toolchain env notes were corrected to **Go 1.26.10** (the wrapper); the container's own `/usr/local/go` (1.26.6) stays recorded as the root-only system Go, so the note still explains why the bump is user-scoped. |
+| **D4** | `round-097` is tagged on the **`dev → main` propagation merge**, not on the PR merge commit (ADR 0026). |
+
+### Open items (non-blocking)
+
+- **None new.** `STATUS.md` carries no open-items index: a deferred item lives in its `ADR 00NN §Forward` or a live issue. **ADR 0067 §Forward RF-067-1…5** are disclosures, not tasking.
+- **ADR 0066 RF-066-1 fired** this round (the toolchain floor drifted again at `GO-2026-6809`); the underlying "recorded, not machine-checked" limit **stands** — recorded in RF-067-5, not tasking.
+- **Issue tracker**: **#204 closed** (delivered); **#194–#197 open** (live round seeds); **#203 open** (web-access capability candidate). None revised — all remain accurate.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue** (Bootstrap Agent Rule 11; live seeds [#194](https://github.com/gosharplite/tellme/issues/194)–[#197](https://github.com/gosharplite/tellme/issues/197), [#203](https://github.com/gosharplite/tellme/issues/203)).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+
+### PM follow-ups
+
+- None (no PM-owned requirement gap; the spec, acceptance Gherkin and truth rows all landed as specified).
