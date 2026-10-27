@@ -83,6 +83,9 @@ type site struct {
 	arms  string
 	shape string
 	key   string
+	// elts is an arm-(d) literal's element count. It is aggregated with its
+	// same-identity siblings when rows collapse (see redSites).
+	elts int
 }
 
 // tree is one scan of the whole tree.
@@ -532,17 +535,20 @@ func structNameOf(e ast.Expr) string {
 	return ""
 }
 
-// elemStructName returns the ELEMENT name a CONTAINER type expects, so an
-// elided-type literal nested in it can be attributed: `[]T` and `[N]T` yield T,
-// a `map[K]V` yields V. Anything else yields "".
-func elemStructName(e ast.Expr) string {
+// elemType returns the TYPE EXPRESSION a container's elements have: `[]T` and
+// `[N]T` yield `T`, `map[K]V` yields `V`. It returns the EXPRESSION rather than a
+// name so NESTED containers resolve one level per elided literal —
+// `[][]T{{{1, 2, 3, 4}}}` reaches T only at the third level (re-review residual 2).
+func elemType(e ast.Expr) ast.Expr {
 	switch t := e.(type) {
 	case *ast.ArrayType:
-		return structNameOf(t.Elt)
+		return t.Elt
 	case *ast.MapType:
-		return structNameOf(t.Value)
+		return t.Value
+	case *ast.ParenExpr:
+		return elemType(t.X)
 	}
-	return ""
+	return nil
 }
 
 // allUnkeyed reports whether every element of a literal is positional.
@@ -558,58 +564,118 @@ func allUnkeyed(elts []ast.Expr) bool {
 	return true
 }
 
-// unkeyedLits returns every same-package named-struct composite literal with
-// >= 2 unkeyed elements — arm (d), the call-site half of the swap hazard.
+// effectiveLitTypes resolves, for every composite literal in the file, the type
+// expression it denotes: its own `Type`, or — when the type is ELIDED — the type
+// it inherits from its container. One prepass feeds both arm-(d) walks below, so
+// "which type does this literal have" is answered in exactly one place.
 //
-// It tracks an EXPECTED ELEMENT NAME down the tree: a literal whose type is
-// `[]T` / `[N]T` / `map[K]V` sets the expectation for its children, so the
-// ELIDED-type shapes are attributed to T instead of skipped —
-//
-//	[]T{{1, 2}}             // slice of elided literals (the test-table shape)
-//	map[K]T{"k": {1, 2}}    // map of elided literals
-//	&T{1, 2} / T{1, 2}      // named directly
-//	pair[int]{1, 2}         // generic instantiation
-//
-// A literal that names no type and inherits none is skipped: it is an anonymous
-// struct literal, not a same-package named one.
-func unkeyedLits(fset *token.FileSet, f *ast.File, file string, structs map[string]bool) []site {
-	var out []site
-	stack := []string{""}
-	top := func() string { return stack[len(stack)-1] }
+// An elided literal whose container is itself elided inherits through the chain,
+// which is what makes `[][]T{{{…}}}` work. A literal with neither an own type nor
+// a container expectation (an anonymous `struct{…}{…}`) maps to nil.
+func effectiveLitTypes(f *ast.File) map[*ast.CompositeLit]ast.Expr {
+	out := map[*ast.CompositeLit]ast.Expr{}
+	stack := []ast.Expr{nil}
+	top := func() ast.Expr { return stack[len(stack)-1] }
 	ast.Inspect(f, func(n ast.Node) bool {
 		if n == nil {
-			if len(stack) > 1 {
+			if len(stack) > 0 {
 				stack = stack[:len(stack)-1]
 			}
 			return false
 		}
-		cl, ok := n.(*ast.CompositeLit)
-		if !ok {
-			stack = append(stack, top())
+		if cl, ok := n.(*ast.CompositeLit); ok {
+			eff := cl.Type
+			if eff == nil {
+				eff = top()
+			}
+			out[cl] = eff
+			stack = append(stack, elemType(eff))
 			return true
 		}
-		name := top() // an elided type inherits the container's element name
-		if cl.Type != nil {
-			name = structNameOf(cl.Type)
-		}
-		if name != "" && structs[name] && allUnkeyed(cl.Elts) && len(cl.Elts) >= armDMinElts {
-			line := fset.Position(cl.Pos()).Line
-			out = append(out, site{
-				file:  file,
-				line:  line,
-				name:  name,
-				arms:  "d",
-				shape: fmt.Sprintf("%d unkeyed elements", len(cl.Elts)),
-				key:   fmt.Sprintf("%s:%d:%s", file, line, name),
-			})
-		}
-		childExpect := top()
-		if cl.Type != nil {
-			childExpect = elemStructName(cl.Type)
-		}
-		stack = append(stack, childExpect)
+		stack = append(stack, top())
 		return true
 	})
+	return out
+}
+
+// armDSites returns every arm-(d) site in one file: same-package named-struct
+// literals with >= 2 unkeyed elements. It covers the shapes a naive
+// `Type.(*ast.Ident)` check misses —
+//
+//	[]T{{1, 2}}                 // list element, elided (the test-table shape)
+//	map[K]T{"k": {1, 2}}        // map VALUE, elided
+//	[][]T{{{1, 2}}}             // nested container, elided twice
+//	map[T]int{{1, 2}: 1}        // struct-typed map KEY, elided
+//	&T{1, 2} / T{1, 2}          // named directly
+//	pair[int]{1, 2}             // generic instantiation
+//
+// A literal that names no type and inherits none is skipped: it is an anonymous
+// struct literal, not a same-package named one. Field-KEYED literals are
+// correctly not flagged.
+func armDSites(fset *token.FileSet, f *ast.File, file string, structs map[string]bool) []site {
+	eff := effectiveLitTypes(f)
+	return append(elementLits(fset, eff, file, structs), keyLits(fset, eff, file, structs)...)
+}
+
+// elementLits returns the arm-(d) sites whose literal sits in an element position:
+// named directly, or elided into a container's element/value type.
+func elementLits(fset *token.FileSet, eff map[*ast.CompositeLit]ast.Expr, file string, structs map[string]bool) []site {
+	var out []site
+	for cl, t := range eff {
+		name := structNameOf(t)
+		if name == "" || !structs[name] || !allUnkeyed(cl.Elts) || len(cl.Elts) < armDMinElts {
+			continue
+		}
+		line := fset.Position(cl.Pos()).Line
+		out = append(out, site{
+			file: file,
+			line: line,
+			name: name,
+			arms: "d",
+			elts: len(cl.Elts),
+			key:  fmt.Sprintf("%s:%d:%s", file, line, name),
+		})
+	}
+	return out
+}
+
+// keyLits returns the arm-(d) sites whose literal sits in a MAP KEY position, whose
+// elided type is the map's KEY rather than its value — the position the element
+// walk cannot reach (re-review residual 2).
+func keyLits(fset *token.FileSet, eff map[*ast.CompositeLit]ast.Expr, file string, structs map[string]bool) []site {
+	var out []site
+	for cl, t := range eff {
+		mt, ok := t.(*ast.MapType)
+		if !ok {
+			continue
+		}
+		keyName := structNameOf(mt.Key)
+		if keyName == "" || !structs[keyName] {
+			continue
+		}
+		for _, e := range cl.Elts {
+			kv, ok := e.(*ast.KeyValueExpr)
+			if !ok {
+				continue
+			}
+			key, ok := kv.Key.(*ast.CompositeLit)
+			if !ok || key.Type != nil { // an explicit key type is an elementLits site
+				continue
+			}
+			if !allUnkeyed(key.Elts) || len(key.Elts) < armDMinElts {
+				continue
+			}
+			line := fset.Position(key.Pos()).Line
+			out = append(out, site{
+				file: file,
+				line: line,
+				name: keyName,
+				arms: "d",
+				elts: len(key.Elts),
+				key:  fmt.Sprintf("%s:%d:%s", file, line, keyName),
+			})
+		}
+	}
 	return out
 }
 
@@ -654,17 +720,32 @@ func goFilesUnder(t *testing.T, dir string) map[string][]string {
 }
 
 // scanTree scans the gate's governed subtree: internal/**.
-func scanTree(t *testing.T, root string) tree { return scanSubtree(t, root, "internal") }
+func scanTree(t *testing.T, root string) tree {
+	return scanSubtree(t, scanTarget{root: root, sub: "internal"})
+}
+
+// scanTarget names one subtree to scan. It is a NAMED struct and not a
+// `root, sub string` pair because this gate must satisfy its own arms, and the
+// self-application pin scans the very file these functions live in.
+type scanTarget struct {
+	root string // module root
+	sub  string // module-relative subtree, e.g. "internal"
+	// pinProduction treats `_test.go` files as PRODUCTION. The self-application pin
+	// needs it: every line of this package lives in params_test.go, and redSites()
+	// skips test declarations — without it the pin could only ever observe arm (d)
+	// on the gate's own source, so it would not have redded on the OLD newDecl
+	// either (re-review residual 1). It is never set by the gate itself.
+	pinProduction bool
+}
 
 // scanSubtree parses one subtree and returns the declarations, the arm-(d) sites,
 // and the alias count. Build-tag-gated files are parsed as written (the scan is
-// text-level; the union over tags is not simulated). It is parameterised so the
-// gate can also be pointed at its OWN package — the self-application pin.
-func scanSubtree(t *testing.T, root, sub string) tree {
+// text-level; the union over tags is not simulated).
+func scanSubtree(t *testing.T, target scanTarget) tree {
 	t.Helper()
 	fset := token.NewFileSet()
 	var out tree
-	dirs := goFilesUnder(t, filepath.Join(root, sub))
+	dirs := goFilesUnder(t, filepath.Join(target.root, target.sub))
 	for _, dir := range slices.Sorted(maps.Keys(dirs)) {
 		files := dirs[dir]
 		slices.Sort(files)
@@ -679,10 +760,10 @@ func scanSubtree(t *testing.T, root, sub string) tree {
 		structs := declaredStructs(parsed)
 		for _, p := range files {
 			f := parsed[p]
-			file := relPath(root, p)
-			isTest := strings.HasSuffix(p, "_test.go")
+			file := relPath(target.root, p)
+			isTest := strings.HasSuffix(p, "_test.go") && !target.pinProduction
 			out.decls = append(out.decls, declsOf(fset, f, file, isTest)...)
-			out.unkeyed = append(out.unkeyed, unkeyedLits(fset, f, file, structs)...)
+			out.unkeyed = append(out.unkeyed, armDSites(fset, f, file, structs)...)
 			if !isTest { // figure Q's universe is production code
 				out.aliases += countAliases(f)
 			}
@@ -711,16 +792,30 @@ func (tr tree) redSites() []site {
 		}
 		out = append(out, d.asSite())
 	}
-	// Two literals of the same type on one line collapse to ONE site: the arm-(d)
-	// allow-list identity is file:line:Type, so a duplicate row would be noise
-	// (and the report must stay a diff against that identity).
-	seen := map[string]bool{}
+	// Literals sharing one identity (file:line:Type) collapse to ONE row: that is
+	// the allow-list identity, so a duplicate row would be noise and the report
+	// must stay a diff against it. The row still SAYS how many literals it stands
+	// for, so `[]T{{…}, {…}}` cannot read as a single literal (re-review nit).
+	order := make([]string, 0, len(tr.unkeyed))
+	agg := make(map[string]*litAgg, len(tr.unkeyed))
 	for _, u := range tr.unkeyed {
-		if seen[u.key] {
-			continue
+		a, ok := agg[u.key]
+		if !ok {
+			a = &litAgg{site: u, minElts: u.elts, maxElts: u.elts}
+			agg[u.key] = a
+			order = append(order, u.key)
 		}
-		seen[u.key] = true
-		out = append(out, u)
+		a.count++
+		a.minElts = min(a.minElts, u.elts)
+		a.maxElts = max(a.maxElts, u.elts)
+	}
+	for _, k := range order {
+		a := agg[k]
+		a.shape = fmt.Sprintf("%d unkeyed elements", a.minElts)
+		if a.count > 1 {
+			a.shape = fmt.Sprintf("%d literals, %d-%d unkeyed elements", a.count, a.minElts, a.maxElts)
+		}
+		out = append(out, a.site)
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].file != out[j].file {
@@ -729,6 +824,14 @@ func (tr tree) redSites() []site {
 		return out[i].line < out[j].line
 	})
 	return out
+}
+
+// litAgg accumulates the arm-(d) literals that share one allow-list identity.
+type litAgg struct {
+	site
+	count   int
+	minElts int
+	maxElts int
 }
 
 // count returns how many production declarations match a predicate, and how many
@@ -1055,28 +1158,65 @@ func selfTestArms(t *testing.T) {
 	}
 }
 
-// selfTestUnkeyed pins arm (d): an unkeyed same-package named-struct literal reds,
-// the same literal keyed does not, and a cross-package (selector) literal is out
-// of scope because `go vet`'s composites analyser already covers it.
+// selfTestUnkeyed pins arm (d) on every shape the walk must attribute: an explicit
+// type, an ELIDED list/map element (the test-table shape), a NESTED elided
+// container, and a struct-typed MAP KEY. It also pins the two negatives that keep
+// the arm honest: a field-KEYED literal and a cross-package (selector) type.
 func selfTestUnkeyed(t *testing.T) {
 	t.Helper()
 	src := `package p
 
 type pair struct{ a, b int }
 
-var unkeyed = pair{1, 2}
+var explicit = pair{1, 2}
 var keyed = pair{a: 1, b: 2}
 var single = pair{a: 1}
 var foreign = time.Time{}
+var listOfElided = []pair{{1, 2}, {3, 4}}
+var mapOfElided = map[string]pair{"k": {1, 2}}
+var ptrOfElided = []*pair{{1, 2}}
+var arrayOfElided = [2]pair{{1, 2}, {3, 4}}
+var nested = [][]pair{{{1, 2}}}
+var mapKey = map[pair]int{{1, 2}: 1}
+var keyedList = []pair{{a: 1, b: 2}}
 `
 	fset, f := parseSynthetic(t, src)
 	structs := declaredStructs(map[string]*ast.File{"synthetic.go": f})
-	sites := unkeyedLits(fset, f, "synthetic.go", structs)
-	if len(sites) != 1 {
-		t.Fatalf("arm (d) self-test: expected exactly the one unkeyed literal, got %d: %v", len(sites), sites)
+	// Through redSites, so the identity collapse (and the "N literals" shape) is
+	// pinned too, not only the attribution.
+	rows := tree{unkeyed: armDSites(fset, f, "synthetic.go", structs)}.redSites()
+	var got []string
+	for _, s := range rows {
+		got = append(got, fmt.Sprintf("%d:%s:%d", s.line, s.name, s.elts))
 	}
-	if sites[0].name != "pair" || sites[0].arms != "d" {
-		t.Fatalf("arm (d) self-test: got %+v, want the `pair` literal with arm d", sites[0])
+	want := []string{"5:pair:2", "9:pair:2", "10:pair:2", "11:pair:2", "12:pair:2", "13:pair:2", "14:pair:2"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("arm (d) self-test:\n got  %v\n want %v\n(every elided shape must be attributed; the keyed literal and the\ncross-package selector must not)", got, want)
+	}
+}
+
+// selfTestUnkeyedLocalStruct pins the second half of residual 2: a struct type
+// declared INSIDE a function must be collected, because that is where a test table
+// is usually declared.
+func selfTestUnkeyedLocalStruct(t *testing.T) {
+	t.Helper()
+	src := `package p
+
+func f() {
+	type note struct{ attempt, total int }
+	_ = []note{{2, 3}, {3, 3}}
+}
+`
+	fset, f := parseSynthetic(t, src)
+	structs := declaredStructs(map[string]*ast.File{"synthetic.go": f})
+	rows := tree{unkeyed: armDSites(fset, f, "synthetic.go", structs)}.redSites()
+	if len(rows) != 1 || rows[0].name != "note" || rows[0].arms != "d" {
+		t.Fatalf("arm (d) local-struct self-test: got %+v, want exactly the function-local `note` table", rows)
+	}
+	// Two literals on one line share an identity, so the row must SAY it stands for
+	// two (re-review nit).
+	if want := "2 literals, 2-2 unkeyed elements"; rows[0].shape != want {
+		t.Fatalf("arm (d) collapse self-test: shape = %q, want %q", rows[0].shape, want)
 	}
 }
 
@@ -1101,7 +1241,8 @@ func selfTestAllowlist(t *testing.T) {
 func selfTestSelfApplication(t *testing.T) {
 	t.Helper()
 	root := moduleRoot(t)
-	if sites := scanSubtree(t, root, "tools/params").redSites(); len(sites) != 0 {
+	pin := scanTarget{root: root, sub: "tools/params", pinProduction: true}
+	if sites := scanSubtree(t, pin).redSites(); len(sites) != 0 {
 		t.Fatalf("the gate reds on its own source (it does not satisfy its own arms):\n%s", renderRedSet(sites))
 	}
 }
@@ -1117,7 +1258,7 @@ func TestVerifyParameterShapes(t *testing.T) {
 	// The rule logic is pinned on synthetic input BEFORE the tree is judged, so a
 	// deleted or renamed self-test reds instead of silently passing (the
 	// tools/arch name-set defence).
-	want := []string{"arms", "unkeyed", "allow-list", "self-application"}
+	want := []string{"arms", "unkeyed", "unkeyed-local-struct", "allow-list", "self-application"}
 	var ran []string
 	run := func(name string, fn func(*testing.T)) {
 		t.Run(name, fn)
@@ -1125,6 +1266,7 @@ func TestVerifyParameterShapes(t *testing.T) {
 	}
 	run("arms", selfTestArms)
 	run("unkeyed", selfTestUnkeyed)
+	run("unkeyed-local-struct", selfTestUnkeyedLocalStruct)
 	run("allow-list", selfTestAllowlist)
 	run("self-application", selfTestSelfApplication)
 	if !slices.Equal(ran, want) {

@@ -181,3 +181,31 @@ find the run that can red it.
 `make verify` **OK** (twelve members) · gate **0 sites** · self-application **0** · E2E **334 / 2519
 unchanged** · `test-race` clean · `modelith-check` no drift · `modelith-lint` 0/0 · `verify-adr-index`
 consistent · `golangci-lint` 0 issues · `govulncheck` clean.
+
+---
+
+## Second fold — re-review residuals (2026-10-27; reviewer comment [`6436423322`](https://github.com/gosharplite/tellme/pull/211#issuecomment-6436423322))
+
+The re-review confirmed the first fold (corrected W1 = **46**, all six items disposed) and raised **two
+residuals** plus two nits. All four accepted; both residuals were fixed rather than recorded, because both
+are *parser-attributable* — recording them would have left the arm's stated coverage wider than its
+implementation for a second time.
+
+| # | Finding | Disposition |
+| --- | --- | --- |
+| **R1** | The **self-application pin is vacuous for arms (a)–(c)**: every line of `tools/params` lives in `params_test.go`, and `redSites()` skips test declarations — so the pin could only ever see arm (d) on the gate's own source, and would **not** have redded on the old positional `newDecl` it was cited as proving | **Accepted, fixed.** `scanSubtree` now takes a named **`scanTarget`** (a `root, sub string` pair would itself be a hazard) with a `pinProduction` flag; the pin sets it, so `_test.go` is treated as **production** there. **Verified with the reviewer's own probe:** appending `func zzSelfProbe(a, b, c int, d string) {}` + an unkeyed `site{…}` literal now reds **both** — `zzSelfProbe arms=ab n=4 run=3 int` and `site arms=d`. |
+| **R2** | Arm (d) still misses two **parser-attributable** shapes: a **nested** container (`[][]CostInputs{{{1, 2, 3, 4}}}`) and a **struct-typed map KEY** (`map[CostInputs]int{{1, 2, 3, 4}: 1}`) — neither listed in RF-068-3b | **Accepted, fixed.** The walk now resolves each literal's type expression in **one prepass** (`effectiveLitTypes`) and pushes the **expression**, so containers unwrap one level per elided literal; a second walk (`keyLits`) attributes a `KeyValueExpr` key to the map's **key** type, which the element walk never reaches. **Verified with the reviewer's exact probe:** zz1–zz6 all red (including `zz5` nested and `zz6` map key) and `zz7` (field-keyed) correctly does not. Seven shapes + two negatives are now pinned in `selfTestUnkeyed`, and a new `selfTestUnkeyedLocalStruct` pins the function-local `type note` table shape. |
+| **N1** | `specs/truth/techstack.md`: missing full stop after "(`go help test`)" | **Accepted, fixed.** |
+| **N2** | The arm-(d) row collapses same-identity literals, so its `shape` printed only the first literal's element count | **Accepted, fixed.** Rows aggregate into `2 literals, 3-3 unkeyed elements` when they stand for more than one; pinned by the local-struct self-test's shape assertion. |
+
+**Re-measured after the second fold** (the script, not prose): pre-round `dev` `0231f64` → **46 sites**
+(J 31 · J′ 4 · K 36 · K′ 4 · **L 6** · M 9 · N 6 · O 38 · P 11 · Q 0 · R 0 · I 69) — **unchanged**, which
+is itself the useful result: the two newly attributed shapes do not occur in `internal/**`, so the extra
+coverage is confirmed free of figure churn. This tree → **0 sites**, allow-list empty.
+
+**RF-068-3b narrowed** to what a parser walk genuinely cannot reach — a literal whose type is implied by a
+**func parameter/return** or by a **struct field** — with the measurement that neither occurs here.
+
+**Also recorded in the ADR** (D4 + a new paragraph): the elision class and its two follow-on shapes, and
+the pin-scope defect, because "the witness for the refactor was itself vacuous" is the same class the
+round exists to eliminate.

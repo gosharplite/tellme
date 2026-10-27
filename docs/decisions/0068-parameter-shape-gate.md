@@ -82,11 +82,23 @@ sites `vet` misses are largely tests).
 its container — `[]T{{1, 2}}`, `map[K]T{"k": {1, 2}}` — which is the **table shape**, the most common
 way a same-package unkeyed literal appears in a test. A first implementation matched only
 `Type.(*ast.Ident)` and silently skipped those; the review caught it with a live instance in the tree.
-The walk therefore carries an **expected element name** down the tree (`[]T`/`[N]T`/`map[K]V` push `T`) and
-collects named structs by walking the **whole file**, so a **function-local** `type note struct{…}`
+
+The walk resolves, in **one prepass**, the type expression every literal denotes (its own `Type`, else the
+type it inherits from its container), and it carries the **expression** rather than a name — so a
+**nested** container resolves one level per elided literal (`[][]T{{{1, 2}}}`, review residual 2). Named
+structs are collected by walking the **whole file**, so a **function-local** `type note struct{…}`
 declared beside its literal counts. Generic instantiations (`pair[int]{1, 2}`) resolve to their base
-identifier. Every one of those gaps was **measured red before the fold and green after** (W10 + the
-arm-(d) self-tests).
+identifier. And because a map's **key** is not an element position, a struct-typed map key
+(`map[T]int{{1, 2}: 1}`) is attributed by a second walk over `KeyValueExpr` children — the element walk
+only ever reaches a container's **value** type. Every one of those shapes is **measured red before the
+fold and green after** (W10 + the arm-(d) self-tests, which pin all seven shapes and the two negatives: a
+field-KEYED literal and a cross-package selector).
+
+**The self-application pin must see arms (a)–(c).** The gate is scanned by itself, and every line of
+`tools/params` lives in a `_test.go` file, which `redSites` skips — so the first pin could only ever
+observe arm (d) there, and would **not** have redded on the old positional `newDecl` it was cited as
+proving (review residual 1). The pin therefore scans its own subtree with the test file treated as
+**production**, which makes it a real carrier for the very refactor it justifies.
 
 ### D5 — The `n ≥ 4` boundary is deliberate and its remainder is measured
 
@@ -212,7 +224,13 @@ baseline is untouched, which is what **proves** the slice legal.
   Both were caught by review, not by the round's own witnesses: a lesson one layer up from the one the
   round exists to enforce.
 - **Positive, corrected figures.** The pre-round red set is **46** = 40 signature sites + **6** arm-(d)
-  call-site literals (the round first reported 42, on the buggy arm (d)).
+  call-site literals (the round first reported 42, on the buggy arm (d)). The re-review then found **two
+  more** elided shapes (`[][]T{{{…}}}`, `map[T]int{{…}: 1}`) and a pin that could not see arms (a)–(c) on
+  the gate's own source; all three are fixed, and the re-measured figures did not move — a second
+  confirmation that this tree's arm-(d) population is exactly those six.
+- **A note on the arm-(d) row shape.** Literals sharing one allow-list identity (`file:line:Type`)
+  collapse to one row, but the row **says how many** it stands for (`2 literals, 3-3 unkeyed elements`),
+  so `[]T{{…}, {…}}` cannot read as a single literal.
 - **Not modelled.** The gate is a quality-process instrument; it is modelled only as far as the
   `QualityPipeline`/`QualityGate` entities reach (ADR 0041). The product model does **not** move: D11
   changes parameter **shapes**, not behaviour, and `usage-summed-for-the-ready-summary` concerns values,
@@ -227,12 +245,12 @@ baseline is untouched, which is what **proves** the slice legal.
 - **RF-068-3** — Arm (d) keys an allow-list entry by `file:line:TypeName` (a literal has no name), so an
   allow-listed literal stales when unrelated lines move above it. The list is empty, so this is a
   property of the mechanism, not a live cost.
-- **RF-068-3b** — Arm (d) attributes an elided literal through its **container type only**
-  (`[]T` / `[N]T` / `map[K]V`; D4). Two shapes remain unattributed: a literal whose type is implied by a
-  **func parameter or return** rather than a composite container (e.g. a `T` value returned positionally
-  into a call), and a literal whose elided type is inferred from a **struct field**. Both need a type
-  checker, not a parser walk — recorded with the measurement that neither shape occurs in `internal/**`
-  today (the corrected walk reports **0** sites on this tree).
+- **RF-068-3b** — Arm (d) attributes an elided literal through its **container type** (`[]T` / `[N]T` /
+  `map[K]V`, nested, and a struct-typed map key — D4). Two shapes remain unattributed because they need a
+  **type checker**, not a parser walk: a literal whose type is implied by a **func parameter or return**
+  (a `T` value passed positionally into a call), and a literal whose elided type comes from a **struct
+  field** (`Outer{Inner: {…}}`). Neither occurs in `internal/**` today — the corrected walk reports **0**
+  sites on this tree — so this is recorded with its measurement, not fixed.
 - **RF-068-4** — The `@quality` build tag is not evaluated against build-tag-gated files' union: the scan
   parses files **as written**. Two darwin-tagged files declare the same symbol today and both are
   scanned; a future tag-gated divergence would be measured twice, not missed.

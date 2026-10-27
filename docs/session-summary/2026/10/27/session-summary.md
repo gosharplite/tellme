@@ -64,6 +64,25 @@ expected-element-name stack + whole-file struct collection, so function-local ty
 sites on the pre-round tree. Both defects were found by **review, not by the round's own witnesses** — the
 class this round exists to eliminate, appearing one layer up.
 
+### The second review round: the witness for the refactor was itself vacuous
+
+The re-review of the fold found **two residuals**, both fixed rather than recorded:
+
+1. **The self-application pin could not see arms (a)–(c).** Every line of `tools/params` lives in
+   `params_test.go`, and `redSites()` skips test declarations — so the pin cited as proving the
+   `declSpec` refactor **would not have redded on the old positional `newDecl`**. Fixed with a
+   `scanTarget` carrying `pinProduction`; the reviewer's probe now reds both a `func zzSelfProbe(a, b, c
+   int, d string)` (arms a/b) and an unkeyed `site{…}` literal (arm d).
+2. **Two more elided shapes were still missed** — nested containers (`[][]T{{{…}}}`) and a
+   **struct-typed map key** (`map[T]int{{…}: 1}`). Fixed with one `effectiveLitTypes` prepass (the walk now
+   pushes the element **expression**, so containers unwrap level by level) plus a key walk; seven shapes
+   and two negatives are now pinned in the arm-(d) self-tests.
+
+The re-measured pre-round figure is **unchanged at 46** — the added coverage finds nothing new in
+`internal/**`. That is the useful shape of the result: the arm's population is exactly those six, and now
+the walk actually says so. **RF-068-3b** is narrowed to the two shapes a parser walk cannot reach (a
+literal implied by a func parameter/return, or by a struct field), both measured absent here.
+
 ### Decisions locked (round 098)
 
 | # | Decision |
