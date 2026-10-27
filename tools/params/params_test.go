@@ -493,6 +493,44 @@ func receiverName(fl *ast.FieldList) string {
 	return structNameOf(fl.List[0].Type)
 }
 
+// declaredContainers collects the SAME-PACKAGE named array/slice/map types in one
+// package directory (`type table []row`), so an elided literal under such a name
+// can be attributed. Whole-file walk, like declaredStructs, so a function-local
+// `type table []row` counts. A named type from another package is never here — it
+// is opaque by design (resolving it needs that package's AST).
+func declaredContainers(parsed map[string]*ast.File) map[string]containerDecl {
+	out := map[string]containerDecl{}
+	for _, f := range parsed {
+		ast.Inspect(f, func(n ast.Node) bool {
+			ts, ok := n.(*ast.TypeSpec)
+			if !ok {
+				return true
+			}
+			switch ts.Type.(type) {
+			case *ast.ArrayType, *ast.MapType:
+				out[ts.Name.Name] = containerDecl{expr: ts.Type, params: typeParamNames(ts)}
+			}
+			return true
+		})
+	}
+	return out
+}
+
+// typeParamNames returns a generic type declaration's type-parameter names, in
+// order (`type Table[T any] []T` → ["T"]).
+func typeParamNames(ts *ast.TypeSpec) []string {
+	if ts.TypeParams == nil {
+		return nil
+	}
+	var out []string
+	for _, f := range ts.TypeParams.List {
+		for _, n := range f.Names {
+			out = append(out, n.Name)
+		}
+	}
+	return out
+}
+
 // declaredStructs collects the named struct types declared in one package
 // directory (production and test files alike — an arm-(d) literal may name a
 // struct declared in either). It walks the WHOLE file, so a FUNCTION-LOCAL
@@ -535,18 +573,115 @@ func structNameOf(e ast.Expr) string {
 	return ""
 }
 
+// containerDecl is one same-package named container type: its underlying array /
+// slice / map type and its type parameters (nil for a plain `type table []row`).
+type containerDecl struct {
+	expr   ast.Expr
+	params []string
+}
+
+// bound is a resolved container: the underlying type expression plus any type
+// substitution its instantiation implies.
+type bound struct {
+	expr  ast.Expr
+	subst map[string]ast.Expr
+}
+
+// resolveContainer follows a type expression to a CONTAINER (array, slice or map)
+// through the SAME-PACKAGE named container types — `type table []row` makes
+// `table{{…}}` a table of `row`, and `elemType(Ident "table")` would otherwise be
+// nil (re-review item 2). A GENERIC instantiation (`Table[Pair]`, `type Table[T
+// any] []T`) is bound by substituting each type parameter with its argument, which
+// is what makes `Table[Pair]{{…}}` attributable too.
+//
+// A named type from ANOTHER package (`pkg.Table`) is opaque by DESIGN, exactly like
+// `time.Time{}`: resolving it would need that package's AST. That is the one
+// recorded limit (RF-068-3b).
+//
+// The hop count is bounded so a pathological chain cannot spin; Go's own type
+// rules make a container cycle impossible, so the bound is belt-and-braces.
+func resolveContainer(e ast.Expr, named map[string]containerDecl) bound {
+	var subst map[string]ast.Expr
+	for range 8 {
+		if p, ok := e.(*ast.ParenExpr); ok {
+			e = p.X
+			continue
+		}
+		decl, args, ok := containerLookup(e, named)
+		if !ok {
+			return bound{expr: e, subst: subst}
+		}
+		if len(decl.params) != len(args) {
+			return bound{expr: e, subst: subst} // an uninstantiated generic: opaque
+		}
+		if len(args) > 0 {
+			subst = make(map[string]ast.Expr, len(args))
+			for i, p := range decl.params {
+				subst[p] = args[i]
+			}
+		}
+		e = decl.expr
+	}
+	return bound{expr: e, subst: subst}
+}
+
+// containerLookup resolves one named-container hop: a bare `table`, or an
+// instantiation `Table[A]` / `Table[A, B]`. ok=false for anything else (a
+// selector from another package, an unbound type parameter, a non-container).
+func containerLookup(e ast.Expr, named map[string]containerDecl) (containerDecl, []ast.Expr, bool) {
+	switch t := e.(type) {
+	case *ast.Ident:
+		decl, ok := named[t.Name]
+		return decl, nil, ok
+	case *ast.IndexExpr:
+		id, ok := t.X.(*ast.Ident)
+		if !ok {
+			return containerDecl{}, nil, false
+		}
+		decl, ok := named[id.Name]
+		return decl, []ast.Expr{t.Index}, ok
+	case *ast.IndexListExpr:
+		id, ok := t.X.(*ast.Ident)
+		if !ok {
+			return containerDecl{}, nil, false
+		}
+		decl, ok := named[id.Name]
+		return decl, t.Indices, ok
+	}
+	return containerDecl{}, nil, false
+}
+
+// substitute resolves a bare type parameter through an instantiation's binding.
+func substitute(e ast.Expr, subst map[string]ast.Expr) ast.Expr {
+	if id, ok := e.(*ast.Ident); ok && subst != nil {
+		if r, ok := subst[id.Name]; ok {
+			return r
+		}
+	}
+	return e
+}
+
 // elemType returns the TYPE EXPRESSION a container's elements have: `[]T` and
 // `[N]T` yield `T`, `map[K]V` yields `V`. It returns the EXPRESSION rather than a
 // name so NESTED containers resolve one level per elided literal —
-// `[][]T{{{1, 2, 3, 4}}}` reaches T only at the third level (re-review residual 2).
-func elemType(e ast.Expr) ast.Expr {
-	switch t := e.(type) {
+// `[][]T{{{1, 2, 3, 4}}}` reaches T only at the third level.
+func elemType(e ast.Expr, named map[string]containerDecl) ast.Expr {
+	b := resolveContainer(e, named)
+	switch t := b.expr.(type) {
 	case *ast.ArrayType:
-		return t.Elt
+		return substitute(t.Elt, b.subst)
 	case *ast.MapType:
-		return t.Value
-	case *ast.ParenExpr:
-		return elemType(t.X)
+		return substitute(t.Value, b.subst)
+	}
+	return nil
+}
+
+// keyType returns the TYPE EXPRESSION a map's keys have, or nil when e is not a
+// map container.
+func keyType(e ast.Expr, named map[string]containerDecl) ast.Expr {
+	b := resolveContainer(e, named)
+	if t, ok := b.expr.(*ast.MapType); ok {
+		return substitute(t.Key, b.subst)
 	}
 	return nil
 }
@@ -566,62 +701,71 @@ func allUnkeyed(elts []ast.Expr) bool {
 
 // effectiveLitTypes resolves, for every composite literal in the file, the type
 // expression it denotes: its own `Type`, or — when the type is ELIDED — the type
-// it inherits from its container. One prepass feeds both arm-(d) walks below, so
-// "which type does this literal have" is answered in exactly one place.
+// it inherits from its position inside an enclosing literal.
 //
-// An elided literal whose container is itself elided inherits through the chain,
-// which is what makes `[][]T{{{…}}}` work. A literal with neither an own type nor
-// a container expectation (an anonymous `struct{…}{…}`) maps to nil.
-func effectiveLitTypes(f *ast.File) map[*ast.CompositeLit]ast.Expr {
+// It is a WORKLIST from the explicitly-typed literals outward, and it assigns a
+// map's KEY position the map's key type and its value position the element type.
+// One attribution per literal: the key of `map[T]T{{…}: {…}}` is ONE site and its
+// value is another — a stack walk that gave every child the value type counted
+// the key twice once key and value were the same struct (re-review item 3).
+//
+// A literal with neither an own type nor a container position (an anonymous
+// `struct{…}{…}`) maps to nil — deliberately: Go permits type elision ONLY in an
+// array/slice/map literal's element or key position, so those are the only
+// positions this can reach.
+func effectiveLitTypes(f *ast.File, named map[string]containerDecl) map[*ast.CompositeLit]ast.Expr {
 	out := map[*ast.CompositeLit]ast.Expr{}
-	stack := []ast.Expr{nil}
-	top := func() ast.Expr { return stack[len(stack)-1] }
+	var queue []*ast.CompositeLit
 	ast.Inspect(f, func(n ast.Node) bool {
-		if n == nil {
-			if len(stack) > 0 {
-				stack = stack[:len(stack)-1]
-			}
-			return false
+		if cl, ok := n.(*ast.CompositeLit); ok && cl.Type != nil {
+			out[cl] = cl.Type
+			queue = append(queue, cl)
 		}
-		if cl, ok := n.(*ast.CompositeLit); ok {
-			eff := cl.Type
-			if eff == nil {
-				eff = top()
-			}
-			out[cl] = eff
-			stack = append(stack, elemType(eff))
-			return true
-		}
-		stack = append(stack, top())
 		return true
 	})
+	assign := func(child ast.Expr, t ast.Expr) {
+		cl, ok := child.(*ast.CompositeLit)
+		if !ok || cl.Type != nil || t == nil {
+			return
+		}
+		out[cl] = t
+		queue = append(queue, cl)
+	}
+	for len(queue) > 0 {
+		cl := queue[0]
+		queue = queue[1:]
+		eff := out[cl]
+		et, kt := elemType(eff, named), keyType(eff, named)
+		for _, e := range cl.Elts {
+			if kv, ok := e.(*ast.KeyValueExpr); ok {
+				assign(kv.Key, kt)
+				assign(kv.Value, et)
+				continue
+			}
+			assign(e, et)
+		}
+	}
 	return out
 }
 
 // armDSites returns every arm-(d) site in one file: same-package named-struct
-// literals with >= 2 unkeyed elements. It covers the shapes a naive
-// `Type.(*ast.Ident)` check misses —
+// literals with >= 2 unkeyed elements. It covers every position Go allows a type
+// to be elided in —
 //
 //	[]T{{1, 2}}                 // list element, elided (the test-table shape)
 //	map[K]T{"k": {1, 2}}        // map VALUE, elided
 //	[][]T{{{1, 2}}}             // nested container, elided twice
 //	map[T]int{{1, 2}: 1}        // struct-typed map KEY, elided
-//	&T{1, 2} / T{1, 2}          // named directly
+//	T{1, 2} / &T{1, 2}          // named directly (incl. a pointer element)
 //	pair[int]{1, 2}             // generic instantiation
+//	table{{1, 2}}               // SAME-PACKAGE named container (type table []T)
 //
-// A literal that names no type and inherits none is skipped: it is an anonymous
-// struct literal, not a same-package named one. Field-KEYED literals are
+// …plus a literal that names no type and inherits none is skipped: it is an
+// anonymous struct literal, not a same-package named one. Field-KEYED literals are
 // correctly not flagged.
-func armDSites(fset *token.FileSet, f *ast.File, file string, structs map[string]bool) []site {
-	eff := effectiveLitTypes(f)
-	return append(elementLits(fset, eff, file, structs), keyLits(fset, eff, file, structs)...)
-}
-
-// elementLits returns the arm-(d) sites whose literal sits in an element position:
-// named directly, or elided into a container's element/value type.
-func elementLits(fset *token.FileSet, eff map[*ast.CompositeLit]ast.Expr, file string, structs map[string]bool) []site {
+func armDSites(fset *token.FileSet, f *ast.File, file string, structs map[string]bool, named map[string]containerDecl) []site {
 	var out []site
-	for cl, t := range eff {
+	for cl, t := range effectiveLitTypes(f, named) {
 		name := structNameOf(t)
 		if name == "" || !structs[name] || !allUnkeyed(cl.Elts) || len(cl.Elts) < armDMinElts {
 			continue
@@ -635,46 +779,6 @@ func elementLits(fset *token.FileSet, eff map[*ast.CompositeLit]ast.Expr, file s
 			elts: len(cl.Elts),
 			key:  fmt.Sprintf("%s:%d:%s", file, line, name),
 		})
-	}
-	return out
-}
-
-// keyLits returns the arm-(d) sites whose literal sits in a MAP KEY position, whose
-// elided type is the map's KEY rather than its value — the position the element
-// walk cannot reach (re-review residual 2).
-func keyLits(fset *token.FileSet, eff map[*ast.CompositeLit]ast.Expr, file string, structs map[string]bool) []site {
-	var out []site
-	for cl, t := range eff {
-		mt, ok := t.(*ast.MapType)
-		if !ok {
-			continue
-		}
-		keyName := structNameOf(mt.Key)
-		if keyName == "" || !structs[keyName] {
-			continue
-		}
-		for _, e := range cl.Elts {
-			kv, ok := e.(*ast.KeyValueExpr)
-			if !ok {
-				continue
-			}
-			key, ok := kv.Key.(*ast.CompositeLit)
-			if !ok || key.Type != nil { // an explicit key type is an elementLits site
-				continue
-			}
-			if !allUnkeyed(key.Elts) || len(key.Elts) < armDMinElts {
-				continue
-			}
-			line := fset.Position(key.Pos()).Line
-			out = append(out, site{
-				file: file,
-				line: line,
-				name: keyName,
-				arms: "d",
-				elts: len(key.Elts),
-				key:  fmt.Sprintf("%s:%d:%s", file, line, keyName),
-			})
-		}
 	}
 	return out
 }
@@ -758,12 +862,13 @@ func scanSubtree(t *testing.T, target scanTarget) tree {
 			parsed[p] = f
 		}
 		structs := declaredStructs(parsed)
+		named := declaredContainers(parsed)
 		for _, p := range files {
 			f := parsed[p]
 			file := relPath(target.root, p)
 			isTest := strings.HasSuffix(p, "_test.go") && !target.pinProduction
 			out.decls = append(out.decls, declsOf(fset, f, file, isTest)...)
-			out.unkeyed = append(out.unkeyed, armDSites(fset, f, file, structs)...)
+			out.unkeyed = append(out.unkeyed, armDSites(fset, f, file, structs, named)...)
 			if !isTest { // figure Q's universe is production code
 				out.aliases += countAliases(f)
 			}
@@ -817,11 +922,16 @@ func (tr tree) redSites() []site {
 		}
 		out = append(out, a.site)
 	}
+	// name is the final tiebreak: two different struct types on one line would
+	// otherwise print (and land in the allow-list) in map-iteration order.
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].file != out[j].file {
 			return out[i].file < out[j].file
 		}
-		return out[i].line < out[j].line
+		if out[i].line != out[j].line {
+			return out[i].line < out[j].line
+		}
+		return out[i].name < out[j].name
 	})
 	return out
 }
@@ -1158,10 +1268,12 @@ func selfTestArms(t *testing.T) {
 	}
 }
 
-// selfTestUnkeyed pins arm (d) on every shape the walk must attribute: an explicit
-// type, an ELIDED list/map element (the test-table shape), a NESTED elided
-// container, and a struct-typed MAP KEY. It also pins the two negatives that keep
-// the arm honest: a field-KEYED literal and a cross-package (selector) type.
+// selfTestUnkeyed pins arm (d) on EVERY valid-Go position a type may be elided in —
+// an explicit type, a list/map element (the test-table shape), a NESTED container,
+// a struct-typed MAP KEY, a SAME-PACKAGE NAMED container (`type table []pair`) and
+// its generic form (`type gen[T any] []T`; `gen[pair]{{…}}`) — plus the negatives
+// that keep the arm honest: a field-KEYED literal, a cross-package named STRUCT
+// (`time.Time{}`) and a cross-package named CONTAINER (`other.Table{{…}}`).
 func selfTestUnkeyed(t *testing.T) {
 	t.Helper()
 	src := `package p
@@ -1179,19 +1291,49 @@ var arrayOfElided = [2]pair{{1, 2}, {3, 4}}
 var nested = [][]pair{{{1, 2}}}
 var mapKey = map[pair]int{{1, 2}: 1}
 var keyedList = []pair{{a: 1, b: 2}}
+
+type table []pair
+type pairMap map[string]pair
+
+var namedSlice = table{{1, 2}}
+var namedMap = pairMap{"k": {1, 2}}
+var mapBoth = map[pair]pair{{1, 2}: {3, 4}}
+var foreignNamed = other.Table{{1, 2}}
+
+type gen[T any] []T
+type genMap[K comparable, V any] map[K]V
+
+var namedGeneric = gen[pair]{{1, 2}}
+var namedGenericMap = genMap[string, pair]{"k": {1, 2}}
 `
 	fset, f := parseSynthetic(t, src)
 	structs := declaredStructs(map[string]*ast.File{"synthetic.go": f})
 	// Through redSites, so the identity collapse (and the "N literals" shape) is
 	// pinned too, not only the attribution.
-	rows := tree{unkeyed: armDSites(fset, f, "synthetic.go", structs)}.redSites()
+	rows := tree{unkeyed: armDSites(fset, f, "synthetic.go", structs, declaredContainers(map[string]*ast.File{"synthetic.go": f}))}.redSites()
 	var got []string
 	for _, s := range rows {
 		got = append(got, fmt.Sprintf("%d:%s:%d", s.line, s.name, s.elts))
 	}
-	want := []string{"5:pair:2", "9:pair:2", "10:pair:2", "11:pair:2", "12:pair:2", "13:pair:2", "14:pair:2"}
+	// One row per line (redSites collapses shared identities). 20/21 are the NAMED
+	// container types, 28/29 their GENERIC forms; 22 is the map whose key AND value
+	// are the same struct — one row, but it must SAY two literals (asserted below);
+	// 23 (`other.Table`), 8 (`time.Time`) and 15 (field-keyed) must stay silent.
+	want := []string{"5:pair:2", "9:pair:2", "10:pair:2", "11:pair:2", "12:pair:2", "13:pair:2",
+		"14:pair:2", "20:pair:2", "21:pair:2", "22:pair:2", "28:pair:2", "29:pair:2"}
 	if !slices.Equal(got, want) {
-		t.Fatalf("arm (d) self-test:\n got  %v\n want %v\n(every elided shape must be attributed; the keyed literal and the\ncross-package selector must not)", got, want)
+		t.Fatalf("arm (d) self-test:\n got  %v\n want %v\n(every elided shape must be attributed; the keyed literals and the\ncross-package selectors must not)", got, want)
+	}
+	// The map whose key and value are the same struct is TWO literals, so its row
+	// must stand for two — the double-count bug made it say three (re-review item 3).
+	var both string
+	for _, r := range rows {
+		if r.line == 22 {
+			both = r.shape
+		}
+	}
+	if want := "2 literals, 2-2 unkeyed elements"; both != want {
+		t.Fatalf("arm (d) map key+value self-test: shape = %q, want %q", both, want)
 	}
 }
 
@@ -1209,7 +1351,7 @@ func f() {
 `
 	fset, f := parseSynthetic(t, src)
 	structs := declaredStructs(map[string]*ast.File{"synthetic.go": f})
-	rows := tree{unkeyed: armDSites(fset, f, "synthetic.go", structs)}.redSites()
+	rows := tree{unkeyed: armDSites(fset, f, "synthetic.go", structs, declaredContainers(map[string]*ast.File{"synthetic.go": f}))}.redSites()
 	if len(rows) != 1 || rows[0].name != "note" || rows[0].arms != "d" {
 		t.Fatalf("arm (d) local-struct self-test: got %+v, want exactly the function-local `note` table", rows)
 	}

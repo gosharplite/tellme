@@ -83,16 +83,26 @@ its container — `[]T{{1, 2}}`, `map[K]T{"k": {1, 2}}` — which is the **table
 way a same-package unkeyed literal appears in a test. A first implementation matched only
 `Type.(*ast.Ident)` and silently skipped those; the review caught it with a live instance in the tree.
 
-The walk resolves, in **one prepass**, the type expression every literal denotes (its own `Type`, else the
-type it inherits from its container), and it carries the **expression** rather than a name — so a
-**nested** container resolves one level per elided literal (`[][]T{{{1, 2}}}`, review residual 2). Named
-structs are collected by walking the **whole file**, so a **function-local** `type note struct{…}`
-declared beside its literal counts. Generic instantiations (`pair[int]{1, 2}`) resolve to their base
-identifier. And because a map's **key** is not an element position, a struct-typed map key
-(`map[T]int{{1, 2}: 1}`) is attributed by a second walk over `KeyValueExpr` children — the element walk
-only ever reaches a container's **value** type. Every one of those shapes is **measured red before the
-fold and green after** (W10 + the arm-(d) self-tests, which pin all seven shapes and the two negatives: a
-field-KEYED literal and a cross-package selector).
+The walk resolves the type expression every literal denotes (its own `Type`, else the type it inherits
+from its position) in a **worklist from the explicitly-typed literals outward**, and it carries the
+**expression** rather than a name — so a **nested** container resolves one level per elided literal
+(`[][]T{{{1, 2}}}`). It assigns a map's **key** position the map's **key** type and its value position the
+element type, which is **one attribution per literal**: an earlier version gave every child the value type
+(so a key was attributed twice once key and value were the same struct) and needed a second walk to
+recover map keys at all.
+
+Named structs are collected by walking the **whole file**, so a **function-local** `type note struct{…}`
+declared beside its literal counts. **Same-package named container types** are collected the same way and
+resolved through — `type table []pair` makes `table{{1, 2}}` attributable, and a **generic** container
+(`type gen[T any] []T`, used as `gen[pair]{{1, 2}}`) is bound by substituting each type parameter with its
+argument. Generic *struct* instantiations (`pair[int]{1, 2}`) resolve to their base identifier.
+
+Go permits type elision **only** in an array/slice/map literal's element or key position, so those are the
+only positions the walk has to reach — `f({1, 2})` and `Outer{Inner: {1, 2}}` are **syntax errors**, not
+shapes to cover (a first version of §Forward listed them as gaps; the compiler refutes it). Every position
+that *is* valid is pinned in the arm-(d) self-tests: the six elided shapes, the named and generic container
+forms, and the negatives — a field-keyed literal, a cross-package named struct (`time.Time{}`) and a
+cross-package named container (`other.Table{{…}}`).
 
 **The self-application pin must see arms (a)–(c).** The gate is scanned by itself, and every line of
 `tools/params` lives in a `_test.go` file, which `redSites` skips — so the first pin could only ever
@@ -230,7 +240,13 @@ baseline is untouched, which is what **proves** the slice legal.
   confirmation that this tree's arm-(d) population is exactly those six.
 - **A note on the arm-(d) row shape.** Literals sharing one allow-list identity (`file:line:Type`)
   collapse to one row, but the row **says how many** it stands for (`2 literals, 3-3 unkeyed elements`),
-  so `[]T{{…}, {…}}` cannot read as a single literal.
+  so `[]T{{…}, {…}}` cannot read as a single literal. The red set sorts by `(file, line, name)` — the
+  `name` tiebreak keeps two different struct types on one line out of map-iteration order, so the report
+  and the allow-list file are deterministic.
+- **The third review corrected §Forward itself.** RF-068-3b listed two elision shapes that are **syntax
+  errors** in Go (`f({1, 2})`, `Outer{Inner: {…}}`) and omitted the one real limit (a cross-package named
+  container). A forward item is a claim like any other, and this one had no compiler behind it — the same
+  class the ADR opens with, in the last place one looks for it. Its replacement carries the measurement.
 - **Not modelled.** The gate is a quality-process instrument; it is modelled only as far as the
   `QualityPipeline`/`QualityGate` entities reach (ADR 0041). The product model does **not** move: D11
   changes parameter **shapes**, not behaviour, and `usage-summed-for-the-ready-summary` concerns values,
@@ -245,12 +261,16 @@ baseline is untouched, which is what **proves** the slice legal.
 - **RF-068-3** — Arm (d) keys an allow-list entry by `file:line:TypeName` (a literal has no name), so an
   allow-listed literal stales when unrelated lines move above it. The list is empty, so this is a
   property of the mechanism, not a live cost.
-- **RF-068-3b** — Arm (d) attributes an elided literal through its **container type** (`[]T` / `[N]T` /
-  `map[K]V`, nested, and a struct-typed map key — D4). Two shapes remain unattributed because they need a
-  **type checker**, not a parser walk: a literal whose type is implied by a **func parameter or return**
-  (a `T` value passed positionally into a call), and a literal whose elided type comes from a **struct
-  field** (`Outer{Inner: {…}}`). Neither occurs in `internal/**` today — the corrected walk reports **0**
-  sites on this tree — so this is recorded with its measurement, not fixed.
+- **RF-068-3b** — The ONE shape arm (d) cannot attribute: an elided literal reached through a
+  **cross-package** named container (`pkg.Table{{1, 2}}`). Resolving it needs the other package's AST —
+  the same boundary that leaves `time.Time{}` out of scope. D4 covers every elision position Go actually
+  permits: element, map value, map key, nested, same-package named container and its generic
+  instantiation. Measured: `internal/**` declares **no** same-package named array/slice/map type at all
+  today (`grep -rnE '^\s*type \w+ (\[\]|\[[0-9]+\]|map\[)' internal` is empty), so the shape this
+  limit guards has zero instances on this tree — recorded with its measurement, not fixed.
+  *(A previous version of this item named `f({1, 2})` and `Outer{Inner: {…}}` as gaps. Both are **syntax
+  errors** in Go, so neither can ever occur: the item described a limit that does not exist and omitted
+  the one that does. Caught in the third review.)*
 - **RF-068-4** — The `@quality` build tag is not evaluated against build-tag-gated files' union: the scan
   parses files **as written**. Two darwin-tagged files declare the same symbol today and both are
   scanned; a future tag-gated divergence would be measured twice, not missed.

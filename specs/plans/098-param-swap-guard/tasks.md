@@ -209,3 +209,26 @@ coverage is confirmed free of figure churn. This tree → **0 sites**, allow-lis
 **Also recorded in the ADR** (D4 + a new paragraph): the elision class and its two follow-on shapes, and
 the pin-scope defect, because "the witness for the refactor was itself vacuous" is the same class the
 round exists to eliminate.
+
+---
+
+## Third fold — re-review of the second fold (2026-10-27; reviewer comment [`6436583950`](https://github.com/gosharplite/tellme/pull/211#issuecomment-6436583950))
+
+Three findings plus a nit; all accepted and fixed. Two are code, one is the **forward item**, and the
+forward item is the one that matters: it was a claim with no compiler behind it.
+
+| # | Finding | Disposition |
+| --- | --- | --- |
+| **1** | **RF-068-3b records shapes that are not valid Go.** It listed a literal elided through a **func parameter/return** (`f({1, 2})`) and through a **struct field** (`Outer{Inner: {…}}`) as "needs a type checker" gaps | **Accepted — the item described a limit that does not exist.** Verified with the compiler: `syntax error: unexpected {` and `missing type in composite literal`. Go permits elision **only** in an array/slice/map literal's element or key position. RF-068-3b is **rewritten** to the one real limit — a **cross-package** named container (`pkg.Table{{…}}`), which needs another package's AST — **with the measurement** that `internal/**` declares no same-package named array/slice/map type at all today. The ADR also records the correction, because a forward item is a claim like any other. |
+| **2** | A **same-package named container** is opaque: `elemType` unwraps `ArrayType`/`MapType` only, so `type costTable []CostInputs; costTable{{1,2,3,4}}` was missed | **Accepted, fixed** — and widened: `declaredContainers` collects the whole file's named array/slice/map types, and `resolveContainer` follows them **and binds generic instantiations** (`type gen[T any] []T`, used as `gen[pair]{{…}}`) by substituting each type parameter. Verified on the reviewer's probe (`zz8`) and on the generic form; the negative (`other.Table{{…}}`) stays silent. |
+| **3** | **Double count** when a map's key and value are the same struct: `map[T]T{{…}: {…}}` reported `3 literals` for two | **Accepted, fixed at the root cause.** `effectiveLitTypes` is now a **worklist** that assigns a map's **key** position the key type and its value position the element type — one attribution per literal — so the separate `keyLits` walk is **deleted**. The probe now reports `2 literals, 4-4 unkeyed elements`, pinned by an assertion. |
+| **N** | `elementLits`/`keyLits` iterated a map and `redSites` sorted by `(file, line)` only, so two types on one line were nondeterministic (report **and** allow-list file) | **Accepted, fixed.** The sort gains a `name` tiebreak; with `keyLits` gone there is one producer anyway. |
+
+**Re-measured after the third fold** (`dev` `0231f64`, this tree): pre-round **46 sites** (L 6) —
+**unchanged**, and this tree **0 sites**. The three newly attributed shapes have zero instances in
+`internal/**`, so the widened coverage costs no figure churn — the same result as the second fold, now
+for the last elision position Go allows.
+
+**Self-tests now pin twelve shapes and three negatives** (`selfTestUnkeyed`) plus the function-local
+`type note` table (`selfTestUnkeyedLocalStruct`), and the self-application pin remains live for arms
+(a)–(c).

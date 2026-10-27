@@ -80,8 +80,21 @@ The re-review of the fold found **two residuals**, both fixed rather than record
 
 The re-measured pre-round figure is **unchanged at 46** — the added coverage finds nothing new in
 `internal/**`. That is the useful shape of the result: the arm's population is exactly those six, and now
-the walk actually says so. **RF-068-3b** is narrowed to the two shapes a parser walk cannot reach (a
-literal implied by a func parameter/return, or by a struct field), both measured absent here.
+the walk actually says so.
+
+### The third review round: a forward item with no compiler behind it
+
+The re-review of the second fold found three things, and the instructive one is the **forward item**:
+
+- **RF-068-3b listed two elision shapes that are not valid Go** — `f({1, 2})` and `Outer{Inner: {…}}` are
+  *syntax errors*; elision is legal only in an array/slice/map literal's element or key position. So the
+  item described a limit that cannot occur and **omitted the one that does** (a **cross-package** named
+  container). Rewritten, with the measurement that `internal/**` declares no same-package named container
+  type at all. A forward item is a claim like any other — and this one had never been compiled.
+- A **same-package named container** (`type table []T`) was opaque to the walk; now collected
+  (whole-file) and resolved through, **including generic instantiations** (`gen[pair]{{…}}`).
+- A **map whose key and value are the same struct** was double-counted; fixed at the root by having the
+  preass assign the **key** position the key type, which also let the separate key walk be deleted.
 
 ### Decisions locked (round 098)
 
