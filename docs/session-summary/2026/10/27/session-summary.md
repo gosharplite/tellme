@@ -1,0 +1,92 @@
+# Session Summary — 2026-10-27
+
+**Project**: `tellme` — a disciplined BDD re-creation of `tell-me-go`
+**Repo**: `github.com/gosharplite/tellme`
+**Status file**: [`STATUS.md`](../../../../../STATUS.md) *(back-link — the single live-state source)*
+**Workspace**: `$TELL_ME_HOME` on the **`kiosk`** env (a **GKE container managed by ConfigHub**); linux/amd64; Go **1.26.10** (user-scoped).
+**Session mode**: `butler`.
+**Branch**: `098-param-swap-guard` (off `dev` `0231f64`); `dev` untouched.
+**Status at end of session**: **round 098 `098-param-swap-guard` in flight — PR open into `dev`, awaiting human review** (only a human merges). Closes [#210](https://github.com/gosharplite/tellme/issues/210).
+
+---
+
+## Session 90 — bootstrap → issue #210 → round 098
+
+The session began with `SESSION-BOOTSTRAP.md` Steps 1–5 (round 097 delivered/frozen; active branch `dev`,
+clean). The operator asked for issue #210 to be read, then directed: *"Create a new branch from dev branch.
+Start a new aixbdd round, the goal is to close issue 210. Create a PR for review."*
+
+### At a glance
+
+| Area | Outcome |
+| --- | --- |
+| Round | **098 `098-param-swap-guard`** (close [#210](https://github.com/gosharplite/tellme/issues/210); **ADR 0068**) |
+| The gate | `tools/params` — a `//go:build quality` `go/parser` scan, `verify-params` in `make verify`, allow-list fail-on-stale + refuse-to-grow, **empty** at delivery |
+| The refactor | **42** sites cleared (40 signatures + 2 call-site literals) · `internal/cli/cli.go` **1682 → 474** lines |
+| Gates | `make verify` **OK** (twelve members) · E2E **334 scenarios · 2519 steps unchanged, green** · `test-race` clean · `modelith-check` no drift · `modelith-lint` 0/0 · `verify-adr-index` consistent · `govulncheck` clean |
+| Delivery | branch → **PR open into `dev`** (no Copilot review; only a human merges) |
+
+### The pipeline
+
+| Skill | Artifact |
+| --- | --- |
+| `/axb-specify` | `spec.md` (3 stories: the guard · the tree · the split) + `checklists/requirements.md` + `truth-delta.md` |
+| `/axb-spec-by-example` | `features/acceptance/the-parameter-shape-gate.feature` (6 Rules, 13 Examples) |
+| `/axb-technical-research` | `research.md` D1–D11 + **ADR 0068** (answers all four of the issue's open verification questions **by measurement**) |
+| `/axb-system-analysis` | `plan.md` (two interfaces: `cli` NOOP · build MODIFY; 5 waves; api/data NOOP; ui skipped) |
+| `/axb-dsl-refine` | **NOOP** — behaviour-neutral; recorded on the owner's behalf in `truth-delta.md` |
+| `/axb-tasks` | `tasks.md` T001–T011 + the **Claim→Witness ledger** (W1–W10 + the post-fix figure table) + the 12-item DoD checklist |
+| `/axb-implement` | one-shot TDD: script first (red), then the fixes (green), then the split |
+
+### The number that mattered
+
+The **script owns the numbers**. Every figure in the plan comes from `make verify-params-report`; the
+pre-round red set reproduces issue #210's published table **exactly** (J 31 · J′ 4 · K 36 · K′ 4 · L 2 ·
+M 9 · N 6 · O 38 · P 11 · Q 0 · R 0 · I 69 · H 10), and the round's own red set is **42** = 40 signatures
++ 2 arm-(d) literals. That is the durable lesson of the issue's five drafts: the flattened type normaliser
+produced **four** wrong measurements, all from prose.
+
+### The one witness that did not land
+
+**W7** (`-count=1` proof) is recorded as **not reproducible on this host**, not smoothed: Go re-ran the gate
+on every mutation shape tried (a signature mutation, a comment-only edit in another package, a *committed*
+violation, with and without `-buildvcs=false`), so a stale green was never served. The arm is retained
+because the gate's verdict reads files **outside its own package**, which the test cache's key does not
+model — a property of what the cache is keyed on, and this host's invalidation is incidental. Consistent
+with issue #210's own discipline ("one figure does not reconcile and is recorded rather than smoothed").
+
+### Decisions locked (round 098)
+
+| # | Decision |
+| --- | --- |
+| **D1** | Four arms, two hazards (a/b/d swap · c DI idiom); no bare parameter-count arm. |
+| **D2** | Arm (c) is **kept** (option 2) on the DI rationale — 0 identical-signature func runs measured, so no swap claim. |
+| **D3** | The guard scans **top-level interface methods** (4 of the 40 reds are ports). |
+| **D4** | Arm (d) exists because `go vet`'s `composites` analyser is **cross-package only** — verified; W10 proves the blind spot. |
+| **D5** | The `n ≥ 4` boundary is **kept**, remainder measured (6 interface + 33 `FuncDecl` post-fix). |
+| **D6** | Result lists out of scope (**11** measured); type identity syntactic (**0** aliases). |
+| **D7** | `-count=1` mandatory (rationale origin `tools/arch/doc.go`); the parser walk is a **design property, not a catch** (the earlier build-tag justification was false). |
+| **D8** | The allow-list is fail-on-stale + refuse-to-grow, and ships **empty** (option A). |
+
+### Environment findings (durable)
+
+- `go test` test-cache behaviour around a **tree-reading** gate is **not** reliably demonstrable on this
+  host as a stale green (see W7). The repo's rule stands on the key-blindness argument, which is
+  independent of host behaviour — do not re-litigate it from a failed reproduction.
+- The `internal/cli` split was done by **moving whole contiguous concern blocks** and letting `goimports`
+  rebuild the import block; the three **aliased** imports (`appsuggestions`, `agentport`, `domaintools`)
+  must be re-added by hand (goimports cannot guess aliases).
+
+### Open items (non-blocking)
+
+- **PR for round 098** awaits human review/merge → then the closeout (`SESSION-CLOSEOUT.md`): delete the
+  branch, propagate `dev -> main` (**no-ff**), tag **`round-098`**, refresh the installed binary.
+- **ADR 0068 §Forward** RF-068-1…5 (result lists · the `n ≥ 4` remainder · arm-(d) line-keyed allow-list
+  entries · the build-tag union is parse-as-written · `requestSpec.MaxTokens` ownership left to #195) —
+  disclosures, not tasking.
+
+### Next steps
+
+1. Human reviews + merges the round-098 PR; then the closeout (→ tag `round-098`).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `098-param-swap-guard` until merged, then `dev`).
+3. Candidate ordering note from the round: **this round before [#195](https://github.com/gosharplite/tellme/issues/195)** — `requestSpec` now carries `MaxTokens` as a named field, which is exactly the shape #195's per-(provider, model) budget selection needs.
