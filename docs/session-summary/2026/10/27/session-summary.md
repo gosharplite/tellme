@@ -191,7 +191,7 @@ never `-D`) and fast-forwarded local `dev` `0231f64 → 93d32f0`. The issue was 
 | **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, heads match (`dev == origin/dev == 93d32f0`), artifact checklist complete, tracker → 5 live seeds |
 | **6 — commit** | this closeout's `STATUS.md` + archive + summary committed and pushed on `dev` |
 | **7 — propagate + hand off** | `dev -> main` (**no-ff**), `main^{tree} == dev^{tree}` **verified** before tagging; annotated **`round-098`** created on that propagation merge and pushed; installed binary refreshed from the **then-current `dev` head** (`go install ./cmd/tellme`; `go version -m` confirms `vcs.modified=false`, `--version` → `dev`) — **no head SHA recorded**, since a pin goes born-stale on the next commit |
-| **8 — issue tracker** | **#210 closed (completed)** by hand, with the delivered-state body rewrite + a linking comment; the remaining **5** open issues checked and left accurate (`#194`–`#197`, `#203`) |
+| **8 — issue tracker** | **#210 closed (completed)** by hand, with the delivered-state body rewrite + a linking comment; of the remaining **5**, **#195 was REVISED** (an appended, dated *round-098 delta*: `requestBody` now takes `requestSpec`, `MaxTokens` is an explicitly **un-owned named field** — ADR 0068 **RF-068-5** — so any of the issue's options A–D is now expressible without touching a call site; its body above the delta left **verbatim**, and the latent status + `Open verification` restated as unchanged) and **`#194`/`#196`/`#197`/`#203` were left** (no reference to a round-098 surface drifts — grep-checked for `requestBody(`, `Ready(`, `PayloadMeasured`, `ComputeCost`, `renderTurn`, `NewRemoteClient`, `cli.go:<line>`) |
 
 ### Decisions locked (closeout)
 
@@ -227,7 +227,15 @@ claims to pin**.
   or a live issue. **ADR 0068 §Forward RF-068-1…5** are disclosures, not tasking (result lists 11 measured ·
   the `n ≥ 4` remainder 6 + 33 · arm-(d) `file:line:Type` allow-list keys · the build-tag union is
   parse-as-written · `requestSpec.MaxTokens` ownership deferred to #195).
-- **Issue tracker**: **#210 closed** (delivered); **#194–#197**, **#203** open and accurate.
+- **Issue tracker**: **#210 closed** (delivered); **#195 revised** (the round-098 delta appended — `requestSpec` / un-owned `MaxTokens`); **#194**, **#196**, **#197**, **#203** open and left as they were (accurate).
+
+### Issue-tracker reconciliation (Step 8 detail)
+
+| Issue | Verdict |
+| --- | --- |
+| [#210](https://github.com/gosharplite/tellme/issues/210) | **closed — completed** (delivered as round 098; body rewritten to the delivered state; linking comment posted; closed by hand because a `Closes` keyword in a `dev`-targeted PR does not fire) |
+| [#195](https://github.com/gosharplite/tellme/issues/195) | **revised** — appended *Update — 2026-10-27 (round 098, ADR 0068)*: `requestBody` → `requestSpec` in both adapters, `MaxTokens` an un-owned named field (RF-068-5), the ordering note satisfied (`round-098` landed before this issue), and the unchanged latent status + un-run live probe restated. Original body **verbatim** above the delta. |
+| [#194](https://github.com/gosharplite/tellme/issues/194) · [#196](https://github.com/gosharplite/tellme/issues/196) · [#197](https://github.com/gosharplite/tellme/issues/197) · [#203](https://github.com/gosharplite/tellme/issues/203) | **left** — still accurate; grep-checked for references to any round-098 surface (`requestBody(`, `Ready(`, `PayloadMeasured`, `ComputeCost`, `renderTurn`, `NewRemoteClient`, `cli.go:<line>`) and found none |
 
 ### Next steps
 
