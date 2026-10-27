@@ -55,7 +55,15 @@ func New(cfg Config) *Client {
 // the normalized answer (round-004 research Decision 3 & 4). Every failure is
 // wrapped in a *llm.ProviderError.
 func (c *Client) Complete(ctx context.Context, req llm.Request) (llm.Response, error) {
-	body, err := requestBody(c.cfg.Model, req.Prompt, req.Messages, req.Tools, c.cfg.MaxTokens, c.cfg.ThinkingLevel, c.cfg.Persona)
+	body, err := requestBody(requestSpec{
+		Model:         c.cfg.Model,
+		Prompt:        req.Prompt,
+		Prior:         req.Messages,
+		ToolDefs:      req.Tools,
+		MaxTokens:     c.cfg.MaxTokens,
+		ThinkingLevel: c.cfg.ThinkingLevel,
+		Persona:       c.cfg.Persona,
+	})
 	if err != nil {
 		return llm.Response{}, c.wrap(err)
 	}
@@ -111,6 +119,24 @@ func requestURL(baseURL string) string {
 	return strings.TrimRight(baseURL, "/") + "/chat/completions"
 }
 
+// requestSpec names one OpenAI-compatible request's wire inputs (round 098; ADR
+// 0068): the model id, the prompt, the prior conversation, the offered tool
+// declarations, the completion cap, the thinking level, and the persona. The
+// retired positional form carried `model, prompt string` and `thinkingLevel,
+// persona string` adjacently — two pairs a call site could swap and still compile.
+// MaxTokens stays a NAMED field with its ownership undecided: the per-(provider,
+// model) budget-field selection of issue #195 is a named-field choice, which a
+// struct expresses and a positional int cannot.
+type requestSpec struct {
+	Model         string
+	Prompt        string
+	Prior         []llm.Message
+	ToolDefs      []llm.ToolDef
+	MaxTokens     int
+	ThinkingLevel string
+	Persona       string
+}
+
 // requestBody builds the JSON request body (pure helper). The `messages` array
 // is `prior` followed — when a non-empty prompt is given — by the current user
 // prompt as the LAST message. A prior assistant message carrying tool calls
@@ -120,9 +146,9 @@ func requestURL(baseURL string) string {
 // stays `user → assistant(tool_calls) → tool(result)` (review PR #25 BLOCKER-1).
 // When no tool definitions are given the body is byte-identical to rounds
 // 004–007 (round-008 research Decision 2).
-func requestBody(model, prompt string, prior []llm.Message, toolDefs []llm.ToolDef, maxTokens int, thinkingLevel, persona string) ([]byte, error) {
-	messages := make([]map[string]any, 0, len(prior)+1)
-	for _, m := range prior {
+func requestBody(s requestSpec) ([]byte, error) {
+	messages := make([]map[string]any, 0, len(s.Prior)+1)
+	for _, m := range s.Prior {
 		msg := map[string]any{"role": m.Role, "content": messageContent(m)}
 		if len(m.ToolCalls) > 0 {
 			tcs := make([]map[string]any, 0, len(m.ToolCalls))
@@ -143,22 +169,22 @@ func requestBody(model, prompt string, prior []llm.Message, toolDefs []llm.ToolD
 		}
 		messages = append(messages, msg)
 	}
-	if prompt != "" {
-		messages = append(messages, map[string]any{"role": "user", "content": prompt})
+	if s.Prompt != "" {
+		messages = append(messages, map[string]any{"role": "user", "content": s.Prompt})
 	}
 	// Round 011 — the configured persona is the leading `system` message of the
 	// request (round-011 research Decision 1). An empty persona adds nothing.
-	if persona != "" {
-		messages = append([]map[string]any{{"role": "system", "content": persona}}, messages...)
+	if s.Persona != "" {
+		messages = append([]map[string]any{{"role": "system", "content": s.Persona}}, messages...)
 	}
 
 	payload := map[string]any{
-		"model":    model,
+		"model":    s.Model,
 		"messages": messages,
 	}
-	if len(toolDefs) > 0 {
-		tools := make([]map[string]any, 0, len(toolDefs))
-		for _, td := range toolDefs {
+	if len(s.ToolDefs) > 0 {
+		tools := make([]map[string]any, 0, len(s.ToolDefs))
+		for _, td := range s.ToolDefs {
 			params := td.Parameters
 			if len(params) == 0 {
 				params = json.RawMessage(`{"type":"object","properties":{}}`)
@@ -174,11 +200,11 @@ func requestBody(model, prompt string, prior []llm.Message, toolDefs []llm.ToolD
 		}
 		payload["tools"] = tools
 	}
-	if maxTokens > 0 {
-		payload["max_tokens"] = maxTokens
+	if s.MaxTokens > 0 {
+		payload["max_tokens"] = s.MaxTokens
 	}
-	if thinkingLevel != "" {
-		payload["reasoning_effort"] = thinkingLevel
+	if s.ThinkingLevel != "" {
+		payload["reasoning_effort"] = s.ThinkingLevel
 	}
 	return json.Marshal(payload)
 }

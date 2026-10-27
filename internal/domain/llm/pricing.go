@@ -14,8 +14,19 @@ type Pricing struct {
 // pricing rates: (miss·Miss + hit·Hit + (completion + thinking)·Comp) / 1e6
 // (round-018 research Decision 3). Completion and thinking are the DISJOINT
 // counters from research D1, billed additively at the completion rate.
-func ComputeCost(p Pricing, miss, hit, completion, thinking int) float64 {
-	return (float64(miss)*p.Miss + float64(hit)*p.Hit + float64(completion+thinking)*p.Comp) / 1_000_000
+func ComputeCost(p Pricing, in CostInputs) float64 {
+	return (float64(in.Miss)*p.Miss + float64(in.Hit)*p.Hit + float64(in.Completion+in.Thinking)*p.Comp) / 1_000_000
+}
+
+// CostInputs names one call's four disjoint token counters (round 098; ADR 0068).
+// They are four adjacent ints in a fixed order with no local witness: the call site
+// used to read `ComputeCost(p, 4, 6, 3, 2) // miss 4, hit 6, completion 3,
+// thinking 2` — a comment standing in for a name the signature could not carry.
+type CostInputs struct {
+	Miss       int
+	Hit        int
+	Completion int
+	Thinking   int
 }
 
 // HitRate returns the cache-hit percentage H/(M+H), or 0 when the prompt is empty.

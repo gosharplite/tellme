@@ -45,7 +45,8 @@ func TestDiscover_NonStallSkipSortAndDisabled(t *testing.T) {
 		"u-hf":    {block: true},
 		"u-off":   {tools: []domaintools.MCPToolDefinition{{Name: "should_not_appear", InputSchema: objSchema}}},
 	}
-	newClient := func(_ context.Context, url, _ string, _, _ time.Duration) (domaintools.MCPClient, error) {
+	newClient := func(_ context.Context, spec RemoteSpec) (domaintools.MCPClient, error) {
+		url := spec.URL
 		f := fakes[url]
 		if f != nil {
 			f.connects++
@@ -104,7 +105,7 @@ func TestDiscover_SkipsUnsafeNames(t *testing.T) {
 		{Name: "good_tool", InputSchema: objSchema},
 		{Name: "bad tool\u00a0name", InputSchema: objSchema},
 	}}
-	newClient := func(context.Context, string, string, time.Duration, time.Duration) (domaintools.MCPClient, error) {
+	newClient := func(context.Context, RemoteSpec) (domaintools.MCPClient, error) {
 		return fake, nil
 	}
 	resolveToken := func(context.Context) (string, error) { return "", nil }

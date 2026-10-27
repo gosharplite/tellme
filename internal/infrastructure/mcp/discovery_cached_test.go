@@ -62,7 +62,8 @@ type recordingFactory struct {
 	defs    []domaintools.MCPToolDefinition
 }
 
-func (f *recordingFactory) new(_ context.Context, url, _ string, _, _ time.Duration) (domaintools.MCPClient, error) {
+func (f *recordingFactory) new(_ context.Context, spec RemoteSpec) (domaintools.MCPClient, error) {
+	url := spec.URL
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.dials = append(f.dials, url)
@@ -209,7 +210,8 @@ func TestDiscoverCached_WarmOrderEqualsLive(t *testing.T) {
 		"u-alpha": {{Name: "a1", Description: "d", InputSchema: schema}},
 		"u-shop":  {{Name: "lookup_price", Description: "d", InputSchema: schema}, {Name: "z2", Description: "d", InputSchema: schema}},
 	}
-	liveFactory := func(_ context.Context, url, _ string, _, _ time.Duration) (domaintools.MCPClient, error) {
+	liveFactory := func(_ context.Context, spec RemoteSpec) (domaintools.MCPClient, error) {
+		url := spec.URL
 		return &cacheFake{defs: liveDefs[url]}, nil
 	}
 	liveTools, _, _ := Discover(context.Background(), servers, time.Second, liveFactory, noToken)

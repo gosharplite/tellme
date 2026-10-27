@@ -85,7 +85,7 @@ func (c executeCommand) Execute(ctx context.Context, arguments string, budget do
 		return "", errors.New("execute_command: the command argument is required")
 	}
 	if args.OutputFile != "" {
-		return runToFile(ctx, args.Command, args.OutputFile, args.Append)
+		return runToFile(ctx, captureTarget{Command: args.Command, Path: args.OutputFile, Append: args.Append})
 	}
 	b := int(budget)
 	if b < 1 {
@@ -137,12 +137,23 @@ func exitStatus(err error) int {
 	return -1
 }
 
+// captureTarget names a runToFile request (round 098; ADR 0068): the command, the
+// capture file, and whether to append. `command, path string` were adjacent
+// identical types — swapping them wrote the shell command into a file named after
+// it and ran the path.
+type captureTarget struct {
+	Command string
+	Path    string
+	Append  bool
+}
+
 // runToFile captures the child's stdout AND stderr directly to a file handle
 // (round-024 D3): the output streams to disk and never enters memory; the result
 // reports the exit status and the capture target, with NO inline preview.
-func runToFile(ctx context.Context, command, path string, appendMode bool) (string, error) {
+func runToFile(ctx context.Context, target captureTarget) (string, error) {
+	command, path := target.Command, target.Path
 	flags := os.O_CREATE | os.O_WRONLY | os.O_TRUNC
-	if appendMode {
+	if target.Append {
 		flags = os.O_CREATE | os.O_WRONLY | os.O_APPEND
 	}
 	f, err := os.OpenFile(path, flags, 0o644)
@@ -216,9 +227,9 @@ func runCaptured(ctx context.Context, command string, budget int, sink domaintoo
 		// Trim wins over a simultaneous deadline (the byte budget was reached):
 		// stop -> close read-ends -> kill -> drain (review B2).
 		trimmed = true
-		abortCapture(cmd, stdout, stderr, finished)
+		abortCapture(cmd, capturedPipes{stdout: stdout, stderr: stderr}, finished)
 	case <-ctx.Done():
-		abortCapture(cmd, stdout, stderr, finished)
+		abortCapture(cmd, capturedPipes{stdout: stdout, stderr: stderr}, finished)
 	}
 	werr := cmd.Wait()
 	// Close the block (FR-010; round 040 ADR 0009 D4 — no whole-block pause): the
@@ -266,14 +277,22 @@ func teeSink(dst io.Writer, sink domaintools.OutputSink) io.Writer {
 	return dst
 }
 
+// capturedPipes names the two bounded pipe read ends abortCapture closes (round
+// 098; ADR 0068) — a NON-SCALAR adjacent identical-type pair (2 x io.ReadCloser).
+// A scalar-only rule would miss it; it swaps just as silently.
+type capturedPipes struct {
+	stdout io.ReadCloser
+	stderr io.ReadCloser
+}
+
 // abortCapture terminates the process tree and CLOSES the pipe read ends so a
 // producer that escaped the process group (setsid / nohup-style) cannot wedge the
 // drain — the pinned "close the read ends" step (round-024 D8/T1; review B2). The
 // drain is additionally bounded by commandWaitDelay.
-func abortCapture(cmd *exec.Cmd, stdout, stderr io.ReadCloser, finished <-chan struct{}) {
+func abortCapture(cmd *exec.Cmd, pipes capturedPipes, finished <-chan struct{}) {
 	_ = killGroup(cmd)
-	_ = stdout.Close()
-	_ = stderr.Close()
+	_ = pipes.stdout.Close()
+	_ = pipes.stderr.Close()
 	select {
 	case <-finished:
 	case <-time.After(commandWaitDelay):

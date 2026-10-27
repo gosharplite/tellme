@@ -34,7 +34,7 @@ func TestRenderHistoryListProjectsAndGates(t *testing.T) {
 	}
 	mk := func() render.Listing { got = &fakeListing{}; return got }
 
-	if code := renderHistoryList(home, 3, "", false, env, store, mk); code != Success {
+	if code := renderHistoryList(sessionRef{home: home}, 3, false, env, listDeps(store, mk)); code != Success {
 		t.Fatalf("code = %d, want Success", code)
 	}
 	if len(got.got) != 3 {
@@ -68,7 +68,7 @@ func TestRenderHistoryListRawAndNoTerminal(t *testing.T) {
 	var out, errOut bytes.Buffer
 	env := runtimeEnv{stdout: &out, stderr: &errOut} // no stdout probe ⇒ not a terminal
 	mk := func() render.Listing { got = &fakeListing{}; return got }
-	if code := renderHistoryList(home, 2, "", true, env, store, mk); code != Success {
+	if code := renderHistoryList(sessionRef{home: home}, 2, true, env, listDeps(store, mk)); code != Success {
 		t.Fatalf("code = %d, want Success", code)
 	}
 	if got.spec.Colour {
@@ -92,7 +92,7 @@ func TestRenderHistoryListWidthIsBestEffort(t *testing.T) {
 	mk := func() render.Listing { got = &fakeListing{}; return got }
 
 	// Unreadable explicit config ⇒ width 0, still Success.
-	if code := renderHistoryList(home, 1, filepath.Join(home, "missing.yaml"), false, env, store, mk); code != Success {
+	if code := renderHistoryList(sessionRef{home: home, config: filepath.Join(home, "missing.yaml")}, 1, false, env, listDeps(store, mk)); code != Success {
 		t.Fatalf("code = %d, want Success on an unreadable config", code)
 	}
 	if got.spec.Width != 0 {
@@ -103,7 +103,7 @@ func TestRenderHistoryListWidthIsBestEffort(t *testing.T) {
 	cfg := filepath.Join(home, "cfg.yaml")
 	writeConfigFile(t, cfg, "MODE: butler\nWRAP_WIDTH: 64\nSELECTED_PROVIDER: p\nPROVIDERS:\n  p:\n    TYPE: openai\n    MODEL: m\n    URL: https://example.test/v1\n")
 	t.Setenv("TELL_ME_WRAP_WIDTH", "")
-	if code := renderHistoryList(home, 1, cfg, false, env, store, mk); code != Success {
+	if code := renderHistoryList(sessionRef{home: home, config: cfg}, 1, false, env, listDeps(store, mk)); code != Success {
 		t.Fatalf("code = %d, want Success", code)
 	}
 	if got.spec.Width != 64 {
@@ -150,7 +150,7 @@ func TestRenderHistoryListProjectsToolCount(t *testing.T) {
 	env := runtimeEnv{stdout: &out, stderr: &errOut}
 	mk := func() render.Listing { got = &fakeListing{}; return got }
 
-	if code := renderHistoryList(home, 4, "", true, env, store, mk); code != Success {
+	if code := renderHistoryList(sessionRef{home: home}, 4, true, env, listDeps(store, mk)); code != Success {
 		t.Fatalf("code = %d, want Success", code)
 	}
 	if len(got.got) != 4 {

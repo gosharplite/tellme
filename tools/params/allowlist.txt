@@ -1,0 +1,8 @@
+# tools/params/allowlist.txt — parameter-shape gate allow-list (ADR 0068).
+#
+# Generated from the gate's own output — NEVER hand-edit. Regenerate with:
+#   make verify-params-update
+#
+# A line `<file>:<name>  # <reason>` exempts ONE known, reviewed red. The list is a
+# fail-on-stale ratchet: an entry that no longer matches a violation FAILS the gate,
+# and -update-allowlist refuses to GROW it (ADR 0020 fold R-51-1).

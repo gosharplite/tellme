@@ -30,28 +30,51 @@ const darwinMemoryUsageFactor = 0.6
 // VM statistics — `(active + wired + compressor) × pagesize / total`
 // (the reference's cgo `GetMemoryPercent`). It returns 0 when a denominator is
 // unavailable and clamps to [0, 100].
-func darwinMemPercentCGO(totalBytes, pageSize uint64, active, wired, compressor uint64) float64 {
-	if totalBytes == 0 || pageSize == 0 {
+func darwinMemPercentCGO(in darwinMachVM) float64 {
+	if in.totalBytes == 0 || in.pageSize == 0 {
 		return 0
 	}
-	used := (active + wired + compressor) * pageSize
-	return clampPercent(100.0 * float64(used) / float64(totalBytes))
+	used := (in.active + in.wired + in.compressor) * in.pageSize
+	return clampPercent(100.0 * float64(used) / float64(in.totalBytes))
+}
+
+// darwinMachVM names the Mach VM page counts behind the CGO memory view (round
+// 098; ADR 0068). Five adjacent uint64s meant five different things and swapped
+// silently.
+type darwinMachVM struct {
+	totalBytes uint64
+	pageSize   uint64
+	active     uint64
+	wired      uint64
+	compressor uint64
 }
 
 // darwinMemPercentNoCGO returns the darwin used-memory percentage from the
 // free-page view — `(total − (free+speculative+purgeable)×pagesize) / total`,
 // scaled by darwinMemoryUsageFactor (the reference's cgo-less approximation).
 // It returns 0 when a denominator is unavailable and clamps to [0, 100].
-func darwinMemPercentNoCGO(totalBytes, pageSize uint64, free, speculative, purgeable uint64) float64 {
-	if totalBytes == 0 || pageSize == 0 {
+func darwinMemPercentNoCGO(in darwinSysctlVM) float64 {
+	if in.totalBytes == 0 || in.pageSize == 0 {
 		return 0
 	}
-	available := (free + speculative + purgeable) * pageSize
-	if available > totalBytes {
-		available = totalBytes
+	available := (in.free + in.speculative + in.purgeable) * in.pageSize
+	if available > in.totalBytes {
+		available = in.totalBytes
 	}
-	rawUsedRatio := float64(totalBytes-available) / float64(totalBytes)
+	rawUsedRatio := float64(in.totalBytes-available) / float64(in.totalBytes)
 	return clampPercent(rawUsedRatio * 100.0 * darwinMemoryUsageFactor)
+}
+
+// darwinSysctlVM names the sysctl page counts behind the cgo-less memory view
+// (round 098; ADR 0068). It is a distinct struct from darwinMachVM because the
+// page categories are different — the earlier positional shape made them look
+// interchangeable.
+type darwinSysctlVM struct {
+	totalBytes  uint64
+	pageSize    uint64
+	free        uint64
+	speculative uint64
+	purgeable   uint64
 }
 
 // clampPercent bounds a percentage to [0, 100].

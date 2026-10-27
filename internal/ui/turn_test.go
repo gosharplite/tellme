@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gosharplite/tellme/internal/domain/render"
 )
 
 // T010 [UNIT] — the turn-chrome formatter (deterministic formatting).
@@ -64,7 +66,7 @@ func TestFormatTurnGapIsBlankLine(t *testing.T) {
 // The round-017 chrome's inner line is the round-057 estimated payload line
 // (`+<delta> ~<n>`; ADR 0027); the measured line keeps the round-009 shape.
 func TestPayloadEstimateLineText(t *testing.T) {
-	got := FormatPayloadEstimate(time.Date(2026, 9, 14, 13, 16, 25, 0, time.UTC), 1234, 0, "butler", "deepseek-v4-flash")
+	got := FormatPayloadEstimate(render.PayloadStatus{At: time.Date(2026, 9, 14, 13, 16, 25, 0, time.UTC), Tokens: 1234, Mode: "butler", Model: "deepseek-v4-flash"})
 	want := "[13:16:25] Payload: +0 ~1234 tokens - butler - deepseek-v4-flash"
 	if got != want {
 		t.Fatalf("estimated payload line changed: got %q, want %q", got, want)

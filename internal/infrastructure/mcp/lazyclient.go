@@ -51,7 +51,12 @@ func (c *lazyClient) connect(ctx context.Context) (domaintools.MCPClient, error)
 		return nil, c.err
 	}
 	header, _ := ResolveAuthorization(ctx, c.cfg, c.resolveToken)
-	inner, err := c.newClient(ctx, c.cfg.URL, header, c.callTimeout, c.callTimeout)
+	inner, err := c.newClient(ctx, RemoteSpec{
+		URL:              c.cfg.URL,
+		Authorization:    header,
+		DiscoveryTimeout: c.callTimeout,
+		CallTimeout:      c.callTimeout,
+	})
 	if err != nil {
 		c.err = err
 		return nil, err

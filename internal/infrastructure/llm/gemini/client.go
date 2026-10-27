@@ -71,7 +71,15 @@ func New(cfg Config) (*Client, error) {
 // Complete sends exactly one non-streaming Vertex `:generateContent` request and
 // returns the normalized answer. Every failure is wrapped in a *llm.ProviderError.
 func (c *Client) Complete(ctx context.Context, req llm.Request) (llm.Response, error) {
-	body, err := requestBody(req.Prompt, req.Messages, req.Tools, c.cfg.MaxTokens, c.cfg.ThinkingBudget, c.cfg.ThinkingLevel, c.cfg.Persona)
+	body, err := requestBody(requestSpec{
+		Prompt:         req.Prompt,
+		Prior:          req.Messages,
+		ToolDefs:       req.Tools,
+		MaxTokens:      c.cfg.MaxTokens,
+		ThinkingBudget: c.cfg.ThinkingBudget,
+		ThinkingLevel:  c.cfg.ThinkingLevel,
+		Persona:        c.cfg.Persona,
+	})
 	if err != nil {
 		return llm.Response{}, c.wrap(err)
 	}
@@ -149,20 +157,36 @@ func requestURL(baseURL, model string) string {
 	return strings.TrimRight(baseURL, "/") + "/" + model + ":generateContent"
 }
 
+// requestSpec names one Vertex request's wire inputs (round 098; ADR 0068): the
+// prompt, the prior conversation, the offered tool declarations, the generation
+// cap, the thinking budget/level, and the persona. The retired positional form
+// carried `maxTokens, thinkingBudget int` and `thinkingLevel, persona string`
+// adjacently — two pairs a call site could swap and still compile. The model id is
+// NOT here: the Vertex URL carries it (requestURL).
+type requestSpec struct {
+	Prompt         string
+	Prior          []llm.Message
+	ToolDefs       []llm.ToolDef
+	MaxTokens      int
+	ThinkingBudget int
+	ThinkingLevel  string
+	Persona        string
+}
+
 // requestBody builds the Vertex JSON request body (pure helper). `contents` is
 // the mapped conversation (prior messages + the current prompt when non-empty);
 // the persona becomes `systemInstruction`; `generationConfig` carries the output
 // cap and the thinking config only when set. When no tools are offered the body
 // carries no `tools` key.
-func requestBody(prompt string, prior []llm.Message, toolDefs []llm.ToolDef, maxTokens, thinkingBudget int, thinkingLevel, persona string) ([]byte, error) {
-	payload := map[string]any{"contents": buildContents(prompt, prior)}
-	if persona != "" {
-		payload["systemInstruction"] = map[string]any{"parts": []map[string]any{{"text": persona}}}
+func requestBody(s requestSpec) ([]byte, error) {
+	payload := map[string]any{"contents": buildContents(s.Prompt, s.Prior)}
+	if s.Persona != "" {
+		payload["systemInstruction"] = map[string]any{"parts": []map[string]any{{"text": s.Persona}}}
 	}
-	if gen := buildGenerationConfig(maxTokens, thinkingBudget, thinkingLevel); gen != nil {
+	if gen := buildGenerationConfig(s.MaxTokens, s.ThinkingBudget, s.ThinkingLevel); gen != nil {
 		payload["generationConfig"] = gen
 	}
-	if decls := buildToolDeclarations(toolDefs); decls != nil {
+	if decls := buildToolDeclarations(s.ToolDefs); decls != nil {
 		payload["tools"] = []map[string]any{{"functionDeclarations": decls}}
 	}
 	return json.Marshal(payload)
