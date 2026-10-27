@@ -98,11 +98,16 @@ resolved through — `type table []pair` makes `table{{1, 2}}` attributable, and
 argument. Generic *struct* instantiations (`pair[int]{1, 2}`) resolve to their base identifier.
 
 Go permits type elision **only** in an array/slice/map literal's element or key position, so those are the
-only positions the walk has to reach — `f({1, 2})` and `Outer{Inner: {1, 2}}` are **syntax errors**, not
-shapes to cover (a first version of §Forward listed them as gaps; the compiler refutes it). Every position
-that *is* valid is pinned in the arm-(d) self-tests: the six elided shapes, the named and generic container
-forms, and the negatives — a field-keyed literal, a cross-package named struct (`time.Time{}`) and a
-cross-package named container (`other.Table{{…}}`).
+only positions the walk has to reach. A first version of §Forward listed two others as gaps, and **neither
+can occur in a compiled tree** — but they are refuted by *different* stages, and the distinction is the
+point: `f({1, 2})` is a **syntax error** (`expected operand, found '{'` — `go/parser` rejects it), while
+`Outer{Inner: {1, 2}}` **parses fine** and is rejected by the **type checker**
+(`missing type in composite literal`). Every position that *is* valid is pinned in the arm-(d) self-tests:
+the elided element/key/value shapes, the named and generic container forms, a **pointer to** a named
+container (`[]*table{{…}}` — the `&T` elision for a pointer element type), a generic whose **body is itself
+a container** (`type grid[T any] [][]T`), and a **chained** generic (`type chain[T any] gen[T]`); plus the
+negatives — a field-keyed literal, a cross-package named struct (`time.Time{}`) and a cross-package named
+container (`other.Table{{…}}`).
 
 **The self-application pin must see arms (a)–(c).** The gate is scanned by itself, and every line of
 `tools/params` lives in a `_test.go` file, which `redSites` skips — so the first pin could only ever
@@ -243,10 +248,13 @@ baseline is untouched, which is what **proves** the slice legal.
   so `[]T{{…}, {…}}` cannot read as a single literal. The red set sorts by `(file, line, name)` — the
   `name` tiebreak keeps two different struct types on one line out of map-iteration order, so the report
   and the allow-list file are deterministic.
-- **The third review corrected §Forward itself.** RF-068-3b listed two elision shapes that are **syntax
-  errors** in Go (`f({1, 2})`, `Outer{Inner: {…}}`) and omitted the one real limit (a cross-package named
-  container). A forward item is a claim like any other, and this one had no compiler behind it — the same
-  class the ADR opens with, in the last place one looks for it. Its replacement carries the measurement.
+- **The third and fourth reviews corrected §Forward itself — twice.** RF-068-3b v1 listed two elision
+  shapes that cannot occur in a compiled tree (`f({1, 2})` is a **syntax error**; `Outer{Inner: {…}}` parses
+  and is a **type-check error**) and omitted the real limit; v2 said "the ONE shape" while three
+  same-package forms (`[]*table{{…}}`, a container-bodied generic, a chained generic) were still
+  unattributed. **All three are now fixed and pinned.** A forward item is a claim like any other, and this
+  one has needed a compiler behind it twice — the same class the ADR opens with, in the last place one looks
+  for it.
 - **Not modelled.** The gate is a quality-process instrument; it is modelled only as far as the
   `QualityPipeline`/`QualityGate` entities reach (ADR 0041). The product model does **not** move: D11
   changes parameter **shapes**, not behaviour, and `usage-summed-for-the-ready-summary` concerns values,
@@ -262,15 +270,18 @@ baseline is untouched, which is what **proves** the slice legal.
   allow-listed literal stales when unrelated lines move above it. The list is empty, so this is a
   property of the mechanism, not a live cost.
 - **RF-068-3b** — The ONE shape arm (d) cannot attribute: an elided literal reached through a
-  **cross-package** named container (`pkg.Table{{1, 2}}`). Resolving it needs the other package's AST —
-  the same boundary that leaves `time.Time{}` out of scope. D4 covers every elision position Go actually
-  permits: element, map value, map key, nested, same-package named container and its generic
-  instantiation. Measured: `internal/**` declares **no** same-package named array/slice/map type at all
-  today (`grep -rnE '^\s*type \w+ (\[\]|\[[0-9]+\]|map\[)' internal` is empty), so the shape this
-  limit guards has zero instances on this tree — recorded with its measurement, not fixed.
-  *(A previous version of this item named `f({1, 2})` and `Outer{Inner: {…}}` as gaps. Both are **syntax
-  errors** in Go, so neither can ever occur: the item described a limit that does not exist and omitted
-  the one that does. Caught in the third review.)*
+  **cross-package** named container (`pkg.Table{{1, 2}}`, or a chained/aliased generic declared in another
+  package). Resolving it needs the other package's AST — the same boundary that leaves `time.Time{}` out of
+  scope. **Within** a package, D4 now covers every form: element, map value, map key, nested, named
+  container, pointer-to-named-container, generic body, and chained generic. Measured: `internal/**` declares
+  **no** same-package named array/slice/map type at all today (`grep -rnE '^\s*type \w+ (\[\]|\[[0-9]+\]|map\[)' internal`
+  is empty), so the shape this limit guards has zero instances on this tree — recorded with its
+  measurement, not fixed.
+  *(This item has now been wrong twice, both times caught in review: v1 named `f({1, 2})` and
+  `Outer{Inner: {…}}` as gaps — `f({1,2})` is a **syntax error** and the other a **type-check error**, so
+  neither can occur — and v2 said "the ONE shape" while `[]*table{{{…}}}`, a container-bodied generic and a
+  chained generic were still unattributed (all three fixed, and pinned). A forward item is a claim like any
+  other, and this one has needed a compiler behind it both times.)*
 - **RF-068-4** — The `@quality` build tag is not evaluated against build-tag-gated files' union: the scan
   parses files **as written**. Two darwin-tagged files declare the same symbol today and both are
   scanned; a future tag-gated divergence would be measured twice, not missed.

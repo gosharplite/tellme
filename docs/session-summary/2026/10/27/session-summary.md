@@ -96,6 +96,24 @@ The re-review of the second fold found three things, and the instructive one is 
 - A **map whose key and value are the same struct** was double-counted; fixed at the root by having the
   preass assign the **key** position the key type, which also let the separate key walk be deleted.
 
+### The fourth review round: the forward item had to be compiled a second time
+
+The last re-review recommended merging and left two points, both fixed:
+
+- The ADR said **both** refuted elision shapes are *syntax* errors. Only `f({1, 2})` is — `go/parser`
+  rejects it; `Outer{Inner: {1, 2}}` **parses** and it is the **type checker** that refuses it. Corrected,
+  because the ADR's own point is precision about what refuted what.
+- **RF-068-3b over-claimed "the ONE shape"** while three same-package forms were still unattributed — a
+  **pointer** to a named container (`[]*table{{…}}`), a generic whose **body is a container**
+  (`grid[T] [][]T`), and a **chained** generic (`chain[T] gen[T]`). All three now resolve (strip
+  `StarExpr`; substitute over type *expressions*; **compose** the substitution across hops; collect a body
+  that is itself a named type) and are pinned, so `selfTestUnkeyed` covers **fifteen shapes and three
+  negatives**. The figures did not move: `internal/**` has no such types.
+
+So §Forward has now needed a compiler behind it **twice** in one round. That is the durable note: a
+deferral is a claim, and the place it is least likely to be checked is the place it is most likely to be
+wrong.
+
 ### Decisions locked (round 098)
 
 | # | Decision |

@@ -232,3 +232,23 @@ for the last elision position Go allows.
 **Self-tests now pin twelve shapes and three negatives** (`selfTestUnkeyed`) plus the function-local
 `type note` table (`selfTestUnkeyedLocalStruct`), and the self-application pin remains live for arms
 (a)–(c).
+
+---
+
+## Fourth fold — re-review of the third fold (2026-10-27; reviewer comment [`6436725202`](https://github.com/gosharplite/tellme/pull/211#issuecomment-6436725202))
+
+The re-review recommended merging and raised one wording point and one over-claim. Both accepted; the
+over-claim was fixed rather than softened, because the three shapes are parser-attributable.
+
+| # | Finding | Disposition |
+| --- | --- | --- |
+| **1** | D4 and Consequences say **both** refuted shapes are *syntax errors*. Only `f({1, 2})` is — `Outer{Inner: {1, 2}}` **parses** and is rejected by the **type checker** | **Accepted.** Verified with `go/parser` directly: `f({1,2})` → `expected operand, found '{'` (parser); `Outer{Inner: {1,2}}` → parse **OK**, `missing type in composite literal` (types2). The ADR now says "a syntax error and a type-check error", because its own point is precision about what refuted what. |
+| **2** | RF-068-3b says "the ONE shape", but three same-package forms are still unattributed — `[]*table{{{…}}}` (pointer to a named container), `costGrid[T] [][]T` (generic body is itself a container), `costAlias[T] costTableGen[T]` (chained generic) | **Accepted, fixed.** `resolveContainer` strips `StarExpr` (the `&T` elision for a pointer element type); `substitute` now walks type **expressions** recursively (so `[][]T` becomes `[][]pair`); the substitution is **composed** across hops instead of overwritten; and `declaredContainers` collects a named type whose **body is itself a named/instantiated type**, which is what makes a chained generic resolvable. All three probes now red; the cross-package negative still stays silent. Pinned in `selfTestUnkeyed` (which now covers fifteen shapes and three negatives). RF-068-3b was corrected — again — to the genuinely single limit, with its history recorded. |
+
+**Re-measured after the fourth fold** (`dev` `0231f64`): **46 sites**, L 6, arms `a=23 ab=10 ac=1 b=1 c=5 d=6`
+— **unchanged**, as expected: `internal/**` declares no same-package named container type at all, so the
+three newly attributed forms have zero instances on this tree.
+
+**The lesson, now recorded twice in this round:** §Forward is the last place anyone looks for an
+unwitnessed claim, and it has needed a compiler behind it twice. Every remaining limit in RF-068-3b now
+carries a measurement, and the shapes it excludes are pinned as **negatives** in the gate's own tests.

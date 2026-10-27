@@ -493,11 +493,16 @@ func receiverName(fl *ast.FieldList) string {
 	return structNameOf(fl.List[0].Type)
 }
 
-// declaredContainers collects the SAME-PACKAGE named array/slice/map types in one
-// package directory (`type table []row`), so an elided literal under such a name
-// can be attributed. Whole-file walk, like declaredStructs, so a function-local
-// `type table []row` counts. A named type from another package is never here — it
-// is opaque by design (resolving it needs that package's AST).
+// declaredContainers collects the SAME-PACKAGE named types that a container
+// resolution may follow in one package directory — an array/slice/map body
+// (`type table []row`) AND a body that is itself a named or instantiated type
+// (`type grid[T any] [][]T`, `type alias[T any] table[T]`), which is what makes a
+// CHAINED generic resolve. Struct and interface bodies are skipped: they are not
+// containers, and struct identification goes through declaredStructs.
+//
+// Whole-file walk, like declaredStructs, so a function-local `type table []row`
+// counts. A named type from another package is never here — it is opaque by design
+// (resolving it needs that package's AST: RF-068-3b).
 func declaredContainers(parsed map[string]*ast.File) map[string]containerDecl {
 	out := map[string]containerDecl{}
 	for _, f := range parsed {
@@ -507,7 +512,9 @@ func declaredContainers(parsed map[string]*ast.File) map[string]containerDecl {
 				return true
 			}
 			switch ts.Type.(type) {
-			case *ast.ArrayType, *ast.MapType:
+			case *ast.StructType, *ast.InterfaceType:
+				// not containers — left to declaredStructs / out of scope
+			default:
 				out[ts.Name.Name] = containerDecl{expr: ts.Type, params: typeParamNames(ts)}
 			}
 			return true
@@ -603,33 +610,49 @@ type bound struct {
 func resolveContainer(e ast.Expr, named map[string]containerDecl) bound {
 	var subst map[string]ast.Expr
 	for range 8 {
-		if p, ok := e.(*ast.ParenExpr); ok {
-			e = p.X
-			continue
-		}
-		decl, args, ok := containerLookup(e, named)
+		decl, args, ok := containerLookup(stripType(e), named)
 		if !ok {
-			return bound{expr: e, subst: subst}
+			return bound{expr: stripType(e), subst: subst}
 		}
 		if len(decl.params) != len(args) {
-			return bound{expr: e, subst: subst} // an uninstantiated generic: opaque
+			return bound{expr: stripType(e), subst: subst} // an uninstantiated generic: opaque
 		}
 		if len(args) > 0 {
-			subst = make(map[string]ast.Expr, len(args))
+			// COMPOSE, do not overwrite: a chained generic (`type a[T any] b[T]`,
+			// `a[X]{{…}}`) must carry the outer binding into the inner hop's
+			// arguments — overwriting left `b` bound to the bare `T`.
+			next := make(map[string]ast.Expr, len(args))
 			for i, p := range decl.params {
-				subst[p] = args[i]
+				next[p] = substitute(args[i], subst)
 			}
+			subst = next
 		}
 		e = decl.expr
 	}
-	return bound{expr: e, subst: subst}
+	return bound{expr: stripType(e), subst: subst}
+}
+
+// stripType unwraps the type constructors that do not change WHAT a literal's type
+// is: parentheses, and a POINTER — `[]*T{{…}}` elides `&T{…}`, so the element's
+// type is T (Go's `&T` elision for a pointer element type).
+func stripType(e ast.Expr) ast.Expr {
+	for {
+		switch t := e.(type) {
+		case *ast.ParenExpr:
+			e = t.X
+		case *ast.StarExpr:
+			e = t.X
+		default:
+			return e
+		}
+	}
 }
 
 // containerLookup resolves one named-container hop: a bare `table`, or an
 // instantiation `Table[A]` / `Table[A, B]`. ok=false for anything else (a
 // selector from another package, an unbound type parameter, a non-container).
 func containerLookup(e ast.Expr, named map[string]containerDecl) (containerDecl, []ast.Expr, bool) {
-	switch t := e.(type) {
+	switch t := stripType(e).(type) {
 	case *ast.Ident:
 		decl, ok := named[t.Name]
 		return decl, nil, ok
@@ -651,12 +674,36 @@ func containerLookup(e ast.Expr, named map[string]containerDecl) (containerDecl,
 	return containerDecl{}, nil, false
 }
 
-// substitute resolves a bare type parameter through an instantiation's binding.
+// substitute resolves type parameters through an instantiation's binding,
+// RECURSIVELY: a generic whose body is itself a container (`type grid[T any]
+// [][]T`) must become `[][]pair`, not stay `[][]T` — a bare-Ident-only
+// substitution left the parameter in place and the inner literal unattributed.
 func substitute(e ast.Expr, subst map[string]ast.Expr) ast.Expr {
-	if id, ok := e.(*ast.Ident); ok && subst != nil {
-		if r, ok := subst[id.Name]; ok {
+	if subst == nil || e == nil {
+		return e
+	}
+	switch t := e.(type) {
+	case *ast.Ident:
+		if r, ok := subst[t.Name]; ok {
 			return r
 		}
+		return t
+	case *ast.ParenExpr:
+		return &ast.ParenExpr{X: substitute(t.X, subst)}
+	case *ast.StarExpr:
+		return &ast.StarExpr{X: substitute(t.X, subst)}
+	case *ast.ArrayType:
+		return &ast.ArrayType{Len: t.Len, Elt: substitute(t.Elt, subst)}
+	case *ast.MapType:
+		return &ast.MapType{Key: substitute(t.Key, subst), Value: substitute(t.Value, subst)}
+	case *ast.IndexExpr:
+		return &ast.IndexExpr{X: substitute(t.X, subst), Index: substitute(t.Index, subst)}
+	case *ast.IndexListExpr:
+		out := make([]ast.Expr, len(t.Indices))
+		for i, ix := range t.Indices {
+			out[i] = substitute(ix, subst)
+		}
+		return &ast.IndexListExpr{X: substitute(t.X, subst), Indices: out}
 	}
 	return e
 }
@@ -1271,9 +1318,12 @@ func selfTestArms(t *testing.T) {
 // selfTestUnkeyed pins arm (d) on EVERY valid-Go position a type may be elided in —
 // an explicit type, a list/map element (the test-table shape), a NESTED container,
 // a struct-typed MAP KEY, a SAME-PACKAGE NAMED container (`type table []pair`) and
-// its generic form (`type gen[T any] []T`; `gen[pair]{{…}}`) — plus the negatives
-// that keep the arm honest: a field-KEYED literal, a cross-package named STRUCT
-// (`time.Time{}`) and a cross-package named CONTAINER (`other.Table{{…}}`).
+// its generic form (`type gen[T any] []T`; `gen[pair]{{…}}`), a POINTER to a named
+// container (`[]*table{{…}}`), a generic whose body is itself a container
+// (`type grid[T any] [][]T`) and a CHAINED generic (`type chain[T any] gen[T]`) —
+// plus the negatives that keep the arm honest: a field-KEYED literal, a
+// cross-package named STRUCT (`time.Time{}`) and a cross-package named CONTAINER
+// (`other.Table{{…}}`).
 func selfTestUnkeyed(t *testing.T) {
 	t.Helper()
 	src := `package p
@@ -1305,6 +1355,13 @@ type genMap[K comparable, V any] map[K]V
 
 var namedGeneric = gen[pair]{{1, 2}}
 var namedGenericMap = genMap[string, pair]{"k": {1, 2}}
+
+type grid[T any] [][]pair
+type chain[T any] gen[T]
+
+var namedPtrToContainer = []*table{{{1, 2}}}
+var namedGenericGrid = grid[pair]{{{1, 2}}}
+var namedGenericChain = chain[pair]{{1, 2}}
 `
 	fset, f := parseSynthetic(t, src)
 	structs := declaredStructs(map[string]*ast.File{"synthetic.go": f})
@@ -1316,11 +1373,14 @@ var namedGenericMap = genMap[string, pair]{"k": {1, 2}}
 		got = append(got, fmt.Sprintf("%d:%s:%d", s.line, s.name, s.elts))
 	}
 	// One row per line (redSites collapses shared identities). 20/21 are the NAMED
-	// container types, 28/29 their GENERIC forms; 22 is the map whose key AND value
-	// are the same struct — one row, but it must SAY two literals (asserted below);
-	// 23 (`other.Table`), 8 (`time.Time`) and 15 (field-keyed) must stay silent.
+	// container types, 28/29 their GENERIC forms, 34/35/36 a POINTER to a named
+	// container, a generic whose BODY is a container, and a CHAINED generic; 22 is
+	// the map whose key AND value are the same struct — one row, but it must SAY two
+	// literals (asserted below); 23 (`other.Table`), 8 (`time.Time`) and 15
+	// (field-keyed) must stay silent.
 	want := []string{"5:pair:2", "9:pair:2", "10:pair:2", "11:pair:2", "12:pair:2", "13:pair:2",
-		"14:pair:2", "20:pair:2", "21:pair:2", "22:pair:2", "28:pair:2", "29:pair:2"}
+		"14:pair:2", "20:pair:2", "21:pair:2", "22:pair:2", "28:pair:2", "29:pair:2",
+		"34:pair:2", "35:pair:2", "36:pair:2"}
 	if !slices.Equal(got, want) {
 		t.Fatalf("arm (d) self-test:\n got  %v\n want %v\n(every elided shape must be attributed; the keyed literals and the\ncross-package selectors must not)", got, want)
 	}
