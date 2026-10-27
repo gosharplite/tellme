@@ -358,8 +358,10 @@ endif
 # func-typed parameters (arm c, the DI idiom), and same-package unkeyed struct
 # literals (arm d, the call-site half go vet's composites analyser cannot see).
 # Mirrors the verify-architecture recipe shape: vet + lint the gate's own code,
-# then run it with -count=1 (the verdict reads the whole tree, which the test
-# cache cannot see — the rationale's origin is tools/arch/doc.go).
+# then run it with -count=1. NOTE the rationale differs: verify-architecture
+# shells a `go list` CHILD PROCESS which the test cache cannot see, while this
+# gate reads the tree IN-PROCESS, which Go DOES key into the cache (go help test).
+# -count=1 is therefore belt-and-braces + parity, not a cache-vacuity fix.
 verify-params:
 	@echo "verify-params: compile-blind argument-swap gate (adjacent identical-type params; ADR 0068) ..."
 	@go vet -tags=quality ./tools/params

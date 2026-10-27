@@ -63,6 +63,13 @@ two-package module (`go vet` flagged the cross-package literal, not the same-pac
 `ComputeCost(costInputs{4, 6, 3, 2})` compiling and swapping silently. **Decision: arm (d) in the same AST
 walk, scanning `_test.go` too** (the same-package construction sites `vet` misses are largely tests).
 
+**And arm (d) must attribute ELIDED literal types.** A literal's `Type` is nil when its container implies
+it — `[]T{{1, 2}}`, `map[K]T{"k": {1, 2}}` — which is the **test-table shape**. The first implementation
+matched only `Type.(*ast.Ident)` and skipped those, so its reported `L = 0` was **not** what the arm's
+definition says it measures; the corrected walk (container-element expectation + whole-file struct
+collection + local types) found **6** live sites on the pre-round tree. Caught in review, not by the
+round's own witnesses.
+
 **Verdict against issue #210's `Open verification` §5: implementable in one walk, and required.**
 
 ## D6 — The `n ≥ 4` boundary is kept, and its remainder is measured
@@ -85,9 +92,14 @@ Mirror `verify-architecture` exactly (`Makefile`), **all three** commands — `g
 `golangci-lint run --build-tags=quality` · `go test -count=1 -tags=quality -run
 TestVerifyParameterShapes` — because the middle one lints the guard's own code (a draft quoted only two).
 
-**`-count=1` is mandatory and is not a style choice**: the verdict reads the whole tree, which the Go test
-cache cannot see, so a cached green lets an added violation pass vacuously. The rationale's origin is
-`tools/arch/doc.go`; **ADR 0068 is its first ADR-level home**.
+**`-count=1` is kept — but its rationale is NOT the architecture gate's, and the first form of this
+paragraph got that wrong.** `tools/arch` shells a `go list` **child process**, which the test cache
+genuinely cannot see; this gate reads the tree **in-process** (`filepath.WalkDir` + `parser.ParseFile`),
+and `go help test` is explicit that the cache matches on exactly the files a test opens — so here the
+cache **does** see the tree, and a violation reds on a plain `go test` run. `-count=1` is belt-and-braces
++ recipe parity. The inherited-verbatim version reached the ADR and `techstack.md` while contradicting
+its own witness (whose runs re-ran every time); review caught it. **An inherited rationale is not a
+verified one.**
 
 **A `go/parser` walk, not a `go vet` analyser** — a **design property, not a catch**: it needs no
 `go list`, no host build context, and is cheaper than `verify-architecture`. *(The earlier build-tag

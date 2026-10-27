@@ -139,9 +139,13 @@ func formatToolActionColour(t time.Time, a actionText, colour bool) string {
 }
 
 // actionText names the action line's two string inputs (round 098; ADR 0068).
-// The plain FormatToolAction keeps its positional shape: at n = 3 it sits below
-// the arm-(a) arity and is recorded as a boundary remainder (issue #210 §G4), so
-// the round does not widen the threshold to reach it.
+//
+// Plainly: this is NOT a removal of the hazard, it is the arm-(a)/(c) fold at the
+// one site the gate reds. The pair `tool, arguments string` still lives on the
+// PUBLIC surfaces — `FormatToolAction(t, tool, arguments)` and
+// `ToolLineRenderer.ActionLine(t, tool, arguments)` — because those are n = 3 and
+// sit BELOW arm (a)'s `n >= 4` arity; widening the threshold to reach them is the
+// recorded boundary decision (ADR 0068 D5), not this struct's job.
 type actionText struct {
 	tool      string
 	arguments string

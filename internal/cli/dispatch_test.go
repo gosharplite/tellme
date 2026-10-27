@@ -16,9 +16,6 @@ type dispatchDeps struct {
 	historyStore func(string) history.Store
 	turnsStore   func(string) history.TurnsLogStore
 	listing      func() render.Listing
-	// usageReport records whether the --tool-usage path was reached; it drives the
-	// injected tool registry/factory seams the cliDeps bundle carries.
-	usageReport func() int
 }
 
 func newDispatchDeps() dispatchDeps {
@@ -31,8 +28,7 @@ func newDispatchDeps() dispatchDeps {
 			ts.buf.WriteString("TURNS\n")
 			return ts
 		},
-		listing:     func() render.Listing { return &fakeListing{} },
-		usageReport: func() int { return Success },
+		listing: func() render.Listing { return &fakeListing{} },
 	}
 }
 
@@ -111,7 +107,7 @@ func TestDispatchReportingBack(t *testing.T) {
 		st := &fakeStore{entries: []history.Entry{{Prompt: "q1", Answer: "a1"}, {Prompt: "q2", Answer: "a2"}}}
 		shared := func(string) history.Store { return st }
 		f := &flags{list: 1, listSet: true, back: 1, backSet: true}
-		code, handled := dispatchReporting(f, sessionRef{home: home}, runtimeEnv{stdout: &out, stderr: &errOut}, false, dispatchDeps{historyStore: shared, turnsStore: d.turnsStore, listing: d.listing, usageReport: d.usageReport}.in())
+		code, handled := dispatchReporting(f, sessionRef{home: home}, runtimeEnv{stdout: &out, stderr: &errOut}, false, dispatchDeps{historyStore: shared, turnsStore: d.turnsStore, listing: d.listing}.in())
 		if !handled || code != Success {
 			t.Fatalf("dispatched=%v code=%d, want handled success", handled, code)
 		}

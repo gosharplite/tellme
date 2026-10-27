@@ -22,7 +22,7 @@ Start a new aixbdd round, the goal is to close issue 210. Create a PR for review
 | --- | --- |
 | Round | **098 `098-param-swap-guard`** (close [#210](https://github.com/gosharplite/tellme/issues/210); **ADR 0068**) |
 | The gate | `tools/params` — a `//go:build quality` `go/parser` scan, `verify-params` in `make verify`, allow-list fail-on-stale + refuse-to-grow, **empty** at delivery |
-| The refactor | **42** sites cleared (40 signatures + 2 call-site literals) · `internal/cli/cli.go` **1682 → 474** lines |
+| The refactor | **46** sites cleared (40 signatures + 6 call-site literals) · `internal/cli/cli.go` **1682 → 474** lines |
 | Gates | `make verify` **OK** (twelve members) · E2E **334 scenarios · 2519 steps unchanged, green** · `test-race` clean · `modelith-check` no drift · `modelith-lint` 0/0 · `verify-adr-index` consistent · `govulncheck` clean |
 | Delivery | branch → **PR open into `dev`** (no Copilot review; only a human merges) |
 
@@ -40,20 +40,29 @@ Start a new aixbdd round, the goal is to close issue 210. Create a PR for review
 
 ### The number that mattered
 
-The **script owns the numbers**. Every figure in the plan comes from `make verify-params-report`; the
-pre-round red set reproduces issue #210's published table **exactly** (J 31 · J′ 4 · K 36 · K′ 4 · L 2 ·
-M 9 · N 6 · O 38 · P 11 · Q 0 · R 0 · I 69 · H 10), and the round's own red set is **42** = 40 signatures
-+ 2 arm-(d) literals. That is the durable lesson of the issue's five drafts: the flattened type normaliser
-produced **four** wrong measurements, all from prose.
+The **script owns the numbers**. Every figure in the plan comes from `make verify-params-report`. The
+pre-round red set reproduces issue #210's published **signature** table exactly (J 31 · J′ 4 · K 36 · K′ 4 ·
+M 9 · N 6 · O 38 · P 11 · Q 0 · R 0 · I 69 · H 10) and corrects its arm-(d) figure: **L = 6**, not 2. The
+round's own red set is therefore **46** = 40 signatures + 6 arm-(d) literals. That is the durable lesson of
+the issue's five drafts — the flattened type normaliser produced **four** wrong measurements, all from
+prose — and the fold re-taught it: the *first* published `L = 0` came from an arm narrower than its own
+definition.
 
-### The one witness that did not land
+### The two claims the review corrected — the round's thesis, one layer up
 
-**W7** (`-count=1` proof) is recorded as **not reproducible on this host**, not smoothed: Go re-ran the gate
-on every mutation shape tried (a signature mutation, a comment-only edit in another package, a *committed*
-violation, with and without `-buildvcs=false`), so a stale green was never served. The arm is retained
-because the gate's verdict reads files **outside its own package**, which the test cache's key does not
-model — a property of what the cache is keyed on, and this host's invalidation is incidental. Consistent
-with issue #210's own discipline ("one figure does not reconcile and is recorded rather than smoothed").
+**W7** was first recorded as "not reproducible on this host … incidental (VCS stamping / timing)".
+**That was backwards.** `go help test` says the cache matches on exactly the files a test opens, and this
+gate reads the tree **in-process** — so the re-runs *were* the documented behaviour, and they contradicted
+the row that quoted them. The `-count=1` rationale had been **inherited verbatim** from
+`tools/arch/doc.go`, where it is true (that gate shells a `go list` **child process** the cache cannot
+see). Reworded in ADR 0068 D9, `doc.go`, the Makefile and `techstack.md`; W7 re-recorded as
+**confirmed-by-design**; `-count=1` **kept** for parity.
+
+**Arm (d) matched only explicitly-typed literals**, so `[]T{{1, 2}}` — the test-table shape — was skipped
+and the published `L = 0` was not what the arm's definition measures. The corrected walk (an
+expected-element-name stack + whole-file struct collection, so function-local types count) found **6** live
+sites on the pre-round tree. Both defects were found by **review, not by the round's own witnesses** — the
+class this round exists to eliminate, appearing one layer up.
 
 ### Decisions locked (round 098)
 
@@ -70,9 +79,9 @@ with issue #210's own discipline ("one figure does not reconcile and is recorded
 
 ### Environment findings (durable)
 
-- `go test` test-cache behaviour around a **tree-reading** gate is **not** reliably demonstrable on this
-  host as a stale green (see W7). The repo's rule stands on the key-blindness argument, which is
-  independent of host behaviour — do not re-litigate it from a failed reproduction.
+- A **tree-reading** gate that opens its inputs **in-process** has those inputs in the test cache's key;
+  only a gate that reads the tree through a **child process** (`go list`) is cache-blind. Do not inherit
+  `-count=1`'s rationale across that boundary — verify which side a new gate is on.
 - The `internal/cli` split was done by **moving whole contiguous concern blocks** and letting `goimports`
   rebuild the import block; the three **aliased** imports (`appsuggestions`, `agentport`, `domaintools`)
   must be re-added by hand (goimports cannot guess aliases).

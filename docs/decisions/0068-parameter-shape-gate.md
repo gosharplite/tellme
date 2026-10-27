@@ -78,6 +78,16 @@ throwaway two-package module). So a fix that only changes signatures could leave
 layer down. Hence arm (d) in the same walk, and it scans `_test.go` too (the same-package construction
 sites `vet` misses are largely tests).
 
+**Arm (d) must attribute ELIDED literal types.** A literal's `Type` is `nil` when the type is implied by
+its container — `[]T{{1, 2}}`, `map[K]T{"k": {1, 2}}` — which is the **table shape**, the most common
+way a same-package unkeyed literal appears in a test. A first implementation matched only
+`Type.(*ast.Ident)` and silently skipped those; the review caught it with a live instance in the tree.
+The walk therefore carries an **expected element name** down the tree (`[]T`/`[N]T`/`map[K]V` push `T`) and
+collects named structs by walking the **whole file**, so a **function-local** `type note struct{…}`
+declared beside its literal counts. Generic instantiations (`pair[int]{1, 2}`) resolve to their base
+identifier. Every one of those gaps was **measured red before the fold and green after** (W10 + the
+arm-(d) self-tests).
+
 ### D5 — The `n ≥ 4` boundary is deliberate and its remainder is measured
 
 Below the boundary sit **6** interface methods (`ToolLineRenderer.{EngineLine,ActionLine,ResultLine}` ·
@@ -87,6 +97,13 @@ Below the boundary sit **6** interface methods (`ToolLineRenderer.{EngineLine,Ac
 next reader does not reopen the threshold from scratch. Note that **`n` counts exempt params**:
 `Entries` is `n = 4` only because `ctx` counts toward arity while being run-exempt — that is exactly why
 `ActionLine` (n=3) and `Entries` (n=4) sit either side of the boundary.
+
+Two **honesty notes** about this round's own output: `actionText` folds only the private colour helper —
+the pair `tool, arguments string` **remains** on the public `FormatToolAction` and
+`ToolLineRenderer.ActionLine`, which are `n = 3` and therefore below the boundary (so the hazard is
+*recorded*, not removed, at those two surfaces); and `treeSpec.descend(name, extraIndent string)` is an
+adjacent identical-type pair the refactor **introduced**, kept because it is `n = 2` and therefore in the
+measured remainder.
 
 ### D6 — Result lists are the same class and are out of scope
 
@@ -107,6 +124,13 @@ functions and zero reds.)*
 
 ### D8 — The allow-list is a fail-on-stale ratchet that refuses to grow
 
+A violation's allow-list identity is `file:name`, or **`file:Recv.Method`** when the declaration is
+qualified — the qualifier is **required**, not cosmetic: `writer.go` declares `Execute` on two receivers
+and `mcp/client.go` declares `Close` on two, so an unqualified key would let one entry silently allow the
+other. (Interface methods are qualified by their declaring interface for the same reason.) Arm-(d) sites
+have no name, so they key on `file:line:Type`, and two literals of one type on one line collapse to one
+row.
+
 A violation is cleared **only** by fixing it or by an allow-list entry carrying a **recorded reason**.
 The list is **fail-on-stale** (an entry that no longer matches a violation fails the gate) and
 `-update-allowlist` **refuses to GROW** it (**ADR 0020 fold R-51-1**). At delivery the list is **empty**
@@ -114,13 +138,25 @@ The list is **fail-on-stale** (an entry that no longer matches a violation fails
 
 ### D9 — Enforcement shape: a build-tagged test, `-count=1`, three commands
 
-`tools/params` mirrors `tools/arch` exactly: a `//go:build quality` test (never in the default
+`tools/params` mirrors `tools/arch`'s **shape**: a `//go:build quality` test (never in the default
 `go test ./...`), a `verify-params` member of `make verify` running **three** commands (`go vet
 -tags=quality` · `golangci-lint run --build-tags=quality` · `go test -count=1 -tags=quality -run …`),
-and **`-count=1` is mandatory** — the verdict reads the whole tree, which the Go test cache cannot see,
-so a cached green would let a new violation pass vacuously (**the rationale's origin is
-`tools/arch/doc.go`; this ADR is its first ADR-level home**). The gate honours ADR 0012's hermetic
-invocation boundary like every other member.
+honouring ADR 0012's hermetic invocation boundary like every other member.
+
+**`-count=1` is kept, but its rationale is NOT inherited — and the distinction is the point.** The
+architecture gate shells a `go list` **child process**, which the Go test cache genuinely cannot see, so
+there `-count=1` is the difference between a witness and a vacuous pass. **This** gate reads the tree
+**in-process** (`filepath.WalkDir` → `os.ReadDir`; `parser.ParseFile` → `os.ReadFile`), and `go help
+test` is explicit: *"Tests that open files within the package's module or that consult environment
+variables only match future runs in which the files and environment variables are unchanged."* The
+opened files and directories are therefore **part of the cache key**, and a violation reds on a plain
+`go test` run. `-count=1` here is belt-and-braces + recipe parity.
+
+This clause is recorded in this form because its **first** form was wrong: the rationale was inherited
+verbatim from `tools/arch/doc.go`, landed in an Accepted ADR and in `techstack.md`, and **contradicted
+its own witness** — W7's mutation runs re-ran on every attempt, which is the documented behaviour, not a
+host quirk. The round-098 review caught it. An inherited rationale is not a verified one; that is the
+same class as the round's own thesis (a claim needs a carrier that can fail).
 
 ### D10 — The script owns the numbers
 
@@ -129,7 +165,7 @@ longest run`, and it prints **every** baseline figure **with its label and its u
 verify-params-report` is the reporting entry (`TestParameterShapeReport`, never fails); `verify-params`
 is the gate. This is what makes "fix all X sites" a `diff` rather than a re-argument.
 
-### D11 — The refactor the guard forces (all 40 signature sites + 2 call-site literals, 42 total)
+### D11 — The refactor the guard forces (all 40 signature sites + 6 call-site literals, 46 total)
 
 Named seam structs, following the house idiom: `render.ReadyStats` · `render.PayloadStatus` ·
 `turnOptions` (pre-existing) · `sessionRef` (`homeDir, configPath`) · `cliDeps` (the five injected-closure
@@ -165,6 +201,18 @@ baseline is untouched, which is what **proves** the slice legal.
   (D6) stay unscanned; the `n ≥ 4` boundary (D5) leaves a measured remainder. Each is recorded with its
   measurement rather than smoothed. The allow-list mechanism exists and is empty — a future round may use
   it, at the cost of a recorded reason.
+- **The PR review corrected two things the round had recorded wrongly, and both corrections are the
+  ADR's own thesis applied to itself.** (1) The `-count=1` rationale was **inherited** from
+  `tools/arch/doc.go` and is **false here** (D9): the architecture gate shells a `go list` child process
+  the cache cannot see; this gate reads the tree in-process, which the cache **does** key. The clause
+  had reached an Accepted ADR and `techstack.md` while **contradicting its own witness**, whose mutation
+  runs re-ran every time. (2) Arm (d)'s first implementation **matched only explicitly-typed literals**
+  (D4), so `[]T{{1, 2}}` — the test-table shape — was skipped, and the reported `L = 0` was not what the
+  arm's definition says it measures; the corrected walk found **6** live sites on the pre-round tree.
+  Both were caught by review, not by the round's own witnesses: a lesson one layer up from the one the
+  round exists to enforce.
+- **Positive, corrected figures.** The pre-round red set is **46** = 40 signature sites + **6** arm-(d)
+  call-site literals (the round first reported 42, on the buggy arm (d)).
 - **Not modelled.** The gate is a quality-process instrument; it is modelled only as far as the
   `QualityPipeline`/`QualityGate` entities reach (ADR 0041). The product model does **not** move: D11
   changes parameter **shapes**, not behaviour, and `usage-summed-for-the-ready-summary` concerns values,
@@ -179,6 +227,12 @@ baseline is untouched, which is what **proves** the slice legal.
 - **RF-068-3** — Arm (d) keys an allow-list entry by `file:line:TypeName` (a literal has no name), so an
   allow-listed literal stales when unrelated lines move above it. The list is empty, so this is a
   property of the mechanism, not a live cost.
+- **RF-068-3b** — Arm (d) attributes an elided literal through its **container type only**
+  (`[]T` / `[N]T` / `map[K]V`; D4). Two shapes remain unattributed: a literal whose type is implied by a
+  **func parameter or return** rather than a composite container (e.g. a `T` value returned positionally
+  into a call), and a literal whose elided type is inferred from a **struct field**. Both need a type
+  checker, not a parser walk — recorded with the measurement that neither shape occurs in `internal/**`
+  today (the corrected walk reports **0** sites on this tree).
 - **RF-068-4** — The `@quality` build tag is not evaluated against build-tag-gated files' union: the scan
   parses files **as written**. Two darwin-tagged files declare the same symbol today and both are
   scanned; a future tag-gated divergence would be measured twice, not missed.

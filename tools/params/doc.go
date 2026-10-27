@@ -10,10 +10,15 @@
 //	golangci-lint run --build-tags=quality ./tools/params/...
 //	go test -count=1 -tags=quality -run TestVerifyParameterShapes ./tools/params
 //
-// `-count=1` is required: the gate's verdict depends on the whole tree, which the
-// Go test **cache cannot see** — a cached green would let a newly added
-// swap-hazard signature pass vacuously. (The rationale's origin is
-// tools/arch/doc.go; this gate inherits it verbatim.)
+// `-count=1` is kept — and its rationale is DIFFERENT from the architecture gate's.
+// `tools/arch` shells a `go list` CHILD PROCESS, which the Go test cache genuinely
+// cannot see; THIS gate reads the tree in-process (`filepath.WalkDir` +
+// `parser.ParseFile`), and Go keys the cache on exactly the files a test opens
+// (`go help test`: "Tests that open files within the package's module … only match
+// future runs in which the files … are unchanged"). So here the cache does see the
+// tree, and `-count=1` is belt-and-braces + parity with `verify-architecture` —
+// not the difference between a witness and a vacuous pass. Recording the
+// distinction is the point: an inherited rationale is not a verified one.
 //
 // The four arms are (a) n>=4 with an adjacent identical-type run, (b) an
 // adjacent identical-type run of >=3, (c) an adjacent run of >=2 func-typed

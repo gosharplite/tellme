@@ -15,7 +15,7 @@ is the specification; every later task is arbitrated by the compiler or by the g
       printer, the allow-list reader/writer (fail-on-stale + refuse-to-grow), the module-root resolver,
       the enumeration assertion, and the three synthetic self-tests (`arms` · `unkeyed` · `allow-list`)
       with a name-set assertion. **No fix yet** — the tree is red on purpose.
-      *Verification*: the gate reds with exactly the **42** sites its report prints (W1).
+      *Verification*: the gate reds with exactly the **46** sites its report prints (W1).
 
 - [X] **T002** Run the report on the pre-round tree and record the labelled baseline (every figure with
       its label and universe) into `spec.md` / `research.md`. Reconcile every figure against issue #210's
@@ -77,13 +77,13 @@ is the specification; every later task is arbitrated by the compiler or by the g
 
 | # | Claim | Run | Result |
 | --- | --- | --- | --- |
-| **W1** | The guard is **red first** (the pre-round tree) | the committed gate in a `git worktree` at `dev` `0231f64` | **FAIL — 42 sites**, every pre-fix figure reproduced: J 31 · J′ 4 · K 36 · K′ 4 · L 2 · M 9 · N 6 · O 38 · P 11 · Q 0 · R 0 · I 69 |
+| **W1** | The guard is **red first** (the pre-round tree) | the committed gate in a `git worktree` at `dev` `0231f64` | **FAIL — 46 sites**, every pre-fix figure reproduced: J 31 · J′ 4 · K 36 · K′ 4 · **L 6** · M 9 · N 6 · O 38 · P 11 · Q 0 · R 0 · I 69. *(First reported as 42 with **L 2**; the arm-(d) elision bug — see the fold below — hid 4 of the 6 literals.)* |
 | **W2** | The round's tree is **clean** | the gate on this tree | **ok** — 0 sites, allow-list empty |
 | **W3** | Arm (a)/(b) fire on a **leaf**, arity-independent | `a, b, c float64` added to `formatReadyColour` | **1 site**: `internal/ui/metrics.go:43 formatReadyColour arms=ab n=5 run=3 float64` |
 | **W4** | The **non-scalar** run reds | `a, b, c io.ReadCloser` added to `abortCapture` | **1 site**: `…command.go:292 abortCapture arms=ab n=6 run=3 io.ReadCloser` |
 | **W5** | **Interface** scanning is live | `a, b, c int` added to `render.Lines.Ready` | **1 site**: `…render/ports.go:43 Ready arms=ab n=4 run=3 int` |
 | **W6** | The allow-list is **fail-on-stale** | a synthetic entry for the already-fixed `ui/metrics.go:FormatReady` | **red**: `1 stale allow-list entr(ies) … remove them` |
-| **W7** | `-count=1` is required (the cache cannot see the tree) | a violation added after a cacheable green run | **Not reproducible on this host, recorded not smoothed** — Go re-ran the gate on every mutation shape tried (a signature mutation, a comment-only edit in another package, a *committed* violation, with and without `-buildvcs=false`), so a stale green was not served. The arm is **retained** because the gate's verdict reads files **outside its own package**, which the test cache's key does not model — the property is about what the cache is keyed on, and this host's invalidation is incidental (VCS stamping / timing), not a guarantee. `-count=1` therefore stays in the recipe (DoD 1) as the specified discipline, with this negative result recorded. |
+| **W7** | `-count=1` / the test cache — **re-recorded by design, per review** | a cacheable green run, then a violation appended to `internal/domain/llm/pricing.go` | **CONFIRMED BY DESIGN, and the claim is the opposite of the one first written.** The cacheable run is `(cached)` on a repeat, and the violation **reds on a plain `go test` run** (no `-count=1`): this gate reads the tree **in-process**, and `go help test` keys the cache on exactly the files a test opens. So the `tools/arch` rationale (a `go list` **child process** the cache cannot see) does **not** apply here; `-count=1` is kept for **parity**, not because a cached green would be vacuous. *(The first version of this row called the re-runs "not reproducible … incidental (VCS stamping / timing)" — that was backwards, and it was contradicted by its own quoted result. Review item 1.)* |
 | **W8** | **Behaviour identity** | full E2E contract | **334 scenarios · 2519 steps — unchanged and green** |
 | **W9** | **No import edge moved**; no model drift; no races | `verify-architecture` baseline (**0** non-comment lines) · `modelith-check` no drift · `make test-race` | all clean |
 | **W10** | The **call-site** half reds, and `go vet` cannot see it | `CostInputs{4, 6, 3, 2}` unkeyed in `pricing_test.go` (same package) | gate: **1 site** `…pricing_test.go:10 CostInputs arms=d 4 unkeyed elements`; `go vet` **0 findings**; `golangci-lint` (govet) **0 issues** — the G1 gap |
@@ -107,7 +107,7 @@ is the specification; every later task is arbitrated by the compiler or by the g
 | J′ | **RED** arms (a)/(b) — interface | interface methods | 4 | **0** |
 | K | **RED** arms (a)/(b)/(c) | `FuncDecl` | 36 | **0** |
 | K′ | **RED** arms (a)/(b)/(c) — interface | interface methods | 4 | **0** |
-| L | **RED** arm (d) | `internal/**` incl. `_test.go` | 2 | **0** |
+| L | **RED** arm (d) | `internal/**` incl. `_test.go`, one row per `file:line:Type` | 6 | **0** |
 | M | remainder — `_test.go` arms (a)/(b)/(c) | `*_test.go` (out of scope) | 9 | 5 |
 | N | remainder — interface below the arity | `n ≤ 3`, run ≥ 2 | 6 | 6 |
 | O | remainder — `FuncDecl` `n ≤ 3`, run = 2 | `FuncDecl` | 38 | 33 |
@@ -115,7 +115,7 @@ is the specification; every later task is arbitrated by the compiler or by the g
 | Q | type aliases (G3) | `internal/**` | 0 | 0 |
 | R | identical-signature func runs | `FuncDecl` | 0 | 0 |
 
-**42 = 40 signature sites (36 `FuncDecl` + 4 interface) + 2 arm-(d) literals.** The `FuncDecl` total
+**46 = 40 signature sites (36 `FuncDecl` + 4 interface) + 6 arm-(d) call-site literals.** The `FuncDecl` total
 rose by 2 because two helper constructors were added (`cliDepsFrom`, `reportSpec` accessors were inlined
 instead); `n ≥ 5`/`n ≥ 6` fell because the seam structs absorbed the wide positional heads.
 
@@ -133,7 +133,51 @@ instead); `n ≥ 5`/`n ≥ 6` fell because the seam structs absorbed the wide po
 | 6 | W3/W4/W5 are arity-independent (run-of-3) | ✅ |
 | 7 | Unit-test edits are signature-only; `pricing_test.go`'s positional call + comment replaced by the keyed form; no seam struct constructed unkeyed | ✅ (T003 / T006 / W10) |
 | 8 | `make verify` OK · E2E 334 / 2519 · `test-race` clean · `modelith-check` no drift · `modelith-lint` 0/0 · topology audit unchanged · `govulncheck` clean | ✅ (W8 / W9) |
-| 9 | W1–W10 recorded with the runs quoted | ✅ (this table; **W7 recorded as not-reproducible, not smoothed**) |
-| 10 | The scan script is committed first, emits arms + type string per site, prints every figure with its label and universe; its output matches every figure in the plan | ✅ (T001 / T002 / the figure table) |
+| 9 | W1–W10 recorded with the runs quoted | ✅ (this table; **W7 re-recorded as confirmed-by-design** after review) |
+| 10 | The scan script is committed first, emits arms + type string per site, prints every figure with its label and universe; its output matches every figure in the plan | ✅ (T001 / T002 / the figure table — **every figure re-measured from the script after the fold**) |
 | 11 | One ADR recording the two hazards, the arm-(c) decision, arm (d), the interface scope, the `n ≥ 4` boundary with 6 + 33, results out of scope (11), syntactic identity (0 aliases), `n` counts exempt params, the allow-list design, the measurement-bug lesson; index row; techstack row (incl. `-count=1` + its `doc.go` origin); the quality model names the gate | ✅ (T009 / T010 / ADR 0068) |
 | 12 | The two dead `0012-deterministic-hermetic-tests.md` links fixed or a forward item recorded | ✅ **fixed** (ADR 0056 / 0058) |
+
+---
+
+## PR-review fold (2026-10-27; reviewer comment [`6436228558`](https://github.com/gosharplite/tellme/pull/211#issuecomment-6436228558))
+
+Six findings, **all accepted** — two of them (1 and 2) load-bearing, because both were claims the round had
+recorded **without a witness that could fail**.
+
+| # | Finding | Disposition |
+| --- | --- | --- |
+| **1** | The `-count=1` rationale is **false for this gate** — `go help test` says the cache matches on the files a test opens, and this gate reads them in-process; W7's own quoted runs re-ran every time, which is the documented behaviour, not a host quirk | **Accepted.** Reworded in **ADR 0068 D9**, `tools/params/doc.go`, the `Makefile` comment and the `specs/truth/techstack.md` row; **W7 re-recorded as confirmed-by-design** with the cacheable-run reproduction. `-count=1` is **kept** — as parity with `verify-architecture`, whose `go list` **child process** the cache genuinely cannot see. The inherited rationale is now explicitly marked as previously wrong. |
+| **2** | Arm (d) **misses elided-type literals** (`[]T{{…}}`, `map[K]T{"k": {…}}`) and **function-local** struct types — with a live instance in the tree, so the reported `L = 0` was not what the arm's definition measures | **Accepted and fixed.** `unkeyedLits` now carries an **expected element name** down the tree and `declaredStructs` walks the **whole file** (local types count); generic instantiations resolve to their base identifier. Re-measured: **L = 6** pre-round (was reported 2 → **W1 is 46, not 42**), **0** after keying the 4 surviving sites. ADR **D4** records the class; **RF-068-3b** records what a parser walk still cannot attribute (a literal implied by a func parameter/field). |
+| **3** | Allow-list key `file:name` collides across receivers (`writer.go` has two `Execute`s, `mcp/client.go` two `Close`s) | **Accepted.** `decl.key()` is now **`file:Recv.Method`**, and interface methods are qualified by their declaring interface. The report prints the qualified name too (`Lines.Ready`, `Spinner.loop`). |
+| **4** | Figure **Q**'s universe label claims `_test.go excluded` but the count included test files | **Accepted.** `scanTree` counts aliases for production files only, matching the label. |
+| **5** | The gate **does not satisfy its own arms** (`newDecl` is n = 8 with adjacent identical-type runs; `figures()` is a table of unkeyed literals) | **Accepted.** `newDecl` takes a named **`declSpec`**; every `figure{…}` is **keyed**; and a new **`self-application` self-test** scans `tools/params` itself and asserts 0 sites — a pin, not a widened walk (the governed scope stays `internal/**`). |
+| **6** | Four smaller items: `actionText` is an appeasement; `treeSpec.descend` is a **new** adjacent-string pair; `dispatchDeps.usageReport` is dead; `writeAllowlist` always prints "Empty at round 098"; `exemptKey` treats `error` as a parameter exemption | **All accepted.** `actionText`'s comment now says plainly that the **public** `FormatToolAction` / `ActionLine` keep the pair (n = 3, below the boundary); `treeSpec.descend`'s comment says it is a pair this refactor **introduced** and where it is recorded; the dead field is gone; the allow-list header is conditional; `error` is a **result-only** exemption now (parameter pairs of `error` red like any other), and the `param.exempt` comment matches. |
+
+### Post-fold labels (re-measured from the script, not patched in prose)
+
+| # | Figure | Pre-round | Post-round |
+| --- | --- | --- | --- |
+| J / J′ | RED arms (a)/(b) | 31 / 4 | **0 / 0** |
+| K / K′ | RED arms (a)/(b)/(c) | 36 / 4 | **0 / 0** |
+| **L** | RED arm (d) — one row per `file:line:Type` | **6** | **0** |
+| **total** | the red set | **46** | **0** |
+
+The pre-round arm-(d) rows the first implementation missed: `internal/cli/deps_boundary_test.go:60`
+(`violation`) · `internal/cli/retry_gateway_test.go:127` (`note`) · `…:133` (`[]note{{2,3,0},{3,3,0}}`) ·
+`internal/infrastructure/tools/command_test.go:26` (`res`) — plus the two explicit ones
+(`agent/callhooks_test.go:38/42`) the first version did catch.
+
+### The lesson this fold adds
+
+**The round's own thesis, one layer up.** It exists to make an unfalsifiable class (the compile-blind swap)
+mechanically visible; its fold found **two claims of its own that no witness could fail** — an inherited
+`-count=1` rationale and an arm whose definition was wider than its implementation. Both had *quoted
+evidence that contradicted them*. The remedy is the same one the gate applies to code: name the claim, then
+find the run that can red it.
+
+### Post-fold gates
+
+`make verify` **OK** (twelve members) · gate **0 sites** · self-application **0** · E2E **334 / 2519
+unchanged** · `test-race` clean · `modelith-check` no drift · `modelith-lint` 0/0 · `verify-adr-index`
+consistent · `golangci-lint` 0 issues · `govulncheck` clean.

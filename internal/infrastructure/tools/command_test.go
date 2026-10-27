@@ -23,7 +23,7 @@ func runWithWait(t *testing.T, ctx context.Context, args string, wait time.Durat
 	ch := make(chan res, 1)
 	go func() {
 		o, e := executeCommand{}.Execute(ctx, args, testBudget)
-		ch <- res{o, e}
+		ch <- res{out: o, err: e}
 	}()
 	select {
 	case r := <-ch:

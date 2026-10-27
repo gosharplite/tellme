@@ -2,7 +2,7 @@
 
 **Theme**: give tellme a **mechanical guard for the compile-blind argument swap** — two adjacent
 parameters of an **identical type** whose swap at a call site **still compiles** — and land the refactor
-the guard forces: **42** red sites cleared (40 signatures + 2 call-site literals) and
+the guard forces: **46** red sites cleared (40 signatures + 6 call-site literals) and
 `internal/cli/cli.go` split from **1682** lines into cohesive same-package files. The guard **reds on
 today's tree** and ships green only because the tree was fixed; it then joins `make verify` as
 `verify-params`.
@@ -67,7 +67,7 @@ same-typed values exchanged without a compile error, so that the class of defect
 **Why this priority**: it is the round's whole value — the guard is what makes the refactor durable.
 
 **Independent verification method**: run the scan on the pre-round tree (`dev` `0231f64`) → it reds with
-exactly the committed script's **42** sites; run it on the round's tree → **0** sites, allow-list empty.
+exactly the committed script's **46** sites; run it on the round's tree → **0** sites, allow-list empty.
 
 **Acceptance scenarios**:
 
@@ -89,7 +89,10 @@ exactly the committed script's **42** sites; run it on the round's tree → **0*
   state that this arm is the **DI idiom**, not a swap rule. [Verification Intent: unobservable → the
   `cliDeps` fold + the arm-(c) rows of the report]
 - **FR-004**: the gate MUST red a **same-package named struct** composite literal with ≥ 2 unkeyed
-  elements, scanning `_test.go` for this arm. [Verification Intent: unobservable → mutation witness W10]
+  elements, scanning `_test.go` for this arm, and MUST attribute an **elided** literal type through its
+  container (`[]T{{…}}`, `map[K]T{"k": {…}}`) and a **function-local** struct type — the test-table shape
+  is otherwise silently skipped. [Verification Intent: unobservable → mutation witness W10 + the arm-(d)
+  self-tests]
 - **FR-005**: the gate MUST scan **top-level interface methods** (the two domain ports are contracts, not
   conveniences). [Verification Intent: unobservable → W5]
 - **FR-006**: a violation is cleared only by fixing it or by an allow-list entry carrying a recorded
@@ -199,7 +202,7 @@ package's tests pass unchanged.
 
 ### Measurable outcomes
 
-- **SC-001**: the committed scan, run on `dev` `0231f64`, reds with exactly the **42** sites its report
+- **SC-001**: the committed scan, run on `dev` `0231f64`, reds with exactly the **46** sites its report
   prints (W1). [Verification Intent: unobservable → W1's quoted output]
 - **SC-002**: on the round's tree the gate reports **0** sites and the allow-list is empty (W2).
   [Verification Intent: unobservable → W2]

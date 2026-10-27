@@ -57,9 +57,13 @@ type param struct {
 // decl is one scanned named signature: a FuncDecl or a top-level interface
 // method.
 type decl struct {
-	file    string // module-relative, forward slashes
-	line    int
-	name    string
+	file string // module-relative, forward slashes
+	line int
+	name string
+	// qual is the receiver type (a method) or the declaring interface (an
+	// interface method); it qualifies the allow-list identity so two same-named
+	// methods in one file cannot share an entry (review item 3).
+	qual    string
 	isIface bool
 	isTest  bool
 	n       int
@@ -126,22 +130,43 @@ func (d decl) asSite() site {
 	return site{
 		file:  d.file,
 		line:  d.line,
-		name:  d.name,
+		name:  d.display(),
 		arms:  d.arms(),
 		shape: d.shape(),
 		key:   d.key() + marker,
 	}
 }
 
-// key is the allow-list identity of a declaration: file:name. Line numbers are
-// deliberately excluded so a cosmetic edit elsewhere in the file does not stale
-// the entry; a rename or a move must re-justify the entry, which is the point.
-func (d decl) key() string { return d.file + ":" + d.name }
+// key is the allow-list identity of a declaration: `file:name`, or
+// `file:Recv.Method` / `file:Iface.Method` when the declaration is qualified. Line
+// numbers are deliberately excluded so a cosmetic edit elsewhere in the file does
+// not stale the entry; a rename or a move must re-justify the entry, which is the
+// point. The qualifier is REQUIRED, not cosmetic: `internal/infrastructure/tools/
+// writer.go` declares `Execute` on two receivers, and
+// `internal/infrastructure/mcp/client.go` declares `Close` on two — an unqualified
+// key would let one entry silently allow the other.
+func (d decl) key() string {
+	if d.qual == "" {
+		return d.file + ":" + d.name
+	}
+	return d.file + ":" + d.qual + "." + d.name
+}
 
-// exemptKey reports whether a type key is exempt from the swap-run rule.
+// display is the name the report prints: qualified when it can be.
+func (d decl) display() string {
+	if d.qual == "" {
+		return d.name
+	}
+	return d.qual + "." + d.name
+}
+
+// exemptKey reports whether a PARAMETER's type key is exempt from the swap-run
+// rule. `error` is deliberately absent: it is exempt only in a RESULT list (the
+// idiomatic trailing error), which newDecl marks there. Two adjacent `error`
+// parameters swap just as silently as two adjacent ints.
 func exemptKey(k string) bool {
 	switch k {
-	case "context.Context", "any", "interface{}", "error":
+	case "context.Context", "any", "interface{}":
 		return true
 	}
 	return false
@@ -356,20 +381,37 @@ func funcRunsOf(ps []param) (longest, identical int) {
 	return longest, identical
 }
 
+// declSpec is one named signature's scanned inputs. It is a named struct because
+// this gate enforces exactly that idiom on the tree it scans (review item 5): the
+// positional form is n = 8 with three adjacent identical-type runs — the gate
+// would red on itself.
+type declSpec struct {
+	fset    *token.FileSet
+	params  *ast.FieldList
+	results *ast.FieldList
+	file    string
+	name    string
+	qual    string
+	pos     token.Pos
+	isTest  bool
+	isIface bool
+}
+
 // newDecl assembles one scanned declaration.
-func newDecl(fset *token.FileSet, params, results *ast.FieldList, file, name string, pos token.Pos, isTest, isIface bool) decl {
-	ps := paramsOf(params)
+func newDecl(spec declSpec) decl {
+	ps := paramsOf(spec.params)
 	d := decl{
-		file:    file,
-		line:    fset.Position(pos).Line,
-		name:    name,
-		isIface: isIface,
-		isTest:  isTest,
+		file:    spec.file,
+		line:    spec.fset.Position(spec.pos).Line,
+		name:    spec.name,
+		qual:    spec.qual,
+		isIface: spec.isIface,
+		isTest:  spec.isTest,
 		n:       len(ps),
 	}
 	d.longest, d.runKey = runsOf(ps)
 	d.funcRun, d.identFn = funcRunsOf(ps)
-	res := paramsOf(results)
+	res := paramsOf(spec.results)
 	for i := range res {
 		if res[i].key == "error" {
 			res[i].exempt = true
@@ -387,7 +429,16 @@ func declsOf(fset *token.FileSet, f *ast.File, file string, isTest bool) []decl 
 	for _, d := range f.Decls {
 		switch n := d.(type) {
 		case *ast.FuncDecl:
-			out = append(out, newDecl(fset, n.Type.Params, n.Type.Results, file, n.Name.Name, n.Pos(), isTest, false))
+			out = append(out, newDecl(declSpec{
+				fset:    fset,
+				params:  n.Type.Params,
+				results: n.Type.Results,
+				file:    file,
+				name:    n.Name.Name,
+				qual:    receiverName(n.Recv),
+				pos:     n.Pos(),
+				isTest:  isTest,
+			}))
 		case *ast.GenDecl:
 			out = append(out, interfaceMethods(fset, n, file, isTest)...)
 		}
@@ -415,67 +466,148 @@ func interfaceMethods(fset *token.FileSet, gd *ast.GenDecl, file string, isTest 
 			if !ok || len(m.Names) == 0 {
 				continue
 			}
-			out = append(out, newDecl(fset, ft.Params, ft.Results, file, m.Names[0].Name, m.Pos(), isTest, true))
+			out = append(out, newDecl(declSpec{
+				fset:    fset,
+				params:  ft.Params,
+				results: ft.Results,
+				file:    file,
+				name:    m.Names[0].Name,
+				qual:    ts.Name.Name,
+				pos:     m.Pos(),
+				isTest:  isTest,
+				isIface: true,
+			}))
 		}
 	}
 	return out
+}
+
+// receiverName returns a method's receiver type name, or "" for a plain function.
+func receiverName(fl *ast.FieldList) string {
+	if fl == nil || len(fl.List) == 0 {
+		return ""
+	}
+	return structNameOf(fl.List[0].Type)
 }
 
 // declaredStructs collects the named struct types declared in one package
 // directory (production and test files alike — an arm-(d) literal may name a
-// struct declared in either).
+// struct declared in either). It walks the WHOLE file, so a FUNCTION-LOCAL
+// `type note struct{…}` counts too — a test table declared beside its literal is
+// the common shape (review item 2).
 func declaredStructs(parsed map[string]*ast.File) map[string]bool {
 	out := map[string]bool{}
 	for _, f := range parsed {
-		for _, d := range f.Decls {
-			gd, ok := d.(*ast.GenDecl)
-			if !ok || gd.Tok != token.TYPE {
-				continue
+		ast.Inspect(f, func(n ast.Node) bool {
+			ts, ok := n.(*ast.TypeSpec)
+			if !ok {
+				return true
 			}
-			for _, spec := range gd.Specs {
-				ts, ok := spec.(*ast.TypeSpec)
-				if !ok {
-					continue
-				}
-				if _, isStruct := ts.Type.(*ast.StructType); isStruct {
-					out[ts.Name.Name] = true
-				}
+			if _, isStruct := ts.Type.(*ast.StructType); isStruct {
+				out[ts.Name.Name] = true
 			}
-		}
+			return true
+		})
 	}
 	return out
 }
 
+// structNameOf returns the declared (possibly generic) struct name a type
+// expression names, or "" when it names no identifiable type — an anonymous
+// struct, a slice, a map, a func. Pointers and parens are transparent, so a
+// method receiver `*client` and a `*T{…}` literal both yield their base name.
+func structNameOf(e ast.Expr) string {
+	switch t := e.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.ParenExpr:
+		return structNameOf(t.X)
+	case *ast.StarExpr:
+		return structNameOf(t.X)
+	case *ast.IndexExpr:
+		return structNameOf(t.X)
+	case *ast.IndexListExpr:
+		return structNameOf(t.X)
+	}
+	return ""
+}
+
+// elemStructName returns the ELEMENT name a CONTAINER type expects, so an
+// elided-type literal nested in it can be attributed: `[]T` and `[N]T` yield T,
+// a `map[K]V` yields V. Anything else yields "".
+func elemStructName(e ast.Expr) string {
+	switch t := e.(type) {
+	case *ast.ArrayType:
+		return structNameOf(t.Elt)
+	case *ast.MapType:
+		return structNameOf(t.Value)
+	}
+	return ""
+}
+
+// allUnkeyed reports whether every element of a literal is positional.
+func allUnkeyed(elts []ast.Expr) bool {
+	if len(elts) == 0 {
+		return false
+	}
+	for _, e := range elts {
+		if _, keyed := e.(*ast.KeyValueExpr); keyed {
+			return false
+		}
+	}
+	return true
+}
+
 // unkeyedLits returns every same-package named-struct composite literal with
 // >= 2 unkeyed elements — arm (d), the call-site half of the swap hazard.
+//
+// It tracks an EXPECTED ELEMENT NAME down the tree: a literal whose type is
+// `[]T` / `[N]T` / `map[K]V` sets the expectation for its children, so the
+// ELIDED-type shapes are attributed to T instead of skipped —
+//
+//	[]T{{1, 2}}             // slice of elided literals (the test-table shape)
+//	map[K]T{"k": {1, 2}}    // map of elided literals
+//	&T{1, 2} / T{1, 2}      // named directly
+//	pair[int]{1, 2}         // generic instantiation
+//
+// A literal that names no type and inherits none is skipped: it is an anonymous
+// struct literal, not a same-package named one.
 func unkeyedLits(fset *token.FileSet, f *ast.File, file string, structs map[string]bool) []site {
 	var out []site
+	stack := []string{""}
+	top := func() string { return stack[len(stack)-1] }
 	ast.Inspect(f, func(n ast.Node) bool {
+		if n == nil {
+			if len(stack) > 1 {
+				stack = stack[:len(stack)-1]
+			}
+			return false
+		}
 		cl, ok := n.(*ast.CompositeLit)
 		if !ok {
+			stack = append(stack, top())
 			return true
 		}
-		id, ok := cl.Type.(*ast.Ident)
-		if !ok || !structs[id.Name] {
-			return true
+		name := top() // an elided type inherits the container's element name
+		if cl.Type != nil {
+			name = structNameOf(cl.Type)
 		}
-		if len(cl.Elts) < armDMinElts {
-			return true
+		if name != "" && structs[name] && allUnkeyed(cl.Elts) && len(cl.Elts) >= armDMinElts {
+			line := fset.Position(cl.Pos()).Line
+			out = append(out, site{
+				file:  file,
+				line:  line,
+				name:  name,
+				arms:  "d",
+				shape: fmt.Sprintf("%d unkeyed elements", len(cl.Elts)),
+				key:   fmt.Sprintf("%s:%d:%s", file, line, name),
+			})
 		}
-		for _, e := range cl.Elts {
-			if _, keyed := e.(*ast.KeyValueExpr); keyed {
-				return true
-			}
+		childExpect := top()
+		if cl.Type != nil {
+			childExpect = elemStructName(cl.Type)
 		}
-		line := fset.Position(cl.Pos()).Line
-		out = append(out, site{
-			file:  file,
-			line:  line,
-			name:  id.Name,
-			arms:  "d",
-			shape: fmt.Sprintf("%d unkeyed elements", len(cl.Elts)),
-			key:   fmt.Sprintf("%s:%d:%s", file, line, id.Name),
-		})
+		stack = append(stack, childExpect)
 		return true
 	})
 	return out
@@ -521,14 +653,18 @@ func goFilesUnder(t *testing.T, dir string) map[string][]string {
 	return dirs
 }
 
-// scanTree parses internal/** once and returns the declarations, the arm-(d)
-// sites, and the alias count. Build-tag-gated files are parsed as written (the
-// scan is text-level; the union over tags is not simulated).
-func scanTree(t *testing.T, root string) tree {
+// scanTree scans the gate's governed subtree: internal/**.
+func scanTree(t *testing.T, root string) tree { return scanSubtree(t, root, "internal") }
+
+// scanSubtree parses one subtree and returns the declarations, the arm-(d) sites,
+// and the alias count. Build-tag-gated files are parsed as written (the scan is
+// text-level; the union over tags is not simulated). It is parameterised so the
+// gate can also be pointed at its OWN package — the self-application pin.
+func scanSubtree(t *testing.T, root, sub string) tree {
 	t.Helper()
 	fset := token.NewFileSet()
 	var out tree
-	dirs := goFilesUnder(t, filepath.Join(root, "internal"))
+	dirs := goFilesUnder(t, filepath.Join(root, sub))
 	for _, dir := range slices.Sorted(maps.Keys(dirs)) {
 		files := dirs[dir]
 		slices.Sort(files)
@@ -547,7 +683,9 @@ func scanTree(t *testing.T, root string) tree {
 			isTest := strings.HasSuffix(p, "_test.go")
 			out.decls = append(out.decls, declsOf(fset, f, file, isTest)...)
 			out.unkeyed = append(out.unkeyed, unkeyedLits(fset, f, file, structs)...)
-			out.aliases += countAliases(f)
+			if !isTest { // figure Q's universe is production code
+				out.aliases += countAliases(f)
+			}
 		}
 	}
 	return out
@@ -573,7 +711,17 @@ func (tr tree) redSites() []site {
 		}
 		out = append(out, d.asSite())
 	}
-	out = append(out, tr.unkeyed...)
+	// Two literals of the same type on one line collapse to ONE site: the arm-(d)
+	// allow-list identity is file:line:Type, so a duplicate row would be noise
+	// (and the report must stay a diff against that identity).
+	seen := map[string]bool{}
+	for _, u := range tr.unkeyed {
+		if seen[u.key] {
+			continue
+		}
+		seen[u.key] = true
+		out = append(out, u)
+	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].file != out[j].file {
 			return out[i].file < out[j].file
@@ -609,61 +757,67 @@ type figure struct {
 func figures() []figure {
 	anyDecl := func(decl) bool { return true }
 	return []figure{
-		{"A. FuncDecl total (incl. zero-param)", "internal/**, _test.go excluded, FuncDecl only", func(tr tree) int {
+		{label: "A. FuncDecl total (incl. zero-param)", universe: "internal/**, _test.go excluded, FuncDecl only", count: func(tr tree) int {
 			return tr.count(false, anyDecl)
 		}},
-		{"B. ...of which zero-parameter", "internal/** FuncDecl, _test.go excluded", func(tr tree) int {
+		{label: "B. ...of which zero-parameter", universe: "internal/** FuncDecl, _test.go excluded", count: func(tr tree) int {
 			return tr.count(false, func(d decl) bool { return d.n == 0 })
 		}},
-		{"C. ...with >= 1 parameter", "internal/** FuncDecl, _test.go excluded", func(tr tree) int {
+		{label: "C. ...with >= 1 parameter", universe: "internal/** FuncDecl, _test.go excluded", count: func(tr tree) int {
 			return tr.count(false, func(d decl) bool { return d.n > 0 })
 		}},
-		{"C'. ...with >= 1 parameter — interface methods", "internal/** top-level interface methods, _test.go excluded", func(tr tree) int {
+		{label: "C'. ...with >= 1 parameter — interface methods", universe: "internal/** top-level interface methods, _test.go excluded", count: func(tr tree) int {
 			return tr.count(true, func(d decl) bool { return d.n > 0 })
 		}},
-		{"D. n >= 5", "internal/** FuncDecl, _test.go excluded", func(tr tree) int {
+		{label: "D. n >= 5", universe: "internal/** FuncDecl, _test.go excluded", count: func(tr tree) int {
 			return tr.count(false, func(d decl) bool { return d.n >= 5 })
 		}},
-		{"E. n >= 6", "internal/** FuncDecl, _test.go excluded", func(tr tree) int {
+		{label: "E. n >= 6", universe: "internal/** FuncDecl, _test.go excluded", count: func(tr tree) int {
 			return tr.count(false, func(d decl) bool { return d.n >= 6 })
 		}},
-		{"E'. n >= 6 — interface methods", "internal/** interface methods, _test.go excluded", func(tr tree) int {
+		{label: "E'. n >= 6 — interface methods", universe: "internal/** interface methods, _test.go excluded", count: func(tr tree) int {
 			return tr.count(true, func(d decl) bool { return d.n >= 6 })
 		}},
-		{"F. n >= 4 AND run >= 2", "internal/** FuncDecl, _test.go excluded, ctx/any runs exempt", func(tr tree) int {
+		{label: "F. n >= 4 AND run >= 2", universe: "internal/** FuncDecl, _test.go excluded, ctx/any runs exempt", count: func(tr tree) int {
 			return tr.count(false, func(d decl) bool { return d.n >= 4 && d.longest >= armARun })
 		}},
-		{"F'. n >= 4 AND run >= 2 — interface methods", "internal/** interface methods, _test.go excluded", func(tr tree) int {
+		{label: "F'. n >= 4 AND run >= 2 — interface methods", universe: "internal/** interface methods, _test.go excluded", count: func(tr tree) int {
 			return tr.count(true, func(d decl) bool { return d.n >= 4 && d.longest >= armARun })
 		}},
-		{"G. n >= 5 AND run >= 2", "internal/** FuncDecl, _test.go excluded", func(tr tree) int {
+		{label: "G. n >= 5 AND run >= 2", universe: "internal/** FuncDecl, _test.go excluded", count: func(tr tree) int {
 			return tr.count(false, func(d decl) bool { return d.n >= 5 && d.longest >= armARun })
 		}},
-		{"G'. n >= 5 AND run >= 2 — interface methods", "internal/** interface methods, _test.go excluded", func(tr tree) int {
+		{label: "G'. n >= 5 AND run >= 2 — interface methods", universe: "internal/** interface methods, _test.go excluded", count: func(tr tree) int {
 			return tr.count(true, func(d decl) bool { return d.n >= 5 && d.longest >= armARun })
 		}},
-		{"H. longest run >= 3", "internal/** FuncDecl, _test.go excluded", func(tr tree) int {
+		{label: "H. longest run >= 3", universe: "internal/** FuncDecl, _test.go excluded", count: func(tr tree) int {
 			return tr.count(false, func(d decl) bool { return d.longest >= armBRun })
 		}},
-		{"I. any run >= 2", "internal/** FuncDecl, _test.go excluded", func(tr tree) int {
+		{label: "I. any run >= 2", universe: "internal/** FuncDecl, _test.go excluded", count: func(tr tree) int {
 			return tr.count(false, func(d decl) bool { return d.longest >= armARun })
 		}},
-		{"J. RED — arms (a)/(b)", "internal/** FuncDecl, _test.go excluded", func(tr tree) int {
+		{label: "J. RED — arms (a)/(b)", universe: "internal/** FuncDecl, _test.go excluded", count: func(tr tree) int {
 			return tr.count(false, func(d decl) bool { return strings.ContainsAny(d.arms(), "ab") })
 		}},
-		{"J'. RED — arms (a)/(b) — interface methods", "internal/** interface methods, _test.go excluded", func(tr tree) int {
+		{label: "J'. RED — arms (a)/(b) — interface methods", universe: "internal/** interface methods, _test.go excluded", count: func(tr tree) int {
 			return tr.count(true, func(d decl) bool { return strings.ContainsAny(d.arms(), "ab") })
 		}},
-		{"K. RED — arms (a)/(b)/(c)", "internal/** FuncDecl, _test.go excluded", func(tr tree) int {
+		{label: "K. RED — arms (a)/(b)/(c)", universe: "internal/** FuncDecl, _test.go excluded", count: func(tr tree) int {
 			return tr.count(false, func(d decl) bool { return d.arms() != "" })
 		}},
-		{"K'. RED — arms (a)/(b)/(c) — interface methods", "internal/** interface methods, _test.go excluded", func(tr tree) int {
+		{label: "K'. RED — arms (a)/(b)/(c) — interface methods", universe: "internal/** interface methods, _test.go excluded", count: func(tr tree) int {
 			return tr.count(true, func(d decl) bool { return d.arms() != "" })
 		}},
-		{"L. RED — arm (d), same-package unkeyed literals", "internal/** incl. _test.go", func(tr tree) int {
-			return len(tr.unkeyed)
+		{label: "L. RED — arm (d), same-package unkeyed literals", universe: "internal/** incl. _test.go, one row per file:line:Type", count: func(tr tree) int {
+			// Counted as SITES (deduped by the allow-list identity), so L agrees
+			// with the red set row for row.
+			keys := map[string]bool{}
+			for _, u := range tr.unkeyed {
+				keys[u.key] = true
+			}
+			return len(keys)
 		}},
-		{"M. remainder — _test.go arms (a)/(b)/(c)", "internal/**/*_test.go (out of scope for the gate)", func(tr tree) int {
+		{label: "M. remainder — _test.go arms (a)/(b)/(c)", universe: "internal/**/*_test.go (out of scope for the gate)", count: func(tr tree) int {
 			n := 0
 			for _, d := range tr.decls {
 				if d.isTest && d.arms() != "" {
@@ -672,19 +826,19 @@ func figures() []figure {
 			}
 			return n
 		}},
-		{"N. remainder — interface methods below the arm-(a) arity", "internal/**: n <= 3 AND run >= 2", func(tr tree) int {
+		{label: "N. remainder — interface methods below the arm-(a) arity", universe: "internal/**: n <= 3 AND run >= 2", count: func(tr tree) int {
 			return tr.count(true, func(d decl) bool { return d.n <= 3 && d.longest >= armARun })
 		}},
-		{"O. remainder — FuncDecl n <= 3 AND run == 2", "internal/** FuncDecl, _test.go excluded", func(tr tree) int {
+		{label: "O. remainder — FuncDecl n <= 3 AND run == 2", universe: "internal/** FuncDecl, _test.go excluded", count: func(tr tree) int {
 			return tr.count(false, func(d decl) bool { return d.n <= 3 && d.longest == armARun })
 		}},
-		{"P. remainder — FuncDecl with an identical-type RESULT run (G2)", "internal/** FuncDecl, _test.go excluded, `error` exempt", func(tr tree) int {
+		{label: "P. remainder — FuncDecl with an identical-type RESULT run (G2)", universe: "internal/** FuncDecl, _test.go excluded, `error` exempt", count: func(tr tree) int {
 			return tr.count(false, func(d decl) bool { return d.resRun >= armARun })
 		}},
-		{"Q. type aliases (G3: 0 expected)", "internal/**, _test.go excluded", func(tr tree) int {
+		{label: "Q. type aliases (G3: 0 expected)", universe: "internal/**, _test.go excluded", count: func(tr tree) int {
 			return tr.aliases
 		}},
-		{"R. identical-signature func runs (arm (c) is NOT a swap rule)", "internal/** FuncDecl, _test.go excluded", func(tr tree) int {
+		{label: "R. identical-signature func runs (arm (c) is NOT a swap rule)", universe: "internal/** FuncDecl, _test.go excluded", count: func(tr tree) int {
 			return tr.count(false, func(d decl) bool { return d.identFn >= armCRun })
 		}},
 	}
@@ -765,7 +919,9 @@ func writeAllowlist(t *testing.T, path string, sites []site, prev map[string]str
 	b.WriteString("# fail-on-stale ratchet: an entry that no longer matches a violation FAILS the gate,\n")
 	b.WriteString("# and -update-allowlist refuses to GROW it (ADR 0020 fold R-51-1).\n")
 	b.WriteString("#\n")
-	b.WriteString("# Empty at round 098 (option A: every site fixed).\n")
+	if len(sites) == 0 {
+		b.WriteString("# Empty at round 098 (option A: every site fixed).\n")
+	}
 	for _, s := range sites {
 		fmt.Fprintf(&b, "%s  # %s arms=%s — %s\n", s.key, s.name, s.arms, prev[s.key])
 	}
@@ -939,6 +1095,17 @@ func selfTestAllowlist(t *testing.T) {
 	}
 }
 
+// selfTestSelfApplication proves the gate satisfies the arms it enforces: its OWN
+// package is scanned and must report no site. It is a PIN, not a widened walk —
+// the governed scope stays `internal/**` (issue #210 §scope).
+func selfTestSelfApplication(t *testing.T) {
+	t.Helper()
+	root := moduleRoot(t)
+	if sites := scanSubtree(t, root, "tools/params").redSites(); len(sites) != 0 {
+		t.Fatalf("the gate reds on its own source (it does not satisfy its own arms):\n%s", renderRedSet(sites))
+	}
+}
+
 // TestVerifyParameterShapes is the gate: red on every non-allow-listed
 // swap-hazard site, and red on a stale allow-list entry.
 func TestVerifyParameterShapes(t *testing.T) {
@@ -950,7 +1117,7 @@ func TestVerifyParameterShapes(t *testing.T) {
 	// The rule logic is pinned on synthetic input BEFORE the tree is judged, so a
 	// deleted or renamed self-test reds instead of silently passing (the
 	// tools/arch name-set defence).
-	want := []string{"arms", "unkeyed", "allow-list"}
+	want := []string{"arms", "unkeyed", "allow-list", "self-application"}
 	var ran []string
 	run := func(name string, fn func(*testing.T)) {
 		t.Run(name, fn)
@@ -959,6 +1126,7 @@ func TestVerifyParameterShapes(t *testing.T) {
 	run("arms", selfTestArms)
 	run("unkeyed", selfTestUnkeyed)
 	run("allow-list", selfTestAllowlist)
+	run("self-application", selfTestSelfApplication)
 	if !slices.Equal(ran, want) {
 		t.Fatalf("internal error: expected self-tests %v to run, got %v", want, ran)
 	}

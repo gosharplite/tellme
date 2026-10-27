@@ -108,6 +108,11 @@ type treeSpec struct {
 }
 
 // descend returns the spec for one child directory.
+//
+// Note (round 098): `name, extraIndent string` is itself an adjacent identical-type
+// pair — introduced BY this refactor, and deliberately kept because it is n = 2, so
+// arm (a) does not apply and arm (b) needs a run of three. It is recorded in the
+// measured `n <= 3, run = 2` remainder (ADR 0068 D5), not hidden here.
 func (s treeSpec) descend(name, extraIndent string) treeSpec {
 	return treeSpec{
 		out:      s.out,
