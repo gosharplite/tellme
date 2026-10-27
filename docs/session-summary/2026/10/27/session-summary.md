@@ -5,8 +5,8 @@
 **Status file**: [`STATUS.md`](../../../../../STATUS.md) *(back-link — the single live-state source)*
 **Workspace**: `$TELL_ME_HOME` on the **`kiosk`** env (a **GKE container managed by ConfigHub**); linux/amd64; Go **1.26.10** (user-scoped).
 **Session mode**: `butler`.
-**Branch**: `098-param-swap-guard` (off `dev` `0231f64`); `dev` untouched.
-**Status at end of session**: **round 098 `098-param-swap-guard` in flight — PR open into `dev`, awaiting human review** (only a human merges). Closes [#210](https://github.com/gosharplite/tellme/issues/210).
+**Branch**: `dev` (round branch `098-param-swap-guard` merged + deleted; `dev == origin/dev`).
+**Status at end of session**: **round 098 `098-param-swap-guard` DELIVERED / FROZEN** — the **compile-blind argument-swap gate** (`make verify-params`, **ADR 0068**) plus the 46-site refactor and the `cli.go` split; PR [#211](https://github.com/gosharplite/tellme/pull/211) human-merged into `dev` (`93d32f0`), propagated `dev -> main` (**no-ff**) and tagged **`round-098`**. **Closes [#210](https://github.com/gosharplite/tellme/issues/210)** (closed by hand — a `Closes` keyword in a `dev`-targeted PR does not auto-close).
 
 ---
 
@@ -169,3 +169,74 @@ other.
 1. Human reviews + merges the round-098 PR; then the closeout (→ tag `round-098`).
 2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `098-param-swap-guard` until merged, then `dev`).
 3. Candidate ordering note from the round: **this round before [#195](https://github.com/gosharplite/tellme/issues/195)** — `requestSpec` now carries `MaxTokens` as a named field, which is exactly the shape #195's per-(provider, model) budget selection needs.
+
+---
+
+## Session 90 closeout (2026-10-27) — round 098 **DELIVERED / FROZEN** (`SESSION-CLOSEOUT.md` Steps 1–8)
+
+The operator merged PR [#211](https://github.com/gosharplite/tellme/pull/211) by hand (merge commit
+`93d32f0`) and deleted the remote branch; the agent verified the remote was gone (`git fetch --prune` →
+`[deleted] origin/098-param-swap-guard`; `git ls-remote --heads origin '098*'` empty), verified the round
+tip `bfb15b3` was an **ancestor** of `origin/dev` **before** deleting, then `git branch -d` (safe delete,
+never `-D`) and fast-forwarded local `dev` `0231f64 → 93d32f0`. The issue was closed by hand — see C6.
+
+### Closeout step results
+
+| Step | Outcome |
+| --- | --- |
+| **1 — working tree** | `dev` clean at start; branch matched `STATUS.md`'s active branch after the round branch was deleted; the only `specs/plans/**` paths touched were the round's **own new** `098-*` package (no delivered package modified — frozen history intact); no stray temp files; diff-level secret grep **clean** |
+| **2 — gates** | **`make check` OK** (verify + full contract) · full E2E **334 scenarios · 2519 steps green** · `make test-race` **no data races** · `modelith-check` no drift · `modelith-lint` **0/0** ×3 · `verify-adr-index` consistent · `golangci-lint` 0 issues · `govulncheck` **"No vulnerabilities found."** · topology audit **PASSED** (53 features · 21 root + **468** module rows · **2493** steps; advisory) · advisory `modelith-drift` 28 terms anchored |
+| **3 — STATUS.md** | header → round 098 **DELIVERED / FROZEN**, round in flight **none**, active branch `dev`; **Rule-12 split**: the **round-097** delivered-round detail **and** the `round-NNN` **tag enumeration** relocated **verbatim** into [`docs/archives/status/2026-10-27.md`](../../../../archives/status/2026-10-27.md) (with a back-link); STATUS trimmed to **80 lines** of live state, one delivered-round section; environment notes updated (`verify-params` is now the **twelfth** `make verify` member; a new **Parameter-shape gate** note records the `-count=1` rationale distinction and arm (d)'s one remaining limit; the tag note is now a pointer; the `Closes #NNN`-in-a-`dev`-PR caveat recorded) |
+| **4 — daily summary** | this §closeout appended (§ session-90 body preserved verbatim); the header's branch + end-of-session status refreshed to the delivered state |
+| **5 — reconcile** | `STATUS.md` ↔ this summary agree: no round in flight, `dev` active, heads match (`dev == origin/dev == 93d32f0`), artifact checklist complete, tracker → 5 live seeds |
+| **6 — commit** | this closeout's `STATUS.md` + archive + summary committed and pushed on `dev` |
+| **7 — propagate + hand off** | `dev -> main` (**no-ff**), `main^{tree} == dev^{tree}` **verified** before tagging; annotated **`round-098`** created on that propagation merge and pushed; installed binary refreshed from the **then-current `dev` head** (`go install ./cmd/tellme`; `go version -m` confirms `vcs.modified=false`, `--version` → `dev`) — **no head SHA recorded**, since a pin goes born-stale on the next commit |
+| **8 — issue tracker** | **#210 closed (completed)** by hand, with the delivered-state body rewrite + a linking comment; the remaining **5** open issues checked and left accurate (`#194`–`#197`, `#203`) |
+
+### Decisions locked (closeout)
+
+| # | Decision |
+| --- | --- |
+| **C1** | Round 098 is delivered/frozen; `specs/plans/098-param-swap-guard/` is history from now on (a new iteration starts a fresh package). |
+| **C2** | The round-097 detail **and** the `round-NNN` tag enumeration were **relocated verbatim** to the archive rather than deleted (Rule 12), and `STATUS.md` was trimmed to live state — it had reached two delivered-round sections plus a 40-entry tag list. |
+| **C3** | The **`Closes #NNN` does not fire on a `dev`-targeted PR** (closing keywords act only on a merge into the default branch, `main`). Recorded as an environment note; the issue is closed **by hand** at closeout. |
+| **C4** | `round-098` is tagged on the **`dev → main` propagation merge**, not on the PR merge commit (ADR 0026). |
+| **C5** | No head SHA is pinned on a bootstrap-read surface — the STATUS active-branch line names the **PR merge commit** as provenance and defers live heads to `git rev-parse` (the round-097 **C5/C7** convention). |
+| **C6** | The issue body was **rewritten to the delivered state** (gate, arms, the 46-site refactor, the 12-row DoD verification table, the six review findings, the measured baseline, the `#195` follow-on) rather than left as a stale candidate doc — an accurate closed record beats a tidy short one. |
+
+### What the six review rounds cost and bought
+
+Nine findings across six rounds, all accepted; the round's own report changed materially twice:
+
+- the **`-count=1` rationale** was inherited from `tools/arch` and **false here** (in-process read vs a
+  `go list` child process) — reworded in ADR D9 / `doc.go` / Makefile / techstack, W7 re-recorded;
+- **arm (d) was narrower than its own definition** — elided `[]T{{…}}` literals were skipped, so the
+  published `L = 0` was not what the arm measured; the corrected figure is **L = 6** and the red set is
+  **46**, not 42;
+- three **evidence** defects (a vacuous self-application pin, a forward item with no compiler behind it and
+  then an over-claimed one, and a vacuous shape pin). Each is recorded in ADR 0068 and the plan package's
+  fold ledger as *previously wrong* rather than quietly corrected.
+
+The three durable lessons now in ADR 0068 beyond the gate itself: **an inherited rationale is not a
+verified one**; **a forward item is a claim like any other**; **a pin must be mutated against the code it
+claims to pin**.
+
+### Open items (non-blocking)
+
+- **None new.** `STATUS.md` carries no open-items index: a deferred item lives in its **`ADR 00NN §Forward`**
+  or a live issue. **ADR 0068 §Forward RF-068-1…5** are disclosures, not tasking (result lists 11 measured ·
+  the `n ≥ 4` remainder 6 + 33 · arm-(d) `file:line:Type` allow-list keys · the build-tag union is
+  parse-as-written · `requestSpec.MaxTokens` ownership deferred to #195).
+- **Issue tracker**: **#210 closed** (delivered); **#194–#197**, **#203** open and accurate.
+
+### Next steps
+
+1. Open the next round off `dev` via `/axb-specify` — a theme from **operator value or a live issue**
+   (Bootstrap Agent Rule 11; live seeds [#194](https://github.com/gosharplite/tellme/issues/194)–[#197](https://github.com/gosharplite/tellme/issues/197), [#203](https://github.com/gosharplite/tellme/issues/203)).
+2. Re-read `SESSION-BOOTSTRAP.md` next session (active branch `dev`).
+3. If [#195](https://github.com/gosharplite/tellme/issues/195) is taken next, note that `requestSpec.MaxTokens` is already a **named field with ownership undecided** (RF-068-5) — the shape that issue's per-(provider, model) budget-field choice needs.
+
+### PM follow-ups
+
+- None (no PM-owned requirement gap; the spec, acceptance feature and truth rows all landed as specified,
+  and `/axb-dsl-refine` was a recorded **NOOP** because the round is behaviour-neutral).
