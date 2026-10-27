@@ -43,15 +43,15 @@ func (Lines) TurnGap() string { return FormatTurnGap() }
 
 // PayloadMeasured renders the measured payload status line (round-054 green
 // accents).
-func (l Lines) PayloadMeasured(t time.Time, tokens, budget int, mode, model string) string {
-	return formatPayloadMeasuredColour(t, tokens, budget, mode, model, l.colour)
+func (l Lines) PayloadMeasured(s render.PayloadStatus) string {
+	return formatPayloadMeasuredColour(s, l.colour)
 }
 
 // PayloadEstimate renders the estimated pre-flight payload line (round 057;
 // ADR 0027): `+<delta> ~<tokens> tokens - <mode> - <model>` with the round-054
 // green MODE accent.
-func (l Lines) PayloadEstimate(t time.Time, tokens, delta int, mode, model string) string {
-	return formatPayloadEstimateColour(t, tokens, delta, mode, model, l.colour)
+func (l Lines) PayloadEstimate(s render.PayloadStatus) string {
+	return formatPayloadEstimateColour(s, l.colour)
 }
 
 // Metrics renders the per-turn metrics line.
@@ -60,8 +60,8 @@ func (Lines) Metrics(t time.Time, provider string, u metrics.UsageCounts) string
 }
 
 // Ready renders the `╰─⠿ Ready` session summary (round-054 green session cost).
-func (l Lines) Ready(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64) string {
-	return formatReadyColour(lastCallCost, turnCost, sessionCost, sessionMiss, sessionHit, sessionOut, hitRate, l.colour)
+func (l Lines) Ready(stats render.ReadyStats) string {
+	return formatReadyColour(stats, l.colour)
 }
 
 // ToolReason renders the `[Tool Reason]` line (round-054 whole-line green).

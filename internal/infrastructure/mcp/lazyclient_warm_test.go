@@ -36,7 +36,7 @@ func (f *warmFake) CallTool(context.Context, string, map[string]interface{}) (do
 func (f *warmFake) Close() error { return nil }
 
 func clientReturning(f *warmFake) ClientFactory {
-	return func(context.Context, string, string, time.Duration, time.Duration) (domaintools.MCPClient, error) {
+	return func(context.Context, RemoteSpec) (domaintools.MCPClient, error) {
 		return f, nil
 	}
 }

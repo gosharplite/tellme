@@ -131,11 +131,24 @@ func FormatToolAction(t time.Time, tool, arguments string) string {
 // yellow. The colour wraps the ALREADY-sanitized line, so no control byte from an
 // argument can escape the wrapper. The colour-off path returns FormatToolAction
 // verbatim (the single plain entry point), so the plain bytes stay byte-identical.
-func formatToolActionColour(t time.Time, tool, arguments string, colour bool) string {
+func formatToolActionColour(t time.Time, a actionText, colour bool) string {
 	if !colour {
-		return FormatToolAction(t, tool, arguments)
+		return FormatToolAction(t, a.tool, a.arguments)
 	}
-	return yellow(FormatToolAction(t, tool, arguments), true)
+	return yellow(FormatToolAction(t, a.tool, a.arguments), true)
+}
+
+// actionText names the action line's two string inputs (round 098; ADR 0068).
+//
+// Plainly: this is NOT a removal of the hazard, it is the arm-(a)/(c) fold at the
+// one site the gate reds. The pair `tool, arguments string` still lives on the
+// PUBLIC surfaces — `FormatToolAction(t, tool, arguments)` and
+// `ToolLineRenderer.ActionLine(t, tool, arguments)` — because those are n = 3 and
+// sit BELOW arm (a)'s `n >= 4` arity; widening the threshold to reach them is the
+// recorded boundary decision (ADR 0068 D5), not this struct's job.
+type actionText struct {
+	tool      string
+	arguments string
 }
 
 // FormatToolResult renders the result line — the tool name plus the folded,

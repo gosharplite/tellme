@@ -353,6 +353,38 @@ endif
 	@go test -count=1 -tags=arch -run TestVerifyRealArchitecture ./tools/arch
 	@echo "  ✓ no layer violation beyond the baseline; no import cycles"
 
+# Parameter-shape gate (round 098, ADR 0068): the compile-blind argument-swap scan
+# over internal/** — adjacent parameters of an identical type (arms a/b), adjacent
+# func-typed parameters (arm c, the DI idiom), and same-package unkeyed struct
+# literals (arm d, the call-site half go vet's composites analyser cannot see).
+# Mirrors the verify-architecture recipe shape: vet + lint the gate's own code,
+# then run it with -count=1. NOTE the rationale differs: verify-architecture
+# shells a `go list` CHILD PROCESS which the test cache cannot see, while this
+# gate reads the tree IN-PROCESS, which Go DOES key into the cache (go help test).
+# -count=1 is therefore belt-and-braces + parity, not a cache-vacuity fix.
+verify-params:
+	@echo "verify-params: compile-blind argument-swap gate (adjacent identical-type params; ADR 0068) ..."
+	@go vet -tags=quality ./tools/params
+ifeq ($(GOLANGCI),)
+	@echo "  (skip) golangci-lint not found; the tagged guard is not lint-checked (go vet still ran)"
+else
+	@$(GOLANGCI) run --build-tags=quality ./tools/params/...
+endif
+	@go test -count=1 -tags=quality -run TestVerifyParameterShapes ./tools/params
+	@echo "  ✓ no swap-hazard signature beyond the (empty) allow-list"
+
+# Print the full labelled report: every baseline figure with its label and
+# universe, plus the red set with the arms that fired. The script OWNS the
+# numbers the plan quotes (issue #210 §Provenance). Not a gate — it never fails.
+verify-params-report:
+	@go test -count=1 -v -tags=quality -run TestParameterShapeReport ./tools/params
+
+# Regenerate the allow-list from the gate's own output (never hand-edit). Refuses
+# to GROW it (ADR 0020 fold R-51-1): a new violation must be fixed, not listed.
+verify-params-update:
+	@echo "verify-params-update: regenerating tools/params/allowlist.txt from the gate ..."
+	@go test -count=1 -tags=quality -run TestVerifyParameterShapes ./tools/params -args -update-allowlist
+
 # Regenerate the committed baseline from the gate's own output (never hand-edit).
 # Not part of `verify` — the ratchet must not rewrite its own baseline.
 verify-architecture-update:
@@ -461,5 +493,5 @@ dead-code:
 # `vet` runs before `verify-cross-compile` for fail-fast on host-local errors;
 # `verify-cross-compile` then re-covers the host target as part of the matrix.
 # verify-fmt / verify-adr-index are the ADR-0042 additions (format + ADR-index).
-verify: verify-no-test-sleep verify-no-network verify-fmt verify-adr-index vet verify-cross-compile verify-mcp-sdk-confinement verify-architecture modelith-check lint vulncheck
+verify: verify-no-test-sleep verify-no-network verify-fmt verify-adr-index vet verify-cross-compile verify-mcp-sdk-confinement verify-architecture verify-params modelith-check lint vulncheck
 	@echo "verify: OK"

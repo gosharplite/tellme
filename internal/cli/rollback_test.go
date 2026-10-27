@@ -63,7 +63,7 @@ func TestRenderRollback_ConfirmsAndClamps(t *testing.T) {
 		{Prompt: "three", Answer: "a3"},
 	}}
 	var out, errOut bytes.Buffer
-	code := renderRollback(home, "", runtimeEnv{stdout: &out, stderr: &errOut}, 1, func(string) history.Store { return st })
+	code := renderRollback(sessionRef{home: home}, runtimeEnv{stdout: &out, stderr: &errOut}, 1, storeDeps(func(string) history.Store { return st }))
 	if code != Success {
 		t.Fatalf("code = %d, want Success; stderr=%q", code, errOut.String())
 	}
@@ -82,7 +82,7 @@ func TestRenderRollback_ClampsOverCount(t *testing.T) {
 	home := t.TempDir()
 	st := &fakeStore{entries: []history.Entry{{Prompt: "only", Answer: "a"}}}
 	var out, errOut bytes.Buffer
-	if code := renderRollback(home, "", runtimeEnv{stdout: &out, stderr: &errOut}, 9, func(string) history.Store { return st }); code != Success {
+	if code := renderRollback(sessionRef{home: home}, runtimeEnv{stdout: &out, stderr: &errOut}, 9, storeDeps(func(string) history.Store { return st })); code != Success {
 		t.Fatalf("code = %d, want Success", code)
 	}
 	if got := out.String(); got != "Rolled back 1 turn. History now holds 0 turns.\n" {

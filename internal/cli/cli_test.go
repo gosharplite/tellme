@@ -72,7 +72,7 @@ func TestResolveRejectsEmptyAfterExpansion(t *testing.T) {
 		"    MODEL: gpt-5.5\n"+
 		"    URL: ${TELLME_TEST_EMPTY_URL:-}\n")
 
-	_, rerr := resolve(dir, cfgPath)
+	_, rerr := resolve(sessionRef{home: dir, config: cfgPath})
 	if rerr == nil {
 		t.Fatal("resolve() = nil error, want provider-invalid (URL empty after expansion)")
 	}
@@ -100,7 +100,7 @@ func TestResolveCarriesExpandedProvider(t *testing.T) {
 		"    URL: https://example.test/v1\n"+
 		"    API_KEY: ${TELLME_TEST_KEY}\n")
 
-	res, rerr := resolve(dir, cfgPath)
+	res, rerr := resolve(sessionRef{home: dir, config: cfgPath})
 	if rerr != nil {
 		t.Fatalf("resolve() unexpected error: %v", rerr)
 	}
@@ -139,7 +139,7 @@ func TestRenderToolUsageDiagnosesReadError(t *testing.T) {
 	})
 
 	var out, errBuf bytes.Buffer
-	if code := renderToolUsage(runtimeEnv{stdout: &out, stderr: &errBuf}, dp.NewToolRegistry, dp.NewToolUsageStore, dp.UserHomeDir, dp.NewLines(false)); code != Success {
+	if code := renderToolUsage(runtimeEnv{stdout: &out, stderr: &errBuf}, cliDeps{dp: dp}); code != Success {
 		t.Fatalf("renderToolUsage = %d, want %d (success)", code, Success)
 	}
 	if !strings.Contains(errBuf.String(), "[tool-usage]") {

@@ -43,7 +43,7 @@ func (s *immediateSleep) sleep(_ context.Context, d time.Duration) bool {
 }
 
 func newTestRetry(g llm.Gateway, delays []time.Duration, sl func(context.Context, time.Duration) bool, notify func(int, int, time.Duration, error)) retryingGateway {
-	return newRetryingGateway(g, delays, sl, notify)
+	return newRetryingGateway(g, retrySpec{delays: delays, sleep: sl, notify: notify})
 }
 
 // TestRetryDelaysLiteral pins the operator-locked schedule literally.
@@ -124,13 +124,13 @@ func TestRetryingGateway_NotifiesEachRetry(t *testing.T) {
 	}
 	var notes []note
 	notify := func(attempt, total int, d time.Duration, _ error) {
-		notes = append(notes, note{attempt, total, d})
+		notes = append(notes, note{attempt: attempt, total: total, delay: d})
 	}
 	rg := newTestRetry(g, []time.Duration{0, 0}, (&immediateSleep{}).sleep, notify)
 	if _, err := rg.Complete(context.Background(), llm.Request{}); err != nil {
 		t.Fatalf("Complete: %v", err)
 	}
-	want := []note{{2, 3, 0}, {3, 3, 0}}
+	want := []note{{attempt: 2, total: 3}, {attempt: 3, total: 3}}
 	if len(notes) != len(want) {
 		t.Fatalf("notes = %v, want %v", notes, want)
 	}

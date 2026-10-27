@@ -23,7 +23,7 @@ func TestRequestBody_MediaBecomesInlineData(t *testing.T) {
 		{Role: "tool", Content: "Successfully read image", ToolCallID: "call_1"},
 		{Role: "user", Media: []domaintools.MediaPart{{MIMEType: "image/png", Data: data}}},
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -99,7 +99,7 @@ func TestRequestBody_MultiCallRound_BatchesFunctionResponses(t *testing.T) {
 		{Role: "tool", Content: "b ok", ToolCallID: "call_2"},
 		{Role: "user", Media: []domaintools.MediaPart{{MIMEType: "image/jpeg", Data: dataB}}},
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestRequestBody_MultiCallRound_NoMedia_BatchesResults(t *testing.T) {
 		{Role: "tool", Content: "the first note", ToolCallID: "call_1"},
 		{Role: "tool", Content: "the second note", ToolCallID: "call_2"},
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -215,7 +215,7 @@ func TestRequestBody_ThreeCallRound_BatchesResults(t *testing.T) {
 		{Role: "tool", Content: "listing", ToolCallID: "call_2"},
 		{Role: "tool", Content: "tree", ToolCallID: "call_3"},
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -314,7 +314,7 @@ func TestRequestBody_ShortRound_DropsUnpairedNames(t *testing.T) {
 				llm.Message{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_9", Name: "search", Arguments: `{}`}}},
 				llm.Message{Role: "tool", Content: "tree", ToolCallID: "call_9"},
 			)
-			body, err := requestBody("", prior, nil, 0, 0, "", "")
+			body, err := requestBody(requestSpec{Prior: prior})
 			if err != nil {
 				t.Fatalf("requestBody: %v", err)
 			}
@@ -355,7 +355,7 @@ func TestRequestBody_ShortRound_DropsUnpairedNames(t *testing.T) {
 // text path reds this (the round-062 byte-identity control, carried to Gemini).
 func TestRequestBody_MediaFreeIsByteIdentical(t *testing.T) {
 	prior := []llm.Message{{Role: "user", Content: "hi"}}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -390,7 +390,7 @@ func TestRequestBody_RoundScopedMedia_OneTurnTwoParts(t *testing.T) {
 			{MIMEType: "image/jpeg", Data: dataB},
 		}},
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}

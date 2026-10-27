@@ -40,7 +40,7 @@ func TestRequestBody_ToolPartsCarryIDs(t *testing.T) {
 		{Role: "tool", Content: "note a", ToolCallID: "call_1"},
 		{Role: "tool", Content: "listing", ToolCallID: "call_2"},
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestRequestBody_OutOfOrderResultsPairByIdentity(t *testing.T) {
 		{Role: "tool", Content: "B listing", ToolCallID: "call_B"},
 		{Role: "tool", Content: "A note", ToolCallID: "call_A"},
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestRequestBody_EmptyToolCallIDOmitsID(t *testing.T) {
 		// No ToolCallID: an id-less (replay-shape) result.
 		{Role: "tool", Content: "note a"},
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -155,7 +155,7 @@ func TestRequestBody_UnmatchedToolCallIDFallsBackToFIFO(t *testing.T) {
 		}},
 		{Role: "tool", Content: "note a", ToolCallID: "call_zzz"},
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestRequestBody_ToolRoleMediaStillCarriesMedia(t *testing.T) {
 		{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_1", Name: "read_image", Arguments: `{"filepath":"a.png"}`}}},
 		{Role: "tool", Content: "attached", Media: []domaintools.MediaPart{{MIMEType: "image/png", Data: data}}},
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestRequestBody_ReplayedStepIDsPairByIdentity(t *testing.T) {
 		{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_step_1", Name: "read_files", Arguments: `{}`}}},
 		{Role: "tool", Content: "note a", ToolCallID: "call_step_1"},
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -244,7 +244,7 @@ func TestParseResponse_PrefersProviderFunctionCallID(t *testing.T) {
 		{Role: "assistant", ToolCalls: resp.ToolCalls},
 		{Role: "tool", Content: "note a", ToolCallID: "vertex-abc"},
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -314,7 +314,7 @@ func TestUnpairedCallIDs_ShortRound_ReportsUnpairedCall(t *testing.T) {
 		t.Fatalf("UnpairedCallIDs = %v, want [call_2] (the unpaired call's id, call order)", got)
 	}
 	// The emitted batched turn still carries only the M produced parts (I-2).
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -384,7 +384,7 @@ func TestUnpairedCallIDs_MiddleRoundZeroResults(t *testing.T) {
 		t.Fatalf("UnpairedCallIDs = %v, want %v (all of the middle round's calls)", got, want)
 	}
 	// The M = 0 round emits no batched turn; only round 2 contributes a part.
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -433,7 +433,7 @@ func TestUnpairedCallIDs_DuplicateProviderIDIsDeterministic(t *testing.T) {
 	if got := UnpairedCallIDs(prior); len(got) != 0 {
 		t.Fatalf("both duplicate-id calls must pair (first-unused match): got unpaired %v", got)
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -491,7 +491,7 @@ func TestUnpairedCallIDs_AgreesWithEmittedBody(t *testing.T) {
 				total += len(m.ToolCalls)
 			}
 			unpaired := UnpairedCallIDs(prior)
-			body, err := requestBody("", prior, nil, 0, 0, "", "")
+			body, err := requestBody(requestSpec{Prior: prior})
 			if err != nil {
 				t.Fatalf("requestBody: %v", err)
 			}

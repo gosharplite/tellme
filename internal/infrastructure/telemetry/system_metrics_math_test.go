@@ -30,15 +30,15 @@ func TestAgentCPUPercent(t *testing.T) {
 
 func TestDarwinMemPercentCGO(t *testing.T) {
 	// (active+wired+compressor) = 300 pages × pageSize 1 over 1000 bytes = 30%.
-	if got := darwinMemPercentCGO(1000, 1, 100, 100, 100); !approx(got, 30) {
+	if got := darwinMemPercentCGO(darwinMachVM{totalBytes: 1000, pageSize: 1, active: 100, wired: 100, compressor: 100}); !approx(got, 30) {
 		t.Errorf("darwinMemPercentCGO = %v, want 30", got)
 	}
 	// Clamped to 100 when used exceeds total.
-	if got := darwinMemPercentCGO(100, 1, 200, 0, 0); got != 100 {
+	if got := darwinMemPercentCGO(darwinMachVM{totalBytes: 100, pageSize: 1, active: 200}); got != 100 {
 		t.Errorf("darwinMemPercentCGO clamp = %v, want 100", got)
 	}
 	// No denominator → 0.
-	if got := darwinMemPercentCGO(0, 1, 1, 1, 1); got != 0 {
+	if got := darwinMemPercentCGO(darwinMachVM{pageSize: 1, active: 1, wired: 1, compressor: 1}); got != 0 {
 		t.Errorf("darwinMemPercentCGO(no total) = %v, want 0", got)
 	}
 }
@@ -46,15 +46,15 @@ func TestDarwinMemPercentCGO(t *testing.T) {
 func TestDarwinMemPercentNoCGO(t *testing.T) {
 	// available = 400 pages × pageSize 1 over 1000 ⇒ raw used ratio 0.6 ⇒
 	// 0.6 × 100 × 0.6 (factor) = 36%.
-	if got := darwinMemPercentNoCGO(1000, 1, 400, 0, 0); !approx(got, 36) {
+	if got := darwinMemPercentNoCGO(darwinSysctlVM{totalBytes: 1000, pageSize: 1, free: 400}); !approx(got, 36) {
 		t.Errorf("darwinMemPercentNoCGO = %v, want 36", got)
 	}
 	// available clamps to total ⇒ 0 used.
-	if got := darwinMemPercentNoCGO(100, 1, 500, 0, 0); got != 0 {
+	if got := darwinMemPercentNoCGO(darwinSysctlVM{totalBytes: 100, pageSize: 1, free: 500}); got != 0 {
 		t.Errorf("darwinMemPercentNoCGO(over-available) = %v, want 0", got)
 	}
 	// No denominator → 0.
-	if got := darwinMemPercentNoCGO(0, 1, 1, 1, 1); got != 0 {
+	if got := darwinMemPercentNoCGO(darwinSysctlVM{pageSize: 1, free: 1, speculative: 1, purgeable: 1}); got != 0 {
 		t.Errorf("darwinMemPercentNoCGO(no total) = %v, want 0", got)
 	}
 }

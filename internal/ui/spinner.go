@@ -102,8 +102,20 @@ func wholeSecondsSince(t, now time.Time) int {
 // `{frame}{status} ({total}s {call}s){resource}`. Round 040 (ADR 0009 D1): the
 // elapsed segment carries TWO unlabelled whole-second figures — the total since
 // prompt capture, then the current model call's elapsed.
-func FormatSpinnerLine(frame, status string, total, call int, resource string) string {
-	return fmt.Sprintf("%s%s (%ds %ds)%s", frame, status, total, call, resource)
+func FormatSpinnerLine(l spinnerLine) string {
+	return fmt.Sprintf("%s%s (%ds %ds)%s", l.Frame, l.Status, l.Total, l.Call, l.Resource)
+}
+
+// spinnerLine names one spinner frame's parts (round 098; ADR 0068): the glyph,
+// the status text, the two whole-second figures (total since capture, current
+// call), and the resource segment. The frame/status pair and the total/call pair
+// were adjacent identical types — a swap kept compiling.
+type spinnerLine struct {
+	Frame    string
+	Status   string
+	Total    int
+	Call     int
+	Resource string
 }
 
 // FormatResourceSegment renders the tool-execution resource segment
@@ -302,7 +314,7 @@ func (s *Spinner) activate(status string, toolPhase bool) {
 	tick, stopTicker := s.newTicker()
 	s.stopTicker = stopTicker
 	s.renderLocked()
-	go s.loop(tick, s.stopCh, s.doneCh, false)
+	go s.loop(loopSignals{tick: tick, stop: s.stopCh, done: s.doneCh})
 }
 
 // AdmitResume is the round-040 WS-A resume-only admission path (ADR 0009 D4): it
@@ -331,7 +343,7 @@ func (s *Spinner) AdmitResume() {
 	tick, stopTicker := s.newTicker()
 	s.stopTicker = stopTicker
 	s.mu.Unlock()
-	go s.loop(tick, stopCh, doneCh, true)
+	go s.loop(loopSignals{tick: tick, stop: stopCh, done: doneCh, renderFirst: true})
 }
 
 // resume restores the indicator after interleaved output. The turn-scoped epoch
@@ -378,7 +390,8 @@ func (s *Spinner) deactivate() {
 // (AdmitResume) uses it so the resumed frame appears without waiting a full poll
 // period; activate keeps renderFirst=false (its synchronous first frame is drawn
 // before the goroutine starts).
-func (s *Spinner) loop(tick <-chan time.Time, stop, done chan struct{}, renderFirst bool) {
+func (s *Spinner) loop(sig loopSignals) {
+	stop, done, renderFirst := sig.stop, sig.done, sig.renderFirst
 	defer close(done)
 	if renderFirst {
 		s.mu.Lock()
@@ -393,7 +406,7 @@ func (s *Spinner) loop(tick <-chan time.Time, stop, done chan struct{}, renderFi
 		select {
 		case <-stop:
 			return
-		case <-tick:
+		case <-sig.tick:
 			s.mu.Lock()
 			if !s.running {
 				s.mu.Unlock()
@@ -404,6 +417,17 @@ func (s *Spinner) loop(tick <-chan time.Time, stop, done chan struct{}, renderFi
 			s.mu.Unlock()
 		}
 	}
+}
+
+// loopSignals is the spinner's redraw loop's input (round 098; ADR 0068): the
+// tick source plus the two lifecycle channels. The two `chan struct{}` arguments
+// were adjacent identical types — stopping the loop swapped for joining it kept
+// compiling.
+type loopSignals struct {
+	tick        <-chan time.Time
+	stop        chan struct{}
+	done        chan struct{}
+	renderFirst bool
 }
 
 // renderLocked writes one redrawn frame (the mutex must be held). Round 040
@@ -423,7 +447,13 @@ func (s *Spinner) renderLocked() {
 		cpu, mem := s.sampleResources(now)
 		resource = FormatResourceSegment(cpu, mem)
 	}
-	line := FormatSpinnerLine(frame, s.status, wholeSecondsSince(s.epoch, now), wholeSecondsSince(s.callEpoch, now), resource)
+	line := FormatSpinnerLine(spinnerLine{
+		Frame:    frame,
+		Status:   s.status,
+		Total:    wholeSecondsSince(s.epoch, now),
+		Call:     wholeSecondsSince(s.callEpoch, now),
+		Resource: resource,
+	})
 	// Erase every row the previous frame occupied (round 025; a single-row clear
 	// when lastRows <= 1), then draw the new frame and record its row count.
 	_, _ = io.WriteString(s.w, eraseRows(s.lastRows)+line)

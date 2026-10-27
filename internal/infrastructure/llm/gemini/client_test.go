@@ -27,11 +27,7 @@ func TestRequestURL_FromConfiguredURLNoHostnameCheck(t *testing.T) {
 }
 
 func TestRequestBody_TextPersonaBudgetTools(t *testing.T) {
-	body, err := requestBody(
-		"hi", nil,
-		[]llm.ToolDef{{Name: "read_files", Description: "read a file", Parameters: json.RawMessage(`{"type":"object"}`)}},
-		40960, 32768, "HIGH", "be terse",
-	)
+	body, err := requestBody(requestSpec{Prompt: "hi", ToolDefs: []llm.ToolDef{{Name: "read_files", Description: "read a file", Parameters: json.RawMessage(`{"type":"object"}`)}}, MaxTokens: 40960, ThinkingBudget: 32768, ThinkingLevel: "HIGH", Persona: "be terse"})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -83,7 +79,7 @@ func TestRequestBody_TextPersonaBudgetTools(t *testing.T) {
 }
 
 func TestRequestBody_ZeroBudgetAndThinkingOmitted(t *testing.T) {
-	body, err := requestBody("hi", nil, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prompt: "hi"})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -99,7 +95,7 @@ func TestRequestBody_ZeroBudgetAndThinkingOmitted(t *testing.T) {
 }
 
 func TestRequestBody_ThinkingBudgetOnly(t *testing.T) {
-	body, err := requestBody("hi", nil, nil, 0, 32768, "", "")
+	body, err := requestBody(requestSpec{Prompt: "hi", ThinkingBudget: 32768})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}
@@ -125,7 +121,7 @@ func TestRequestBody_ToolExchangeMapping(t *testing.T) {
 		{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_1", Name: "read_files", Arguments: `{"name":"notes.txt"}`, Signature: "sig-1"}}},
 		{Role: "tool", Content: "ORANGE", ToolCallID: "call_1"},
 	}
-	body, err := requestBody("", prior, nil, 0, 0, "", "")
+	body, err := requestBody(requestSpec{Prior: prior})
 	if err != nil {
 		t.Fatalf("requestBody: %v", err)
 	}

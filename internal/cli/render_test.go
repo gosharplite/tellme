@@ -90,7 +90,7 @@ func TestResolveRejectsNegativeWrapWidth(t *testing.T) {
 		"    MODEL: gpt-5.5\n"+
 		"    URL: https://example.test/v1\n")
 
-	_, rerr := resolve(dir, cfgPath)
+	_, rerr := resolve(sessionRef{home: dir, config: cfgPath})
 	if rerr == nil {
 		t.Fatal("resolve() = nil error, want config-invalid for a negative WRAP_WIDTH")
 	}
@@ -117,7 +117,7 @@ func TestResolveRejectsNonIntegerWrapWidthOverride(t *testing.T) {
 		"    MODEL: gpt-5.5\n"+
 		"    URL: https://example.test/v1\n")
 
-	_, rerr := resolve(dir, cfgPath)
+	_, rerr := resolve(sessionRef{home: dir, config: cfgPath})
 	if rerr == nil || rerr.Reason != reasonConfigInvalid {
 		t.Fatalf("resolve() = %+v, want config-invalid for a non-integer TELL_ME_WRAP_WIDTH", rerr)
 	}

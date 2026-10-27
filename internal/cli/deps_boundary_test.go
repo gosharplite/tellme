@@ -57,7 +57,7 @@ func TestDependenciesSeamIsNarrow(t *testing.T) {
 				exemptSeen[fd.Name.Name] = true
 			}
 			if fs, bad := wideBagReads(fd, bagHolders); bad {
-				violations = append(violations, violation{fd.Name.Name, fs})
+				violations = append(violations, violation{fn: fd.Name.Name, field: fs})
 			}
 			return true
 		})

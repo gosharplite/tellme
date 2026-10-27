@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gosharplite/tellme/internal/domain/metrics"
+	"github.com/gosharplite/tellme/internal/domain/render"
 )
 
 func TestFormatMetrics(t *testing.T) {
@@ -30,7 +31,7 @@ func TestFormatMetricsThAlwaysShown(t *testing.T) {
 }
 
 func TestFormatReady(t *testing.T) {
-	got := FormatReady(0.0005, 0.0005, 0.0005, 236, 56576, 70, 99.6)
+	got := FormatReady(render.ReadyStats{LastCallCost: 0.0005, TurnCost: 0.0005, SessionCost: 0.0005, SessionMiss: 236, SessionHit: 56576, SessionOut: 70, HitRate: 99.6})
 	want := "╰─⠿ Ready ($0.0005 $0.0005 $0.0005 - M: 236 H: 56576 O: 70 - 99.6%)"
 	if got != want {
 		t.Errorf("FormatReady = %q, want %q", got, want)

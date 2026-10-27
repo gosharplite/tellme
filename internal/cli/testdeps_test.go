@@ -216,19 +216,19 @@ func (fakeLines) TurnOpening(turn int, mode string) string {
 
 func (fakeLines) TurnGap() string { return "<gap>" }
 
-func (fakeLines) PayloadMeasured(t time.Time, tokens, budget int, mode, model string) string {
-	return fmt.Sprintf("<payload %d/%d %s %s>", tokens, budget, mode, model)
+func (fakeLines) PayloadMeasured(s render.PayloadStatus) string {
+	return fmt.Sprintf("<payload %d/%d %s %s>", s.Tokens, s.Budget, s.Mode, s.Model)
 }
 
-func (fakeLines) PayloadEstimate(t time.Time, tokens, delta int, mode, model string) string {
-	return fmt.Sprintf("<estimate %d %+d %s %s>", tokens, delta, mode, model)
+func (fakeLines) PayloadEstimate(s render.PayloadStatus) string {
+	return fmt.Sprintf("<estimate %d %+d %s %s>", s.Tokens, s.Delta, s.Mode, s.Model)
 }
 
 func (fakeLines) Metrics(t time.Time, provider string, u metrics.UsageCounts) string {
 	return fmt.Sprintf("<metrics %s M:%d H:%d C:%d Th:%d>", provider, u.Miss, u.Hit, u.Completion, u.Thinking)
 }
 
-func (fakeLines) Ready(float64, float64, float64, int, int, int, float64) string { return "<ready>" }
+func (fakeLines) Ready(render.ReadyStats) string { return "<ready>" }
 
 func (fakeLines) ToolReason(_ time.Time, reason string) string {
 	return fmt.Sprintf("<reason %s>", reason)

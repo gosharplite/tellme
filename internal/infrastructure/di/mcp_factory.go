@@ -20,8 +20,8 @@ import (
 // and the two bounding deadlines: discoveryTimeout caps the connect/list phase
 // (the fixed fast-fail bound) and callTimeout caps the tool calls. Credential
 // RESOLUTION is the caller's job; this is the transport construction.
-func NewRemoteClient(ctx context.Context, url, authorization string, discoveryTimeout, callTimeout time.Duration) (domaintools.MCPClient, error) {
-	return mcp.NewRemoteClient(ctx, url, authorization, discoveryTimeout, callTimeout)
+func NewRemoteClient(ctx context.Context, spec mcp.RemoteSpec) (domaintools.MCPClient, error) {
+	return mcp.NewRemoteClient(ctx, spec)
 }
 
 // ghWaitDelay bounds the wait after the gh process group is killed, so a

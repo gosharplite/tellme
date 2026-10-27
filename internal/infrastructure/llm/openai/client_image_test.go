@@ -53,7 +53,7 @@ func TestMessageContentPinsTheWireShape(t *testing.T) {
 // body is byte-identical to the pre-round shape (a plain string content).
 func TestRequestBodyTextPathUnchanged(t *testing.T) {
 	prior := []llm.Message{{Role: "user", Content: "a"}, {Role: "assistant", Content: "b"}}
-	body, err := requestBody("m", "p", prior, nil, 0, "", "")
+	body, err := requestBody(requestSpec{Model: "m", Prompt: "p", Prior: prior})
 	if err != nil {
 		t.Fatal(err)
 	}

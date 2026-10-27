@@ -64,7 +64,8 @@ func ignoredDir(name string) bool {
 
 // Entries returns up to limit entry names under dir matching prefix, reading in
 // bounded batches and yielding to ctx (PR #38 review directive ③).
-func (OSSWorkspace) Entries(ctx context.Context, dir, prefix string, limit int) []string {
+func (OSSWorkspace) Entries(ctx context.Context, q WorkspaceQuery) []string {
+	dir, prefix, limit := q.Dir, q.Prefix, q.Limit
 	if dir == "" {
 		dir = "."
 	}

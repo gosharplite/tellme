@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gosharplite/tellme/internal/domain/metrics"
+	"github.com/gosharplite/tellme/internal/domain/render"
 )
 
 // TestChromeColour pins the round-054 (ADR 0023) green accents: with colour
@@ -19,7 +20,7 @@ func TestChromeColour(t *testing.T) {
 
 	t.Run("measured payload: the mode and the token number are green", func(t *testing.T) {
 		t.Parallel()
-		meas := formatPayloadMeasuredColour(ts, 438165, 1000000, "butler", "deepseek-flash", true)
+		meas := formatPayloadMeasuredColour(render.PayloadStatus{At: ts, Tokens: 438165, Budget: 1000000, Mode: "butler", Model: "deepseek-flash"}, true)
 		if !strings.Contains(meas, g+"438165"+r) {
 			t.Errorf("measured payload token number not green: %q", meas)
 		}
@@ -28,21 +29,21 @@ func TestChromeColour(t *testing.T) {
 		}
 
 		// Disabled ⇒ byte-identical to the plain formatter.
-		if got, want := formatPayloadMeasuredColour(ts, 438165, 1000000, "butler", "deepseek-flash", false), FormatPayloadMeasured(ts, 438165, 1000000, "butler", "deepseek-flash"); got != want {
+		if got, want := formatPayloadMeasuredColour(render.PayloadStatus{At: ts, Tokens: 438165, Budget: 1000000, Mode: "butler", Model: "deepseek-flash"}, false), FormatPayloadMeasured(render.PayloadStatus{At: ts, Tokens: 438165, Budget: 1000000, Mode: "butler", Model: "deepseek-flash"}); got != want {
 			t.Errorf("colour-off payload = %q, want plain %q", got, want)
 		}
 	})
 
 	t.Run("ready: only the session cost is green", func(t *testing.T) {
 		t.Parallel()
-		line := formatReadyColour(0.0047, 0.0047, 1.0607, 742574, 95659136, 219965, 99.2, true)
+		line := formatReadyColour(render.ReadyStats{LastCallCost: 0.0047, TurnCost: 0.0047, SessionCost: 1.0607, SessionMiss: 742574, SessionHit: 95659136, SessionOut: 219965, HitRate: 99.2}, true)
 		if !strings.Contains(line, g+"$1.0607"+r) {
 			t.Errorf("session cost not green: %q", line)
 		}
 		if strings.Contains(line, g+"$0.0047"+r) {
 			t.Errorf("call/turn costs must stay plain: %q", line)
 		}
-		if got, want := formatReadyColour(0.0047, 0.0047, 1.0607, 742574, 95659136, 219965, 99.2, false), FormatReady(0.0047, 0.0047, 1.0607, 742574, 95659136, 219965, 99.2); got != want {
+		if got, want := formatReadyColour(render.ReadyStats{LastCallCost: 0.0047, TurnCost: 0.0047, SessionCost: 1.0607, SessionMiss: 742574, SessionHit: 95659136, SessionOut: 219965, HitRate: 99.2}, false), FormatReady(render.ReadyStats{LastCallCost: 0.0047, TurnCost: 0.0047, SessionCost: 1.0607, SessionMiss: 742574, SessionHit: 95659136, SessionOut: 219965, HitRate: 99.2}); got != want {
 			t.Errorf("colour-off ready = %q, want plain %q", got, want)
 		}
 	})
@@ -63,7 +64,7 @@ func TestChromeColour(t *testing.T) {
 
 	t.Run("empty mode is not wrapped", func(t *testing.T) {
 		t.Parallel()
-		line := formatPayloadMeasuredColour(ts, 1, 1000000, "", "m", true)
+		line := formatPayloadMeasuredColour(render.PayloadStatus{At: ts, Tokens: 1, Budget: 1000000, Model: "m"}, true)
 		if strings.Contains(line, g+r) {
 			t.Errorf("an empty mode must not emit an empty green pair: %q", line)
 		}
@@ -114,14 +115,14 @@ func TestChromeColourRound057(t *testing.T) {
 
 	t.Run("action line is yellow; plain when off", func(t *testing.T) {
 		t.Parallel()
-		line := formatToolActionColour(ts, "read_files", `{"path":"a"}`, true)
+		line := formatToolActionColour(ts, actionText{tool: "read_files", arguments: `{"path":"a"}`}, true)
 		if !strings.HasPrefix(line, yellow) || !strings.HasSuffix(line, r) {
 			t.Errorf("action line not wrapped yellow: %q", line)
 		}
 		if !strings.Contains(line, "[06:25:11] [Tool Action] read_files(path: a)") {
 			t.Errorf("action text missing: %q", line)
 		}
-		if got, want := formatToolActionColour(ts, "read_files", `{"path":"a"}`, false), FormatToolAction(ts, "read_files", `{"path":"a"}`); got != want {
+		if got, want := formatToolActionColour(ts, actionText{tool: "read_files", arguments: `{"path":"a"}`}, false), FormatToolAction(ts, "read_files", `{"path":"a"}`); got != want {
 			t.Errorf("colour-off action = %q, want plain %q", got, want)
 		}
 	})
@@ -172,26 +173,26 @@ func TestPayloadEstimateRound057(t *testing.T) {
 	ts := time.Date(2026, 9, 19, 6, 25, 11, 0, time.UTC)
 	t.Run("payload estimate: signed increment, no budget, green mode", func(t *testing.T) {
 		t.Parallel()
-		if got, want := FormatPayloadEstimate(ts, 203148, 100, "butler", "deepseek-flash"), "[06:25:11] Payload: +100 ~203148 tokens - butler - deepseek-flash"; got != want {
+		if got, want := FormatPayloadEstimate(render.PayloadStatus{At: ts, Tokens: 203148, Delta: 100, Mode: "butler", Model: "deepseek-flash"}), "[06:25:11] Payload: +100 ~203148 tokens - butler - deepseek-flash"; got != want {
 			t.Errorf("estimate = %q; want %q", got, want)
 		}
-		if got, want := FormatPayloadEstimate(ts, 5, 0, "butler", "m"), "[06:25:11] Payload: +0 ~5 tokens - butler - m"; got != want {
+		if got, want := FormatPayloadEstimate(render.PayloadStatus{At: ts, Tokens: 5, Mode: "butler", Model: "m"}), "[06:25:11] Payload: +0 ~5 tokens - butler - m"; got != want {
 			t.Errorf("no-predecessor estimate = %q; want %q", got, want)
 		}
-		if got, want := FormatPayloadEstimate(ts, 203000, -1000, "butler", "m"), "[06:25:11] Payload: -1000 ~203000 tokens - butler - m"; got != want {
+		if got, want := FormatPayloadEstimate(render.PayloadStatus{At: ts, Tokens: 203000, Delta: -1000, Mode: "butler", Model: "m"}), "[06:25:11] Payload: -1000 ~203000 tokens - butler - m"; got != want {
 			t.Errorf("shrunken estimate = %q; want %q", got, want)
 		}
-		if strings.Contains(FormatPayloadEstimate(ts, 5, 0, "butler", "m"), "/") {
+		if strings.Contains(FormatPayloadEstimate(render.PayloadStatus{At: ts, Tokens: 5, Mode: "butler", Model: "m"}), "/") {
 			t.Errorf("estimate must not show a budget")
 		}
-		col := formatPayloadEstimateColour(ts, 203148, 100, "butler", "deepseek-flash", true)
+		col := formatPayloadEstimateColour(render.PayloadStatus{At: ts, Tokens: 203148, Delta: 100, Mode: "butler", Model: "deepseek-flash"}, true)
 		if !strings.Contains(col, "- "+"\033[0;32m"+"butler"+"\033[0m"+" - ") {
 			t.Errorf("estimate mode not green: %q", col)
 		}
 		if strings.Contains(col, "\033[0;32m"+"203148"+"\033[0m") {
 			t.Errorf("estimated token number must stay plain: %q", col)
 		}
-		if got, want := formatPayloadEstimateColour(ts, 1, 0, "butler", "m", false), FormatPayloadEstimate(ts, 1, 0, "butler", "m"); got != want {
+		if got, want := formatPayloadEstimateColour(render.PayloadStatus{At: ts, Tokens: 1, Mode: "butler", Model: "m"}, false), FormatPayloadEstimate(render.PayloadStatus{At: ts, Tokens: 1, Mode: "butler", Model: "m"}); got != want {
 			t.Errorf("colour-off estimate = %q, want plain %q", got, want)
 		}
 	})

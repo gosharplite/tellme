@@ -127,7 +127,13 @@ func (r *callRenderer) OnCallBegin(callIndex int, messages []llm.Message) {
 	r.prevEstimate = estimate
 	r.haveEstimate = true
 	r.emit(true, func(l render.Lines) string {
-		return l.PayloadEstimate(r.env.now(), estimate, delta, r.res.Mode, r.res.Provider.Model)
+		return l.PayloadEstimate(render.PayloadStatus{
+			At:     r.env.now(),
+			Tokens: estimate,
+			Delta:  delta,
+			Mode:   r.res.Mode,
+			Model:  r.res.Provider.Model,
+		})
 	})
 	if r.chrome {
 		r.emit(false, func(l render.Lines) string { return l.TurnGap() })
@@ -158,7 +164,13 @@ func (r *callRenderer) OnCallEnd(callIndex int, usage llm.Usage, roundReasons []
 			r.emit(true, func(render.Lines) string { return "" })
 		}
 		r.emit(true, func(l render.Lines) string {
-			return l.PayloadMeasured(r.env.now(), usage.PromptTokens, r.res.effectiveBudget(), r.res.Mode, r.res.Provider.Model)
+			return l.PayloadMeasured(render.PayloadStatus{
+				At:     r.env.now(),
+				Tokens: usage.PromptTokens,
+				Budget: r.res.effectiveBudget(),
+				Mode:   r.res.Mode,
+				Model:  r.res.Provider.Model,
+			})
 		})
 		r.emitMetrics(usage)
 	}
@@ -182,7 +194,12 @@ func (r *callRenderer) EmitFinalTail() {
 // folding the call into the display-only session roll-up.
 func (r *callRenderer) emitMetrics(usage llm.Usage) {
 	now := r.env.now()
-	rec, cost := usageRecordOf(r.pricing, r.res.Selected, r.res.Provider.Model, now.Format(time.RFC3339), usage)
+	rec, cost := usageRecordOf(r.pricing, usageCall{
+		selected: r.res.Selected,
+		model:    r.res.Provider.Model,
+		ts:       now.Format(time.RFC3339),
+		usage:    usage,
+	})
 	r.turnCost += cost
 	r.session.Add(rec)
 	counts := metrics.UsageCounts{
@@ -193,7 +210,15 @@ func (r *callRenderer) emitMetrics(usage llm.Usage) {
 	}
 	r.emit(true, func(l render.Lines) string { return l.Metrics(now, r.res.Selected, counts) })
 	r.emit(true, func(l render.Lines) string {
-		return l.Ready(cost, r.turnCost, r.session.Cost, r.session.Miss, r.session.Hit, r.session.Out, llm.HitRate(r.session.Hit, r.session.Miss))
+		return l.Ready(render.ReadyStats{
+			LastCallCost: cost,
+			TurnCost:     r.turnCost,
+			SessionCost:  r.session.Cost,
+			SessionMiss:  r.session.Miss,
+			SessionHit:   r.session.Hit,
+			SessionOut:   r.session.Out,
+			HitRate:      llm.HitRate(r.session.Hit, r.session.Miss),
+		})
 	})
 }
 
@@ -201,13 +226,19 @@ func (r *callRenderer) emitMetrics(usage llm.Usage) {
 // SINGLE-SOURCED formula (round 034 review REFACTOR-1): the miss is
 // `prompt − cached`, the cost is derived from the config `MODELS` pricing, and
 // the total is `prompt + response + thinking`.
-func usageRecordOf(pricing llm.Pricing, selected, model, ts string, c llm.Usage) (history.UsageRecord, float64) {
+func usageRecordOf(pricing llm.Pricing, call usageCall) (history.UsageRecord, float64) {
+	c := call.usage
 	miss := c.PromptTokens - c.CachedTokens
-	cost := llm.ComputeCost(pricing, miss, c.CachedTokens, c.CompletionTokens, c.ThinkingTokens)
+	cost := llm.ComputeCost(pricing, llm.CostInputs{
+		Miss:       miss,
+		Hit:        c.CachedTokens,
+		Completion: c.CompletionTokens,
+		Thinking:   c.ThinkingTokens,
+	})
 	return history.UsageRecord{
-		Timestamp:      ts,
-		Provider:       selected,
-		Model:          model,
+		Timestamp:      call.ts,
+		Provider:       call.selected,
+		Model:          call.model,
 		CachedTokens:   c.CachedTokens,
 		PromptTokens:   c.PromptTokens,
 		ResponseTokens: c.CompletionTokens,
@@ -215,6 +246,16 @@ func usageRecordOf(pricing llm.Pricing, selected, model, ts string, c llm.Usage)
 		ThinkingTokens: c.ThinkingTokens,
 		Cost:           cost,
 	}, cost
+}
+
+// usageCall names the per-call inputs of one usage record (round 098; ADR 0068):
+// the selected provider label, the model id, the timestamp, and the provider's
+// usage report. Three adjacent strings swapped silently.
+type usageCall struct {
+	selected string
+	model    string
+	ts       string
+	usage    llm.Usage
 }
 
 // persistTurnUsage writes the turn's usage ONCE (ADR 0005 D4/FR-010b): the
@@ -231,7 +272,7 @@ func persistTurnUsage(env runtimeEnv, res resolution, result agentport.Result, d
 		if !c.Reported {
 			continue
 		}
-		rec, _ := usageRecordOf(pricing, res.Selected, res.Provider.Model, ts, c)
+		rec, _ := usageRecordOf(pricing, usageCall{selected: res.Selected, model: res.Provider.Model, ts: ts, usage: c})
 		records = append(records, rec)
 	}
 	_ = dp.NewUsageStore(res.Workspace).AppendBatch(records)

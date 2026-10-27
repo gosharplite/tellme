@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gosharplite/tellme/internal/domain/metrics"
+	"github.com/gosharplite/tellme/internal/domain/render"
 )
 
 // FormatMetrics renders the round-018 per-turn metrics line:
@@ -27,18 +28,23 @@ func FormatMetrics(t time.Time, provider string, u metrics.UsageCounts) string {
 // The three costs are formatted `$%.4f` (last request / whole turn / session);
 // M/H/O are the SESSION-cumulative miss/cached/output token totals; the hit-rate
 // is `%.1f%%` (research Decisions 3 & 7). The line carries no timestamp.
-func FormatReady(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64) string {
+//
+// Round 098 (ADR 0068): the seven positional figures are one render.ReadyStats —
+// three adjacent float64s and three adjacent ints could otherwise be swapped at a
+// call site and still compile.
+func FormatReady(stats render.ReadyStats) string {
 	return fmt.Sprintf("╰─⠿ Ready ($%.4f $%.4f $%.4f - M: %d H: %d O: %d - %.1f%%)",
-		lastCallCost, turnCost, sessionCost, sessionMiss, sessionHit, sessionOut, hitRate)
+		stats.LastCallCost, stats.TurnCost, stats.SessionCost, stats.SessionMiss, stats.SessionHit, stats.SessionOut, stats.HitRate)
 }
 
 // formatReadyColour is FormatReady with the round-054 green accent (ADR 0023):
 // only the THIRD (session) cost is green (reference parity — tell-me-go greens
 // the session cost). The colour-off path returns FormatReady verbatim.
-func formatReadyColour(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64, colour bool) string {
+func formatReadyColour(stats render.ReadyStats, colour bool) string {
 	if !colour {
-		return FormatReady(lastCallCost, turnCost, sessionCost, sessionMiss, sessionHit, sessionOut, hitRate)
+		return FormatReady(stats)
 	}
 	return fmt.Sprintf("╰─⠿ Ready ($%.4f $%.4f %s - M: %d H: %d O: %d - %.1f%%)",
-		lastCallCost, turnCost, green(fmt.Sprintf("$%.4f", sessionCost), true), sessionMiss, sessionHit, sessionOut, hitRate)
+		stats.LastCallCost, stats.TurnCost, green(fmt.Sprintf("$%.4f", stats.SessionCost), true),
+		stats.SessionMiss, stats.SessionHit, stats.SessionOut, stats.HitRate)
 }
