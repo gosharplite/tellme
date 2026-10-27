@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-23
 - **Deciders:** tellme owner
-- **Related:** [ADR 0053](0053-back-rollback-turns.md) (the durable `Rollback` whose clause this **witnesses and calibrates**; its `Status` gains the forward pointer), [ADR 0006](https://github.com/gosharplite/aixbdd-tmg/blob/main/decisions/0006-claim-witness-obligation.md) (upstream — *no normative clause reaches truth unwitnessed*), [ADR 0041](0041-domain-model-drift-guard.md) (the load-bearing domain model), [ADR 0012](0012-deterministic-hermetic-tests.md) (determinism/hermeticity); issue [#169](https://github.com/gosharplite/tellme/issues/169); `GAPS.md` / [aixbdd-tmg#15](https://github.com/gosharplite/aixbdd-tmg/issues/15) (the claim-without-a-tripwire class); round 084 (`specs/plans/084-rollback-durability-witness`)
+- **Related:** [ADR 0053](0053-back-rollback-turns.md) (the durable `Rollback` whose clause this **witnesses and calibrates**; its `Status` gains the forward pointer), [ADR 0006](https://github.com/gosharplite/aixbdd-tmg/blob/main/decisions/0006-claim-witness-obligation.md) (upstream — *no normative clause reaches truth unwitnessed*), [ADR 0041](0041-domain-model-drift-guard.md) (the load-bearing domain model), [ADR 0012](0012-hermetic-make-go-env.md) (determinism/hermeticity); issue [#169](https://github.com/gosharplite/tellme/issues/169); `GAPS.md` / [aixbdd-tmg#15](https://github.com/gosharplite/aixbdd-tmg/issues/15) (the claim-without-a-tripwire class); round 084 (`specs/plans/084-rollback-durability-witness`)
 
 ## Context
 

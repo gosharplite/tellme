@@ -26,7 +26,7 @@ func TestNewRemoteClient_NonStallOnNeverAnsweringServer(t *testing.T) {
 	defer srv.Close()
 
 	start := time.Now()
-	_, err := NewRemoteClient(context.Background(), srv.URL, "", 300*time.Millisecond, time.Second)
+	_, err := NewRemoteClient(context.Background(), RemoteSpec{URL: srv.URL, DiscoveryTimeout: 300 * time.Millisecond, CallTimeout: time.Second})
 	elapsed := time.Since(start)
 	if err == nil {
 		t.Fatal("expected a connect error against a never-answering server")

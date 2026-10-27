@@ -29,18 +29,28 @@ const TimeoutCeiling = tools.TimeoutCeiling
 // (round-024 D5): the call's `max_output_tokens` param when positive, else the
 // default; then clamped to the ceiling. A non-positive ceiling is treated as
 // unbounded. A floor of 1 keeps the bound positive.
-func resolveBound(param, ceiling, def int) int {
-	b := param
-	if b <= 0 {
-		b = def
+func resolveBound(b tokenBound) int {
+	v := b.param
+	if v <= 0 {
+		v = b.def
 	}
-	if ceiling > 0 && b > ceiling {
-		b = ceiling
+	if b.ceiling > 0 && v > b.ceiling {
+		v = b.ceiling
 	}
-	if b < 1 {
-		b = 1
+	if v < 1 {
+		v = 1
 	}
-	return b
+	return v
+}
+
+// tokenBound names the three tiers resolveBound resolves (round 098; ADR 0068):
+// the call's `max_output_tokens` param, the resource ceiling, and the tool's
+// declared default. Three adjacent ints meant three DIFFERENT things and swapped
+// silently.
+type tokenBound struct {
+	param   int
+	ceiling int
+	def     int
 }
 
 // clampBytes applies the loop's raw-byte-length backstop (round-024 Q1/D4): the
@@ -119,6 +129,10 @@ func (a *AgentLoop) callByteBudget(arguments string) int {
 	if eb <= 0 {
 		eb = defaultEffectiveBudget
 	}
-	tok := resolveBound(toolArgInt(arguments, "max_output_tokens"), eb/2, eb/4)
+	tok := resolveBound(tokenBound{
+		param:   toolArgInt(arguments, "max_output_tokens"),
+		ceiling: eb / 2,
+		def:     eb / 4,
+	})
 	return tok * BytesPerToken
 }

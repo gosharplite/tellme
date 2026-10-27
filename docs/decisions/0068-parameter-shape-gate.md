@@ -1,0 +1,198 @@
+# ADR 0068 — A gate for compile-blind argument swaps (and the refactor it forces)
+
+- **Status:** Accepted
+- **Date:** 2026-10-27
+- **Deciders:** tellme owner (operator directive, 2026-10-27: *"Start a new aixbdd round, the goal is to close issue 210"*)
+- **Related:** **ADR 0011** (the layer-discipline gate — the `tools/arch` shape this gate mirrors, incl. its
+  **D3 fail-on-stale** ratchet) · **ADR 0020 fold R-51-1** (refuse-to-grow) · **ADR 0012** (the hermetic
+  `make` Go environment this gate inherits) · **ADR 0041 D2** (a check must demonstrate a catch) ·
+  **ADR 0064** (the advisory-vs-gate distinction this round keeps out of the new gate) ·
+  **ADR 0039**/**ADR 0019** (the named-spec-struct house idiom: `ToolSetSpec`, `LoopSpec`) ·
+  [issue #210](https://github.com/gosharplite/tellme/issues/210) (which supersedes #206–#209) ·
+  upstream `aixbdd-tmg` ADR 0006 (*no normative clause reaches truth unwitnessed*) ·
+  `tools/params/` · `internal/cli/` · `internal/ui/` · `internal/domain/render/`
+
+## Context
+
+`tellme`'s quality machine is dense: eleven `make verify` members, a 334-scenario / 2519-step
+executable E2E contract, ~16.9k test LOC against ~15.0k production LOC, a green advisory
+`modelith-drift` and a clean advisory `dead-code`. What **no** gate could see is the **compile-blind
+argument swap**: two adjacent parameters of an **identical type**, where swapping them at a call site
+**still compiles**. `ComputeCost(p, 4, 6, 3, 2)` carried a comment to say what it meant; `renderTurn`'s
+head was three adjacent `string`s; `NewRemoteClient(ctx, url, authorization string, …)` would happily
+connect to a URL made of a bearer token.
+
+`internal/cli/cli.go` had also accreted to **1682 lines · 58 functions · 69.6 %** of its package.
+
+**The five drafts behind issue #210 are the reason this ADR exists in this shape.** Every wrong number
+came from *memory*; every right one came from a *script*. The coarse type normaliser (flattening every
+`*ast.FuncType` to `"func"`) surfaced **four** times — once creating reds, three times in
+re-verification. So the round is **guard-first**: a mechanical scan that **reds on today's tree** and
+goes green only because the tree was fixed. A refactor-only round has no falsifiable carrier — the
+obligation carried by **ADR 0041 D2** ("a check must demonstrate a catch") and by upstream
+`aixbdd-tmg` ADR 0006.
+
+## Decision
+
+### D1 — Four arms, two hazards
+
+**RED** when a named production func/method under `internal/**` (`_test.go` excluded) satisfies **any** of:
+
+| Arm | Rule | Hazard |
+| --- | --- | --- |
+| **(a)** | `params ≥ 4` **AND** an adjacent run of **≥ 2** parameters of an **identical type** | swap |
+| **(b)** | an adjacent run of **≥ 3** parameters of an identical type (arity-independent) | swap |
+| **(c)** | an adjacent run of **≥ 2 `func`-typed** parameters, **regardless of signature** | **DI idiom** |
+| **(d)** | a same-package **named struct** `CompositeLit` with **≥ 2 unkeyed** elements | swap **at the call site** |
+
+**Exempt:** runs of `context.Context`; runs of `interface{}` / `any`; a lone trailing variadic (the
+idiomatic collector, never a swappable pair). **No bare parameter-count arm** — a count is a smell, not a
+hazard, and the earlier `≥6 params` draft that claimed one was wrong twice (today's tree had 22–23 at
+`n ≥ 6`, and the `discover` it named is `n = 5`).
+
+### D2 — Arm (c) is NOT a swap rule (option 2, kept and re-derived)
+
+**Verified:** there is **no** identical-signature `func` run anywhere in `internal/**` (figure R = 0) —
+every adjacent closure pair in the five injected-closure lists differs in signature, so swapping them
+does **not** compile. Arm (c) therefore cannot claim the swap rationale.
+
+It is kept on its **own** rationale: *an injected-closure list is a DI surface that belongs in a spec
+struct — the `turnOptions` / `LoopSpec` / `ListingSpec` / `ToolSetSpec` house idiom*. Option 1 (drop the
+arm) would have left the five lists in place; option 2 reds them and the round folds all five into **one**
+`cliDeps` bundle. Red set: **40** (36 `FuncDecl` + 4 interface) with option 2, **35** with option 1.
+
+### D3 — The guard MUST scan top-level interface methods
+
+**4 of the 40** signature reds are **interface methods**, and they are the *contracts* that force the
+implementations to change: `render.Lines.{PayloadMeasured, PayloadEstimate, Ready}` and
+`suggestions.WorkspaceSource.Entries`. Scope is precisely **top-level `TypeSpec` interfaces** — one inline
+interface type exists (`internal/infrastructure/mcp/client.go`: `interface{ UseCallTimeout() }`, zero
+params) and is out of scope by construction.
+
+### D4 — Arm (d): the call site is half the hazard, and `go vet` cannot see it
+
+`govet`'s `composites` analyser — in the `standard` lint set, with **no** override in `.golangci.yml` —
+flags unkeyed fields **only for struct types from another package** (verified empirically on a
+throwaway two-package module). So a fix that only changes signatures could leave
+`ComputeCost(costInputs{4, 6, 3, 2})` **compiling and swapping silently**, re-creating the hazard one
+layer down. Hence arm (d) in the same walk, and it scans `_test.go` too (the same-package construction
+sites `vet` misses are largely tests).
+
+### D5 — The `n ≥ 4` boundary is deliberate and its remainder is measured
+
+Below the boundary sit **6** interface methods (`ToolLineRenderer.{EngineLine,ActionLine,ResultLine}` ·
+`durableFS.Rename` · `cacheFS.{CreateTemp,Rename}`) and **38** `FuncDecl`s at `n ≤ 3, run = 2`
+(post-refactor: 6 and 33). `ActionLine(t, tool, arguments string)` is the **same** hazard as
+`Entries(ctx, dir, prefix string, limit int)`; only arity differs. **Not widened here** — recorded so the
+next reader does not reopen the threshold from scratch. Note that **`n` counts exempt params**:
+`Entries` is `n = 4` only because `ctx` counts toward arity while being run-exempt — that is exactly why
+`ActionLine` (n=3) and `Entries` (n=4) sit either side of the boundary.
+
+### D6 — Result lists are the same class and are out of scope
+
+`return mem, cpu` compiles just as silently. Measured: **11** `FuncDecl`s return an adjacent
+identical-type run (excl. `error`) — `splitQuery` · `expandFieldWarning` · `ResolveAuthorization` ·
+`fromTokenSource` · `parseFrontmatter` · `Sample` ×3 · `machCPUTicks` · `treeConnectors` ·
+`sampleResources`. Recorded, not fixed.
+
+### D7 — Type identity is syntactic (`go/parser`), and that is a design property
+
+`a string, b LocalAlias` (where `type LocalAlias = string`) would not red although it swaps. Measured:
+**0 type aliases** in `internal/**` production code — no false negative on this tree. The parser-walk
+choice itself is also a **design property, not a catch**: it needs no `go list`, no host build context,
+and is cheaper than `verify-architecture`. *(A prior draft justified it by claiming an analyser "would
+silently skip two reds" because of the `system_metrics_*` build tags — **factually wrong**: both telemetry
+reds live in `system_metrics_math.go`, which has no build constraint. The four tagged files hold 13
+functions and zero reds.)*
+
+### D8 — The allow-list is a fail-on-stale ratchet that refuses to grow
+
+A violation is cleared **only** by fixing it or by an allow-list entry carrying a **recorded reason**.
+The list is **fail-on-stale** (an entry that no longer matches a violation fails the gate) and
+`-update-allowlist` **refuses to GROW** it (**ADR 0020 fold R-51-1**). At delivery the list is **empty**
+— option A: every site fixed. There is **no generated baseline**.
+
+### D9 — Enforcement shape: a build-tagged test, `-count=1`, three commands
+
+`tools/params` mirrors `tools/arch` exactly: a `//go:build quality` test (never in the default
+`go test ./...`), a `verify-params` member of `make verify` running **three** commands (`go vet
+-tags=quality` · `golangci-lint run --build-tags=quality` · `go test -count=1 -tags=quality -run …`),
+and **`-count=1` is mandatory** — the verdict reads the whole tree, which the Go test cache cannot see,
+so a cached green would let a new violation pass vacuously (**the rationale's origin is
+`tools/arch/doc.go`; this ADR is its first ADR-level home**). The gate honours ADR 0012's hermetic
+invocation boundary like every other member.
+
+### D10 — The script owns the numbers
+
+Per red site the scan emits `file:line · name · arms-fired (a/b/c/d) · the type string it keyed on · n ·
+longest run`, and it prints **every** baseline figure **with its label and its universe**. `make
+verify-params-report` is the reporting entry (`TestParameterShapeReport`, never fails); `verify-params`
+is the gate. This is what makes "fix all X sites" a `diff` rather than a re-argument.
+
+### D11 — The refactor the guard forces (all 40 signature sites + 2 call-site literals, 42 total)
+
+Named seam structs, following the house idiom: `render.ReadyStats` · `render.PayloadStatus` ·
+`turnOptions` (pre-existing) · `sessionRef` (`homeDir, configPath`) · `cliDeps` (the five injected-closure
+lists) · `spinnerLine` · `loopSignals` · `actionText` · `tokenBound` · `WorkspaceQuery` · `CostInputs` ·
+`usageCall` · `retrySpec` · `mcpFieldRef` · `treeSpec` · `captureTarget` · `capturedPipes` ·
+`darwinMachVM` / `darwinSysctlVM` · `mcp.RemoteSpec` (both `NewRemoteClient`s and the `ClientFactory`
+seam) · gemini/openai `requestSpec`. Plus `internal/cli/cli.go` split into cohesive **same-package**
+files (`boot.go` · `turn.go` · `reporting.go` · `workspace.go` · `diagnostics.go` · `interactive.go`;
+the pre-existing `internal/cli/prompt.go` name collision resolved by naming the new file
+`interactive.go`). Same package ⇒ **zero import-graph movement** ⇒ `verify-architecture`'s header-only
+baseline is untouched, which is what **proves** the slice legal.
+
+## Alternatives considered
+
+- **A refactor-only round.** Rejected: no falsifiable carrier — nothing would red if the hazard returned.
+- **Guard-only first, fix later.** Rejected: a guard green before it means anything is not a witness.
+- **Hot seams only** (`internal/{cli,ui}`, allow-list the rest). Rejected: ships an allow-list debt on day
+  one and leaves the two `requestBody` hazards in the wire layer.
+- **A `go vet` analyser instead of a parser walk.** Rejected: needs `go list` + host build context; the
+  parser walk is cheaper and the build-tag worry that once justified this was **false** (D7).
+- **A bare parameter-count arm.** Rejected: a count is not a hazard (D1).
+- **A generator baseline** (the `tools/arch` shape). Rejected for this gate: the endpoint is **zero**, and
+  a generator would launder exactly the growth the round exists to prevent.
+
+## Consequences
+
+- **Positive.** The hazard class becomes mechanically visible: a new adjacent identical-type run, a new
+  injected-closure list, or a new unkeyed same-package literal **reds the gate**. `internal/cli`'s largest
+  production file drops from **1682** to **474** lines. Two domain port contracts (`render.Lines`,
+  `suggestions.WorkspaceSource`) got honest shapes, which is also what let `CostInputs` replace
+  `ComputeCost(p, 4, 6, 3, 2) // miss 4, hit 6, …`.
+- **Negative / accepted.** Syntactic type identity (D7) can miss an alias-mediated swap; result lists
+  (D6) stay unscanned; the `n ≥ 4` boundary (D5) leaves a measured remainder. Each is recorded with its
+  measurement rather than smoothed. The allow-list mechanism exists and is empty — a future round may use
+  it, at the cost of a recorded reason.
+- **Not modelled.** The gate is a quality-process instrument; it is modelled only as far as the
+  `QualityPipeline`/`QualityGate` entities reach (ADR 0041). The product model does **not** move: D11
+  changes parameter **shapes**, not behaviour, and `usage-summed-for-the-ready-summary` concerns values,
+  not parameter lists.
+
+## Forward
+
+- **RF-068-1** — Result lists (D6): **11** measured; a future round may widen the scan to result runs. The
+  trigger is a delivered defect traced to a swapped return; without such a trigger this stays inert.
+- **RF-068-2** — The `n ≥ 4` boundary (D5): 6 interface methods + 33 `FuncDecl`s sit below it. Widening is
+  a new ADR, not a knob.
+- **RF-068-3** — Arm (d) keys an allow-list entry by `file:line:TypeName` (a literal has no name), so an
+  allow-listed literal stales when unrelated lines move above it. The list is empty, so this is a
+  property of the mechanism, not a live cost.
+- **RF-068-4** — The `@quality` build tag is not evaluated against build-tag-gated files' union: the scan
+  parses files **as written**. Two darwin-tagged files declare the same symbol today and both are
+  scanned; a future tag-gated divergence would be measured twice, not missed.
+- **RF-068-5** — `requestSpec` carries `MaxTokens` as a **named field with ownership undecided**, so the
+  per-(provider, model) budget-field selection of [#195](https://github.com/gosharplite/tellme/issues/195)
+  has a home. This round deliberately **pre-empts nothing** there.
+
+## Related
+
+- [issue #210](https://github.com/gosharplite/tellme/issues/210) — the durable home of this round's
+  candidate, absorbing drafts #206 #207 #208 #209 and their four reviews.
+- [ADR 0011](0011-layer-discipline-gate.md) — the gate shape, the fail-on-stale ratchet, the `tools/arch`
+  recipe this one mirrors.
+- [ADR 0020](0020-cli-ui-decoupling.md) fold **R-51-1** — refuse-to-grow (the allow-list's guard).
+- [ADR 0041](0041-domain-model-drift-guard.md) **D2** — "a check must demonstrate a catch".
+- `specs/truth/techstack.md` — the *Parameter-shape gate* row (the gate's truth home).
+- `docs/domain-model/quality.modelith.yaml` — the `QualityPipeline`/`QualityGate` entry.

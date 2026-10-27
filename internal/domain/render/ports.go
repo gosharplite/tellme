@@ -27,14 +27,20 @@ type Lines interface {
 	// - <mode> - <model>`; round 009). Round 057 (ADR 0027; TD-057-1): the retired
 	// `~`-estimated shape no longer exists here — the estimate is its own method
 	// (PayloadEstimate), so ONE shape per line and no unreachable branch.
-	PayloadMeasured(t time.Time, tokens, budget int, mode, model string) string
+	//
+	// Round 098 (ADR 0068): the figures arrive as a PayloadStatus, not as a
+	// positional `tokens, budget int, mode, model string` tail whose adjacent
+	// same-typed pairs swapped and still compiled.
+	PayloadMeasured(s PayloadStatus) string
 	// PayloadEstimate renders the ESTIMATED pre-flight payload line (round 057;
 	// ADR 0027): `+<delta> ~<tokens> tokens - <mode> - <model>`. The delta is the
 	// increment over the previous estimate (`0` when there is none) and the budget
 	// is not shown.
-	PayloadEstimate(t time.Time, tokens, delta int, mode, model string) string
+	PayloadEstimate(s PayloadStatus) string
 	Metrics(t time.Time, provider string, u metrics.UsageCounts) string
-	Ready(lastCallCost, turnCost, sessionCost float64, sessionMiss, sessionHit, sessionOut int, hitRate float64) string
+	// Ready renders the `╰─⠿ Ready` session summary. Round 098 (ADR 0068): the
+	// seven positional figures became one ReadyStats.
+	Ready(stats ReadyStats) string
 	ToolReason(t time.Time, reason string) string
 	// UnpairedCalls renders the round-068 unpaired-call diagnostic (ADR 0038):
 	// a `[Tool …]`-class line naming the tool calls a round left unanswered.
@@ -43,6 +49,38 @@ type Lines interface {
 	// DefaultToolOutputIdleGap is the `[Tool Output]` block's idle-gap default
 	// (ADR 0009 D3).
 	DefaultToolOutputIdleGap() time.Duration
+}
+
+// PayloadStatus carries one payload status line's figures (round 098; ADR 0068).
+// It is a NAMED shape so a call site cannot swap two adjacent ints or two
+// adjacent strings and still compile — the compile-blind argument swap the
+// parameter-shape gate exists to catch. Budget is unused by the estimated line
+// and Delta by the measured one; a single struct keeps ONE status shape for the
+// pair (the alternative — two near-identical structs — reintroduces the naming
+// drift the round removes).
+type PayloadStatus struct {
+	At     time.Time
+	Tokens int
+	// Budget is the effective token budget (the measured line's denominator).
+	Budget int
+	// Delta is the signed increment over the previous estimate (the estimated
+	// line's `+<delta>`); 0 when there is no predecessor.
+	Delta int
+	Mode  string
+	Model string
+}
+
+// ReadyStats carries the `╰─⠿ Ready` session summary's seven figures (round 098;
+// ADR 0068): the three costs (last call / whole turn / session), the
+// session-cumulative miss/hit/output token totals, and the cache hit rate.
+type ReadyStats struct {
+	LastCallCost float64
+	TurnCost     float64
+	SessionCost  float64
+	SessionMiss  int
+	SessionHit   int
+	SessionOut   int
+	HitRate      float64
 }
 
 // Answer renders a Markdown answer to ANSI (round 006). It mirrors the CLI's

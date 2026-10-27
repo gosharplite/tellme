@@ -78,6 +78,11 @@ func darwinCGOMemPercent() float64 {
 	if ret := C.host_statistics64(host, C.HOST_VM_INFO64, C.host_info64_t(unsafe.Pointer(&vmStats)), &count); ret != C.KERN_SUCCESS {
 		return 0
 	}
-	return darwinMemPercentCGO(total, darwinPageSize(),
-		uint64(vmStats.active_count), uint64(vmStats.wire_count), uint64(vmStats.compressor_page_count))
+	return darwinMemPercentCGO(darwinMachVM{
+		totalBytes: total,
+		pageSize:   darwinPageSize(),
+		active:     uint64(vmStats.active_count),
+		wired:      uint64(vmStats.wire_count),
+		compressor: uint64(vmStats.compressor_page_count),
+	})
 }

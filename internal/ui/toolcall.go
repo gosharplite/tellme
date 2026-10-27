@@ -131,11 +131,20 @@ func FormatToolAction(t time.Time, tool, arguments string) string {
 // yellow. The colour wraps the ALREADY-sanitized line, so no control byte from an
 // argument can escape the wrapper. The colour-off path returns FormatToolAction
 // verbatim (the single plain entry point), so the plain bytes stay byte-identical.
-func formatToolActionColour(t time.Time, tool, arguments string, colour bool) string {
+func formatToolActionColour(t time.Time, a actionText, colour bool) string {
 	if !colour {
-		return FormatToolAction(t, tool, arguments)
+		return FormatToolAction(t, a.tool, a.arguments)
 	}
-	return yellow(FormatToolAction(t, tool, arguments), true)
+	return yellow(FormatToolAction(t, a.tool, a.arguments), true)
+}
+
+// actionText names the action line's two string inputs (round 098; ADR 0068).
+// The plain FormatToolAction keeps its positional shape: at n = 3 it sits below
+// the arm-(a) arity and is recorded as a boundary remainder (issue #210 §G4), so
+// the round does not widen the threshold to reach it.
+type actionText struct {
+	tool      string
+	arguments string
 }
 
 // FormatToolResult renders the result line — the tool name plus the folded,

@@ -5,8 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gosharplite/tellme/internal/app/deps"
 	"github.com/gosharplite/tellme/internal/domain/history"
 	"github.com/gosharplite/tellme/internal/domain/render"
+	domaintools "github.com/gosharplite/tellme/internal/domain/tools"
 )
 
 // dispatchDeps is the shared double set the dispatch-precedence tests use.
@@ -14,7 +16,9 @@ type dispatchDeps struct {
 	historyStore func(string) history.Store
 	turnsStore   func(string) history.TurnsLogStore
 	listing      func() render.Listing
-	usageReport  func() int
+	// usageReport records whether the --tool-usage path was reached; it drives the
+	// injected tool registry/factory seams the cliDeps bundle carries.
+	usageReport func() int
 }
 
 func newDispatchDeps() dispatchDeps {
@@ -32,6 +36,21 @@ func newDispatchDeps() dispatchDeps {
 	}
 }
 
+// in renders the double set as the injected bundle the reporters now take.
+func (d dispatchDeps) in() cliDeps {
+	return cliDeps{dp: deps.Dependencies{
+		NewHistoryStore:  d.historyStore,
+		NewTurnsLogStore: d.turnsStore,
+		NewListing:       d.listing,
+		NewToolRegistry:  func(deps.ToolSetSpec) domaintools.Registry { return nil },
+		NewToolUsageStore: func(func() (string, error)) history.ToolUsageStore {
+			return &fakeToolUsageStore{}
+		},
+		UserHomeDir: func() (string, error) { return "", nil },
+		NewLines:    func(bool) render.Lines { return fakeLines{} },
+	}}
+}
+
 // TestDispatchReportingPrecedence pins the round-053 (ADR 0022, fold F-53-4)
 // offline-reporting order: `-d` → `-l` → `-t` → `--tool-usage`. With both `-l`
 // and `-t` set, the listing wins; `-t` alone prints the turn log.
@@ -43,7 +62,7 @@ func TestDispatchReportingPrecedence(t *testing.T) {
 	t.Run("-l wins over -t", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		f := &flags{list: 1, listSet: true, turns: true}
-		code, handled := dispatchReporting(f, home, runtimeEnv{stdout: &out, stderr: &errOut}, false, d.historyStore, d.turnsStore, d.listing, d.usageReport)
+		code, handled := dispatchReporting(f, sessionRef{home: home}, runtimeEnv{stdout: &out, stderr: &errOut}, false, d.in())
 		if !handled || code != Success {
 			t.Fatalf("dispatched=%v code=%d, want handled success", handled, code)
 		}
@@ -58,7 +77,7 @@ func TestDispatchReportingPrecedence(t *testing.T) {
 	t.Run("-t alone prints the turn log", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		f := &flags{turns: true}
-		code, handled := dispatchReporting(f, home, runtimeEnv{stdout: &out, stderr: &errOut}, false, d.historyStore, d.turnsStore, d.listing, d.usageReport)
+		code, handled := dispatchReporting(f, sessionRef{home: home}, runtimeEnv{stdout: &out, stderr: &errOut}, false, d.in())
 		if !handled || code != Success {
 			t.Fatalf("dispatched=%v code=%d, want handled success", handled, code)
 		}
@@ -70,10 +89,7 @@ func TestDispatchReportingPrecedence(t *testing.T) {
 	t.Run("--tool-usage still last", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		f := &flags{turns: true, toolUsage: true}
-		code, handled := dispatchReporting(f, home, runtimeEnv{stdout: &out, stderr: &errOut}, false, d.historyStore, d.turnsStore, d.listing, func() int {
-			_, _ = out.WriteString("TOOLUSAGE\n")
-			return Success
-		})
+		code, handled := dispatchReporting(f, sessionRef{home: home}, runtimeEnv{stdout: &out, stderr: &errOut}, false, d.in())
 		if !handled || code != Success {
 			t.Fatalf("dispatched=%v code=%d, want handled success", handled, code)
 		}
@@ -95,7 +111,7 @@ func TestDispatchReportingBack(t *testing.T) {
 		st := &fakeStore{entries: []history.Entry{{Prompt: "q1", Answer: "a1"}, {Prompt: "q2", Answer: "a2"}}}
 		shared := func(string) history.Store { return st }
 		f := &flags{list: 1, listSet: true, back: 1, backSet: true}
-		code, handled := dispatchReporting(f, home, runtimeEnv{stdout: &out, stderr: &errOut}, false, shared, d.turnsStore, d.listing, d.usageReport)
+		code, handled := dispatchReporting(f, sessionRef{home: home}, runtimeEnv{stdout: &out, stderr: &errOut}, false, dispatchDeps{historyStore: shared, turnsStore: d.turnsStore, listing: d.listing, usageReport: d.usageReport}.in())
 		if !handled || code != Success {
 			t.Fatalf("dispatched=%v code=%d, want handled success", handled, code)
 		}
@@ -113,7 +129,7 @@ func TestDispatchReportingBack(t *testing.T) {
 	t.Run("-b 0 is a usage error", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		f := &flags{back: 0, backSet: true}
-		code, handled := dispatchReporting(f, home, runtimeEnv{stdout: &out, stderr: &errOut}, false, d.historyStore, d.turnsStore, d.listing, d.usageReport)
+		code, handled := dispatchReporting(f, sessionRef{home: home}, runtimeEnv{stdout: &out, stderr: &errOut}, false, d.in())
 		if !handled || code != UsageError {
 			t.Fatalf("dispatched=%v code=%d, want handled usage error", handled, code)
 		}
@@ -121,4 +137,25 @@ func TestDispatchReportingBack(t *testing.T) {
 			t.Fatalf("stderr = %q, want the usage class phrase", errOut.String())
 		}
 	})
+}
+
+// storeDeps wraps a history-store factory as the injected bundle the offline
+// rollback reporter takes (round 098; ADR 0068).
+func storeDeps(store func(string) history.Store) cliDeps {
+	return cliDeps{dp: deps.Dependencies{NewHistoryStore: store}}
+}
+
+// listDeps wraps the listing doubles as the injected bundle the `-l` reporter
+// takes (round 098; ADR 0068).
+func listDeps(store func(string) history.Store, listing func() render.Listing) cliDeps {
+	return cliDeps{dp: deps.Dependencies{NewHistoryStore: store, NewListing: listing}}
+}
+
+// fakeToolUsageStore is an empty tool-usage roll-up for the dispatch tests.
+type fakeToolUsageStore struct{}
+
+func (fakeToolUsageStore) Record(string, history.ToolOutcome) error { return nil }
+
+func (fakeToolUsageStore) Aggregate() (map[string]history.ToolUsageCounts, error) {
+	return map[string]history.ToolUsageCounts{}, nil
 }

@@ -69,8 +69,18 @@ type retryingGateway struct {
 
 // newRetryingGateway builds a retryingGateway (RF-078-1): production and tests
 // share ONE constructor, so a test cannot drift from the shipped wiring.
-func newRetryingGateway(inner llm.Gateway, delays []time.Duration, sleep func(context.Context, time.Duration) bool, notify func(attempt, total int, delay time.Duration, err error)) retryingGateway {
-	return retryingGateway{inner: inner, delays: delays, sleep: sleep, notify: notify}
+func newRetryingGateway(inner llm.Gateway, spec retrySpec) retryingGateway {
+	return retryingGateway{inner: inner, delays: spec.delays, sleep: spec.sleep, notify: spec.notify}
+}
+
+// retrySpec names the retrying gateway's injected behaviour (round 098; ADR 0068):
+// the retry schedule, the wait seam, and the diagnostic notifier. The last two are
+// both func-typed — an injected-closure list, the DI idiom this round folds into a
+// named spec struct rather than a positional pair.
+type retrySpec struct {
+	delays []time.Duration
+	sleep  func(ctx context.Context, delay time.Duration) bool
+	notify func(attempt, total int, delay time.Duration, err error)
 }
 
 func (g retryingGateway) Complete(ctx context.Context, req llm.Request) (llm.Response, error) {
@@ -140,7 +150,7 @@ func withProviderRetry(gw llm.Gateway, notify func(attempt, total int, delay tim
 	if gw == nil || len(delays) == 0 {
 		return gw
 	}
-	return newRetryingGateway(gw, delays, realRetrySleep, notify)
+	return newRetryingGateway(gw, retrySpec{delays: delays, sleep: realRetrySleep, notify: notify})
 }
 
 // retryYield is the narrow slice of the progress indicator the retry notifier

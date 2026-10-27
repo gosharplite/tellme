@@ -43,7 +43,7 @@ func (s *immediateSleep) sleep(_ context.Context, d time.Duration) bool {
 }
 
 func newTestRetry(g llm.Gateway, delays []time.Duration, sl func(context.Context, time.Duration) bool, notify func(int, int, time.Duration, error)) retryingGateway {
-	return newRetryingGateway(g, delays, sl, notify)
+	return newRetryingGateway(g, retrySpec{delays: delays, sleep: sl, notify: notify})
 }
 
 // TestRetryDelaysLiteral pins the operator-locked schedule literally.

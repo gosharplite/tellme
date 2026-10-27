@@ -131,7 +131,7 @@ func TestAbortCaptureBoundsTheDrain(t *testing.T) {
 	done := make(chan time.Duration, 1)
 	go func() {
 		start := time.Now()
-		abortCapture(cmd, io.NopCloser(strings.NewReader("")), io.NopCloser(strings.NewReader("")), never)
+		abortCapture(cmd, capturedPipes{stdout: io.NopCloser(strings.NewReader("")), stderr: io.NopCloser(strings.NewReader(""))}, never)
 		done <- time.Since(start)
 	}()
 	select {

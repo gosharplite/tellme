@@ -16,7 +16,7 @@ func TestResolveBoundThreeTiers(t *testing.T) {
 		{0, 0, 0, 1},         // floor of 1
 	}
 	for _, c := range cases {
-		if got := resolveBound(c.param, c.ceiling, c.def); got != c.want {
+		if got := resolveBound(tokenBound{param: c.param, ceiling: c.ceiling, def: c.def}); got != c.want {
 			t.Errorf("resolveBound(%d,%d,%d) = %d; want %d", c.param, c.ceiling, c.def, got, c.want)
 		}
 	}

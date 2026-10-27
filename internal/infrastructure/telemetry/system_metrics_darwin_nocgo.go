@@ -81,5 +81,11 @@ func darwinNoCGoMemPercent() float64 {
 	if v, err := unix.SysctlUint32("vm.page_purgeable_count"); err == nil {
 		purgeable = uint64(v)
 	}
-	return darwinMemPercentNoCGO(total, darwinPageSize(), uint64(free), speculative, purgeable)
+	return darwinMemPercentNoCGO(darwinSysctlVM{
+		totalBytes:  total,
+		pageSize:    darwinPageSize(),
+		free:        uint64(free),
+		speculative: speculative,
+		purgeable:   purgeable,
+	})
 }

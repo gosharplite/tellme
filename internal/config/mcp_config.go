@@ -177,7 +177,7 @@ func (c *Config) expandMCPServersWithLookup(lookup EnvLookupFunc) []string {
 			{"USERNAME", &s.Username},
 			{"COMMAND", &s.Command},
 		} {
-			out, warning := expandFieldWarning(name, f.field, *f.value, lookup)
+			out, warning := expandFieldWarning(mcpFieldRef{server: name, field: f.field, value: *f.value}, lookup)
 			*f.value = out
 			if warning != "" {
 				warnings = append(warnings, warning)
@@ -188,6 +188,15 @@ func (c *Config) expandMCPServersWithLookup(lookup EnvLookupFunc) []string {
 	return warnings
 }
 
+// mcpFieldRef names one MCP_SERVERS string field (round 098; ADR 0068): its
+// server key, its field name, and its raw value. Three adjacent strings swapped
+// silently.
+type mcpFieldRef struct {
+	server string
+	field  string
+	value  string
+}
+
 // expandFieldWarning expands ${VAR} / ${VAR:-default} in one MCP_SERVERS string
 // field, returning the resolved value plus a non-fatal diagnostic warning that
 // names the field and the offending variable when the expansion FAILS (an
@@ -196,7 +205,8 @@ func (c *Config) expandMCPServersWithLookup(lookup EnvLookupFunc) []string {
 // a startup failure (issue #67); the warning is what makes the cause visible
 // instead of an opaque "could not be reached" (round-032 SC-002 review). A value
 // with nothing to expand is returned untouched with no warning.
-func expandFieldWarning(server, field, value string, lookup EnvLookupFunc) (string, string) {
+func expandFieldWarning(ref mcpFieldRef, lookup EnvLookupFunc) (string, string) {
+	server, field, value := ref.server, ref.field, ref.value
 	if !strings.Contains(value, "${") {
 		return value, ""
 	}

@@ -13,7 +13,7 @@ func (f fakePrompts) RecentPrompts(context.Context, int) []string { return f.rec
 // fakeWorkspace is a canned workspace-entry source keyed by the query's dir.
 type fakeWorkspace struct{ byDir map[string][]string }
 
-func (f fakeWorkspace) Entries(_ context.Context, dir, _ string, _ int) []string { return f.byDir[dir] }
+func (f fakeWorkspace) Entries(_ context.Context, q WorkspaceQuery) []string { return f.byDir[q.Dir] }
 
 // fakeTools is a canned tool-name source.
 type fakeTools struct{ names []string }

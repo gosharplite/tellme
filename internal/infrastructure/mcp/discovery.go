@@ -14,7 +14,11 @@ import (
 // Authorization header and the two bounding deadlines (the discovery fast-fail
 // bound and the resolved tool-call timeout). It is the injectable seam that keeps
 // this package free of a direct internal/infrastructure/di import (round-044).
-type ClientFactory func(ctx context.Context, url, authorization string, discoveryTimeout, callTimeout time.Duration) (domaintools.MCPClient, error)
+//
+// Round 098 (ADR 0068): the factory takes a RemoteSpec, so `NewRemoteClient`
+// itself is the factory value (no adapter) and no call site can swap the url for
+// the authorization header.
+type ClientFactory func(ctx context.Context, spec RemoteSpec) (domaintools.MCPClient, error)
 
 // Discover performs the round-032 prompt-path MCP discovery (relocated here from
 // internal/cli by round 044 / ADR 0013): per enabled remote server it discovers
@@ -119,7 +123,12 @@ func discoverServer(parent context.Context, key string, cfg config.MCPServerConf
 		res.warnings = append(res.warnings, warn)
 	}
 	timeout := ResolveMCPTimeout(cfg.Timeout)
-	client, err := newClient(ctx, cfg.URL, header, bound, timeout)
+	client, err := newClient(ctx, RemoteSpec{
+		URL:              cfg.URL,
+		Authorization:    header,
+		DiscoveryTimeout: bound,
+		CallTimeout:      timeout,
+	})
 	if err != nil {
 		res.warnings = append(res.warnings, UnreachableWarningWithHint(key, err))
 		return res

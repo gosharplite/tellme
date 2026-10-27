@@ -41,7 +41,16 @@ type PromptSource interface {
 // WorkspaceSource yields workspace entries for a path-like query, scoped to the
 // query's directory, read in bounded batches, excluding ignored directories.
 type WorkspaceSource interface {
-	Entries(ctx context.Context, dir, prefix string, limit int) []string
+	Entries(ctx context.Context, q WorkspaceQuery) []string
+}
+
+// WorkspaceQuery names a workspace suggestion query (round 098; ADR 0068): the
+// directory to read, the fuzzy prefix to match, and how many entries to yield.
+// The two adjacent strings and the trailing int swapped silently at a call site.
+type WorkspaceQuery struct {
+	Dir    string
+	Prefix string
+	Limit  int
 }
 
 // ToolSource yields tellme's registered tool names (the tool-suggestion source).
@@ -124,7 +133,7 @@ func (s *Service) addWorkspace(ctx context.Context, query string, acc *accumulat
 		return
 	}
 	dir, prefix := splitQuery(query)
-	for _, e := range s.workspace.Entries(ctx, dir, prefix, maxSuggestions) {
+	for _, e := range s.workspace.Entries(ctx, WorkspaceQuery{Dir: dir, Prefix: prefix, Limit: maxSuggestions}) {
 		if ctx.Err() != nil || acc.full() {
 			return
 		}

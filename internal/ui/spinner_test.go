@@ -36,10 +36,10 @@ func TestSpinnerLabels(t *testing.T) {
 // TestFormatSpinnerLine pins the round-040 DUAL-figure format (ADR 0009 D1): two
 // unlabelled whole-second figures inside one parentheses.
 func TestFormatSpinnerLine(t *testing.T) {
-	if got := FormatSpinnerLine("A", " Thinking [m]...", 3, 3, ""); got != "A Thinking [m]... (3s 3s)" {
+	if got := FormatSpinnerLine(spinnerLine{Frame: "A", Status: " Thinking [m]...", Total: 3, Call: 3}); got != "A Thinking [m]... (3s 3s)" {
 		t.Errorf("FormatSpinnerLine = %q, want %q", got, "A Thinking [m]... (3s 3s)")
 	}
-	if got := FormatSpinnerLine("A", " Executing [t]...", 120, 21, " [CPU: 1.0% | MEM: 2.0%]"); got != "A Executing [t]... (120s 21s) [CPU: 1.0% | MEM: 2.0%]" {
+	if got := FormatSpinnerLine(spinnerLine{Frame: "A", Status: " Executing [t]...", Total: 120, Call: 21, Resource: " [CPU: 1.0% | MEM: 2.0%]"}); got != "A Executing [t]... (120s 21s) [CPU: 1.0% | MEM: 2.0%]" {
 		t.Errorf("FormatSpinnerLine with resource = %q", got)
 	}
 }

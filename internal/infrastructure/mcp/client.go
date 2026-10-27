@@ -28,6 +28,18 @@ type client struct {
 // handshake.
 const clientVersion = "0.1"
 
+// RemoteSpec names one remote MCP server connection (round 098; ADR 0068): the
+// endpoint, the resolved Authorization header, and the two bounding deadlines.
+// The retired positional form carried `url, authorization string` adjacently —
+// swapping them produced a valid (anonymous) connection to a URL made of a token.
+type RemoteSpec struct {
+	URL           string
+	Authorization string
+	// DiscoveryTimeout caps the connect/list phase; CallTimeout caps tool calls.
+	DiscoveryTimeout time.Duration
+	CallTimeout      time.Duration
+}
+
 // NewRemoteClient connects to a remote MCP server at url, adding the given
 // Authorization header (empty = anonymous) to every request, and returns the
 // tools.MCPClient adapter.
@@ -40,12 +52,12 @@ const clientVersion = "0.1"
 // timeout via SwitchToCallTimeout once discovery is complete, so ListTools stays
 // on the fast-fail bound while tool calls get the full resource-contract
 // timeout.
-func NewRemoteClient(ctx context.Context, url, authorization string, discoveryTimeout, callTimeout time.Duration) (domaintools.MCPClient, error) {
-	rt := &boundedTransport{base: http.DefaultTransport, authorization: authorization, timeout: discoveryTimeout}
+func NewRemoteClient(ctx context.Context, spec RemoteSpec) (domaintools.MCPClient, error) {
+	rt := &boundedTransport{base: http.DefaultTransport, authorization: spec.Authorization, timeout: spec.DiscoveryTimeout}
 	httpClient := &http.Client{Transport: rt}
 	c := sdk.NewClient(&sdk.Implementation{Name: "tellme", Version: clientVersion}, nil)
 	transport := &sdk.StreamableClientTransport{
-		Endpoint:   url,
+		Endpoint:   spec.URL,
 		HTTPClient: httpClient,
 		// request/response only: no persistent server→client SSE stream (keeps the
 		// connection short-lived and the discovery bound meaningful).
@@ -57,7 +69,7 @@ func NewRemoteClient(ctx context.Context, url, authorization string, discoveryTi
 	if err != nil {
 		return nil, fmt.Errorf("connect to MCP server: %w", err)
 	}
-	return &client{session: sess, rt: rt, callTimeout: callTimeout}, nil
+	return &client{session: sess, rt: rt, callTimeout: spec.CallTimeout}, nil
 }
 
 // UseCallTimeout moves the adapter's per-request deadline to the tool-call

@@ -60,7 +60,7 @@ func (getTree) Execute(ctx context.Context, arguments string, budget domaintools
 		maxDepth = 2
 	}
 	var sb strings.Builder
-	if err := buildTree(ctx, path, "", 0, maxDepth, &sb); err != nil {
+	if err := buildTree(ctx, treeSpec{out: &sb, maxDepth: maxDepth, dir: path}); err != nil {
 		if timedOut(ctx) {
 			return timeoutMarker, nil
 		}
@@ -74,34 +74,59 @@ func (getTree) Execute(ctx context.Context, arguments string, budget domaintools
 // depth == maxDepth are still listed, and only entries more than maxDepth levels
 // below the root are omitted (the reference's `depth > maxDepth` cut, round-021
 // Decision 3).
-func buildTree(ctx context.Context, dir, indent string, depth, maxDepth int, sb *strings.Builder) error {
-	if depth > maxDepth {
+func buildTree(ctx context.Context, spec treeSpec) error {
+	if spec.depth > spec.maxDepth {
 		return nil
 	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	entries, err := os.ReadDir(dir)
+	entries, err := os.ReadDir(spec.dir)
 	if err != nil {
 		return err
 	}
 	for i, e := range entries {
-		if err := writeTreeEntry(ctx, dir, e, i == len(entries)-1, indent, depth, maxDepth, sb); err != nil {
+		if err := writeTreeEntry(ctx, spec, e, i == len(entries)-1); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
+// treeSpec carries the tree walk's bound inputs and its current cursor (round
+// 098; ADR 0068): the output builder and the depth cut are invariant for the
+// whole walk; dir/indent/depth move with the recursion. The retired positional
+// form carried `dir, indent string` and `depth, maxDepth int` adjacently on every
+// frame — a swap silently truncated the tree instead of failing.
+type treeSpec struct {
+	out      *strings.Builder
+	maxDepth int
+
+	dir    string
+	indent string
+	depth  int
+}
+
+// descend returns the spec for one child directory.
+func (s treeSpec) descend(name, extraIndent string) treeSpec {
+	return treeSpec{
+		out:      s.out,
+		maxDepth: s.maxDepth,
+		dir:      filepath.Join(s.dir, name),
+		indent:   s.indent + extraIndent,
+		depth:    s.depth + 1,
+	}
+}
+
 // writeTreeEntry writes one connector line and, for a directory other than
 // `.git`, recurses into it.
-func writeTreeEntry(ctx context.Context, parent string, e os.DirEntry, isLast bool, indent string, depth, maxDepth int, sb *strings.Builder) error {
+func writeTreeEntry(ctx context.Context, spec treeSpec, e os.DirEntry, isLast bool) error {
 	connector, extra := treeConnectors(isLast)
-	sb.WriteString(indent + connector + e.Name() + "\n")
+	spec.out.WriteString(spec.indent + connector + e.Name() + "\n")
 	if !e.IsDir() || e.Name() == ".git" {
 		return nil
 	}
-	return buildTree(ctx, filepath.Join(parent, e.Name()), indent+extra, depth+1, maxDepth, sb)
+	return buildTree(ctx, spec.descend(e.Name(), extra))
 }
 
 // treeConnectors returns the connector glyph and the child-indent unit for an

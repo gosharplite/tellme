@@ -7,18 +7,18 @@ import (
 
 func TestComputeCost(t *testing.T) {
 	p := Pricing{Hit: 0.0028, Miss: 0.14, Comp: 0.28}
-	got := ComputeCost(p, 4, 6, 3, 2) // miss 4, hit 6, completion 3, thinking 2
+	got := ComputeCost(p, CostInputs{Miss: 4, Hit: 6, Completion: 3, Thinking: 2})
 	want := (4*0.14 + 6*0.0028 + (3+2)*0.28) / 1_000_000
 	if math.Abs(got-want) > 1e-15 {
 		t.Errorf("ComputeCost = %v, want %v", got, want)
 	}
-	if ComputeCost(p, 4, 6, 3, 5) <= ComputeCost(p, 4, 6, 3, 2) {
+	if ComputeCost(p, CostInputs{Miss: 4, Hit: 6, Completion: 3, Thinking: 5}) <= ComputeCost(p, CostInputs{Miss: 4, Hit: 6, Completion: 3, Thinking: 2}) {
 		t.Errorf("thinking tokens must be billed at the completion rate")
 	}
 }
 
 func TestComputeCostUnpricedIsZero(t *testing.T) {
-	if got := ComputeCost(Pricing{}, 4, 6, 3, 2); got != 0 {
+	if got := ComputeCost(Pricing{}, CostInputs{Miss: 4, Hit: 6, Completion: 3, Thinking: 2}); got != 0 {
 		t.Errorf("an un-priced model must cost 0, got %v", got)
 	}
 }

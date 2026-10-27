@@ -22,26 +22,26 @@ func TestHistoryModeHonoursConfigPath(t *testing.T) {
 
 	t.Setenv("TELL_ME_MODE", "")
 
-	got, err := historyMode(dir, cfg)
+	got, err := historyMode(sessionRef{home: dir, config: cfg})
 	if err != nil || got != "alpha" {
 		t.Fatalf("historyMode(-c a.yaml) = %q, %v; want alpha (the config's MODE)", got, err)
 	}
 
 	// The env override still wins over -c.
 	t.Setenv("TELL_ME_MODE", "gamma")
-	got, err = historyMode(dir, cfg)
+	got, err = historyMode(sessionRef{home: dir, config: cfg})
 	if err != nil || got != "gamma" {
 		t.Fatalf("historyMode with TELL_ME_MODE set = %q, %v; want gamma (env wins)", got, err)
 	}
 	t.Setenv("TELL_ME_MODE", "")
 
 	// An explicit `-c` that cannot be read is a hard error (Q2 → (A)).
-	if _, err := historyMode(dir, filepath.Join(dir, "configs", "missing.yaml")); err == nil {
+	if _, err := historyMode(sessionRef{home: dir, config: filepath.Join(dir, "configs", "missing.yaml")}); err == nil {
 		t.Fatal("an explicit missing -c must be an error, not a silent fallback")
 	}
 
 	// No -c and no default config degrades to butler (round-007 tolerance).
-	got, err = historyMode(dir, "")
+	got, err = historyMode(sessionRef{home: dir})
 	if err != nil || got != "butler" {
 		t.Fatalf("historyMode(no -c, no default) = %q, %v; want butler, nil", got, err)
 	}

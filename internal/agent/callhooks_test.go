@@ -35,11 +35,11 @@ type endRec struct {
 }
 
 func (o *recordingObserver) OnCallBegin(i int, m []llm.Message) {
-	o.begins = append(o.begins, beginRec{i, m})
+	o.begins = append(o.begins, beginRec{idx: i, msgs: m})
 }
 
 func (o *recordingObserver) OnCallEnd(i int, u llm.Usage, r []string, f bool) {
-	o.ends = append(o.ends, endRec{i, u, r, f})
+	o.ends = append(o.ends, endRec{idx: i, usage: u, reasons: r, final: f})
 }
 
 func (o *recordingObserver) OnInferenceStart()     {}
