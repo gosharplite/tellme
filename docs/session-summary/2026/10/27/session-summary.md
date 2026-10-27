@@ -114,6 +114,26 @@ So §Forward has now needed a compiler behind it **twice** in one round. That is
 deferral is a claim, and the place it is least likely to be checked is the place it is most likely to be
 wrong.
 
+### The fifth review round: a vacuous pin — the code was right, the evidence was not
+
+The last re-review kept its merge recommendation and found one thing: the pin for the container-bodied
+generic was **vacuous**. `selfTestUnkeyed` declared `type grid[T any] [][]pair` — a body that never
+mentions `T` — so the recursive substitution the fourth fold had added was **never on the path**. Reverting
+that code left the self-test **green**; the same mutant reds the moment the body is `[][]T`.
+
+Fixed, and then all three new pins were mutation-tested individually rather than assumed:
+
+| Mutation | Row that must go missing |
+| --- | --- |
+| revert `substitute`'s `*ast.ArrayType` case | 35 (grid) |
+| remove `stripType`'s `StarExpr` case | 34 (pointer) |
+| overwrite the substitution instead of composing it | 36 (chain) |
+
+This is the first fold in five where the **code** was correct and the **evidence** was not — and it is the
+cleanest statement of the round's own lesson, one level further in than the round had aimed: **a pin must
+be mutated against the code it claims to pin.** "The self-test covers this shape" is a claim like any
+other.
+
 ### Decisions locked (round 098)
 
 | # | Decision |

@@ -105,7 +105,8 @@ point: `f({1, 2})` is a **syntax error** (`expected operand, found '{'` — `go/
 (`missing type in composite literal`). Every position that *is* valid is pinned in the arm-(d) self-tests:
 the elided element/key/value shapes, the named and generic container forms, a **pointer to** a named
 container (`[]*table{{…}}` — the `&T` elision for a pointer element type), a generic whose **body is itself
-a container** (`type grid[T any] [][]T`), and a **chained** generic (`type chain[T any] gen[T]`); plus the
+a container** (`type grid[T any] [][]T` — the body must mention the parameter, or the substitution the pin
+exists for never runs), and a **chained** generic (`type chain[T any] gen[T]`); plus the
 negatives — a field-keyed literal, a cross-package named struct (`time.Time{}`) and a cross-package named
 container (`other.Table{{…}}`).
 
@@ -248,6 +249,14 @@ baseline is untouched, which is what **proves** the slice legal.
   so `[]T{{…}, {…}}` cannot read as a single literal. The red set sorts by `(file, line, name)` — the
   `name` tiebreak keeps two different struct types on one line out of map-iteration order, so the report
   and the allow-list file are deterministic.
+- **The fifth review found a VACUOUS PIN.** `selfTestUnkeyed` declared its container-bodied generic as
+  `type grid[T any] [][]pair` — a body that never mentions `T`, so the recursive substitution the fold had
+  just added was never on the path. Reverting `substitute`'s `*ast.ArrayType` case left the self-test
+  **green**; the same mutant reds the moment the body is `[][]T`. The shape is fixed, and all three new pins
+  are now mutation-verified individually (removing `stripType`'s `StarExpr` case reds the pointer row;
+  overwriting instead of composing the substitution reds the chained row). The lesson is the round's own,
+  one turn further in: **a pin must be mutated against the code it claims to pin** — "the test covers this
+  shape" is itself a claim, and this one was wrong while the code was right.
 - **The third and fourth reviews corrected §Forward itself — twice.** RF-068-3b v1 listed two elision
   shapes that cannot occur in a compiled tree (`f({1, 2})` is a **syntax error**; `Outer{Inner: {…}}` parses
   and is a **type-check error**) and omitted the real limit; v2 said "the ONE shape" while three

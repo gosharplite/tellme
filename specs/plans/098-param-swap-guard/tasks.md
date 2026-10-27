@@ -252,3 +252,21 @@ three newly attributed forms have zero instances on this tree.
 **The lesson, now recorded twice in this round:** §Forward is the last place anyone looks for an
 unwitnessed claim, and it has needed a compiler behind it twice. Every remaining limit in RF-068-3b now
 carries a measurement, and the shapes it excludes are pinned as **negatives** in the gate's own tests.
+
+---
+
+## Fifth fold — re-review of the fourth fold (2026-10-27; reviewer comment [`6436859675`](https://github.com/gosharplite/tellme/pull/211#issuecomment-6436859675))
+
+One finding, accepted — and it is the round's own thesis turned on the **witness** side, which is where it
+had not been pointed yet.
+
+| # | Finding | Disposition |
+| --- | --- | --- |
+| **1** | **The pin for the container-bodied generic was vacuous.** `selfTestUnkeyed` declared `type grid[T any] [][]pair` — a body that never mentions `T`, so the recursive `substitute` the fold had just added was never on the path. Reverting `substitute`'s `*ast.ArrayType` case left the self-test **green** | **Accepted, fixed.** The synthetic body is `[][]T`. Reproduced the reviewer's mutation table exactly, then went one step further and mutation-tested **all three** new pins individually — each now reds only its own row: revert the `ArrayType` case ⇒ row **35** (grid) missing; remove `stripType`'s `StarExpr` case ⇒ row **34** (pointer) missing; overwrite instead of compose the substitution ⇒ row **36** (chain) missing. |
+| **N** | `declaredContainers` records every non-struct, non-interface `TypeSpec`, so `type n int` / `type F func()` / aliases land in the map too | **Accepted as a comment, not a change.** Verified the reviewer's reasoning holds (resolution stops at a non-container body and `elemType` yields nil; struct bodies are skipped so the two maps are disjoint) and documented *why* the map is deliberately wider — narrowing it would buy nothing and would need a second pass for a chained generic. |
+
+**The lesson, recorded in ADR 0068 §Consequences:** *a pin must be mutated against the code it claims to
+pin.* "The self-test covers this shape" is itself a claim — and this one was false while the code was
+right, which is the **first** time in five folds that the code was correct and the evidence was not.
+
+**Figures unchanged** (`dev` `0231f64`: 46 sites, L 6; this tree: 0) — the fold is evidence-quality only.

@@ -503,6 +503,15 @@ func receiverName(fl *ast.FieldList) string {
 // Whole-file walk, like declaredStructs, so a function-local `type table []row`
 // counts. A named type from another package is never here — it is opaque by design
 // (resolving it needs that package's AST: RF-068-3b).
+//
+// The map is deliberately WIDER than its name: anything whose body is not a struct
+// or an interface is recorded, including `type n int`, `type F func()` and a
+// `type alias = []row`. That is safe rather than sloppy — resolution stops at the
+// first body that is not an array/slice/map, and elemType then yields nil, so a
+// non-container name can never attribute a literal. Narrowing it would buy nothing
+// and would need a second pass to resolve a chained `type a[T any] b[T]`. It also
+// cannot shadow a struct: struct bodies are skipped here and collected by
+// declaredStructs, so the two maps are disjoint by construction.
 func declaredContainers(parsed map[string]*ast.File) map[string]containerDecl {
 	out := map[string]containerDecl{}
 	for _, f := range parsed {
@@ -1356,7 +1365,7 @@ type genMap[K comparable, V any] map[K]V
 var namedGeneric = gen[pair]{{1, 2}}
 var namedGenericMap = genMap[string, pair]{"k": {1, 2}}
 
-type grid[T any] [][]pair
+type grid[T any] [][]T
 type chain[T any] gen[T]
 
 var namedPtrToContainer = []*table{{{1, 2}}}
